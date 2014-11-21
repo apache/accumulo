@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -45,14 +44,12 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -167,14 +164,14 @@ class CleanUp extends MasterRepo {
       // Intentionally do not pass master lock. If master loses lock, this operation may complete before master can kill itself.
       // If the master lock passed to deleteTable, it is possible that the delete mutations will be dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, SystemCredentials.get(), null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, master, null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
 
     // remove any problem reports the table may have
     try {
-      ProblemReports.getInstance().deleteProblemReports(tableId);
+      ProblemReports.getInstance(master).deleteProblemReports(tableId);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableId, e);
     }
@@ -215,7 +212,7 @@ class CleanUp extends MasterRepo {
 
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(master.getInstance()), tableId, namespaceId);
+      AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }
@@ -307,23 +304,21 @@ public class DeleteTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private String tableId, namespaceId;
+  private String tableId;
 
   public DeleteTable(String tableId) {
     this.tableId = tableId;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-
-    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
     environment.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);
@@ -331,6 +326,7 @@ public class DeleteTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
   }

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.MapCounter;
@@ -43,11 +42,9 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
@@ -142,7 +139,7 @@ class DatafileManager {
 
     if (filesToDelete.size() > 0) {
       log.debug("Removing scan refs from metadata " + tablet.getExtent() + " " + filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, SystemCredentials.get(), tablet.getTabletServer().getLock());
+      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getTabletServer(), tablet.getTabletServer().getLock());
     }
   }
 
@@ -163,7 +160,7 @@ class DatafileManager {
 
     if (filesToDelete.size() > 0) {
       log.debug("Removing scan refs from metadata " + tablet.getExtent() + " " + filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, SystemCredentials.get(), tablet.getTabletServer().getLock());
+      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getTabletServer(), tablet.getTabletServer().getLock());
     }
   }
 
@@ -243,10 +240,9 @@ class DatafileManager {
     }
 
     synchronized (bulkFileImportLock) {
-      Credentials creds = SystemCredentials.get();
       Connector conn;
       try {
-        conn = HdfsZooInstance.getInstance().getConnector(creds.getPrincipal(), creds.getToken());
+        conn = tablet.getTabletServer().getConnector();
       } catch (Exception ex) {
         throw new IOException(ex);
       }
@@ -394,7 +390,7 @@ class DatafileManager {
     // very important to write delete entries outside of log lock, because
     // this metadata write does not go up... it goes sideways or to itself
     if (absMergeFile != null)
-      MetadataTableUtil.addDeleteEntries(tablet.getExtent(), Collections.singleton(absMergeFile), SystemCredentials.get());
+      MetadataTableUtil.addDeleteEntries(tablet.getExtent(), Collections.singleton(absMergeFile), tablet.getTabletServer());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
     boolean replicate = ReplicationConfigurationUtil.isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
@@ -428,7 +424,7 @@ class DatafileManager {
         if (log.isDebugEnabled()) {
           log.debug("Recording that data has been ingested into " + tablet.getExtent() + " using " + logFileOnly);
         }
-        ReplicationTableUtil.updateFiles(SystemCredentials.get(), tablet.getExtent(), logFileOnly, StatusUtil.openWithUnknownLength());
+        ReplicationTableUtil.updateFiles(tablet.getTabletServer(), tablet.getExtent(), logFileOnly, StatusUtil.openWithUnknownLength());
       }
     } finally {
       tablet.finishClearingUnusedLogs();
@@ -497,8 +493,7 @@ class DatafileManager {
     majorCompactingFiles.clear();
   }
 
-  void bringMajorCompactionOnline(Set<FileRef> oldDatafiles, FileRef tmpDatafile, FileRef newDatafile, Long compactionId, DataFileValue dfv)
-      throws IOException {
+  void bringMajorCompactionOnline(Set<FileRef> oldDatafiles, FileRef tmpDatafile, FileRef newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
     final KeyExtent extent = tablet.getExtent();
     long t1, t2;
 
@@ -544,7 +539,8 @@ class DatafileManager {
         // rename the compacted map file, in case
         // the system goes down
 
-        RootFiles.replaceFiles(tablet.getTableConfiguration(), tablet.getTabletServer().getFileSystem(), tablet.getLocation(), oldDatafiles, tmpDatafile, newDatafile);
+        RootFiles.replaceFiles(tablet.getTableConfiguration(), tablet.getTabletServer().getFileSystem(), tablet.getLocation(), oldDatafiles, tmpDatafile,
+            newDatafile);
       }
 
       // atomically remove old files and add new file
@@ -579,8 +575,8 @@ class DatafileManager {
       Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
       if (filesInUseByScans.size() > 0)
         log.debug("Adding scan refs to metadata " + extent + " " + filesInUseByScans);
-      MasterMetadataUtil.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, SystemCredentials.get(),
-          tablet.getTabletServer().getClientAddressString(), lastLocation, tablet.getTabletServer().getLock());
+      MasterMetadataUtil.replaceDatafiles(tablet.getTabletServer(), extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, tablet
+          .getTabletServer().getClientAddressString(), lastLocation, tablet.getTabletServer().getLock());
       removeFilesAfterScan(filesInUseByScans);
     }
 

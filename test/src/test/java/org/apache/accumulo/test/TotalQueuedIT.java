@@ -24,17 +24,16 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
@@ -117,10 +116,11 @@ public class TotalQueuedIT extends ConfigurableMacIT {
 
   private long getSyncs() throws Exception {
     Connector c = getConnector();
-    Credentials credentials = new Credentials("root", new PasswordToken(ROOT_PASSWORD.getBytes()));
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(c.getInstance());
+    AccumuloServerContext context = new AccumuloServerContext(confFactory);
     for (String address : c.instanceOperations().getTabletServers()) {
-      TabletClientService.Client client = ThriftUtil.getTServerClient(address, DefaultConfiguration.getDefaultConfiguration());
-      TabletServerStatus status = client.getTabletServerStatus(null, credentials.toThrift(c.getInstance()));
+      TabletClientService.Client client = ThriftUtil.getTServerClient(address, context);
+      TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }
     return 0;

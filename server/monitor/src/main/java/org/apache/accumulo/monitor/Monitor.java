@@ -35,7 +35,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
@@ -78,6 +77,7 @@ import org.apache.accumulo.monitor.servlets.trace.ListType;
 import org.apache.accumulo.monitor.servlets.trace.ShowTrace;
 import org.apache.accumulo.monitor.servlets.trace.Summary;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -86,7 +86,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -165,6 +164,7 @@ public class Monitor {
   private static Instance instance;
 
   private static ServerConfigurationFactory config;
+  private static AccumuloServerContext context;
 
   private static EmbeddedWebServer server;
 
@@ -254,9 +254,9 @@ public class Monitor {
       while (retry) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnection(HdfsZooInstance.getInstance());
+          client = MasterClient.getConnection(context);
           if (client != null) {
-            mmi = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()));
+            mmi = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
             retry = false;
           } else {
             mmi = null;
@@ -352,7 +352,7 @@ public class Monitor {
         calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
       }
       try {
-        Monitor.problemSummary = ProblemReports.getInstance().summarize();
+        Monitor.problemSummary = ProblemReports.getInstance(getContext()).summarize();
         Monitor.problemException = null;
       } catch (Exception e) {
         log.info("Failed to obtain problem reports ", e);
@@ -387,9 +387,9 @@ public class Monitor {
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8)).getAddress(Service.GC_CLIENT);
-        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
+        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, new AccumuloServerContext(config));
         try {
-          result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
+          result = client.getStatus(Tracer.traceInfo(), getContext().rpcCreds());
         } finally {
           ThriftUtil.returnClient(client);
         }
@@ -412,6 +412,7 @@ public class Monitor {
     VolumeManager fs = VolumeManagerImpl.get();
     instance = HdfsZooInstance.getInstance();
     config = new ServerConfigurationFactory(instance);
+    context = new AccumuloServerContext(config);
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
     DistributedTrace.enable(hostname, app, config.getConfiguration());
@@ -477,7 +478,7 @@ public class Monitor {
     }
 
     if (null != hostname) {
-      LogService.startLogListener(Monitor.getSystemConfiguration(), instance.getInstanceID(), hostname);
+      LogService.startLogListener(Monitor.getContext().getConfiguration(), instance.getInstanceID(), hostname);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
@@ -535,11 +536,11 @@ public class Monitor {
   protected static void fetchScans() throws Exception {
     if (instance == null)
       return;
-    Connector c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+    Connector c = context.getConnector();
     for (String server : c.instanceOperations().getTabletServers()) {
-      Client tserver = ThriftUtil.getTServerClient(server, Monitor.getSystemConfiguration());
+      Client tserver = ThriftUtil.getTServerClient(server, context);
       try {
-        List<ActiveScan> scans = tserver.getActiveScans(null, SystemCredentials.get().toThrift(instance));
+        List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
         synchronized (allScans) {
           allScans.put(server, new ScanStats(scans));
         }
@@ -612,7 +613,7 @@ public class Monitor {
 
       monitorLock.tryToCancelAsyncLockOrUnlock();
 
-      UtilWaitThread.sleep(getSystemConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL));
+      UtilWaitThread.sleep(getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL));
     }
 
     log.info("Got Monitor lock.");
@@ -813,15 +814,11 @@ public class Monitor {
     }
   }
 
-  public static AccumuloConfiguration getSystemConfiguration() {
-    return config.getConfiguration();
-  }
-
-  public static Instance getInstance() {
-    return instance;
-  }
-
   public static boolean isUsingSsl() {
     return server.isUsingSsl();
+  }
+
+  public static AccumuloServerContext getContext() {
+    return context;
   }
 }

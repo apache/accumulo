@@ -24,6 +24,7 @@ import java.io.OutputStream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -113,6 +115,11 @@ public class ConfigurableMacIT extends AbstractMacIT {
   public String getMonitor() throws KeeperException, InterruptedException {
     Instance instance = new ZooKeeperInstance(getCluster().getClientConfig());
     return MonitorUtil.getLocation(instance);
+  }
+
+  @Override
+  protected ClientConfiguration getClientConfig() throws Exception {
+    return new ClientConfiguration(new PropertiesConfiguration(getCluster().getConfig().getClientConfFile()));
   }
 
 }

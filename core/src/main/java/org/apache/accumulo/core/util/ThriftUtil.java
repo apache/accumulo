@@ -38,12 +38,11 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
@@ -105,26 +104,25 @@ public class ThriftUtil {
     return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, AccumuloConfiguration conf)
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context)
       throws TTransportException {
-    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, conf));
+    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, context));
   }
 
-  static public <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, AccumuloConfiguration configuration)
+  static public <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, ClientContext context)
       throws TTransportException {
-    return getClient(factory, address, 0, configuration);
+    return getClient(factory, address, context, 0);
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property timeoutProperty,
-      AccumuloConfiguration configuration) throws TTransportException {
-    long timeout = configuration.getTimeInMillis(timeoutProperty);
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, SslConnectionParams.forClient(configuration));
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context)
+      throws TTransportException {
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, context.getClientTimeoutInMillis(), context);
     return createClient(factory, transport);
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, long timeout, AccumuloConfiguration configuration)
+  static private <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context, long timeout)
       throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, SslConnectionParams.forClient(configuration));
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, context);
     return createClient(factory, transport);
   }
 
@@ -134,20 +132,20 @@ public class ThriftUtil {
     }
   }
 
-  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf);
+  static public TabletClientService.Client getTServerClient(String address, ClientContext context) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, context);
   }
 
-  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf, long timeout) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, timeout, conf);
+  static public TabletClientService.Client getTServerClient(String address, ClientContext context, long timeout) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, context, timeout);
   }
 
-  public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
+  public static void execute(String address, ClientContext context, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
       TabletClientService.Client client = null;
       try {
-        exec.execute(client = getTServerClient(address, conf));
+        exec.execute(client = getTServerClient(address, context));
         break;
       } catch (TTransportException tte) {
         log.debug("getTServerClient request failed, retrying ... ", tte);
@@ -163,12 +161,12 @@ public class ThriftUtil {
     }
   }
 
-  public static <T> T execute(String address, AccumuloConfiguration conf, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
+  public static <T> T execute(String address, ClientContext context, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
       TabletClientService.Client client = null;
       try {
-        return exec.execute(client = getTServerClient(address, conf));
+        return exec.execute(client = getTServerClient(address, context));
       } catch (TTransportException tte) {
         log.debug("getTServerClient request failed, retrying ... ", tte);
         UtilWaitThread.sleep(100);
@@ -186,8 +184,8 @@ public class ThriftUtil {
   /**
    * create a transport that is not pooled
    */
-  public static TTransport createTransport(HostAndPort address, AccumuloConfiguration conf) throws TException {
-    return createClientTransport(address, (int) conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), SslConnectionParams.forClient(conf));
+  public static TTransport createTransport(HostAndPort address, ClientContext context) throws TException {
+    return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams());
   }
 
   public static TTransportFactory transportFactory() {

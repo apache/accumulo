@@ -38,10 +38,11 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
@@ -54,8 +55,8 @@ public class RandomizeVolumes {
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     Connector c;
     if (opts.getToken() == null) {
-      SystemCredentials creds = SystemCredentials.get();
-      c = opts.getInstance().getConnector(creds.getPrincipal(), creds.getToken());
+      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
+      c = context.getConnector();
     } else {
       c = opts.getConnector();
     }

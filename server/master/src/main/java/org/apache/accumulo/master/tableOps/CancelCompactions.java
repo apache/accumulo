@@ -19,14 +19,12 @@ package org.apache.accumulo.master.tableOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 class FinishCancelCompaction extends MasterRepo {
@@ -56,24 +54,22 @@ public class CancelCompactions extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
   private String tableId;
-  private String namespaceId;
 
   public CancelCompactions(String tableId) {
     this.tableId = tableId;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    String zCompactID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
+    String zCompactID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zCancelID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -101,6 +97,7 @@ public class CancelCompactions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, false);
   }

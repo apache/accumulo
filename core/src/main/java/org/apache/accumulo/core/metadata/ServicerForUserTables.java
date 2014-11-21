@@ -16,8 +16,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.client.impl.ClientContext;
 
 /**
  * A metadata servicer for user tables.<br />
@@ -25,8 +24,8 @@ import org.apache.accumulo.core.security.Credentials;
  */
 class ServicerForUserTables extends TableMetadataServicer {
   
-  public ServicerForUserTables(Instance instance, Credentials credentials, String tableId) {
-    super(instance, credentials, MetadataTable.NAME, tableId);
+  public ServicerForUserTables(ClientContext context, String tableId) {
+    super(context, MetadataTable.NAME, tableId);
   }
   
 }

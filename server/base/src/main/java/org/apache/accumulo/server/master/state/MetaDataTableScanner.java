@@ -28,9 +28,9 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
@@ -41,7 +41,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -52,14 +51,14 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
   BatchScanner mdScanner = null;
   Iterator<Entry<Key,Value>> iter = null;
   
-  public MetaDataTableScanner(Instance instance, Credentials credentials, Range range, CurrentState state) {
-    this(instance, credentials, range, state, MetadataTable.NAME);
+  public MetaDataTableScanner(ClientContext context, Range range, CurrentState state) {
+    this(context, range, state, MetadataTable.NAME);
   }
   
-  MetaDataTableScanner(Instance instance, Credentials credentials, Range range, CurrentState state, String tableName) {
+  MetaDataTableScanner(ClientContext context, Range range, CurrentState state, String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
-      Connector connector = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+      Connector connector = context.getConnector();
       mdScanner = connector.createBatchScanner(tableName, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
@@ -90,14 +89,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     scanner.addScanIterator(tabletChange);
   }
   
-  public MetaDataTableScanner(Instance instance, Credentials credentials, Range range) {
-    this(instance, credentials, range, MetadataTable.NAME);
+  public MetaDataTableScanner(ClientContext context, Range range) {
+    this(context, range, MetadataTable.NAME);
   }
   
-  public MetaDataTableScanner(Instance instance, Credentials credentials, Range range, String tableName) {
-    this(instance, credentials, range, null, tableName);
+  public MetaDataTableScanner(ClientContext context, Range range, String tableName) {
+    this(context, range, null, tableName);
   }
   
+  @Override
   public void close() {
     if (iter != null) {
       mdScanner.close();
@@ -145,13 +145,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       if (cf.compareTo(TabletsSection.FutureLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
-          throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location, entry.getKey().getRow());
+          throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location, entry.getKey()
+              .getRow());
         }
         future = location;
       } else if (cf.compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
-          throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location, entry.getKey().getRow());
+          throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location, entry.getKey()
+              .getRow());
         }
         current = location;
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {

@@ -30,11 +30,11 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -120,7 +121,7 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  private static int checkTable(Instance instance, String principal, AuthenticationToken token, String table, Range range, boolean fix) throws Exception {
+  private static int checkTable(ClientContext context, String table, Range range, boolean fix) throws Exception {
 
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
@@ -130,7 +131,7 @@ public class RemoveEntriesForMissingFiles {
     System.out.printf("Scanning : %s %s\n", table, range);
 
     VolumeManager fs = VolumeManagerImpl.get();
-    Connector connector = instance.getConnector(principal, token);
+    Connector connector = context.getConnector();
     Scanner metadata = connector.createScanner(table, Authorizations.EMPTY);
     metadata.setRange(range);
     metadata.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -182,24 +183,24 @@ public class RemoveEntriesForMissingFiles {
     return missing.get();
   }
 
-  static int checkAllTables(Instance instance, String principal, AuthenticationToken token, boolean fix) throws Exception {
-    int missing = checkTable(instance, principal, token, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+  static int checkAllTables(ClientContext context, boolean fix) throws Exception {
+    int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
 
     if (missing == 0)
-      return checkTable(instance, principal, token, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+      return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
     else
       return missing;
   }
 
-  static int checkTable(Instance instance, String principal, AuthenticationToken token, String tableName, boolean fix) throws Exception {
+  static int checkTable(ClientContext context, String tableName, boolean fix) throws Exception {
     if (tableName.equals(RootTable.NAME)) {
       throw new IllegalArgumentException("Can not check root table");
     } else if (tableName.equals(MetadataTable.NAME)) {
-      return checkTable(instance, principal, token, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+      return checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
     } else {
-      String tableId = Tables.getTableId(instance, tableName);
+      String tableId = Tables.getTableId(context.getInstance(), tableName);
       Range range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-      return checkTable(instance, principal, token, MetadataTable.NAME, range, fix);
+      return checkTable(context, MetadataTable.NAME, range, fix);
     }
   }
 
@@ -209,6 +210,6 @@ public class RemoveEntriesForMissingFiles {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
 
-    checkAllTables(opts.getInstance(), opts.principal, opts.getToken(), opts.fix);
+    checkAllTables(new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), ClientConfiguration.loadDefault()), opts.fix);
   }
 }

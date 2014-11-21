@@ -17,35 +17,33 @@
 package org.apache.accumulo.core.metadata;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.security.Credentials;
 
 /**
  * Provides a consolidated API for handling table metadata
  */
 public abstract class MetadataServicer {
   
-  public static MetadataServicer forTableName(Instance instance, Credentials credentials, String tableName) throws AccumuloException, AccumuloSecurityException {
+  public static MetadataServicer forTableName(ClientContext context, String tableName) throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
-    return forTableId(instance, credentials, conn.tableOperations().tableIdMap().get(tableName));
+    return forTableId(context, context.getConnector().tableOperations().tableIdMap().get(tableName));
   }
   
-  public static MetadataServicer forTableId(Instance instance, Credentials credentials, String tableId) {
+  public static MetadataServicer forTableId(ClientContext context, String tableId) {
     checkArgument(tableId != null, "tableId is null");
     if (RootTable.ID.equals(tableId))
-      return new ServicerForRootTable(instance, credentials);
+      return new ServicerForRootTable(context);
     else if (MetadataTable.ID.equals(tableId))
-      return new ServicerForMetadataTable(instance, credentials);
+      return new ServicerForMetadataTable(context);
     else
-      return new ServicerForUserTables(instance, credentials, tableId);
+      return new ServicerForUserTables(context, tableId);
   }
   
   /**

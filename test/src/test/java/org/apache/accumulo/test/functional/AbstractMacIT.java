@@ -24,6 +24,7 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -157,4 +158,7 @@ public abstract class AbstractMacIT {
   public abstract Connector getConnector() throws AccumuloException, AccumuloSecurityException;
 
   public abstract String rootPath();
+
+  protected abstract ClientConfiguration getClientConfig() throws Exception;
+
 }

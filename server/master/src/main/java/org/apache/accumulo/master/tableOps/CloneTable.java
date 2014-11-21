@@ -20,7 +20,6 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -35,7 +34,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.log4j.Logger;
@@ -114,17 +112,16 @@ class CloneMetadata extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     Logger.getLogger(CloneMetadata.class).info(
         String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName, cloneInfo.tableId, cloneInfo.srcTableId));
-    Instance instance = HdfsZooInstance.getInstance();
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
-    MetadataTableUtil.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId, environment.getFileSystem());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment, environment.getMasterLock());
+    MetadataTableUtil.cloneTable(environment, cloneInfo.srcTableId, cloneInfo.tableId, environment.getFileSystem());
     return new FinishCloneTable(cloneInfo);
   }
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment, environment.getMasterLock());
   }
 
 }
@@ -137,8 +134,7 @@ class CloneZookeeper extends MasterRepo {
 
   public CloneZookeeper(CloneInfo cloneInfo) throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(inst, Tables.qualify(this.cloneInfo.tableName).getFirst());
+    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(), Tables.qualify(this.cloneInfo.tableName).getFirst());
   }
 
   @Override
@@ -155,13 +151,12 @@ class CloneZookeeper extends MasterRepo {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Instance instance = HdfsZooInstance.getInstance();
 
-      Utils.checkTableDoesNotExist(instance, cloneInfo.tableName, cloneInfo.tableId, TableOperation.CLONE);
+      Utils.checkTableDoesNotExist(environment.getInstance(), cloneInfo.tableName, cloneInfo.tableId, TableOperation.CLONE);
 
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
-      Tables.clearCache(instance);
+      Tables.clearCache(environment.getInstance());
 
       return new CloneMetadata(cloneInfo);
     } finally {
@@ -171,12 +166,11 @@ class CloneZookeeper extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(cloneInfo.tableId);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveNamespace(cloneInfo.namespaceId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
-    Tables.clearCache(instance);
+    Tables.clearCache(environment.getInstance());
   }
 
 }
@@ -201,7 +195,7 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance().grantTablePermission(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.user,
+        AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user,
             cloneInfo.tableId, permission, cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
@@ -222,7 +216,7 @@ class ClonePermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.tableId, cloneInfo.namespaceId);
+    AuditedSecurityOperation.getInstance(environment).deleteTable(environment.rpcCreds(), cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }
 
@@ -238,8 +232,7 @@ public class CloneTable extends MasterRepo {
     cloneInfo.tableName = tableName;
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
-    Instance inst = HdfsZooInstance.getInstance();
-    cloneInfo.srcNamespaceId = Tables.getNamespaceId(inst, cloneInfo.srcTableId);
+    cloneInfo.srcNamespaceId = Tables.getNamespaceId(HdfsZooInstance.getInstance(), cloneInfo.srcTableId);
   }
 
   @Override
@@ -254,8 +247,7 @@ public class CloneTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      Instance instance = HdfsZooInstance.getInstance();
-      cloneInfo.tableId = Utils.getNextTableId(cloneInfo.tableName, instance);
+      cloneInfo.tableId = Utils.getNextTableId(cloneInfo.tableName, environment.getInstance());
       return new ClonePermissions(cloneInfo);
     } finally {
       Utils.idLock.unlock();

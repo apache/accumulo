@@ -37,6 +37,7 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -108,6 +109,8 @@ public class CollectTabletStats {
     
     Instance instance = opts.getInstance();
     final ServerConfigurationFactory sconf = new ServerConfigurationFactory(instance);
+    Credentials creds = new Credentials(opts.principal, opts.getToken());
+    ClientContext context = new ClientContext(instance, creds, sconf.getConfiguration());
     
     String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());
     if (tableId == null) {
@@ -116,8 +119,7 @@ public class CollectTabletStats {
     }
     
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
-    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, new Credentials(opts.principal, opts.getToken()), opts.getTableName(), instance,
-        tabletLocations);
+    List<KeyExtent> candidates = findTablets(context, !opts.selectFarTablets, opts.getTableName(), tabletLocations);
     
     if (candidates.size() < opts.numThreads) {
       System.err.println("ERROR : Unable to find " + opts.numThreads + " " + (opts.selectFarTablets ? "far" : "local") + " tablets");
@@ -129,7 +131,7 @@ public class CollectTabletStats {
     Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<KeyExtent,List<FileRef>>();
     
     for (KeyExtent ke : tabletsToTest) {
-      List<FileRef> files = getTabletFiles(new Credentials(opts.principal, opts.getToken()), opts.getInstance(), tableId, ke);
+      List<FileRef> files = getTabletFiles(context, tableId, ke);
       tabletFiles.put(ke, files);
     }
     
@@ -343,11 +345,11 @@ public class CollectTabletStats {
     
   }
   
-  private static List<KeyExtent> findTablets(boolean selectLocalTablets, Credentials credentials, String tableName, Instance zki,
+  private static List<KeyExtent> findTablets(ClientContext context, boolean selectLocalTablets, String tableName,
       SortedMap<KeyExtent,String> tabletLocations) throws Exception {
     
-    String tableId = Tables.getNameToIdMap(zki).get(tableName);
-    MetadataServicer.forTableId(zki, credentials, tableId).getTabletLocations(tabletLocations);
+    String tableId = Tables.getNameToIdMap(context.getInstance()).get(tableName);
+    MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
     
     InetAddress localaddress = InetAddress.getLocalHost();
     
@@ -381,8 +383,8 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
   
-  private static List<FileRef> getTabletFiles(Credentials credentials, Instance zki, String tableId, KeyExtent ke) throws IOException {
-    return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, credentials).keySet());
+  private static List<FileRef> getTabletFiles(ClientContext context, String tableId, KeyExtent ke) throws IOException {
+    return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 
   //TODO Remove deprecation warning suppression when Hadoop1 support is dropped

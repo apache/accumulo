@@ -31,13 +31,12 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -184,7 +183,8 @@ public class VolumeUtil {
    * This method does two things. First, it switches any volumes a tablet is using that are configured in instance.volumes.replacements. Second, if a tablet dir
    * is no longer configured for use it chooses a new tablet directory.
    */
-  public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate) throws IOException {
+  public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles,
+      boolean replicate) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
     log.trace("Using volume replacements: " + replacements);
 
@@ -235,26 +235,26 @@ public class VolumeUtil {
     }
 
     if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null) {
-      Credentials creds = SystemCredentials.get();
-      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, creds);
+      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, context);
       if (replicate) {
         Status status = StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
         for (LogEntry logEntry : logsToRemove) {
-          ReplicationTableUtil.updateFiles(creds, extent, logEntry.logSet, status);
+          ReplicationTableUtil.updateFiles(context, extent, logEntry.logSet, status);
         }
       }
     }
 
-    ret.dir = decommisionedTabletDir(zooLock, vm, extent, tabletDir);
+    ret.dir = decommisionedTabletDir(context, zooLock, vm, extent, tabletDir);
 
     // method this should return the exact strings that are in the metadata table
     return ret;
 
   }
 
-  private static String decommisionedTabletDir(ZooLock zooLock, VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
+  private static String decommisionedTabletDir(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, String metaDir)
+      throws IOException {
     Path dir = new Path(metaDir);
     if (isActiveVolume(dir))
       return metaDir;
@@ -309,7 +309,7 @@ public class VolumeUtil {
 
       return newDir.toString();
     } else {
-      MetadataTableUtil.updateTabletDir(extent, newDir.toString(), SystemCredentials.get(), zooLock);
+      MetadataTableUtil.updateTabletDir(extent, newDir.toString(), context, zooLock);
       return newDir.toString();
     }
   }

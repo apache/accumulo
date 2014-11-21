@@ -53,7 +53,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -70,10 +69,9 @@ class CompactionDriver extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private long compactId;
-  private String tableId;
+  private final String tableId;
   private byte[] startRow;
   private byte[] endRow;
-  private String namespaceId;
 
   public CompactionDriver(long compactId, String tableId, byte[] startRow, byte[] endRow) {
 
@@ -81,14 +79,12 @@ class CompactionDriver extends MasterRepo {
     this.tableId = tableId;
     this.startRow = startRow;
     this.endRow = endRow;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
+    String zCancelID = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -191,7 +187,8 @@ class CompactionDriver extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    CompactRange.removeIterators(tid, tableId);
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+    CompactRange.removeIterators(environment, tid, tableId);
     Utils.getReadLock(tableId, tid).unlock();
     Utils.getReadLock(namespaceId, tid).unlock();
     return null;
@@ -207,11 +204,10 @@ class CompactionDriver extends MasterRepo {
 public class CompactRange extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private String tableId;
+  private final String tableId;
   private byte[] startRow;
   private byte[] endRow;
   private byte[] iterators;
-  private String namespaceId;
 
   public static class CompactionIterators implements Writable {
     byte[] startRow;
@@ -295,8 +291,6 @@ public class CompactRange extends MasterRepo {
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
 
     if (iterators.size() > 0) {
       this.iterators = WritableUtils.toByteArray(new CompactionIterators(this.startRow, this.endRow, iterators));
@@ -311,13 +305,14 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT)
         + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
   }
 
   @Override
   public Repo<Master> call(final long tid, Master environment) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte[] cid;
@@ -361,8 +356,8 @@ public class CompactRange extends MasterRepo {
 
   }
 
-  static void removeIterators(final long txid, String tableId) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+  static void removeIterators(Master environment, final long txid, String tableId) throws Exception {
+    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
@@ -391,8 +386,9 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     try {
-      removeIterators(tid, tableId);
+      removeIterators(environment, tid, tableId);
     } finally {
       Utils.unreserveNamespace(namespaceId, tid, false);
       Utils.unreserveTable(tableId, tid, false);

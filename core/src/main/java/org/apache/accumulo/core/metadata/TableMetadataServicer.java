@@ -23,15 +23,14 @@ import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -39,14 +38,12 @@ import org.apache.hadoop.io.Text;
  */
 abstract class TableMetadataServicer extends MetadataServicer {
   
-  private Instance instance;
-  private Credentials credentials;
+  private final ClientContext context;
   private String tableIdBeingServiced;
   private String serviceTableName;
   
-  public TableMetadataServicer(Instance instance, Credentials credentials, String serviceTableName, String tableIdBeingServiced) {
-    this.instance = instance;
-    this.credentials = credentials;
+  public TableMetadataServicer(ClientContext context, String serviceTableName, String tableIdBeingServiced) {
+    this.context = context;
     this.serviceTableName = serviceTableName;
     this.tableIdBeingServiced = tableIdBeingServiced;
   }
@@ -63,7 +60,7 @@ abstract class TableMetadataServicer extends MetadataServicer {
   @Override
   public void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(getServicingTableName(), Authorizations.EMPTY);
+    Scanner scanner = context.getConnector().createScanner(getServicingTableName(), Authorizations.EMPTY);
     
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
@@ -39,7 +40,8 @@ public class TableOperationsImplTest {
     Instance instance = EasyMock.createMock(Instance.class);
     Credentials credentials = EasyMock.createMock(Credentials.class);
 
-    TableOperationsImpl topsImpl = new TableOperationsImpl(instance, credentials);
+    ClientContext context = new ClientContext(instance, credentials, new ClientConfiguration());
+    TableOperationsImpl topsImpl = new TableOperationsImpl(context);
 
     Connector connector = EasyMock.createMock(Connector.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
@@ -78,7 +80,7 @@ public class TableOperationsImplTest {
 
     EasyMock.replay(instance, credentials, connector, scanner);
 
-    topsImpl.createMetadataScanner(instance, credentials, tableName, range);
+    topsImpl.createMetadataScanner(tableName, range);
 
     EasyMock.verify(instance, credentials, connector, scanner);
   }

@@ -17,18 +17,17 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -46,8 +45,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // hopefully, we can track all the state in the scanner on the client
   // and just query for the next highest row from the tablet server
   
-  private Instance instance;
-  private Credentials credentials;
+  private final ClientContext context;
   private Authorizations authorizations;
   private Text table;
   
@@ -57,13 +55,11 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   
-  public ScannerImpl(Instance instance, Credentials credentials, String table, Authorizations authorizations) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+  public ScannerImpl(ClientContext context, String table, Authorizations authorizations) {
+    checkArgument(context != null, "context is null");
     checkArgument(table != null, "table is null");
     checkArgument(authorizations != null, "authorizations is null");
-    this.instance = instance;
-    this.credentials = credentials;
+    this.context = context;
     this.table = new Text(table);
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
@@ -101,7 +97,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
    */
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
+    return new ScannerIterator(context, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
   
   @Override

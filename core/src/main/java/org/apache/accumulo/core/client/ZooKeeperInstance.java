@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -135,6 +136,7 @@ public class ZooKeeperInstance implements Instance {
   public ZooKeeperInstance(Configuration config) {
     this(config, new ZooCacheFactory());
   }
+
   ZooKeeperInstance(Configuration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
     if (config instanceof ClientConfiguration) {
@@ -236,22 +238,13 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, new Credentials(principal, token));
+    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), clientConf));
   }
 
   @Override
   @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, new PasswordToken(pass));
-  }
-
-  /**
-   * Used for retrieving the clientConfiguration which was provided (if any); should not be considered public API.
-   */
-  @Deprecated
-  public final Configuration getClientConfiguration() {
-    // TODO ACCUMULO-3199
-    return clientConf;
   }
 
   /**

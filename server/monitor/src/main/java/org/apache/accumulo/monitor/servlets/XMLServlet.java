@@ -33,7 +33,6 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.celltypes.TServerLinkType;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
@@ -127,7 +126,7 @@ public class XMLServlet extends BasicServlet {
     sb.append("\n</deadLoggers>\n");
     
     sb.append("\n<tables>\n");
-    Instance instance = HdfsZooInstance.getInstance();
+    Instance instance = Monitor.getContext().getInstance();
     for (Entry<String,TableInfo> entry : tableStats.entrySet()) {
       TableInfo tableInfo = entry.getValue();
       

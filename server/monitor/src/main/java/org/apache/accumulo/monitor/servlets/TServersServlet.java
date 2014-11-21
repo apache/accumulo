@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -50,7 +51,6 @@ import org.apache.accumulo.monitor.util.celltypes.ProgressChartType;
 import org.apache.accumulo.monitor.util.celltypes.TServerLinkType;
 import org.apache.accumulo.monitor.util.celltypes.TableLinkType;
 import org.apache.accumulo.server.master.state.TabletServerState;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
@@ -124,12 +124,13 @@ public class TServersServlet extends BasicServlet {
     TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<TabletStats>();
     try {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
+      ClientContext context = Monitor.getContext();
+      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
-          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(Monitor.getInstance()), tableId));
+          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId));
         }
-        historical = client.getHistoricalStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(Monitor.getInstance()));
+        historical = client.getHistoricalStats(Tracer.traceInfo(), context.rpcCreds());
       } finally {
         ThriftUtil.returnClient(client);
       }

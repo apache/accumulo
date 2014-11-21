@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -43,23 +42,22 @@ import org.apache.log4j.Logger;
 
 public class RootTabletLocator extends TabletLocator {
   
-  private final Instance instance;
   private final TabletServerLockChecker lockChecker;
   private final ZooCacheFactory zcf;
   
-  RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker) {
-    this(instance, lockChecker, new ZooCacheFactory());
+  RootTabletLocator(TabletServerLockChecker lockChecker) {
+    this(lockChecker, new ZooCacheFactory());
   }
-  RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker, ZooCacheFactory zcf) {
-    this.instance = instance;
+
+  RootTabletLocator(TabletServerLockChecker lockChecker, ZooCacheFactory zcf) {
     this.lockChecker = lockChecker;
     this.zcf = zcf;
   }
   
   @Override
-  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    TabletLocation rootTabletLocation = getRootTabletLocation();
+    TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       TabletServerMutations<T> tsm = new TabletServerMutations<T>(rootTabletLocation.tablet_session);
       for (T mutation : mutations) {
@@ -72,10 +70,10 @@ public class RootTabletLocator extends TabletLocator {
   }
   
   @Override
-  public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+  public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     
-    TabletLocation rootTabletLocation = getRootTabletLocation();
+    TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
         TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.tablet_location, RootTable.EXTENT, range);
@@ -92,7 +90,7 @@ public class RootTabletLocator extends TabletLocator {
   public void invalidateCache(Collection<KeyExtent> keySet) {}
   
   @Override
-  public void invalidateCache(String server) {
+  public void invalidateCache(Instance instance, String server) {
     ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
@@ -101,7 +99,8 @@ public class RootTabletLocator extends TabletLocator {
   @Override
   public void invalidateCache() {}
   
-  protected TabletLocation getRootTabletLocation() {
+  protected TabletLocation getRootTabletLocation(ClientContext context) {
+    Instance instance = context.getInstance();
     String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
     ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     
@@ -122,13 +121,13 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    TabletLocation location = getRootTabletLocation();
+    TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {
       UtilWaitThread.sleep(500);
-      location = getRootTabletLocation();
+      location = getRootTabletLocation(context);
     }
     
     return location;

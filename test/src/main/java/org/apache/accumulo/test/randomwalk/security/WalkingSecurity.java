@@ -40,6 +40,9 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -74,12 +77,12 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
 
   private static WalkingSecurity instance = null;
 
-  public WalkingSecurity(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
-    super(author, authent, pm, instanceId);
+  public WalkingSecurity(AccumuloServerContext context, Authorizor author, Authenticator authent, PermissionHandler pm) {
+    super(context, author, authent, pm);
   }
 
   public WalkingSecurity(State state2, Environment env2) {
-    super(env2.getInstance().getInstanceID());
+    super(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())));
     this.state = state2;
     this.env = env2;
     authorizor = this;

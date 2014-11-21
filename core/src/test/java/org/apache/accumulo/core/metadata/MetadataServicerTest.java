@@ -23,9 +23,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Credentials;
@@ -47,36 +49,37 @@ public class MetadataServicerTest {
     connector.tableOperations().create(userTableName);
     String userTableId = connector.tableOperations().tableIdMap().get(userTableName);
     Credentials credentials = new Credentials("root", new PasswordToken(""));
+    ClientContext context = new ClientContext(instance, credentials, new ClientConfiguration());
     
-    MetadataServicer ms = MetadataServicer.forTableId(instance, credentials, RootTable.ID);
+    MetadataServicer ms = MetadataServicer.forTableId(context, RootTable.ID);
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);
     assertEquals(RootTable.ID, ms.getServicedTableId());
     
-    ms = MetadataServicer.forTableId(instance, credentials, MetadataTable.ID);
+    ms = MetadataServicer.forTableId(context, MetadataTable.ID);
     assertTrue(ms instanceof ServicerForMetadataTable);
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(MetadataTable.ID, ms.getServicedTableId());
     
-    ms = MetadataServicer.forTableId(instance, credentials, userTableId);
+    ms = MetadataServicer.forTableId(context, userTableId);
     assertTrue(ms instanceof ServicerForUserTables);
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(userTableId, ms.getServicedTableId());
     
-    ms = MetadataServicer.forTableName(instance, credentials, RootTable.NAME);
+    ms = MetadataServicer.forTableName(context, RootTable.NAME);
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);
     assertEquals(RootTable.ID, ms.getServicedTableId());
     
-    ms = MetadataServicer.forTableName(instance, credentials, MetadataTable.NAME);
+    ms = MetadataServicer.forTableName(context, MetadataTable.NAME);
     assertTrue(ms instanceof ServicerForMetadataTable);
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(MetadataTable.ID, ms.getServicedTableId());
     
-    ms = MetadataServicer.forTableName(instance, credentials, userTableName);
+    ms = MetadataServicer.forTableName(context, userTableName);
     assertTrue(ms instanceof ServicerForUserTables);
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());

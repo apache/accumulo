@@ -27,6 +27,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -77,13 +78,14 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     c.tableOperations().flush("test_ingest", null, null, false);
     UtilWaitThread.sleep(45 * 1000);
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+    ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
 
     MasterMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
+        client = MasterClient.getConnectionWithRetry(context);
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

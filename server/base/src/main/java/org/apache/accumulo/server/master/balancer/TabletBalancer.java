@@ -31,11 +31,11 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -48,15 +48,18 @@ public abstract class TabletBalancer {
   
   protected ServerConfigurationFactory configuration;
   
+  protected AccumuloServerContext context;
+
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the configuration.
    */
   public void init(ServerConfigurationFactory conf) {
+    context = new AccumuloServerContext(conf);
     configuration = conf;
   }
 
   public void init(ServerConfiguration conf) {
-    configuration = (ServerConfigurationFactory)conf;
+    init((ServerConfigurationFactory) conf);
   }
 
   /**
@@ -191,11 +194,9 @@ public abstract class TabletBalancer {
    */
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server " + tserver + " for table " + tableId);
-    Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), configuration.getConfiguration());
+    Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), context);
     try {
-      List<TabletStats> onlineTabletsForTable = client.getTabletStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(configuration.getInstance()),
-          tableId);
-      return onlineTabletsForTable;
+      return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId);
     } catch (TTransportException e) {
       log.error("Unable to connect to " + tserver + ": " + e);
     } finally {

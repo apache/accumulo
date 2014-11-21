@@ -43,7 +43,7 @@ public class LogServlet extends BasicServlet {
   
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-    AccumuloConfiguration conf = Monitor.getSystemConfiguration();
+    AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     boolean clear = true;
     final String dateFormatStr = conf.get(Property.MONITOR_LOG_DATE_FORMAT);
     SimpleDateFormat fmt;

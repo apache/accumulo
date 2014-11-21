@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -40,7 +39,6 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -56,8 +54,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   // scanner state
   private Iterator<KeyValue> iter;
   private ScanState scanState;
-  private Credentials credentials;
-  private Instance instance;
   
   private ScannerOptions options;
   
@@ -81,7 +77,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       
       try {
         while (true) {
-          List<KeyValue> currentBatch = ThriftScanner.scan(instance, credentials, scanState, timeOut, ClientConfigurationHelper.getClientRpcConfiguration(instance));
+          List<KeyValue> currentBatch = ThriftScanner.scan(scanState.context, scanState, timeOut);
           
           if (currentBatch == null) {
             synchQ.add(EMPTY_LIST);
@@ -123,17 +119,15 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     
   }
   
-  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
-      ScannerOptions options, boolean isolated) {
-    this(instance, credentials, table, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
+  ScannerIterator(ClientContext context, Text table, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
+      boolean isolated) {
+    this(context, table, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
   }
   
-  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
-      ScannerOptions options, boolean isolated, long readaheadThreshold) {
-    this.instance = instance;
+  ScannerIterator(ClientContext context, Text table, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
+      boolean isolated, long readaheadThreshold) {
     this.tableId = new Text(table);
     this.timeOut = timeOut;
-    this.credentials = credentials;
     this.readaheadThreshold = readaheadThreshold;
     
     this.options = new ScannerOptions(options);
@@ -144,7 +138,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
     
-    scanState = new ScanState(instance, credentials, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
+    scanState = new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
         options.serverSideIteratorOptions, isolated, readaheadThreshold);
     
     // If we want to start readahead immediately, don't wait for hasNext to be called

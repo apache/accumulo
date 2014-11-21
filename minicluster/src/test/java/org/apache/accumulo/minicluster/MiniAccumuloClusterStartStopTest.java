@@ -16,35 +16,52 @@
  */
 package org.apache.accumulo.minicluster;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 public class MiniAccumuloClusterStartStopTest {
   
-  public TemporaryFolder folder = new TemporaryFolder();
+  private static final Logger log = Logger.getLogger(MiniAccumuloClusterStartStopTest.class);
+  private File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
+  private MiniAccumuloCluster accumulo;
+
+  @Rule
+  public TestName testName = new TestName();
   
   @Before
-  public void createMacDir() throws IOException {
-    folder.create();
+  public void setupTestCluster() throws IOException {
+    baseDir.mkdirs();
+    File testDir = new File(baseDir, testName.getMethodName());
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
+    accumulo = new MiniAccumuloCluster(testDir, "superSecret");
   }
   
   @After
-  public void deleteMacDir() {
-    folder.delete();
+  public void teardownTestCluster() {
+    if (accumulo != null) {
+      try {
+        accumulo.stop();
+      } catch (IOException | InterruptedException e) {
+        log.warn("Failure during tear down", e);
+      }
+    }
   }
   
   @Test
   public void multipleStartsThrowsAnException() throws Exception {
-    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-
     // In 1.6.0, multiple start's did not throw an exception as advertised
-    try {
       accumulo.start();
+    try {
       accumulo.start();
     } finally {
       accumulo.stop();
@@ -53,7 +70,6 @@ public class MiniAccumuloClusterStartStopTest {
   
   @Test
   public void multipleStopsIsAllowed() throws Exception {
-    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
     accumulo.start();
 
     Connector conn = accumulo.getConnector("root", "superSecret");

@@ -19,6 +19,8 @@ package org.apache.accumulo.server.master.state;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.accumulo.server.AccumuloServerContext;
+
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  * 
@@ -57,26 +59,26 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    */
   abstract public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException;
   
-  public static void unassign(TabletLocationState tls) throws DistributedStoreException {
+  public static void unassign(AccumuloServerContext context, TabletLocationState tls) throws DistributedStoreException {
     TabletStateStore store;
     if (tls.extent.isRootTablet()) {
       store = new ZooTabletStateStore();
     } else if (tls.extent.isMeta()) {
-      store = new RootTabletStateStore();
+      store = new RootTabletStateStore(context);
     } else {
-      store = new MetaDataStateStore();
+      store = new MetaDataStateStore(context);
     }
     store.unassign(Collections.singletonList(tls));
   }
   
-  public static void setLocation(Assignment assignment) throws DistributedStoreException {
+  public static void setLocation(AccumuloServerContext context, Assignment assignment) throws DistributedStoreException {
     TabletStateStore store;
     if (assignment.tablet.isRootTablet()) {
       store = new ZooTabletStateStore();
     } else if (assignment.tablet.isMeta()) {
-      store = new RootTabletStateStore();
+      store = new RootTabletStateStore(context);
     } else {
-      store = new MetaDataStateStore();
+      store = new MetaDataStateStore(context);
     }
     store.setLocations(Collections.singletonList(assignment));
   }

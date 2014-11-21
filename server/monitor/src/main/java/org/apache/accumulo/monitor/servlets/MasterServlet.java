@@ -42,7 +42,6 @@ import org.apache.accumulo.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.monitor.util.celltypes.ProgressChartType;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.Level;
@@ -55,13 +54,13 @@ public class MasterServlet extends BasicServlet {
   
   @Override
   protected String getTitle(HttpServletRequest req) {
-    List<String> masters = Monitor.getInstance().getMasterLocations();
+    List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
     return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHostText());
   }
   
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
+    Map<String,String> tidToNameMap = Tables.getIdToNameMap(Monitor.getContext().getInstance());
     
     doLogEventBanner(sb);
     TablesServlet.doProblemsBanner(sb);
@@ -107,7 +106,7 @@ public class MasterServlet extends BasicServlet {
           long diff = System.currentTimeMillis() - start;
           gcStatus = label + " " + DateFormat.getInstance().format(new Date(start));
           gcStatus = gcStatus.replace(" ", "&nbsp;");
-          long normalDelay = Monitor.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+          long normalDelay = Monitor.getContext().getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
           if (diff > normalDelay * 2)
             gcStatus = "<span class='warning'>" + gcStatus + "</span>";
         }
@@ -129,7 +128,7 @@ public class MasterServlet extends BasicServlet {
       for (DeadServer down : Monitor.getMmi().deadTabletServers) {
         slaves.add(down.server);
       }
-      List<String> masters = Monitor.getInstance().getMasterLocations();
+      List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
       
       Table masterStatus = new Table("masterStatus", "Master&nbsp;Status");
       masterStatus.addSortableColumn("Master", new StringType<String>(), "The hostname of the master server");

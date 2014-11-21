@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -154,7 +155,7 @@ public class HdfsZooInstance implements Instance {
 
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, new Credentials(principal, token));
+    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), SiteConfiguration.getInstance()));
   }
 
   @Deprecated

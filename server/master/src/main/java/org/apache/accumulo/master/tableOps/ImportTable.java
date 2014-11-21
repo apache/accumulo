@@ -59,11 +59,9 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -335,7 +333,7 @@ class PopulateMetadataTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment, environment.getMasterLock());
   }
 }
 
@@ -483,7 +481,7 @@ class ImportPopulateZookeeper extends MasterRepo {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Instance instance = HdfsZooInstance.getInstance();
+      Instance instance = env.getInstance();
 
       Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
 
@@ -507,7 +505,7 @@ class ImportPopulateZookeeper extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
+    Instance instance = env.getInstance();
     TableManager.getInstance().removeTable(tableInfo.tableId);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     Tables.clearCache(instance);
@@ -532,10 +530,10 @@ class ImportSetupPermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
-    SecurityOperation security = AuditedSecurityOperation.getInstance();
+    SecurityOperation security = AuditedSecurityOperation.getInstance(env);
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
+        security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
         throw e;
@@ -550,7 +548,7 @@ class ImportSetupPermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.tableId, tableInfo.namespaceId);
+    AuditedSecurityOperation.getInstance(env).deleteTable(env.rpcCreds(), tableInfo.tableId, tableInfo.namespaceId);
   }
 }
 
@@ -585,7 +583,7 @@ public class ImportTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      Instance instance = HdfsZooInstance.getInstance();
+      Instance instance = env.getInstance();
       tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, instance);
       return new ImportSetupPermissions(tableInfo);
     } finally {

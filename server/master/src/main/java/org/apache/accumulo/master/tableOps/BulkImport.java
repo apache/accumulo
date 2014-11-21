@@ -40,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ServerClient;
@@ -60,20 +59,18 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.wrappers.TraceExecutorService;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.wrappers.TraceExecutorService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -131,9 +128,8 @@ public class BulkImport extends MasterRepo {
     if (!Utils.getReadLock(tableId, tid).tryLock())
       return 100;
 
-    Instance instance = HdfsZooInstance.getInstance();
-    Tables.clearCache(instance);
-    if (Tables.getTableState(instance, tableId) == TableState.ONLINE) {
+    Tables.clearCache(master.getInstance());
+    if (Tables.getTableState(master.getInstance(), tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
       reserve1 = reserve2 = Utils.reserveHdfsDirectory(sourceDir, tid);
       if (reserve1 == 0)
@@ -222,7 +218,7 @@ public class BulkImport extends MasterRepo {
   private String prepareBulkImport(Master master, final VolumeManager fs, String dir, String tableId) throws Exception {
     final Path bulkDir = createNewBulkDir(fs, tableId);
 
-    MetadataTableUtil.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+    MetadataTableUtil.addBulkLoadInProgressFlag(master, "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
@@ -333,8 +329,8 @@ class CleanUpBulkImport extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug("removing the bulk processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    MetadataTableUtil.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    MetadataTableUtil.addDeleteEntry(tableId, bulkDir.toString());
+    MetadataTableUtil.removeBulkLoadInProgressFlag(master, "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+    MetadataTableUtil.addDeleteEntry(master, tableId, bulkDir.toString());
     log.debug("removing the metadata table markers for loaded files");
     Connector conn = master.getConnector();
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
@@ -460,7 +456,7 @@ class CopyFailed extends MasterRepo {
     }
 
     if (loadedFailures.size() > 0) {
-      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
+      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + master.getInstance().getInstanceID()
           + Constants.ZBULK_FAILED_COPYQ, master.getConfiguration());
 
       HashSet<String> workIds = new HashSet<String>();
@@ -574,12 +570,12 @@ class LoadFiles extends MasterRepo {
               // this is running on the master and there are lots of connections to tablet servers
               // serving the metadata tablets
               long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-              Pair<String,Client> pair = ServerClient.getConnection(master.getInstance(), false, timeInMillis);
+              Pair<String,Client> pair = ServerClient.getConnection(master, false, timeInMillis);
               client = pair.getSecond();
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), SystemCredentials.get().toThrift(master.getInstance()), tid, tableId, attempt,
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt,
                   errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);

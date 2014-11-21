@@ -61,7 +61,7 @@ public class TableConfigurationUpdateIT extends SimpleMacIT {
     int numThreads = 2;
     // Number of iterations per thread
     int iterations = 100000;
-    AccumuloConfiguration tableConf = new TableConfiguration(inst.getInstanceID(), inst, table, defaultConf);
+    AccumuloConfiguration tableConf = new TableConfiguration(inst, table, defaultConf);
 
     long start = System.currentTimeMillis();
     ExecutorService svc = Executors.newFixedThreadPool(numThreads);

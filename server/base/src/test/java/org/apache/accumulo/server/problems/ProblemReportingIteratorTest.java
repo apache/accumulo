@@ -28,11 +28,14 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,7 +49,8 @@ public class ProblemReportingIteratorTest {
   @Before
   public void setUp() throws Exception {
     ii = createMock(InterruptibleIterator.class);
-    pri = new ProblemReportingIterator(TABLE, RESOURCE, false, ii);
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(new MockInstance()));
+    pri = new ProblemReportingIterator(context, TABLE, RESOURCE, false, ii);
   }
 
   @Test

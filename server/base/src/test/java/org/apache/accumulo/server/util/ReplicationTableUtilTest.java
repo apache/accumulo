@@ -31,11 +31,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Writer;
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -71,6 +74,7 @@ public class ReplicationTableUtilTest {
 
     // Mock a Writer to just add the mutation to a list
     EasyMock.expectLastCall().andAnswer(new IAnswer<Object>() {
+      @Override
       public Object answer() {
         mutations.add(((Mutation) EasyMock.getCurrentArguments()[0]));
         return null;
@@ -80,6 +84,7 @@ public class ReplicationTableUtilTest {
     EasyMock.replay(writer);
 
     Credentials creds = new Credentials("root", new PasswordToken(""));
+    ClientContext context = new ClientContext(new MockInstance(), creds, new ClientConfiguration());
 
     // Magic hook to create a Writer
     ReplicationTableUtil.addWriter(creds, writer);
@@ -89,7 +94,7 @@ public class ReplicationTableUtilTest {
     String myFile = "file:////home/user/accumulo/wal/server+port/" + uuid;
 
     long createdTime = System.currentTimeMillis();
-    ReplicationTableUtil.updateFiles(creds, new KeyExtent(new Text("1"), null, null), Collections.singleton(myFile), StatusUtil.fileCreated(createdTime));
+    ReplicationTableUtil.updateFiles(context, new KeyExtent(new Text("1"), null, null), Collections.singleton(myFile), StatusUtil.fileCreated(createdTime));
 
     verify(writer);
 
@@ -144,7 +149,7 @@ public class ReplicationTableUtilTest {
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
 
-    expect(tops.getProperties(myMetadataTable)).andReturn((Iterable<Entry<String,String>>) Collections.<Entry<String,String>> emptyList());
+    expect(tops.getProperties(myMetadataTable)).andReturn(Collections.<Entry<String,String>> emptyList());
     tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();
 

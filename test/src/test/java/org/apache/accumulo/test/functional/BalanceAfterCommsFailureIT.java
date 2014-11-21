@@ -28,6 +28,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -98,14 +99,15 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
 
   private void checkBalance(Connector c) throws Exception {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+    ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
 
     MasterMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
-        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
+        client = MasterClient.getConnectionWithRetry(context);
+        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } finally {
         if (client != null)
           MasterClient.close(client);

@@ -21,15 +21,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.AccumuloServerContext;
 
 public class MetaDataStateStore extends TabletStateStore {
   // private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
@@ -38,33 +36,31 @@ public class MetaDataStateStore extends TabletStateStore {
   private static final int LATENCY = 1000;
   private static final int MAX_MEMORY = 200 * 1024 * 1024;
   
-  final protected Instance instance;
+  final protected ClientContext context;
   final protected CurrentState state;
-  final protected Credentials credentials;
   final private String targetTableName;
   
-  protected MetaDataStateStore(Instance instance, Credentials credentials, CurrentState state, String targetTableName) {
-    this.instance = instance;
+  protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
+    this.context = context;
     this.state = state;
-    this.credentials = credentials;
     this.targetTableName = targetTableName;
   }
   
-  public MetaDataStateStore(Instance instance, Credentials credentials, CurrentState state) {
-    this(instance, credentials, state, MetadataTable.NAME);
+  public MetaDataStateStore(ClientContext context, CurrentState state) {
+    this(context, state, MetadataTable.NAME);
   }
   
-  protected MetaDataStateStore(String tableName) {
-    this(HdfsZooInstance.getInstance(), SystemCredentials.get(), null, tableName);
+  protected MetaDataStateStore(AccumuloServerContext context, String tableName) {
+    this(context, null, tableName);
   }
   
-  public MetaDataStateStore() {
-    this(MetadataTable.NAME);
+  public MetaDataStateStore(AccumuloServerContext context) {
+    this(context, MetadataTable.NAME);
   }
   
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, credentials, MetadataSchema.TabletsSection.getRange(), state);
+    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state);
   }
   
   @Override
@@ -90,7 +86,7 @@ public class MetaDataStateStore extends TabletStateStore {
   
   BatchWriter createBatchWriter() {
     try {
-      return instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createBatchWriter(targetTableName,
+      return context.getConnector().createBatchWriter(targetTableName,
           new BatchWriterConfig().setMaxMemory(MAX_MEMORY).setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
     } catch (TableNotFoundException e) {
       // ya, I don't think so

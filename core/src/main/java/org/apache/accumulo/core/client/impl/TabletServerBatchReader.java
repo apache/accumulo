@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -24,12 +25,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.log4j.Logger;
 
@@ -40,10 +39,9 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private int numThreads;
   private ExecutorService queryThreadPool;
   
-  private Instance instance;
+  private final ClientContext context;
   private ArrayList<Range> ranges;
   
-  private Credentials credentials;
   private Authorizations authorizations = Authorizations.EMPTY;
   private Throwable ex = null;
   
@@ -55,13 +53,11 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   
   private final int batchReaderInstance = getNextBatchReaderInstance();
   
-  public TabletServerBatchReader(Instance instance, Credentials credentials, String table, Authorizations authorizations, int numQueryThreads) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+  public TabletServerBatchReader(ClientContext context, String table, Authorizations authorizations, int numQueryThreads) {
+    checkArgument(context != null, "context is null");
     checkArgument(table != null, "table is null");
     checkArgument(authorizations != null, "authorizations is null");
-    this.instance = instance;
-    this.credentials = credentials;
+    this.context = context;
     this.authorizations = authorizations;
     this.table = table;
     this.numThreads = numQueryThreads;
@@ -112,6 +108,6 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("batch reader closed");
     }
     
-    return new TabletServerBatchReaderIterator(instance, credentials, table, authorizations, ranges, numThreads, queryThreadPool, this, timeOut);
+    return new TabletServerBatchReaderIterator(context, table, authorizations, ranges, numThreads, queryThreadPool, this, timeOut);
   }
 }

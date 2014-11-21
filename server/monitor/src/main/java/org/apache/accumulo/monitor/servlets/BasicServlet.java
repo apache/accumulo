@@ -37,7 +37,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -60,9 +59,9 @@ abstract public class BasicServlet extends HttpServlet {
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();
-      bannerText = sanitize(Monitor.getSystemConfiguration().get(Property.MONITOR_BANNER_TEXT));
-      bannerColor = Monitor.getSystemConfiguration().get(Property.MONITOR_BANNER_COLOR).replace("'", "&#39;");
-      bannerBackground = Monitor.getSystemConfiguration().get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
+      bannerText = sanitize(Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
+      bannerColor = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_COLOR).replace("'", "&#39;");
+      bannerBackground = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
       pageStart(req, resp, sb);
       pageBody(req, resp, sb);
       pageEnd(req, resp, sb);
@@ -112,12 +111,12 @@ abstract public class BasicServlet extends HttpServlet {
     synchronized (BasicServlet.class) {
       // Learn our instance name asynchronously so we don't hang up if zookeeper is down
       if (cachedInstanceName == null) {
-        SimpleTimer.getInstance(Monitor.getSystemConfiguration()).schedule(new TimerTask() {
+        SimpleTimer.getInstance(Monitor.getContext().getConfiguration()).schedule(new TimerTask() {
           @Override
           public void run() {
             synchronized (BasicServlet.class) {
               if (cachedInstanceName == null) {
-                cachedInstanceName = HdfsZooInstance.getInstance().getInstanceName();
+                cachedInstanceName = Monitor.getContext().getInstance().getInstanceName();
               }
             }
           }
@@ -175,7 +174,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<h1>").append(getTitle(req)).append("</h1></div>\n");
     sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(cachedInstanceName).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;").append(Constants.VERSION)
         .append("\n");
-    sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(HdfsZooInstance.getInstance().getInstanceID()).append("</span>\n");
+    sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(Monitor.getContext().getInstance().getInstanceID()).append("</span>\n");
     sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span>");
     sb.append("</div>\n"); // end <div id='subheader'>
     sb.append("</div>\n"); // end <div id='header'>

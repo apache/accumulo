@@ -18,7 +18,6 @@ package org.apache.accumulo.master;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -49,9 +48,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
-import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -63,23 +60,17 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
-import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletServerState;
-import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
-import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -104,8 +95,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     String namespaceId = Tables.getNamespaceId(instance, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
-    String zTablePath = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_FLUSH_ID;
+    String zTablePath = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte fid[];
@@ -245,34 +235,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
   @Override
   public MasterMonitorInfo getMasterStats(TInfo info, TCredentials credentials) throws ThriftSecurityException {
-    final MasterMonitorInfo result = new MasterMonitorInfo();
-
-    result.tServerInfo = new ArrayList<TabletServerStatus>();
-    result.tableMap = new DefaultMap<String,TableInfo>(new TableInfo());
-    for (Entry<TServerInstance,TabletServerStatus> serverEntry : master.tserverStatus.entrySet()) {
-      final TabletServerStatus status = serverEntry.getValue();
-      result.tServerInfo.add(status);
-      for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
-        TableInfoUtil.add(result.tableMap.get(entry.getKey()), entry.getValue());
-      }
-    }
-    result.badTServers = new HashMap<String,Byte>();
-    synchronized (master.badServers) {
-      for (TServerInstance bad : master.badServers.keySet()) {
-        result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
-      }
-    }
-    result.state = master.getMasterState();
-    result.goalState = master.getMasterGoalState();
-    result.unassignedTablets = master.displayUnassigned();
-    result.serversShuttingDown = new HashSet<String>();
-    synchronized (master.serversToShutdown) {
-      for (TServerInstance server : master.serversToShutdown)
-        result.serversShuttingDown.add(server.hostPort());
-    }
-    DeadServerList obit = new DeadServerList(ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS);
-    result.deadTabletServers = obit.getList();
-    return result;
+    return master.getMasterMonitorInfo();
   }
 
   @Override
@@ -459,9 +422,8 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
   private void updatePlugins(String property) {
     if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
-      ServerConfigurationFactory factory = new ServerConfigurationFactory(master.getInstance());
-      TabletBalancer balancer = factory.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER,
-          TabletBalancer.class, new DefaultLoadBalancer());
+      TabletBalancer balancer = master.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
+          new DefaultLoadBalancer());
       balancer.init(master.getConfigurationFactory());
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to " + master.tabletBalancer.getClass().getName());

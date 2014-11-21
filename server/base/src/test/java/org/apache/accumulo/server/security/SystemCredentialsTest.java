@@ -23,8 +23,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
@@ -36,8 +36,11 @@ import org.junit.Test;
  */
 public class SystemCredentialsTest {
   
+  private static MockInstance inst;
+
   @BeforeClass
   public static void setUp() throws IOException {
+    inst = new MockInstance();
     File testInstanceId = new File(new File(new File(new File("target"), "instanceTest"), ServerConstants.INSTANCE_ID_DIR), UUID.fromString(
         "00000000-0000-0000-0000-000000000000").toString());
     if (!testInstanceId.exists()) {
@@ -53,20 +56,20 @@ public class SystemCredentialsTest {
   }
   
   /**
-   * This is a test to ensure the string literal in {@link ConnectorImpl#ConnectorImpl(Instance, Credentials)} is kept up-to-date if we move the
-   * {@link SystemToken}<br/>
+   * This is a test to ensure the string literal in {@link ConnectorImpl#ConnectorImpl(org.apache.accumulo.core.client.impl.ClientContext)} is kept up-to-date
+   * if we move the {@link SystemToken}<br/>
    * This check will not be needed after ACCUMULO-1578
    */
   @Test
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken", SystemToken.class.getName());
-    assertEquals(SystemCredentials.get().getToken().getClass(), SystemToken.class);
+    assertEquals(SystemCredentials.get(inst).getToken().getClass(), SystemToken.class);
   }
   
   @Test
   public void testSystemCredentials() {
-    Credentials a = SystemCredentials.get();
-    Credentials b = SystemCredentials.get();
-    assertTrue(a == b);
+    Credentials a = SystemCredentials.get(inst);
+    Credentials b = SystemCredentials.get(inst);
+    assertTrue(a.equals(b));
   }
 }

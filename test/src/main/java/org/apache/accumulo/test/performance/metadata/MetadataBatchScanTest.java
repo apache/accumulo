@@ -26,11 +26,13 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
@@ -44,11 +46,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 import com.google.common.net.HostAndPort;
-import org.apache.log4j.Logger;
 
 /**
  * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata
@@ -63,8 +64,10 @@ public class MetadataBatchScanTest {
   
   public static void main(String[] args) throws Exception {
     
-    final Connector connector = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost")).getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get()
-        .getToken());
+    ClientOpts opts = new ClientOpts();
+    opts.parseArgs(MetadataBatchScanTest.class.getName(), args);
+    Instance inst = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost"));
+    final Connector connector = inst.getConnector(opts.principal, opts.getToken());
     
     TreeSet<Long> splits = new TreeSet<Long>();
     Random r = new Random(42);

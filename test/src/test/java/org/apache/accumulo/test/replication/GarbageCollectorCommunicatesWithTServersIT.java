@@ -26,11 +26,10 @@ import java.util.Set;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientConfigurationHelper;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -44,7 +43,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -394,26 +392,25 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     conn.tableOperations().flush(otherTable, null, null, true);
 
-    final TCredentials tcreds = new Credentials("root", new PasswordToken(AbstractMacIT.ROOT_PASSWORD)).toThrift(conn.getInstance());
-
     // Get the tservers which the master deems as active
-    List<String> tservers = MasterClient.execute(conn.getInstance(), new ClientExecReturn<List<String>,MasterClientService.Client>() {
+    final ClientContext context = new ClientContext(conn.getInstance(), new Credentials("root", new PasswordToken(AbstractMacIT.ROOT_PASSWORD)),
+        getClientConfig());
+    List<String> tservers = MasterClient.execute(context, new ClientExecReturn<List<String>,MasterClientService.Client>() {
       @Override
       public List<String> execute(MasterClientService.Client client) throws Exception {
-        return client.getActiveTservers(Tracer.traceInfo(), tcreds);
+        return client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds());
       }
     });
 
     Assert.assertEquals("Expected only one active tservers", 1, tservers.size());
 
     String tserver = tservers.get(0);
-    AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(conn.getInstance());
 
     // Get the active WALs from that server
     log.info("Fetching active WALs from {}", tserver);
 
-    Client client = ThriftUtil.getTServerClient(tserver, rpcConfig);
-    List<String> activeWalsForTserver = client.getActiveLogs(Tracer.traceInfo(), tcreds);
+    Client client = ThriftUtil.getTServerClient(tserver, context);
+    List<String> activeWalsForTserver = client.getActiveLogs(Tracer.traceInfo(), context.rpcCreds());
 
     log.info("Active wals: {}", activeWalsForTserver);
 

@@ -43,7 +43,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
@@ -60,26 +60,26 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String AUDITLOG = "Audit";
   public static final Logger audit = Logger.getLogger(AUDITLOG);
 
-  public AuditedSecurityOperation(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
-    super(author, authent, pm, instanceId);
+  public AuditedSecurityOperation(AccumuloServerContext context, Authorizor author, Authenticator authent, PermissionHandler pm) {
+    super(context, author, authent, pm);
   }
 
-  public static synchronized SecurityOperation getInstance() {
-    String instanceId = HdfsZooInstance.getInstance().getInstanceID();
-    return getInstance(instanceId, false);
+  public static synchronized SecurityOperation getInstance(AccumuloServerContext context) {
+    return getInstance(context, false);
   }
 
-  public static synchronized SecurityOperation getInstance(String instanceId, boolean initialize) {
+  public static synchronized SecurityOperation getInstance(AccumuloServerContext context, boolean initialize) {
     if (instance == null) {
-      instance = new AuditedSecurityOperation(getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(instanceId,
-          initialize), instanceId);
+      String instanceId = context.getInstance().getInstanceID();
+      instance = new AuditedSecurityOperation(context, getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(
+          instanceId, initialize));
     }
     return instance;
   }
 
-  private static String getTableName(String tableId) {
+  private String getTableName(String tableId) {
     try {
-      return Tables.getTableName(HdfsZooInstance.getInstance(), tableId);
+      return Tables.getTableName(context.getInstance(), tableId);
     } catch (TableNotFoundException e) {
       return "Unknown Table with ID " + tableId;
     }
@@ -93,13 +93,13 @@ public class AuditedSecurityOperation extends SecurityOperation {
     return auths;
   }
 
-  private static boolean shouldAudit(TCredentials credentials, String tableId) {
+  private boolean shouldAudit(TCredentials credentials, String tableId) {
     return (audit.isInfoEnabled() || audit.isEnabledFor(Level.WARN)) && !tableId.equals(MetadataTable.ID) && shouldAudit(credentials);
   }
 
   // Is INFO the right level to check? Do we even need that check?
-  private static boolean shouldAudit(TCredentials credentials) {
-    return !SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName());
+  private boolean shouldAudit(TCredentials credentials) {
+    return !context.getCredentials().getToken().getClass().getName().equals(credentials.getTokenClassName());
   }
 
   /*

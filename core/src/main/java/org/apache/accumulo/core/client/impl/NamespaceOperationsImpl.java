@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,14 +31,13 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -54,24 +54,21 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
-  private Instance instance;
-  private Credentials credentials;
+  private final ClientContext context;
   private TableOperationsImpl tableOps;
 
   private static final Logger log = Logger.getLogger(TableOperations.class);
 
-  public NamespaceOperationsImpl(Instance instance, Credentials credentials, TableOperationsImpl tableOps) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
-    this.instance = instance;
-    this.credentials = credentials;
+  public NamespaceOperationsImpl(ClientContext context, TableOperationsImpl tableOps) {
+    checkArgument(context != null, "context is null");
+    this.context = context;
     this.tableOps = tableOps;
   }
 
   @Override
   public SortedSet<String> list() {
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of namespaces...");
-    TreeSet<String> namespaces = new TreeSet<String>(Namespaces.getNameToIdMap(instance).keySet());
+    TreeSet<String> namespaces = new TreeSet<String>(Namespaces.getNameToIdMap(context.getInstance()).keySet());
     opTimer.stop("Fetched " + namespaces.size() + " namespaces in %DURATION%");
     return namespaces;
   }
@@ -81,7 +78,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if namespace " + namespace + " exists...");
-    boolean exists = Namespaces.getNameToIdMap(instance).containsKey(namespace);
+    boolean exists = Namespaces.getNameToIdMap(context.getInstance()).containsKey(namespace);
     opTimer.stop("Checked existance of " + exists + " in %DURATION%");
     return exists;
   }
@@ -101,14 +98,15 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
     checkArgument(namespace != null, "namespace is null");
-    String namespaceId = Namespaces.getNamespaceId(instance, namespace);
+    String namespaceId = Namespaces.getNamespaceId(context.getInstance(), namespace);
 
     if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
+      Credentials credentials = context.getCredentials();
       log.debug(credentials.getPrincipal() + " attempted to delete the " + namespaceId + " namespace");
       throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
-    if (Namespaces.getTableIds(instance, namespaceId).size() > 0) {
+    if (Namespaces.getTableIds(context.getInstance(), namespaceId).size() > 0) {
       throw new NamespaceNotEmptyException(namespaceId, namespace, null);
     }
 
@@ -140,10 +138,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
 
-    MasterClient.executeNamespace(instance, new ClientExec<MasterClientService.Client>() {
+    MasterClient.executeNamespace(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.setNamespaceProperty(Tracer.traceInfo(), credentials.toThrift(instance), namespace, property, value);
+        client.setNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property, value);
       }
     });
   }
@@ -153,10 +151,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
 
-    MasterClient.executeNamespace(instance, new ClientExec<MasterClientService.Client>() {
+    MasterClient.executeNamespace(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.removeNamespaceProperty(Tracer.traceInfo(), credentials.toThrift(instance), namespace, property);
+        client.removeNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property);
       }
     });
   }
@@ -165,10 +163,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public Iterable<Entry<String,String>> getProperties(final String namespace) throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     try {
-      return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
+      return ServerClient.executeRaw(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
         public Map<String,String> execute(ClientService.Client client) throws Exception {
-          return client.getNamespaceConfiguration(Tracer.traceInfo(), credentials.toThrift(instance), namespace);
+          return client.getNamespaceConfiguration(Tracer.traceInfo(), context.rpcCreds(), namespace);
         }
       }).entrySet();
     } catch (ThriftTableOperationException e) {
@@ -189,7 +187,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> namespaceIdMap() {
-    return Namespaces.getNameToIdMap(instance);
+    return Namespaces.getNameToIdMap(context.getInstance());
   }
 
   @Override
@@ -200,10 +198,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
+      return ServerClient.executeRaw(context, new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override
         public Boolean execute(ClientService.Client client) throws Exception {
-          return client.checkNamespaceClass(Tracer.traceInfo(), credentials.toThrift(instance), namespace, className, asTypeName);
+          return client.checkNamespaceClass(Tracer.traceInfo(), context.rpcCreds(), namespace, className, asTypeName);
         }
       });
     } catch (ThriftTableOperationException e) {

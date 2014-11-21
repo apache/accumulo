@@ -35,7 +35,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -99,6 +98,7 @@ public class TabletServerResourceManager {
 
   private final LruBlockCache _dCache;
   private final LruBlockCache _iCache;
+  private final TabletServer tserver;
   private final ServerConfigurationFactory conf;
 
   private ExecutorService addEs(String name, ExecutorService tp) {
@@ -112,11 +112,11 @@ public class TabletServerResourceManager {
 
   private ExecutorService addEs(final Property maxThreads, String name, final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance(conf.getConfiguration()).schedule(new Runnable() {
+    SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
       @Override
       public void run() {
         try {
-          int max = conf.getConfiguration().getCount(maxThreads);
+          int max = tserver.getConfiguration().getCount(maxThreads);
           if (tp.getMaximumPoolSize() != max) {
             log.info("Changing " + maxThreads.getKey() + " to " + max);
             tp.setCorePoolSize(max);
@@ -149,8 +149,9 @@ public class TabletServerResourceManager {
     return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
   }
 
-  public TabletServerResourceManager(Instance instance, VolumeManager fs) {
-    this.conf = new ServerConfigurationFactory(instance);
+  public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
+    this.tserver = tserver;
+    this.conf = tserver.getServerConfigurationFactory();
     this.fs = fs;
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
@@ -168,8 +169,8 @@ public class TabletServerResourceManager {
     Runtime runtime = Runtime.getRuntime();
     if (!usingNativeMap && maxMemory + dCacheSize + iCacheSize + totalQueueSize > runtime.maxMemory()) {
       throw new IllegalArgumentException(String.format(
-          "Maximum tablet server map memory %,d block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d", maxMemory, dCacheSize + iCacheSize,
-          totalQueueSize, runtime.maxMemory()));
+          "Maximum tablet server map memory %,d block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d", maxMemory,
+          dCacheSize + iCacheSize, totalQueueSize, runtime.maxMemory()));
     }
     runtime.gc();
 
@@ -207,14 +208,14 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
+    fileManager = new FileManager(tserver, fs, maxOpenFiles, _dCache, _iCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
-    memoryManager.init(conf);
+    memoryManager.init(tserver.getServerConfigurationFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
-    SimpleTimer timer = SimpleTimer.getInstance(conf.getConfiguration());
+    SimpleTimer timer = SimpleTimer.getInstance(tserver.getConfiguration());
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
@@ -545,6 +546,7 @@ public class TabletServerResourceManager {
     KeyExtent getExtent() {
       return extent;
     }
+
     AccumuloConfiguration getTableConfiguration() {
       return tableConf;
     }
