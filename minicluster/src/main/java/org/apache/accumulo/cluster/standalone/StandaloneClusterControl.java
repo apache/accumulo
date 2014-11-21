@@ -293,7 +293,8 @@ public class StandaloneClusterControl implements ClusterControl {
       List<String> hosts = new ArrayList<String>();
       String line = null;
       while ((line = reader.readLine()) != null) {
-        if (!line.trim().startsWith("#")) {
+        line = line.trim();
+        if (!line.isEmpty() && !line.startsWith("#")) {
           hosts.add(line);
         }
       }
