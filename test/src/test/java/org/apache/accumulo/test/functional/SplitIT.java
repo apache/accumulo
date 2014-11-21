@@ -74,6 +74,10 @@ public class SplitIT extends AccumuloClusterIT {
 
   @Before
   public void alterConfig() throws Exception {
+    if (ClusterType.MINI == getClusterType()) {
+      return;
+    }
+
     InstanceOperations iops = getConnector().instanceOperations();
     Map<String,String> config = iops.getSystemConfiguration();
     tservMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
@@ -107,6 +111,8 @@ public class SplitIT extends AccumuloClusterIT {
       log.info("Resetting {}={}", Property.TSERV_MAXMEM.getKey(), tservMaxMem);
       getConnector().instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(), tservMaxMem);
       tservMaxMem = null;
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
     if (null != tservMajcDelay) {
       log.info("Resetting {}={}", Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
@@ -130,7 +136,9 @@ public class SplitIT extends AccumuloClusterIT {
     vopts.rows = opts.rows;
     vopts.tableName = table;
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    UtilWaitThread.sleep(15 * 1000);
+    while (c.tableOperations().listSplits(table).size() < 10) {
+      UtilWaitThread.sleep(15 * 1000);
+    }
     String id = c.tableOperations().tableIdMap().get(table);
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     KeyExtent extent = new KeyExtent(new Text(id), null, null);
@@ -164,6 +172,11 @@ public class SplitIT extends AccumuloClusterIT {
     ReadWriteIT.interleaveTest(c, tableName);
     UtilWaitThread.sleep(5 * 1000);
     int numSplits = c.tableOperations().listSplits(tableName).size();
+    while (numSplits <= 20) {
+      log.info("Waiting for splits to happen");
+      Thread.sleep(2000);
+      numSplits = c.tableOperations().listSplits(tableName).size();
+    }
     assertTrue("Expected at least 20 splits, saw " + numSplits, numSplits > 20);
   }
 
