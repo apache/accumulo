@@ -242,6 +242,11 @@ public class TraceServer implements Watcher {
       final BatchWriter writer = this.writer.get();
       if (null != writer) {
         writer.flush();
+      } else {
+        // We don't have a writer. If the table exists, try to make a new writer.
+        if (connector.tableOperations().exists(table)) {
+          resetWriter();
+        }
       }
     } catch (MutationsRejectedException exception) {
       log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: " + exception);
