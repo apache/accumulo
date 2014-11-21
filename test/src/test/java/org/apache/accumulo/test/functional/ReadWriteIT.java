@@ -161,6 +161,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
           }
         }
       };
+      verify.start();
       ingest(connector, CHUNKSIZE, 1, 50, i + CHUNKSIZE);
       verify.join();
       assertFalse(fail.get());
