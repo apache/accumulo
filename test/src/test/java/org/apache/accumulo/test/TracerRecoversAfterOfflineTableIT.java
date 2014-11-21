@@ -25,13 +25,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.Span;
+import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
@@ -74,7 +73,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacIT {
 
     log.info("Start a distributed trace span");
 
-    DistributedTrace.enable(conn.getInstance(), new ZooReader(conn.getInstance().getZooKeepers(), 30 * 1000), "testTrace", "localhost");
+    DistributedTrace.enable("localhost", "testTrace");
     Span root = Trace.on("traceTest");
     BatchWriter bw = conn.createBatchWriter(tableName, null);
     Mutation m = new Mutation("m");
