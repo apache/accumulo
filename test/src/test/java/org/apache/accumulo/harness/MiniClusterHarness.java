@@ -60,6 +60,10 @@ public class MiniClusterHarness {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token);
   }
 
+  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token) throws Exception {
+    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase);
+  }
+
   public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, MiniClusterConfigurationCallback callback) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase);
   }
