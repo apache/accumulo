@@ -23,19 +23,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.easymock.EasyMock;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.google.common.io.Files;
+import org.junit.rules.TemporaryFolder;
 
 /**
- * 
+ *
  */
 public class CleanShutdownMacTest {
+
+  @Rule
+  public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @SuppressWarnings("unchecked")
   @Test
   public void testExecutorServiceShutdown() throws Exception {
-    File tmp = Files.createTempDir();
+    File tmp = tmpDir.newFolder();
     MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp, "foo");
 
     ExecutorService mockService = EasyMock.createMock(ExecutorService.class);

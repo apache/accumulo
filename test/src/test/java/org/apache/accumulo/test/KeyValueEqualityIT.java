@@ -31,7 +31,7 @@ import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class KeyValueEqualityTest extends SimpleMacIT {
+public class KeyValueEqualityIT extends SimpleMacIT {
 
   @Override
   public int defaultTimeoutSeconds() {

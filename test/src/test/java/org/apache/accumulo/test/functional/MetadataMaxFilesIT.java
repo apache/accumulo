@@ -43,7 +43,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MetadataMaxFiles extends ConfigurableMacIT {
+public class MetadataMaxFilesIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -99,7 +99,7 @@ public class MetadataMaxFiles extends ConfigurableMacIT {
       int tablets = 0;
       for (TabletServerStatus tserver : stats.tServerInfo) {
         for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
-          if (entry.getKey().startsWith("!"))
+          if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+"))
             continue;
           tablets += entry.getValue().onlineTablets;
         }

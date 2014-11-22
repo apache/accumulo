@@ -23,16 +23,15 @@ import static org.easymock.EasyMock.replay;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.accumulo.cluster.AccumuloClusters;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.google.common.io.Files;
+import org.junit.rules.TemporaryFolder;
 
 public class AccumuloClustersTest {
 
@@ -46,9 +45,12 @@ public class AccumuloClustersTest {
     cfg.build();
   }
 
+  @Rule
+  public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Test
   public void testFactoryReturn() throws IOException {
-    File dir = Files.createTempDir();
+    File dir = tmpDir.newFolder();
     try {
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(dir, "foo");
       Assert.assertEquals(MiniAccumuloCluster.class, AccumuloClusters.createMiniCluster(cfg).getClass());
