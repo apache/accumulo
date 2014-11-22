@@ -28,6 +28,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.log4j.Logger;
@@ -46,6 +47,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process zooKeeperProcess = null;
   Process masterProcess = null;
   Process gcProcess = null;
+  Process monitor = null;
   List<Process> tabletServerProcesses = Collections.synchronizedList(new ArrayList<Process>());
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
@@ -115,6 +117,10 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           gcProcess = cluster._exec(SimpleGarbageCollector.class, server);
         }
         break;
+      case MONITOR:
+        if (null == monitor) {
+          monitor = cluster._exec(Monitor.class, server);
+        }
       // TODO Enabled Monitor and Tracer for proper mini-ness
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
@@ -197,7 +203,21 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               tabletServerProcesses.clear();
             }
           }
-
+        }
+        break;
+      case MONITOR:
+        if (monitor != null) {
+          try {
+            cluster.stopProcessWithTimeout(monitor, 30, TimeUnit.SECONDS);
+          } catch (ExecutionException e) {
+            log.warn("Monitor did not fully stop after 30 seconds", e);
+          } catch (TimeoutException e) {
+            log.warn("Monitor did not fully stop after 30 seconds", e);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          } finally {
+            monitor = null;
+          }
         }
         break;
       default:
