@@ -30,6 +30,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -48,6 +49,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process masterProcess = null;
   Process gcProcess = null;
   Process monitor = null;
+  Process tracer = null;
   List<Process> tabletServerProcesses = Collections.synchronizedList(new ArrayList<Process>());
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
@@ -121,7 +123,12 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         if (null == monitor) {
           monitor = cluster._exec(Monitor.class, server);
         }
-      // TODO Enabled Monitor and Tracer for proper mini-ness
+        break;
+      case TRACER:
+        if (null == tracer) {
+          tracer = cluster._exec(TraceServer.class, server);
+        }
+        break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
     }
@@ -217,6 +224,21 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             Thread.currentThread().interrupt();
           } finally {
             monitor = null;
+          }
+        }
+        break;
+      case TRACER:
+        if (tracer != null) {
+          try {
+            cluster.stopProcessWithTimeout(tracer, 30, TimeUnit.SECONDS);
+          } catch (ExecutionException e) {
+            log.warn("Tracer did not fully stop after 30 seconds", e);
+          } catch (TimeoutException e) {
+            log.warn("Tracer did not fully stop after 30 seconds", e);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          } finally {
+            tracer = null;
           }
         }
         break;

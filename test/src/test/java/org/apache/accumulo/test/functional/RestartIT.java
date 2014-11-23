@@ -143,8 +143,14 @@ public class RestartIT extends AccumuloClusterIT {
     VOPTS.tableName = tableName;
     TestIngest.ingest(c, OPTS, BWOPTS);
     ClusterControl control = getCluster().getClusterControl();
+
     // TODO implement a kill all too?
-    cluster.stop();
+    // cluster.stop() would also stop ZooKeeper
+    control.stopAllServers(ServerType.MASTER);
+    control.stopAllServers(ServerType.TRACER);
+    control.stopAllServers(ServerType.TABLET_SERVER);
+    control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    control.stopAllServers(ServerType.MONITOR);
 
     ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
@@ -280,10 +286,12 @@ public class RestartIT extends AccumuloClusterIT {
       TestIngest.ingest(c, opts, BWOPTS);
       c.tableOperations().flush(tableName, null, null, false);
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-      getCluster().getClusterControl().adminStopAll();
+      getCluster().stop();
     } finally {
-      getCluster().start();
-      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
+      if (getClusterType() == ClusterType.STANDALONE) {
+        getCluster().start();
+        c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
+      }
     }
   }
 }
