@@ -60,6 +60,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
@@ -71,7 +72,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -464,11 +464,10 @@ public class VolumeIT extends ConfigurableMacIT {
     verifyVolumesUsed(tableNames[0], true, v2);
 
     // check that root tablet is not on volume 1
+    ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
     String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
-    ZooKeeper zookeeper = new ZooKeeper(cluster.getZooKeepers(), 30000, null);
-    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), UTF_8);
+    String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
-    zookeeper.close();
 
     conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<String,String>(), new HashSet<String>());
 
@@ -526,11 +525,10 @@ public class VolumeIT extends ConfigurableMacIT {
     verifyVolumesUsed(tableNames[1], true, v8, v9);
 
     // check that root tablet is not on volume 1 or 2
+    ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
     String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
-    ZooKeeper zookeeper = new ZooKeeper(cluster.getZooKeepers(), 30000, null);
-    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), UTF_8);
+    String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
-    zookeeper.close();
 
     getConnector().tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<String,String>(), new HashSet<String>());
 
