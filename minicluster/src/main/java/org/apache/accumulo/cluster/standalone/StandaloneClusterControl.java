@@ -256,7 +256,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
     Entry<Integer,String> pair = exec(hostname, stopCmd);
     if (0 != pair.getKey()) {
-      throw new IOException("Signal " + signal + " to " + server + " on " + hostname + " failed for execute successfully");
+      throw new IOException("Signal " + signal + " to " + server + " on " + hostname + " failed for execute successfully. stdout=" + pair.getValue());
     }
   }
 
