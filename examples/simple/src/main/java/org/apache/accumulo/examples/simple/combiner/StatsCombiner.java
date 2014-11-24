@@ -29,7 +29,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * This combiner calculates the max, min, sum, and count of long integers represented as strings in values. It stores the result in a comma-separated value of
- * the form max,min,sum,count. If such a value is encountered while combining, its information is incorporated into the running calculations of max, min, sum,
+ * the form min,max,sum,count. If such a value is encountered while combining, its information is incorporated into the running calculations of min, max, sum,
  * and count. See {@link Combiner} for more information on which values are combined together. See docs/examples/README.combiner for instructions.
  */
 public class StatsCombiner extends Combiner {
