@@ -86,6 +86,11 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public int exec(Class<?> clz, String[] args) throws IOException {
+    return execWithStdout(clz, args).getKey();
+  }
+
+  @Override
+  public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
     String[] cmd = new String[2 + args.length];
@@ -93,7 +98,7 @@ public class StandaloneClusterControl implements ClusterControl {
     cmd[1] = clz.getName();
     System.arraycopy(args, 0, cmd, 2, args.length);
     log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
-    return exec(master, cmd).getKey();
+    return exec(master, cmd);
   }
 
   @Override

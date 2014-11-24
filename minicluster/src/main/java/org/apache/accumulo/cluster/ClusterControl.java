@@ -17,6 +17,7 @@
 package org.apache.accumulo.cluster;
 
 import java.io.IOException;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.minicluster.ServerType;
 
@@ -29,6 +30,11 @@ public interface ClusterControl {
    * Execute the given class against the cluster with the provided arguments and waits for completion. Returns the exit code of the process.
    */
   int exec(Class<?> clz, String[] args) throws IOException;
+
+  /**
+   * Execute the given class against the cluster with the provided arguments and waits for completion. Returns the exit code of the process with the stdout.
+   */
+  Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException;
 
   /**
    * Issue an orderly shutdown of the cluster

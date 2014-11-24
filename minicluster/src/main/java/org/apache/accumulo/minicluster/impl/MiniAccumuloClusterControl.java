@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -28,6 +31,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tracer.TraceServer;
@@ -36,6 +40,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /**
  *
@@ -73,6 +78,36 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       throw new IOException(e);
     }
     return exitCode;
+  }
+
+  @Override
+  public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
+    Process p = cluster.exec(clz, args);
+    int exitCode;
+    try {
+      exitCode = p.waitFor();
+    } catch (InterruptedException e) {
+      log.warn("Interrupted waiting for process to exit", e);
+      Thread.currentThread().interrupt();
+      throw new IOException(e);
+    }
+    for (LogWriter writer : cluster.getLogWriters()) {
+      writer.flush();
+    }
+    return Maps.immutableEntry(exitCode,
+        readAll(new FileInputStream(cluster.getConfig().getLogDir() + "/" + clz.getSimpleName() + "_" + p.hashCode() + ".out")));
+  }
+
+  private String readAll(InputStream is) throws IOException {
+    byte[] buffer = new byte[4096];
+    StringBuffer result = new StringBuffer();
+    while (true) {
+      int n = is.read(buffer);
+      if (n <= 0)
+        break;
+      result.append(new String(buffer, 0, n));
+    }
+    return result.toString();
   }
 
   @Override

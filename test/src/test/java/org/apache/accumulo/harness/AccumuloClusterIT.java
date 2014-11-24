@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
@@ -143,6 +144,11 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   public static AccumuloCluster getCluster() {
     Preconditions.checkState(initialized);
     return cluster;
+  }
+
+  public static ClusterControl getClusterControl() {
+    Preconditions.checkState(initialized);
+    return cluster.getClusterControl();
   }
 
   public static ClusterType getClusterType() {
