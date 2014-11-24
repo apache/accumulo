@@ -59,18 +59,13 @@ public class WriteAheadLogIT extends AccumuloClusterIT {
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.tableName = tableName;
-    try {
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.tableName = tableName;
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-      getCluster().getClusterControl().adminStopAll();
-    } finally {
-      getCluster().start();
-    }
+    TestIngest.ingest(c, opts, new BatchWriterOpts());
+    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    vopts.tableName = tableName;
+    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 
 }
