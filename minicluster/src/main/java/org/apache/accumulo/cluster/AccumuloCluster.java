@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.cluster;
 
-import org.apache.accumulo.cluster.ClusterControl;
+import java.io.IOException;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.hadoop.fs.FileSystem;
 
 /**
  * Defines a minimum required set of methods to run an Accumulo cluster.
@@ -73,4 +75,9 @@ public interface AccumuloCluster {
    * @throws Exception
    */
   void stop() throws Exception;
+
+  /**
+   * @return the {@link FileSystem} in use by this cluster
+   */
+  FileSystem getFileSystem() throws IOException;
 }

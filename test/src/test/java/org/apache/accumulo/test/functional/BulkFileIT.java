@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -32,22 +33,22 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
-public class BulkFileIT extends ConfigurableMacIT {
+public class BulkFileIT extends AccumuloClusterIT {
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
     cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
   }
 
@@ -67,9 +68,19 @@ public class BulkFileIT extends ConfigurableMacIT {
     c.tableOperations().addSplits(tableName, splits);
     Configuration conf = new Configuration();
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
-    FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem());
+    FileSystem fs = getCluster().getFileSystem();
 
-    String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
+    String rootPath;
+    if (ClusterType.MINI == getClusterType()) {
+      rootPath = new File(System.getProperty("user.dir"), "target").getCanonicalPath();
+    } else if (ClusterType.STANDALONE == getClusterType()) {
+      rootPath = "/tmp";
+    } else {
+      Assert.fail("Cannot compute root path for test");
+      return;
+    }
+
+    String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
     fs.delete(new Path(dir), true);
 

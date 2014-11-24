@@ -27,8 +27,12 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +44,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
   private Instance instance;
-  private String accumuloHome, accumuloConfDir;
+  private String accumuloHome, accumuloConfDir, hadoopConfDir;
 
   public StandaloneAccumuloCluster(String instanceName, String zookeepers) {
     this(new ZooKeeperInstance(instanceName, zookeepers));
@@ -64,6 +68,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   public void setAccumuloConfDir(String accumuloConfDir) {
     this.accumuloConfDir = accumuloConfDir;
+  }
+
+  public String getHadoopConfDir() {
+    return hadoopConfDir;
+  }
+
+  public void setHadoopConfDir(String hadoopConfDir) {
+    this.hadoopConfDir = hadoopConfDir;
   }
 
   @Override
@@ -116,4 +128,20 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     }
   }
 
+  @Override
+  public FileSystem getFileSystem() throws IOException {
+    String confDir = hadoopConfDir;
+    if (null == confDir) {
+      confDir = System.getenv("HADOOP_CONF_DIR");
+    }
+    if (null == confDir) {
+      throw new IllegalArgumentException("Cannot determine HADOOP_CONF_DIR for standalone cluster");
+    }
+    // Using CachedConfiguration will make repeatedly calling this method much faster
+    final Configuration conf = CachedConfiguration.getInstance();
+    conf.addResource(new Path(confDir, "core-site.xml"));
+    // Need hdfs-site.xml for NN HA
+    conf.addResource(new Path(confDir, "hdfs-site.xml"));
+    return FileSystem.get(conf);
+  }
 }

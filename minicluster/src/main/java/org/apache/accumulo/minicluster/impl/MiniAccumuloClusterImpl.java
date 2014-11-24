@@ -714,6 +714,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         this.getZooKeepers());
   }
 
+  @Override
   public FileSystem getFileSystem() {
     try {
       return FileSystem.get(new URI(dfsUri), new Configuration());
