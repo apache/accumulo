@@ -406,7 +406,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     } else if (config.useExistingInstance()) {
       dfsUri = CachedConfiguration.getInstance().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
-      dfsUri = "file://";
+      dfsUri = "file:///";
     }
 
     File clientConfFile = config.getClientConfFile();
