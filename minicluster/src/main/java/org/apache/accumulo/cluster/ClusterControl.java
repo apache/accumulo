@@ -37,7 +37,7 @@ public interface ClusterControl {
   Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException;
 
   /**
-   * Issue an orderly shutdown of the cluster
+   * Issue an orderly shutdown of the cluster, throws an exception if it fails to return successfully (return value of 0).
    */
   void adminStopAll() throws IOException;
 
