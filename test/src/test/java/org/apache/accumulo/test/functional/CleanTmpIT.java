@@ -16,30 +16,44 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class CleanTmpIT extends ConfigurableMacIT {
+import com.google.common.collect.Iterables;
+
+public class CleanTmpIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(CleanTmpIT.class);
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> props = new HashMap<String,String>();
     props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "3s");
     cfg.setSiteConfig(props);
@@ -63,20 +77,39 @@ public class CleanTmpIT extends ConfigurableMacIT {
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
     bw.addMutation(m);
+    bw.flush();
+
+    // Compact memory to make a file
+    c.tableOperations().compact(tableName, null, null, true, true);
+
+    // Make sure that we'll have a WAL
+    m = new Mutation("row2");
+    m.put("cf", "cq", "value");
+    bw.addMutation(m);
     bw.close();
 
     // create a fake _tmp file in its directory
     String id = c.tableOperations().tableIdMap().get(tableName);
-    FileSystem fs = getCluster().getFileSystem();
-    Path tmp = new Path("/accumulo/tables/" + id + "/default_tablet/junk.rf_tmp");
+    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.setRange(Range.prefix(id));
+    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+    Path file = new Path(entry.getKey().getColumnQualifier().toString());
+
+    FileSystem fs = getFileSystem();
+    assertTrue("Could not find file: " + file, fs.exists(file));
+    Path tabletDir = file.getParent();
+    assertNotNull("Tablet dir should not be null", tabletDir);
+    Path tmp = new Path(tabletDir, "junk.rf_tmp");
+    // Make the file
     fs.create(tmp).close();
-    for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
-      getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
-    }
-    getCluster().start();
+    log.info("Created tmp file {}", tmp.toString());
+    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    FunctionalTestUtils.count(scanner);
-    assertFalse(fs.exists(tmp));
+    assertEquals(2, FunctionalTestUtils.count(scanner));
+    // If we performed log recovery, we should have cleaned up any stray files
+    assertFalse("File still exists: " + tmp, fs.exists(tmp));
   }
 }

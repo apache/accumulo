@@ -32,6 +32,7 @@ import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Assume;
@@ -164,6 +165,11 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   public static AuthenticationToken getToken() {
     Preconditions.checkState(initialized);
     return clusterConf.getToken();
+  }
+
+  public static FileSystem getFileSystem() throws IOException {
+    Preconditions.checkState(initialized);
+    return cluster.getFileSystem();
   }
 
   public Connector getConnector() {

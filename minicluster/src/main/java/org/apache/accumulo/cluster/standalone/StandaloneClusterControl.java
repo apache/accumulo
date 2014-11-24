@@ -20,6 +20,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
+import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,14 +45,14 @@ import com.google.common.collect.Maps;
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
-  private static final String START_SERVER_SCRIPT = "start-server.sh", ACCUMULO_SCRIPT = "accumulo";
+  private static final String START_SERVER_SCRIPT = "start-server.sh", ACCUMULO_SCRIPT = "accumulo", TOOL_SCRIPT = "tool.sh";
   private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "slaves", TRACER_HOSTS_FILE = "tracers",
       MONITOR_HOSTS_FILE = "monitor";
 
   protected String accumuloHome, accumuloConfDir;
   protected RemoteShellOptions options;
 
-  protected String startServerPath, accumuloPath;
+  protected String startServerPath, accumuloPath, toolPath;
 
   public StandaloneClusterControl() {
     this(System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"));
@@ -62,10 +64,9 @@ public class StandaloneClusterControl implements ClusterControl {
     this.accumuloConfDir = accumuloConfDir;
 
     File bin = new File(accumuloHome, "bin");
-    File startServer = new File(bin, "start-server.sh");
-    this.startServerPath = startServer.getAbsolutePath();
-    File accumulo = new File(bin, "accumulo");
-    this.accumuloPath = accumulo.getAbsolutePath();
+    this.startServerPath = new File(bin, START_SERVER_SCRIPT).getAbsolutePath();
+    this.accumuloPath = new File(bin, ACCUMULO_SCRIPT).getAbsolutePath();
+    this.toolPath = new File(bin, TOOL_SCRIPT).getAbsolutePath();
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
@@ -97,6 +98,29 @@ public class StandaloneClusterControl implements ClusterControl {
     cmd[0] = accumuloPath;
     cmd[1] = clz.getName();
     System.arraycopy(args, 0, cmd, 2, args.length);
+    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
+    return exec(master, cmd);
+  }
+
+  public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args) throws IOException {
+    File confDir = getConfDir();
+    String master = getHosts(new File(confDir, "masters")).get(0);
+    String[] cmd = new String[3 + args.length];
+    cmd[0] = toolPath;
+    CodeSource source = clz.getProtectionDomain().getCodeSource();
+    if (null == source) {
+      throw new RuntimeException("Could not get CodeSource for class");
+    }
+    URL jarUrl = source.getLocation();
+    String jar = jarUrl.getPath();
+    if (!jar.endsWith(".jar")) {
+      throw new RuntimeException("Need to have a jar to run mapreduce: " + jar);
+    }
+    cmd[1] = jar;
+    cmd[2] = clz.getName();
+    for (int i = 0, j = 3; i < args.length; i++, j++) {
+      cmd[j] = "'" + args[i] + "'";
+    }
     log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
     return exec(master, cmd);
   }

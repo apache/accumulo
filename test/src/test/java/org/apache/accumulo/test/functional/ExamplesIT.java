@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.cluster.standalone.StandaloneClusterControl;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -86,6 +87,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.Tool;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
@@ -243,8 +245,11 @@ public class ExamplesIT extends AccumuloClusterIT {
 
     c.tableOperations().attachIterator(table, is);
     bw = c.createBatchWriter(table, bwc);
+    // Write two mutations otherwise the NativeMap would dedupe them into a single update
     Mutation m = new Mutation("foo");
     m.put("a", "b", "1");
+    bw.addMutation(m);
+    m = new Mutation("foo");
     m.put("a", "b", "3");
     bw.addMutation(m);
     bw.flush();
@@ -349,12 +354,21 @@ public class ExamplesIT extends AccumuloClusterIT {
   @Test
   public void testTeraSortAndRead() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z",
+    goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance,
+        "-z",
         keepers, "-u", user, "-p", passwd, "--splits", "4");
-    goodExec(RegexExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--rowRegex", ".*999.*", "--output", dir
-        + "/tmp/nines");
+    Path output = new Path(dir, "tmp/nines");
+    if (fs.exists(output)) {
+      fs.delete(output, true);
+    }
+    goodExec(RegexExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--rowRegex", ".*999.*", "--output",
+        output.toString());
     goodExec(RowHash.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--column", "c:");
-    goodExec(TableToFile.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--output", dir + "/tmp/tableFile");
+    output = new Path(dir, "tmp/tableFile");
+    if (fs.exists(output)) {
+      fs.delete(output, true);
+    }
+    goodExec(TableToFile.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--output", output.toString());
   }
 
   @Test
@@ -422,9 +436,14 @@ public class ExamplesIT extends AccumuloClusterIT {
   }
 
   private void goodExec(Class<?> theClass, String... args) throws InterruptedException, IOException {
-    // We're already slurping stdout into memory (not redirecting to file). Might as well add it to error message.
-    Entry<Integer,String> pair = getClusterControl().execWithStdout(theClass, args);
+    Entry<Integer,String> pair;
+    if (Tool.class.isAssignableFrom(theClass) && ClusterType.STANDALONE == getClusterType()) {
+      StandaloneClusterControl control = (StandaloneClusterControl) getClusterControl();
+      pair = control.execMapreduceWithStdout(theClass, args);
+    } else {
+      // We're already slurping stdout into memory (not redirecting to file). Might as well add it to error message.
+      pair = getClusterControl().execWithStdout(theClass, args);
+    }
     Assert.assertEquals("stdout=" + pair.getValue(), 0, pair.getKey().intValue());
   }
-
 }

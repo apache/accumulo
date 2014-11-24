@@ -23,15 +23,19 @@ import java.io.File;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // ACCUMULO-118/ACCUMULO-2504
-public class BulkImportVolumeIT extends ConfigurableMacIT {
+public class BulkImportVolumeIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(BulkImportVolumeIT.class);
 
   File volDirBase = null;
   Path v1, v2;
@@ -42,7 +46,7 @@ public class BulkImportVolumeIT extends ConfigurableMacIT {
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     File baseDir = cfg.getDir();
     volDirBase = new File(baseDir, "volumes");
     File v1f = new File(volDirBase, "v1");
@@ -64,15 +68,26 @@ public class BulkImportVolumeIT extends ConfigurableMacIT {
     String tableName = getUniqueNames(1)[0];
     TableOperations to = getConnector().tableOperations();
     to.create(tableName);
-    File bulk = new File(rootPath() + "/bulk");
-    System.out.println("bulk: " + bulk);
-    assertTrue(bulk.mkdirs());
-    File err = new File(rootPath() + "/err");
-    assertTrue(err.mkdirs());
-    File bogus = new File(bulk + "/bogus.rf");
-    assertTrue(bogus.createNewFile());
+    FileSystem fs = getFileSystem();
+    String rootPath = getUsableDir();
+    Path bulk = new Path(rootPath, "bulk");
+    log.info("bulk: {}", bulk);
+    if (fs.exists(bulk)) {
+      fs.delete(bulk, true);
+    }
+    assertTrue(fs.mkdirs(bulk));
+    Path err = new Path(rootPath, "err");
+    log.info("err: {}", err);
+    if (fs.exists(err)) {
+      fs.delete(err, true);
+    }
+    assertTrue(fs.mkdirs(err));
+    Path bogus = new Path(bulk, "bogus.rf");
+    fs.create(bogus).close();
+    log.info("bogus: {}", bogus);
+    assertTrue(fs.exists(bogus));
     to.importDirectory(tableName, bulk.toString(), err.toString(), false);
-    assertEquals(1, err.list().length);
+    assertEquals(1, fs.listStatus(err).length);
   }
 
 
