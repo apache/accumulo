@@ -42,12 +42,12 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.management.StandardMBean;
 
@@ -237,6 +237,7 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
@@ -356,7 +357,7 @@ public class TabletServer implements Runnable {
   private final RowLocks rowLocks = new RowLocks();
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
-  private final Semaphore recoverySemaphore = new Semaphore(1, true);
+  private final ReentrantLock recoveryLock = new ReentrantLock(true);
   
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
@@ -2120,29 +2121,28 @@ public class TabletServer implements Runnable {
       boolean successful = false;
 
       try {
+        acquireRecoveryMemory(extent);
+
         TabletResourceManager trm = resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
 
-        // this opens the tablet file and fills in the endKey in the
-        // extent
+        // this opens the tablet file and fills in the endKey in the extent
         locationToOpen = VolumeUtil.switchRootTabletVolume(extent, locationToOpen);
 
-        acquireRecoveryMemory(extent);
-        {
-
-          tablet = new Tablet(TabletServer.this, extent, locationToOpen, trm, tabletsKeyValues);
-          /*
-           * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
-           *
-           * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
-           *
-           * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
-           * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
-           * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then
-           * have another process failure... this could cause duplicate data to replay
-           */
-          if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
-            throw new RuntimeException("Minor compaction after recovery fails for " + extent);
-          }
+        tablet = new Tablet(TabletServer.this, extent, locationToOpen, trm, tabletsKeyValues);
+        /* @formatter:off
+         * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
+         *
+         * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
+         *
+         * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers.
+         * 2) The log recovery code does not block if memory is full. Therefore recovering lots of tablets that use a lot of memory could run out of memory.
+         * 3) The minor compaction finish event did not make it to the logs (the file will be in metadata, preventing replay of compacted data)...
+         * but do not want a majc to wipe the file out from metadata and then have another process failure...
+         * this could cause duplicate data to replay.
+         * @formatter:on
+         */
+        if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
+          throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
         Assignment assignment = new Assignment(extent, getTabletSession());
         TabletStateStore.setLocation(assignment);
@@ -2203,13 +2203,13 @@ public class TabletServer implements Runnable {
 
   private void acquireRecoveryMemory(KeyExtent extent) throws InterruptedException {
     if (!extent.isMeta()) {
-      recoverySemaphore.acquireUninterruptibly();
+      recoveryLock.lock();
     }
   }
 
   private void releaseRecoveryMemory(KeyExtent extent) {
     if (!extent.isMeta()) {
-      recoverySemaphore.release();
+      recoveryLock.unlock();
     }
   }
   
