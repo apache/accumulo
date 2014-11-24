@@ -18,6 +18,9 @@ package org.apache.accumulo.harness;
 
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Connector;
@@ -25,9 +28,10 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
-import org.apache.accumulo.harness.conf.AccumuloStandaloneClusterConfiguration;
+import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -77,8 +81,14 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
         cluster = miniClusterHarness.create(this, getToken());
         break;
       case STANDALONE:
-        AccumuloStandaloneClusterConfiguration conf = (AccumuloStandaloneClusterConfiguration) clusterConf;
-        cluster = new StandaloneAccumuloCluster(conf.getInstance());
+        StandaloneAccumuloClusterConfiguration conf = (StandaloneAccumuloClusterConfiguration) clusterConf;
+        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(conf.getInstance());
+        // If these are provided in the configuration, pass them into the cluster
+        standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
+        standaloneCluster.setAccumuloConfDir(conf.getAccumuloConfDir());
+        standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
+        // Set the implementation
+        cluster = standaloneCluster;
         break;
       default:
         throw new RuntimeException("Unhandled type");
@@ -172,5 +182,27 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
    */
   public boolean canRunTest(ClusterType type) {
     return true;
+  }
+
+  /**
+   * Tries to give a reasonable directory which can be used to create temporary files for the test. Makes a basic attempt to create the directory if it does not
+   * already exist.
+   *
+   * @return A directory which can be expected to exist on the Cluster's FileSystem
+   * @throws IOException
+   * @throws IllegalArgumentException
+   */
+  public String getUsableDir() throws IllegalArgumentException, IOException {
+    if (ClusterType.MINI == getClusterType()) {
+      File f = new File(System.getProperty("user.dir"), "target");
+      f.mkdirs();
+      return f.getAbsolutePath();
+    } else if (ClusterType.STANDALONE == getClusterType()) {
+      String path = "/tmp";
+      cluster.getFileSystem().mkdirs(new Path(path));
+      return path;
+    }
+
+    throw new IllegalArgumentException("Cannot determine a usable directory for cluster: " + getClusterType());
   }
 }

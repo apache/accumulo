@@ -27,7 +27,7 @@ import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
 /**
  * Extract connection information to a standalone Accumulo instance from Java properties
  */
-public class AccumuloStandaloneClusterConfiguration extends AccumuloClusterPropertyConfiguration {
+public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPropertyConfiguration {
 
   public static final String ACCUMULO_STANDALONE_PRINCIPAL_KEY = ACCUMULO_STANDALONE_PREFIX + "principal";
   public static final String ACCUMULO_STANDALONE_PRINCIPAL_DEFAULT = "root";
@@ -38,9 +38,13 @@ public class AccumuloStandaloneClusterConfiguration extends AccumuloClusterPrope
   public static final String ACCUMULO_STANDALONE_INSTANCE_NAME_KEY = ACCUMULO_STANDALONE_PREFIX + "instance.name";
   public static final String ACCUMULO_STANDALONE_INSTANCE_NAME_DEFAULT = "accumulo";
 
+  public static final String ACCUMULO_STANDALONE_HOME = ACCUMULO_STANDALONE_PREFIX + "home";
+  public static final String ACCUMULO_STANDALONE_CONF = ACCUMULO_STANDALONE_PREFIX + "conf";
+  public static final String ACCUMULO_STANDALONE_HADOOP_CONF = ACCUMULO_STANDALONE_PREFIX + "hadoop.conf";
+
   private Map<String,String> conf;
 
-  public AccumuloStandaloneClusterConfiguration() {
+  public StandaloneAccumuloClusterConfiguration() {
     ClusterType type = getClusterType();
     if (ClusterType.STANDALONE != type) {
       throw new IllegalStateException("Expected only to see standalone cluster state");
@@ -96,4 +100,15 @@ public class AccumuloStandaloneClusterConfiguration extends AccumuloClusterPrope
     return ClusterType.STANDALONE;
   }
 
+  public String getHadoopConfDir() {
+    return conf.get(ACCUMULO_STANDALONE_HADOOP_CONF);
+  }
+
+  public String getAccumuloHome() {
+    return conf.get(ACCUMULO_STANDALONE_HOME);
+  }
+
+  public String getAccumuloConfDir() {
+    return conf.get(ACCUMULO_STANDALONE_CONF);
+  }
 }

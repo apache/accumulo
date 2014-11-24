@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -42,7 +41,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BulkFileIT extends AccumuloClusterIT {
@@ -70,15 +68,7 @@ public class BulkFileIT extends AccumuloClusterIT {
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
     FileSystem fs = getCluster().getFileSystem();
 
-    String rootPath;
-    if (ClusterType.MINI == getClusterType()) {
-      rootPath = new File(System.getProperty("user.dir"), "target").getCanonicalPath();
-    } else if (ClusterType.STANDALONE == getClusterType()) {
-      rootPath = "/tmp";
-    } else {
-      Assert.fail("Cannot compute root path for test");
-      return;
-    }
+    String rootPath = getUsableDir();
 
     String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 

@@ -103,7 +103,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
       case MINI:
         return new AccumuloMiniClusterConfiguration();
       case STANDALONE:
-        return new AccumuloStandaloneClusterConfiguration();
+        return new StandaloneAccumuloClusterConfiguration();
       default:
         throw new RuntimeException("Clusters other than MiniAccumuloCluster are not yet implemented");
     }
