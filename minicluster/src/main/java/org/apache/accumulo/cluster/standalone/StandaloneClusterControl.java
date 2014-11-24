@@ -236,6 +236,11 @@ public class StandaloneClusterControl implements ClusterControl {
   public void signal(ServerType server, String hostname, String signal) throws IOException {
     String pid = getPid(server, accumuloHome, hostname);
 
+    if (pid.trim().isEmpty()) {
+      log.debug("Found no processes for {} on {}", server, hostname);
+      return;
+    }
+
     boolean isSignalNumber = false;
     try {
       Integer.parseInt(signal);
