@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
@@ -79,13 +80,14 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 // Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
 // Punt on this for now and just let it use a minicluster.
 public class NamespacesIT extends AccumuloIT {
 
-  private MiniAccumuloClusterImpl cluster;
+  private static MiniAccumuloClusterImpl cluster;
   private Connector c;
   private String namespace;
 
@@ -94,7 +96,7 @@ public class NamespacesIT extends AccumuloIT {
     return 60;
   }
 
-  private AuthenticationToken getToken() {
+  private static AuthenticationToken getToken() {
     return new PasswordToken("rootPassword1");
   }
 
@@ -106,12 +108,16 @@ public class NamespacesIT extends AccumuloIT {
     }
   }
 
-  @Before
-  public void setUpConnectorAndNamespace() throws Exception {
+  @BeforeClass
+  public static void setupMiniCluster() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
     cluster = harness.create(getToken());
     cluster.getConfig().setNumTservers(1);
     cluster.start();
+  }
+  
+  @Before
+  public void setupConnectorAndNamespace() throws Exception {
     // prepare a unique namespace and get a new root connector for each test
     c = getConnector();
     namespace = "ns_" + getUniqueNames(1)[0];
@@ -119,8 +125,19 @@ public class NamespacesIT extends AccumuloIT {
 
   @After
   public void swingMjölnir() throws Exception {
-    // Just making a new MAC is so much less work than hammering things
-    cluster.stop();
+    // clean up any added tables, namespaces, and users, after each test
+    for (String t : c.tableOperations().list())
+      if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))
+        c.tableOperations().delete(t);
+    assertEquals(2, c.tableOperations().list().size());
+    for (String n : c.namespaceOperations().list())
+      if (!n.equals(Namespaces.ACCUMULO_NAMESPACE) && !n.equals(Namespaces.DEFAULT_NAMESPACE))
+        c.namespaceOperations().delete(n);
+    assertEquals(2, c.namespaceOperations().list().size());
+    for (String u : c.securityOperations().listLocalUsers())
+      if (!"root".equals(u))
+        c.securityOperations().dropLocalUser(u);
+    assertEquals(1, c.securityOperations().listLocalUsers().size());
   }
 
   @Test
