@@ -110,13 +110,14 @@ public class MockAccumulo {
 
   public void createTable(String username, String tableName, TimeType timeType, Map<String,String> properties) {
     String namespace = Tables.qualify(tableName).getFirst();
+    HashMap<String, String> props = new HashMap<>(properties);
 
     if (!namespaceExists(namespace)) {
       return;
     }
 
     MockNamespace n = namespaces.get(namespace);
-    MockTable t = new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()), properties);
+    MockTable t = new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()), props);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
     t.setNamespace(n);

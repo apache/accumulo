@@ -28,6 +28,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
@@ -143,7 +144,7 @@ public class MergeIT extends SimpleMacIT {
       throws Exception {
     System.out.println("Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
-    conn.tableOperations().create(table, true, TimeType.LOGICAL);
+    conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
     TreeSet<Text> splitSet = new TreeSet<Text>();
     for (String split : splits) {
       splitSet.add(new Text(split));

@@ -115,10 +115,10 @@ class MockTableOperations extends TableOperationsHelper {
   public void create(String tableName, NewTableConfiguration ntc) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     String namespace = Tables.qualify(tableName).getFirst();
 
-    Preconditions.checkArgument(!tableName.matches(Tables.VALID_NAME_REGEX));
+    Preconditions.checkArgument(tableName.matches(Tables.VALID_NAME_REGEX));
     if (exists(tableName))
       throw new TableExistsException(tableName, tableName, "");
-    Preconditions.checkArgument(!namespaceExists(namespace), "Namespace (" + namespace + ") does not exist, create it first");
+    Preconditions.checkArgument(namespaceExists(namespace), "Namespace (" + namespace + ") does not exist, create it first");
     acu.createTable(username, tableName, ntc.getTimeType(), ntc.getProperties());
   }
 

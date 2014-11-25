@@ -24,10 +24,12 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 
 /**
- * This object stores table creation parameters. Currently including: TimeType, limitVersion, and user specified initial properties
- * 
+ * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to include default iterators, and user-specified initial
+ * properties
+ *
  * @since 1.7.0
  */
 public class NewTableConfiguration {
@@ -39,6 +41,13 @@ public class NewTableConfiguration {
 
   private Map<String,String> properties = new HashMap<String,String>();
 
+  /**
+   * Configure logical or millisecond time for tables created with this configuration.
+   *
+   * @param tt
+   *          the time type to use; defaults to milliseconds
+   * @return this
+   */
   public NewTableConfiguration setTimeType(TimeType tt) {
     checkArgument(tt != null, "TimeType is null");
 
@@ -46,18 +55,34 @@ public class NewTableConfiguration {
     return this;
   }
 
+  /**
+   * Retrieve the time type currently configured.
+   *
+   * @return the time type
+   */
   public TimeType getTimeType() {
     return timeType;
   }
 
   /**
-   * Currently the only default iterator is the versioning iterator. This method will cause the table to be created without the versioning iterator
+   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause the table to be created without that iterator, or any others
+   * which may become defaults in the future.
+   *
+   * @return this
    */
   public NewTableConfiguration withoutDefaultIterators() {
     this.limitVersion = false;
     return this;
   }
 
+  /**
+   * Sets additional properties to be applied to tables created with this configuration. Additional calls to this method replaces properties set by previous
+   * calls.
+   *
+   * @param prop
+   *          additional properties to add to the table when it is created
+   * @return this
+   */
   public NewTableConfiguration setProperties(Map<String,String> prop) {
     checkArgument(prop != null, "properties is null");
 
@@ -65,6 +90,11 @@ public class NewTableConfiguration {
     return this;
   }
 
+  /**
+   * Retrieves the complete set of currently configured table properties to be applied to a table when this configuration object is used.
+   *
+   * @return the current properties configured
+   */
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 

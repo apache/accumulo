@@ -30,7 +30,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.functional.SimpleMacIT;
@@ -39,18 +38,20 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class CreateTableWithNewTableConfigIT extends SimpleMacIT {
   static private final Logger log = Logger.getLogger(CreateTableWithNewTableConfigIT.class);
 
+  @Override
   protected int defaultTimeoutSeconds() {
     return 30;
   };
 
   public int numProperties(Connector connector, String tableName) throws AccumuloException, TableNotFoundException {
     int countNew = 0;
-    for (Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
+    for (@SuppressWarnings("unused")
+    Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
       countNew++;
     }
 
@@ -92,6 +93,7 @@ public class CreateTableWithNewTableConfigIT extends SimpleMacIT {
     return false;
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void tableNameOnly() throws Exception {
     log.info("Starting tableNameOnly");
@@ -111,6 +113,7 @@ public class CreateTableWithNewTableConfigIT extends SimpleMacIT {
     Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void tableNameAndLimitVersion() throws Exception {
     log.info("Starting tableNameAndLimitVersion");
@@ -131,6 +134,7 @@ public class CreateTableWithNewTableConfigIT extends SimpleMacIT {
     Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void tableNameLimitVersionAndTimeType() throws Exception {
     log.info("Starting tableNameLimitVersionAndTimeType");
@@ -152,6 +156,7 @@ public class CreateTableWithNewTableConfigIT extends SimpleMacIT {
     Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, tt));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void addCustomPropAndChangeExisting() throws Exception {
     log.info("Starting addCustomPropAndChangeExisting");

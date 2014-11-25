@@ -239,8 +239,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)),
-        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
+        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
 
     Map<String,String> opts = ntc.getProperties();
 
