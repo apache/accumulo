@@ -345,6 +345,11 @@ public class ExamplesIT extends AccumuloClusterIT {
   @Test
   public void testBulkIngest() throws Exception {
     String tableName = getUniqueNames(1)[0];
+    FileSystem fs = getFileSystem();
+    Path p = new Path(dir, "tmp");
+    if (fs.exists(p)) {
+      fs.delete(p, true);
+    }
     goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data");
     goodExec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName);
     goodExec(BulkIngestExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--inputDir", dir + "/tmp/input",
