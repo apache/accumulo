@@ -94,6 +94,7 @@ public class MetadataMaxFilesIT extends AccumuloClusterIT {
     try {
       for (Entry<String,String> entry : c.tableOperations().getProperties(MetadataTable.NAME)) {
         if (Property.TABLE_SPLIT_THRESHOLD.getKey().equals(entry.getKey())) {
+          log.info("Got original table split threshold for metadata table of {}", entry.getValue());
           splitThreshold = entry.getValue();
           break;
         }
@@ -133,11 +134,13 @@ public class MetadataMaxFilesIT extends AccumuloClusterIT {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
             if (entry.getKey().startsWith("!"))
               continue;
+            log.info("Found {} tablets for {}", entry.getValue().onlineTablets, entry.getKey());
             tablets += entry.getValue().onlineTablets;
           }
         }
         if (tablets >= 5005)
           break;
+        log.info("Only found {} tablets, will retry", tablets);
         UtilWaitThread.sleep(1000);
       }
     } finally {
