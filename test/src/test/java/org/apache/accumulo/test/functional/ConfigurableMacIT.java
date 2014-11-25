@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -73,7 +74,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
     Configuration coreSite = new Configuration(false);
     configure(cfg, coreSite);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
+    configureForEnvironment(cfg, getClass(), createSharedTestDir(this.getClass().getName() + "-ssl"));
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
       File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
@@ -98,7 +99,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   @Override
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getCluster().getConnector("root", ROOT_PASSWORD);
+    return getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
   }
 
   public Process exec(Class<?> clazz, String... args) throws IOException {

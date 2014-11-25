@@ -14,14 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.accumulo.harness;
+
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 
 /**
- * This package contains a set of "experimental" changes to the MiniAccumuloCluster class.
- *
- * The intent is to decouple the notion of the MiniCluster from the implementation which
- * will allow for various Accumulo testing implementations that all adhere to the same interface.
- *
- * Presently, this interface can be used to create an MiniAccumuloCluster, but the API is not
- * guaranteed to make non-breaking changes going forward.
+ * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml file used by the MiniAccumuloCluster
  */
-package org.apache.accumulo.cluster;
+public interface MiniClusterConfigurationCallback {
+
+  public static class NoCallback implements MiniClusterConfigurationCallback {
+
+    private NoCallback() {}
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      return;
+    }
+  }
+
+  public static final MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
+
+  void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
+
+}

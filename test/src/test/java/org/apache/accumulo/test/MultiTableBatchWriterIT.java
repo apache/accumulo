@@ -34,21 +34,20 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.MultiTableBatchWriterImpl;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-public class MultiTableBatchWriterIT extends SimpleMacIT {
+public class MultiTableBatchWriterIT extends AccumuloClusterIT {
 
   private Connector connector;
   private MultiTableBatchWriter mtbw;
@@ -65,7 +64,7 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
   }
 
   public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
-    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", new PasswordToken(ROOT_PASSWORD)),
+    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", getToken()),
         new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
   }
 
@@ -73,7 +72,8 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
   public void testTableRenameDataValidation() throws Exception {
 
     try {
-      final String table1 = "testTableRenameDataValidation_table1", table2 = "testTableRenameDataValidation_table2";
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -134,8 +134,9 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
   public void testTableRenameSameWriters() throws Exception {
 
     try {
-      final String table1 = "testTableRenameSameWriters_table1", table2 = "testTableRenameSameWriters_table2";
-      final String newTable1 = "testTableRenameSameWriters_newTable1", newTable2 = "testTableRenameSameWriters_newTable2";
+      final String[] names = getUniqueNames(4);
+      final String table1 = names[0], table2 = names[1];
+      final String newTable1 = names[2], newTable2 = names[3];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -189,8 +190,9 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
   public void testTableRenameNewWriters() throws Exception {
 
     try {
-      final String table1 = "testTableRenameNewWriters_table1", table2 = "testTableRenameNewWriters_table2";
-      final String newTable1 = "testTableRenameNewWriters_newTable1", newTable2 = "testTableRenameNewWriters_newTable2";
+      final String[] names = getUniqueNames(4);
+      final String table1 = names[0], table2 = names[1];
+      final String newTable1 = names[2], newTable2 = names[3];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -265,8 +267,9 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
     mtbw = getMultiTableBatchWriter(0);
 
     try {
-      final String table1 = "testTableRenameNewWritersNoCaching_table1", table2 = "testTableRenameNewWritersNoCaching_table2";
-      final String newTable1 = "testTableRenameNewWritersNoCaching_newTable1", newTable2 = "testTableRenameNewWritersNoCaching_newTable2";
+      final String[] names = getUniqueNames(4);
+      final String table1 = names[0], table2 = names[1];
+      final String newTable1 = names[2], newTable2 = names[3];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -308,7 +311,8 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
     boolean mutationsRejected = false;
 
     try {
-      final String table1 = "testTableDelete_table1", table2 = "testTableDelete_table2";
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -358,7 +362,8 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
     boolean mutationsRejected = false;
 
     try {
-      final String table1 = "testOfflineTable_table1", table2 = "testOfflineTable_table2";
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -406,7 +411,8 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
     boolean mutationsRejected = false;
 
     try {
-      final String table1 = "testOfflineTableWithCache_table1", table2 = "testOfflineTableWithCache_table2";
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);
@@ -459,7 +465,8 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
     boolean mutationsRejected = false;
 
     try {
-      final String table1 = "testOfflineTableWithoutCache_table1", table2 = "testOfflineTableWithoutCache_table2";
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
 
       TableOperations tops = connector.tableOperations();
       tops.create(table1);

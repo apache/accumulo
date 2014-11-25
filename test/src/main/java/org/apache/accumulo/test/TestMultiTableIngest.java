@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 public class TestMultiTableIngest {
-  
+
   static class Opts extends ClientOpts {
     @Parameter(names = "--readonly", description = "read only")
     boolean readonly = false;
@@ -48,8 +48,10 @@ public class TestMultiTableIngest {
     int tables = 5;
     @Parameter(names = "--count", description = "number of entries to create")
     int count = 10000;
+    @Parameter(names = "--tablePrefix", description = "prefix of the table names")
+    String prefix = "test_";
   }
-  
+
   private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn, List<String> tableNames) throws Exception {
     int i = 0;
     for (String table : tableNames) {
@@ -68,10 +70,10 @@ public class TestMultiTableIngest {
       i++;
     }
   }
-  
+
   public static void main(String[] args) throws Exception {
     ArrayList<String> tableNames = new ArrayList<String>();
-    
+
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
@@ -86,20 +88,20 @@ public class TestMultiTableIngest {
       throw new RuntimeException(e);
     }
     for (int i = 0; i < opts.tables; i++) {
-      tableNames.add(String.format("test_%04d", i));
+      tableNames.add(String.format(opts.prefix + "%04d", i));
     }
-    
+
     if (!opts.readonly) {
       for (String table : tableNames)
         connector.tableOperations().create(table);
-      
+
       MultiTableBatchWriter b;
       try {
         b = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      
+
       // populate
       for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%06d", i)));
@@ -118,5 +120,5 @@ public class TestMultiTableIngest {
       throw new RuntimeException(e);
     }
   }
-  
+
 }

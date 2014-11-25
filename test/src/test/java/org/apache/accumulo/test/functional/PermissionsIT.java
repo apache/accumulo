@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -48,15 +49,49 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.MiniClusterHarness;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class PermissionsIT extends SimpleMacIT {
-
+// This test verifies the default permissions so a clean instance must be used. A shared instance might
+// not be representative of a fresh installation.
+public class PermissionsIT extends AccumuloIT {
+  private static final Logger log = Logger.getLogger(PermissionsIT.class);
   static AtomicInteger userId = new AtomicInteger(0);
+
+  private MiniAccumuloClusterImpl cluster;
 
   static String makeUserName() {
     return "user_" + userId.getAndIncrement();
+  }
+
+  @Before
+  public void createMiniCluster() throws Exception {
+    MiniClusterHarness harness = new MiniClusterHarness();
+    cluster = harness.create(getToken());
+    cluster.start();
+  }
+
+  @After
+  public void stopMiniCluster() throws Exception {
+    cluster.stop();
+  }
+
+  private AuthenticationToken getToken() {
+    return new PasswordToken("rootPassword1");
+  }
+
+  private Connector getConnector() {
+    try {
+      return cluster.getConnector("root", getToken());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

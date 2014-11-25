@@ -37,11 +37,12 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class MetadataIT extends SimpleMacIT {
+public class MetadataIT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -88,12 +89,13 @@ public class MetadataIT extends SimpleMacIT {
   @Test
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
+    String[] names = getUniqueNames(5);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String id : "1 2 3 4 5".split(" ")) {
       splits.add(new Text(id));
     }
     c.tableOperations().addSplits(MetadataTable.NAME, splits);
-    for (String tableName : "a1 a2 a3 a4 a5".split(" ")) {
+    for (String tableName : names) {
       c.tableOperations().create(tableName);
     }
     c.tableOperations().merge(MetadataTable.NAME, null, null);

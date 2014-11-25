@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -29,33 +30,31 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // Verify that a recovery of a log without any mutations removes the log reference
-public class NoMutationRecoveryIT extends ConfigurableMacIT {
+public class NoMutationRecoveryIT extends AccumuloClusterIT {
 
-  static final String TABLE = "table";
-  
   @Override
   public int defaultTimeoutSeconds() {
     return 10 * 60;
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
   }
@@ -70,21 +69,24 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
-    conn.tableOperations().create(TABLE);
-    update(conn, TABLE, new Text("row"), new Text("cf"), new Text("cq"), new Value("value".getBytes()));
+    final String table = getUniqueNames(1)[0];
+    conn.tableOperations().create(table);
+    String tableId = conn.tableOperations().tableIdMap().get(table);
+    update(conn, table, new Text("row"), new Text("cf"), new Text("cq"), new Value("value".getBytes()));
     Entry<Key, Value> logRef = getLogRef(conn, MetadataTable.NAME);
-    conn.tableOperations().flush(TABLE, null, null, true);
-    assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME)));
+    conn.tableOperations().flush(table, null, null, true);
+    assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME, Range.prefix(tableId))));
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     update(conn, MetadataTable.NAME, logRef);
     assertTrue(equals(logRef, getLogRef(conn, MetadataTable.NAME)));
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
-    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, proc);
-    }
-    cluster.start();
-    Scanner s = conn.createScanner(TABLE, Authorizations.EMPTY);
+
+    ClusterControl control = cluster.getClusterControl();
+    control.stopAllServers(ServerType.TABLET_SERVER);
+    control.startAllServers(ServerType.TABLET_SERVER);
+
+    Scanner s = conn.createScanner(table, Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> e : s) {
       assertEquals(e.getKey().getRow().toString(), "row");
@@ -105,8 +107,13 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
   }
 
   private Iterable<Entry<Key, Value>> getLogRefs(Connector conn, String table) throws Exception {
+    return getLogRefs(conn, table, new Range());
+  }
+
+  private Iterable<Entry<Key,Value>> getLogRefs(Connector conn, String table, Range r) throws Exception {
     Scanner s = conn.createScanner(table, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
+    s.setRange(r);
     return s;
   }
 

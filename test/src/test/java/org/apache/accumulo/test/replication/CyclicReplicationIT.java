@@ -155,14 +155,14 @@ public class CyclicReplicationIT {
       master1Cfg.setInstanceName("master1");
 
       // Set up SSL if needed
-      AbstractMacIT.configureForEnvironment(master1Cfg, AbstractMacIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
+      AbstractMacIT.configureForEnvironment(master1Cfg, this.getClass(), AbstractMacIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
 
       master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
       master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
       master1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
       master1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
       master1Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
-      master1Cluster = master1Cfg.build();
+      master1Cluster = new MiniAccumuloClusterImpl(master1Cfg);
       setCoreSite(master1Cluster);
 
       try {
@@ -188,7 +188,7 @@ public class CyclicReplicationIT {
       master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
       master2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
       master2Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
-      master2Cluster = master2Cfg.build();
+      master2Cluster = new MiniAccumuloClusterImpl(master2Cfg);
       setCoreSite(master2Cluster);
 
       try {

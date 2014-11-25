@@ -26,10 +26,13 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class LogicalTimeIT extends SimpleMacIT {
+public class LogicalTimeIT extends AccumuloClusterIT {
+  private static final Logger log = Logger.getLogger(LogicalTimeIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -39,14 +42,14 @@ public class LogicalTimeIT extends SimpleMacIT {
   @Test
   public void run() throws Exception {
     int tc = 0;
-    String tableName = "foo";
+    String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a"}, null, null, "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"z"}, null, null, "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "z"}, null, null, "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "c", "z"}, null, null, "b", 3l);
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "y", "z"}, null, null, "b", 3l);
-    
+
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, null, "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, null, "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, null, "b", 2l);
@@ -54,7 +57,7 @@ public class LogicalTimeIT extends SimpleMacIT {
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"}, null, null, "b", 3l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"}, null, null, "b", 3l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"}, null, null, "b", 3l);
-    
+
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, "h", "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, "h", "b", 2l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, "h", "b", 1l);
@@ -62,9 +65,9 @@ public class LogicalTimeIT extends SimpleMacIT {
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"}, null, "h", "b", 3l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"}, null, "h", "b", 3l);
     runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"}, null, "h", "b", 2l);
-    
+
   }
-  
+
   private void runMergeTest(Connector conn, String table, String[] splits, String[] inserts, String start, String end, String last, long expected) throws Exception {
     log.info("table " + table);
     conn.tableOperations().create(table, true, TimeType.LOGICAL);
@@ -73,31 +76,31 @@ public class LogicalTimeIT extends SimpleMacIT {
       splitSet.add(new Text(split));
     }
     conn.tableOperations().addSplits(table, splitSet);
-    
+
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     for (String row : inserts) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "v");
       bw.addMutation(m);
     }
-    
+
     bw.flush();
-    
+
     conn.tableOperations().merge(table, start == null ? null : new Text(start), end == null ? null : new Text(end));
-    
+
     Mutation m = new Mutation(last);
     m.put("cf", "cq", "v");
     bw.addMutation(m);
     bw.flush();
-    
+
     Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
     scanner.setRange(new Range(last));
-    
+
     bw.close();
-    
+
     long time = scanner.iterator().next().getKey().getTimestamp();
     if (time != expected)
       throw new RuntimeException("unexpected time " + time + " " + expected);
   }
-  
+
 }

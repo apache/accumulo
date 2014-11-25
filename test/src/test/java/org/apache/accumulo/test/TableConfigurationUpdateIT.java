@@ -30,14 +30,14 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TableConfigurationUpdateIT extends SimpleMacIT {
+public class TableConfigurationUpdateIT extends AccumuloClusterIT {
   private static final Logger log = Logger.getLogger(TableConfigurationUpdateIT.class);
 
   @Override
@@ -50,7 +50,7 @@ public class TableConfigurationUpdateIT extends SimpleMacIT {
     Connector conn = getConnector();
     Instance inst = conn.getInstance();
 
-    String table = "foo";
+    String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
 
     final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, inst, AccumuloConfiguration.getDefaultConfiguration());

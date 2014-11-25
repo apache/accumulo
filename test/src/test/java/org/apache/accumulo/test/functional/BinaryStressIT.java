@@ -19,43 +19,91 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class BinaryStressIT extends ConfigurableMacIT {
-  
+public class BinaryStressIT extends AccumuloClusterIT {
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "50K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
     cfg.setSiteConfig(siteConfig );
   }
 
+  private String majcDelay, maxMem;
+
+  @Before
+  public void alterConfig() throws Exception {
+    if (ClusterType.MINI == getClusterType()) {
+      return;
+    }
+
+    InstanceOperations iops = getConnector().instanceOperations();
+    Map<String,String> conf = iops.getSystemConfiguration();
+    majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
+    maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
+
+    iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
+
+    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+  }
+
+  @After
+  public void resetConfig() throws Exception {
+    if (null != majcDelay) {
+      InstanceOperations iops = getConnector().instanceOperations();
+      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+      iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
+      
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    }
+  }
+
   @Test
   public void binaryStressTest() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("bt");
-    c.tableOperations().setProperty("bt", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    BinaryIT.runTest(c);
-    String id = c.tableOperations().tableIdMap().get("bt");
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    FileStatus[] dir = fs.listStatus(new Path(cluster.getConfig().getDir() + "/accumulo/tables/" + id));
-    assertTrue(dir.length  > 7);
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    BinaryIT.runTest(c, tableName);
+    String id = c.tableOperations().tableIdMap().get(tableName);
+    Set<Text> tablets = new HashSet<Text>();
+    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.setRange(Range.prefix(id));
+    for (Entry<Key,Value> entry : s) {
+      tablets.add(entry.getKey().getRow());
+    }
+    assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
   }
-  
+
 }

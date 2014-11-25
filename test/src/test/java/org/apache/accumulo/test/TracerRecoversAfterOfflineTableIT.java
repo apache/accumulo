@@ -63,6 +63,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacIT {
       while (!conn.tableOperations().exists("trace")) {
         UtilWaitThread.sleep(1000);
       }
+      UtilWaitThread.sleep(5000);
     }
 
     log.info("Taking table offline");

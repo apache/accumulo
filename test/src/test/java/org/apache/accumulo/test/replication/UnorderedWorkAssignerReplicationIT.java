@@ -159,7 +159,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
@@ -312,7 +312,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 
@@ -474,7 +474,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
@@ -571,7 +571,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 

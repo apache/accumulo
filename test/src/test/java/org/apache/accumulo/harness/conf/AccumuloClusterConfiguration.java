@@ -14,30 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.cluster;
+package org.apache.accumulo.harness.conf;
 
-import java.io.IOException;
-
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
 
 /**
- * Facilitates programmatic creation of an {@link AccumuloCluster}
- *
- * (Experimental, not guaranteed to stay backwards compatible)
- *
- * @since 1.6.0
+ * Base functionality that must be provided as configuration to the test
  */
-public class AccumuloClusters {
+public interface AccumuloClusterConfiguration {
 
-  private AccumuloClusters() {}
+  ClusterType getClusterType();
 
-  public static AccumuloCluster create(AccumuloConfig cfg) throws IOException {
-    return cfg.build();
-  }
+  String getPrincipal();
 
-  public static MiniAccumuloCluster createMiniCluster(MiniAccumuloConfig cfg) throws IOException {
-    return new MiniAccumuloCluster(cfg);
-  }
+  AuthenticationToken getToken();
 
 }

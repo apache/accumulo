@@ -22,11 +22,12 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestBinaryRows;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BinaryIT extends SimpleMacIT {
+public class BinaryIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -36,13 +37,14 @@ public class BinaryIT extends SimpleMacIT {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("bt");
-    runTest(c);
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    runTest(c, tableName);
   }
 
   @Test
   public void testPreSplit() throws Exception {
-    String tableName = "bt2";
+    String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
@@ -50,10 +52,6 @@ public class BinaryIT extends SimpleMacIT {
     splits.add(new Text("256"));
     c.tableOperations().addSplits(tableName, splits);
     runTest(c, tableName);
-  }
-
-  public static void runTest(Connector c) throws Exception {
-    runTest(c, "bt");
   }
 
   public static void runTest(Connector c, String tableName) throws Exception {

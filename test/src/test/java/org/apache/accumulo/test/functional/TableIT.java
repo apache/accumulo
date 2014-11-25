@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
@@ -32,14 +33,18 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assume;
 import org.junit.Test;
 
-public class TableIT extends SimpleMacIT {
+public class TableIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -48,6 +53,12 @@ public class TableIT extends SimpleMacIT {
 
   @Test
   public void test() throws Exception {
+    Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
+
+    AccumuloCluster cluster = getCluster();
+    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
+    String rootPath = mac.getConfig().getDir().getAbsolutePath();
+
     Connector c = getConnector();
     TableOperations to = c.tableOperations();
     String tableName = getUniqueNames(1)[0];
@@ -64,12 +75,13 @@ public class TableIT extends SimpleMacIT {
     s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     assertTrue(FunctionalTestUtils.count(s) > 0);
+
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    assertTrue(fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id)).length > 0);
+    assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
     to.delete(tableName);
     assertEquals(0, FunctionalTestUtils.count(s));
     try {
-      assertEquals(0, fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id)).length);
+      assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);
     } catch (FileNotFoundException ex) {
       // that's fine, too
     }

@@ -155,7 +155,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
@@ -308,7 +308,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 
@@ -450,7 +450,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
@@ -549,7 +549,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 

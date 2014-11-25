@@ -18,28 +18,66 @@ package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.MiniClusterHarness;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.Opts;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class BulkIT extends SimpleMacIT {
+// TODO Change test to support bulk ingest on any filesystem, not just the local FS.
+public class BulkIT extends AccumuloIT {
 
-  static final int N = 100000;
-  static final int COUNT = 5;
+  private static final int N = 100000;
+  private static final int COUNT = 5;
+  private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
+  private static final ScannerOpts SOPTS = new ScannerOpts();
+
+  private MiniAccumuloClusterImpl cluster;
+
+  private AuthenticationToken getToken() {
+    return new PasswordToken("rootPassword1");
+  }
+
+  private Connector getConnector() {
+    try {
+      return cluster.getConnector("root", getToken());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
+  }
+
+  @Before
+  public void startMiniCluster() throws Exception {
+    MiniClusterHarness harness = new MiniClusterHarness();
+    cluster = harness.create(getToken());
+    cluster.start();
+  }
+  
+  @After
+  public void stopMiniCluster() throws Exception {
+    cluster.stop();
   }
 
   @Test

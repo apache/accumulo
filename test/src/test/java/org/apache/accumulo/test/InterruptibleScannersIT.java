@@ -27,15 +27,15 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
 
-// Accumulo3030
-public class AllowScansToBeInterruptedIT extends ConfigurableMacIT {
+// ACCUMULO-3030
+public class InterruptibleScannersIT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -43,7 +43,7 @@ public class AllowScansToBeInterruptedIT extends ConfigurableMacIT {
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
   }
 
@@ -56,7 +56,8 @@ public class AllowScansToBeInterruptedIT extends ConfigurableMacIT {
     // make the world's slowest scanner
     final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
-    SlowIterator.setSeekSleepTime(cfg, 99999*1000);
+    // Wait long enough to be sure we can catch it, but not indefinitely.
+    SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
     scanner.addScanIterator(cfg);
     // create a thread to interrupt the slow scan
     final Thread scanThread = Thread.currentThread();
