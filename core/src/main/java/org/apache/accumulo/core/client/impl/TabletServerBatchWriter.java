@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -48,8 +47,6 @@ import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -57,7 +54,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -103,8 +99,7 @@ public class TabletServerBatchWriter {
   private static final Logger log = Logger.getLogger(TabletServerBatchWriter.class);
   
   // basic configuration
-  private final Instance instance;
-  private final Credentials credentials;
+  private final ClientContext context;
   private final long maxMem;
   private final long maxLatency;
   private final long timeout;
@@ -191,11 +186,10 @@ public class TabletServerBatchWriter {
     }
   }
   
-  public TabletServerBatchWriter(Instance instance, Credentials credentials, BatchWriterConfig config) {
-    this.instance = instance;
+  public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
+    this.context = context;
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE : config.getMaxLatency(TimeUnit.MILLISECONDS);
-    this.credentials = credentials;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
     this.mutations = new MutationSet();
     this.lastProcessingStartTime = System.currentTimeMillis();
@@ -473,9 +467,9 @@ public class TabletServerBatchWriter {
       for (KeyExtent ke : authorizationFailures.keySet())
         tableIds.add(ke.getTableId().toString());
       
-      Tables.clearCache(instance);
+      Tables.clearCache(context.getInstance());
       for (String tableId : tableIds)
-        if (!Tables.exists(instance, tableId))
+        if (!Tables.exists(context.getInstance(), tableId))
           throw new TableDeletedException(tableId);
       
       synchronized (this) {
@@ -529,7 +523,7 @@ public class TabletServerBatchWriter {
         af.put(entry.getKey(), codes);
       }
       
-      throw new MutationsRejectedException(instance, cvsList, af, serverSideErrors, unknownErrors, lastUnknownError);
+      throw new MutationsRejectedException(context.getInstance(), cvsList, af, serverSideErrors, unknownErrors, lastUnknownError);
     }
   }
   
@@ -626,7 +620,7 @@ public class TabletServerBatchWriter {
     private TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
-        ret = TabletLocator.getLocator(instance, new Text(tableId));
+        ret = TabletLocator.getLocator(context, new Text(tableId));
         ret = new TimeoutTabletLocator(ret, timeout);
         locators.put(tableId, ret);
       }
@@ -647,16 +641,16 @@ public class TabletServerBatchWriter {
           
           if (tableMutations != null) {
             ArrayList<Mutation> tableFailures = new ArrayList<Mutation>();
-            locator.binMutations(credentials, tableMutations, binnedMutations, tableFailures);
+            locator.binMutations(context, tableMutations, binnedMutations, tableFailures);
             
             if (tableFailures.size() > 0) {
               failedMutations.add(table, tableFailures);
               
               if (tableFailures.size() == tableMutations.size())
-                if (!Tables.exists(instance, entry.getKey()))
+                if (!Tables.exists(context.getInstance(), entry.getKey()))
                   throw new TableDeletedException(entry.getKey());
-                else if (Tables.getTableState(instance, table) == TableState.OFFLINE)
-                  throw new TableOfflineException(instance, entry.getKey());
+                else if (Tables.getTableState(context.getInstance(), table) == TableState.OFFLINE)
+                  throw new TableOfflineException(context.getInstance(), entry.getKey());
             }
           }
           
@@ -828,7 +822,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId().toString());
           
           for (String table : tables)
-            TabletLocator.getLocator(instance, new Text(table)).invalidateCache(location);
+            TabletLocator.getLocator(context, new Text(table)).invalidateCache(context.getInstance(), location);
           
           failedMutations.add(location, tsm);
         } finally {
@@ -849,11 +843,10 @@ public class TabletServerBatchWriter {
       try {
         TabletClientService.Iface client;
         
-        AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
-        if (timeoutTracker.getTimeOut() < rpcConfig.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-          client = ThriftUtil.getTServerClient(location, rpcConfig, timeoutTracker.getTimeOut());
+        if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
+          client = ThriftUtil.getTServerClient(location, context, timeoutTracker.getTimeOut());
         else
-          client = ThriftUtil.getTServerClient(location, rpcConfig);
+          client = ThriftUtil.getTServerClient(location, context);
         
         try {
           MutationSet allFailures = new MutationSet();
@@ -862,17 +855,17 @@ public class TabletServerBatchWriter {
             Entry<KeyExtent,List<Mutation>> entry = tabMuts.entrySet().iterator().next();
             
             try {
-              client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
+              client.update(tinfo, context.rpcCreds(), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
-              TabletLocator.getLocator(instance, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
+              TabletLocator.getLocator(context, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translators.TCVST));
             }
             timeoutTracker.madeProgress();
           } else {
             
-            long usid = client.startUpdate(tinfo, credentials.toThrift(instance), DurabilityImpl.toThrift(durability));
+            long usid = client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability));
             
             List<TMutation> updates = new ArrayList<TMutation>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
@@ -906,7 +899,7 @@ public class TabletServerBatchWriter {
               
               String table = failedExtent.getTableId().toString();
               
-              TabletLocator.getLocator(instance, new Text(table)).invalidateCache(failedExtent);
+              TabletLocator.getLocator(context, new Text(table)).invalidateCache(failedExtent);
               
               ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
               allFailures.addAll(table, mutations.subList(numCommitted, mutations.size()));

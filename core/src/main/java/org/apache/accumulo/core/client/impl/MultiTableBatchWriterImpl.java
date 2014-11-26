@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.log4j.Logger;
 
 import com.google.common.cache.CacheBuilder;
@@ -88,6 +88,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
     @Override
     public String load(String tableName) throws Exception {
+      Instance instance = context.getInstance();
       String tableId = Tables.getNameToIdMap(instance).get(tableName);
 
       if (tableId == null)
@@ -103,20 +104,19 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   private TabletServerBatchWriter bw;
   private ConcurrentHashMap<String,BatchWriter> tableWriters;
-  private Instance instance;
+  private final ClientContext context;
   private final LoadingCache<String,String> nameToIdCache;
 
-  public MultiTableBatchWriterImpl(Instance instance, Credentials credentials, BatchWriterConfig config) {
-    this(instance, credentials, config, DEFAULT_CACHE_TIME, DEFAULT_CACHE_TIME_UNIT);
+  public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
+    this(context, config, DEFAULT_CACHE_TIME, DEFAULT_CACHE_TIME_UNIT);
   }
 
-  public MultiTableBatchWriterImpl(Instance instance, Credentials credentials, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+  public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
+    checkArgument(context != null, "context is null");
     checkArgument(config != null, "config is null");
     checkArgument(cacheTimeUnit != null, "cacheTimeUnit is null");
-    this.instance = instance;
-    this.bw = new TabletServerBatchWriter(instance, credentials, config);
+    this.context = context;
+    this.bw = new TabletServerBatchWriter(context, config);
     tableWriters = new ConcurrentHashMap<String,BatchWriter>();
     this.closed = new AtomicBoolean(false);
     this.cacheLastState = new AtomicLong(0);
@@ -126,10 +126,12 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
         .build(new TableNameToIdLoader());
   }
 
+  @Override
   public boolean isClosed() {
     return this.closed.get();
   }
 
+  @Override
   public void close() throws MutationsRejectedException {
     this.closed.set(true);
     bw.close();

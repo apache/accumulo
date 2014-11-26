@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.replication;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -39,10 +41,10 @@ public class WorkDriver extends Daemon {
   private WorkAssigner assigner;
   private String assignerImplName;
 
-  public WorkDriver(Master master, Connector conn) {
+  public WorkDriver(Master master) throws AccumuloException, AccumuloSecurityException {
     super();
     this.master = master;
-    this.conn = conn;
+    this.conn = master.getConnector();
     this.conf = master.getConfiguration();
     configureWorkAssigner();
   }

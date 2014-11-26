@@ -24,22 +24,17 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -56,7 +51,7 @@ public class ReplicationServlet extends BasicServlet {
   private ReplicationUtil replicationUtil;
 
   public ReplicationServlet() {
-    replicationUtil = new ReplicationUtil();
+    replicationUtil = new ReplicationUtil(Monitor.getContext());
   }
 
   @Override
@@ -66,14 +61,11 @@ public class ReplicationServlet extends BasicServlet {
 
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
-    final Instance inst = HdfsZooInstance.getInstance();
-    final Credentials creds = SystemCredentials.get();
-    final Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    final Map<String,String> systemProps = conn.instanceOperations().getSystemConfiguration();
+    final Connector conn = Monitor.getContext().getConnector();
     final MasterMonitorInfo mmi = Monitor.getMmi();
 
     // The total number of "slots" we have to replicate data
-    int totalWorkQueueSize = replicationUtil.getMaxReplicationThreads(systemProps, mmi);
+    int totalWorkQueueSize = replicationUtil.getMaxReplicationThreads(mmi);
 
     TableOperations tops = conn.tableOperations();
     if (!ReplicationTable.isOnline(conn)) {
@@ -88,13 +80,13 @@ public class ReplicationServlet extends BasicServlet {
     replicationStats.addSortableColumn("ReplicaSystem Type");
     replicationStats.addSortableColumn("Files needing replication", new NumberType<Long>(), null);
 
-    Map<String,String> peers = replicationUtil.getPeers(systemProps);
+    Map<String,String> peers = replicationUtil.getPeers();
 
     // The total set of configured targets
-    Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets(tops);
+    Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets();
 
     // Number of files per target we have to replicate
-    Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications(conn);
+    Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications();
 
     Map<String,String> tableNameToId = tops.tableIdMap();
     Map<String,String> tableIdToName = replicationUtil.invert(tableNameToId);
@@ -143,10 +135,10 @@ public class ReplicationServlet extends BasicServlet {
     replicationInProgress.addUnsortableColumn("Status");
 
     // Read the files from the workqueue in zk
-    String zkRoot = ZooUtil.getRoot(inst);
+    String zkRoot = ZooUtil.getRoot(Monitor.getContext().getInstance());
     final String workQueuePath = zkRoot + ReplicationConstants.ZOO_WORK_QUEUE;
 
-    DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, new ServerConfigurationFactory(inst).getConfiguration());
+    DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, Monitor.getContext().getConfiguration());
 
     try {
       for (String queueKey : workQueue.getWorkQueued()) {

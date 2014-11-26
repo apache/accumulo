@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -38,7 +37,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
@@ -49,9 +47,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -66,14 +62,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
 
-  private final Instance inst;
-  private final Credentials creds;
+  private final ClientContext context;
 
-  public ReplicationOperationsImpl(Instance inst, Credentials creds) {
-    checkNotNull(inst);
-    checkNotNull(creds);
-    this.inst = inst;
-    this.creds = creds;
+  public ReplicationOperationsImpl(ClientContext context) {
+    checkNotNull(context);
+    this.context = context;
   }
 
   @Override
@@ -88,29 +81,13 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public void addPeer(final String name, final String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException {
     checkNotNull(name);
     checkNotNull(replicaType);
-
-    MasterClient.execute(inst, new ClientExec<Client>() {
-
-      @Override
-      public void execute(Client client) throws Exception {
-        client.setSystemProperty(Tracer.traceInfo(), creds.toThrift(inst), Property.REPLICATION_PEERS.getKey() + name, replicaType);
-      }
-
-    });
+    context.getConnector().instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name, replicaType);
   }
 
   @Override
   public void removePeer(final String name) throws AccumuloException, AccumuloSecurityException, PeerNotFoundException {
     checkNotNull(name);
-
-    MasterClient.execute(inst, new ClientExec<Client>() {
-
-      @Override
-      public void execute(Client client) throws Exception {
-        client.removeSystemProperty(Tracer.traceInfo(), creds.toThrift(inst), Property.REPLICATION_PEERS.getKey() + name);
-      }
-
-    });
+    context.getConnector().instanceOperations().removeProperty(Property.REPLICATION_PEERS.getKey() + name);
   }
 
   @Override
@@ -126,7 +103,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public void drain(String tableName, Set<String> wals) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkNotNull(tableName);
 
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    Connector conn = context.getConnector();
     Text tableId = getTableId(conn, tableName);
 
     log.info("Waiting for {} to be replicated for {}", wals, tableId);
@@ -238,7 +215,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
     log.debug("Collecting referenced files for replication of table {}", tableName);
 
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    Connector conn = context.getConnector();
     Text tableId = getTableId(conn, tableName);
 
     log.debug("Found id of {} for name {}", tableId, tableName);

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -38,14 +39,15 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -135,8 +137,10 @@ public class ContinuousStatsCollector {
       
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(opts.getInstance());
-        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(opts.getInstance()));
+        ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), new ServerConfigurationFactory(
+            opts.getInstance()).getConfiguration());
+        client = MasterClient.getConnectionWithRetry(context);
+        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
         
         TableInfo all = new TableInfo();
         Map<String,TableInfo> tableSummaries = new HashMap<String,TableInfo>();

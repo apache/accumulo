@@ -22,6 +22,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.hadoop.fs.FileSystem;
 
 /**
  * Defines a minimum required set of methods to run an Accumulo cluster.
@@ -32,42 +34,50 @@ import org.apache.accumulo.core.client.Connector;
  */
 
 public interface AccumuloCluster {
-  /**
-   * Starts Accumulo and Zookeeper processes. Can only be called once.
-   *
-   * @throws IllegalStateException
-   *           if already started
-   */
-  public void start() throws IOException, InterruptedException;
 
   /**
    * @return Accumulo instance name
    */
-  public String getInstanceName();
+  String getInstanceName();
 
   /**
    * @return zookeeper connection string
    */
-  public String getZooKeepers();
-
-  /**
-   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
-   * call stop in a finally block as soon as possible.
-   */
-  public void stop() throws IOException, InterruptedException;
-
-  /**
-   * Get the configuration for the cluster
-   */
-  public AccumuloConfig getConfig();
+  String getZooKeepers();
 
   /**
    * Utility method to get a connector to the cluster.
    */
-  public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Get the client configuration for the cluster
    */
-  public ClientConfiguration getClientConfig();
+  ClientConfiguration getClientConfig();
+
+  /**
+   * Get an object that can manage a cluster
+   *
+   * @return Manage the state of the cluster
+   */
+  ClusterControl getClusterControl();
+
+  /**
+   * Start the AccumuloCluster
+   *
+   * @throws Exception
+   */
+  void start() throws Exception;
+
+  /**
+   * Stop the AccumuloCluster
+   *
+   * @throws Exception
+   */
+  void stop() throws Exception;
+
+  /**
+   * @return the {@link FileSystem} in use by this cluster
+   */
+  FileSystem getFileSystem() throws IOException;
 }

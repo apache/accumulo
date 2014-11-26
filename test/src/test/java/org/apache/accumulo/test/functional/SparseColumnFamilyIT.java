@@ -28,13 +28,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 /**
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
-public class SparseColumnFamilyIT extends SimpleMacIT {
+public class SparseColumnFamilyIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

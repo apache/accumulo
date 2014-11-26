@@ -69,7 +69,7 @@ abstract class Basic extends BasicServlet {
   }
 
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
-    AccumuloConfiguration conf = Monitor.getSystemConfiguration();
+    AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     String principal = conf.get(Property.TRACE_USER);
     AuthenticationToken at;
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);

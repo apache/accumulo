@@ -49,7 +49,8 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-public class StatusCombinerMacTest extends SimpleMacIT {
+@SuppressWarnings("deprecation")
+public class StatusCombinerMacIT extends SimpleMacIT {
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {

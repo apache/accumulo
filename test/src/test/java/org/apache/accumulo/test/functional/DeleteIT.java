@@ -18,17 +18,21 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class DeleteIT extends ConfigurableMacIT {
-  
+import com.google.common.base.Charsets;
+
+public class DeleteIT extends AccumuloClusterIT {
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
@@ -37,22 +41,33 @@ public class DeleteIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    deleteTest(c, cluster);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    PasswordToken token = (PasswordToken) getToken();
+    deleteTest(c, getCluster(), new String(token.getPassword(), Charsets.UTF_8), tableName);
+    try {
+      getCluster().getClusterControl().adminStopAll();
+    } finally {
+      getCluster().start();
+    }
   }
 
-  public static void deleteTest(Connector c, MiniAccumuloClusterImpl cluster) throws Exception {
+  public static void deleteTest(Connector c, AccumuloCluster cluster, String password, String tableName) throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
+    vopts.setTableName(tableName);
+    opts.setTableName(tableName);
     vopts.rows = opts.rows = 1000;
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
+    BatchWriterOpts BWOPTS = new BatchWriterOpts();
     TestIngest.ingest(c, opts, BWOPTS);
-    assertEquals(0, cluster.exec(TestRandomDeletes.class, "-u", "root", "-p", ROOT_PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers()).waitFor());
+    assertEquals(
+        0,
+        cluster.getClusterControl().exec(TestRandomDeletes.class,
+            new String[] {"-u", "root", "-p", password, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName}));
     TestIngest.ingest(c, opts, BWOPTS);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
-  
-  
+
 }

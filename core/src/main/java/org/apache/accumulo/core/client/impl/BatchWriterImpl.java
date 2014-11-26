@@ -17,26 +17,24 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.Credentials;
 
 public class BatchWriterImpl implements BatchWriter {
   
   private final String table;
   private final TabletServerBatchWriter bw;
   
-  public BatchWriterImpl(Instance instance, Credentials credentials, String table, BatchWriterConfig config) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+  public BatchWriterImpl(ClientContext context, String table, BatchWriterConfig config) {
+    checkArgument(context != null, "context is null");
     checkArgument(table != null, "table is null");
     if (config == null)
       config = new BatchWriterConfig();
     this.table = table;
-    this.bw = new TabletServerBatchWriter(instance, credentials, config);
+    this.bw = new TabletServerBatchWriter(context, config);
   }
   
   @Override

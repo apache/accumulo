@@ -22,9 +22,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -102,7 +101,7 @@ public class OperationServlet extends BasicServlet {
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       String table = req.getParameter("table");
       try {
-        ProblemReports.getInstance().deleteProblemReports(table);
+        ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(table);
       } catch (Exception e) {
         log.error("Failed to delete problem reports for table " + table, e);
       }
@@ -116,7 +115,7 @@ public class OperationServlet extends BasicServlet {
       String resource = req.getParameter("resource");
       String ptype = req.getParameter("ptype");
       try {
-        ProblemReports.getInstance().deleteProblemReport(table, ProblemType.valueOf(ptype), resource);
+        ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(table, ProblemType.valueOf(ptype), resource);
       } catch (Exception e) {
         log.error("Failed to delete problem reports for table " + table, e);
       }
@@ -163,9 +162,8 @@ public class OperationServlet extends BasicServlet {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       String server = req.getParameter("server");
-      Instance inst = HdfsZooInstance.getInstance();
       // a dead server should have a uniq address: a logger or tserver
-      DeadServerList obit = new DeadServerList(ZooUtil.getRoot(inst) + Constants.ZDEADTSERVERS);
+      DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
       obit.delete(server);
     }
   }

@@ -21,9 +21,8 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -31,9 +30,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -41,10 +41,8 @@ import org.apache.hadoop.fs.Path;
  */
 public class ListVolumesUsed {
 
-
-
   public static void main(String[] args) throws Exception {
-    listVolumes(HdfsZooInstance.getInstance(), SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+    listVolumes(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())));
   }
 
   private static String getTableURI(String rootTabletDir) {
@@ -83,8 +81,6 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
 
   }
-
-
 
   private static void listTable(String name, Connector conn) throws Exception {
 
@@ -129,8 +125,8 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
   }
 
-  public static void listVolumes(Instance instance, String principal, AuthenticationToken token) throws Exception {
-    Connector conn = instance.getConnector(principal, token);
+  public static void listVolumes(ClientContext context) throws Exception {
+    Connector conn = context.getConnector();
     listZookeeper();
     System.out.println();
     listTable(RootTable.NAME, conn);

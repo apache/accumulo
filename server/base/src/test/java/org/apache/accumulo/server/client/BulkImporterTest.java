@@ -25,10 +25,14 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -63,19 +67,19 @@ public class BulkImporterTest {
     int invalidated = 0;
     
     @Override
-    public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
+    public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
         TableNotFoundException {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(), "localhost", "1");
     }
     
     @Override
-    public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+        List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       throw new NotImplementedException();
     }
     
     @Override
-    public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+    public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
         AccumuloSecurityException, TableNotFoundException {
       throw new NotImplementedException();
     }
@@ -96,20 +100,19 @@ public class BulkImporterTest {
     }
     
     @Override
-    public void invalidateCache(String server) {
+    public void invalidateCache(Instance instance, String server) {
       throw new NotImplementedException();
     }
   }
   
   @Test
   public void testFindOverlappingTablets() throws Exception {
-    Credentials credentials = null;
     MockTabletLocator locator = new MockTabletLocator();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    AccumuloConfiguration acuConf = AccumuloConfiguration.getDefaultConfiguration();
+    ClientContext context = new ClientContext(new MockInstance(), new Credentials("root", new PasswordToken("")), new ClientConfiguration());
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
-    FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), acuConf);
+    FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), context.getConfiguration());
     writer.startDefaultLocalityGroup();
     Value empty = new Value(new byte[] {});
     writer.append(new Key("a", "cf", "cq"), empty);
@@ -133,8 +136,8 @@ public class BulkImporterTest {
     writer.append(new Key("iterator", "cf", "cq5"), empty);
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
-    VolumeManager vm = VolumeManagerImpl.get(acuConf);
-    List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(acuConf, vm, locator, new Path(file), credentials);
+    VolumeManager vm = VolumeManagerImpl.get(context.getConfiguration());
+    List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
     Assert.assertEquals(5, overlaps.size());
     Collections.sort(overlaps);
     Assert.assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
@@ -143,8 +146,8 @@ public class BulkImporterTest {
     Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")), overlaps.get(3).tablet_extent);
     Assert.assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
     
-    List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(acuConf, vm, locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text(
-        "b")), credentials);
+    List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text(
+        "b")));
     Assert.assertEquals(3, overlaps2.size());
     Assert.assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")), overlaps2.get(0).tablet_extent);
     Assert.assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")), overlaps2.get(1).tablet_extent);

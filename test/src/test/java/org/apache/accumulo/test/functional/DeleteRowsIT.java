@@ -34,11 +34,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class DeleteRowsIT extends SimpleMacIT {
+public class DeleteRowsIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -63,8 +64,20 @@ public class DeleteRowsIT extends SimpleMacIT {
     ROWS.add("{");
   }
 
+  @Test(timeout = 5 * 60 * 1000)
+  public void testDeleteAllRows() throws Exception {
+    Connector c = getConnector();
+    String[] tableNames = this.getUniqueNames(20);
+    for (String tableName : tableNames) {
+      c.tableOperations().create(tableName);
+      c.tableOperations().deleteRows(tableName, null, null);
+      Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+      assertEquals(0, FunctionalTestUtils.count(scanner));
+    }
+  }
+
   @Test
-  public void test() throws Exception {
+  public void testManyRows() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;
     // Eliminate whole tablets

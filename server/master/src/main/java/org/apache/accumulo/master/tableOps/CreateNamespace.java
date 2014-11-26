@@ -30,7 +30,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.log4j.Logger;
@@ -142,10 +141,10 @@ class SetupNamespacePermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all namespace permissions to the creator
-    SecurityOperation security = AuditedSecurityOperation.getInstance();
+    SecurityOperation security = AuditedSecurityOperation.getInstance(env);
     for (NamespacePermission permission : NamespacePermission.values()) {
       try {
-        security.grantNamespacePermission(SystemCredentials.get().toThrift(env.getInstance()), namespaceInfo.user, namespaceInfo.namespaceId, permission);
+        security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user, namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCreateNamespace.class).error(e.getMessage(), e);
         throw e;

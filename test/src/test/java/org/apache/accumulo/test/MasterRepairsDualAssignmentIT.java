@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -69,7 +70,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
   public void test() throws Exception {
     // make some tablets, spread 'em around
     Connector c = getConnector();
-    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+    ClientContext context = new ClientContext(c.getInstance(), new Credentials("root", new PasswordToken(ROOT_PASSWORD)), getClientConfig());
     String table = this.getUniqueNames(1)[0];
     c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
@@ -82,7 +83,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     // scan the metadata table and get the two table location states
     Set<TServerInstance> states = new HashSet<TServerInstance>();
     Set<TabletLocationState> oldLocations = new HashSet<TabletLocationState>();
-    MetaDataStateStore store = new MetaDataStateStore(c.getInstance(), creds, null);
+    MetaDataStateStore store = new MetaDataStateStore(context, null);
     while (states.size() < 2) {
       UtilWaitThread.sleep(250);
       oldLocations.clear();
@@ -140,7 +141,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     moved.current.putLocation(assignment);
     bw.addMutation(assignment);
     bw.close();
-    waitForCleanStore(new RootTabletStateStore(c.getInstance(), creds, null));
+    waitForCleanStore(new RootTabletStateStore(context, null));
   }
 
   private void waitForCleanStore(MetaDataStateStore store) {

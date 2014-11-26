@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -61,14 +60,15 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
@@ -89,8 +89,8 @@ public class NullTserver {
 
     private long updateSession = 1;
 
-    public ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
-      super(instance, watcher, null);
+    public ThriftClientHandler(AccumuloServerContext context, TransactionWatcher watcher) {
+      super(context, watcher, null);
     }
 
     @Override
@@ -140,7 +140,8 @@ public class NullTserver {
 
     @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold) {
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
+        long readaheadThreshold) {
       return null;
     }
 
@@ -208,8 +209,8 @@ public class NullTserver {
     }
 
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability)
-        throws ThriftSecurityException, TException {
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID,
+        TDurability durability) throws ThriftSecurityException, TException {
       return null;
     }
 
@@ -247,7 +248,7 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
+    ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
     TServerUtils.startTServer(HostAndPort.fromParts("0.0.0.0", opts.port), processor, "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, -1);
 
@@ -255,11 +256,13 @@ public class NullTserver {
 
     // modify metadata
     ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(opts.iname).withZkHosts(opts.keepers));
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(zki));
+
     String tableId = Tables.getTableId(zki, opts.tableName);
 
     // read the locations for the table
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    MetaDataTableScanner s = new MetaDataTableScanner(zki, SystemCredentials.get(), tableRange);
+    MetaDataTableScanner s = new MetaDataTableScanner(context, tableRange);
     long randomSessionID = opts.port;
     TServerInstance instance = new TServerInstance(addr, randomSessionID);
     List<Assignment> assignments = new ArrayList<Assignment>();
@@ -269,7 +272,7 @@ public class NullTserver {
     }
     s.close();
     // point them to this server
-    MetaDataStateStore store = new MetaDataStateStore();
+    MetaDataStateStore store = new MetaDataStateStore(context);
     store.setLocations(assignments);
 
     while (true) {

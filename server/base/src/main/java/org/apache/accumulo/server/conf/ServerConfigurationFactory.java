@@ -138,6 +138,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     return defaultConfig;
   }
 
+  @Override
   public synchronized AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
       checkPermissions();
@@ -146,12 +147,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     return systemConfig;
   }
 
+  @Override
   public TableConfiguration getTableConfiguration(String tableId) {
     checkPermissions();
     synchronized (tableConfigs) {
       TableConfiguration conf = tableConfigs.get(instanceID).get(tableId);
       if (conf == null && Tables.exists(instance, tableId)) {
-        conf = new TableConfiguration(instance.getInstanceID(), tableId, getNamespaceConfigurationForTable(tableId));
+        conf = new TableConfiguration(instance, tableId, getNamespaceConfigurationForTable(tableId));
         ConfigSanityCheck.validate(conf);
         tableConfigs.get(instanceID).put(tableId, conf);
       }
@@ -159,6 +161,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
+  @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getTableConfiguration(extent.getTableId().toString());
   }
@@ -177,6 +180,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
+  @Override
   public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
     checkPermissions();
     synchronized (namespaceConfigs) {
@@ -192,6 +196,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
+  @Override
   public Instance getInstance() {
     return instance;
   }

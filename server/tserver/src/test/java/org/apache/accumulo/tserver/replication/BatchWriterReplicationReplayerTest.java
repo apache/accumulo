@@ -26,9 +26,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,6 +40,8 @@ import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -46,6 +51,27 @@ import com.google.common.collect.Lists;
  */
 public class BatchWriterReplicationReplayerTest {
 
+  private ClientContext context;
+  private Connector conn;
+  private AccumuloConfiguration conf;
+  private BatchWriter bw;
+
+  @Before
+  public void setUpContext() throws AccumuloException, AccumuloSecurityException {
+    conn = createMock(Connector.class);
+    conf = createMock(AccumuloConfiguration.class);
+    bw = createMock(BatchWriter.class);
+    context = createMock(ClientContext.class);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getConnector()).andReturn(conn).anyTimes();
+    replay(context);
+  }
+
+  @After
+  public void verifyMock() {
+    verify(context, conn, conf, bw);
+  }
+
   @Test
   public void systemTimestampsAreSetOnUpdates() throws Exception {
     final BatchWriterReplicationReplayer replayer = new BatchWriterReplicationReplayer();
@@ -54,9 +80,6 @@ public class BatchWriterReplicationReplayerTest {
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
     bwCfg.setMaxMemory(1l);
 
-    Connector conn = createMock(Connector.class);
-    AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    BatchWriter bw = createMock(BatchWriter.class);
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
@@ -111,9 +134,7 @@ public class BatchWriterReplicationReplayerTest {
 
     replay(conn, conf, bw);
     
-    replayer.replicateLog(conn, conf, tableName, edits);
-
-    verify(conn, conf, bw);
+    replayer.replicateLog(context, tableName, edits);
   }
 
   @Test
@@ -124,10 +145,6 @@ public class BatchWriterReplicationReplayerTest {
     final String peerName = "peer";
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
     bwCfg.setMaxMemory(1l);
-
-    Connector conn = createMock(Connector.class);
-    AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    BatchWriter bw = createMock(BatchWriter.class);
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
@@ -188,8 +205,6 @@ public class BatchWriterReplicationReplayerTest {
 
     replay(conn, conf, bw);
 
-    replayer.replicateLog(conn, conf, tableName, edits);
-
-    verify(conn, conf, bw);
+    replayer.replicateLog(context, tableName, edits);
   }
 }

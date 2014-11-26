@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
@@ -49,6 +49,8 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -61,50 +63,44 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class ReplicationUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationUtil.class);
 
-  private static final String REPLICATION_TARGET_PREFIX = Property.TABLE_REPLICATION_TARGET.getKey();
-
   private ZooCache zooCache;
 
-  public ReplicationUtil() {
-    this(new ZooCache());
+  private final AccumuloServerContext context;
+
+  public ReplicationUtil(AccumuloServerContext context) {
+    this(context, new ZooCache());
   }
 
-  public ReplicationUtil(ZooCache cache) {
+  public ReplicationUtil(AccumuloServerContext context, ZooCache cache) {
     this.zooCache = cache;
+    this.context = context;
   }
 
-  public int getMaxReplicationThreads(Map<String,String> systemProperties, MasterMonitorInfo mmi) {
+  public int getMaxReplicationThreads(MasterMonitorInfo mmi) {
     int activeTservers = mmi.getTServerInfoSize();
 
     // The number of threads each tserver will use at most to replicate data
-    int replicationThreadsPerServer = Integer.parseInt(systemProperties.get(Property.REPLICATION_WORKER_THREADS.getKey()));
+    int replicationThreadsPerServer = Integer.parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
 
     // The total number of "slots" we have to replicate data
     return activeTservers * replicationThreadsPerServer;
   }
 
-  public int getMaxReplicationThreads(Connector conn, MasterMonitorInfo mmi) throws AccumuloException, AccumuloSecurityException {
-    return getMaxReplicationThreads(conn.instanceOperations().getSystemConfiguration(), mmi);
-  }
-
   /**
    * Extract replication peers from system configuration
    *
-   * @param systemProperties
-   *          System properties, typically from Connector.instanceOperations().getSystemConfiguration()
    * @return Configured replication peers
    */
-  public Map<String,String> getPeers(Map<String,String> systemProperties) {
+  public Map<String,String> getPeers() {
     Map<String,String> peers = new HashMap<>();
-    String definedPeersPrefix = Property.REPLICATION_PEERS.getKey();
 
     // Get the defined peers and what ReplicaSystem impl they're using
-    for (Entry<String,String> property : systemProperties.entrySet()) {
+    for (Entry<String,String> property : context.getConfiguration().getAllPropertiesWithPrefix(Property.REPLICATION_PEERS).entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey())
+      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey())
           && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
-        String peerName = property.getKey().substring(definedPeersPrefix.length());
+        String peerName = property.getKey().substring(Property.REPLICATION_PEERS.getKey().length());
         ReplicaSystem replica;
         try {
           replica = ReplicaSystemFactory.get(property.getValue());
@@ -120,54 +116,43 @@ public class ReplicationUtil {
     return peers;
   }
 
-  public Set<ReplicationTarget> getReplicationTargets(TableOperations tops) {
+  public Set<ReplicationTarget> getReplicationTargets() {
     // The total set of configured targets
     final Set<ReplicationTarget> allConfiguredTargets = new HashSet<>();
-    final Map<String,String> tableNameToId = tops.tableIdMap();
+    final Map<String,String> tableNameToId = Tables.getNameToIdMap(context.getInstance());
 
-    for (String table : tops.list()) {
+    for (String table : tableNameToId.keySet()) {
       if (MetadataTable.NAME.equals(table) || RootTable.NAME.equals(table)) {
         continue;
       }
+
       String localId = tableNameToId.get(table);
       if (null == localId) {
         log.trace("Could not determine ID for {}", table);
         continue;
       }
 
-      Iterable<Entry<String,String>> propertiesForTable;
-      try {
-        propertiesForTable = tops.getProperties(table);
-      } catch (AccumuloException e) {
-        log.debug("Could not fetch properties for " + table, e);
-        continue;
-      } catch (TableNotFoundException e) {
-        log.debug("Could not fetch properties for " + table, e);
-        continue;
-      }
-
-      for (Entry<String,String> prop : propertiesForTable) {
-        if (prop.getKey().startsWith(REPLICATION_TARGET_PREFIX)) {
-          String peerName = prop.getKey().substring(REPLICATION_TARGET_PREFIX.length());
+      TableConfiguration tableConf = context.getServerConfigurationFactory().getTableConfiguration(localId);
+      for (Entry<String,String> prop : tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET).entrySet()) {
+        String peerName = prop.getKey().substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
           String remoteIdentifier = prop.getValue();
           ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 
           allConfiguredTargets.add(target);
         }
       }
-    }
 
     return allConfiguredTargets;
   }
 
-  public Map<ReplicationTarget,Long> getPendingReplications(Connector conn) {
+  public Map<ReplicationTarget,Long> getPendingReplications() {
     final Map<ReplicationTarget,Long> counts = new HashMap<>();
 
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
-    } catch (TableNotFoundException e) {
+      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return counts;
     }

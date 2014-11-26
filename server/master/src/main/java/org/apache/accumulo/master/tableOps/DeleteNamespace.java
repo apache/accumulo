@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.log4j.Logger;
 
@@ -56,7 +55,7 @@ class NamespaceCleanUp extends MasterRepo {
 
     // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance().deleteNamespace(SystemCredentials.get().toThrift(master.getInstance()), namespaceId);
+      AuditedSecurityOperation.getInstance(master).deleteNamespace(master.rpcCreds(), namespaceId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }

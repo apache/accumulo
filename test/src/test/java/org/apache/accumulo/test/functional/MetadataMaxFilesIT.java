@@ -25,6 +25,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -43,7 +44,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MetadataMaxFiles extends ConfigurableMacIT {
+public class MetadataMaxFilesIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -90,8 +91,9 @@ public class MetadataMaxFiles extends ConfigurableMacIT {
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
       Client client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
-        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
+        ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
+        client = MasterClient.getConnectionWithRetry(context);
+        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } finally {
         if (client != null)
           MasterClient.close(client);
@@ -99,7 +101,7 @@ public class MetadataMaxFiles extends ConfigurableMacIT {
       int tablets = 0;
       for (TabletServerStatus tserver : stats.tServerInfo) {
         for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
-          if (entry.getKey().startsWith("!"))
+          if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+"))
             continue;
           tablets += entry.getValue().onlineTablets;
         }

@@ -34,7 +34,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -63,14 +62,14 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     this.rand = new Random(358923462l);
     this.inst = master.getInstance();
     this.reader = reader;
-    this.security = SecurityOperation.getInstance(inst.getInstanceID(), false);
+    this.security = SecurityOperation.getInstance(master, false);
   }
 
 
   @Override
   public String getServicerAddress(String remoteTableId, TCredentials creds) throws ReplicationCoordinatorException, TException {
     try { 
-      security.authenticateUser(SystemCredentials.get().toThrift(inst), creds);
+      security.authenticateUser(master.rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
       log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(), remoteTableId);
       throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.CANNOT_AUTHENTICATE, "Could not authenticate " + creds.getPrincipal());

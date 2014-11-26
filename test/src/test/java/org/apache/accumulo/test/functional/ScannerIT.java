@@ -31,15 +31,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Stopwatch;
 
 /**
- * 
+ *
  */
-public class ScannerIT extends SimpleMacIT {
+public class ScannerIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -48,7 +49,7 @@ public class ScannerIT extends SimpleMacIT {
 
   @Test
   public void testScannerReadaheadConfiguration() throws Exception {
-    final String table = "table";
+    final String table = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(table);
 

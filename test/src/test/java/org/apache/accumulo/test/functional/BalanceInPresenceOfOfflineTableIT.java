@@ -22,36 +22,48 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Start a new table, create many splits, and offline before they can rebalance. Then try to have a different table balance
  */
-public class BalanceInPresenceOfOfflineTableIT extends ConfigurableMacIT {
+public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
 
   private static Logger log = LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String, String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
@@ -68,18 +80,27 @@ public class BalanceInPresenceOfOfflineTableIT extends ConfigurableMacIT {
   }
 
   private static final int NUM_SPLITS = 200;
-  private static final String UNUSED_TABLE = "unused";
-  private static final String TEST_TABLE = "test_ingest";
+
+  private String UNUSED_TABLE, TEST_TABLE;
 
   private Connector connector;
 
   @Before
   public void setupTables() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+    Connector conn = getConnector();
+    // Need at least two tservers
+    Assume.assumeTrue("Not enough tservers to run test", conn.instanceOperations().getTabletServers().size() >= 2);
+
     // set up splits
     final SortedSet<Text> splits = new TreeSet<Text>();
     for (int i = 0; i < NUM_SPLITS; i++) {
       splits.add(new Text(String.format("%08x", i * 1000)));
     }
+
+    String[] names = getUniqueNames(2);
+    UNUSED_TABLE = names[0];
+    TEST_TABLE = names[1];
+
     // load into a table we won't use
     connector = getConnector();
     connector.tableOperations().create(UNUSED_TABLE);
@@ -101,9 +122,11 @@ public class BalanceInPresenceOfOfflineTableIT extends ConfigurableMacIT {
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows = 200000;
-    TestIngest.ingest(connector, opts, BWOPTS);
+    opts.setTableName(TEST_TABLE);
+    TestIngest.ingest(connector, opts, new BatchWriterOpts());
     connector.tableOperations().flush(TEST_TABLE, null, null, true);
-    VerifyIngest.verifyIngest(connector, vopts, SOPTS);
+    vopts.setTableName(TEST_TABLE);
+    VerifyIngest.verifyIngest(connector, vopts, new ScannerOpts());
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
@@ -115,7 +138,22 @@ public class BalanceInPresenceOfOfflineTableIT extends ConfigurableMacIT {
       currentWait *= 2;
 
       log.debug("fetch the list of tablets assigned to each tserver.");
-      MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
+
+      MasterClientService.Iface client = null;
+      MasterMonitorInfo stats = null;
+      try {
+        Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
+        client = MasterClient.getConnectionWithRetry(new ClientContext(instance, SystemCredentials.get(instance), cluster.getClientConfig()));
+        stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
+      } catch (ThriftSecurityException exception) {
+        throw new AccumuloSecurityException(exception);
+      } catch (TException exception) {
+        throw new AccumuloException(exception);
+      } finally {
+        if (client != null) {
+          MasterClient.close(client);
+        }
+      }
 
       if (stats.getTServerInfoSize() < 2) {
         log.debug("we need >= 2 servers. sleeping for " + currentWait + "ms");

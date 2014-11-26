@@ -27,11 +27,8 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -47,8 +44,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
@@ -56,8 +51,7 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ThriftUtil;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -84,12 +78,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
 
-  private Instance instance;
-  private Credentials creds;
+  private final AccumuloServerContext context;
 
-  public CloseWriteAheadLogReferences(Instance inst, Credentials creds) {
-    this.instance = inst;
-    this.creds = creds;
+  public CloseWriteAheadLogReferences(AccumuloServerContext context) {
+    this.context = context;
   }
 
   @Override
@@ -100,7 +92,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
     Connector conn;
     try {
-      conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+      conn = context.getConnector();
     } catch (Exception e) {
       log.error("Could not create connector", e);
       throw new RuntimeException(e);
@@ -135,14 +127,12 @@ public class CloseWriteAheadLogReferences implements Runnable {
      * If this code happened to run after the compaction but before the log is again referenced by a tabletserver, we might delete the WAL reference, only to
      * have it recreated again which causes havoc with the replication status for a table.
      */
-    final AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
     final TInfo tinfo = Tracer.traceInfo();
-    final TCredentials tcreds = SystemCredentials.get().toThrift(instance);
     Set<String> activeWals;
     Span findActiveWalsSpan = Trace.start("findActiveWals");
     try {
       sw.start();
-      activeWals = getActiveWals(conf, tinfo, tcreds);
+      activeWals = getActiveWals(tinfo);
     } finally {
       sw.stop();
       findActiveWalsSpan.stop();
@@ -307,7 +297,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   private String getMasterAddress() {
     try {
-      List<String> locations = instance.getMasterLocations();
+      List<String> locations = context.getInstance().getMasterLocations();
       if (locations.size() == 0)
         return null;
       return locations.get(0);
@@ -318,14 +308,14 @@ public class CloseWriteAheadLogReferences implements Runnable {
     return null;
   }
 
-  private MasterClientService.Client getMasterConnection(AccumuloConfiguration conf) {
+  private MasterClientService.Client getMasterConnection() {
     final String address = getMasterAddress();
     try {
       if (address == null) {
         log.warn("Could not fetch Master address");
         return null;
       }
-      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf);
+      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, context);
     } catch (Exception e) {
       log.warn("Issue with masterConnection (" + address + ") " + e, e);
     }
@@ -337,8 +327,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *
    * @return Set of WALs in use by tservers, null if they cannot be computed for some reason
    */
-  protected Set<String> getActiveWals(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds) {
-    List<String> tservers = getActiveTservers(conf, tinfo, tcreds);
+  protected Set<String> getActiveWals(TInfo tinfo) {
+    List<String> tservers = getActiveTservers(tinfo);
 
     // Compute the total set of WALs used by tservers
     Set<String> walogs = null;
@@ -349,7 +339,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       // Alternatively, we might have to move to a solution that doesn't involve tserver RPC
       for (String tserver : tservers) {
         HostAndPort address = HostAndPort.fromString(tserver);
-        List<String> activeWalsForServer = getActiveWalsForServer(conf, tinfo, tcreds, address);
+        List<String> activeWalsForServer = getActiveWalsForServer(tinfo, address);
         if (null == activeWalsForServer) {
           log.debug("Could not fetch active wals from " + address);
           return null;
@@ -370,17 +360,17 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *
    * @return The active tabletservers, null if they can't be computed.
    */
-  protected List<String> getActiveTservers(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds) {
+  protected List<String> getActiveTservers(TInfo tinfo) {
     MasterClientService.Client client = null;
 
     List<String> tservers = null;
     try {
-      client = getMasterConnection(conf);
+      client = getMasterConnection();
 
       // Could do this through InstanceOperations, but that would set a bunch of new Watchers via ZK on every tserver
       // node. The master is already tracking all of this info, so hopefully this is less overall work.
       if (null != client) {
-        tservers = client.getActiveTservers(tinfo, tcreds);
+        tservers = client.getActiveTservers(tinfo, context.rpcCreds());
       }
     } catch (TException e) {
       // If we can't fetch the tabletservers, we can't fetch any active WALs
@@ -393,11 +383,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
     return tservers;
   }
 
-  protected List<String> getActiveWalsForServer(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds, HostAndPort server) {
+  protected List<String> getActiveWalsForServer(TInfo tinfo, HostAndPort server) {
     TabletClientService.Client tserverClient = null;
     try {
-      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, conf);
-      return tserverClient.getActiveLogs(tinfo, tcreds);
+      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
+      return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
     } catch (TTransportException e) {
       log.warn("Failed to fetch active write-ahead logs from " + server, e);
       return null;

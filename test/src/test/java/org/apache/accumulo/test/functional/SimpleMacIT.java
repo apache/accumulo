@@ -25,6 +25,9 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -41,7 +44,11 @@ import org.junit.BeforeClass;
 /**
  * An implementation of {@link AbstractMacIT} for test cases that do not need to know any special details of {@link MiniAccumuloCluster}. Tests which extend
  * this class should be runnable on any instance of Accumulo, given a root connector.
+ *
+ * New tests should be written using {@link AccumuloClusterIT}. To obtain the same semantics (shared instance across methods in a class), extend
+ * {@link AccumuloIT} and use {@link MiniClusterHarness} to create a MiniAccumuloCluster properly configured for the environment.
  */
+@Deprecated
 public class SimpleMacIT extends AbstractMacIT {
   protected static final Logger log = Logger.getLogger(SimpleMacIT.class);
 
@@ -90,7 +97,7 @@ public class SimpleMacIT extends AbstractMacIT {
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     cfg.setProperty(Property.GC_FILE_ARCHIVE, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
+    configureForEnvironment(cfg, SimpleMacIT.class, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
     cluster = new MiniAccumuloClusterImpl(cfg);
   }
 
@@ -140,13 +147,14 @@ public class SimpleMacIT extends AbstractMacIT {
     return new File(System.getProperty("user.dir") + "/accumulo-maven-plugin/instance1");
   }
 
-  protected static ClientConfiguration getClientConfig() throws FileNotFoundException, ConfigurationException {
+  @Override
+  protected ClientConfiguration getClientConfig() throws FileNotFoundException, ConfigurationException {
     if (getInstanceOneConnector() == null) {
       return new ClientConfiguration(new PropertiesConfiguration(cluster.getConfig().getClientConfFile()));
     } else {
       File directory = getInstanceOnePath();
-      return new ClientConfiguration(MiniAccumuloInstance.getConfigProperties(directory)).withInstance(INSTANCE_NAME)
-          .withZkHosts(MiniAccumuloInstance.getZooKeepersFromDir(directory));
+      return new ClientConfiguration(MiniAccumuloInstance.getConfigProperties(directory)).withInstance(INSTANCE_NAME).withZkHosts(
+          MiniAccumuloInstance.getZooKeepersFromDir(directory));
     }
   }
 

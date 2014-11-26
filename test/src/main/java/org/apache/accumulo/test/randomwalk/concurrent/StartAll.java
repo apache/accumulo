@@ -18,7 +18,6 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -26,8 +25,9 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.state.SetGoalState;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -42,9 +42,9 @@ public class StartAll extends Test {
     exec.waitFor();
     while (true) {
       try {
-        Instance instance = HdfsZooInstance.getInstance();
-        Client client = MasterClient.getConnection(instance);
-        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
+        AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+        Client client = MasterClient.getConnection(context);
+        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
         if (!masterStats.tServerInfo.isEmpty())
           break;
       } catch (Exception ex) {

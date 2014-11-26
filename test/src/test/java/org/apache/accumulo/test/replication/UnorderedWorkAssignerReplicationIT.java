@@ -159,13 +159,13 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
     try {
       final Connector connMaster = getConnector();
-      final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+      final Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       ReplicationTable.setOnline(connMaster);
 
@@ -312,13 +312,13 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 
     try {
       Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -474,12 +474,12 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
     Connector connMaster = getConnector();
-    Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+    Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
     String peerUserName = "repl";
     String peerPassword = "passwd";
@@ -532,6 +532,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     log.info("Wrote all data to master cluster");
 
     Set<String> files = connMaster.replicationOperations().referencedFiles(masterTable);
+    for (String s : files) {
+      log.info("Found referenced file for " + masterTable + ": " + s);
+    }
 
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -550,6 +553,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
+    Assert.assertTrue("No data in master table", masterIter.hasNext());
+    Assert.assertTrue("No data in peer table", peerIter.hasNext());
     while (masterIter.hasNext() && peerIter.hasNext()) {
       Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
       Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
@@ -571,13 +576,13 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCfg.setInstanceName("peer");
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 
     try {
       Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
 

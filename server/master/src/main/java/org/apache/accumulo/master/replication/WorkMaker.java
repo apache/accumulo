@@ -39,7 +39,7 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -54,16 +54,17 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class WorkMaker {
   private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
 
-  private final Connector conn;
+  private final AccumuloServerContext context;
+  private Connector conn;
 
   private BatchWriter writer;
 
-  public WorkMaker(Connector conn) {
+  public WorkMaker(AccumuloServerContext context, Connector conn) {
+    this.context = context;
     this.conn = conn;
   }
 
   public void run() {
-    ServerConfigurationFactory serverConf = new ServerConfigurationFactory(conn.getInstance());
     if (!ReplicationTable.isOnline(conn)) {
       log.info("Replication table is not yet online");
       return;
@@ -110,7 +111,7 @@ public class WorkMaker {
         }
 
         // Get the table configuration for the table specified by the status record
-        tableConf = serverConf.getTableConfiguration(tableId.toString());
+        tableConf = context.getServerConfigurationFactory().getTableConfiguration(tableId.toString());
 
         // Pull the relevant replication targets
         // TODO Cache this instead of pulling it every time

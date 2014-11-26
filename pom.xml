@@ -139,7 +139,7 @@
     <slf4j.version>1.7.5</slf4j.version>
     <!-- Thrift version -->
     <thrift.version>0.9.1</thrift.version>
-    <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
+    <!-- ZooKeeper version -->
     <zookeeper.version>3.4.6</zookeeper.version>
   </properties>
   <dependencyManagement>
@@ -648,7 +648,19 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <systemPropertyVariables>
+              <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+            </systemPropertyVariables>
             <argLine>-Xmx1G</argLine>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <configuration>
+            <systemPropertyVariables>
+              <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+            </systemPropertyVariables>
           </configuration>
         </plugin>
         <plugin>

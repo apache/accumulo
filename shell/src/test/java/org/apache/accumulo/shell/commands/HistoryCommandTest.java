@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.shell.command;
+package org.apache.accumulo.shell.commands;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;

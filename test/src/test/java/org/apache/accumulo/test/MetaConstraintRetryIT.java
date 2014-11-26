@@ -17,20 +17,20 @@
 
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Writer;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MetaConstraintRetryIT extends SimpleMacIT {
+public class MetaConstraintRetryIT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -43,8 +43,9 @@ public class MetaConstraintRetryIT extends SimpleMacIT {
 
     getConnector().securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
 
-    Credentials credentials = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    Writer w = new Writer(super.getConnector().getInstance(), credentials, MetadataTable.ID);
+    Credentials credentials = new Credentials(getPrincipal(), getToken());
+    ClientContext context = new ClientContext(getConnector().getInstance(), credentials, cluster.getClientConfig());
+    Writer w = new Writer(context, MetadataTable.ID);
     KeyExtent extent = new KeyExtent(new Text("5"), null, null);
 
     Mutation m = new Mutation(extent.getMetadataEntry());

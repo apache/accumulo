@@ -1,0 +1,113 @@
+Title: Testing Apache Accumulo
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
+# Testing Apache Accumulo
+
+This document is meant to serve as a quick reference to the automated test suites included in Apache Accumulo for users
+to run which validate the product and developers to continue to iterate upon to ensure that the product is stable and as
+free of bugs as possible.
+
+The automated testing suite can be categorized as two sets of tests: unit tests and integration tests. These are the
+traditional unit and integrations tests as defined by the Apache Maven lifecycle phases (unit tests run at `test` and
+integration tests run at `integration-test`).
+
+# Unit tests
+
+Unit tests can be run by invoking `mvn test` at the top of the Apache Accumulo source tree; however, it is more often
+the case that these tests are automatically run by invoking `mvn package` instead.  Either invocation should work
+successfully.
+
+The unit tests should run rather quickly (order of minutes for the entire project) and, in nearly all cases, do not
+require any noticable amount of computer resources (the compilation of the files typically exceeds running the tests).
+Maven will automatically generate a report for each unit test run and will give a summary at the end of each Maven
+module for the total run/failed/errored/skipped tests.
+
+The Apache Accumulo developers expect that these tests are always passing on every revision of the code. If this is not
+the case, it is almost certainly in error.
+
+# Integration tests
+
+Integration tests can be run by invoking `mvn integration-test` at the top of the Apache Accumulo source tree; however,
+like `mvn package` being recommended for unit tests, `mvn verify` is often the recommended avenue to run the integration tests.
+
+The integration tests are medium length tests (order minutes for each test class and order hours for the complete suite
+with single threaded execution) but are very encompassing of checking for regressions that were previously seen in the
+codebase. These tests do require a noticable amount of resources, at least another gigabyte of memory over what Maven
+itself requires. As such, it's recommended to have at least 3-4GB of free memory and 10GB of free disk space.
+
+Take note that when invoking the `integration-test` lifecycle phase, other functions will also be enabled which include
+static analysis (findbugs) and software license checks (release analysis tool -- RAT).
+
+## Accumulo for testing
+
+The primary reason these tests take so much longer than the unit tests is that most are using an Accumulo instance to
+perform the test. It's a necessary evil; however, there are things we can do to improve this.
+
+## MiniAccumuloCluster
+
+By default, these tests will use a MiniAccumuloCluster which is a multi-process "implementation" of Accumulo, managed
+through Java interfaces. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
+MiniDFSCluster, as well as starting one to many tablet servers. MiniAccumuloCluster tends to be a very useful tool in
+that it can automatically provide a workable instance that mimics how an actual deployment functions.
+
+The downside of using MiniAccumuloCluster is that a significant portion of each test is now devoted to starting and
+stopping the MiniAccumuloCluster.  While this is a surefire way to isolate tests from interferring with one another, it
+increases the actual runtime of the test by, on average, 10x.
+
+## Standalone Cluster
+
+An alternative to the MiniAccumuloCluster for testing, a standalone Accumulo cluster can also be configured for use by
+most tests. This requires a manual step of building and deploying the Accumulo cluster by hand. The build can then be
+configured to use this cluster instead of always starting a MiniAccumuloCluster.  Not all of the integration tests are
+good candidates to run against a standalone Accumulo cluster, these tests will still launch a MiniAccumuloCluster for
+their use.
+
+Use of a standalone cluster can be enabled using system properties on the Maven command line or, more concisely, by
+providing a Java properties file on the Maven command line. The use of a properties file is recommended since it is
+typically a fixed file per standalone cluster you want to run the tests against.
+
+### Configuration
+
+The following properties can be used to configure a standalone cluster:
+
+- `accumulo.it.cluster.type`, Required: The type of cluster is being defined (valid options: MINI and STANDALONE)
+- `accumulo.it.cluster.standalone.principal`, Required: Standalone cluster principal (user)
+- `accumulo.it.cluster.standalone.password`, Required: Password for the principal
+- `accumulo.it.cluster.standalone.zookeepers`, Required: ZooKeeper quorum used by the standalone cluster
+- `accumulo.it.cluster.standalone.instance.name`, Required: Accumulo instance name for the cluster
+- `accumulo.it.cluster.standalone.home`, Optional: `ACCUMULO_HOME`
+- `accumulo.it.cluster.standalone.conf`, Optional: `ACCUMULO_CONF_DIR`
+- `accumulo.it.cluster.standalone.hadoop.conf`, Optional: `HADOOP_CONF_DIR`
+
+Each of the above properties can be set on the commandline (-Daccumulo.it.cluster.standalone.principal=root), or the
+collection can be placed into a properties file and referenced using "accumulo.it.cluster.properties".  For example, the
+following might be similar to what is executed for a standalone cluster.
+
+  `mvn verify -Daccumulo.it.properties=/home/user/my_cluster.properties`
+
+For the optional properties, each of them will be extracted from the environment if not explicitly provided.
+Specifically, `ACCUMULO_HOME` and `ACCUMULO_CONF_DIR` are used to ensure the correct version of the bundled
+Accumulo scripts are invoked and, in the event that multiple Accumulo processes exist on the same physical machine,
+but for different instances, the correct version is terminated. `HADOOP_CONF_DIR` is used to ensure that the necessary
+files to construct the FileSystem object for the cluster can be constructed (e.g. core-site.xml and hdfs-site.xml).
+
+# Manual Distributed Testing
+
+Apache Accumulo also contains a number of tests which are suitable for running against large clusters for hours to days
+at a time, for example the Continuous Ingest and Randomwalk test suites. These all exist in the repository under
+`test/system` and contain their own README files for configuration and use.

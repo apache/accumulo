@@ -27,6 +27,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -67,23 +68,24 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     c.tableOperations().create("unused");
-    TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 2000);
+    TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 500);
     log.info("Creating " + splits.size() + " splits");
     c.tableOperations().addSplits("unused", splits);
     List<String> tservers = c.instanceOperations().getTabletServers();
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 200000;
+    opts.rows = 50000;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush("test_ingest", null, null, false);
     UtilWaitThread.sleep(45 * 1000);
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+    ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
 
     MasterMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
+        client = MasterClient.getConnectionWithRetry(context);
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

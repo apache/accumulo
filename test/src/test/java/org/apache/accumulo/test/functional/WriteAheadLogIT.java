@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,19 +23,18 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class WriteAheadLogIT extends ConfigurableMacIT {
-  
+public class WriteAheadLogIT extends AccumuloClusterIT {
+
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String, String> siteConfig = new HashMap<String, String>();
     siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
     siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");
@@ -58,20 +54,18 @@ public class WriteAheadLogIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
     TestIngest.Opts opts = new TestIngest.Opts();
+    opts.setTableName(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    Map<ServerType,Collection<ProcessReference>> processes = cluster.getProcesses();
-    for (ProcessReference tserver : processes.get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, tserver);
-    }
-    assertEquals(0, cluster.getProcesses().get(ServerType.TABLET_SERVER).size());
-    cluster.start();
+    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
-  
+
 }

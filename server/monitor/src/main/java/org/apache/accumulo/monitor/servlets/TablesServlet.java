@@ -43,10 +43,8 @@ import org.apache.accumulo.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.monitor.util.celltypes.TableLinkType;
 import org.apache.accumulo.monitor.util.celltypes.TableStateType;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.Text;
@@ -62,7 +60,7 @@ public class TablesServlet extends BasicServlet {
   
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
+    Map<String,String> tidToNameMap = Tables.getIdToNameMap(Monitor.getContext().getInstance());
     String tableId = req.getParameter("t");
     
     doProblemsBanner(sb);
@@ -117,7 +115,7 @@ public class TablesServlet extends BasicServlet {
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
     
-    for (Entry<String,String> tableName_tableId : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
+    for (Entry<String,String> tableName_tableId : Tables.getNameToIdMap(Monitor.getContext().getInstance()).entrySet()) {
       String tableName = tableName_tableId.getKey();
       String tableId = tableName_tableId.getValue();
       TableInfo tableInfo = tableStats.get(tableName);
@@ -146,14 +144,14 @@ public class TablesServlet extends BasicServlet {
   
   private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
     String displayName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
-    Instance instance = HdfsZooInstance.getInstance();
+    Instance instance = Monitor.getContext().getInstance();
     TreeSet<String> locs = new TreeSet<String>();
     if (RootTable.ID.equals(tableId)) {
       locs.add(instance.getRootTabletLocation());
     } else {
       String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
-      MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SystemCredentials.get(), new Range(KeyExtent.getMetadataEntry(new Text(tableId),
-          new Text()), KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
+      MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(), new Range(KeyExtent.getMetadataEntry(new Text(tableId), new Text()),
+          KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
       
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();

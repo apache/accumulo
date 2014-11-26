@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.cluster;
+package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * Facilitates programmatic creation of an {@link AccumuloCluster}
  *
- * (Experimental, not guaranteed to stay backwards compatible)
- *
- * @since 1.6.0
  */
-public class AccumuloClusters {
+public class DeleteTableCommandTest {
 
-  private AccumuloClusters() {}
-
-  public static AccumuloCluster create(AccumuloConfig cfg) throws IOException {
-    return cfg.build();
-  }
-
-  public static MiniAccumuloCluster createMiniCluster(MiniAccumuloConfig cfg) throws IOException {
-    return new MiniAccumuloCluster(cfg);
+  @Test
+  public void removeAccumuloNamespaceTables() {
+    Set<String> tables = new HashSet<String>(Arrays.asList(MetadataTable.NAME, RootTable.NAME, "a1", "a2"));
+    DeleteTableCommand cmd = new DeleteTableCommand();
+    cmd.pruneTables("a.*", tables);
+    
+    Assert.assertEquals(new HashSet<String>(Arrays.asList("a1", "a2")), tables);
   }
 
 }

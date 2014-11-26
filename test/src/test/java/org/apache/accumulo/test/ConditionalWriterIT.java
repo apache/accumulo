@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -67,6 +68,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Span;
@@ -74,14 +76,17 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.BadIterator;
-import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -89,7 +94,8 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-public class ConditionalWriterIT extends SimpleMacIT {
+public class ConditionalWriterIT extends AccumuloClusterIT {
+  private static final Logger log = Logger.getLogger(ConditionalWriterIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -189,12 +195,16 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
-
-    conn.tableOperations().create(tableName);
+    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
+    conn.securityOperations().createLocalUser(user, new PasswordToken("foo"));
 
     Authorizations auths = new Authorizations("A", "B");
 
-    conn.securityOperations().changeUserAuthorizations("root", auths);
+    conn.securityOperations().changeUserAuthorizations(user, auths);
+    conn.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
+    conn = conn.getInstance().getConnector(user, new PasswordToken("foo"));
+
+    conn.tableOperations().create(tableName);
 
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(auths));
 
@@ -1024,27 +1034,31 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     Connector conn = getConnector();
+    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
 
-    conn.securityOperations().createLocalUser("user1", new PasswordToken("u1p"));
+    conn.securityOperations().createLocalUser(user, new PasswordToken("u1p"));
 
-    conn.tableOperations().create("sect1");
-    conn.tableOperations().create("sect2");
-    conn.tableOperations().create("sect3");
+    String[] tables = getUniqueNames(3);
+    String table1 = tables[0], table2 = tables[1], table3 = tables[2];
 
-    conn.securityOperations().grantTablePermission("user1", "sect1", TablePermission.READ);
-    conn.securityOperations().grantTablePermission("user1", "sect2", TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission("user1", "sect3", TablePermission.READ);
-    conn.securityOperations().grantTablePermission("user1", "sect3", TablePermission.WRITE);
+    conn.tableOperations().create(table1);
+    conn.tableOperations().create(table2);
+    conn.tableOperations().create(table3);
 
-    Connector conn2 = getConnector().getInstance().getConnector("user1", new PasswordToken("u1p"));
+    conn.securityOperations().grantTablePermission(user, table1, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(user, table2, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(user, table3, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
+
+    Connector conn2 = getConnector().getInstance().getConnector(user, new PasswordToken("u1p"));
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
     cm1.put("data", "x", "a");
 
-    ConditionalWriter cw1 = conn2.createConditionalWriter("sect1", new ConditionalWriterConfig());
-    ConditionalWriter cw2 = conn2.createConditionalWriter("sect2", new ConditionalWriterConfig());
-    ConditionalWriter cw3 = conn2.createConditionalWriter("sect3", new ConditionalWriterConfig());
+    ConditionalWriter cw1 = conn2.createConditionalWriter(table1, new ConditionalWriterConfig());
+    ConditionalWriter cw2 = conn2.createConditionalWriter(table2, new ConditionalWriterConfig());
+    ConditionalWriter cw3 = conn2.createConditionalWriter(table3, new ConditionalWriterConfig());
 
     Assert.assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
@@ -1219,21 +1233,23 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test
   public void testTrace() throws Exception {
-
+    // Need to add a getClientConfig() to AccumuloCluster
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     Process tracer = null;
     Connector conn = getConnector();
+    AccumuloCluster cluster = getCluster();
+    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
     if (!conn.tableOperations().exists("trace")) {
-      tracer = getStaticCluster().exec(TraceServer.class);
-    }
-    while (!conn.tableOperations().exists("trace")) {
-      UtilWaitThread.sleep(1000);
+      tracer = mac.exec(TraceServer.class);
+      while (!conn.tableOperations().exists("trace")) {
+        UtilWaitThread.sleep(1000);
+      }
     }
 
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
-    conn.tableOperations().deleteRows("trace", null, null);
 
-    DistributedTrace.enable("localhost", "testTrace", getClientConfig());
+    DistributedTrace.enable("localhost", "testTrace", mac.getClientConfig());
     Span root = Trace.on("traceTest");
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
@@ -1247,6 +1263,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+    loop:
     while (true) {
       final StringBuffer finalBuffer = new StringBuffer();
       int traceCount = TraceDump.printTrace(scanner, new Printer() {
@@ -1267,6 +1284,11 @@ public class ConditionalWriterIT extends SimpleMacIT {
         {
           log.info("Looking in trace output for '" + part + "'");
           int pos = traceOutput.indexOf(part);
+          if (-1 == pos) {
+            log.info("Trace output doesn't contain '" + part + "'");
+            Thread.sleep(1000);
+            break loop;
+          }
           assertTrue("Did not find '" + part + "' in output", pos > 0);
           assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
           lastPos = pos;

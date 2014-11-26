@@ -35,15 +35,16 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.RowDeletingIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class RowDeleteIT extends ConfigurableMacIT {
+public class RowDeleteIT extends AccumuloClusterIT {
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "50ms"));
   }
 
@@ -55,49 +56,50 @@ public class RowDeleteIT extends ConfigurableMacIT {
   @Test
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("rdel1");
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
     Map<String,Set<Text>> groups = new HashMap<String, Set<Text>>();
     groups.put("lg1", Collections.singleton(new Text("foo")));
     groups.put("dg", Collections.<Text>emptySet());
-    c.tableOperations().setLocalityGroups("rdel1", groups);
+    c.tableOperations().setLocalityGroups(tableName, groups);
     IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
-    c.tableOperations().attachIterator("rdel1", setting, EnumSet.of(IteratorScope.majc));
-    c.tableOperations().setProperty("rdel1", Property.TABLE_MAJC_RATIO.getKey(), "100");
-    
-    BatchWriter bw = c.createBatchWriter("rdel1", new BatchWriterConfig());
-    
+    c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));
+    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
+
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+
     bw.addMutation(nm("r1", "foo", "cf1", "v1"));
     bw.addMutation(nm("r1", "bar", "cf1", "v2"));
-    
+
     bw.flush();
-    c.tableOperations().flush("rdel1", null, null, true);
-    
-    checkRFiles(c, "rdel1", 1, 1, 1, 1);
-    
-    Scanner scanner = c.createScanner("rdel1", Authorizations.EMPTY);
+    c.tableOperations().flush(tableName, null, null, true);
+
+    checkRFiles(c, tableName, 1, 1, 1, 1);
+
+    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
     int count = FunctionalTestUtils.count(scanner);
     assertEquals("count == " + count, 2, count);
-    
+
     bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
-    
+
     bw.flush();
-    c.tableOperations().flush("rdel1", null, null, true);
-    
-    checkRFiles(c, "rdel1", 1, 1, 2, 2);
-    
-    scanner = c.createScanner("rdel1", Authorizations.EMPTY);
+    c.tableOperations().flush(tableName, null, null, true);
+
+    checkRFiles(c, tableName, 1, 1, 2, 2);
+
+    scanner = c.createScanner(tableName, Authorizations.EMPTY);
     count = FunctionalTestUtils.count(scanner);
     assertEquals("count == " + count, 3, count);
-    
-    c.tableOperations().compact("rdel1", null, null, false, true);
-    
-    checkRFiles(c, "rdel1", 1, 1, 0, 0);
-    
-    scanner = c.createScanner("rdel1", Authorizations.EMPTY);
+
+    c.tableOperations().compact(tableName, null, null, false, true);
+
+    checkRFiles(c, tableName, 1, 1, 0, 0);
+
+    scanner = c.createScanner(tableName, Authorizations.EMPTY);
     count = FunctionalTestUtils.count(scanner);
     assertEquals("count == " + count, 0, count);
     bw.close();
-    
+
   }
-  
+
 }

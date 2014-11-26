@@ -43,7 +43,7 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -112,9 +112,9 @@ public class FileManager {
   private BlockCache indexCache = null;
   
   private long maxIdleTime;
-  
-  private final ServerConfigurationFactory conf;
-  
+
+  private final AccumuloServerContext context;
+
   private class IdleFileCloser implements Runnable {
     
     @Override
@@ -161,11 +161,11 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  public FileManager(ServerConfigurationFactory conf, VolumeManager fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
-    
+  public FileManager(AccumuloServerContext context, VolumeManager fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
+
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
-    this.conf = conf;
+    this.context = context;
     this.dataCache = dataCache;
     this.indexCache = indexCache;
     
@@ -175,10 +175,10 @@ public class FileManager {
     
     this.openFiles = new HashMap<String,List<OpenReader>>();
     this.reservedReaders = new HashMap<FileSKVIterator,String>();
-    
-    this.maxIdleTime = conf.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
-    SimpleTimer.getInstance(conf.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
-    
+
+    this.maxIdleTime = context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
+
   }
   
   private static int countReaders(Map<String,List<OpenReader>> files) {
@@ -312,15 +312,15 @@ public class FileManager {
           throw new IllegalArgumentException("Expected uri, got : " + file);
         Path path = new Path(file);
         FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-        //log.debug("Opening "+file + " path " + path);
-        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(), conf.getTableConfiguration(tablet),
-            dataCache, indexCache);
+        // log.debug("Opening "+file + " path " + path);
+        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(),
+            context.getServerConfigurationFactory().getTableConfiguration(tablet), dataCache, indexCache);
         reservedFiles.add(reader);
         readersReserved.put(reader, file);
       } catch (Exception e) {
-        
-        ProblemReports.getInstance().report(new ProblemReport(tablet.toString(), ProblemType.FILE_READ, file, e));
-        
+
+        ProblemReports.getInstance(context).report(new ProblemReport(tablet.toString(), ProblemType.FILE_READ, file, e));
+
         if (continueOnFailure) {
           // release the permit for the file that failed to open
           if (!tablet.isMeta()) {
@@ -471,9 +471,9 @@ public class FileManager {
       tabletReservedReaders = new ArrayList<FileSKVIterator>();
       dataSources = new ArrayList<FileDataSource>();
       this.tablet = tablet;
-      
-      continueOnFailure = conf.getTableConfiguration(tablet).getBoolean(Property.TABLE_FAILURES_IGNORE);
-      
+
+      continueOnFailure = context.getServerConfigurationFactory().getTableConfiguration(tablet).getBoolean(Property.TABLE_FAILURES_IGNORE);
+
       if (tablet.isMeta()) {
         continueOnFailure = false;
       }
@@ -514,9 +514,9 @@ public class FileManager {
           FileDataSource fds = new FileDataSource(filename, reader);
           dataSources.add(fds);
           SourceSwitchingIterator ssi = new SourceSwitchingIterator(fds);
-          iter = new ProblemReportingIterator(tablet.getTableId().toString(), filename, continueOnFailure, ssi);
+          iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, ssi);
         } else {
-          iter = new ProblemReportingIterator(tablet.getTableId().toString(), filename, continueOnFailure, reader);
+          iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, reader);
         }
         DataFileValue value = files.get(new FileRef(filename));
         if (value.isTimeSet()) {

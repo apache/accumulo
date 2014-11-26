@@ -20,7 +20,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -29,8 +28,9 @@ import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
 public class GetMasterStats {
@@ -38,9 +38,9 @@ public class GetMasterStats {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     try {
-      Instance instance = HdfsZooInstance.getInstance();
-      client = MasterClient.getConnectionWithRetry(instance);
-      stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
+      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+      client = MasterClient.getConnectionWithRetry(context);
+      stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
     } finally {
       if (client != null)
         MasterClient.close(client);

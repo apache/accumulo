@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.accumulo.harness.conf;
+
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
 
 /**
- * This package contains a set of "experimental" changes to the MiniAccumuloCluster class.
- *
- * The intent is to decouple the notion of the MiniCluster from the implementation which
- * will allow for various Accumulo testing implementations that all adhere to the same interface.
- *
- * Presently, this interface can be used to create an MiniAccumuloCluster, but the API is not
- * guaranteed to make non-breaking changes going forward.
+ * Base functionality that must be provided as configuration to the test
  */
-package org.apache.accumulo.cluster;
+public interface AccumuloClusterConfiguration {
+
+  ClusterType getClusterType();
+
+  String getPrincipal();
+
+  AuthenticationToken getToken();
+
+}

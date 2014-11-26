@@ -24,54 +24,40 @@ import javax.management.ObjectName;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.accumulo.server.security.SystemCredentials;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * JMX bindings to expose 'high-level' metrics about Replication
  */
 public class ReplicationMetrics extends AbstractMetricsImpl implements ReplicationMetricsMBean {
-  private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
   private static final String METRICS_PREFIX = "replication";
 
-  private Connector conn;
+  private Master master;
   private ObjectName objectName = null;
   private ReplicationUtil replicationUtil;
 
-  public ReplicationMetrics(Connector conn) throws MalformedObjectNameException {
+  public ReplicationMetrics(Master master) throws MalformedObjectNameException, AccumuloException, AccumuloSecurityException {
     super();
-    this.conn = conn;
+    this.master = master;
     objectName = new ObjectName("accumulo.server.metrics:service=Replication Metrics,name=ReplicationMBean,instance=" + Thread.currentThread().getName());
-    replicationUtil = new ReplicationUtil();
+    replicationUtil = new ReplicationUtil(master);
   }
 
   @Override
   public int getNumFilesPendingReplication() {
-    if (!ReplicationTable.isOnline(conn)) {
-      return 0;
-    }
 
-    Map<String,String> properties;
-    try {
-      properties = conn.instanceOperations().getSystemConfiguration();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.debug("Could not extract system configuration", e);
+    if (TableState.ONLINE != Tables.getTableState(master.getInstance(), ReplicationTable.ID)) {
       return 0;
     }
 
     // Get all of the configured replication peers
-    Map<String,String> peers = replicationUtil.getPeers(properties);
+    Map<String,String> peers = replicationUtil.getPeers();
 
     // A quick lookup to see if have any replication peer configured
     if (peers.isEmpty()) {
@@ -79,10 +65,10 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
     }
 
     // The total set of configured targets
-    Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets(conn.tableOperations());
+    Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets();
 
     // Number of files per target we have to replicate
-    Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications(conn);
+    Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications();
 
     int filesPending = 0;
 
@@ -100,50 +86,12 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
 
   @Override
   public int getNumConfiguredPeers() {
-    Map<String,String> properties;
-    try {
-      properties = conn.instanceOperations().getSystemConfiguration();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.debug("Could not extract system configuration", e);
-      return 0;
-    }
-
-    // Get all of the configured replication peers
-    return replicationUtil.getPeers(properties).size();
+    return replicationUtil.getPeers().size();
   }
 
   @Override
   public int getMaxReplicationThreads() {
-    MasterMonitorInfo mmi = null;
-    for (int i = 0; i < 10; i++) {
-      MasterClientService.Iface client = null;
-      try {
-        client = MasterClient.getConnection(HdfsZooInstance.getInstance());
-        if (client != null) {
-          mmi = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()));
-          break;
-        }
-      } catch (Exception e) {
-        log.debug("Error fetching stats: " + e);
-      } finally {
-        if (client != null) {
-          MasterClient.close(client);
-        }
-      }
-    }
-
-    if (null != mmi) {
-      try {
-        return replicationUtil.getMaxReplicationThreads(conn, mmi);
-      } catch (AccumuloException e) {
-        log.warn("Failed to fetch replication work queue size", e);
-      } catch (AccumuloSecurityException e) {
-        log.warn("Failed to fetch replication work queue size", e);
-      }
-    }
-
-    log.warn("Could not fetch metrics information from Master");
-    return -1;
+    return replicationUtil.getMaxReplicationThreads(master.getMasterMonitorInfo());
   }
 
   @Override

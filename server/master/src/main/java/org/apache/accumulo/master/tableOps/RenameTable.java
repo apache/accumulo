@@ -32,7 +32,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 
@@ -42,10 +41,10 @@ public class RenameTable extends MasterRepo {
   private String tableId;
   private String oldTableName;
   private String newTableName;
-  private String namespaceId;
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME) + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
   }
 
@@ -53,14 +52,12 @@ public class RenameTable extends MasterRepo {
     this.tableId = tableId;
     this.oldTableName = oldTableName;
     this.newTableName = newTableName;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-
     Instance instance = master.getInstance();
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
@@ -97,7 +94,7 @@ public class RenameTable extends MasterRepo {
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);
-      Utils.unreserveNamespace(this.namespaceId, tid, false);
+      Utils.unreserveNamespace(namespaceId, tid, false);
     }
 
     Logger.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
@@ -107,6 +104,7 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
+    String namespaceId = Tables.getNamespaceId(env.getInstance(), tableId);
     Utils.unreserveTable(tableId, tid, true);
     Utils.unreserveNamespace(namespaceId, tid, false);
   }

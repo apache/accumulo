@@ -18,37 +18,54 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.gc.SimpleGarbageCollector;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class RestartIT extends ConfigurableMacIT {
+import com.google.common.base.Charsets;
+
+public class RestartIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(RestartIT.class);
+
   @Override
   public int defaultTimeoutSeconds() {
     return 10 * 60;
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> props = new HashMap<String,String>();
     props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
     props.put(Property.GC_CYCLE_DELAY.getKey(), "1s");
@@ -65,36 +82,99 @@ public class RestartIT extends ConfigurableMacIT {
     OPTS.rows = VOPTS.rows = 10 * 1000;
   }
 
+  private ExecutorService svc;
+
+  @Before
+  public void setup() throws Exception {
+    svc = Executors.newFixedThreadPool(1);
+  }
+
+  @After
+  public void teardown() throws Exception {
+    if (null == svc) {
+      return;
+    }
+
+    if (!svc.isShutdown()) {
+      svc.shutdown();
+    }
+
+    while (!svc.awaitTermination(10, TimeUnit.SECONDS)) {
+      log.info("Waiting for threadpool to terminate");
+    }
+  }
+
   @Test
   public void restartMaster() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-p", ROOT_PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
-        "--rows", "" + OPTS.rows);
-    for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
-      cluster.killProcess(ServerType.MASTER, master);
-    }
-    cluster.start();
-    assertEquals(0, ingest.waitFor());
+    final String tableName = getUniqueNames(1)[0];
+    OPTS.setTableName(tableName);
+    VOPTS.setTableName(tableName);
+    c.tableOperations().create(tableName);
+    final PasswordToken token = (PasswordToken) getToken();
+    final ClusterControl control = getCluster().getClusterControl();
+
+    Future<Integer> ret = svc.submit(new Callable<Integer>() {
+      @Override
+      public Integer call() {
+        try {
+          return control.exec(TestIngest.class,
+              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
+                  cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName});
+        } catch (IOException e) {
+          log.error("Error running TestIngest", e);
+          return -1;
+        }
+      }
+    });
+
+    control.stopAllServers(ServerType.MASTER);
+    control.startAllServers(ServerType.MASTER);
+    assertEquals(0, ret.get().intValue());
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-    ingest.destroy();
   }
 
   @Test
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    OPTS.setTableName(tableName);
+    VOPTS.setTableName(tableName);
     TestIngest.ingest(c, OPTS, BWOPTS);
-    for (Entry<ServerType,Collection<ProcessReference>> entry : cluster.getProcesses().entrySet()) {
-      for (ProcessReference proc : entry.getValue()) {
-        cluster.killProcess(entry.getKey(), proc);
+    ClusterControl control = getCluster().getClusterControl();
+
+    // TODO implement a kill all too?
+    // cluster.stop() would also stop ZooKeeper
+    control.stopAllServers(ServerType.MASTER);
+    control.stopAllServers(ServerType.TRACER);
+    control.stopAllServers(ServerType.TABLET_SERVER);
+    control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    control.stopAllServers(ServerType.MONITOR);
+
+    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
+    ZooCache zcache = new ZooCache(zreader, null);
+    byte[] masterLockData;
+    do {
+      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+      if (null != masterLockData) {
+        log.info("Master lock is still held");
+        Thread.sleep(1000);
       }
-    }
+    } while (null != masterLockData);
+
     cluster.start();
     UtilWaitThread.sleep(5);
-    for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
-      cluster.killProcess(ServerType.MASTER, master);
-    }
+    control.stopAllServers(ServerType.MASTER);
+
+    masterLockData = new byte[0];
+    do {
+      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+      if (null != masterLockData) {
+        log.info("Master lock is still held");
+        Thread.sleep(1000);
+      }
+    } while (null != masterLockData);
     cluster.start();
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
@@ -102,68 +182,116 @@ public class RestartIT extends ConfigurableMacIT {
   @Test
   public void restartMasterSplit() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
-    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-p", ROOT_PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
-        "--rows", "" + VOPTS.rows);
-    for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
-      cluster.killProcess(ServerType.MASTER, master);
-    }
+    final String tableName = getUniqueNames(1)[0];
+    final PasswordToken token = (PasswordToken) getToken();
+    final ClusterControl control = getCluster().getClusterControl();
+    VOPTS.setTableName(tableName);
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+    Future<Integer> ret = svc.submit(new Callable<Integer>() {
+      @Override
+      public Integer call() {
+        try {
+          return control.exec(TestIngest.class,
+              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
+                  cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName});
+        } catch (Exception e) {
+          log.error("Error running TestIngest", e);
+          return -1;
+        }
+      }
+    });
+
+    control.stopAllServers(ServerType.MASTER);
+
+    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
+    ZooCache zcache = new ZooCache(zreader, null);
+    byte[] masterLockData;
+    do {
+      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+      if (null != masterLockData) {
+        log.info("Master lock is still held");
+        Thread.sleep(1000);
+      }
+    } while (null != masterLockData);
+
     cluster.start();
-    assertEquals(0, ingest.waitFor());
+    assertEquals(0, ret.get().intValue());
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-    ingest.destroy();
   }
 
   @Test
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    OPTS.setTableName(tableName);
+    VOPTS.setTableName(tableName);
     TestIngest.ingest(c, OPTS, BWOPTS);
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-    List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
-    for (ProcessReference tserver : procs) {
-      cluster.killProcess(ServerType.TABLET_SERVER, tserver);
-    }
+    cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
     cluster.start();
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
   @Test
   public void killedTabletServer2() throws Exception {
-    Connector c = getConnector();
-    c.tableOperations().create("t");
-    Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(5 * 1000);
-    gc.destroy();
-    List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
-    for (ProcessReference tserver : procs) {
-      cluster.killProcess(ServerType.TABLET_SERVER, tserver);
-    }
+    final Connector c = getConnector();
+    final String[] names = getUniqueNames(2);
+    final String tableName = names[0];
+    final ClusterControl control = getCluster().getClusterControl();
+    c.tableOperations().create(tableName);
+    // Original test started and then stopped a GC. Not sure why it did this. The GC was
+    // already running by default, and it would have nothing to do after only creating a table
+    control.stopAllServers(ServerType.TABLET_SERVER);
+
     cluster.start();
-    c.tableOperations().create("tt");
+    c.tableOperations().create(names[1]);
   }
 
   @Test
   public void killedTabletServerDuringShutdown() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    OPTS.setTableName(tableName);
     TestIngest.ingest(c, OPTS, BWOPTS);
-    List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
-    cluster.killProcess(ServerType.TABLET_SERVER, procs.get(0));
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    try {
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().adminStopAll();
+    } finally {
+      getCluster().start();
+    }
   }
 
   @Test
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    TestIngest.ingest(c, opts, BWOPTS);
-    c.tableOperations().flush("test_ingest", null, null, false);
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    String tableName = getUniqueNames(1)[0];
+    VOPTS.setTableName(tableName);
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    String splitThreshold = null;
+    for (Entry<String,String> entry : c.tableOperations().getProperties(tableName)) {
+      if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey())) {
+        splitThreshold = entry.getValue();
+        break;
+      }
+    }
+    Assert.assertNotNull(splitThreshold);
+    try {
+      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
+      TestIngest.Opts opts = new TestIngest.Opts();
+      opts.setTableName(tableName);
+      TestIngest.ingest(c, opts, BWOPTS);
+      c.tableOperations().flush(tableName, null, null, false);
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      getCluster().stop();
+    } finally {
+      if (getClusterType() == ClusterType.STANDALONE) {
+        getCluster().start();
+        c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
+      }
+    }
   }
 }

@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.shell;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -57,13 +57,12 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.impl.ClientConfigurationHelper;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -78,8 +77,6 @@ import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterFactory;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.shell.commands.AboutCommand;
 import org.apache.accumulo.shell.commands.AddAuthsCommand;
 import org.apache.accumulo.shell.commands.AddSplitsCommand;
@@ -166,6 +163,8 @@ import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
 import org.apache.accumulo.shell.commands.WhoAmICommand;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -399,7 +398,7 @@ public class Shell extends ShellOptions {
 
   /**
    * Sets the instance used by the shell based on the given options.
-   * 
+   *
    * @param options
    *          shell options
    */
@@ -438,7 +437,7 @@ public class Shell extends ShellOptions {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
     if (instanceName == null || keepers == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
+      AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
       if (instanceName == null) {
         Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
@@ -1169,7 +1168,7 @@ public class Shell extends ShellOptions {
 
   /**
    * Return the formatter for the current table.
-   * 
+   *
    * @return the formatter class for the current table
    */
   public Class<? extends Formatter> getFormatter() {
@@ -1178,7 +1177,7 @@ public class Shell extends ShellOptions {
 
   /**
    * Return the formatter for the given table.
-   * 
+   *
    * @param tableName
    *          the table name
    * @return the formatter class for the given table

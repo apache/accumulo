@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -394,7 +395,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         } else if (instance instanceof MockInstance) {
           scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
         } else {
-          scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+          ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
+          scanner = new ScannerImpl(context, split.getTableId(), authorizations);
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
@@ -514,9 +516,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           tl = getTabletLocator(job, tableId);
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
-          Credentials creds = new Credentials(getPrincipal(job), getAuthenticationToken(job));
 
-          while (!tl.binRanges(creds, ranges, binnedRanges).isEmpty()) {
+          ClientContext context = new ClientContext(getInstance(job), new Credentials(getPrincipal(job), getAuthenticationToken(job)),
+              ClientConfiguration.loadDefault());
+          while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
             if (!(instance instanceof MockInstance)) {
               if (!Tables.exists(instance, tableId))
                 throw new TableDeletedException(tableId);

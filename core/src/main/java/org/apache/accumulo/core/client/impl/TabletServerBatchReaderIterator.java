@@ -43,8 +43,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -57,11 +55,10 @@ import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.wrappers.TraceRunnable;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.wrappers.TraceRunnable;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -77,8 +74,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   
   private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
   
+  private final ClientContext context;
   private final Instance instance;
-  private final Credentials credentials;
   private final String table;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
@@ -105,11 +102,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void receive(List<Entry<Key,Value>> entries);
   }
   
-  public TabletServerBatchReaderIterator(Instance instance, Credentials credentials, String table, Authorizations authorizations, ArrayList<Range> ranges,
-      int numThreads, ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
+  public TabletServerBatchReaderIterator(ClientContext context, String table, Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
+      ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
     
-    this.instance = instance;
-    this.credentials = credentials;
+    this.context = context;
+    this.instance = context.getInstance();
     this.table = table;
     this.authorizations = authorizations;
     this.numThreads = numThreads;
@@ -117,7 +114,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
     
-    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
+    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(context, new Text(table)), timeout);
     
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
@@ -227,7 +224,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     while (true) {
       
       binnedRanges.clear();
-      List<Range> failures = tabletLocator.binRanges(credentials, ranges, binnedRanges);
+      List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
       
       if (failures.size() > 0) {
         // tried to only do table state checks when failures.size() == ranges.size(), however this did
@@ -343,8 +340,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, timeout);
           timeoutTrackers.put(tsLocation, timeoutTracker);
         }
-        doLookup(instance, credentials, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, options, authorizations,
-            ClientConfigurationHelper.getClientRpcConfiguration(instance), timeoutTracker);
+        doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, options, authorizations, timeoutTracker);
         if (tsFailures.size() > 0) {
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
@@ -358,7 +354,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           failures.putAll(unscanned);
         }
         
-        locator.invalidateCache(tsLocation);
+        locator.invalidateCache(context.getInstance(), tsLocation);
         log.debug(e.getMessage(), e);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
@@ -586,16 +582,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
   
-  public static void doLookup(Instance instance, Credentials credentials, String server, Map<KeyExtent,List<Range>> requested,
-      Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options,
-      Authorizations authorizations, AccumuloConfiguration conf) throws IOException, AccumuloSecurityException, AccumuloServerException {
-    doLookup(instance, credentials, server, requested, failures, unscanned, receiver, columns, options, authorizations, conf,
-        new TimeoutTracker(Long.MAX_VALUE));
+  public static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
+      Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options, Authorizations authorizations)
+      throws IOException, AccumuloSecurityException, AccumuloServerException {
+    doLookup(context, server, requested, failures, unscanned, receiver, columns, options, authorizations, new TimeoutTracker(Long.MAX_VALUE));
   }
   
-  static void doLookup(Instance instance, Credentials credentials, String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
+  static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
       Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options, Authorizations authorizations,
-      AccumuloConfiguration conf, TimeoutTracker timeoutTracker) throws IOException, AccumuloSecurityException, AccumuloServerException {
+      TimeoutTracker timeoutTracker) throws IOException, AccumuloSecurityException, AccumuloServerException {
     
     if (requested.size() == 0) {
       return;
@@ -614,10 +609,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     TTransport transport = null;
     try {
       TabletClientService.Client client;
-      if (timeoutTracker.getTimeOut() < conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-        client = ThriftUtil.getTServerClient(server, conf, timeoutTracker.getTimeOut());
+      if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
+        client = ThriftUtil.getTServerClient(server, context, timeoutTracker.getTimeOut());
       else
-        client = ThriftUtil.getTServerClient(server, conf);
+        client = ThriftUtil.getTServerClient(server, context);
       
       try {
         
@@ -629,7 +624,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         
         Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translators.KET, new Translator.ListTranslator<Range,TRange>(
             Translators.RT));
-        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), credentials.toThrift(instance), thriftTabletRanges,
+        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(), thriftTabletRanges,
             Translator.translate(columns, Translators.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
         if (waitForWrites)

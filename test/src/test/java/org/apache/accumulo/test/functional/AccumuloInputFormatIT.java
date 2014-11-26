@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -44,13 +43,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AccumuloInputFormatIT extends SimpleMacIT {
+public class AccumuloInputFormatIT extends AccumuloClusterIT {
 
   AccumuloInputFormat inputFormat;
 
@@ -96,7 +96,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     Job job = new Job();
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
-    AccumuloInputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
+    AccumuloInputFormat.setConnectorInfo(job, getPrincipal(), getToken());
 
     // split table
     TreeSet<Text> splitsToAdd = new TreeSet<Text>();

@@ -33,20 +33,20 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class TabletIT extends ConfigurableMacIT {
+public class TabletIT extends AccumuloClusterIT {
 
   private static final int N = 1000;
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "128M");
     cfg.setDefaultMemory(256, MemoryUnit.MEGABYTE);
     cfg.setSiteConfig(siteConfig);
@@ -76,6 +76,7 @@ public class TabletIT extends ConfigurableMacIT {
 
       // presplit
       connector.tableOperations().create(tableName);
+      connector.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
       connector.tableOperations().addSplits(tableName, keys);
       BatchWriter b = connector.createBatchWriter(tableName, new BatchWriterConfig());
 

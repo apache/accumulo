@@ -38,8 +38,10 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
+import org.apache.log4j.Logger;
 
 public class SessionManager {
+  private static final Logger log = Logger.getLogger(SessionManager.class);
 
   private final SecureRandom random = new SecureRandom();
   private final Map<Long,Session> sessions = new HashMap<Long,Session>();
@@ -164,6 +166,7 @@ public class SessionManager {
         Session session = iter.next();
         long idleTime = System.currentTimeMillis() - session.lastAccessTime;
         if (idleTime > maxIdle && !session.reserved) {
+          log.info("Closing idle session from user=" + session.getUser() + ", client=" + session.client + ", idle=" + idleTime + "ms");
           iter.remove();
           sessionsToCleanup.add(session);
         }
@@ -176,7 +179,7 @@ public class SessionManager {
     }
   }
 
-  public synchronized void removeIfNotAccessed(final long sessionId, long delay) {
+  public synchronized void removeIfNotAccessed(final long sessionId, final long delay) {
     Session session = sessions.get(sessionId);
     if (session != null) {
       final long removeTime = session.lastAccessTime;
@@ -187,6 +190,7 @@ public class SessionManager {
           synchronized (SessionManager.this) {
             Session session2 = sessions.get(sessionId);
             if (session2 != null && session2.lastAccessTime == removeTime && !session2.reserved) {
+              log.info("Closing not accessed session from user=" + session2.getUser() + ", client=" + session2.client + ", duration=" + delay + "ms");
               sessions.remove(sessionId);
               sessionToCleanup = session2;
             }

@@ -155,16 +155,16 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
     try {
       final Connector connMaster = getConnector();
-      final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+      final Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       ReplicationTable.setOnline(connMaster);
-      
+
       String peerUserName = "peer", peerPassword = "foo";
 
       String peerClusterName = "peer";
@@ -308,13 +308,13 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 
     try {
       Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -450,12 +450,12 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
+    MiniAccumuloClusterImpl peerCluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peerCluster.start();
 
     Connector connMaster = getConnector();
-    Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+    Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
     String peerUserName = "repl";
     String peerPassword = "passwd";
@@ -549,13 +549,13 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
-    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
+    MiniAccumuloClusterImpl peer1Cluster = new MiniAccumuloClusterImpl(peerCfg);
 
     peer1Cluster.start();
 
     try {
       Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
 

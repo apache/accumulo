@@ -26,11 +26,11 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -47,7 +47,6 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -81,21 +80,20 @@ public class ReplicationTableUtil {
     writers.put(creds, writer);
   }
 
-  synchronized static Writer getWriter(Credentials credentials) {
-    Writer replicationTable = writers.get(credentials);
+  synchronized static Writer getWriter(ClientContext context) {
+    Writer replicationTable = writers.get(context.getCredentials());
     if (replicationTable == null) {
-      Instance inst = HdfsZooInstance.getInstance();
       Connector conn;
       try {
-        conn = inst.getConnector(credentials.getPrincipal(), credentials.getToken());
+        conn = context.getConnector();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new RuntimeException(e);
       }
 
       configureMetadataTable(conn, MetadataTable.NAME);
 
-      replicationTable = new Writer(inst, credentials, MetadataTable.ID);
-      writers.put(credentials, replicationTable);
+      replicationTable = new Writer(context, MetadataTable.ID);
+      writers.put(context.getCredentials(), replicationTable);
     }
     return replicationTable;
   }
@@ -156,8 +154,8 @@ public class ReplicationTableUtil {
   /**
    * Write the given Mutation to the replication table.
    */
-  static void update(Credentials credentials, Mutation m, KeyExtent extent) {
-    Writer t = getWriter(credentials);
+  static void update(ClientContext context, Mutation m, KeyExtent extent) {
+    Writer t = getWriter(context);
     while (true) {
       try {
         t.update(m);
@@ -178,7 +176,7 @@ public class ReplicationTableUtil {
   /**
    * Write replication ingest entries for each provided file with the given {@link Status}.
    */
-  public static void updateFiles(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
+  public static void updateFiles(ClientContext context, KeyExtent extent, Collection<String> files, Status stat) {
     if (log.isDebugEnabled()) {
       log.debug("Updating replication status for " + extent + " with " + files + " using " + ProtobufUtil.toString(stat));
     }
@@ -190,7 +188,7 @@ public class ReplicationTableUtil {
     Value v = ProtobufUtil.toValue(stat);
     for (String file : files) {
       // TODO Can preclude this addition if the extent is for a table we don't need to replicate
-      update(creds, createUpdateMutation(new Path(file), v, extent), extent);
+      update(context, createUpdateMutation(new Path(file), v, extent), extent);
     }
   }
 

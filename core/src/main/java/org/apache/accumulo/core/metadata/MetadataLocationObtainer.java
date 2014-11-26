@@ -31,10 +31,9 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
-import org.apache.accumulo.core.client.impl.ClientConfigurationHelper;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocations;
@@ -42,7 +41,6 @@ import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObta
 import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.client.impl.ThriftScanner;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -53,7 +51,6 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -65,13 +62,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = Logger.getLogger(MetadataLocationObtainer.class);
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
-  private Instance instance;
-  private AccumuloConfiguration rpcConfig;
   
-  public MetadataLocationObtainer(Instance instance) {
-    
-    this.instance = instance;
-    this.rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
+  public MetadataLocationObtainer() {
     
     locCols = new TreeSet<Column>();
     locCols.add(new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
@@ -80,7 +72,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
   
   @Override
-  public TabletLocations lookupTablet(Credentials credentials, TabletLocation src, Text row, Text stopRow, TabletLocator parent)
+  public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row, Text stopRow, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
     
     try {
@@ -99,17 +91,16 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       List<IterInfo> serverSideIteratorList = new ArrayList<IterInfo>();
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-      
-      boolean more = ThriftScanner.getBatchFromServer(instance, credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, rpcConfig);
+      boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
+          serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false);
       
       decodeRows(encodedResults, results);
       
       if (more && results.size() == 1) {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        more = ThriftScanner.getBatchFromServer(instance, credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-            serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, rpcConfig);
+        more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
+            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false);
         
         decodeRows(encodedResults, results);
       }
@@ -132,7 +123,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
         log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
-      parent.invalidateCache(src.tablet_location);
+      parent.invalidateCache(context.getInstance(), src.tablet_location);
     }
     
     return null;
@@ -149,7 +140,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
   
   @Override
-  public List<TabletLocation> lookupTablets(Credentials credentials, String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
+  public List<TabletLocation> lookupTablets(ClientContext context, String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
     
     final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
@@ -181,8 +172,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
     try {
-      TabletServerBatchReaderIterator.doLookup(instance, credentials, tserver, tabletsRanges, failures, unscanned, rr, columns, opts, Authorizations.EMPTY,
-          ClientConfigurationHelper.getClientRpcConfiguration(instance));
+      TabletServerBatchReaderIterator.doLookup(context, tserver, tabletsRanges, failures, unscanned, rr, columns, opts, Authorizations.EMPTY);
       if (failures.size() > 0) {
         // invalidate extents in parents cache
         if (log.isTraceEnabled())
@@ -191,7 +181,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     } catch (IOException e) {
       log.trace("lookupTablets failed server=" + tserver, e);
-      parent.invalidateCache(tserver);
+      parent.invalidateCache(context.getInstance(), tserver);
     } catch (AccumuloServerException e) {
       log.trace("lookupTablets failed server=" + tserver, e);
       throw e;

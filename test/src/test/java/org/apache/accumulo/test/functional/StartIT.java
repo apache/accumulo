@@ -17,12 +17,14 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotEquals;
 
+import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.start.TestMain;
 import org.junit.Test;
 
-public class StartIT extends ConfigurableMacIT {
+public class StartIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -31,9 +33,11 @@ public class StartIT extends ConfigurableMacIT {
 
   @Test
   public void test() throws Exception {
-    assertTrue(exec(TestMain.class, "exception").waitFor() != 0);
-    assertEquals(0, exec(TestMain.class, "success").waitFor());
-    assertTrue(exec(TestMain.class).waitFor() != 0);
+    ClusterControl control = getCluster().getClusterControl();
+
+    assertNotEquals(0, control.exec(TestMain.class, new String[] {"exception"}));
+    assertEquals(0, control.exec(TestMain.class, new String[] {"success"}));
+    assertNotEquals(0, control.exec(TestMain.class, new String[0]));
   }
 
 }

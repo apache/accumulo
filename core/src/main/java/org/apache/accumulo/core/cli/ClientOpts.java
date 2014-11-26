@@ -211,7 +211,7 @@ public class ClientOpts extends Help {
     return getInstance().getConnector(principal, getToken());
   }
 
-  protected ClientConfiguration getClientConfiguration() throws IllegalArgumentException {
+  public ClientConfiguration getClientConfiguration() throws IllegalArgumentException {
     if (cachedClientConfig != null)
       return cachedClientConfig;
 

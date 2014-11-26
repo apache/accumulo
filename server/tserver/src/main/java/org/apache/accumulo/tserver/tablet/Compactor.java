@@ -52,6 +52,7 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -103,8 +104,11 @@ public class Compactor implements Callable<CompactionStats> {
   // a unique id to identify a compactor
   private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
+  private final AccumuloServerContext context;
 
-  public long getCompactorID() { return compactorID; }
+  public long getCompactorID() {
+    return compactorID;
+  }
 
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
@@ -133,8 +137,9 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(Tablet tablet, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
-      CompactionEnv env, List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+  public Compactor(AccumuloServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile,
+      boolean propogateDeletes, CompactionEnv env, List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+    this.context = context;
     this.extent = tablet.getExtent();
     this.fs = tablet.getTabletServer().getFileSystem();
     this.acuTableConf = tableConfiguation;
@@ -161,7 +166,9 @@ public class Compactor implements Callable<CompactionStats> {
     return outputFile.toString();
   }
 
-  MajorCompactionReason getMajorCompactionReason() { return MajorCompactionReason.values()[reason]; }
+  MajorCompactionReason getMajorCompactionReason() {
+    return MajorCompactionReason.values()[reason];
+  }
 
   @Override
   public CompactionStats call() throws IOException, CompactionCanceledException {
@@ -272,7 +279,7 @@ public class Compactor implements Callable<CompactionStats> {
 
         readers.add(reader);
 
-        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(extent.getTableId().toString(), mapFile.path().toString(), false, reader);
+        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context, extent.getTableId().toString(), mapFile.path().toString(), false, reader);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -282,7 +289,7 @@ public class Compactor implements Callable<CompactionStats> {
 
       } catch (Throwable e) {
 
-        ProblemReports.getInstance().report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile.path().toString(), e));
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile.path().toString(), e));
 
         log.warn("Some problem opening map file " + mapFile + " " + e.getMessage(), e);
         // failed to open some map file... close the ones that were opened

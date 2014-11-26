@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.cluster.AccumuloConfig;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -39,7 +38,7 @@ import org.apache.log4j.Logger;
  *
  * @since 1.6.0
  */
-public class MiniAccumuloConfigImpl implements AccumuloConfig {
+public class MiniAccumuloConfigImpl {
   private static final Logger log = Logger.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
 
@@ -70,6 +69,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private long defaultMemorySize = 128 * 1024 * 1024;
 
   private boolean initialized = false;
+
+  // TODO Nuke existingInstance and push it over to StandaloneAccumuloCluster
   private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
@@ -234,7 +235,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    * @param numTservers
    *          the number of tablet servers that mini accumulo cluster should start
    */
-  @Override
   public MiniAccumuloConfigImpl setNumTservers(int numTservers) {
     if (numTservers < 1)
       throw new IllegalArgumentException("Must have at least one tablet server");
@@ -247,7 +247,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public MiniAccumuloConfigImpl setInstanceName(String instanceName) {
     this.instanceName = instanceName;
     return this;
@@ -259,7 +258,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    * @param siteConfig
    *          key/values that you normally put in accumulo-site.xml can be put here.
    */
-  @Override
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
     if (existingInstance != null && existingInstance.booleanValue())
       throw new UnsupportedOperationException("Cannot set set config info when using an existing instance.");
@@ -283,7 +281,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
     if (existingInstance != null && existingInstance.booleanValue())
       throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
@@ -296,15 +293,13 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   }
 
   /**
-   * <<<<<<< HEAD Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds ======= Configure the
-   * time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds >>>>>>> ACCUMULO-2984
+   * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds
    *
    * @param zooKeeperStartupTime
    *          Time to wait for ZooKeeper to startup, in milliseconds
    *
    * @since 1.6.1
    */
-  @Override
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
     if (existingInstance != null && existingInstance.booleanValue())
       throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
@@ -328,7 +323,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public MiniAccumuloConfigImpl setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
     this.memoryConfig.put(serverType, memoryUnit.toBytes(memory));
     return this;
@@ -346,7 +340,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public MiniAccumuloConfigImpl setDefaultMemory(long memory, MemoryUnit memoryUnit) {
     this.defaultMemorySize = memoryUnit.toBytes(memory);
     return this;
@@ -355,7 +348,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   /**
    * @return a copy of the site config
    */
-  @Override
   public Map<String,String> getSiteConfig() {
     return new HashMap<String,String>(siteConfig);
   }
@@ -369,7 +361,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public String getInstanceName() {
     return instanceName;
   }
@@ -379,7 +370,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public int getZooKeeperPort() {
     return zooKeeperPort;
   }
@@ -428,7 +418,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public long getMemory(ServerType serverType) {
     return memoryConfig.containsKey(serverType) ? memoryConfig.get(serverType) : defaultMemorySize;
   }
@@ -438,7 +427,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public long getDefaultMemory() {
     return defaultMemorySize;
   }
@@ -462,7 +450,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   /**
    * @return the root password of this cluster configuration
    */
-  @Override
   public String getRootPassword() {
     return rootPassword;
   }
@@ -470,7 +457,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   /**
    * @return the number of tservers configured for this cluster
    */
-  @Override
   public int getNumTservers() {
     return numTservers;
   }
@@ -558,7 +544,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *
    * @since 1.6.0
    */
-  @Override
   public String[] getNativeLibPaths() {
     return this.nativePathItems == null ? new String[0] : this.nativePathItems;
   }
@@ -570,7 +555,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *          the nativePathItems to set
    * @since 1.6.0
    */
-  @Override
   public MiniAccumuloConfigImpl setNativeLibPaths(String... nativePathItems) {
     this.nativePathItems = nativePathItems;
     return this;
@@ -600,11 +584,6 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
     this.useCredentialProvider = useCredentialProvider;
   }
 
-  @Override
-  public MiniAccumuloClusterImpl build() throws IOException {
-    return new MiniAccumuloClusterImpl(this);
-  }
-
   /**
    * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's already initialized and hdfs/zookeeper are already running.
    *
@@ -612,7 +591,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *          a File representation of the accumulo-site.xml file for the instance being run
    * @param hadoopConfDir
    *          a File representation of the hadoop configuration directory containing core-site.xml and hdfs-site.xml
-   * 
+   *
    * @return MiniAccumuloConfigImpl which uses an existing accumulo configuration
    *
    * @since 1.6.2
@@ -646,7 +625,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
       siteConfigMap.put(e.getKey(), e.getValue());
     }
     _setSiteConfig(siteConfigMap);
-    
+
     for (Entry<String,String> entry : DefaultConfiguration.getDefaultConfiguration())
       accumuloConf.setIfUnset(entry.getKey(), entry.getValue());
 
@@ -673,7 +652,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   /**
    * @return accumulo Configuration being used
-   * 
+   *
    * @since 1.6.2
    */
   public Configuration getAccumuloConfiguration() {
@@ -682,7 +661,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   /**
    * @return hadoop Configuration being used
-   * 
+   *
    * @since 1.6.2
    */
   public Configuration getHadoopConfiguration() {

@@ -26,33 +26,33 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BulkFileIT extends ConfigurableMacIT {
+public class BulkFileIT extends AccumuloClusterIT {
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getDefaultMemory() * 3, MemoryUnit.BYTE);
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
+    cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
   }
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 4 * 60;
   }
 
   @Test
@@ -65,10 +65,12 @@ public class BulkFileIT extends ConfigurableMacIT {
       splits.add(new Text(split));
     c.tableOperations().addSplits(tableName, splits);
     Configuration conf = new Configuration();
-    AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-    FileSystem fs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
+    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance()).getConfiguration();
+    FileSystem fs = getCluster().getFileSystem();
 
-    String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
+    String rootPath = getUsableDir();
+
+    String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
     fs.delete(new Path(dir), true);
 

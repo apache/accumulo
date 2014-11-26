@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,6 +36,8 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -58,11 +59,13 @@ public class WorkMakerTest {
 
   @Rule
   public TestName name = new TestName();
+  private AccumuloServerContext context;
 
   @Before
   public void createMockAccumulo() throws Exception {
     instance = new MockInstance();
-    conn = instance.getConnector("root", new PasswordToken(""));
+    context = new AccumuloServerContext(new ServerConfigurationFactory(instance));
+    conn = context.getConnector();
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
     conn.tableOperations().deleteRows(ReplicationTable.NAME, null, null);
   }
@@ -87,7 +90,7 @@ public class WorkMakerTest {
     StatusSection.limit(s);
     Assert.assertEquals(1, Iterables.size(s));
 
-    WorkMaker workMaker = new WorkMaker(conn);
+    WorkMaker workMaker = new WorkMaker(context, conn);
 
     // Invoke the addWorkRecord method to create a Work record from the Status record earlier
     ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
@@ -119,7 +122,7 @@ public class WorkMakerTest {
 
     Mutation m = new Mutation(new Path(file).toString());
     m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(context.getConnector());
     bw.addMutation(m);
     bw.flush();
 
@@ -128,7 +131,7 @@ public class WorkMakerTest {
     StatusSection.limit(s);
     Assert.assertEquals(1, Iterables.size(s));
 
-    WorkMaker workMaker = new WorkMaker(conn);
+    WorkMaker workMaker = new WorkMaker(context, conn);
 
     Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
     Set<ReplicationTarget> expectedTargets = new HashSet<>();
@@ -176,7 +179,7 @@ public class WorkMakerTest {
     StatusSection.limit(s);
     Assert.assertEquals(1, Iterables.size(s));
 
-    WorkMaker workMaker = new WorkMaker(conn);
+    WorkMaker workMaker = new WorkMaker(context, conn);
 
     conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
 
@@ -194,7 +197,7 @@ public class WorkMakerTest {
 
   @Test
   public void closedStatusRecordsStillMakeWork() throws Exception {
-    WorkMaker workMaker = new WorkMaker(conn);
+    WorkMaker workMaker = new WorkMaker(context, conn);
 
     Assert.assertFalse(workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));
     Assert.assertTrue(workMaker.shouldCreateWork(StatusUtil.ingestedUntil(1000)));
