@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.problems;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -35,8 +36,8 @@ import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
@@ -135,21 +136,22 @@ public class ProblemReport {
     }
   }
   
-  void removeFromMetadataTable() throws Exception {
+  void removeFromMetadataTable(AccumuloServerContext context) throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableName));
     m.putDelete(new Text(problemType.name()), new Text(resource));
-    MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(m);
+    MetadataTableUtil.getMetadataTable(context).update(m);
   }
   
-  void saveToMetadataTable() throws Exception {
+  void saveToMetadataTable(AccumuloServerContext context) throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableName));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
-    MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(m);
+    MetadataTableUtil.getMetadataTable(context).update(m);
   }
   
   void removeFromZooKeeper() throws Exception {
     removeFromZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
   }
+
   void removeFromZooKeeper(ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
     String zpath = getZPath(instance);
     zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
@@ -158,6 +160,7 @@ public class ProblemReport {
   void saveToZooKeeper() throws Exception {
     saveToZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
   }
+
   void saveToZooKeeper(ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
     zoorw.putPersistentData(getZPath(instance), encode(), NodeExistsPolicy.OVERWRITE);
   }
@@ -178,6 +181,7 @@ public class ProblemReport {
   static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
     return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
   }
+
   static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
     byte bytes[] = Encoding.decodeBase64FileName(node);
     

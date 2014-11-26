@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.util.concurrent.TimeUnit;
-
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -43,60 +43,55 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.trace.Tracer;
 
 public class ConnectorImpl extends Connector {
-  private final Instance instance;
-  private final Credentials credentials;
+  private final ClientContext context;
   private SecurityOperations secops = null;
-  private TableOperations tableops = null;
+  private TableOperationsImpl tableops = null;
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
 
-  public ConnectorImpl(final Instance instance, Credentials cred) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(cred != null, "cred is null");
-    if (cred.getToken().isDestroyed())
-      throw new AccumuloSecurityException(cred.getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
+  public ConnectorImpl(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
+    checkArgument(context != null, "context is null");
+    if (context.getCredentials().getToken().isDestroyed())
+      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
 
-    this.instance = instance;
-
-    this.credentials = cred;
+    this.context = context;
 
     // Skip fail fast for system services; string literal for class name, to avoid
-    if (!"org.apache.accumulo.server.security.SystemCredentials$SystemToken".equals(cred.getToken().getClass().getName())) {
-      ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
+    if (!"org.apache.accumulo.server.security.SystemCredentials$SystemToken".equals(context.getCredentials().getToken().getClass().getName())) {
+      ServerClient.execute(context, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
-          if (!iface.authenticate(Tracer.traceInfo(), credentials.toThrift(instance)))
+          if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
             throw new AccumuloSecurityException("Authentication failed, access denied", SecurityErrorCode.BAD_CREDENTIALS);
         }
       });
     }
 
-    this.tableops = new TableOperationsImpl(instance, credentials);
-    this.namespaceops = new NamespaceOperationsImpl(instance, credentials, (TableOperationsImpl) tableops);
+    this.tableops = new TableOperationsImpl(context);
+    this.namespaceops = new NamespaceOperationsImpl(context, tableops);
   }
 
   private String getTableId(String tableName) throws TableNotFoundException {
-    String tableId = Tables.getTableId(instance, tableName);
-    if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(instance, tableId);
+    String tableId = Tables.getTableId(context.getInstance(), tableName);
+    if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+      throw new TableOfflineException(context.getInstance(), tableId);
     return tableId;
   }
 
   @Override
   public Instance getInstance() {
-    return instance;
+    return context.getInstance();
   }
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchReader(instance, credentials, getTableId(tableName), authorizations, numQueryThreads);
+    return new TabletServerBatchReader(context, getTableId(tableName), authorizations, numQueryThreads);
   }
 
   @Deprecated
@@ -105,8 +100,8 @@ public class ConnectorImpl extends Connector {
       int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig()
-        .setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -114,50 +109,50 @@ public class ConnectorImpl extends Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, config);
+    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config);
   }
 
   @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(instance, credentials, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return new BatchWriterImpl(context, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+        .setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(instance, credentials, getTableId(tableName), config);
+    return new BatchWriterImpl(context, getTableId(tableName), config);
   }
 
   @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(instance, credentials, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+        .setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
-    return new MultiTableBatchWriterImpl(instance, credentials, config);
+    return new MultiTableBatchWriterImpl(context, config);
   }
 
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config) throws TableNotFoundException {
-    return new ConditionalWriterImpl(instance, credentials, getTableId(tableName), config);
+    return new ConditionalWriterImpl(context, getTableId(tableName), config);
   }
 
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new ScannerImpl(instance, credentials, getTableId(tableName), authorizations);
+    return new ScannerImpl(context, getTableId(tableName), authorizations);
   }
 
   @Override
   public String whoami() {
-    return credentials.getPrincipal();
+    return context.getCredentials().getPrincipal();
   }
 
   @Override
@@ -173,7 +168,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized SecurityOperations securityOperations() {
     if (secops == null)
-      secops = new SecurityOperationsImpl(instance, credentials);
+      secops = new SecurityOperationsImpl(context);
 
     return secops;
   }
@@ -181,7 +176,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized InstanceOperations instanceOperations() {
     if (instanceops == null)
-      instanceops = new InstanceOperationsImpl(instance, credentials);
+      instanceops = new InstanceOperationsImpl(context);
 
     return instanceops;
   }
@@ -189,7 +184,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized ReplicationOperations replicationOperations() {
     if (null == replicationops) {
-      replicationops = new ReplicationOperationsImpl(instance, credentials);
+      replicationops = new ReplicationOperationsImpl(context);
     }
 
     return replicationops;

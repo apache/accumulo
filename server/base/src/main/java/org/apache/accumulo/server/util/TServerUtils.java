@@ -28,7 +28,6 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
@@ -37,6 +36,7 @@ import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.TBufferedSocket;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
@@ -83,22 +83,22 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerAddress startServer(AccumuloConfiguration conf, String address, Property portHintProperty, TProcessor processor, String serverName,
+  public static ServerAddress startServer(AccumuloServerContext service, String address, Property portHintProperty, TProcessor processor, String serverName,
       String threadName, Property portSearchProperty, Property minThreadProperty, Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
       throws UnknownHostException {
-    int portHint = conf.getPort(portHintProperty);
+    int portHint = service.getConfiguration().getPort(portHintProperty);
     int minThreads = 2;
     if (minThreadProperty != null)
-      minThreads = conf.getCount(minThreadProperty);
+      minThreads = service.getConfiguration().getCount(minThreadProperty);
     long timeBetweenThreadChecks = 1000;
     if (timeBetweenThreadChecksProperty != null)
-      timeBetweenThreadChecks = conf.getTimeInMillis(timeBetweenThreadChecksProperty);
+      timeBetweenThreadChecks = service.getConfiguration().getTimeInMillis(timeBetweenThreadChecksProperty);
     long maxMessageSize = 10 * 1000 * 1000;
     if (maxMessageSizeProperty != null)
-      maxMessageSize = conf.getMemoryInBytes(maxMessageSizeProperty);
+      maxMessageSize = service.getConfiguration().getMemoryInBytes(maxMessageSizeProperty);
     boolean portSearch = false;
     if (portSearchProperty != null)
-      portSearch = conf.getBoolean(portSearchProperty);
+      portSearch = service.getConfiguration().getBoolean(portSearchProperty);
     // create the TimedProcessor outside the port search loop so we don't try to register the same metrics mbean more than once
     TServerUtils.TimedProcessor timedProcessor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
     Random random = new Random();
@@ -118,8 +118,8 @@ public class TServerUtils {
         try {
           HostAndPort addr = HostAndPort.fromParts(address, port);
           return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads,
-              conf.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), timeBetweenThreadChecks, maxMessageSize,
-              SslConnectionParams.forServer(conf), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+              service.getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), timeBetweenThreadChecks, maxMessageSize,
+              service.getServerSslParams(), service.getClientTimeoutInMillis());
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
           if (ex.getCause() == null || ex.getCause().getClass() == BindException.class) {

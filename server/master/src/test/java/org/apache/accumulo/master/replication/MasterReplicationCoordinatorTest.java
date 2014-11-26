@@ -74,8 +74,8 @@ public class MasterReplicationCoordinatorTest {
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     Instance inst = EasyMock.createMock(Instance.class);
 
-    EasyMock.expect(master.getInstance()).andReturn(inst);
-    EasyMock.expect(inst.getInstanceID()).andReturn("1234");
+    EasyMock.expect(master.getInstance()).andReturn(inst).anyTimes();
+    EasyMock.expect(inst.getInstanceID()).andReturn("1234").anyTimes();
 
     EasyMock.replay(master, reader, inst);
 

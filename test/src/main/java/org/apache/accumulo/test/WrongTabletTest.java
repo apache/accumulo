@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Credentials;
@@ -23,6 +25,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.io.Text;
@@ -37,16 +40,23 @@ public class WrongTabletTest {
   }
 
   public static void main(String[] args) {
-    Opts opts = new Opts();
+    final Opts opts = new Opts();
     opts.parseArgs(WrongTabletTest.class.getName(), args);
 
-    ServerConfigurationFactory conf = new ServerConfigurationFactory(opts.getInstance());
+    Instance inst = opts.getInstance();
+    ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
+    ClientContext context = new AccumuloServerContext(conf) {
+      @Override
+      public synchronized Credentials getCredentials() {
+        return new Credentials(opts.principal, opts.getToken());
+      }
+    };
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(opts.location, conf.getConfiguration());
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(opts.location, context);
 
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       mutation.putDelete(new Text("colf"), new Text("colq"));
-      client.update(Tracer.traceInfo(), new Credentials(opts.principal, opts.getToken()).toThrift(opts.getInstance()), new KeyExtent(new Text("!!"), null,
+      client.update(Tracer.traceInfo(), context.rpcCreds(), new KeyExtent(new Text("!!"), null,
           new Text("row_0003750000")).toThrift(), mutation.toThrift(), TDurability.DEFAULT);
     } catch (Exception e) {
       throw new RuntimeException(e);

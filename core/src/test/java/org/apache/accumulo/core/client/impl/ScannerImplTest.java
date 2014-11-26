@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -32,7 +33,8 @@ public class ScannerImplTest {
   @Test
   public void testValidReadaheadValues() {
     MockInstance instance = new MockInstance();
-    Scanner s = new ScannerImpl(instance, new Credentials("root", new PasswordToken("")), "foo", new Authorizations());
+    ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
     s.setReadaheadThreshold(0);
     s.setReadaheadThreshold(10);
     s.setReadaheadThreshold(Long.MAX_VALUE);
@@ -43,7 +45,8 @@ public class ScannerImplTest {
   @Test(expected = IllegalArgumentException.class)
   public void testInValidReadaheadValues() {
     MockInstance instance = new MockInstance();
-    Scanner s = new ScannerImpl(instance, new Credentials("root", new PasswordToken("")), "foo", new Authorizations());
+    ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
     s.setReadaheadThreshold(-1);
   }
 

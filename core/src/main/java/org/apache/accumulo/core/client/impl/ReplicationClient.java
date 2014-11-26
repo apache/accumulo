@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -45,16 +44,17 @@ public class ReplicationClient {
   private static final Logger log = LoggerFactory.getLogger(ReplicationClient.class);
 
   /**
-   * @param instance
-   *          Instance for the peer replicant
+   * @param context
+   *          the client session for the peer replicant
    * @return Client to the ReplicationCoordinator service
    */
-  public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(Instance instance) throws AccumuloException {
-    checkNotNull(instance);
+  public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(ClientContext context) throws AccumuloException {
+    checkNotNull(context);
+    Instance instance = context.getInstance();
 
     for (int attempts = 1; attempts <= 10; attempts++) {
 
-      ReplicationCoordinator.Client result = getCoordinatorConnection(instance);
+      ReplicationCoordinator.Client result = getCoordinatorConnection(context);
       if (result != null)
         return result;
       log.debug("Could not get ReplicationCoordinator connection to {}, will retry", instance.getInstanceName());
@@ -68,7 +68,8 @@ public class ReplicationClient {
     throw new AccumuloException("Timed out trying to communicate with master from " + instance.getInstanceName());
   }
 
-  public static ReplicationCoordinator.Client getCoordinatorConnection(Instance instance) {
+  public static ReplicationCoordinator.Client getCoordinatorConnection(ClientContext context) {
+    Instance instance = context.getInstance();
     List<String> locations = instance.getMasterLocations();
 
     if (locations.size() == 0) {
@@ -82,9 +83,6 @@ public class ReplicationClient {
       log.warn("Master found for {} did not have real location {}", instance.getInstanceName(), masterThriftService);
       return null;
     }
-
-
-    AccumuloConfiguration conf = ClientConfigurationHelper.getClientRpcConfiguration(instance);
 
     String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
     String replCoordinatorAddr;
@@ -107,8 +105,7 @@ public class ReplicationClient {
 
     try {
       // Master requests can take a long time: don't ever time out
-      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(), coordinatorAddr.toString(),
-          conf);
+      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(), coordinatorAddr.toString(), context);
       return client;
     } catch (TTransportException tte) {
       log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr, tte);
@@ -119,18 +116,18 @@ public class ReplicationClient {
   /**
    * Attempt a single time to create a ReplicationServicer client to the given host
    * 
-   * @param inst
-   *          Instance to the peer replicant
+   * @param context
+   *          The client session for the peer replicant
    * @param server
    *          Server to connect to
    * @return A ReplicationServicer client to the given host in the given instance
    */
-  public static ReplicationServicer.Client getServicerConnection(Instance inst, String server) throws TTransportException {
-    checkNotNull(inst);
+  public static ReplicationServicer.Client getServicerConnection(ClientContext context, String server) throws TTransportException {
+    checkNotNull(context);
     checkNotNull(server);
 
     try {
-      return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, ClientConfigurationHelper.getClientRpcConfiguration(inst));
+      return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, context);
     } catch (TTransportException tte) {
       log.debug("Failed to connect to servicer ({}), will retry...", server, tte);
       throw tte;
@@ -155,12 +152,12 @@ public class ReplicationClient {
     }
   }
 
-  public static <T> T executeCoordinatorWithReturn(Instance instance, ClientExecReturn<T,ReplicationCoordinator.Client> exec) throws AccumuloException,
-      AccumuloSecurityException {
+  public static <T> T executeCoordinatorWithReturn(ClientContext context, ClientExecReturn<T,ReplicationCoordinator.Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
     ReplicationCoordinator.Client client = null;
     for (int i = 0; i < 10; i++) {
       try {
-        client = getCoordinatorConnectionWithRetry(instance);
+        client = getCoordinatorConnectionWithRetry(context);
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("ReplicationClient coordinator request failed, retrying ... ", tte);
@@ -181,13 +178,14 @@ public class ReplicationClient {
       }
     }
 
-    throw new AccumuloException("Could not connect to ReplicationCoordinator at " + instance.getInstanceName());
+    throw new AccumuloException("Could not connect to ReplicationCoordinator at " + context.getInstance().getInstanceName());
   }
 
-  public static void executeCoordinator(Instance instance, ClientExec<ReplicationCoordinator.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void executeCoordinator(ClientContext context, ClientExec<ReplicationCoordinator.Client> exec) throws AccumuloException,
+      AccumuloSecurityException {
     ReplicationCoordinator.Client client = null;
     try {
-      client = getCoordinatorConnectionWithRetry(instance);
+      client = getCoordinatorConnectionWithRetry(context);
       exec.execute(client);
     } catch (TTransportException tte) {
       log.debug("ReplicationClient coordinator request failed, retrying ... ", tte);
@@ -204,12 +202,12 @@ public class ReplicationClient {
     }
   }
 
-  public static <T> T executeServicerWithReturn(Instance instance, String tserver, ClientExecReturn<T,ReplicationServicer.Client> exec)
+  public static <T> T executeServicerWithReturn(ClientContext context, String tserver, ClientExecReturn<T,ReplicationServicer.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TTransportException {
     ReplicationServicer.Client client = null;
     while (true) {
       try {
-        client = getServicerConnection(instance, tserver);
+        client = getServicerConnection(context, tserver);
         return exec.execute(client);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
@@ -224,11 +222,11 @@ public class ReplicationClient {
     }
   }
 
-  public static void executeServicer(Instance instance, String tserver, ClientExec<ReplicationServicer.Client> exec) throws AccumuloException,
+  public static void executeServicer(ClientContext context, String tserver, ClientExec<ReplicationServicer.Client> exec) throws AccumuloException,
       AccumuloSecurityException, TTransportException {
     ReplicationServicer.Client client = null;
     try {
-      client = getServicerConnection(instance, tserver);
+      client = getServicerConnection(context, tserver);
       exec.execute(client);
       return;
     } catch (ThriftSecurityException e) {

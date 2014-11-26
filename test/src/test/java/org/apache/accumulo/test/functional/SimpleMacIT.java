@@ -147,13 +147,14 @@ public class SimpleMacIT extends AbstractMacIT {
     return new File(System.getProperty("user.dir") + "/accumulo-maven-plugin/instance1");
   }
 
-  protected static ClientConfiguration getClientConfig() throws FileNotFoundException, ConfigurationException {
+  @Override
+  protected ClientConfiguration getClientConfig() throws FileNotFoundException, ConfigurationException {
     if (getInstanceOneConnector() == null) {
       return new ClientConfiguration(new PropertiesConfiguration(cluster.getConfig().getClientConfFile()));
     } else {
       File directory = getInstanceOnePath();
-      return new ClientConfiguration(MiniAccumuloInstance.getConfigProperties(directory)).withInstance(INSTANCE_NAME)
-          .withZkHosts(MiniAccumuloInstance.getZooKeepersFromDir(directory));
+      return new ClientConfiguration(MiniAccumuloInstance.getConfigProperties(directory)).withInstance(INSTANCE_NAME).withZkHosts(
+          MiniAccumuloInstance.getZooKeepersFromDir(directory));
     }
   }
 

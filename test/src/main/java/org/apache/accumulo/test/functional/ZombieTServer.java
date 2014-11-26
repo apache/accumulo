@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -38,7 +37,9 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -60,8 +61,8 @@ public class ZombieTServer {
     
     boolean halted = false;
 
-    ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
-      super(instance, watcher);
+    ThriftClientHandler(AccumuloServerContext context, TransactionWatcher watcher) {
+      super(context, watcher);
     }
     
     @Override
@@ -90,21 +91,22 @@ public class ZombieTServer {
     }
     
   }
+
   private static final Logger log = Logger.getLogger(ZombieTServer.class);
   
   public static void main(String[] args) throws Exception {
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    Instance instance = HdfsZooInstance.getInstance();
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
     
     TransactionWatcher watcher = new TransactionWatcher();
-    final ThriftClientHandler tch = new ThriftClientHandler(instance, watcher);
+    final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
     ServerAddress serverPort = TServerUtils.startTServer(HostAndPort.fromParts("0.0.0.0", port), processor, "ZombieTServer", "walking dead", 2, 1, 1000,
         10 * 1024 * 1024, null, -1);
     
     String addressString = serverPort.address.toString();
-    String zPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addressString;
+    String zPath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/" + addressString;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
     

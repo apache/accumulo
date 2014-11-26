@@ -42,7 +42,7 @@ public class EmbeddedWebServer {
 
   public EmbeddedWebServer(String host, int port) {
     server = new Server();
-    final AccumuloConfiguration conf = Monitor.getSystemConfiguration();
+    final AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     if (EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
       connector = new ServerConnector(server, new HttpConnectionFactory());

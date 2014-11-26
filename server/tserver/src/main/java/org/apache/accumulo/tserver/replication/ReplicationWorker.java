@@ -69,7 +69,7 @@ public class ReplicationWorker implements Runnable {
         workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
       }
 
-      workQueue.startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);
+      workQueue.startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get(inst)), executor);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

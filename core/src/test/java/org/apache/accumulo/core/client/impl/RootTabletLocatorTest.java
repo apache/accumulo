@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
@@ -24,10 +29,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.junit.Before;
 import org.junit.Test;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 
 public class RootTabletLocatorTest {
   private Instance instance;
@@ -46,7 +47,7 @@ public class RootTabletLocatorTest {
     lockChecker = createMock(TabletServerLockChecker.class);
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
-    rtl = new RootTabletLocator(instance, lockChecker, zcf);
+    rtl = new RootTabletLocator(lockChecker, zcf);
   }
 
   @Test
@@ -55,7 +56,7 @@ public class RootTabletLocatorTest {
     replay(zcf);
     zc.clear(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/server");
     replay(zc);
-    rtl.invalidateCache("server");
+    rtl.invalidateCache(instance, "server");
     verify(zc);
   }
 }

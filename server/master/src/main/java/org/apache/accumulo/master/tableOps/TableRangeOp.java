@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -26,7 +25,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;
 import org.apache.accumulo.server.master.state.MergeState;
@@ -49,12 +47,9 @@ class TableRangeOpWait extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
   private String tableId;
-  private String namespaceId;
 
   public TableRangeOpWait(String tableId) {
     this.tableId = tableId;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
@@ -68,6 +63,7 @@ class TableRangeOpWait extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
+    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     Text tableIdText = new Text(tableId);
     MergeInfo mergeInfo = master.getMergeInfo(tableIdText);
     log.info("removing merge information " + mergeInfo);
@@ -83,14 +79,14 @@ public class TableRangeOp extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private String tableId;
+  private final String tableId;
   private byte[] startRow;
   private byte[] endRow;
   private Operation op;
-  private String namespaceId;
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
+    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.MERGE)
         + Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
   }
@@ -101,8 +97,6 @@ public class TableRangeOp extends MasterRepo {
     this.startRow = TextUtil.getBytes(startRow);
     this.endRow = TextUtil.getBytes(endRow);
     this.op = op;
-    Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
@@ -135,6 +129,7 @@ public class TableRangeOp extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
+    String namespaceId = Tables.getNamespaceId(env.getInstance(), tableId);
     // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
     Text tableIdText = new Text(tableId);
     MergeInfo mergeInfo = env.getMergeInfo(tableIdText);

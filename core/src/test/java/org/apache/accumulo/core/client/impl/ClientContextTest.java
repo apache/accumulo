@@ -25,13 +25,12 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.AllFilter;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ClientConfigurationHelperTest {
+public class ClientContextTest {
 
   private static boolean isCredentialProviderAvailable = false;
   private static final String keystoreName = "/site-cfg.jceks";
@@ -49,7 +48,7 @@ public class ClientConfigurationHelperTest {
     }
 
     if (isCredentialProviderAvailable) {
-      URL keystoreUrl = ClientConfigurationHelperTest.class.getResource(keystoreName);
+      URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
 
       Assert.assertNotNull("Could not find " + keystoreName, keystoreUrl);
 
@@ -60,7 +59,7 @@ public class ClientConfigurationHelperTest {
   protected String getKeyStoreUrl(File absoluteFilePath) {
     return "jceks://file" + absoluteFilePath.getAbsolutePath();
   }
-  
+
   @Test
   public void loadSensitivePropertyFromCredentialProvider() {
     if (!isCredentialProviderAvailable) {
@@ -71,10 +70,10 @@ public class ClientConfigurationHelperTest {
     ClientConfiguration clientConf = new ClientConfiguration();
     clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
-    AccumuloConfiguration accClientConf = ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
-  
+
   @Test
   public void defaultValueForSensitiveProperty() {
     if (!isCredentialProviderAvailable) {
@@ -83,7 +82,7 @@ public class ClientConfigurationHelperTest {
 
     ClientConfiguration clientConf = new ClientConfiguration();
 
-    AccumuloConfiguration accClientConf = ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(), accClientConf.get(Property.INSTANCE_SECRET));
   }
 
@@ -97,7 +96,7 @@ public class ClientConfigurationHelperTest {
     ClientConfiguration clientConf = new ClientConfiguration();
     clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
-    AccumuloConfiguration accClientConf = ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<String,String>();
     accClientConf.getProperties(props, new AllFilter());
 

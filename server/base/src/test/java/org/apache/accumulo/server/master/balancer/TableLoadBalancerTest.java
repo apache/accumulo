@@ -30,10 +30,14 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
@@ -103,16 +107,6 @@ public class TableLoadBalancerTest {
       super();
     }
     
-    // need to use our mock instance
-    @Override
-    protected TableOperations getTableOperations() {
-      try {
-        return instance.getConnector("user", new PasswordToken("pass")).tableOperations();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-    
     // use our new classname to test class loading
     @Override
     protected String getLoadBalancerClassNameForTable(String table) {
@@ -129,6 +123,18 @@ public class TableLoadBalancerTest {
   @Test
   public void test() throws Exception {
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance) {
+      @Override
+      public TableConfiguration getTableConfiguration(String tableId) {
+        return new TableConfiguration(instance, tableId, null) {
+          @Override
+          public String get(Property property) {
+            // fake the get table configuration so the test doesn't try to look in zookeeper for per-table classpath stuff
+            return DefaultConfiguration.getInstance().get(property);
+          }
+        };
+      }
+    };
     TableOperations tops = c.tableOperations();
     tops.create("t1");
     tops.create("t2");
@@ -141,11 +147,13 @@ public class TableLoadBalancerTest {
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
     TableLoadBalancer tls = new TableLoadBalancer();
+    tls.init(confFactory);
     tls.balance(state, migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
     
     state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
+    tls.init(confFactory);
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<String,Integer> movedByTable = new HashMap<String,Integer>();

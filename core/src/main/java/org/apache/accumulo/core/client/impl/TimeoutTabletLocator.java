@@ -22,12 +22,12 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -57,11 +57,11 @@ public class TimeoutTabletLocator extends TabletLocator {
   }
   
   @Override
-  public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     
     try {
-      TabletLocation ret = locator.locateTablet(credentials, row, skipRow, retry);
+      TabletLocation ret = locator.locateTablet(context, row, skipRow, retry);
       
       if (ret == null)
         failed();
@@ -76,10 +76,10 @@ public class TimeoutTabletLocator extends TabletLocator {
   }
   
   @Override
-  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
-      locator.binMutations(credentials, mutations, binnedMutations, failures);
+      locator.binMutations(context, mutations, binnedMutations, failures);
       
       if (failures.size() == mutations.size())
         failed();
@@ -97,11 +97,11 @@ public class TimeoutTabletLocator extends TabletLocator {
    */
   
   @Override
-  public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+  public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     
     try {
-      List<Range> ret = locator.binRanges(credentials, ranges, binnedRanges);
+      List<Range> ret = locator.binRanges(context, ranges, binnedRanges);
       
       if (ranges.size() == ret.size())
         failed();
@@ -131,8 +131,8 @@ public class TimeoutTabletLocator extends TabletLocator {
   }
   
   @Override
-  public void invalidateCache(String server) {
-    locator.invalidateCache(server);
+  public void invalidateCache(Instance instance, String server) {
+    locator.invalidateCache(instance, server);
   }
   
 }

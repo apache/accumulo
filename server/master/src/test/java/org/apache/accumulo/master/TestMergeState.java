@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -37,8 +36,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.master.state.MergeStats;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -92,7 +92,8 @@ public class TestMergeState {
   @Test
   public void test() throws Exception {
     Instance instance = new MockInstance();
-    Connector connector = instance.getConnector("root", new PasswordToken(""));
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(instance));
+    Connector connector = context.getConnector();
     BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     // Create a fake METADATA table with these splits
@@ -116,10 +117,9 @@ public class TestMergeState {
 
     // Read out the TabletLocationStates
     MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
-    Credentials credentials = new Credentials("root", new PasswordToken(new byte[0]));
 
     // Verify the tablet state: hosted, and count
-    MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, credentials, state);
+    MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);
     int count = 0;
     for (TabletLocationState tss : metaDataStateStore) {
       Assert.assertEquals(TabletState.HOSTED, tss.getState(state.onlineTabletServers()));

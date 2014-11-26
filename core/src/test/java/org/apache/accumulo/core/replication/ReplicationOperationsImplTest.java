@@ -23,7 +23,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -98,7 +100,8 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
+    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -196,7 +199,8 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
+    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -280,7 +284,8 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
+    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -357,7 +362,8 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
+    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {

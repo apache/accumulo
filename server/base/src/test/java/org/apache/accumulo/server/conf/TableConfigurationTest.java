@@ -21,7 +21,6 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
@@ -60,16 +59,16 @@ public class TableConfigurationTest {
   public void setUp() {
     iid = UUID.randomUUID().toString();
     instance = createMock(Instance.class);
-    parent = createMock(NamespaceConfiguration.class);
-    c = new TableConfiguration(iid, instance, TID, parent);
-    zcf = createMock(ZooCacheFactory.class);
-    c.setZooCacheFactory(zcf);
-
-    expect(instance.getInstanceID()).andReturn(iid);
-    expectLastCall().anyTimes();
+    expect(instance.getInstanceID()).andReturn(iid).anyTimes();
     expect(instance.getZooKeepers()).andReturn(ZOOKEEPERS);
     expect(instance.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT);
     replay(instance);
+
+    parent = createMock(NamespaceConfiguration.class);
+    c = new TableConfiguration(instance, TID, parent);
+    zcf = createMock(ZooCacheFactory.class);
+    c.setZooCacheFactory(zcf);
+
     zc = createMock(ZooCache.class);
     expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT), anyObject(TableConfWatcher.class))).andReturn(zc);
     replay(zcf);

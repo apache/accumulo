@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -43,7 +44,8 @@ public class MetaConstraintRetryIT extends AccumuloClusterIT {
     getConnector().securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
 
     Credentials credentials = new Credentials(getPrincipal(), getToken());
-    Writer w = new Writer(super.getConnector().getInstance(), credentials, MetadataTable.ID);
+    ClientContext context = new ClientContext(getConnector().getInstance(), credentials, cluster.getClientConfig());
+    Writer w = new Writer(context, MetadataTable.ID);
     KeyExtent extent = new KeyExtent(new Text("5"), null, null);
 
     Mutation m = new Mutation(extent.getMetadataEntry());

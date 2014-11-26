@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -50,7 +49,6 @@ import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -60,10 +58,9 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
@@ -80,7 +77,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
 
-  private final Instance instance;
+  private final AccumuloServerContext context;
   private final VolumeManager fs;
 
   private boolean useTrash;
@@ -88,15 +85,15 @@ public class GarbageCollectWriteAheadLogs {
   /**
    * Creates a new GC WAL object.
    *
-   * @param instance
-   *          instance to use
+   * @param context
+   *          the collection server's context
    * @param fs
    *          volume manager to use
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
-    this.instance = instance;
+  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash) throws IOException {
+    this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
   }
@@ -107,7 +104,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return instance
    */
   Instance getInstance() {
-    return instance;
+    return context.getInstance();
   }
 
   /**
@@ -148,7 +145,7 @@ public class GarbageCollectWriteAheadLogs {
 
       span = Trace.start("removeMetadataEntries");
       try {
-        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
+        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status);
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
@@ -161,7 +158,7 @@ public class GarbageCollectWriteAheadLogs {
 
       span = Trace.start("removeReplicationEntries");
       try {
-        count = removeReplicationEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
+        count = removeReplicationEntries(nameToFileMap, sortedWALogs, status);
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
         return;
@@ -193,7 +190,7 @@ public class GarbageCollectWriteAheadLogs {
 
   boolean holdsLock(HostAndPort addr) {
     try {
-      String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addr.toString();
+      String zpath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/" + addr.toString();
       List<String> children = ZooReaderWriter.getInstance().getChildren(zpath);
       return !(children == null || children.isEmpty());
     } catch (KeeperException.NoNodeException ex) {
@@ -205,7 +202,6 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
-    AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
         // old-style log entry, just remove it
@@ -240,8 +236,8 @@ public class GarbageCollectWriteAheadLogs {
         } else {
           Client tserver = null;
           try {
-            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-            tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
+            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+            tserver.removeLogs(Tracer.traceInfo(), context.rpcCreds(), paths2strings(entry.getValue()));
             log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
             status.currentLog.deleted += entry.getValue().size();
           } catch (TException e) {
@@ -315,10 +311,10 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  protected int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException,
-      KeeperException, InterruptedException {
+  protected int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+      InterruptedException {
     int count = 0;
-    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(creds);
+    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(context);
 
     // For each WAL reference in the metadata table
     while (iterator.hasNext()) {
@@ -345,11 +341,11 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  protected int removeReplicationEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException,
-      KeeperException, InterruptedException {
+  protected int removeReplicationEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+      InterruptedException {
     Connector conn;
     try {
-      conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+      conn = context.getConnector();
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Failed to get connector", e);
       throw new IllegalArgumentException(e);

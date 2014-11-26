@@ -36,7 +36,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -48,7 +47,6 @@ public final class SystemCredentials extends Credentials {
 
   private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
 
-  private static SystemCredentials SYSTEM_CREDS = null;
   private static final String SYSTEM_PRINCIPAL = "!SYSTEM";
 
   private final TCredentials AS_THRIFT;
@@ -56,14 +54,6 @@ public final class SystemCredentials extends Credentials {
   SystemCredentials(Instance instance) {
     super(SYSTEM_PRINCIPAL, SystemToken.get(instance));
     AS_THRIFT = super.toThrift(instance);
-  }
-
-  public static SystemCredentials get() {
-    check_permission();
-    if (SYSTEM_CREDS == null) {
-      SYSTEM_CREDS = new SystemCredentials(HdfsZooInstance.getInstance());
-    }
-    return SYSTEM_CREDS;
   }
 
   private static void check_permission() {
@@ -75,12 +65,6 @@ public final class SystemCredentials extends Credentials {
 
   public static SystemCredentials get(Instance instance) {
     check_permission();
-    /* Special case to avoid duplicating SYSTEM_CREDS */
-    if (null != SYSTEM_CREDS) {
-      if (SYSTEM_CREDS.AS_THRIFT.getInstanceId().equals(instance.getInstanceID())) {
-        return SYSTEM_CREDS;
-      }
-    }
     return new SystemCredentials(instance);
   }
 

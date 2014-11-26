@@ -21,18 +21,18 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
@@ -41,7 +41,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -52,17 +51,15 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    Instance instance = opts.getInstance();
-    SystemCredentials creds = SystemCredentials.get();
-
-    findOffline(instance, creds, null);
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
+    findOffline(context, null);
   }
 
-  static int findOffline(Instance instance, Credentials creds, String tableName) throws AccumuloException, TableNotFoundException {
+  static int findOffline(ClientContext context, String tableName) throws AccumuloException, TableNotFoundException {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
-    LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
+    LiveTServerSet tservers = new LiveTServerSet(context, new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
         if (!deleted.isEmpty() && scanning.get())
@@ -91,7 +88,7 @@ public class FindOfflineTablets {
       return 0;
 
     System.out.println("Scanning " + RootTable.NAME);
-    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(instance, creds, MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
+    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
     if ((offline = checkTablets(rootScanner, tservers)) > 0)
       return offline;
 
@@ -102,11 +99,11 @@ public class FindOfflineTablets {
 
     Range range = MetadataSchema.TabletsSection.getRange();
     if (tableName != null) {
-      String tableId = Tables.getTableId(instance, tableName);
+      String tableId = Tables.getTableId(context.getInstance(), tableName);
       range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
     }
 
-    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, creds, range, MetadataTable.NAME);
+    MetaDataTableScanner metaScanner = new MetaDataTableScanner(context, range, MetadataTable.NAME);
     try {
       return checkTablets(metaScanner, tservers);
     } finally {

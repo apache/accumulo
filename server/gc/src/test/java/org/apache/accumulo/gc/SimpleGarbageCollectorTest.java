@@ -37,7 +37,9 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -55,11 +57,17 @@ public class SimpleGarbageCollectorTest {
   public void setUp() {
     volMgr = createMock(VolumeManager.class);
     instance = createMock(Instance.class);
-    credentials = createMock(Credentials.class);
+    expect(instance.getInstanceID()).andReturn("mock").anyTimes();
 
     opts = new Opts();
-    gc = new SimpleGarbageCollector(opts);
     systemConfig = mockSystemConfig();
+    ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
+    expect(factory.getInstance()).andReturn(instance).anyTimes();
+    expect(factory.getConfiguration()).andReturn(mockSystemConfig()).anyTimes();
+    replay(instance, factory);
+
+    credentials = SystemCredentials.get(instance);
+    gc = new SimpleGarbageCollector(opts, volMgr, factory);
   }
 
   @Test
@@ -88,10 +96,9 @@ public class SimpleGarbageCollectorTest {
     expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2).times(2);
     expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
     replay(systemConfig);
-    gc.init(volMgr, instance, credentials, systemConfig);
     assertSame(volMgr, gc.getVolumeManager());
     assertSame(instance, gc.getInstance());
-    assertSame(credentials, gc.getCredentials());
+    assertEquals(credentials, gc.getCredentials());
     assertTrue(gc.isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());
     assertEquals(2, gc.getNumDeleteThreads());
@@ -99,7 +106,6 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_UsingTrash() throws Exception {
-    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
@@ -109,7 +115,6 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_UsingTrash_VolMgrFailure() throws Exception {
-    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
@@ -126,7 +131,6 @@ public class SimpleGarbageCollectorTest {
     expect(systemConfig.getBoolean(Property.GC_FILE_ARCHIVE)).andReturn(false);
     expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(true);
     replay(systemConfig);
-    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     assertFalse(gc.archiveOrMoveToTrash(path));
   }

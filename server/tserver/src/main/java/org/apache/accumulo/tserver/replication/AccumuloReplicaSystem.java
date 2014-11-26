@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
@@ -154,13 +155,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   public Status replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
     final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getConfiguration();
-    Credentials credentialsForPeer = getCredentialsForPeer(localConf, target);
-    final TCredentials tCredsForPeer = credentialsForPeer.toThrift(localInstance);
+    final ClientContext peerContext = getContextForPeer(localConf, target);
 
     try {
       Trace.on("AccumuloReplicaSystem");
 
-      Instance peerInstance = getPeerInstance(target);
       // Remote identifier is an integer (table id) in this case.
       final String remoteTableId = target.getRemoteIdentifier();
 
@@ -172,11 +171,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         Span span = Trace.start("Fetch peer tserver");
         try {
           // Ask the master on the remote what TServer we should talk with to replicate the data
-          peerTserver = ReplicationClient.executeCoordinatorWithReturn(peerInstance, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
+          peerTserver = ReplicationClient.executeCoordinatorWithReturn(peerContext, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
 
             @Override
             public String execute(ReplicationCoordinator.Client client) throws Exception {
-              return client.getServicerAddress(remoteTableId, tCredsForPeer);
+              return client.getServicerAddress(remoteTableId, peerContext.rpcCreds());
             }
 
           });
@@ -201,20 +200,20 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
             span = Trace.start("RFile replication");
             try {
-              finalStatus = replicateRFiles(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
+              finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper);
             } finally {
               span.stop();
             }
           } else {
             span = Trace.start("WAL replication");
             try {
-              finalStatus = replicateLogs(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
+              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper);
             } finally {
               span.stop();
             }
           }
 
-          log.debug("New status for {} after replicating to {} is {}", p, peerInstance, ProtobufUtil.toString(finalStatus));
+          log.debug("New status for {} after replicating to {} is {}", p, peerContext.getInstance(), ProtobufUtil.toString(finalStatus));
 
           return finalStatus;
         } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
@@ -232,9 +231,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateRFiles(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
-      AccumuloException, AccumuloSecurityException {
+  protected Status replicateRFiles(ClientContext peerContext, final String peerTserver, final ReplicationTarget target,
+      final Path p, final Status status, final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper)
+      throws TTransportException, AccumuloException, AccumuloSecurityException {
     DataInputStream input;
     try {
       input = getRFileInputStream(p);
@@ -246,7 +245,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Status lastStatus = status, currentStatus = status;
     while (true) {
       // Read and send a batch of mutations
-      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new RFileClientExecReturn(target, input, p,
+      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(target, input, p,
           currentStatus, sizeLimit, remoteTableId, tcreds));
 
       // Catch the overflow
@@ -278,9 +277,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateLogs(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
-      AccumuloException, AccumuloSecurityException {
+  protected Status replicateLogs(ClientContext peerContext, final String peerTserver, final ReplicationTarget target,
+      final Path p, final Status status, final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper)
+      throws TTransportException, AccumuloException, AccumuloSecurityException {
 
     final Set<Integer> tids;
     final DataInputStream input;
@@ -334,17 +333,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span = Trace.start("Replicate WAL batch");
       span.data("Batch size (bytes)", Long.toString(sizeLimit));
       span.data("File", p.toString());
-      span.data("Peer instance name", peerInstance.getInstanceName());
+      span.data("Peer instance name", peerContext.getInstance().getInstanceName());
       span.data("Peer tserver", peerTserver);
       span.data("Remote table ID", remoteTableId);
 
       ReplicationStats replResult;
       try {
         // Read and send a batch of mutations
-        replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new WalClientExecReturn(target, input, p, currentStatus, sizeLimit,
+        replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new WalClientExecReturn(target, input, p, currentStatus, sizeLimit,
             remoteTableId, tcreds, tids));
       } catch (Exception e) {
-        log.error("Caught exception replicating data to {} at {}", peerInstance.getInstanceName(), peerTserver, e);
+        log.error("Caught exception replicating data to {} at {}", peerContext.getInstance().getInstanceName(), peerTserver, e);
         throw e;
       } finally {
         span.stop();
@@ -479,14 +478,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Credentials getCredentialsForPeer(AccumuloConfiguration conf, ReplicationTarget target) {
-    Preconditions.checkNotNull(conf);
+  private ClientContext getContextForPeer(AccumuloConfiguration localConf, ReplicationTarget target) {
+    Preconditions.checkNotNull(localConf);
     Preconditions.checkNotNull(target);
 
     String peerName = target.getPeerName();
     String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName, passwordKey = Property.REPLICATION_PEER_PASSWORD.getKey() + peerName;
-    Map<String,String> peerUsers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
-    Map<String,String> peerPasswords = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
+    Map<String,String> peerUsers = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
+    Map<String,String> peerPasswords = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
 
     String user = peerUsers.get(userKey);
     String password = peerPasswords.get(passwordKey);
@@ -494,10 +493,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       throw new IllegalArgumentException(userKey + " and " + passwordKey + " not configured, cannot replicate");
     }
 
-    return new Credentials(user, new PasswordToken(password));
+    return new ClientContext(getPeerInstance(target), new Credentials(user, new PasswordToken(password)), localConf);
   }
 
-  protected Instance getPeerInstance(ReplicationTarget target) {
+  private Instance getPeerInstance(ReplicationTarget target) {
     return new ZooKeeperInstance(instanceName, zookeepers);
   }
 

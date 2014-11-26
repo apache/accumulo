@@ -36,9 +36,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -49,9 +49,9 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
@@ -169,17 +169,20 @@ public class Admin {
       return;
     }
     Instance instance = opts.getInstance();
-    AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
 
     try {
-      String principal;
-      AuthenticationToken token;
+      ClientContext context;
       if (opts.getToken() == null) {
-        principal = SystemCredentials.get().getPrincipal();
-        token = SystemCredentials.get().getToken();
+        context = new AccumuloServerContext(confFactory);
       } else {
-        principal = opts.principal;
-        token = opts.getToken();
+        final Credentials userCreds = new Credentials(opts.principal, opts.getToken());
+        context = new AccumuloServerContext(confFactory) {
+          @Override
+          public synchronized Credentials getCredentials() {
+            return userCreds;
+          }
+        };
       }
 
       int rc = 0;
@@ -187,36 +190,36 @@ public class Admin {
       if (cl.getParsedCommand().equals("listInstances")) {
         ListInstances.listInstances(instance.getZooKeepers(), listIntancesOpts.printAll, listIntancesOpts.printErrors);
       } else if (cl.getParsedCommand().equals("ping")) {
-        if (ping(instance, principal, token, pingCommand.args) != 0)
+        if (ping(context, pingCommand.args) != 0)
           rc = 4;
       } else if (cl.getParsedCommand().equals("checkTablets")) {
         System.out.println("\n*** Looking for offline tablets ***\n");
-        if (FindOfflineTablets.findOffline(instance, new Credentials(principal, token), checkTabletsCommand.table) != 0)
+        if (FindOfflineTablets.findOffline(context, checkTabletsCommand.table) != 0)
           rc = 5;
         System.out.println("\n*** Looking for missing files ***\n");
         if (checkTabletsCommand.table == null) {
-          if (RemoveEntriesForMissingFiles.checkAllTables(instance, principal, token, checkTabletsCommand.fixFiles) != 0)
+          if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles) != 0)
             rc = 6;
         } else {
-          if (RemoveEntriesForMissingFiles.checkTable(instance, principal, token, checkTabletsCommand.table, checkTabletsCommand.fixFiles) != 0)
+          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.table, checkTabletsCommand.fixFiles) != 0)
             rc = 6;
         }
 
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(conf, instance, new Credentials(principal, token), stopOpts.args, opts.force);
+        stopTabletServer(context, stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
-        printConfig(instance, principal, token, dumpConfigCommand);
+        printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
-        ListVolumesUsed.listVolumes(instance, principal, token);
+        ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(instance.getConnector(principal, token), randomizeVolumesOpts.table);
+        rc = RandomizeVolumes.randomize(context.getConnector(), randomizeVolumesOpts.table);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
         if (everything)
-          flushAll(instance, principal, token);
+          flushAll(context);
 
-        stopServer(instance, new Credentials(principal, token), everything);
+        stopServer(context, everything);
       }
 
       if (rc != 0)
@@ -233,10 +236,9 @@ public class Admin {
     }
   }
 
-  private static int ping(Instance instance, String principal, AuthenticationToken token, List<String> args) throws AccumuloException,
-      AccumuloSecurityException {
+  private static int ping(ClientContext context, List<String> args) throws AccumuloException, AccumuloSecurityException {
 
-    InstanceOperations io = instance.getConnector(principal, token).instanceOperations();
+    InstanceOperations io = context.getConnector().instanceOperations();
 
     if (args.size() == 0) {
       args = io.getTabletServers();
@@ -263,8 +265,7 @@ public class Admin {
    * it takes too long.
    * 
    */
-  private static void flushAll(final Instance instance, final String principal, final AuthenticationToken token) throws AccumuloException,
-      AccumuloSecurityException {
+  private static void flushAll(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
 
     final AtomicInteger flushesStarted = new AtomicInteger(0);
 
@@ -273,7 +274,7 @@ public class Admin {
       @Override
       public void run() {
         try {
-          Connector conn = instance.getConnector(principal, token);
+          Connector conn = context.getConnector();
           Set<String> tables = conn.tableOperations().tableIdMap().keySet();
           for (String table : tables) {
             if (table.equals(MetadataTable.NAME))
@@ -311,30 +312,29 @@ public class Admin {
     }
   }
 
-  private static void stopServer(final Instance instance, final Credentials credentials, final boolean tabletServersToo) throws AccumuloException,
-      AccumuloSecurityException {
-    MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
+  private static void stopServer(final ClientContext context, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
+    MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.shutdown(Tracer.traceInfo(), credentials.toThrift(instance), tabletServersToo);
+        client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo);
       }
     });
   }
 
-  private static void stopTabletServer(final AccumuloConfiguration conf, final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
+  private static void stopTabletServer(final ClientContext context, List<String> servers, final boolean force) throws AccumuloException,
       AccumuloSecurityException {
-    if (instance.getMasterLocations().size() == 0) {
+    if (context.getInstance().getMasterLocations().size() == 0) {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
     for (String server : servers) {
-      HostAndPort address = AddressUtil.parseAddress(server, conf.getPort(Property.TSERV_CLIENTPORT));
+      HostAndPort address = AddressUtil.parseAddress(server, context.getConfiguration().getPort(Property.TSERV_CLIENTPORT));
       final String finalServer = address.toString();
       log.info("Stopping server " + finalServer);
-      MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
+      MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
         @Override
         public void execute(MasterClientService.Client client) throws Exception {
-          client.shutdownTabletServer(Tracer.traceInfo(), creds.toThrift(instance), finalServer, force);
+          client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
         }
       });
     }
@@ -350,7 +350,7 @@ public class Admin {
   private static Map<String,String> siteConfig, systemConfig;
   private static List<String> localUsers;
 
-  public static void printConfig(Instance instance, String principal, AuthenticationToken token, DumpConfigCommand opts) throws Exception {
+  public static void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
 
     File outputDirectory = null;
     if (opts.directory != null) {
@@ -362,7 +362,7 @@ public class Admin {
         throw new IllegalArgumentException(opts.directory + " is not writable");
       }
     }
-    Connector connector = instance.getConnector(principal, token);
+    Connector connector = context.getConnector();
     defaultConfig = AccumuloConfiguration.getDefaultConfiguration();
     siteConfig = connector.instanceOperations().getSiteConfiguration();
     systemConfig = connector.instanceOperations().getSystemConfiguration();

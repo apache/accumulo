@@ -26,7 +26,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.apache.log4j.Logger;
 
@@ -36,19 +35,13 @@ public class TableConfiguration extends ObservableConfiguration {
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<PropCacheKey,ZooCache>();
 
   private ZooCachePropertyAccessor propCacheAccessor = null;
-  private final String instanceId;
   private final Instance instance;
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  private String table = null;
+  private final String table;
 
-  public TableConfiguration(String instanceId, String table, NamespaceConfiguration parent) {
-    this(instanceId, HdfsZooInstance.getInstance(), table, parent);
-  }
-
-  public TableConfiguration(String instanceId, Instance instance, String table, NamespaceConfiguration parent) {
-    this.instanceId = instanceId;
+  public TableConfiguration(Instance instance, String table, NamespaceConfiguration parent) {
     this.instance = instance;
     this.table = table;
     this.parent = parent;
@@ -95,7 +88,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF;
+    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF;
   }
 
   @Override

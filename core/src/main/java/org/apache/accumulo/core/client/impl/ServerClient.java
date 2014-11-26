@@ -28,11 +28,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -46,9 +43,9 @@ import org.apache.thrift.transport.TTransportException;
 public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
   
-  public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static <T> T execute(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      return executeRaw(instance, exec);
+      return executeRaw(context, exec);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -58,9 +55,9 @@ public class ServerClient {
     }
   }
   
-  public static void execute(Instance instance, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void execute(ClientContext context, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      executeRaw(instance, exec);
+      executeRaw(context, exec);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -70,12 +67,12 @@ public class ServerClient {
     }
   }
   
-  public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
+  public static <T> T executeRaw(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(instance);
+        Pair<String,Client> pair = ServerClient.getConnection(context);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -89,12 +86,12 @@ public class ServerClient {
     }
   }
   
-  public static void executeRaw(Instance instance, ClientExec<ClientService.Client> exec) throws Exception {
+  public static void executeRaw(ClientContext context, ClientExec<ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(instance);
+        Pair<String,Client> pair = ServerClient.getConnection(context);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -111,28 +108,28 @@ public class ServerClient {
   
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static Pair<String,ClientService.Client> getConnection(Instance instance) throws TTransportException {
-    return getConnection(instance, true);
+  public static Pair<String,ClientService.Client> getConnection(ClientContext context) throws TTransportException {
+    return getConnection(context, true);
   }
   
-  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
-    AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
-    return getConnection(instance, preferCachedConnections, rpcConfig.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+  public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections) throws TTransportException {
+    return getConnection(context, preferCachedConnections, context.getClientTimeoutInMillis());
   }
   
-  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
-    checkArgument(instance != null, "instance is null");
+  public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections, long rpcTimeout)
+      throws TTransportException {
+    checkArgument(context != null, "context is null");
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
     
     // add tservers
+    Instance instance = context.getInstance();
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null && !new String(data, UTF_8).equals("master"))
-        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, SslConnectionParams
-            .forClient(ClientConfigurationHelper.getClientRpcConfiguration(instance))));
+        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, context));
     }
     
     boolean opened = false;

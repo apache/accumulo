@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import org.apache.accumulo.core.util.SslConnectionParams;
 
 class ThriftTransportKey {
@@ -27,7 +28,7 @@ class ThriftTransportKey {
   
   private int hash = -1;
   
-  ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
+  ThriftTransportKey(String location, long timeout, ClientContext context) {
     checkArgument(location != null, "location is null");
     String[] locationAndPort = location.split(":", 2);
     if (locationAndPort.length == 2) {
@@ -37,7 +38,7 @@ class ThriftTransportKey {
       throw new IllegalArgumentException("Location was expected to contain port but did not. location=" + location);
     
     this.timeout = timeout;
-    this.sslParams = sslParams;
+    this.sslParams = context.getClientSslParams();
   }
   
   String getLocation() {

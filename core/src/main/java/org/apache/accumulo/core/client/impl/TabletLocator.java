@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,18 +36,17 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
   
-  public abstract TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException,
+  public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException;
   
-  public abstract <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+  public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
       List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
-  public abstract List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  public abstract List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
   public abstract void invalidateCache(KeyExtent failedExtent);
@@ -61,7 +61,7 @@ public abstract class TabletLocator {
   /**
    * Invalidate all metadata entries that point to server
    */
-  public abstract void invalidateCache(String server);
+  public abstract void invalidateCache(Instance instance, String server);
   
   private static class LocatorKey {
     String instanceId;
@@ -92,19 +92,19 @@ public abstract class TabletLocator {
   
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
   
-  public static synchronized TabletLocator getLocator(Instance instance, Text tableId) {
-    
+  public static synchronized TabletLocator getLocator(ClientContext context, Text tableId) {
+    Instance instance = context.getInstance();
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
-      MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
+      MetadataLocationObtainer mlo = new MetadataLocationObtainer();
       
       if (tableId.toString().equals(RootTable.ID)) {
-        tl = new RootTabletLocator(instance, new ZookeeperLockChecker(instance));
+        tl = new RootTabletLocator(new ZookeeperLockChecker(instance));
       } else if (tableId.toString().equals(MetadataTable.ID)) {
-        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(instance, new Text(RootTable.ID)), mlo, new ZookeeperLockChecker(instance));
+        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(context, new Text(RootTable.ID)), mlo, new ZookeeperLockChecker(instance));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(instance, new Text(MetadataTable.ID)), mlo, new ZookeeperLockChecker(instance));
+        tl = new TabletLocatorImpl(tableId, getLocator(context, new Text(MetadataTable.ID)), mlo, new ZookeeperLockChecker(instance));
       }
       locators.put(key, tl);
     }

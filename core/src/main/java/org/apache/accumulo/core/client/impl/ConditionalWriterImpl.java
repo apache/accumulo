@@ -48,8 +48,6 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
@@ -64,7 +62,6 @@ import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
@@ -106,8 +103,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private VisibilityEvaluator ve;
   @SuppressWarnings("unchecked")
   private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap(1000));
-  private Instance instance;
-  private Credentials credentials;
+  private final ClientContext context;
   private TabletLocator locator;
   private String tableId;
   private long timeout;
@@ -284,13 +280,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
     Map<String,TabletServerMutations<QCMutation>> binnedMutations = new HashMap<String,TabletLocator.TabletServerMutations<QCMutation>>();
     
     try {
-      locator.binMutations(credentials, mutations, binnedMutations, failures);
+      locator.binMutations(context, mutations, binnedMutations, failures);
       
       if (failures.size() == mutations.size())
-        if (!Tables.exists(instance, tableId))
+        if (!Tables.exists(context.getInstance(), tableId))
           throw new TableDeletedException(tableId);
-        else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-          throw new TableOfflineException(instance, tableId);
+        else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+          throw new TableOfflineException(context.getInstance(), tableId);
       
     } catch (Exception e) {
       for (QCMutation qcm : mutations)
@@ -373,13 +369,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
   
-  ConditionalWriterImpl(Instance instance, Credentials credentials, String tableId, ConditionalWriterConfig config) {
-    this.instance = instance;
-    this.credentials = credentials;
+  ConditionalWriterImpl(ClientContext context, String tableId, ConditionalWriterConfig config) {
+    this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads());
-    this.locator = TabletLocator.getLocator(instance, new Text(tableId));
+    this.locator = TabletLocator.getLocator(context, new Text(tableId));
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
@@ -500,8 +495,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       }
     }
     
-    TConditionalSession tcs = client.startConditionalUpdate(tinfo, credentials.toThrift(instance), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()),
-        tableId, DurabilityImpl.toThrift(durability));
+    TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId,
+        DurabilityImpl.toThrift(durability));
     
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();
@@ -547,11 +542,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
   
   private TabletClientService.Iface getClient(String location) throws TTransportException {
     TabletClientService.Iface client;
-    AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
-    if (timeout < rpcConfig.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-      client = ThriftUtil.getTServerClient(location, rpcConfig, timeout);
+    if (timeout < context.getClientTimeoutInMillis())
+      client = ThriftUtil.getTServerClient(location, context, timeout);
     else
-      client = ThriftUtil.getTServerClient(location, rpcConfig);
+      client = ThriftUtil.getTServerClient(location, context);
     return client;
   }
   
@@ -607,16 +601,16 @@ class ConditionalWriterImpl implements ConditionalWriter {
       queueRetry(ignored, location);
       
     } catch (ThriftSecurityException tse) {
-      AccumuloSecurityException ase = new AccumuloSecurityException(credentials.getPrincipal(), tse.getCode(), Tables.getPrintableTableInfoFromId(instance,
-          tableId), tse);
+      AccumuloSecurityException ase = new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(), Tables.getPrintableTableInfoFromId(
+          context.getInstance(), tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TTransportException e) {
-      locator.invalidateCache(location);
+      locator.invalidateCache(context.getInstance(), location);
       invalidateSession(location, mutations, cmidToCm, sessionId);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location, tae));
     } catch (TException e) {
-      locator.invalidateCache(location);
+      locator.invalidateCache(context.getInstance(), location);
       invalidateSession(location, mutations, cmidToCm, sessionId);
     } catch (Exception e) {
       queueException(location, cmidToCm, e);
@@ -659,13 +653,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
    * 
    * If a conditional mutation is taking a long time to process, then this method will wait for it to finish... unless this exceeds timeout.
    */
-  private void invalidateSession(SessionID sessionId, String location) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  private void invalidateSession(SessionID sessionId, String location) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     long sleepTime = 50;
     
     long startTime = System.currentTimeMillis();
     
+    Instance instance = context.getInstance();
     LockID lid = new LockID(ZooUtil.getRoot(instance) + Constants.ZTSERVERS, sessionId.lockId);
     
     ZooCacheFactory zcf = new ZooCacheFactory();
@@ -673,7 +667,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (!ZooLock.isLockHeld(zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), lid)) {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
-        locator.invalidateCache(location);
+        locator.invalidateCache(context.getInstance(), location);
         return;
       }
       
@@ -685,7 +679,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(location, tae);
       } catch (TException e) {
-        locator.invalidateCache(location);
+        locator.invalidateCache(context.getInstance(), location);
       }
       
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout)

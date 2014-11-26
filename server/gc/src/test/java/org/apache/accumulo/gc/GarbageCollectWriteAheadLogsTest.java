@@ -40,7 +40,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -53,7 +53,8 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -78,8 +79,10 @@ public class GarbageCollectWriteAheadLogsTest {
   private static final String UUID3 = UUID.randomUUID().toString();
 
   private Instance instance;
+  private AccumuloConfiguration systemConfig;
   private VolumeManager volMgr;
   private GarbageCollectWriteAheadLogs gcwal;
+  private AccumuloServerContext context;
   private long modTime;
 
   @Rule
@@ -88,8 +91,15 @@ public class GarbageCollectWriteAheadLogsTest {
   @Before
   public void setUp() throws Exception {
     instance = createMock(Instance.class);
+    expect(instance.getInstanceID()).andReturn("mock").anyTimes();
+    systemConfig = createMock(AccumuloConfiguration.class);
     volMgr = createMock(VolumeManager.class);
-    gcwal = new GarbageCollectWriteAheadLogs(instance, volMgr, false);
+    ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
+    expect(factory.getConfiguration()).andReturn(systemConfig).anyTimes();
+    expect(factory.getInstance()).andReturn(instance).anyTimes();
+    replay(instance, factory);
+    AccumuloServerContext context = new AccumuloServerContext(factory);
+    gcwal = new GarbageCollectWriteAheadLogs(context, volMgr, false);
     modTime = System.currentTimeMillis();
   }
 
@@ -331,8 +341,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     private List<Entry<Key,Value>> replData;
 
-    ReplicationGCWAL(Instance instance, VolumeManager fs, boolean useTrash, List<Entry<Key,Value>> replData) throws IOException {
-      super(instance, fs, useTrash);
+    ReplicationGCWAL(AccumuloServerContext context, VolumeManager fs, boolean useTrash, List<Entry<Key,Value>> replData) throws IOException {
+      super(context, fs, useTrash);
       this.replData = replData;
     }
 
@@ -351,7 +361,7 @@ public class GarbageCollectWriteAheadLogsTest {
     LinkedList<Entry<Key,Value>> replData = new LinkedList<>();
     replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileCreatedValue(System.currentTimeMillis())));
 
-    ReplicationGCWAL replGC = new ReplicationGCWAL(instance, volMgr, false, replData);
+    ReplicationGCWAL replGC = new ReplicationGCWAL(context, volMgr, false, replData);
 
     replay(conn);
 
@@ -378,14 +388,13 @@ public class GarbageCollectWriteAheadLogsTest {
     String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
 
     Instance inst = new MockInstance(testName.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(inst));
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(context.getConnector());
     Mutation m = new Mutation("/wals/" + file1);
     StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
     bw.addMutation(m);
@@ -406,7 +415,7 @@ public class GarbageCollectWriteAheadLogsTest {
     status.currentLog = cycleStats;
 
     // We should iterate over two entries
-    Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status, creds));
+    Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status));
 
     // We should have noted that two files were still in use
     Assert.assertEquals(2l, cycleStats.inUse);
@@ -420,10 +429,11 @@ public class GarbageCollectWriteAheadLogsTest {
     String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
 
     Instance inst = new MockInstance(testName.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(inst));
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+    Connector conn = context.getConnector();
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
@@ -450,7 +460,7 @@ public class GarbageCollectWriteAheadLogsTest {
     status.currentLog = cycleStats;
 
     // We should iterate over two entries
-    Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status, creds));
+    Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status));
 
     // We should have noted that two files were still in use
     Assert.assertEquals(2l, cycleStats.inUse);
@@ -462,7 +472,8 @@ public class GarbageCollectWriteAheadLogsTest {
   @Test
   public void noReplicationTableDoesntLimitMetatdataResults() throws Exception {
     Instance inst = new MockInstance(testName.getMethodName());
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(inst));
+    Connector conn = context.getConnector();
 
     String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
@@ -471,7 +482,7 @@ public class GarbageCollectWriteAheadLogsTest {
     bw.addMutation(m);
     bw.close();
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
 
     Iterable<Entry<Key,Value>> data = gcWALs.getReplicationStatusForFile(conn, wal);
     Entry<Key,Value> entry = Iterables.getOnlyElement(data);
@@ -482,7 +493,9 @@ public class GarbageCollectWriteAheadLogsTest {
   @Test
   public void fetchesReplicationEntriesFromMetadataAndReplicationTables() throws Exception {
     Instance inst = new MockInstance(testName.getMethodName());
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(inst));
+    Connector conn = context.getConnector();
+
     long walCreateTime = System.currentTimeMillis();
     String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
@@ -497,7 +510,7 @@ public class GarbageCollectWriteAheadLogsTest {
     bw.addMutation(m);
     bw.close();
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
 
     Iterable<Entry<Key,Value>> iter = gcWALs.getReplicationStatusForFile(conn, wal);
     Map<Key,Value> data = new HashMap<>();

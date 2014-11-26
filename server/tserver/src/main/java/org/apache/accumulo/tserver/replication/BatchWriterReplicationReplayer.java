@@ -24,12 +24,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -53,10 +54,11 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
   private static final Logger log = LoggerFactory.getLogger(BatchWriterReplicationReplayer.class);
 
   @Override
-  public long replicateLog(Connector conn, AccumuloConfiguration conf, String tableName, WalEdits data) throws RemoteReplicationException {
+  public long replicateLog(ClientContext context, String tableName, WalEdits data) throws RemoteReplicationException, AccumuloException,
+      AccumuloSecurityException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
-    final long memoryInBytes = conf.getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
+    final long memoryInBytes = context.getConfiguration().getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
     long mutationsApplied = 0l;
@@ -78,7 +80,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           BatchWriterConfig bwConfig = new BatchWriterConfig();
           bwConfig.setMaxMemory(memoryInBytes);
           try {
-            bw = conn.createBatchWriter(tableName, bwConfig);
+            bw = context.getConnector().createBatchWriter(tableName, bwConfig);
           } catch (TableNotFoundException e) {
             throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST, "Table " + tableName + " does not exist");
           }
@@ -159,7 +161,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
   }
 
   @Override
-  public long replicateKeyValues(Connector conn, String tableName, KeyValues kvs) {
+  public long replicateKeyValues(ClientContext context, String tableName, KeyValues kvs) {
     // TODO Implement me
     throw new UnsupportedOperationException();
   }

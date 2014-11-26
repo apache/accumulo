@@ -33,7 +33,6 @@ import org.apache.accumulo.monitor.util.celltypes.CellType;
 import org.apache.accumulo.monitor.util.celltypes.DateTimeType;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -49,7 +48,7 @@ public class ProblemServlet extends BasicServlet {
   
   @Override
   protected void pageBody(final HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
+    Map<String,String> tidToNameMap = Tables.getIdToNameMap(Monitor.getContext().getInstance());
     doProblemSummary(req, sb, tidToNameMap);
     doProblemDetails(req, sb, req.getParameter("table"), tidToNameMap);
   }
@@ -95,7 +94,8 @@ public class ProblemServlet extends BasicServlet {
       return;
     
     ArrayList<ProblemReport> problemReports = new ArrayList<ProblemReport>();
-    Iterator<ProblemReport> iter = tableId == null ? ProblemReports.getInstance().iterator() : ProblemReports.getInstance().iterator(tableId);
+    Iterator<ProblemReport> iter = tableId == null ? ProblemReports.getInstance(Monitor.getContext()).iterator() : ProblemReports.getInstance(
+        Monitor.getContext()).iterator(tableId);
     while (iter.hasNext())
       problemReports.add(iter.next());
     final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss zzz");

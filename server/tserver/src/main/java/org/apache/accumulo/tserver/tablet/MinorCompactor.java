@@ -27,7 +27,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -35,6 +34,7 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -51,8 +51,11 @@ public class MinorCompactor extends Compactor {
     return Collections.singletonMap(mergeFile, dfv);
   }
   
-  public MinorCompactor(Tablet tablet, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
-    super(tablet, toFileMap(mergeFile, dfv), imm, outputFile, true, new CompactionEnv() {
+  private final TabletServer tabletServer;
+
+  public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile,
+      MinorCompactionReason mincReason, TableConfiguration tableConfig) {
+    super(tabletServer, tablet, toFileMap(mergeFile, dfv), imm, outputFile, true, new CompactionEnv() {
       
       @Override
       public boolean isCompactionEnabled() {
@@ -64,11 +67,12 @@ public class MinorCompactor extends Compactor {
         return IteratorScope.minc;
       }
     }, Collections.<IteratorSetting>emptyList(), mincReason.ordinal(), tableConfig);
+    this.tabletServer = tabletServer;
   }
   
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(HdfsZooInstance.getInstance(), extent.getTableId().toString()) == TableState.DELETING;
+      return Tables.getTableState(tabletServer.getInstance(), extent.getTableId().toString()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
@@ -95,19 +99,19 @@ public class MinorCompactor extends Compactor {
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
           
           if (reportedProblem) {
-            ProblemReports.getInstance().deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile());
+            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile());
           }
           
           return ret;
         } catch (IOException e) {
           log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...");
-          ProblemReports.getInstance().report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
           // minor compaction would succeed
           log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...", e);
-          ProblemReports.getInstance().report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);

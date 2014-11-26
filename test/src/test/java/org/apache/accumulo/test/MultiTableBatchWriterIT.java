@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MultiTableBatchWriterImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,6 +43,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.commons.configuration.ConfigurationException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,8 +67,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
   }
 
   public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
-    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", getToken()),
-        new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
+    ClientContext context = new ClientContext(connector.getInstance(), new Credentials(getPrincipal(), getToken()), getCluster().getClientConfig());
+    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
   }
 
   @Test

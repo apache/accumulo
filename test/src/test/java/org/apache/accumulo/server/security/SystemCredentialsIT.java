@@ -116,7 +116,7 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
 
       });
     } else if (args[0].equals("good")) {
-      creds = SystemCredentials.get();
+      creds = SystemCredentials.get(HdfsZooInstance.getInstance());
     }
     Instance instance = HdfsZooInstance.getInstance();
     Connector conn = instance.getConnector(creds.getPrincipal(), creds.getToken());

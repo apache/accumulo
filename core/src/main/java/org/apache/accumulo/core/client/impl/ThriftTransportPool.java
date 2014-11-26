@@ -31,11 +31,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransport;
@@ -389,12 +386,12 @@ public class ThriftTransportPool {
   
   private ThriftTransportPool() {}
   
-  public TTransport getTransportWithDefaultTimeout(HostAndPort addr, AccumuloConfiguration conf) throws TTransportException {
-    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), SslConnectionParams.forClient(conf));
+  public TTransport getTransportWithDefaultTimeout(HostAndPort addr, ClientContext context) throws TTransportException {
+    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), context.getClientTimeoutInMillis(), context);
   }
   
-  public TTransport getTransport(String location, long milliseconds, SslConnectionParams sslParams) throws TTransportException {
-    return getTransport(new ThriftTransportKey(location, milliseconds, sslParams));
+  public TTransport getTransport(String location, long milliseconds, ClientContext context) throws TTransportException {
+    return getTransport(new ThriftTransportKey(location, milliseconds, context));
   }
   
   private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
@@ -484,7 +481,8 @@ public class ThriftTransportPool {
   }
   
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    TTransport transport = ThriftUtil.createClientTransport(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), (int)cacheKey.getTimeout(), cacheKey.getSslParams());
+    TTransport transport = ThriftUtil.createClientTransport(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), (int) cacheKey.getTimeout(),
+        cacheKey.getSslParams());
 
     if (log.isTraceEnabled())
       log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());

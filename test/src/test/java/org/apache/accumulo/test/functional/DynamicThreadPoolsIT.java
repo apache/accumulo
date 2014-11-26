@@ -22,6 +22,7 @@ import java.util.Collections;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -94,7 +95,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
+        client = MasterClient.getConnectionWithRetry(new ClientContext(c.getInstance(), creds, getCluster().getClientConfig()));
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

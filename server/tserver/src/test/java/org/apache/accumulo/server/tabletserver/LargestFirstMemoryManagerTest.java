@@ -26,7 +26,10 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.server.conf.NamespaceConfiguration;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -42,11 +45,32 @@ public class LargestFirstMemoryManagerTest {
   @Test
   public void test() throws Exception {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
-    Instance instance = new MockInstance();
-    ServerConfigurationFactory config = new ServerConfigurationFactory(instance) {
+    ServerConfiguration config = new ServerConfiguration() {
+      ServerConfigurationFactory delegate = new ServerConfigurationFactory(new MockInstance());
+
       @Override
       public AccumuloConfiguration getConfiguration() {
         return DefaultConfiguration.getInstance();
+      }
+
+      @Override
+      public TableConfiguration getTableConfiguration(String tableId) {
+        return delegate.getTableConfiguration(tableId);
+      }
+
+      @Override
+      public TableConfiguration getTableConfiguration(KeyExtent extent) {
+        return delegate.getTableConfiguration(extent);
+      }
+
+      @Override
+      public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
+        return delegate.getNamespaceConfiguration(namespaceId);
+      }
+
+      @Override
+      public Instance getInstance() {
+        return delegate.getInstance();
       }
     };
     mgr.init(config);

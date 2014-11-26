@@ -46,8 +46,9 @@ import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
@@ -69,6 +70,12 @@ public class ProblemReports implements Iterable<ProblemReport> {
   private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(500), new NamingThreadFactory(
       "acu-problem-reporter"));
   
+  private final AccumuloServerContext context;
+
+  public ProblemReports(AccumuloServerContext context) {
+    this.context = context;
+  }
+
   public void report(final ProblemReport pr) {
     
     synchronized (problemReports) {
@@ -92,7 +99,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.saveToZooKeeper();
           } else {
             // file report in metadata table
-            pr.saveToMetadataTable();
+            pr.saveToMetadataTable(context);
           }
         } catch (Exception e) {
           log.error("Failed to file problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
@@ -128,7 +135,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.removeFromZooKeeper();
           } else {
             // file report in metadata table
-            pr.removeFromMetadataTable();
+            pr.removeFromMetadataTable(context);
           }
         } catch (Exception e) {
           log.error("Failed to delete problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
@@ -155,7 +162,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       return;
     }
     
-    Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+    Connector connector = context.getConnector();
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
     
@@ -170,7 +177,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
     
     if (hasProblems)
-      MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(delMut);
+      MetadataTableUtil.getMetadataTable(context).update(delMut);
   }
   
   private static boolean isMeta(String tableId) {
@@ -191,7 +198,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             try {
               List<String> children;
               if (table == null || isMeta(table)) {
-                children = zoo.getChildren(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS);
+                children = zoo.getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZPROBLEMS);
               } else {
                 children = Collections.emptyList();
               }
@@ -210,7 +217,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (iter2 == null) {
             try {
               if ((table == null || !isMeta(table)) && iter1Count == 0) {
-                Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+                Connector connector = context.getConnector();
                 Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
                 
                 scanner.setTimeout(3, TimeUnit.SECONDS);
@@ -283,16 +290,16 @@ public class ProblemReports implements Iterable<ProblemReport> {
     return iterator(null);
   }
   
-  public static synchronized ProblemReports getInstance() {
+  public static synchronized ProblemReports getInstance(AccumuloServerContext context) {
     if (instance == null) {
-      instance = new ProblemReports();
+      instance = new ProblemReports(context);
     }
     
     return instance;
   }
   
   public static void main(String args[]) throws Exception {
-    getInstance().printProblems();
+    getInstance(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()))).printProblems();
   }
   
   public Map<String,Map<ProblemType,Integer>> summarize() {

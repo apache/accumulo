@@ -144,6 +144,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
@@ -171,7 +172,6 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
@@ -241,7 +241,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.google.common.net.HostAndPort;
 
-public class TabletServer implements Runnable {
+public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final Logger log = Logger.getLogger(TabletServer.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
@@ -255,11 +255,11 @@ public class TabletServer implements Runnable {
   private final TabletServerLogger logger;
 
   private final TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
+
   public TabletServerMinCMetrics getMinCMetrics() {
     return mincMetrics;
   }
 
-  private final ServerConfigurationFactory serverConfig;
   private final LogSorter logSorter;
   private ReplicationWorker replWorker = null;
   private final TabletStatsKeeper statsKeeper;
@@ -269,9 +269,6 @@ public class TabletServer implements Runnable {
   private final AtomicLong syncCounter = new AtomicLong(0);
 
   private final VolumeManager fs;
-  public Instance getInstance() {
-    return serverConfig.getInstance();
-  }
 
   private final SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
   private final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
@@ -305,10 +302,11 @@ public class TabletServer implements Runnable {
   public static final AtomicLong seekCount = new AtomicLong(0);
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
+  private final ServerConfigurationFactory confFactory;
 
-  public TabletServer(ServerConfigurationFactory conf, VolumeManager fs) {
-    super();
-    this.serverConfig = conf;
+  public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) {
+    super(confFactory);
+    this.confFactory = confFactory;
     this.fs = fs;
     AccumuloConfiguration aconf = getConfiguration();
     Instance instance = getInstance();
@@ -331,19 +329,14 @@ public class TabletServer implements Runnable {
       }
     }, 5000, 5000);
 
-    security = AuditedSecurityOperation.getInstance();
-
     long walogMaxSize = getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
     long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walogMaxSize)
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize " + walogMaxSize + " but hdfs minimum block size is "
           + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter);
-    this.resourceManager = new TabletServerResourceManager(getInstance(), fs);
-  }
-
-  public AccumuloConfiguration getConfiguration() {
-    return serverConfig.getConfiguration();
+    this.resourceManager = new TabletServerResourceManager(this, fs);
+    this.security = AuditedSecurityOperation.getInstance(this);
   }
 
   private final SessionManager sessionManager;
@@ -361,7 +354,7 @@ public class TabletServer implements Runnable {
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
     ThriftClientHandler() {
-      super(getInstance(), watcher, fs);
+      super(TabletServer.this, watcher, fs);
       log.debug(ThriftClientHandler.class.getName() + " created");
       // Register the metrics MBean
       try {
@@ -951,8 +944,8 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation, TDurability tdurability) throws NotServingTabletException,
-        ConstraintViolationException, ThriftSecurityException {
+    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation, TDurability tdurability)
+        throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
 
       final String tableId = new String(tkeyExtent.getTable(), UTF_8);
       if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId)))
@@ -1213,8 +1206,8 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableId, TDurability tdurabilty)
-        throws ThriftSecurityException, TException {
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableId,
+        TDurability tdurabilty) throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
       if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), authorizations))
@@ -1365,7 +1358,7 @@ public class TabletServer implements Runnable {
         }
       } catch (ThriftSecurityException e) {
         log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
-        if (SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
+        if (getCredentials().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
           log.fatal("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
           fatal = true;
         }
@@ -1707,7 +1700,8 @@ public class TabletServer implements Runnable {
           } else {
             log.info("Deleting walog " + filename);
             Path sourcePath = new Path(filename);
-            if (!(!TabletServer.this.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE) && fs.moveToTrash(sourcePath)) && !fs.deleteRecursively(sourcePath))
+            if (!(!TabletServer.this.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE) && fs.moveToTrash(sourcePath))
+                && !fs.deleteRecursively(sourcePath))
               log.warn("Failed to delete walog " + source);
             for (String recovery : ServerConstants.getRecoveryDirs()) {
               Path recoveryPath = new Path(recovery, source.getName());
@@ -2007,7 +2001,7 @@ public class TabletServer implements Runnable {
           log.error("Unexpected error ", e);
         }
         log.debug("Unassigning " + tls);
-        TabletStateStore.unassign(tls);
+        TabletStateStore.unassign(TabletServer.this, tls);
       } catch (DistributedStoreException ex) {
         log.warn("Unable to update storage", ex);
       } catch (KeeperException e) {
@@ -2078,7 +2072,8 @@ public class TabletServer implements Runnable {
       Text locationToOpen = null;
       SortedMap<Key,Value> tabletsKeyValues = new TreeMap<Key,Value>();
       try {
-        Pair<Text,KeyExtent> pair = verifyTabletInformation(extent, TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(), getLock());
+        Pair<Text,KeyExtent> pair = verifyTabletInformation(TabletServer.this, extent, TabletServer.this.getTabletSession(), tabletsKeyValues,
+            getClientAddressString(), getLock());
         if (pair != null) {
           locationToOpen = pair.getFirst();
           if (pair.getSecond() != null) {
@@ -2141,7 +2136,7 @@ public class TabletServer implements Runnable {
         }
 
         Assignment assignment = new Assignment(extent, getTabletSession());
-        TabletStateStore.setLocation(assignment);
+        TabletStateStore.setLocation(TabletServer.this, assignment);
 
         synchronized (openingTablets) {
           synchronized (onlineTablets) {
@@ -2158,7 +2153,7 @@ public class TabletServer implements Runnable {
         if (e.getMessage() != null)
           log.warn(e.getMessage());
         String table = extent.getTableId().toString();
-        ProblemReports.getInstance().report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
+        ProblemReports.getInstance(TabletServer.this).report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
       }
 
       if (!successful) {
@@ -2215,13 +2210,13 @@ public class TabletServer implements Runnable {
     entry.server = logs.get(0).getLogger();
     entry.filename = logs.get(0).getFileName();
     entry.logSet = logSet;
-    MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock());
+    MetadataTableUtil.addLogEntry(this, entry, getLock());
   }
 
   private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName)
       throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(conf, address, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
+    ServerAddress sp = TServerUtils.startServer(this, address, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
@@ -2246,8 +2241,7 @@ public class TabletServer implements Runnable {
       if (address == null) {
         return null;
       }
-      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT,
-          getConfiguration());
+      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, this);
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {
@@ -2264,17 +2258,18 @@ public class TabletServer implements Runnable {
     // start listening for client connection last
     Iface tch = RpcWrapper.service(new ThriftClientHandler());
     Processor<Iface> processor = new Processor<Iface>(tch);
-    HostAndPort address = startServer(getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor,
+        "Thrift Client Server");
     log.info("address = " + address);
     return address;
   }
 
   private HostAndPort startReplicationService() throws UnknownHostException {
-    ReplicationServicer.Iface repl = RpcWrapper.service(new ReplicationServicerHandler(HdfsZooInstance.getInstance()));
+    ReplicationServicer.Iface repl = RpcWrapper.service(new ReplicationServicerHandler(this));
     ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<ReplicationServicer.Iface>(repl);
-    AccumuloConfiguration conf = getConfiguration();
+    AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(conf, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
+    ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
         "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on " + sp.address);
@@ -2450,7 +2445,7 @@ public class TabletServer implements Runnable {
           while (!serverStopRequested && mm != null && client != null && client.getOutputProtocol() != null
               && client.getOutputProtocol().getTransport() != null && client.getOutputProtocol().getTransport().isOpen()) {
             try {
-              mm.send(SystemCredentials.get().toThrift(getInstance()), getClientAddressString(), iface);
+              mm.send(rpcCreds(), getClientAddressString(), iface);
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
@@ -2544,8 +2539,8 @@ public class TabletServer implements Runnable {
     }
   }
 
-  public static Pair<Text,KeyExtent> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
-      String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
+  public static Pair<Text,KeyExtent> verifyTabletInformation(AccumuloServerContext context, KeyExtent extent, TServerInstance instance,
+      SortedMap<Key,Value> tabletsKeyValues, String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
 
     log.debug("verifying extent " + extent);
     if (extent.isRootTablet()) {
@@ -2559,7 +2554,7 @@ public class TabletServer implements Runnable {
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
         TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN});
 
-    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get(), tableToVerify, Authorizations.EMPTY);
+    ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
 
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
@@ -2593,7 +2588,7 @@ public class TabletServer implements Runnable {
 
       KeyExtent fke;
       try {
-        fke = MasterMetadataUtil.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SystemCredentials.get(), lock);
+        fke = MasterMetadataUtil.fixSplit(context, metadataEntry, tabletEntries.get(metadataEntry), instance, lock);
       } catch (IOException e) {
         log.error("Error fixing split " + metadataEntry);
         throw new AccumuloException(e.toString());
@@ -2605,7 +2600,7 @@ public class TabletServer implements Runnable {
 
       // reread and reverify metadata entries now that metadata entries were fixed
       tabletsKeyValues.clear();
-      return verifyTabletInformation(fke, instance, tabletsKeyValues, clientAddress, lock);
+      return verifyTabletInformation(context, fke, instance, tabletsKeyValues, clientAddress, lock);
     }
 
     return new Pair<Text,KeyExtent>(new Text(dir.get()), null);
@@ -2879,8 +2874,7 @@ public class TabletServer implements Runnable {
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
       Accumulo.setupLogging(app);
-      final Instance instance = HdfsZooInstance.getInstance();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
+      ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, app);
       TabletServer server = new TabletServer(conf, fs);
@@ -2904,8 +2898,8 @@ public class TabletServer implements Runnable {
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation);
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
-      throws IOException {
+  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles,
+      MutationReceiver mutationReceiver) throws IOException {
     List<Path> recoveryLogs = new ArrayList<Path>();
     List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
     Collections.sort(sorted, new Comparator<LogEntry>() {
@@ -2941,7 +2935,7 @@ public class TabletServer implements Runnable {
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return serverConfig.getTableConfiguration(extent.getTableId().toString());
+    return confFactory.getTableConfiguration(extent.getTableId().toString());
   }
 
   public DfsLogger.ServerResources getServerConfig() {
@@ -2963,7 +2957,6 @@ public class TabletServer implements Runnable {
       }
     };
   }
-
 
   public Collection<Tablet> getOnlineTablets() {
     return Collections.unmodifiableCollection(onlineTablets.values());
@@ -2987,5 +2980,9 @@ public class TabletServer implements Runnable {
 
   public double getHoldTimeMillis() {
     return resourceManager.holdTime();
+  }
+
+  public SecurityOperation getSecurityOperation() {
+    return security;
   }
 }

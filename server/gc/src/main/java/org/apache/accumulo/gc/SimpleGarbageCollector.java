@@ -36,13 +36,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -66,7 +64,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.CountSampler;
@@ -78,7 +75,6 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -86,6 +82,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -94,7 +91,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.RpcWrapper;
@@ -114,7 +110,7 @@ import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class SimpleGarbageCollector implements Iface {
+public class SimpleGarbageCollector extends AccumuloServerContext implements Iface {
   private static final Text EMPTY_TEXT = new Text();
 
   /**
@@ -134,31 +130,24 @@ public class SimpleGarbageCollector implements Iface {
 
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
 
-  private Credentials credentials;
   private VolumeManager fs;
-  private AccumuloConfiguration config;
   private Opts opts = new Opts();
   private ZooLock lock;
 
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
-  private Instance instance;
-
   public static void main(String[] args) throws UnknownHostException, IOException {
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     final String app = "gc";
     Accumulo.setupLogging(app);
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
+    ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
     final VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, conf, app);
     Opts opts = new Opts();
     opts.parseArgs(app, args);
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
-    AccumuloConfiguration config = conf.getConfiguration();
+    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, fs, conf);
 
-    gc.init(fs, instance, SystemCredentials.get(), config);
-    DistributedTrace.enable(opts.getAddress(), app, config);
+    DistributedTrace.enable(opts.getAddress(), app, conf.getConfiguration());
     try {
       gc.run();
     } finally {
@@ -172,17 +161,18 @@ public class SimpleGarbageCollector implements Iface {
    * @param opts
    *          options
    */
-  public SimpleGarbageCollector(Opts opts) {
+  public SimpleGarbageCollector(Opts opts, VolumeManager fs, ServerConfigurationFactory confFactory) {
+    super(confFactory);
     this.opts = opts;
-  }
+    this.fs = fs;
 
-  /**
-   * Gets the credentials used by this GC.
-   *
-   * @return credentials
-   */
-  Credentials getCredentials() {
-    return credentials;
+    long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+    log.info("start delay: " + getStartDelay() + " milliseconds");
+    log.info("time delay: " + gcDelay + " milliseconds");
+    log.info("safemode: " + opts.safeMode);
+    log.info("verbose: " + opts.verbose);
+    log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
+    log.info("delete threads: " + getNumDeleteThreads());
   }
 
   /**
@@ -191,7 +181,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return start delay, in milliseconds
    */
   long getStartDelay() {
-    return config.getTimeInMillis(Property.GC_CYCLE_START);
+    return getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
   }
 
   /**
@@ -209,7 +199,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return true if trash is used
    */
   boolean isUsingTrash() {
-    return !config.getBoolean(Property.GC_TRASH_IGNORE);
+    return !getConfiguration().getBoolean(Property.GC_TRASH_IGNORE);
   }
 
   /**
@@ -225,16 +215,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return number of delete threads
    */
   int getNumDeleteThreads() {
-    return config.getCount(Property.GC_DELETE_THREADS);
-  }
-
-  /**
-   * Gets the instance used by this GC.
-   *
-   * @return instance
-   */
-  Instance getInstance() {
-    return instance;
+    return getConfiguration().getCount(Property.GC_DELETE_THREADS);
   }
 
   /**
@@ -243,33 +224,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return True if files should be archived, false otherwise
    */
   boolean shouldArchiveFiles() {
-    return config.getBoolean(Property.GC_FILE_ARCHIVE);
-  }
-
-  /**
-   * Initializes this garbage collector.
-   *
-   * @param fs
-   *          volume manager
-   * @param instance
-   *          instance
-   * @param credentials
-   *          credentials
-   * @param config
-   *          system configuration
-   */
-  public void init(VolumeManager fs, Instance instance, Credentials credentials, AccumuloConfiguration config) {
-    this.fs = fs;
-    this.credentials = credentials;
-    this.instance = instance;
-    this.config = config;
-    long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
-    log.info("start delay: " + getStartDelay() + " milliseconds");
-    log.info("time delay: " + gcDelay + " milliseconds");
-    log.info("safemode: " + opts.safeMode);
-    log.info("verbose: " + opts.verbose);
-    log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
-    log.info("delete threads: " + getNumDeleteThreads());
+    return getConfiguration().getBoolean(Property.GC_FILE_ARCHIVE);
   }
 
   private class GCEnv implements GarbageCollectionEnvironment {
@@ -290,7 +245,7 @@ public class SimpleGarbageCollector implements Iface {
         range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true, range.getEndKey(), range.isEndKeyInclusive());
       }
 
-      Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, Authorizations.EMPTY);
+      Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(range);
       List<String> result = new ArrayList<String>();
       // find candidates for deletion; chop off the prefix
@@ -309,8 +264,7 @@ public class SimpleGarbageCollector implements Iface {
 
     @Override
     public Iterator<String> getBlipIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      IsolatedScanner scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName,
-          Authorizations.EMPTY));
+      IsolatedScanner scanner = new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
@@ -324,8 +278,7 @@ public class SimpleGarbageCollector implements Iface {
 
     @Override
     public Iterator<Entry<Key,Value>> getReferenceIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      IsolatedScanner scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName,
-          Authorizations.EMPTY));
+      IsolatedScanner scanner = new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
@@ -341,7 +294,7 @@ public class SimpleGarbageCollector implements Iface {
 
     @Override
     public Set<String> getTableIDs() {
-      return Tables.getIdToNameMap(instance).keySet();
+      return Tables.getIdToNameMap(getInstance()).keySet();
     }
 
     @Override
@@ -358,7 +311,7 @@ public class SimpleGarbageCollector implements Iface {
         return;
       }
 
-      Connector c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+      Connector c = getConnector();
       BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
 
       // when deleting a dir and all files in that dir, only need to delete the dir
@@ -522,7 +475,7 @@ public class SimpleGarbageCollector implements Iface {
 
     @Override
     public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
-      Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+      Connector conn = getConnector();
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
@@ -608,7 +561,7 @@ public class SimpleGarbageCollector implements Iface {
       // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
       Span replSpan = Trace.start("replicationClose");
       try {
-        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(instance, credentials);
+        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(this);
         closeWals.run();
       } catch (Exception e) {
         log.error("Error trying to close write-ahead logs for replication table", e);
@@ -619,7 +572,7 @@ public class SimpleGarbageCollector implements Iface {
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, isUsingTrash());
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -631,7 +584,7 @@ public class SimpleGarbageCollector implements Iface {
 
       // we just made a lot of metadata changes: flush them out
       try {
-        Connector connector = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+        Connector connector = getConnector();
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
         connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
@@ -640,7 +593,7 @@ public class SimpleGarbageCollector implements Iface {
 
       Trace.off();
       try {
-        long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
+        long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
@@ -724,7 +677,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(getInstance()) + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
@@ -758,13 +711,13 @@ public class SimpleGarbageCollector implements Iface {
 
   private HostAndPort startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this));
-    int port = config.getPort(Property.GC_PORT);
-    long maxMessageSize = config.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    int port = getConfiguration().getPort(Property.GC_PORT);
+    long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
     log.debug("Starting garbage collector listening on " + result);
     try {
       return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
-          config.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, SslConnectionParams.forServer(config), 0).address;
+          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(), 0).address;
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);

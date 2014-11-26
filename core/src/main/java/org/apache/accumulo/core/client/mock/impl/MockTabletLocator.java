@@ -23,25 +23,26 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 public class MockTabletLocator extends TabletLocator {
   public MockTabletLocator() {}
 
   @Override
-  public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletServerMutations<T> tsm = new TabletServerMutations<T>("5");
     for (T m : mutations)
@@ -50,7 +51,7 @@ public class MockTabletLocator extends TabletLocator {
   }
 
   @Override
-  public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+  public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     binnedRanges.put("", Collections.singletonMap(new KeyExtent(new Text(), null, null), ranges));
     return Collections.emptyList();
@@ -66,5 +67,5 @@ public class MockTabletLocator extends TabletLocator {
   public void invalidateCache() {}
 
   @Override
-  public void invalidateCache(String server) {}
+  public void invalidateCache(Instance instance, String server) {}
 }

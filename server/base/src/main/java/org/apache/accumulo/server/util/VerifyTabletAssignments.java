@@ -30,11 +30,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.InitialMultiScan;
@@ -52,7 +51,6 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -72,14 +70,15 @@ public class VerifyTabletAssignments {
     Opts opts = new Opts();
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
     
+    ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), opts.getClientConfiguration());
     Connector conn = opts.getConnector();
     for (String table : conn.tableOperations().list())
-      checkTable(opts, table, null);
+      checkTable(context, opts, table, null);
     
   }
   
-  private static void checkTable(final Opts opts, String tableName, HashSet<KeyExtent> check) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InterruptedException {
+  private static void checkTable(final ClientContext context, final Opts opts, String tableName, HashSet<KeyExtent> check) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InterruptedException {
     
     if (check == null)
       System.out.println("Checking table " + tableName);
@@ -88,11 +87,8 @@ public class VerifyTabletAssignments {
     
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
     
-    Connector conn = opts.getConnector();
-    final Instance inst = conn.getInstance();
-    String tableId = Tables.getNameToIdMap(inst).get(tableName);
-    Credentials credentials = new Credentials(opts.principal, opts.getToken());
-    MetadataServicer.forTableId(inst, credentials, tableId).getTabletLocations(tabletLocations);
+    String tableId = Tables.getNameToIdMap(context.getInstance()).get(tableName);
+    MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
@@ -119,14 +115,13 @@ public class VerifyTabletAssignments {
     }
     
     ExecutorService tp = Executors.newFixedThreadPool(20);
-    final ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
     for (final Entry<String,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = new Runnable() {
         
         @Override
         public void run() {
           try {
-            checkTabletServer(inst, conf.getConfiguration(), new Credentials(opts.principal, opts.getToken()), entry, failures);
+            checkTabletServer(context, entry, failures);
           } catch (Exception e) {
             log.error("Failure on tablet server '"+entry.getKey()+".", e);
             failures.addAll(entry.getValue());
@@ -143,7 +138,7 @@ public class VerifyTabletAssignments {
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
     
     if (failures.size() > 0)
-      checkTable(opts, tableName, failures);
+      checkTable(context, opts, tableName, failures);
   }
   
   private static void checkFailures(String server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {
@@ -154,9 +149,9 @@ public class VerifyTabletAssignments {
     }
   }
   
-  private static void checkTabletServer(Instance inst, AccumuloConfiguration conf, Credentials creds, Entry<String,List<KeyExtent>> entry,
-      HashSet<KeyExtent> failures) throws ThriftSecurityException, TException, NoSuchScanIDException {
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
+  private static void checkTabletServer(ClientContext context, Entry<String,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
+      throws ThriftSecurityException, TException, NoSuchScanIDException {
+    TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), context);
     
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
     
@@ -190,7 +185,7 @@ public class VerifyTabletAssignments {
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(tinfo, creds.toThrift(inst), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
+    InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
         Authorizations.EMPTY.getAuthorizationsBB(), false);
     if (is.result.more) {
       MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);

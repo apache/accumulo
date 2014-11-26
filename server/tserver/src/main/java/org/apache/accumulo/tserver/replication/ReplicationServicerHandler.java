@@ -20,8 +20,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -32,10 +30,8 @@ import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Iface;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,35 +42,27 @@ import org.slf4j.LoggerFactory;
 public class ReplicationServicerHandler implements Iface {
   private static final Logger log = LoggerFactory.getLogger(ReplicationServicerHandler.class);
 
-  private Instance inst;
+  private TabletServer tabletServer;
 
-  public ReplicationServicerHandler(Instance inst) {
-    this.inst = inst;
+  public ReplicationServicerHandler(TabletServer tabletServer) {
+    this.tabletServer = tabletServer;
   }
 
   @Override
   public long replicateLog(String tableId, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
+    tabletServer.getSecurityOperation().authenticateUser(tabletServer.rpcCreds(), tcreds);
 
-    Credentials creds = Credentials.fromThrift(tcreds);
-    Connector conn;
     String tableName;
 
     try {
-      conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Could not get connection", e);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE, "Cannot get connector as " + creds.getPrincipal());
-    }
-
-    try {
-      tableName = Tables.getTableName(inst, tableId);
+      tableName = Tables.getTableName(tabletServer.getInstance(), tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST, "Table with id " + tableId + " does not exist");
     }
 
-    AccumuloConfiguration conf = new ServerConfigurationFactory(inst).getConfiguration();
+    AccumuloConfiguration conf = tabletServer.getConfiguration();
 
     Map<String,String> replicationHandlers = conf.getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
     String propertyForHandlerTable = Property.TSERV_REPLICATION_REPLAYERS.getKey() + tableId;
@@ -110,7 +98,14 @@ public class ReplicationServicerHandler implements Iface {
           + clz.getName());
     }
 
-    long entriesReplicated = replayer.replicateLog(conn, new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration(), tableName, data);
+    long entriesReplicated;
+    try {
+      entriesReplicated = replayer.replicateLog(tabletServer, tableName, data);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("Could not get connection", e);
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE, "Cannot get connector as "
+          + tabletServer.getCredentials().getPrincipal());
+    }
 
     log.debug("Replicated {} mutations to {}", entriesReplicated, tableName);
 

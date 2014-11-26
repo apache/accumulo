@@ -532,6 +532,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     log.info("Wrote all data to master cluster");
 
     Set<String> files = connMaster.replicationOperations().referencedFiles(masterTable);
+    for (String s : files) {
+      log.info("Found referenced file for " + masterTable + ": " + s);
+    }
 
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -550,6 +553,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
+    Assert.assertTrue("No data in master table", masterIter.hasNext());
+    Assert.assertTrue("No data in peer table", peerIter.hasNext());
     while (masterIter.hasNext() && peerIter.hasNext()) {
       Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
       Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,

@@ -59,6 +59,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -68,6 +69,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
@@ -81,7 +83,6 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -756,8 +757,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MasterMonitorInfo stats = null;
     try {
       Instance instance = new ZooKeeperInstance(getClientConfig());
-      client = MasterClient.getConnectionWithRetry(instance);
-      stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
+      ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("unchecked")), getClientConfig());
+      client = MasterClient.getConnectionWithRetry(context);
+      stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
     } catch (ThriftSecurityException exception) {
       throw new AccumuloSecurityException(exception);
     } catch (TException exception) {

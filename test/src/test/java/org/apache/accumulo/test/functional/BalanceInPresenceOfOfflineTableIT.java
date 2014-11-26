@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
@@ -142,7 +143,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
       MasterMonitorInfo stats = null;
       try {
         Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
-        client = MasterClient.getConnectionWithRetry(instance);
+        client = MasterClient.getConnectionWithRetry(new ClientContext(instance, SystemCredentials.get(instance), cluster.getClientConfig()));
         stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);

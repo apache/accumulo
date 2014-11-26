@@ -48,7 +48,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
@@ -72,17 +72,19 @@ public class SecurityOperation {
   private final ZooCache zooCache;
   private final String ZKUserPath;
 
+  protected final AccumuloServerContext context;
+
   static SecurityOperation instance;
 
-  public static synchronized SecurityOperation getInstance() {
-    String instanceId = HdfsZooInstance.getInstance().getInstanceID();
-    return getInstance(instanceId, false);
+  public static synchronized SecurityOperation getInstance(AccumuloServerContext context) {
+    return getInstance(context, false);
   }
 
-  public static synchronized SecurityOperation getInstance(String instanceId, boolean initialize) {
+  public static synchronized SecurityOperation getInstance(AccumuloServerContext context, boolean initialize) {
     if (instance == null) {
-      instance = new SecurityOperation(getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(instanceId, initialize),
-          instanceId);
+      String instanceId = context.getInstance().getInstanceID();
+      instance = new SecurityOperation(context, getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(instanceId,
+          initialize));
     }
     return instance;
   }
@@ -108,13 +110,14 @@ public class SecurityOperation {
     return toRet;
   }
 
-  protected SecurityOperation(String instanceId) {
-    ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
+  protected SecurityOperation(AccumuloServerContext context) {
+    this.context = context;
+    ZKUserPath = Constants.ZROOT + "/" + context.getInstance().getInstanceID() + "/users";
     zooCache = new ZooCache();
   }
 
-  public SecurityOperation(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
-    this(instanceId);
+  public SecurityOperation(AccumuloServerContext context, Authorizor author, Authenticator authent, PermissionHandler pm) {
+    this(context);
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
@@ -149,16 +152,16 @@ public class SecurityOperation {
   }
 
   public boolean isSystemUser(TCredentials credentials) {
-    return SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName());
+    return context.getCredentials().getToken().getClass().getName().equals(credentials.getTokenClassName());
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(HdfsZooInstance.getInstance().getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstance().getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
 
     Credentials creds = Credentials.fromThrift(credentials);
     if (isSystemUser(credentials)) {
-      if (!(SystemCredentials.get().equals(creds))) {
+      if (!(context.getCredentials().equals(creds))) {
         throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       }
     } else {
