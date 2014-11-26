@@ -25,11 +25,15 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class ArbitraryTablePropertiesIT extends SimpleMacIT {
+  private static final Logger log = Logger.getLogger(ArbitraryTablePropertiesIT.class);
 
+  @Override
   protected int defaultTimeoutSeconds() {
     return 30;
   };

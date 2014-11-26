@@ -165,7 +165,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     try {
       final Connector connMaster = getConnector();
-      final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+      final Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       ReplicationTable.setOnline(connMaster);
 
@@ -318,7 +318,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     try {
       Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -479,7 +479,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCluster.start();
 
     Connector connMaster = getConnector();
-    Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+    Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
     String peerUserName = "repl";
     String peerPassword = "passwd";
@@ -582,7 +582,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     try {
       Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
 

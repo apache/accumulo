@@ -200,7 +200,8 @@ public class CyclicReplicationIT {
     }
 
     try {
-      Connector connMaster1 = master1Cluster.getConnector("root", password), connMaster2 = master2Cluster.getConnector("root", password);
+      Connector connMaster1 = master1Cluster.getConnector("root", new PasswordToken(password)), connMaster2 = master2Cluster.getConnector("root",
+          new PasswordToken(password));
 
       String master1UserName = "master1", master1Password = "foo";
       String master2UserName = "master2", master2Password = "bar";

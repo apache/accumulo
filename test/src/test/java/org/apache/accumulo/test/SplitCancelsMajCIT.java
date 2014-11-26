@@ -37,8 +37,9 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-2862
+@SuppressWarnings("deprecation")
 public class SplitCancelsMajCIT extends SimpleMacIT{
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
@@ -58,6 +59,7 @@ public class SplitCancelsMajCIT extends SimpleMacIT{
     // start majc
     final AtomicReference<Exception> ex = new AtomicReference<Exception>();
     Thread thread = new Thread() {
+      @Override
       public void run() {
         try {
           c.tableOperations().compact(tableName, null, null, true, true);
@@ -69,7 +71,7 @@ public class SplitCancelsMajCIT extends SimpleMacIT{
     thread.start();
 
     long now = System.currentTimeMillis();
-    UtilWaitThread.sleep(10 * 1000);    
+    UtilWaitThread.sleep(10 * 1000);
     // split the table, interrupts the compaction
     SortedSet<Text> partitionKeys = new TreeSet<Text>();
     partitionKeys.add(new Text("10"));

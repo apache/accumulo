@@ -29,8 +29,9 @@ import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.junit.Test;
 
 // ACCUMULO-2880
+@SuppressWarnings("deprecation")
 public class DeletedTablesDontFlushIT extends SimpleMacIT {
-  
+
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
@@ -41,7 +42,7 @@ public class DeletedTablesDontFlushIT extends SimpleMacIT {
     c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.minc));
     // let the configuration change propagate through zookeeper
     UtilWaitThread.sleep(1000);
-    
+
     Mutation m = new Mutation("xyzzy");
     for (int i = 0; i < 100; i++) {
       m.put("cf", "" + i, new Value(new byte[]{}));
@@ -52,5 +53,5 @@ public class DeletedTablesDontFlushIT extends SimpleMacIT {
     // should go fast
     c.tableOperations().delete(tableName);
   }
-  
+
 }

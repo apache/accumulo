@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,7 +42,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.commons.configuration.ConfigurationException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

@@ -49,6 +49,7 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
+@SuppressWarnings("deprecation")
 public class StatusCombinerMacIT extends SimpleMacIT {
 
   @Test
