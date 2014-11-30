@@ -14,8 +14,7 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+--><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache</groupId>
@@ -92,6 +91,7 @@
     <module>server/gc</module>
     <module>server/master</module>
     <module>server/monitor</module>
+    <module>server/monitor-rest</module>
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
@@ -299,6 +299,11 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-monitor</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-monitor-rest</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
