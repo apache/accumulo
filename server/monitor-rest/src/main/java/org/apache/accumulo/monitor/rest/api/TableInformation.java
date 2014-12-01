@@ -87,7 +87,7 @@ public class TableInformation {
     this.name = summary.getName();
     this.id = summary.getId();
     this.tablets = summary.getTablets();
-    this.offlineTablets = summary.getOfflineTables();
+    this.offlineTablets = summary.getOfflineTablets();
     this.entries = summary.getEntries();
     this.entriesInMemory = summary.getEntriesInMemory();
     this.ingest = summary.getIngest();
@@ -153,15 +153,6 @@ public class TableInformation {
     this.tablets = tablets;
   }
 
-  @JsonProperty("offlineTablets")
-  public int getOfflineTables() {
-    return offlineTablets;
-  }
-
-  @JsonProperty("offlineTablets")
-  public void setOfflineTables(int offlineTables) {
-    this.offlineTablets = offlineTables;
-  }
 
   @JsonProperty("entries")
   public long getEntries() {
