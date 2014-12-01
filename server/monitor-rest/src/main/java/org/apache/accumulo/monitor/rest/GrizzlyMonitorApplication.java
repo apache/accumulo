@@ -31,8 +31,11 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.log4j.Logger;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
+import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 
 /**
  *
@@ -42,8 +45,9 @@ public class GrizzlyMonitorApplication extends MonitorApplication {
 
   @Override
   public void run() {
-    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest.api", "org.apache.accumulo.monitor.rest.resources");
-    // .property(ServerProperties.TRACING, "ALL").register(new LoggingFilter(java.util.logging.Logger.getLogger("GrizzlyMonitorApplication"), true));
+    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest.api", "org.apache.accumulo.monitor.rest.resources")
+        .property(ServerProperties.TRACING, "ALL").register(new LoggingFilter(java.util.logging.Logger.getLogger("GrizzlyMonitorApplication"), true))
+        .register(JacksonFeature.class).registerClasses(AccumuloExceptionMapper.class);
 
     final URI serverUri = getServerUri();
 

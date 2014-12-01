@@ -14,36 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.rest.api;
+package org.apache.accumulo.monitor.rest;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+
+import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  *
  */
-public class TabletServerTableInformation extends TabletServerInformation {
-
-  private String tableId;
-
-  public TabletServerTableInformation() {
-    super();
-  }
-
-  /**
-   * @param tableId
-   */
-  public TabletServerTableInformation(String tableId) {
-    super();
-    this.tableId = tableId;
-  }
-
-  @JsonProperty("tableId")
-  public String getTableId() {
-    return tableId;
-  }
-
-  @JsonProperty("tableId")
-  public void setTableId(String tableId) {
-    this.tableId = tableId;
+@Provider
+public class AccumuloExceptionMapper implements ExceptionMapper<Exception> {
+  @Override
+  public Response toResponse(Exception ex) {
+    return Response.status(500).entity(Exceptions.getStackTraceAsString(ex)).type("text/plain").build();
   }
 }

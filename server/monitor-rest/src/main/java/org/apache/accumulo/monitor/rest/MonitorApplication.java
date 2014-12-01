@@ -37,7 +37,7 @@ public abstract class MonitorApplication implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(MonitorApplication.class);
 
   protected URI getServerUri() {
-    return URI.create("http://localhost:50095/accumulo");
+    return URI.create("http://localhost:50096/accumulo");
   }
 
   protected void advertiseHttpAddress(Instance instance, String hostname, int port) {

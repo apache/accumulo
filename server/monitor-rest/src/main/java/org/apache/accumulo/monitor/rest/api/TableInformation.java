@@ -17,10 +17,11 @@
 package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.codehaus.jackson.annotate.JsonProperty;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * 
+ *
  */
 public class TableInformation {
   protected String name, id;

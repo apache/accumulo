@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * 
+ *
  */
 public class TabletServerWithTableInformation {
 

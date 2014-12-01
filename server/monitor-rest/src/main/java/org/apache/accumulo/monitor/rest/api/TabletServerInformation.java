@@ -21,10 +21,11 @@ import java.util.List;
 
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.codehaus.jackson.annotate.JsonProperty;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * 
+ *
  */
 public class TabletServerInformation {
   private String address;

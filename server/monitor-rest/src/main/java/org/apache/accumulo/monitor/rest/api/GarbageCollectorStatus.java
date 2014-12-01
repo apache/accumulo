@@ -17,10 +17,11 @@
 package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
-import org.codehaus.jackson.annotate.JsonProperty;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * 
+ *
  */
 public class GarbageCollectorStatus {
   public static final GarbageCollectorStatus EMPTY = new GarbageCollectorStatus();
