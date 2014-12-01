@@ -57,7 +57,7 @@
       <version>${jersey.version}</version>
     </dependency>
   </dependencies>
-  <build>
+  <!--build>
     <plugins>
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
@@ -84,5 +84,5 @@
         </executions>
       </plugin>
     </plugins>
-  </build>
+  </build-->
 </project>

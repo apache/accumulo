@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
@@ -69,9 +70,6 @@ public class ReplicationResource {
     Connector conn = Monitor.getContext().getConnector();
 
     TableOperations tops = conn.tableOperations();
-    if (!tops.exists(ReplicationTable.NAME)) {
-      return Collections.emptyList();
-    }
 
     Map<String,String> properties = conn.instanceOperations().getSystemConfiguration();
     Map<String,String> peers = new HashMap<>();
@@ -139,9 +137,8 @@ public class ReplicationResource {
     BatchScanner bs;
     try {
       bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
-    } catch (TableNotFoundException e) {
-      // We verified that the replication table did exist, but was deleted befor we could read it
-      log.error("Replication table was deleted", e);
+    } catch (TableOfflineException | TableNotFoundException e) {
+      log.error("Could not read replication table", e);
       return Collections.emptyList();
     }
 

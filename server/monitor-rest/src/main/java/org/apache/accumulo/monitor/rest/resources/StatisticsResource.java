@@ -16,16 +16,19 @@
  */
 package org.apache.accumulo.monitor.rest.resources;
 
+import java.util.List;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
- * 
+ *
  */
 @Path("/statistics")
 @Produces(MediaType.APPLICATION_JSON)
@@ -107,5 +110,65 @@ public class StatisticsResource {
   @Path("totalLookups")
   public long getTotalLookups() {
     return Monitor.getTotalLookups();
+  }
+
+  @GET
+  @Path("time/scanRate")
+  public List<Pair<Long,Integer>> getScanRate() {
+    return Monitor.getScanRateOverTime();
+  }
+
+  @GET
+  @Path("time/queryRate")
+  public List<Pair<Long,Integer>> getQueryRate() {
+    return Monitor.getQueryRateOverTime();
+  }
+
+  @GET
+  @Path("time/queryByteRate")
+  public List<Pair<Long,Double>> getQueryByteRate() {
+    return Monitor.getQueryByteRateOverTime();
+  }
+
+  @GET
+  @Path("time/load")
+  public List<Pair<Long,Double>> getLoad() {
+    return Monitor.getLoadOverTime();
+  }
+
+  @GET
+  @Path("time/ingestRate")
+  public List<Pair<Long,Double>> getIngestRate() {
+    return Monitor.getIngestRateOverTime();
+  }
+
+  @GET
+  @Path("time/ingestByteRate")
+  public List<Pair<Long,Double>> getIngestByteRate() {
+    return Monitor.getIngestByteRateOverTime();
+  }
+
+  @GET
+  @Path("time/recoveries")
+  public List<Pair<Long,Integer>> getRecoveries() {
+    return Monitor.getRecoveriesOverTime();
+  }
+
+  @GET
+  @Path("time/minorCompactions")
+  public List<Pair<Long,Integer>> getMinorCompactions() {
+    return Monitor.getMinorCompactionsOverTime();
+  }
+
+  @GET
+  @Path("time/majorCompactions")
+  public List<Pair<Long,Integer>> getMajorCompactions() {
+    return Monitor.getMajorCompactionsOverTime();
+  }
+
+  @GET
+  @Path("time/lookups")
+  public List<Pair<Long,Double>> getLookups() {
+    return Monitor.getLookupsOverTime();
   }
 }

@@ -54,7 +54,7 @@
         <include>com.fasterxml.jackson.core:jackson-databind</include>
         <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base</include>
         <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider</include>
-        <!--include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include-->
+        <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include>
         <include>javax.annotation:javax.annotation-api</include>
         <!--include>javax.inject:javax.inject</include-->
         <!--include>javax.servlet.jsp:jsp-api</include-->

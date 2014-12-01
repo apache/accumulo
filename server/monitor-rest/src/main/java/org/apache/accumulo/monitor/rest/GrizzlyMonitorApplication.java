@@ -26,6 +26,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -45,6 +46,62 @@ public class GrizzlyMonitorApplication extends MonitorApplication {
 
   @Override
   public void run() {
+    Instance instance = HdfsZooInstance.getInstance();
+    ServerConfigurationFactory config = new ServerConfigurationFactory(instance);
+    AccumuloServerContext context = new AccumuloServerContext(config);
+
+    Monitor.setConfig(config);
+    Monitor.setInstance(instance);
+    Monitor.setContext(context);
+
+    // Preload data
+    try {
+      Monitor.fetchData();
+    } catch (Exception e) {
+      log.warn(e.getMessage(), e);
+    }
+    
+    try {
+      Monitor.fetchScans();
+    } catch (Exception e) {
+      log.warn(e.getMessage(), e);
+    }
+    
+    // Start daemons
+    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
+    
+    // need to regularly fetch data so plot data is updated
+    new Daemon(new LoggingRunnable(log, new Runnable() {
+      
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            Monitor.fetchData();
+          } catch (Exception e) {
+            log.warn(e.getMessage(), e);
+          }
+          
+          UtilWaitThread.sleep(333);
+        }
+        
+      }
+    }), "Data fetcher").start();
+    
+    new Daemon(new LoggingRunnable(log, new Runnable() {
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            Monitor.fetchScans();
+          } catch (Exception e) {
+            log.warn(e.getMessage(), e);
+          }
+          UtilWaitThread.sleep(5000);
+        }
+      }
+    }), "Scan scanner").start();
+
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest.api", "org.apache.accumulo.monitor.rest.resources")
         .property(ServerProperties.TRACING, "ALL").register(new LoggingFilter(java.util.logging.Logger.getLogger("GrizzlyMonitorApplication"), true))
         .register(JacksonFeature.class).registerClasses(AccumuloExceptionMapper.class);
@@ -62,37 +119,11 @@ public class GrizzlyMonitorApplication extends MonitorApplication {
 
     log.info("Server bound to " + hostname + ":" + port);
 
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfigurationFactory config = new ServerConfigurationFactory(instance);
-    AccumuloServerContext context = new AccumuloServerContext(config);
-
-    Monitor.setConfig(config);
-    Monitor.setInstance(instance);
-    Monitor.setContext(context);
-
     try {
       advertiseHttpAddress(context.getConnector().getInstance(), hostname, port);
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException("Failed to connect to Accumulo", e);
     }
-
-    // need to regularly fetch data so plot data is updated
-    new Daemon(new LoggingRunnable(log, new Runnable() {
-
-      @Override
-      public void run() {
-        while (true) {
-          try {
-            Monitor.fetchData();
-          } catch (Exception e) {
-            log.warn(e.getMessage(), e);
-          }
-
-          UtilWaitThread.sleep(333);
-        }
-
-      }
-    }), "Data fetcher").start();
 
     try {
       System.in.read();
