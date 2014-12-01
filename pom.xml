@@ -91,7 +91,7 @@
     <module>server/gc</module>
     <module>server/master</module>
     <module>server/monitor</module>
-    <module>server/monitor-rest</module>
+    <module>server/monitor-webapp</module>
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
