@@ -41,8 +41,8 @@ fail() {
 }
 
 # Test to see if we have thrift installed
-VERSION=$(thrift -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l)
-if [[ $VERSION != 1 ]] ; then 
+VERSION=$(thrift -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l | sed -e 's/^ *//' -e 's/ *$//')
+if [[ "${VERSION}" != '1' ]] ; then 
   # Nope: bail
   echo "****************************************************"
   echo "*** thrift is not available"
