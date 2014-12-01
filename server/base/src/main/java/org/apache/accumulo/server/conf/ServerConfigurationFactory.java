@@ -150,15 +150,20 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public TableConfiguration getTableConfiguration(String tableId) {
     checkPermissions();
+    TableConfiguration conf;
     synchronized (tableConfigs) {
-      TableConfiguration conf = tableConfigs.get(instanceID).get(tableId);
-      if (conf == null && Tables.exists(instance, tableId)) {
+      conf = tableConfigs.get(instanceID).get(tableId);
+    }
+    // can't hold the lock during the construction and validation of the config, 
+    // which may result in creating multiple objects for the same id, but that's ok.
+    if (conf == null && Tables.exists(instance, tableId)) {
         conf = new TableConfiguration(instance, tableId, getNamespaceConfigurationForTable(tableId));
         ConfigSanityCheck.validate(conf);
-        tableConfigs.get(instanceID).put(tableId, conf);
-      }
-      return conf;
+        synchronized (tableConfigs) {
+          tableConfigs.get(instanceID).put(tableId, conf);
+        }
     }
+    return conf;
   }
 
   @Override
@@ -168,32 +173,42 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   public NamespaceConfiguration getNamespaceConfigurationForTable(String tableId) {
     checkPermissions();
+    NamespaceConfiguration conf;
     synchronized (tableParentConfigs) {
-      NamespaceConfiguration conf = tableParentConfigs.get(instanceID).get(tableId);
-      if (conf == null) {
-        // changed - include instance in constructor call
-        conf = new TableParentConfiguration(tableId, instance, getConfiguration());
-        ConfigSanityCheck.validate(conf);
+      conf = tableParentConfigs.get(instanceID).get(tableId);
+    }
+    // can't hold the lock during the construction and validation of the config, 
+    // which may result in creating multiple objects for the same id, but that's ok.
+    if (conf == null) {
+      // changed - include instance in constructor call
+      conf = new TableParentConfiguration(tableId, instance, getConfiguration());
+      ConfigSanityCheck.validate(conf);
+      synchronized (tableParentConfigs) {
         tableParentConfigs.get(instanceID).put(tableId, conf);
       }
-      return conf;
     }
+    return conf;
   }
 
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
     checkPermissions();
+    NamespaceConfiguration conf;
+    // can't hold the lock during the construction and validation of the config, 
+    // which may result in creating multiple objects for the same id, but that's ok.
     synchronized (namespaceConfigs) {
-      NamespaceConfiguration conf = namespaceConfigs.get(instanceID).get(namespaceId);
-      if (conf == null) {
-        // changed - include instance in constructor call
-        conf = new NamespaceConfiguration(namespaceId, instance, getConfiguration());
-        conf.setZooCacheFactory(zcf);
-        ConfigSanityCheck.validate(conf);
+      conf = namespaceConfigs.get(instanceID).get(namespaceId);
+    }
+    if (conf == null) {
+      // changed - include instance in constructor call
+      conf = new NamespaceConfiguration(namespaceId, instance, getConfiguration());
+      conf.setZooCacheFactory(zcf);
+      ConfigSanityCheck.validate(conf);
+      synchronized (namespaceConfigs) {
         namespaceConfigs.get(instanceID).put(namespaceId, conf);
       }
-      return conf;
     }
+    return conf;
   }
 
   @Override
