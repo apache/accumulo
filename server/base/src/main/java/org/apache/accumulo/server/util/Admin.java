@@ -28,12 +28,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.impl.ClientExec;
@@ -44,7 +46,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -112,16 +116,18 @@ public class Admin {
 
   @Parameters(commandDescription = "print out non-default configuration settings")
   static class DumpConfigCommand {
-    @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
-    List<String> tables = new ArrayList<String>();
     @Parameter(names = {"-a", "--all"}, description = "print the system and all table configurations")
     boolean allConfiguration = false;
-    @Parameter(names = {"-s", "--system"}, description = "print the system configuration")
-    boolean systemConfiguration = false;
-    @Parameter(names = {"-p", "--permissions"}, description = "print user permissions (must be used in combination with -a, -s, or -t)")
-    boolean userPermissions = false;
     @Parameter(names = {"-d", "--directory"}, description = "directory to place config files")
     String directory = null;
+    @Parameter(names = {"-s", "--system"}, description = "print the system configuration")
+    boolean systemConfiguration = false;
+    @Parameter(names = {"-n", "--namespaces"}, description = "print the namespace configuration")
+    boolean namespaceConfiguration = false;
+    @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
+    List<String> tables = new ArrayList<String>();
+    @Parameter(names = {"-u", "--users"}, description = "print users and their authorizations and permissions")
+    boolean users = false;
   }
   
   @Parameters(commandDescription = "redistribute tablet directories across the current volume list")
@@ -340,10 +346,17 @@ public class Admin {
   }
 
   private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo-site.xml.bak";
-  private static final String PERMISSION_FILE_SUFFIX = "_perm.cfg";
+  private static final String NS_FILE_SUFFIX = "_ns.cfg";
+  private static final String USER_FILE_SUFFIX = "_user.cfg";
   private static final MessageFormat configFormat = new MessageFormat("config -t {0} -s {1}\n");
+  private static final MessageFormat createNsFormat = new MessageFormat("createnamespace {0}\n");
+  private static final MessageFormat createTableFormat = new MessageFormat("createtable {0}\n");
+  private static final MessageFormat createUserFormat = new MessageFormat("createuser {0}\n");
+  private static final MessageFormat nsConfigFormat = new MessageFormat("config -ns {0} -s {1}\n");
   private static final MessageFormat sysPermFormat = new MessageFormat("grant System.{0} -s -u {1}\n");
+  private static final MessageFormat nsPermFormat = new MessageFormat("grant Namespace.{0} -ns {1} -u {2}\n");
   private static final MessageFormat tablePermFormat = new MessageFormat("grant Table.{0} -t {1} -u {2}\n");
+  private static final MessageFormat userAuthsFormat = new MessageFormat("setauths -u {0} -s {1}\n");
 
   private static DefaultConfiguration defaultConfig;
   private static Map<String,String> siteConfig, systemConfig;
@@ -365,24 +378,45 @@ public class Admin {
     defaultConfig = AccumuloConfiguration.getDefaultConfiguration();
     siteConfig = connector.instanceOperations().getSiteConfiguration();
     systemConfig = connector.instanceOperations().getSystemConfiguration();
-    if (opts.userPermissions) {
+    if (opts.allConfiguration || opts.users) {
       localUsers = Lists.newArrayList(connector.securityOperations().listLocalUsers());
       Collections.sort(localUsers);
     }
+
     if (opts.allConfiguration) {
-      printSystemConfiguration(connector, outputDirectory, opts.userPermissions);
+      //print accumulo site
+      printSystemConfiguration(connector, outputDirectory);
+      //print namespaces
+      for (String namespace : connector.namespaceOperations().list()) {
+        printNameSpaceConfiguration(connector, namespace, outputDirectory);
+      }
+      //print tables
       SortedSet<String> tableNames = connector.tableOperations().list();
       for (String tableName : tableNames) {
-        printTableConfiguration(connector, tableName, outputDirectory, opts.userPermissions);
+        printTableConfiguration(connector, tableName, outputDirectory);
       }
-
+      //print users
+      for (String user : localUsers) {
+		printUserConfiguration(connector, user, outputDirectory);
+	  }
     } else {
       if (opts.systemConfiguration) {
-        printSystemConfiguration(connector, outputDirectory, opts.userPermissions);
+        printSystemConfiguration(connector, outputDirectory);
       }
-
-      for (String tableName : opts.tables) {
-        printTableConfiguration(connector, tableName, outputDirectory, opts.userPermissions);
+      if (opts.namespaceConfiguration) {
+        for (String namespace : connector.namespaceOperations().list()) {
+          printNameSpaceConfiguration(connector, namespace, outputDirectory);
+        }
+      }
+      if (opts.tables.size() > 0) {
+        for (String tableName : opts.tables) {
+          printTableConfiguration(connector, tableName, outputDirectory);
+        }
+      }
+      if (opts.users) {
+        for (String user : localUsers) {
+          printUserConfiguration(connector, user, outputDirectory);
+        }
       }
     }
   }
@@ -401,16 +435,66 @@ public class Admin {
     return defaultValue;
   }
 
-  private static void printSystemConfiguration(Connector connector, File outputDirectory, boolean userPermissions) throws IOException, AccumuloException,
+  private static void printNameSpaceConfiguration(Connector connector, String namespace, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+	  File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
+	  FileWriter nsWriter = new FileWriter(namespaceScript);
+	  nsWriter.write(createNsFormat.format(new String[] {namespace}));
+	  TreeMap<String,String> props = new TreeMap<String,String>();
+	  for (Entry<String,String> p : connector.namespaceOperations().getProperties(namespace)) {
+		  props.put(p.getKey(), p.getValue());
+	  }
+	  for (Entry<String,String> entry : props.entrySet()) {
+        String defaultValue = getDefaultConfigValue(entry.getKey());
+        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
+          if (!entry.getValue().equals(siteConfig.get(entry.getKey())) && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+            nsWriter.write(nsConfigFormat.format(new String[] {namespace, entry.getKey()+"="+entry.getValue()}));
+          }
+        }
+	  }
+	  nsWriter.close();
+  }
+
+  private static void printUserConfiguration(Connector connector, String user, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
+      File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
+      FileWriter userWriter = new FileWriter(userScript);
+      userWriter.write(createUserFormat.format(new String[] {user}));
+      Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
+      userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
+      for (SystemPermission sp : SystemPermission.values()) {
+        if (connector.securityOperations().hasSystemPermission(user, sp)) {
+          userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
+        }
+      }
+      for (String namespace : connector.namespaceOperations().list()) {
+        for (NamespacePermission np : NamespacePermission.values()) {
+          if (connector.securityOperations().hasNamespacePermission(user, namespace, np)) {
+            userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
+          }
+        }
+      }
+      for (String tableName : connector.tableOperations().list()) {
+        for (TablePermission perm : TablePermission.values()) {
+          if (connector.securityOperations().hasTablePermission(user, tableName, perm)) {
+            userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
+          }
+        }
+      }
+
+      userWriter.close();
+  }
+
+  private static void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException,
       AccumuloSecurityException {
     Configuration conf = new Configuration(false);
-    for (Entry<String,String> prop : siteConfig.entrySet()) {
+    TreeMap<String,String> site = new TreeMap<String,String>(siteConfig);
+    for (Entry<String,String> prop : site.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue) && !systemConfig.containsKey(prop.getKey())) {
         conf.set(prop.getKey(), prop.getValue());
       }
     }
-    for (Entry<String,String> prop : systemConfig.entrySet()) {
+    TreeMap<String,String> system = new TreeMap<String,String>(systemConfig);
+    for (Entry<String,String> prop : system.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue)) {
         conf.set(prop.getKey(), prop.getValue());
@@ -423,26 +507,18 @@ public class Admin {
     } finally {
       fos.close();
     }
-    if (userPermissions) {
-      File permScript = new File(outputDirectory, "system" + PERMISSION_FILE_SUFFIX);
-      FileWriter writer = new FileWriter(permScript);
-      for (String principal : localUsers) {
-        for (SystemPermission perm : SystemPermission.values()) {
-          if (connector.securityOperations().hasSystemPermission(principal, perm)) {
-            writer.write(sysPermFormat.format(new String[] {perm.name(), principal}));
-          }
-        }
-      }
-      writer.close();
-    }
   }
 
-  private static void printTableConfiguration(Connector connector, String tableName, File outputDirectory, boolean userPermissions) throws AccumuloException,
+  private static void printTableConfiguration(Connector connector, String tableName, File outputDirectory) throws AccumuloException,
       TableNotFoundException, IOException, AccumuloSecurityException {
-    Iterable<Entry<String,String>> tableConfig = connector.tableOperations().getProperties(tableName);
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);
-    for (Entry<String,String> prop : tableConfig) {
+    writer.write(createTableFormat.format(new String[] {tableName}));
+    TreeMap<String,String> props = new TreeMap<String,String>();
+    for (Entry<String,String> p : connector.tableOperations().getProperties(tableName)) {
+      props.put(p.getKey(), p.getValue());
+    }
+    for (Entry<String,String> prop : props.entrySet()) {
       if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
         String defaultValue = getDefaultConfigValue(prop.getKey());
         if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
@@ -453,18 +529,5 @@ public class Admin {
       }
     }
     writer.close();
-
-    if (userPermissions) {
-      File permScript = new File(outputDirectory, tableName + PERMISSION_FILE_SUFFIX);
-      FileWriter permWriter = new FileWriter(permScript);
-      for (String principal : localUsers) {
-        for (TablePermission perm : TablePermission.values()) {
-          if (connector.securityOperations().hasTablePermission(principal, tableName, perm)) {
-            permWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, principal}));
-          }
-        }
-      }
-      permWriter.close();
-    }
   }
 }

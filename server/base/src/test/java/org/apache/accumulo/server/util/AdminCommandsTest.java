@@ -68,7 +68,8 @@ public class AdminCommandsTest {
     assertEquals(0, cmd.tables.size());
     assertFalse(cmd.allConfiguration);
     assertFalse(cmd.systemConfiguration);
-    assertFalse(cmd.userPermissions);
+    assertFalse(cmd.namespaceConfiguration);
+    assertFalse(cmd.users);
     assertNull(cmd.directory);
   }
 
