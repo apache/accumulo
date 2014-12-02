@@ -47,10 +47,6 @@ public class MiniClusterHarness {
 
   /**
    * Create a MiniAccumuloCluster using the given Token as the credentials for the root user.
-   *
-   * @param token
-   * @return
-   * @throws Exception
    */
   public MiniAccumuloClusterImpl create(AuthenticationToken token) throws Exception {
     return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()), token);
