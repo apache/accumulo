@@ -148,7 +148,7 @@ public class BulkImporter {
             try {
               tabletsToAssignMapFileTo = findOverlappingTablets(ServerConfiguration.getSystemConfiguration(instance), fs, locator, mapFile, credentials);
             } catch (Exception ex) {
-              log.warn("Unable to find tablets that overlap file " + mapFile.toString());
+              log.warn("Unable to find tablets that overlap file " + mapFile.toString(), ex);
             }
             log.debug("Map file " + mapFile + " found to overlap " + tabletsToAssignMapFileTo.size() + " tablets");
             if (tabletsToAssignMapFileTo.size() == 0) {
@@ -214,7 +214,7 @@ public class BulkImporter {
               timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
-              log.warn("Exception finding overlapping tablets, will retry tablet " + ke);
+              log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
             }
           }
           
