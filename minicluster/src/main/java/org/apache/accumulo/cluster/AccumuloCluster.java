@@ -64,15 +64,11 @@ public interface AccumuloCluster {
 
   /**
    * Start the AccumuloCluster
-   *
-   * @throws Exception
    */
   void start() throws Exception;
 
   /**
    * Stop the AccumuloCluster
-   *
-   * @throws Exception
    */
   void stop() throws Exception;
 

@@ -201,8 +201,6 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
    * already exist.
    *
    * @return A directory which can be expected to exist on the Cluster's FileSystem
-   * @throws IOException
-   * @throws IllegalArgumentException
    */
   public String getUsableDir() throws IllegalArgumentException, IOException {
     if (ClusterType.MINI == getClusterType()) {
