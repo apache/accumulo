@@ -28,6 +28,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
@@ -37,6 +38,8 @@ import org.apache.accumulo.core.util.TBufferedSocket;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsFactory;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
@@ -70,7 +73,7 @@ public class TServerUtils {
 
   /**
    * Start a server, at the given port, or higher, if that port is not available.
-   * 
+   *
    * @param portHintProperty
    *          the port to attempt to open, can be zero, meaning "any available port"
    * @param processor
@@ -100,7 +103,7 @@ public class TServerUtils {
     if (portSearchProperty != null)
       portSearch = service.getConfiguration().getBoolean(portSearchProperty);
     // create the TimedProcessor outside the port search loop so we don't try to register the same metrics mbean more than once
-    TServerUtils.TimedProcessor timedProcessor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
+    TServerUtils.TimedProcessor timedProcessor = new TServerUtils.TimedProcessor(service.getConfiguration(), processor, serverName, threadName);
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
 
@@ -143,14 +146,15 @@ public class TServerUtils {
   public static class TimedProcessor implements TProcessor {
 
     final TProcessor other;
-    ThriftMetrics metrics = null;
+    Metrics metrics = null;
     long idleStart = 0;
 
-    TimedProcessor(TProcessor next, String serverName, String threadName) {
+    TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName, String threadName) {
       this.other = next;
       // Register the metrics MBean
+      MetricsFactory factory = new MetricsFactory(conf);
+      metrics = factory.createThriftMetrics(serverName, threadName);
       try {
-        metrics = new ThriftMetrics(serverName, threadName);
         metrics.register();
       } catch (Exception e) {
         log.error("Exception registering MBean with MBean Server", e);
@@ -280,9 +284,9 @@ public class TServerUtils {
     return new ServerAddress(createThreadPoolServer(transport, processor), address);
   }
 
-  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads, int numSTThreads,
+  public static ServerAddress startTServer(AccumuloConfiguration conf, HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads, int numSTThreads,
       long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
-    return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, numSTThreads,
+    return startTServer(address, new TimedProcessor(conf, processor, serverName, threadName), serverName, threadName, numThreads, numSTThreads,
         timeBetweenThreadChecks, maxMessageSize, sslParams, sslSocketTimeout);
   }
 

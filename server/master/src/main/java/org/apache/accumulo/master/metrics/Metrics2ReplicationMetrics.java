@@ -19,42 +19,72 @@ package org.apache.accumulo.master.metrics;
 import java.util.Map;
 import java.util.Set;
 
-import javax.management.ObjectName;
-
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.log4j.Logger;
+import org.apache.hadoop.metrics2.MetricsCollector;
+import org.apache.hadoop.metrics2.MetricsRecordBuilder;
+import org.apache.hadoop.metrics2.MetricsSource;
+import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.lib.Interns;
+import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 
 /**
- * JMX bindings to expose 'high-level' metrics about Replication
+ *
  */
-public class ReplicationMetrics extends AbstractMetricsImpl implements ReplicationMetricsMBean {
-  private static final Logger log = Logger.getLogger(ReplicationMetrics.class);
-  private static final String METRICS_PREFIX = "replication";
+public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
+  public static final String NAME = MASTER_NAME + ",sub=Replication", DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",
+      RECORD = "MasterReplication";
+  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers", MAX_REPLICATION_THREADS = "maxReplicationThreads";
 
-  private Master master;
-  private ObjectName objectName = null;
-  private ReplicationUtil replicationUtil;
+  private final Master master;
+  private final MetricsSystem system;
+  private final MetricsRegistry registry;
+  private final ReplicationUtil replicationUtil;
 
-  ReplicationMetrics(Master master) {
-    super();
+  Metrics2ReplicationMetrics(Master master, MetricsSystem system) {
     this.master = master;
-    try {
-      objectName = new ObjectName("accumulo.server.metrics:service=Replication Metrics,name=ReplicationMBean,instance=" + Thread.currentThread().getName());
-    } catch (Exception e) {
-      log.error("Exception setting MBean object name", e);
-    }
+    this.system = system;
+
+    registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     replicationUtil = new ReplicationUtil(master);
   }
 
-  @Override
-  public int getNumFilesPendingReplication() {
+  protected void snapshot() {
+    registry.add(PENDING_FILES, getNumFilesPendingReplication());
+    registry.add(NUM_PEERS, getNumConfiguredPeers());
+    registry.add(MAX_REPLICATION_THREADS, getMaxReplicationThreads());
+  }
 
+  @Override
+  public void getMetrics(MetricsCollector collector, boolean all) {
+    MetricsRecordBuilder builder = collector.addRecord(RECORD).setContext(CONTEXT);
+
+    snapshot();
+
+    registry.snapshot(builder, all);
+  }
+
+  @Override
+  public void register() throws Exception {
+    system.register(NAME, DESCRIPTION, this);
+  }
+
+  @Override
+  public void add(String name, long time) {
+    throw new UnsupportedOperationException("add() is not implemented");
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return true;
+  }
+
+  protected int getNumFilesPendingReplication() {
     if (TableState.ONLINE != Tables.getTableState(master.getInstance(), ReplicationTable.ID)) {
       return 0;
     }
@@ -87,24 +117,11 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
     return filesPending;
   }
 
-  @Override
-  public int getNumConfiguredPeers() {
+  protected int getNumConfiguredPeers() {
     return replicationUtil.getPeers().size();
   }
 
-  @Override
-  public int getMaxReplicationThreads() {
+  protected int getMaxReplicationThreads() {
     return replicationUtil.getMaxReplicationThreads(master.getMasterMonitorInfo());
   }
-
-  @Override
-  protected ObjectName getObjectName() {
-    return objectName;
-  }
-
-  @Override
-  protected String getMetricsPrefix() {
-    return METRICS_PREFIX;
-  }
-
 }

@@ -14,26 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.metrics;
+package org.apache.accumulo.tserver.metrics;
 
-public interface ThriftMetricsMBean extends ThriftMetricsKeys {
+/**
+ * Keys to identify which update metric is being altered
+ */
+public interface TabletServerUpdateMetricsKeys {
 
-  long getIdleCount();
-
-  long getIdleMinTime();
-
-  long getIdleMaxTime();
-
-  long getIdleAvgTime();
-
-  long getExecutionCount();
-
-  long getExecutionMinTime();
-
-  long getExecutionMaxTime();
-
-  long getExecutionAvgTime();
-
-  void reset();
+  static String PERMISSION_ERRORS = "permissionErrors";
+  static String UNKNOWN_TABLET_ERRORS = "unknownTabletErrors";
+  static String MUTATION_ARRAY_SIZE = "mutationArraysSize";
+  static String COMMIT_PREP = "commitPrep";
+  static String CONSTRAINT_VIOLATIONS = "constraintViolations";
+  static String WALOG_WRITE_TIME = "waLogWriteTime";
+  static String COMMIT_TIME = "commitTime";
 
 }

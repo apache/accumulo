@@ -21,14 +21,14 @@ import javax.management.ObjectName;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 
 public class TabletServerScanMetrics extends AbstractMetricsImpl implements TabletServerScanMetricsMBean {
-  
+
   static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(TabletServerScanMetrics.class);
-  
+
   public static final String METRICS_PREFIX = "tserver.scan";
-  
+
   static ObjectName OBJECT_NAME = null;
-  
-  public TabletServerScanMetrics() {
+
+  TabletServerScanMetrics() {
     super();
     reset();
     try {
@@ -37,52 +37,61 @@ public class TabletServerScanMetrics extends AbstractMetricsImpl implements Tabl
       log.error("Exception setting MBean object name", e);
     }
   }
-  
+
   @Override
   protected ObjectName getObjectName() {
     return OBJECT_NAME;
   }
-  
+
   @Override
   protected String getMetricsPrefix() {
     return METRICS_PREFIX;
   }
-  
+
+  @Override
   public long getResultAvgSize() {
-    return this.getMetricAvg(resultSize);
+    return this.getMetricAvg(RESULT_SIZE);
   }
-  
+
+  @Override
   public long getResultCount() {
-    return this.getMetricCount(resultSize);
+    return this.getMetricCount(RESULT_SIZE);
   }
-  
+
+  @Override
   public long getResultMaxSize() {
-    return this.getMetricMax(resultSize);
+    return this.getMetricMax(RESULT_SIZE);
   }
-  
+
+  @Override
   public long getResultMinSize() {
-    return this.getMetricMin(resultSize);
+    return this.getMetricMin(RESULT_SIZE);
   }
-  
+
+  @Override
   public long getScanAvgTime() {
-    return this.getMetricAvg(scan);
+    return this.getMetricAvg(SCAN);
   }
-  
+
+  @Override
   public long getScanCount() {
-    return this.getMetricCount(scan);
+    return this.getMetricCount(SCAN);
   }
-  
+
+  @Override
   public long getScanMaxTime() {
-    return this.getMetricMax(scan);
+    return this.getMetricMax(SCAN);
   }
-  
+
+  @Override
   public long getScanMinTime() {
-    return this.getMetricMin(scan);
+    return this.getMetricMin(SCAN);
   }
-  
+
+  @Override
   public void reset() {
-    createMetric(scan);
-    createMetric(resultSize);
+    createMetric(SCAN);
+    createMetric(RESULT_SIZE);
   }
-  
+
 }

@@ -82,7 +82,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.master.metrics.ReplicationMetrics;
+import org.apache.accumulo.master.metrics.MasterMetricsFactory;
 import org.apache.accumulo.master.recovery.RecoveryManager;
 import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
@@ -115,6 +115,7 @@ import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -1126,11 +1127,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
+    // Register replication metrics
+    MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
+    Metrics replicationMetrics = factory.createReplicationMetrics();
     try {
-      ReplicationMetrics beanImpl = new ReplicationMetrics(this);
-      beanImpl.register();
+      replicationMetrics.register();
     } catch (Exception e) {
-      log.error("Error registering Replication metrics with JMX", e);
+      log.error("Failed to register replication metrics", e);
     }
 
     while (clientService.isServing()) {

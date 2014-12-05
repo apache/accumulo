@@ -21,14 +21,14 @@ import javax.management.ObjectName;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 
 public class TabletServerUpdateMetrics extends AbstractMetricsImpl implements TabletServerUpdateMetricsMBean {
-  
+
   static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(TabletServerUpdateMetrics.class);
-  
+
   private static final String METRICS_PREFIX = "tserver.update";
-  
+
   private static ObjectName OBJECT_NAME = null;
-  
-  public TabletServerUpdateMetrics() {
+
+  TabletServerUpdateMetrics() {
     super();
     reset();
     try {
@@ -38,97 +38,116 @@ public class TabletServerUpdateMetrics extends AbstractMetricsImpl implements Ta
       log.error("Exception setting MBean object name", e);
     }
   }
-  
+
   @Override
   protected ObjectName getObjectName() {
     return OBJECT_NAME;
   }
-  
+
   @Override
   protected String getMetricsPrefix() {
     return METRICS_PREFIX;
   }
-  
+
+  @Override
   public long getPermissionErrorCount() {
-    return this.getMetricCount(permissionErrors);
+    return this.getMetricCount(PERMISSION_ERRORS);
   }
-  
+
+  @Override
   public long getUnknownTabletErrorCount() {
-    return this.getMetricCount(unknownTabletErrors);
+    return this.getMetricCount(UNKNOWN_TABLET_ERRORS);
   }
-  
+
+  @Override
   public long getMutationArrayAvgSize() {
-    return this.getMetricAvg(mutationArraySize);
+    return this.getMetricAvg(MUTATION_ARRAY_SIZE);
   }
-  
+
+  @Override
   public long getMutationArrayMinSize() {
-    return this.getMetricMin(mutationArraySize);
+    return this.getMetricMin(MUTATION_ARRAY_SIZE);
   }
-  
+
+  @Override
   public long getMutationArrayMaxSize() {
-    return this.getMetricMax(mutationArraySize);
+    return this.getMetricMax(MUTATION_ARRAY_SIZE);
   }
-  
+
+  @Override
   public long getCommitPrepCount() {
-    return this.getMetricCount(commitPrep);
+    return this.getMetricCount(COMMIT_PREP);
   }
-  
+
+  @Override
   public long getCommitPrepMinTime() {
-    return this.getMetricMin(commitPrep);
+    return this.getMetricMin(COMMIT_PREP);
   }
-  
+
+  @Override
   public long getCommitPrepMaxTime() {
-    return this.getMetricMax(commitPrep);
+    return this.getMetricMax(COMMIT_PREP);
   }
-  
+
+  @Override
   public long getCommitPrepAvgTime() {
-    return this.getMetricAvg(commitPrep);
+    return this.getMetricAvg(COMMIT_PREP);
   }
-  
+
+  @Override
   public long getConstraintViolationCount() {
-    return this.getMetricCount(constraintViolations);
+    return this.getMetricCount(CONSTRAINT_VIOLATIONS);
   }
-  
+
+  @Override
   public long getWALogWriteCount() {
-    return this.getMetricCount(waLogWriteTime);
+    return this.getMetricCount(WALOG_WRITE_TIME);
   }
-  
+
+  @Override
   public long getWALogWriteMinTime() {
-    return this.getMetricMin(waLogWriteTime);
+    return this.getMetricMin(WALOG_WRITE_TIME);
   }
-  
+
+  @Override
   public long getWALogWriteMaxTime() {
-    return this.getMetricMax(waLogWriteTime);
+    return this.getMetricMax(WALOG_WRITE_TIME);
   }
-  
+
+  @Override
   public long getWALogWriteAvgTime() {
-    return this.getMetricAvg(waLogWriteTime);
+    return this.getMetricAvg(WALOG_WRITE_TIME);
   }
-  
+
+  @Override
   public long getCommitCount() {
-    return this.getMetricCount(commitTime);
+    return this.getMetricCount(COMMIT_TIME);
   }
-  
+
+  @Override
   public long getCommitMinTime() {
-    return this.getMetricMin(commitTime);
+    return this.getMetricMin(COMMIT_TIME);
   }
-  
+
+  @Override
   public long getCommitMaxTime() {
-    return this.getMetricMax(commitTime);
+    return this.getMetricMax(COMMIT_TIME);
   }
-  
+
+  @Override
   public long getCommitAvgTime() {
-    return this.getMetricAvg(commitTime);
+    return this.getMetricAvg(COMMIT_TIME);
   }
-  
+
+  @Override
   public void reset() {
-    createMetric(permissionErrors);
-    createMetric(unknownTabletErrors);
-    createMetric(mutationArraySize);
-    createMetric(commitPrep);
-    createMetric(constraintViolations);
-    createMetric(waLogWriteTime);
-    createMetric(commitTime);
+    createMetric(PERMISSION_ERRORS);
+    createMetric(UNKNOWN_TABLET_ERRORS);
+    createMetric(MUTATION_ARRAY_SIZE);
+    createMetric(COMMIT_PREP);
+    createMetric(CONSTRAINT_VIOLATIONS);
+    createMetric(WALOG_WRITE_TIME);
+    createMetric(COMMIT_TIME);
   }
-  
+
 }

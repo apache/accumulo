@@ -36,87 +36,87 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.time.DateUtils;
 
-public abstract class AbstractMetricsImpl {
-  
+public abstract class AbstractMetricsImpl implements Metrics {
+
   public class Metric {
-    
+
     private long count = 0;
     private long avg = 0;
     private long min = 0;
     private long max = 0;
-    
+
     public long getCount() {
       return count;
     }
-    
+
     public long getAvg() {
       return avg;
     }
-    
+
     public long getMin() {
       return min;
     }
-    
+
     public long getMax() {
       return max;
     }
-    
+
     public void incCount() {
       count++;
     }
-    
+
     public void addAvg(long a) {
       if (a < 0)
         return;
       avg = (long) ((avg * .8) + (a * .2));
     }
-    
+
     public void addMin(long a) {
       if (a < 0)
         return;
       min = Math.min(min, a);
     }
-    
+
     public void addMax(long a) {
       if (a < 0)
         return;
       max = Math.max(max, a);
     }
-    
+
     @Override
     public String toString() {
       return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("count", count).append("average", avg).append("minimum", min).append("maximum", max).toString();
     }
-    
+
   }
-  
+
   static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(AbstractMetricsImpl.class);
-  
+
   private static ConcurrentHashMap<String,Metric> registry = new ConcurrentHashMap<String,Metric>();
-  
+
   private boolean currentlyLogging = false;
-  
+
   private File logDir = null;
-  
+
   private String metricsPrefix = null;
-  
+
   private Date today = new Date();
-  
+
   private File logFile = null;
-  
+
   private Writer logWriter = null;
-  
+
   private SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-  
+
   private SimpleDateFormat logFormatter = new SimpleDateFormat("yyyyMMddhhmmssz");
-  
+
   private MetricsConfiguration config = null;
-  
+
   public AbstractMetricsImpl() {
     this.metricsPrefix = getMetricsPrefix();
     config = new MetricsConfiguration(metricsPrefix);
   }
-  
+
   /**
    * Registers a StandardMBean with the MBean Server
    */
@@ -126,13 +126,14 @@ public abstract class AbstractMetricsImpl {
     if (null == getObjectName())
       throw new IllegalArgumentException("MBean object name must be set.");
     mbs.registerMBean(mbean, getObjectName());
-    
+
     setupLogging();
   }
-  
+
   /**
    * Registers this MBean with the MBean Server
    */
+  @Override
   public void register() throws Exception {
     // Register this object with the MBeanServer
     MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -141,31 +142,31 @@ public abstract class AbstractMetricsImpl {
     mbs.registerMBean(this, getObjectName());
     setupLogging();
   }
-  
+
   public void createMetric(String name) {
     registry.put(name, new Metric());
   }
-  
+
   public Metric getMetric(String name) {
     return registry.get(name);
   }
-  
+
   public long getMetricCount(String name) {
     return registry.get(name).getCount();
   }
-  
+
   public long getMetricAvg(String name) {
     return registry.get(name).getAvg();
   }
-  
+
   public long getMetricMin(String name) {
     return registry.get(name).getMin();
   }
-  
+
   public long getMetricMax(String name) {
     return registry.get(name).getMax();
   }
-  
+
   private void setupLogging() throws IOException {
     if (null == config.getMetricsConfiguration())
       return;
@@ -176,7 +177,7 @@ public abstract class AbstractMetricsImpl {
       if (null != mDir) {
         File dir = new File(mDir);
         if (!dir.isDirectory())
-          if (!dir.mkdir()) 
+          if (!dir.mkdir())
             log.warn("Could not create log directory: " + dir);
         logDir = dir;
         // Create new log file
@@ -185,7 +186,7 @@ public abstract class AbstractMetricsImpl {
       currentlyLogging = true;
     }
   }
-  
+
   private void startNewLog() throws IOException {
     if (null != logWriter) {
       logWriter.flush();
@@ -201,7 +202,7 @@ public abstract class AbstractMetricsImpl {
     }
     logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), UTF_8);
   }
-  
+
   private void writeToLog(String name) throws IOException {
     if (null == logWriter)
       return;
@@ -213,7 +214,8 @@ public abstract class AbstractMetricsImpl {
     }
     logWriter.append(logFormatter.format(now)).append(" Metric: ").append(name).append(": ").append(registry.get(name).toString()).append("\n");
   }
-  
+
+  @Override
   public void add(String name, long time) {
     if (isEnabled()) {
       registry.get(name).incCount();
@@ -248,15 +250,16 @@ public abstract class AbstractMetricsImpl {
       }
     }
   }
-  
+
+  @Override
   public boolean isEnabled() {
     return config.isEnabled();
   }
-  
+
   protected abstract ObjectName getObjectName();
-  
+
   protected abstract String getMetricsPrefix();
-  
+
   @Override
   protected void finalize() {
     if (null != logWriter) {
@@ -270,5 +273,5 @@ public abstract class AbstractMetricsImpl {
     }
     logFile = null;
   }
-  
+
 }

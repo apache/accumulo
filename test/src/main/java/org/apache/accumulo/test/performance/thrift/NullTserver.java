@@ -247,16 +247,16 @@ public class NullTserver {
     Opts opts = new Opts();
     opts.parseArgs(NullTserver.class.getName(), args);
 
-    TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())), watcher);
-    Processor<Iface> processor = new Processor<Iface>(tch);
-    TServerUtils.startTServer(HostAndPort.fromParts("0.0.0.0", opts.port), processor, "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, -1);
-
-    HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
-
     // modify metadata
     ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(opts.iname).withZkHosts(opts.keepers));
     AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(zki));
+
+    TransactionWatcher watcher = new TransactionWatcher();
+    ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())), watcher);
+    Processor<Iface> processor = new Processor<Iface>(tch);
+    TServerUtils.startTServer(context.getConfiguration(), HostAndPort.fromParts("0.0.0.0", opts.port), processor, "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, -1);
+
+    HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
     String tableId = Tables.getTableId(zki, opts.tableName);
 

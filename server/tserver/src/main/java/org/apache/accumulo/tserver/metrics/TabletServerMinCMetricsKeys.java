@@ -14,26 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.metrics;
+package org.apache.accumulo.tserver.metrics;
 
-public interface ThriftMetricsMBean extends ThriftMetricsKeys {
+/**
+ * Keys to reference minor compaction metrics
+ */
+public interface TabletServerMinCMetricsKeys {
 
-  long getIdleCount();
-
-  long getIdleMinTime();
-
-  long getIdleMaxTime();
-
-  long getIdleAvgTime();
-
-  long getExecutionCount();
-
-  long getExecutionMinTime();
-
-  long getExecutionMaxTime();
-
-  long getExecutionAvgTime();
-
-  void reset();
+  String MINC = "minc";
+  String QUEUE = "queue";
 
 }

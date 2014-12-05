@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -49,9 +52,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.management.StandardMBean;
-
-import com.google.common.net.HostAndPort;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -167,6 +167,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -200,9 +201,7 @@ import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
-import org.apache.accumulo.tserver.metrics.TabletServerMBean;
-import org.apache.accumulo.tserver.metrics.TabletServerMBeanImpl;
-import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerMetricsFactory;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
@@ -239,8 +238,7 @@ import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
+import com.google.common.net.HostAndPort;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final Logger log = Logger.getLogger(TabletServer.class);
@@ -255,9 +253,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private final TabletServerLogger logger;
 
-  private final TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
+  private final TabletServerMetricsFactory metricsFactory;
+  private final Metrics updateMetrics;
+  private final Metrics scanMetrics;
+  private final Metrics mincMetrics;
 
-  public TabletServerMinCMetrics getMinCMetrics() {
+  public Metrics getMinCMetrics() {
     return mincMetrics;
   }
 
@@ -338,13 +339,15 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter);
     this.resourceManager = new TabletServerResourceManager(this, fs);
     this.security = AuditedSecurityOperation.getInstance(this);
+
+    metricsFactory = new TabletServerMetricsFactory(aconf);
+    updateMetrics = metricsFactory.createUpdateMetrics();
+    scanMetrics = metricsFactory.createScanMetrics();
+    mincMetrics = metricsFactory.createMincMetrics();
   }
 
   private final SessionManager sessionManager;
 
-  private final TabletServerUpdateMetrics updateMetrics = new TabletServerUpdateMetrics();
-
-  private final TabletServerScanMetrics scanMetrics = new TabletServerScanMetrics();
 
   private final WriteTracker writeTracker = new WriteTracker();
 
@@ -352,19 +355,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
-  
+
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
     ThriftClientHandler() {
       super(TabletServer.this, watcher, fs);
       log.debug(ThriftClientHandler.class.getName() + " created");
-      // Register the metrics MBean
-      try {
-        updateMetrics.register();
-        scanMetrics.register();
-      } catch (Exception e) {
-        log.error("Exception registering MBean with MBean Server", e);
-      }
     }
 
     @Override
@@ -538,8 +534,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         log.debug(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ", TServerUtils.clientAddress.get(), ss.extent.getTableId()
             .toString(), ss.entriesReturned, (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
         if (scanMetrics.isEnabled()) {
-          scanMetrics.add(TabletServerScanMetrics.scan, t2 - ss.startTime);
-          scanMetrics.add(TabletServerScanMetrics.resultSize, ss.entriesReturned);
+          scanMetrics.add(TabletServerScanMetrics.SCAN, t2 - ss.startTime);
+          scanMetrics.add(TabletServerScanMetrics.RESULT_SIZE, ss.entriesReturned);
         }
       }
     }
@@ -661,7 +657,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Durability durability = DurabilityImpl.fromThrift(tdurabilty);
       security.authenticateUser(credentials, credentials);
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
+        updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
 
       UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials), credentials, durability);
       long sid = sessionManager.createSession(us, false);
@@ -693,7 +689,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             // failures
             us.failures.put(keyExtent, 0l);
             if (updateMetrics.isEnabled())
-              updateMetrics.add(TabletServerUpdateMetrics.unknownTabletErrors, 0);
+              updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
           }
         } else {
           log.warn("Denying access to table " + keyExtent.getTableId() + " for user " + us.getUser());
@@ -702,7 +698,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           us.currentTablet = null;
           us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
           if (updateMetrics.isEnabled())
-            updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
+            updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
           return;
         }
       } catch (ThriftSecurityException e) {
@@ -712,7 +708,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         us.currentTablet = null;
         us.authFailures.put(keyExtent, e.getCode());
         if (updateMetrics.isEnabled())
-          updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
+          updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
         return;
       }
     }
@@ -774,7 +770,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           if (mutations.size() > 0) {
             try {
               if (updateMetrics.isEnabled())
-                updateMetrics.add(TabletServerUpdateMetrics.mutationArraySize, mutations.size());
+                updateMetrics.add(TabletServerUpdateMetrics.MUTATION_ARRAY_SIZE, mutations.size());
 
               CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
               if (commitSession == null) {
@@ -790,7 +786,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             } catch (TConstraintViolationException e) {
               us.violations.add(e.getViolations());
               if (updateMetrics.isEnabled())
-                updateMetrics.add(TabletServerUpdateMetrics.constraintViolations, 0);
+                updateMetrics.add(TabletServerUpdateMetrics.CONSTRAINT_VIOLATIONS, 0);
 
               if (e.getNonViolators().size() > 0) {
                 // only log and commit mutations if there were some
@@ -893,17 +889,17 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     private void updateWalogWriteTime(long time) {
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.waLogWriteTime, time);
+        updateMetrics.add(TabletServerUpdateMetrics.WALOG_WRITE_TIME, time);
     }
 
     private void updateAvgCommitTime(long time, int size) {
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.commitTime, (long) ((time) / (double) size));
+        updateMetrics.add(TabletServerUpdateMetrics.COMMIT_TIME, (long) ((time) / (double) size));
     }
 
     private void updateAvgPrepTime(long time, int size) {
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.commitPrep, (long) ((time) / (double) size));
+        updateMetrics.add(TabletServerUpdateMetrics.COMMIT_PREP, (long) ((time) / (double) size));
     }
 
     @Override
@@ -2208,7 +2204,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       recoveryLock.unlock();
     }
   }
-  
+
   public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
     if (!this.onlineTablets.containsKey(extent)) {
       log.info("Not adding " + logs.size() + " logs for extent " + extent + " as alias " + id + " tablet is offline");
@@ -2380,6 +2376,18 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       throw new RuntimeException(e);
     }
 
+    Metrics tserverMetrics = metricsFactory.createTabletServerMetrics(this);
+
+    // Register MBeans
+    try {
+      tserverMetrics.register();
+      mincMetrics.register();
+      scanMetrics.register();
+      updateMetrics.register();
+    } catch (Exception e) {
+      log.error("Error registering with JMX", e);
+    }
+
     try {
       clientAddress = startTabletClientService();
     } catch (UnknownHostException e1) {
@@ -2428,16 +2436,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     };
     SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
-
-    try {
-      // Do this because interface not in same package.
-      TabletServerMBeanImpl beanImpl = new TabletServerMBeanImpl(this);
-      StandardMBean mbean = new StandardMBean(beanImpl, TabletServerMBean.class, false);
-      beanImpl.register(mbean);
-      mincMetrics.register();
-    } catch (Exception e) {
-      log.error("Error registering with JMX", e);
-    }
 
     String masterHost;
     while (!serverStopRequested) {

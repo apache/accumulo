@@ -18,31 +18,39 @@ package org.apache.accumulo.tserver.metrics;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.StandardMBean;
 
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.log4j.Logger;
 
 public class TabletServerMBeanImpl extends AbstractMetricsImpl implements TabletServerMBean {
-
+  private static final Logger log = Logger.getLogger(TabletServerMBeanImpl.class);
   private static final String METRICS_PREFIX = "tserver";
   private static ObjectName OBJECT_NAME = null;
 
-  final TabletServer server;
-  
-  public TabletServerMBeanImpl(TabletServer server) throws MalformedObjectNameException {
-    this.server = server;
-    OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());
+  private final TabletServerMetricsUtil util;
+
+  TabletServerMBeanImpl(TabletServer server) {
+    util = new TabletServerMetricsUtil(server);
+    try {
+      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());
+    } catch (MalformedObjectNameException e) {
+      log.error("Exception setting MBean object name", e);
+    }
   }
-  
+
+  @Override
+  public void register() throws Exception {
+    // Do this because interface not in same package.
+    StandardMBean mbean = new StandardMBean(this, TabletServerMBean.class, false);
+    register(mbean);
+  }
+
   @Override
   public long getEntries() {
     if (isEnabled()) {
-      long result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        result += tablet.getNumEntries();
-      }
-      return result;
+      return util.getEntries();
     }
     return 0;
   }
@@ -50,11 +58,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public long getEntriesInMemory() {
     if (isEnabled()) {
-      long result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        result += tablet.getNumEntriesInMemory();
-      }
-      return result;
+      return util.getEntriesInMemory();
     }
     return 0;
   }
@@ -62,11 +66,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public long getIngest() {
     if (isEnabled()) {
-      long result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        result += tablet.getNumEntriesInMemory();
-      }
-      return result;
+      return util.getIngest();
     }
     return 0;
   }
@@ -74,12 +74,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public int getMajorCompactions() {
     if (isEnabled()) {
-      int result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        if (tablet.isMajorCompactionRunning())
-          result++;
-      }
-      return result;
+      return util.getMajorCompactions();
     }
     return 0;
   }
@@ -87,12 +82,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public int getMajorCompactionsQueued() {
     if (isEnabled()) {
-      int result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        if (tablet.isMajorCompactionQueued())
-          result++;
-      }
-      return result;
+      return util.getMajorCompactionsQueued();
     }
     return 0;
   }
@@ -100,12 +90,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public int getMinorCompactions() {
     if (isEnabled()) {
-      int result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        if (tablet.isMinorCompactionRunning())
-          result++;
-      }
-      return result;
+      return util.getMinorCompactions();
     }
     return 0;
   }
@@ -113,12 +98,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public int getMinorCompactionsQueued() {
     if (isEnabled()) {
-      int result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        if (tablet.isMinorCompactionQueued())
-          result++;
-      }
-      return result;
+      return util.getMinorCompactionsQueued();
     }
     return 0;
   }
@@ -126,25 +106,21 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public int getOnlineCount() {
     if (isEnabled())
-      return server.getOnlineTablets().size();
+      return util.getOnlineCount();
     return 0;
   }
 
   @Override
   public int getOpeningCount() {
     if (isEnabled())
-      return server.getOpeningCount();
+      return util.getOpeningCount();
     return 0;
   }
 
   @Override
   public long getQueries() {
     if (isEnabled()) {
-      long result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        result += tablet.totalQueries();
-      }
-      return result;
+      return util.getQueries();
     }
     return 0;
   }
@@ -152,43 +128,35 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   @Override
   public int getUnopenedCount() {
     if (isEnabled())
-      return server.getUnopenedCount();
+      return util.getUnopenedCount();
     return 0;
   }
 
   @Override
   public String getName() {
     if (isEnabled())
-      return server.getClientAddressString();
+      return util.getName();
     return "";
   }
 
   @Override
   public long getTotalMinorCompactions() {
     if (isEnabled())
-      return server.getTotalMinorCompactions();
+      return util.getTotalMinorCompactions();
     return 0;
   }
 
   @Override
   public double getHoldTime() {
     if (isEnabled())
-      return server.getHoldTimeMillis() / 1000.;
+      return util.getHoldTime();
     return 0;
   }
 
   @Override
   public double getAverageFilesPerTablet() {
     if (isEnabled()) {
-      int count = 0;
-      long result = 0;
-      for (Tablet tablet : server.getOnlineTablets()) {
-        result += tablet.getDatafiles().size();
-        count++;
-      }
-      if (count == 0)
-        return 0;
-      return result / (double) count;
+      return util.getAverageFilesPerTablet();
     }
     return 0;
   }

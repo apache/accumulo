@@ -16,24 +16,12 @@
  */
 package org.apache.accumulo.server.metrics;
 
-public interface ThriftMetricsMBean extends ThriftMetricsKeys {
+/**
+ *
+ */
+public interface ThriftMetricsKeys {
 
-  long getIdleCount();
-
-  long getIdleMinTime();
-
-  long getIdleMaxTime();
-
-  long getIdleAvgTime();
-
-  long getExecutionCount();
-
-  long getExecutionMinTime();
-
-  long getExecutionMaxTime();
-
-  long getExecutionAvgTime();
-
-  void reset();
+  static String idle = "idle";
+  static String execute = "execute";
 
 }

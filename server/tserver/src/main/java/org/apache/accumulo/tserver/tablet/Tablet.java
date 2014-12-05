@@ -98,6 +98,7 @@ import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -972,13 +973,13 @@ public class Tablet implements TabletCommitter {
       if (!failed) {
         lastMinorCompactionFinishTime = System.currentTimeMillis();
       }
-      TabletServerMinCMetrics minCMetrics = getTabletServer().getMinCMetrics();
+      Metrics minCMetrics = getTabletServer().getMinCMetrics();
       if (minCMetrics.isEnabled())
-        minCMetrics.add(TabletServerMinCMetrics.minc, (lastMinorCompactionFinishTime - start));
+        minCMetrics.add(TabletServerMinCMetrics.MINC, (lastMinorCompactionFinishTime - start));
       if (hasQueueTime) {
         timer.updateTime(Operation.MINOR, queued, start, count, failed);
         if (minCMetrics.isEnabled())
-          minCMetrics.add(TabletServerMinCMetrics.queue, (start - queued));
+          minCMetrics.add(TabletServerMinCMetrics.QUEUE, (start - queued));
       } else
         timer.updateTime(Operation.MINOR, start, count, failed);
     }

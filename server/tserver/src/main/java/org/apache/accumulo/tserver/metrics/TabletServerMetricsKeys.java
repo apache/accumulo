@@ -14,26 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.metrics;
+package org.apache.accumulo.tserver.metrics;
 
-public interface ThriftMetricsMBean extends ThriftMetricsKeys {
+/**
+ * Keys for general tablet server metrics
+ */
+public interface TabletServerMetricsKeys {
 
-  long getIdleCount();
-
-  long getIdleMinTime();
-
-  long getIdleMaxTime();
-
-  long getIdleAvgTime();
-
-  long getExecutionCount();
-
-  long getExecutionMinTime();
-
-  long getExecutionMaxTime();
-
-  long getExecutionAvgTime();
-
-  void reset();
+  String ENTRIES = "entries";
+  String ENTRIES_IN_MEM = "entriesInMem";
+  String HOLD_TIME = "holdTime";
+  String FILES_PER_TABLET = "filesPerTablet";
+  String ACTIVE_MAJCS = "activeMajCs";
+  String QUEUED_MAJCS = "queuedMajCs";
+  String ACTIVE_MINCS = "activeMinCs";
+  String QUEUED_MINCS = "queuedMinCs";
+  String ONLINE_TABLETS = "onlineTablets";
+  String OPENING_TABLETS = "openingTablets";
+  String UNOPENED_TABLETS = "unopenedTablets";
+  String QUERIES = "queries";
+  String TOTAL_MINCS = "totalMinCs";
 
 }
