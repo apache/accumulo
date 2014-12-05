@@ -20,20 +20,21 @@ import java.util.Date;
 
 /**
  * A lexicoder for date objects. It preserves the native Java sort order for Date.
+ *
  * @since 1.6.0
  */
 public class DateLexicoder implements Lexicoder<Date> {
-  
-  private ULongLexicoder longEncoder = new ULongLexicoder();
-  
+
+  private LongLexicoder longEncoder = new LongLexicoder();
+
   @Override
   public byte[] encode(Date data) {
     return longEncoder.encode(data.getTime());
   }
-  
+
   @Override
   public Date decode(byte[] data) {
     return new Date(longEncoder.decode(data));
   }
-  
+
 }
