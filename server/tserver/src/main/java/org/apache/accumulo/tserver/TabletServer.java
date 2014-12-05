@@ -166,6 +166,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -1643,19 +1644,19 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             tabletsToCompact.add(tablet);
       }
 
-      Long compactionId = null;
+      Pair<Long,UserCompactionConfig> compactionInfo = null;
 
       for (Tablet tablet : tabletsToCompact) {
         // all for the same table id, so only need to read
         // compaction id once
-        if (compactionId == null)
+        if (compactionInfo == null)
           try {
-            compactionId = tablet.getCompactionID().getFirst();
+            compactionInfo = tablet.getCompactionID();
           } catch (NoNodeException e) {
             log.info("Asked to compact table with no compaction id " + ke + " " + e.getMessage());
             return;
           }
-        tablet.compactAll(compactionId);
+        tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
       }
 
     }

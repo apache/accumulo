@@ -54,8 +54,9 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.test.UserCompactionStrategyIT.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
@@ -725,7 +726,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     // make two more files:
     ts.exec("insert m 1 2 3");
     ts.exec("flush -w");
-    ts.exec("insert n 1 2 3");
+    ts.exec("insert n 1 2 v901");
     ts.exec("flush -w");
     List<String> oldFiles = getFiles(tableId);
 
@@ -740,6 +741,14 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("merge --all -t " + table);
     ts.exec("compact -w");
     assertEquals(1, countFiles(tableId));
+
+    // test compaction strategy
+    ts.exec("insert z 1 2 v900");
+    ts.exec("compact -w -s " + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A");
+    assertEquals(1, countFiles(tableId));
+    ts.exec("scan", true, "v900", true);
+    ts.exec("scan", true, "v901", false);
+
     ts.exec("deletetable -f " + table);
   }
 

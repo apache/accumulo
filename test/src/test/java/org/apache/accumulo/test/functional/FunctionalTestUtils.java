@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertFalse;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,7 +47,18 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import static org.junit.Assert.assertFalse;
+
 public class FunctionalTestUtils {
+
+  public static int countRFiles(Connector c, String tableName) throws Exception {
+    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    String tableId = c.tableOperations().tableIdMap().get(tableName);
+    scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+
+    return count(scanner);
+  }
 
   static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);

@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -114,6 +116,9 @@ public class TableOperationsHelperTest {
     @Override
     public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
         TableNotFoundException, AccumuloException {}
+
+    @Override
+    public void compact(String tableName, CompactionConfig config) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
 
     @Override
     public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}

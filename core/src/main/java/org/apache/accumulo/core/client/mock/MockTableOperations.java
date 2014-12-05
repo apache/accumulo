@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -399,6 +400,18 @@ class MockTableOperations extends TableOperationsHelper {
       TableNotFoundException, AccumuloException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
+
+    if (iterators != null && iterators.size() > 0)
+      throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void compact(String tableName, CompactionConfig config) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
+
+    if (config.getIterators().size() > 0 || config.getCompactionStrategy() != null)
+      throw new UnsupportedOperationException("Mock does not support iterators or compaction strategies for compactions");
   }
 
   @Override

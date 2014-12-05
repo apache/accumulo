@@ -17,28 +17,27 @@
 package org.apache.accumulo.shell.commands;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.io.Text;
 
 public class CompactCommand extends TableOperation {
-  private Option noFlushOption, waitOpt, profileOpt, cancelOpt;
-  private boolean flush;
-  private Text startRow;
-  private Text endRow;
-  private List<IteratorSetting> iterators;
+  private Option noFlushOption, waitOpt, profileOpt, cancelOpt, strategyOpt, strategyConfigOpt;
+
+  private CompactionConfig compactionConfig = null;
   
   boolean override = false;
-  private boolean wait;
   
   private boolean cancel = false;
 
@@ -59,13 +58,13 @@ public class CompactCommand extends TableOperation {
       }
     } else {
       try {
-        if (wait) {
+        if (compactionConfig.getWait()) {
           Shell.log.info("Compacting table ...");
         }
         
-        shellState.getConnector().tableOperations().compact(tableName, startRow, endRow, iterators, flush, wait);
+        shellState.getConnector().tableOperations().compact(tableName, compactionConfig);
         
-        Shell.log.info("Compaction of table " + tableName + " " + (wait ? "completed" : "started") + " for given range");
+        Shell.log.info("Compaction of table " + tableName + " " + (compactionConfig.getWait() ? "completed" : "started") + " for given range");
       } catch (Exception ex) {
         throw new AccumuloException(ex);
       }
@@ -85,10 +84,12 @@ public class CompactCommand extends TableOperation {
       cancel = false;
     }
 
-    flush = !cl.hasOption(noFlushOption.getOpt());
-    startRow = OptUtil.getStartRow(cl);
-    endRow = OptUtil.getEndRow(cl);
-    wait = cl.hasOption(waitOpt.getOpt());
+    compactionConfig = new CompactionConfig();
+
+    compactionConfig.setFlush(!cl.hasOption(noFlushOption.getOpt()));
+    compactionConfig.setWait(cl.hasOption(waitOpt.getOpt()));
+    compactionConfig.setStartRow(OptUtil.getStartRow(cl));
+    compactionConfig.setEndRow(OptUtil.getEndRow(cl));
     
     if (cl.hasOption(profileOpt.getOpt())) {
       List<IteratorSetting> iterators = shellState.iteratorProfiles.get(cl.getOptionValue(profileOpt.getOpt()));
@@ -97,11 +98,24 @@ public class CompactCommand extends TableOperation {
         return -1;
       }
       
-      this.iterators = new ArrayList<IteratorSetting>(iterators);
-    } else {
-      this.iterators = Collections.emptyList();
+      compactionConfig.setIterators(new ArrayList<>(iterators));
     }
 
+    if (cl.hasOption(strategyOpt.getOpt())) {
+      CompactionStrategyConfig csc = new CompactionStrategyConfig(cl.getOptionValue(strategyOpt.getOpt()));
+      if (cl.hasOption(strategyConfigOpt.getOpt())) {
+        Map<String,String> props = new HashMap<>();
+        String[] keyVals = cl.getOptionValue(strategyConfigOpt.getOpt()).split(",");
+        for (String keyVal : keyVals) {
+          String[] sa = keyVal.split("=");
+          props.put(sa[0], sa[1]);
+        }
+
+        csc.setOptions(props);
+      }
+
+      compactionConfig.setCompactionStrategy(csc);
+    }
 
     return super.execute(fullCommand, cl, shellState);
   }
@@ -120,6 +134,11 @@ public class CompactCommand extends TableOperation {
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
     opts.addOption(profileOpt);
+
+    strategyOpt = new Option("s", "strategy", true, "compaction strategy class name");
+    opts.addOption(strategyOpt);
+    strategyConfigOpt = new Option("sc", "strategyConfig", true, "Key value options for compaction strategy.  Expects <prop>=<value>{,<prop>=<value>}");
+    opts.addOption(strategyConfigOpt);
 
     cancelOpt = new Option(null, "cancel", false, "cancel user initiated compactions");
     opts.addOption(cancelOpt);

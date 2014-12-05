@@ -144,13 +144,13 @@ module Accumulo
         return
       end
 
-      def compactTable(login, tableName, startRow, endRow, iterators, flush, wait)
-        send_compactTable(login, tableName, startRow, endRow, iterators, flush, wait)
+      def compactTable(login, tableName, startRow, endRow, iterators, flush, wait, compactionStrategy)
+        send_compactTable(login, tableName, startRow, endRow, iterators, flush, wait, compactionStrategy)
         recv_compactTable()
       end
 
-      def send_compactTable(login, tableName, startRow, endRow, iterators, flush, wait)
-        send_message('compactTable', CompactTable_args, :login => login, :tableName => tableName, :startRow => startRow, :endRow => endRow, :iterators => iterators, :flush => flush, :wait => wait)
+      def send_compactTable(login, tableName, startRow, endRow, iterators, flush, wait, compactionStrategy)
+        send_message('compactTable', CompactTable_args, :login => login, :tableName => tableName, :startRow => startRow, :endRow => endRow, :iterators => iterators, :flush => flush, :wait => wait, :compactionStrategy => compactionStrategy)
       end
 
       def recv_compactTable()
@@ -1425,7 +1425,7 @@ module Accumulo
         args = read_args(iprot, CompactTable_args)
         result = CompactTable_result.new()
         begin
-          @handler.compactTable(args.login, args.tableName, args.startRow, args.endRow, args.iterators, args.flush, args.wait)
+          @handler.compactTable(args.login, args.tableName, args.startRow, args.endRow, args.iterators, args.flush, args.wait, args.compactionStrategy)
         rescue ::Accumulo::AccumuloSecurityException => ouch1
           result.ouch1 = ouch1
         rescue ::Accumulo::TableNotFoundException => ouch2
@@ -2661,6 +2661,7 @@ module Accumulo
       ITERATORS = 5
       FLUSH = 6
       WAIT = 7
+      COMPACTIONSTRATEGY = 8
 
       FIELDS = {
         LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
@@ -2669,7 +2670,8 @@ module Accumulo
         ENDROW => {:type => ::Thrift::Types::STRING, :name => 'endRow', :binary => true},
         ITERATORS => {:type => ::Thrift::Types::LIST, :name => 'iterators', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Accumulo::IteratorSetting}},
         FLUSH => {:type => ::Thrift::Types::BOOL, :name => 'flush'},
-        WAIT => {:type => ::Thrift::Types::BOOL, :name => 'wait'}
+        WAIT => {:type => ::Thrift::Types::BOOL, :name => 'wait'},
+        COMPACTIONSTRATEGY => {:type => ::Thrift::Types::STRUCT, :name => 'compactionStrategy', :class => ::Accumulo::CompactionStrategyConfig}
       }
 
       def struct_fields; FIELDS; end

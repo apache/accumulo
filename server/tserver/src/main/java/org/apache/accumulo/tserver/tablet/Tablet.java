@@ -45,6 +45,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -96,10 +97,11 @@ import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.tableOps.CompactionIterators;
+import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
@@ -1152,7 +1154,7 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  public Pair<Long,List<IteratorSetting>> getCompactionID() throws NoNodeException {
+  public Pair<Long,UserCompactionConfig> getCompactionID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_COMPACT_ID;
@@ -1160,7 +1162,7 @@ public class Tablet implements TabletCommitter {
       String[] tokens = new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
-      CompactionIterators iters = new CompactionIterators();
+      UserCompactionConfig compactionConfig = new UserCompactionConfig();
 
       if (tokens.length > 1) {
         Hex hex = new Hex();
@@ -1168,20 +1170,20 @@ public class Tablet implements TabletCommitter {
         DataInputStream dis = new DataInputStream(bais);
 
         try {
-          iters.readFields(dis);
+          compactionConfig.readFields(dis);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
 
-        KeyExtent ke = new KeyExtent(extent.getTableId(), iters.getEndRow(), iters.getStartRow());
+        KeyExtent ke = new KeyExtent(extent.getTableId(), compactionConfig.getEndRow(), compactionConfig.getStartRow());
 
         if (!ke.overlaps(extent)) {
           // only use iterators if compaction range overlaps
-          iters = new CompactionIterators();
+          compactionConfig = new UserCompactionConfig();
         }
       }
 
-      return new Pair<Long,List<IteratorSetting>>(compactID, iters.getIterators());
+      return new Pair<Long,UserCompactionConfig>(compactID, compactionConfig);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (NumberFormatException nfe) {
@@ -1780,21 +1782,34 @@ public class Tablet implements TabletCommitter {
 
     long t1, t2, t3;
 
-    // acquire file info outside of tablet lock
-    CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConfiguration, Property.TABLE_COMPACTION_STRATEGY,
-        CompactionStrategy.class, new DefaultCompactionStrategy());
-    strategy.init(Property.getCompactionStrategyOptions(tableConfiguration));
-
+    Pair<Long,UserCompactionConfig> compactionId = null;
+    CompactionStrategy strategy = null;
     Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
-    if (reason == MajorCompactionReason.CHOP) {
+
+    if(reason == MajorCompactionReason.USER){
+      try {
+        compactionId = getCompactionID();
+        strategy = createCompactionStrategy(compactionId.getSecond().getCompactionStrategy());
+      } catch (NoNodeException e) {
+        throw new RuntimeException(e);
+      }
+    } else if (reason == MajorCompactionReason.NORMAL || reason == MajorCompactionReason.IDLE) {
+      strategy = Property.createTableInstanceFromPropertyName(tableConfiguration, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
+          new DefaultCompactionStrategy());
+      strategy.init(Property.getCompactionStrategyOptions(tableConfiguration));
+    } else if (reason == MajorCompactionReason.CHOP) {
       firstAndLastKeys = getFirstAndLastKeys(getDatafileManager().getDatafileSizes());
-    } else if (reason != MajorCompactionReason.USER) {
+    } else {
+      throw new IllegalArgumentException("Unknown compaction reason " + reason);
+    }
+
+    if (strategy != null) {
       MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, getTabletServer().getFileSystem(), tableConfiguration);
       request.setFiles(getDatafileManager().getDatafileSizes());
       strategy.gatherInformation(request);
     }
 
-    Map<FileRef,DataFileValue> filesToCompact;
+    Map<FileRef,DataFileValue> filesToCompact = null;
 
     int maxFilesToCompact = tableConfiguration.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
 
@@ -1802,6 +1817,7 @@ public class Tablet implements TabletCommitter {
     CompactionPlan plan = null;
 
     boolean propogateDeletes = false;
+    boolean updateCompactionID = false;
 
     synchronized (this) {
       // plan all that work that needs to be done in the sync block... then do the actual work
@@ -1831,8 +1847,6 @@ public class Tablet implements TabletCommitter {
       if (reason == MajorCompactionReason.CHOP) {
         // enforce rules: files with keys outside our range need to be compacted
         inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, allFiles.keySet()));
-      } else if (reason == MajorCompactionReason.USER) {
-        inputFiles.addAll(allFiles.keySet());
       } else {
         MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, tableConfiguration);
         request.setFiles(allFiles);
@@ -1844,32 +1858,48 @@ public class Tablet implements TabletCommitter {
       }
 
       if (inputFiles.isEmpty()) {
-        return majCStats;
+        if (reason == MajorCompactionReason.USER) {
+          // no work to do
+          lastCompactID = compactionId.getFirst();
+          updateCompactionID = true;
+        } else {
+          return majCStats;
+        }
+      } else {
+        // If no original files will exist at the end of the compaction, we do not have to propogate deletes
+        Set<FileRef> droppedFiles = new HashSet<FileRef>();
+        droppedFiles.addAll(inputFiles);
+        if (plan != null)
+          droppedFiles.addAll(plan.deleteFiles);
+        propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
+        log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
+        filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
+        filesToCompact.keySet().retainAll(inputFiles);
+
+        getDatafileManager().reserveMajorCompactingFiles(filesToCompact.keySet());
       }
-      // If no original files will exist at the end of the compaction, we do not have to propogate deletes
-      Set<FileRef> droppedFiles = new HashSet<FileRef>();
-      droppedFiles.addAll(inputFiles);
-      if (plan != null)
-        droppedFiles.addAll(plan.deleteFiles);
-      propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
-      log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
-      filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
-      filesToCompact.keySet().retainAll(inputFiles);
 
       t3 = System.currentTimeMillis();
-
-      getDatafileManager().reserveMajorCompactingFiles(filesToCompact.keySet());
     }
 
     try {
 
       log.debug(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0, (t2 - t1) / 1000.0));
 
-      Pair<Long,List<IteratorSetting>> compactionId = null;
-      if (!propogateDeletes) {
+      if (updateCompactionID) {
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId.getFirst(),tabletServer, getTabletServer().getLock());
+        return majCStats;
+      }
+
+      if (!propogateDeletes && compactionId == null) {
         // compacting everything, so update the compaction id in metadata
         try {
           compactionId = getCompactionID();
+          if (compactionId.getSecond().getCompactionStrategy() != null) {
+            compactionId = null;
+            // TODO maybe return unless chop?
+          }
+
         } catch (NoNodeException e) {
           throw new RuntimeException(e);
         }
@@ -1890,7 +1920,7 @@ public class Tablet implements TabletCommitter {
           }
         }
 
-        compactionIterators = compactionId.getSecond();
+        compactionIterators = compactionId.getSecond().getIterators();
       }
 
       // need to handle case where only one file is being major compacted
@@ -2495,7 +2525,24 @@ public class Tablet implements TabletCommitter {
     initiateMajorCompaction(MajorCompactionReason.CHOP);
   }
 
-  public void compactAll(long compactionId) {
+  private CompactionStrategy createCompactionStrategy(CompactionStrategyConfig strategyConfig) {
+    String context = tableConfiguration.get(Property.TABLE_CLASSPATH);
+    String clazzName = strategyConfig.getClassName();
+    try {
+      Class<? extends CompactionStrategy> clazz;
+      if (context != null && !context.equals(""))
+        clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, CompactionStrategy.class);
+      else
+        clazz = AccumuloVFSClassLoader.loadClass(clazzName, CompactionStrategy.class);
+      CompactionStrategy strategy = clazz.newInstance();
+      strategy.init(strategyConfig.getOptions());
+      return strategy;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void compactAll(long compactionId, UserCompactionConfig compactionConfig) {
     boolean updateMetadata = false;
 
     synchronized (this) {
@@ -2522,8 +2569,25 @@ public class Tablet implements TabletCommitter {
         majorCompactionState = CompactionState.IN_PROGRESS;
         updateMetadata = true;
         lastCompactID = compactionId;
-      } else
-        initiateMajorCompaction(MajorCompactionReason.USER);
+      } else {
+        CompactionStrategyConfig strategyConfig = compactionConfig.getCompactionStrategy();
+        CompactionStrategy strategy = createCompactionStrategy(strategyConfig);
+
+        MajorCompactionRequest request = new MajorCompactionRequest(extent, MajorCompactionReason.USER, getTabletServer().getFileSystem(), tableConfiguration);
+        request.setFiles(getDatafileManager().getDatafileSizes());
+
+        try {
+          if (strategy.shouldCompact(request)) {
+            initiateMajorCompaction(MajorCompactionReason.USER);
+          } else {
+            majorCompactionState = CompactionState.IN_PROGRESS;
+            updateMetadata = true;
+            lastCompactID = compactionId;
+          }
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
 
     if (updateMetadata) {

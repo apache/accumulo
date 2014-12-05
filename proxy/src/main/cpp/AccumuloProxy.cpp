@@ -56,17 +56,17 @@ uint32_t AccumuloProxy_login_args::read(::apache::thrift::protocol::TProtocol* i
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->loginProperties.clear();
-            uint32_t _size125;
-            ::apache::thrift::protocol::TType _ktype126;
-            ::apache::thrift::protocol::TType _vtype127;
-            xfer += iprot->readMapBegin(_ktype126, _vtype127, _size125);
-            uint32_t _i129;
-            for (_i129 = 0; _i129 < _size125; ++_i129)
+            uint32_t _size133;
+            ::apache::thrift::protocol::TType _ktype134;
+            ::apache::thrift::protocol::TType _vtype135;
+            xfer += iprot->readMapBegin(_ktype134, _vtype135, _size133);
+            uint32_t _i137;
+            for (_i137 = 0; _i137 < _size133; ++_i137)
             {
-              std::string _key130;
-              xfer += iprot->readString(_key130);
-              std::string& _val131 = this->loginProperties[_key130];
-              xfer += iprot->readString(_val131);
+              std::string _key138;
+              xfer += iprot->readString(_key138);
+              std::string& _val139 = this->loginProperties[_key138];
+              xfer += iprot->readString(_val139);
             }
             xfer += iprot->readMapEnd();
           }
@@ -98,11 +98,11 @@ uint32_t AccumuloProxy_login_args::write(::apache::thrift::protocol::TProtocol* 
   xfer += oprot->writeFieldBegin("loginProperties", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->loginProperties.size()));
-    std::map<std::string, std::string> ::const_iterator _iter132;
-    for (_iter132 = this->loginProperties.begin(); _iter132 != this->loginProperties.end(); ++_iter132)
+    std::map<std::string, std::string> ::const_iterator _iter140;
+    for (_iter140 = this->loginProperties.begin(); _iter140 != this->loginProperties.end(); ++_iter140)
     {
-      xfer += oprot->writeString(_iter132->first);
-      xfer += oprot->writeString(_iter132->second);
+      xfer += oprot->writeString(_iter140->first);
+      xfer += oprot->writeString(_iter140->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -124,11 +124,11 @@ uint32_t AccumuloProxy_login_pargs::write(::apache::thrift::protocol::TProtocol*
   xfer += oprot->writeFieldBegin("loginProperties", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->loginProperties)).size()));
-    std::map<std::string, std::string> ::const_iterator _iter133;
-    for (_iter133 = (*(this->loginProperties)).begin(); _iter133 != (*(this->loginProperties)).end(); ++_iter133)
+    std::map<std::string, std::string> ::const_iterator _iter141;
+    for (_iter141 = (*(this->loginProperties)).begin(); _iter141 != (*(this->loginProperties)).end(); ++_iter141)
     {
-      xfer += oprot->writeString(_iter133->first);
-      xfer += oprot->writeString(_iter133->second);
+      xfer += oprot->writeString(_iter141->first);
+      xfer += oprot->writeString(_iter141->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -549,15 +549,15 @@ uint32_t AccumuloProxy_addSplits_args::read(::apache::thrift::protocol::TProtoco
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->splits.clear();
-            uint32_t _size134;
-            ::apache::thrift::protocol::TType _etype137;
-            xfer += iprot->readSetBegin(_etype137, _size134);
-            uint32_t _i138;
-            for (_i138 = 0; _i138 < _size134; ++_i138)
+            uint32_t _size142;
+            ::apache::thrift::protocol::TType _etype145;
+            xfer += iprot->readSetBegin(_etype145, _size142);
+            uint32_t _i146;
+            for (_i146 = 0; _i146 < _size142; ++_i146)
             {
-              std::string _elem139;
-              xfer += iprot->readBinary(_elem139);
-              this->splits.insert(_elem139);
+              std::string _elem147;
+              xfer += iprot->readBinary(_elem147);
+              this->splits.insert(_elem147);
             }
             xfer += iprot->readSetEnd();
           }
@@ -593,10 +593,10 @@ uint32_t AccumuloProxy_addSplits_args::write(::apache::thrift::protocol::TProtoc
   xfer += oprot->writeFieldBegin("splits", ::apache::thrift::protocol::T_SET, 3);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->splits.size()));
-    std::set<std::string> ::const_iterator _iter140;
-    for (_iter140 = this->splits.begin(); _iter140 != this->splits.end(); ++_iter140)
+    std::set<std::string> ::const_iterator _iter148;
+    for (_iter148 = this->splits.begin(); _iter148 != this->splits.end(); ++_iter148)
     {
-      xfer += oprot->writeBinary((*_iter140));
+      xfer += oprot->writeBinary((*_iter148));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -622,10 +622,10 @@ uint32_t AccumuloProxy_addSplits_pargs::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("splits", ::apache::thrift::protocol::T_SET, 3);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->splits)).size()));
-    std::set<std::string> ::const_iterator _iter141;
-    for (_iter141 = (*(this->splits)).begin(); _iter141 != (*(this->splits)).end(); ++_iter141)
+    std::set<std::string> ::const_iterator _iter149;
+    for (_iter149 = (*(this->splits)).begin(); _iter149 != (*(this->splits)).end(); ++_iter149)
     {
-      xfer += oprot->writeBinary((*_iter141));
+      xfer += oprot->writeBinary((*_iter149));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -820,17 +820,17 @@ uint32_t AccumuloProxy_attachIterator_args::read(::apache::thrift::protocol::TPr
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->scopes.clear();
-            uint32_t _size142;
-            ::apache::thrift::protocol::TType _etype145;
-            xfer += iprot->readSetBegin(_etype145, _size142);
-            uint32_t _i146;
-            for (_i146 = 0; _i146 < _size142; ++_i146)
+            uint32_t _size150;
+            ::apache::thrift::protocol::TType _etype153;
+            xfer += iprot->readSetBegin(_etype153, _size150);
+            uint32_t _i154;
+            for (_i154 = 0; _i154 < _size150; ++_i154)
             {
-              IteratorScope::type _elem147;
-              int32_t ecast148;
-              xfer += iprot->readI32(ecast148);
-              _elem147 = (IteratorScope::type)ecast148;
-              this->scopes.insert(_elem147);
+              IteratorScope::type _elem155;
+              int32_t ecast156;
+              xfer += iprot->readI32(ecast156);
+              _elem155 = (IteratorScope::type)ecast156;
+              this->scopes.insert(_elem155);
             }
             xfer += iprot->readSetEnd();
           }
@@ -870,10 +870,10 @@ uint32_t AccumuloProxy_attachIterator_args::write(::apache::thrift::protocol::TP
   xfer += oprot->writeFieldBegin("scopes", ::apache::thrift::protocol::T_SET, 4);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->scopes.size()));
-    std::set<IteratorScope::type> ::const_iterator _iter149;
-    for (_iter149 = this->scopes.begin(); _iter149 != this->scopes.end(); ++_iter149)
+    std::set<IteratorScope::type> ::const_iterator _iter157;
+    for (_iter157 = this->scopes.begin(); _iter157 != this->scopes.end(); ++_iter157)
     {
-      xfer += oprot->writeI32((int32_t)(*_iter149));
+      xfer += oprot->writeI32((int32_t)(*_iter157));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -903,10 +903,10 @@ uint32_t AccumuloProxy_attachIterator_pargs::write(::apache::thrift::protocol::T
   xfer += oprot->writeFieldBegin("scopes", ::apache::thrift::protocol::T_SET, 4);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>((*(this->scopes)).size()));
-    std::set<IteratorScope::type> ::const_iterator _iter150;
-    for (_iter150 = (*(this->scopes)).begin(); _iter150 != (*(this->scopes)).end(); ++_iter150)
+    std::set<IteratorScope::type> ::const_iterator _iter158;
+    for (_iter158 = (*(this->scopes)).begin(); _iter158 != (*(this->scopes)).end(); ++_iter158)
     {
-      xfer += oprot->writeI32((int32_t)(*_iter150));
+      xfer += oprot->writeI32((int32_t)(*_iter158));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -1101,17 +1101,17 @@ uint32_t AccumuloProxy_checkIteratorConflicts_args::read(::apache::thrift::proto
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->scopes.clear();
-            uint32_t _size151;
-            ::apache::thrift::protocol::TType _etype154;
-            xfer += iprot->readSetBegin(_etype154, _size151);
-            uint32_t _i155;
-            for (_i155 = 0; _i155 < _size151; ++_i155)
+            uint32_t _size159;
+            ::apache::thrift::protocol::TType _etype162;
+            xfer += iprot->readSetBegin(_etype162, _size159);
+            uint32_t _i163;
+            for (_i163 = 0; _i163 < _size159; ++_i163)
             {
-              IteratorScope::type _elem156;
-              int32_t ecast157;
-              xfer += iprot->readI32(ecast157);
-              _elem156 = (IteratorScope::type)ecast157;
-              this->scopes.insert(_elem156);
+              IteratorScope::type _elem164;
+              int32_t ecast165;
+              xfer += iprot->readI32(ecast165);
+              _elem164 = (IteratorScope::type)ecast165;
+              this->scopes.insert(_elem164);
             }
             xfer += iprot->readSetEnd();
           }
@@ -1151,10 +1151,10 @@ uint32_t AccumuloProxy_checkIteratorConflicts_args::write(::apache::thrift::prot
   xfer += oprot->writeFieldBegin("scopes", ::apache::thrift::protocol::T_SET, 4);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->scopes.size()));
-    std::set<IteratorScope::type> ::const_iterator _iter158;
-    for (_iter158 = this->scopes.begin(); _iter158 != this->scopes.end(); ++_iter158)
+    std::set<IteratorScope::type> ::const_iterator _iter166;
+    for (_iter166 = this->scopes.begin(); _iter166 != this->scopes.end(); ++_iter166)
     {
-      xfer += oprot->writeI32((int32_t)(*_iter158));
+      xfer += oprot->writeI32((int32_t)(*_iter166));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -1184,10 +1184,10 @@ uint32_t AccumuloProxy_checkIteratorConflicts_pargs::write(::apache::thrift::pro
   xfer += oprot->writeFieldBegin("scopes", ::apache::thrift::protocol::T_SET, 4);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>((*(this->scopes)).size()));
-    std::set<IteratorScope::type> ::const_iterator _iter159;
-    for (_iter159 = (*(this->scopes)).begin(); _iter159 != (*(this->scopes)).end(); ++_iter159)
+    std::set<IteratorScope::type> ::const_iterator _iter167;
+    for (_iter167 = (*(this->scopes)).begin(); _iter167 != (*(this->scopes)).end(); ++_iter167)
     {
-      xfer += oprot->writeI32((int32_t)(*_iter159));
+      xfer += oprot->writeI32((int32_t)(*_iter167));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -1568,17 +1568,17 @@ uint32_t AccumuloProxy_cloneTable_args::read(::apache::thrift::protocol::TProtoc
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->propertiesToSet.clear();
-            uint32_t _size160;
-            ::apache::thrift::protocol::TType _ktype161;
-            ::apache::thrift::protocol::TType _vtype162;
-            xfer += iprot->readMapBegin(_ktype161, _vtype162, _size160);
-            uint32_t _i164;
-            for (_i164 = 0; _i164 < _size160; ++_i164)
+            uint32_t _size168;
+            ::apache::thrift::protocol::TType _ktype169;
+            ::apache::thrift::protocol::TType _vtype170;
+            xfer += iprot->readMapBegin(_ktype169, _vtype170, _size168);
+            uint32_t _i172;
+            for (_i172 = 0; _i172 < _size168; ++_i172)
             {
-              std::string _key165;
-              xfer += iprot->readString(_key165);
-              std::string& _val166 = this->propertiesToSet[_key165];
-              xfer += iprot->readString(_val166);
+              std::string _key173;
+              xfer += iprot->readString(_key173);
+              std::string& _val174 = this->propertiesToSet[_key173];
+              xfer += iprot->readString(_val174);
             }
             xfer += iprot->readMapEnd();
           }
@@ -1591,15 +1591,15 @@ uint32_t AccumuloProxy_cloneTable_args::read(::apache::thrift::protocol::TProtoc
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->propertiesToExclude.clear();
-            uint32_t _size167;
-            ::apache::thrift::protocol::TType _etype170;
-            xfer += iprot->readSetBegin(_etype170, _size167);
-            uint32_t _i171;
-            for (_i171 = 0; _i171 < _size167; ++_i171)
+            uint32_t _size175;
+            ::apache::thrift::protocol::TType _etype178;
+            xfer += iprot->readSetBegin(_etype178, _size175);
+            uint32_t _i179;
+            for (_i179 = 0; _i179 < _size175; ++_i179)
             {
-              std::string _elem172;
-              xfer += iprot->readString(_elem172);
-              this->propertiesToExclude.insert(_elem172);
+              std::string _elem180;
+              xfer += iprot->readString(_elem180);
+              this->propertiesToExclude.insert(_elem180);
             }
             xfer += iprot->readSetEnd();
           }
@@ -1643,11 +1643,11 @@ uint32_t AccumuloProxy_cloneTable_args::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("propertiesToSet", ::apache::thrift::protocol::T_MAP, 5);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->propertiesToSet.size()));
-    std::map<std::string, std::string> ::const_iterator _iter173;
-    for (_iter173 = this->propertiesToSet.begin(); _iter173 != this->propertiesToSet.end(); ++_iter173)
+    std::map<std::string, std::string> ::const_iterator _iter181;
+    for (_iter181 = this->propertiesToSet.begin(); _iter181 != this->propertiesToSet.end(); ++_iter181)
     {
-      xfer += oprot->writeString(_iter173->first);
-      xfer += oprot->writeString(_iter173->second);
+      xfer += oprot->writeString(_iter181->first);
+      xfer += oprot->writeString(_iter181->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -1656,10 +1656,10 @@ uint32_t AccumuloProxy_cloneTable_args::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("propertiesToExclude", ::apache::thrift::protocol::T_SET, 6);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->propertiesToExclude.size()));
-    std::set<std::string> ::const_iterator _iter174;
-    for (_iter174 = this->propertiesToExclude.begin(); _iter174 != this->propertiesToExclude.end(); ++_iter174)
+    std::set<std::string> ::const_iterator _iter182;
+    for (_iter182 = this->propertiesToExclude.begin(); _iter182 != this->propertiesToExclude.end(); ++_iter182)
     {
-      xfer += oprot->writeString((*_iter174));
+      xfer += oprot->writeString((*_iter182));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -1693,11 +1693,11 @@ uint32_t AccumuloProxy_cloneTable_pargs::write(::apache::thrift::protocol::TProt
   xfer += oprot->writeFieldBegin("propertiesToSet", ::apache::thrift::protocol::T_MAP, 5);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->propertiesToSet)).size()));
-    std::map<std::string, std::string> ::const_iterator _iter175;
-    for (_iter175 = (*(this->propertiesToSet)).begin(); _iter175 != (*(this->propertiesToSet)).end(); ++_iter175)
+    std::map<std::string, std::string> ::const_iterator _iter183;
+    for (_iter183 = (*(this->propertiesToSet)).begin(); _iter183 != (*(this->propertiesToSet)).end(); ++_iter183)
     {
-      xfer += oprot->writeString(_iter175->first);
-      xfer += oprot->writeString(_iter175->second);
+      xfer += oprot->writeString(_iter183->first);
+      xfer += oprot->writeString(_iter183->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -1706,10 +1706,10 @@ uint32_t AccumuloProxy_cloneTable_pargs::write(::apache::thrift::protocol::TProt
   xfer += oprot->writeFieldBegin("propertiesToExclude", ::apache::thrift::protocol::T_SET, 6);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->propertiesToExclude)).size()));
-    std::set<std::string> ::const_iterator _iter176;
-    for (_iter176 = (*(this->propertiesToExclude)).begin(); _iter176 != (*(this->propertiesToExclude)).end(); ++_iter176)
+    std::set<std::string> ::const_iterator _iter184;
+    for (_iter184 = (*(this->propertiesToExclude)).begin(); _iter184 != (*(this->propertiesToExclude)).end(); ++_iter184)
     {
-      xfer += oprot->writeString((*_iter176));
+      xfer += oprot->writeString((*_iter184));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -1932,14 +1932,14 @@ uint32_t AccumuloProxy_compactTable_args::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->iterators.clear();
-            uint32_t _size177;
-            ::apache::thrift::protocol::TType _etype180;
-            xfer += iprot->readListBegin(_etype180, _size177);
-            this->iterators.resize(_size177);
-            uint32_t _i181;
-            for (_i181 = 0; _i181 < _size177; ++_i181)
+            uint32_t _size185;
+            ::apache::thrift::protocol::TType _etype188;
+            xfer += iprot->readListBegin(_etype188, _size185);
+            this->iterators.resize(_size185);
+            uint32_t _i189;
+            for (_i189 = 0; _i189 < _size185; ++_i189)
             {
-              xfer += this->iterators[_i181].read(iprot);
+              xfer += this->iterators[_i189].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -1960,6 +1960,14 @@ uint32_t AccumuloProxy_compactTable_args::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_BOOL) {
           xfer += iprot->readBool(this->wait);
           this->__isset.wait = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 8:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->compactionStrategy.read(iprot);
+          this->__isset.compactionStrategy = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -1999,10 +2007,10 @@ uint32_t AccumuloProxy_compactTable_args::write(::apache::thrift::protocol::TPro
   xfer += oprot->writeFieldBegin("iterators", ::apache::thrift::protocol::T_LIST, 5);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->iterators.size()));
-    std::vector<IteratorSetting> ::const_iterator _iter182;
-    for (_iter182 = this->iterators.begin(); _iter182 != this->iterators.end(); ++_iter182)
+    std::vector<IteratorSetting> ::const_iterator _iter190;
+    for (_iter190 = this->iterators.begin(); _iter190 != this->iterators.end(); ++_iter190)
     {
-      xfer += (*_iter182).write(oprot);
+      xfer += (*_iter190).write(oprot);
     }
     xfer += oprot->writeListEnd();
   }
@@ -2014,6 +2022,10 @@ uint32_t AccumuloProxy_compactTable_args::write(::apache::thrift::protocol::TPro
 
   xfer += oprot->writeFieldBegin("wait", ::apache::thrift::protocol::T_BOOL, 7);
   xfer += oprot->writeBool(this->wait);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("compactionStrategy", ::apache::thrift::protocol::T_STRUCT, 8);
+  xfer += this->compactionStrategy.write(oprot);
   xfer += oprot->writeFieldEnd();
 
   xfer += oprot->writeFieldStop();
@@ -2044,10 +2056,10 @@ uint32_t AccumuloProxy_compactTable_pargs::write(::apache::thrift::protocol::TPr
   xfer += oprot->writeFieldBegin("iterators", ::apache::thrift::protocol::T_LIST, 5);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>((*(this->iterators)).size()));
-    std::vector<IteratorSetting> ::const_iterator _iter183;
-    for (_iter183 = (*(this->iterators)).begin(); _iter183 != (*(this->iterators)).end(); ++_iter183)
+    std::vector<IteratorSetting> ::const_iterator _iter191;
+    for (_iter191 = (*(this->iterators)).begin(); _iter191 != (*(this->iterators)).end(); ++_iter191)
     {
-      xfer += (*_iter183).write(oprot);
+      xfer += (*_iter191).write(oprot);
     }
     xfer += oprot->writeListEnd();
   }
@@ -2059,6 +2071,10 @@ uint32_t AccumuloProxy_compactTable_pargs::write(::apache::thrift::protocol::TPr
 
   xfer += oprot->writeFieldBegin("wait", ::apache::thrift::protocol::T_BOOL, 7);
   xfer += oprot->writeBool((*(this->wait)));
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("compactionStrategy", ::apache::thrift::protocol::T_STRUCT, 8);
+  xfer += (*(this->compactionStrategy)).write(oprot);
   xfer += oprot->writeFieldEnd();
 
   xfer += oprot->writeFieldStop();
@@ -2466,9 +2482,9 @@ uint32_t AccumuloProxy_createTable_args::read(::apache::thrift::protocol::TProto
         break;
       case 4:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast184;
-          xfer += iprot->readI32(ecast184);
-          this->type = (TimeType::type)ecast184;
+          int32_t ecast192;
+          xfer += iprot->readI32(ecast192);
+          this->type = (TimeType::type)ecast192;
           this->__isset.type = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -3672,15 +3688,15 @@ uint32_t AccumuloProxy_getDiskUsage_args::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->tables.clear();
-            uint32_t _size185;
-            ::apache::thrift::protocol::TType _etype188;
-            xfer += iprot->readSetBegin(_etype188, _size185);
-            uint32_t _i189;
-            for (_i189 = 0; _i189 < _size185; ++_i189)
+            uint32_t _size193;
+            ::apache::thrift::protocol::TType _etype196;
+            xfer += iprot->readSetBegin(_etype196, _size193);
+            uint32_t _i197;
+            for (_i197 = 0; _i197 < _size193; ++_i197)
             {
-              std::string _elem190;
-              xfer += iprot->readString(_elem190);
-              this->tables.insert(_elem190);
+              std::string _elem198;
+              xfer += iprot->readString(_elem198);
+              this->tables.insert(_elem198);
             }
             xfer += iprot->readSetEnd();
           }
@@ -3712,10 +3728,10 @@ uint32_t AccumuloProxy_getDiskUsage_args::write(::apache::thrift::protocol::TPro
   xfer += oprot->writeFieldBegin("tables", ::apache::thrift::protocol::T_SET, 2);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->tables.size()));
-    std::set<std::string> ::const_iterator _iter191;
-    for (_iter191 = this->tables.begin(); _iter191 != this->tables.end(); ++_iter191)
+    std::set<std::string> ::const_iterator _iter199;
+    for (_iter199 = this->tables.begin(); _iter199 != this->tables.end(); ++_iter199)
     {
-      xfer += oprot->writeString((*_iter191));
+      xfer += oprot->writeString((*_iter199));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -3737,10 +3753,10 @@ uint32_t AccumuloProxy_getDiskUsage_pargs::write(::apache::thrift::protocol::TPr
   xfer += oprot->writeFieldBegin("tables", ::apache::thrift::protocol::T_SET, 2);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->tables)).size()));
-    std::set<std::string> ::const_iterator _iter192;
-    for (_iter192 = (*(this->tables)).begin(); _iter192 != (*(this->tables)).end(); ++_iter192)
+    std::set<std::string> ::const_iterator _iter200;
+    for (_iter200 = (*(this->tables)).begin(); _iter200 != (*(this->tables)).end(); ++_iter200)
     {
-      xfer += oprot->writeString((*_iter192));
+      xfer += oprot->writeString((*_iter200));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -3775,14 +3791,14 @@ uint32_t AccumuloProxy_getDiskUsage_result::read(::apache::thrift::protocol::TPr
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size193;
-            ::apache::thrift::protocol::TType _etype196;
-            xfer += iprot->readListBegin(_etype196, _size193);
-            this->success.resize(_size193);
-            uint32_t _i197;
-            for (_i197 = 0; _i197 < _size193; ++_i197)
+            uint32_t _size201;
+            ::apache::thrift::protocol::TType _etype204;
+            xfer += iprot->readListBegin(_etype204, _size201);
+            this->success.resize(_size201);
+            uint32_t _i205;
+            for (_i205 = 0; _i205 < _size201; ++_i205)
             {
-              xfer += this->success[_i197].read(iprot);
+              xfer += this->success[_i205].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -3837,10 +3853,10 @@ uint32_t AccumuloProxy_getDiskUsage_result::write(::apache::thrift::protocol::TP
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->success.size()));
-      std::vector<DiskUsage> ::const_iterator _iter198;
-      for (_iter198 = this->success.begin(); _iter198 != this->success.end(); ++_iter198)
+      std::vector<DiskUsage> ::const_iterator _iter206;
+      for (_iter206 = this->success.begin(); _iter206 != this->success.end(); ++_iter206)
       {
-        xfer += (*_iter198).write(oprot);
+        xfer += (*_iter206).write(oprot);
       }
       xfer += oprot->writeListEnd();
     }
@@ -3887,14 +3903,14 @@ uint32_t AccumuloProxy_getDiskUsage_presult::read(::apache::thrift::protocol::TP
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size199;
-            ::apache::thrift::protocol::TType _etype202;
-            xfer += iprot->readListBegin(_etype202, _size199);
-            (*(this->success)).resize(_size199);
-            uint32_t _i203;
-            for (_i203 = 0; _i203 < _size199; ++_i203)
+            uint32_t _size207;
+            ::apache::thrift::protocol::TType _etype210;
+            xfer += iprot->readListBegin(_etype210, _size207);
+            (*(this->success)).resize(_size207);
+            uint32_t _i211;
+            for (_i211 = 0; _i211 < _size207; ++_i211)
             {
-              xfer += (*(this->success))[_i203].read(iprot);
+              xfer += (*(this->success))[_i211].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -4045,27 +4061,27 @@ uint32_t AccumuloProxy_getLocalityGroups_result::read(::apache::thrift::protocol
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size204;
-            ::apache::thrift::protocol::TType _ktype205;
-            ::apache::thrift::protocol::TType _vtype206;
-            xfer += iprot->readMapBegin(_ktype205, _vtype206, _size204);
-            uint32_t _i208;
-            for (_i208 = 0; _i208 < _size204; ++_i208)
+            uint32_t _size212;
+            ::apache::thrift::protocol::TType _ktype213;
+            ::apache::thrift::protocol::TType _vtype214;
+            xfer += iprot->readMapBegin(_ktype213, _vtype214, _size212);
+            uint32_t _i216;
+            for (_i216 = 0; _i216 < _size212; ++_i216)
             {
-              std::string _key209;
-              xfer += iprot->readString(_key209);
-              std::set<std::string> & _val210 = this->success[_key209];
+              std::string _key217;
+              xfer += iprot->readString(_key217);
+              std::set<std::string> & _val218 = this->success[_key217];
               {
-                _val210.clear();
-                uint32_t _size211;
-                ::apache::thrift::protocol::TType _etype214;
-                xfer += iprot->readSetBegin(_etype214, _size211);
-                uint32_t _i215;
-                for (_i215 = 0; _i215 < _size211; ++_i215)
+                _val218.clear();
+                uint32_t _size219;
+                ::apache::thrift::protocol::TType _etype222;
+                xfer += iprot->readSetBegin(_etype222, _size219);
+                uint32_t _i223;
+                for (_i223 = 0; _i223 < _size219; ++_i223)
                 {
-                  std::string _elem216;
-                  xfer += iprot->readString(_elem216);
-                  _val210.insert(_elem216);
+                  std::string _elem224;
+                  xfer += iprot->readString(_elem224);
+                  _val218.insert(_elem224);
                 }
                 xfer += iprot->readSetEnd();
               }
@@ -4123,16 +4139,16 @@ uint32_t AccumuloProxy_getLocalityGroups_result::write(::apache::thrift::protoco
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_SET, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, std::set<std::string> > ::const_iterator _iter217;
-      for (_iter217 = this->success.begin(); _iter217 != this->success.end(); ++_iter217)
+      std::map<std::string, std::set<std::string> > ::const_iterator _iter225;
+      for (_iter225 = this->success.begin(); _iter225 != this->success.end(); ++_iter225)
       {
-        xfer += oprot->writeString(_iter217->first);
+        xfer += oprot->writeString(_iter225->first);
         {
-          xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(_iter217->second.size()));
-          std::set<std::string> ::const_iterator _iter218;
-          for (_iter218 = _iter217->second.begin(); _iter218 != _iter217->second.end(); ++_iter218)
+          xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(_iter225->second.size()));
+          std::set<std::string> ::const_iterator _iter226;
+          for (_iter226 = _iter225->second.begin(); _iter226 != _iter225->second.end(); ++_iter226)
           {
-            xfer += oprot->writeString((*_iter218));
+            xfer += oprot->writeString((*_iter226));
           }
           xfer += oprot->writeSetEnd();
         }
@@ -4182,27 +4198,27 @@ uint32_t AccumuloProxy_getLocalityGroups_presult::read(::apache::thrift::protoco
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size219;
-            ::apache::thrift::protocol::TType _ktype220;
-            ::apache::thrift::protocol::TType _vtype221;
-            xfer += iprot->readMapBegin(_ktype220, _vtype221, _size219);
-            uint32_t _i223;
-            for (_i223 = 0; _i223 < _size219; ++_i223)
+            uint32_t _size227;
+            ::apache::thrift::protocol::TType _ktype228;
+            ::apache::thrift::protocol::TType _vtype229;
+            xfer += iprot->readMapBegin(_ktype228, _vtype229, _size227);
+            uint32_t _i231;
+            for (_i231 = 0; _i231 < _size227; ++_i231)
             {
-              std::string _key224;
-              xfer += iprot->readString(_key224);
-              std::set<std::string> & _val225 = (*(this->success))[_key224];
+              std::string _key232;
+              xfer += iprot->readString(_key232);
+              std::set<std::string> & _val233 = (*(this->success))[_key232];
               {
-                _val225.clear();
-                uint32_t _size226;
-                ::apache::thrift::protocol::TType _etype229;
-                xfer += iprot->readSetBegin(_etype229, _size226);
-                uint32_t _i230;
-                for (_i230 = 0; _i230 < _size226; ++_i230)
+                _val233.clear();
+                uint32_t _size234;
+                ::apache::thrift::protocol::TType _etype237;
+                xfer += iprot->readSetBegin(_etype237, _size234);
+                uint32_t _i238;
+                for (_i238 = 0; _i238 < _size234; ++_i238)
                 {
-                  std::string _elem231;
-                  xfer += iprot->readString(_elem231);
-                  _val225.insert(_elem231);
+                  std::string _elem239;
+                  xfer += iprot->readString(_elem239);
+                  _val233.insert(_elem239);
                 }
                 xfer += iprot->readSetEnd();
               }
@@ -4296,9 +4312,9 @@ uint32_t AccumuloProxy_getIteratorSetting_args::read(::apache::thrift::protocol:
         break;
       case 4:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast232;
-          xfer += iprot->readI32(ecast232);
-          this->scope = (IteratorScope::type)ecast232;
+          int32_t ecast240;
+          xfer += iprot->readI32(ecast240);
+          this->scope = (IteratorScope::type)ecast240;
           this->__isset.scope = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -4562,15 +4578,15 @@ uint32_t AccumuloProxy_getMaxRow_args::read(::apache::thrift::protocol::TProtoco
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->auths.clear();
-            uint32_t _size233;
-            ::apache::thrift::protocol::TType _etype236;
-            xfer += iprot->readSetBegin(_etype236, _size233);
-            uint32_t _i237;
-            for (_i237 = 0; _i237 < _size233; ++_i237)
+            uint32_t _size241;
+            ::apache::thrift::protocol::TType _etype244;
+            xfer += iprot->readSetBegin(_etype244, _size241);
+            uint32_t _i245;
+            for (_i245 = 0; _i245 < _size241; ++_i245)
             {
-              std::string _elem238;
-              xfer += iprot->readBinary(_elem238);
-              this->auths.insert(_elem238);
+              std::string _elem246;
+              xfer += iprot->readBinary(_elem246);
+              this->auths.insert(_elem246);
             }
             xfer += iprot->readSetEnd();
           }
@@ -4638,10 +4654,10 @@ uint32_t AccumuloProxy_getMaxRow_args::write(::apache::thrift::protocol::TProtoc
   xfer += oprot->writeFieldBegin("auths", ::apache::thrift::protocol::T_SET, 3);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->auths.size()));
-    std::set<std::string> ::const_iterator _iter239;
-    for (_iter239 = this->auths.begin(); _iter239 != this->auths.end(); ++_iter239)
+    std::set<std::string> ::const_iterator _iter247;
+    for (_iter247 = this->auths.begin(); _iter247 != this->auths.end(); ++_iter247)
     {
-      xfer += oprot->writeBinary((*_iter239));
+      xfer += oprot->writeBinary((*_iter247));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -4683,10 +4699,10 @@ uint32_t AccumuloProxy_getMaxRow_pargs::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("auths", ::apache::thrift::protocol::T_SET, 3);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->auths)).size()));
-    std::set<std::string> ::const_iterator _iter240;
-    for (_iter240 = (*(this->auths)).begin(); _iter240 != (*(this->auths)).end(); ++_iter240)
+    std::set<std::string> ::const_iterator _iter248;
+    for (_iter248 = (*(this->auths)).begin(); _iter248 != (*(this->auths)).end(); ++_iter248)
     {
-      xfer += oprot->writeBinary((*_iter240));
+      xfer += oprot->writeBinary((*_iter248));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -4975,17 +4991,17 @@ uint32_t AccumuloProxy_getTableProperties_result::read(::apache::thrift::protoco
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size241;
-            ::apache::thrift::protocol::TType _ktype242;
-            ::apache::thrift::protocol::TType _vtype243;
-            xfer += iprot->readMapBegin(_ktype242, _vtype243, _size241);
-            uint32_t _i245;
-            for (_i245 = 0; _i245 < _size241; ++_i245)
+            uint32_t _size249;
+            ::apache::thrift::protocol::TType _ktype250;
+            ::apache::thrift::protocol::TType _vtype251;
+            xfer += iprot->readMapBegin(_ktype250, _vtype251, _size249);
+            uint32_t _i253;
+            for (_i253 = 0; _i253 < _size249; ++_i253)
             {
-              std::string _key246;
-              xfer += iprot->readString(_key246);
-              std::string& _val247 = this->success[_key246];
-              xfer += iprot->readString(_val247);
+              std::string _key254;
+              xfer += iprot->readString(_key254);
+              std::string& _val255 = this->success[_key254];
+              xfer += iprot->readString(_val255);
             }
             xfer += iprot->readMapEnd();
           }
@@ -5040,11 +5056,11 @@ uint32_t AccumuloProxy_getTableProperties_result::write(::apache::thrift::protoc
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, std::string> ::const_iterator _iter248;
-      for (_iter248 = this->success.begin(); _iter248 != this->success.end(); ++_iter248)
+      std::map<std::string, std::string> ::const_iterator _iter256;
+      for (_iter256 = this->success.begin(); _iter256 != this->success.end(); ++_iter256)
       {
-        xfer += oprot->writeString(_iter248->first);
-        xfer += oprot->writeString(_iter248->second);
+        xfer += oprot->writeString(_iter256->first);
+        xfer += oprot->writeString(_iter256->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -5091,17 +5107,17 @@ uint32_t AccumuloProxy_getTableProperties_presult::read(::apache::thrift::protoc
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size249;
-            ::apache::thrift::protocol::TType _ktype250;
-            ::apache::thrift::protocol::TType _vtype251;
-            xfer += iprot->readMapBegin(_ktype250, _vtype251, _size249);
-            uint32_t _i253;
-            for (_i253 = 0; _i253 < _size249; ++_i253)
+            uint32_t _size257;
+            ::apache::thrift::protocol::TType _ktype258;
+            ::apache::thrift::protocol::TType _vtype259;
+            xfer += iprot->readMapBegin(_ktype258, _vtype259, _size257);
+            uint32_t _i261;
+            for (_i261 = 0; _i261 < _size257; ++_i261)
             {
-              std::string _key254;
-              xfer += iprot->readString(_key254);
-              std::string& _val255 = (*(this->success))[_key254];
-              xfer += iprot->readString(_val255);
+              std::string _key262;
+              xfer += iprot->readString(_key262);
+              std::string& _val263 = (*(this->success))[_key262];
+              xfer += iprot->readString(_val263);
             }
             xfer += iprot->readMapEnd();
           }
@@ -5768,14 +5784,14 @@ uint32_t AccumuloProxy_listSplits_result::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size256;
-            ::apache::thrift::protocol::TType _etype259;
-            xfer += iprot->readListBegin(_etype259, _size256);
-            this->success.resize(_size256);
-            uint32_t _i260;
-            for (_i260 = 0; _i260 < _size256; ++_i260)
+            uint32_t _size264;
+            ::apache::thrift::protocol::TType _etype267;
+            xfer += iprot->readListBegin(_etype267, _size264);
+            this->success.resize(_size264);
+            uint32_t _i268;
+            for (_i268 = 0; _i268 < _size264; ++_i268)
             {
-              xfer += iprot->readBinary(this->success[_i260]);
+              xfer += iprot->readBinary(this->success[_i268]);
             }
             xfer += iprot->readListEnd();
           }
@@ -5830,10 +5846,10 @@ uint32_t AccumuloProxy_listSplits_result::write(::apache::thrift::protocol::TPro
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::vector<std::string> ::const_iterator _iter261;
-      for (_iter261 = this->success.begin(); _iter261 != this->success.end(); ++_iter261)
+      std::vector<std::string> ::const_iterator _iter269;
+      for (_iter269 = this->success.begin(); _iter269 != this->success.end(); ++_iter269)
       {
-        xfer += oprot->writeBinary((*_iter261));
+        xfer += oprot->writeBinary((*_iter269));
       }
       xfer += oprot->writeListEnd();
     }
@@ -5880,14 +5896,14 @@ uint32_t AccumuloProxy_listSplits_presult::read(::apache::thrift::protocol::TPro
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size262;
-            ::apache::thrift::protocol::TType _etype265;
-            xfer += iprot->readListBegin(_etype265, _size262);
-            (*(this->success)).resize(_size262);
-            uint32_t _i266;
-            for (_i266 = 0; _i266 < _size262; ++_i266)
+            uint32_t _size270;
+            ::apache::thrift::protocol::TType _etype273;
+            xfer += iprot->readListBegin(_etype273, _size270);
+            (*(this->success)).resize(_size270);
+            uint32_t _i274;
+            for (_i274 = 0; _i274 < _size270; ++_i274)
             {
-              xfer += iprot->readBinary((*(this->success))[_i266]);
+              xfer += iprot->readBinary((*(this->success))[_i274]);
             }
             xfer += iprot->readListEnd();
           }
@@ -6022,15 +6038,15 @@ uint32_t AccumuloProxy_listTables_result::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->success.clear();
-            uint32_t _size267;
-            ::apache::thrift::protocol::TType _etype270;
-            xfer += iprot->readSetBegin(_etype270, _size267);
-            uint32_t _i271;
-            for (_i271 = 0; _i271 < _size267; ++_i271)
+            uint32_t _size275;
+            ::apache::thrift::protocol::TType _etype278;
+            xfer += iprot->readSetBegin(_etype278, _size275);
+            uint32_t _i279;
+            for (_i279 = 0; _i279 < _size275; ++_i279)
             {
-              std::string _elem272;
-              xfer += iprot->readString(_elem272);
-              this->success.insert(_elem272);
+              std::string _elem280;
+              xfer += iprot->readString(_elem280);
+              this->success.insert(_elem280);
             }
             xfer += iprot->readSetEnd();
           }
@@ -6061,10 +6077,10 @@ uint32_t AccumuloProxy_listTables_result::write(::apache::thrift::protocol::TPro
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_SET, 0);
     {
       xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::set<std::string> ::const_iterator _iter273;
-      for (_iter273 = this->success.begin(); _iter273 != this->success.end(); ++_iter273)
+      std::set<std::string> ::const_iterator _iter281;
+      for (_iter281 = this->success.begin(); _iter281 != this->success.end(); ++_iter281)
       {
-        xfer += oprot->writeString((*_iter273));
+        xfer += oprot->writeString((*_iter281));
       }
       xfer += oprot->writeSetEnd();
     }
@@ -6099,15 +6115,15 @@ uint32_t AccumuloProxy_listTables_presult::read(::apache::thrift::protocol::TPro
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             (*(this->success)).clear();
-            uint32_t _size274;
-            ::apache::thrift::protocol::TType _etype277;
-            xfer += iprot->readSetBegin(_etype277, _size274);
-            uint32_t _i278;
-            for (_i278 = 0; _i278 < _size274; ++_i278)
+            uint32_t _size282;
+            ::apache::thrift::protocol::TType _etype285;
+            xfer += iprot->readSetBegin(_etype285, _size282);
+            uint32_t _i286;
+            for (_i286 = 0; _i286 < _size282; ++_i286)
             {
-              std::string _elem279;
-              xfer += iprot->readString(_elem279);
-              (*(this->success)).insert(_elem279);
+              std::string _elem287;
+              xfer += iprot->readString(_elem287);
+              (*(this->success)).insert(_elem287);
             }
             xfer += iprot->readSetEnd();
           }
@@ -6234,29 +6250,29 @@ uint32_t AccumuloProxy_listIterators_result::read(::apache::thrift::protocol::TP
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size280;
-            ::apache::thrift::protocol::TType _ktype281;
-            ::apache::thrift::protocol::TType _vtype282;
-            xfer += iprot->readMapBegin(_ktype281, _vtype282, _size280);
-            uint32_t _i284;
-            for (_i284 = 0; _i284 < _size280; ++_i284)
+            uint32_t _size288;
+            ::apache::thrift::protocol::TType _ktype289;
+            ::apache::thrift::protocol::TType _vtype290;
+            xfer += iprot->readMapBegin(_ktype289, _vtype290, _size288);
+            uint32_t _i292;
+            for (_i292 = 0; _i292 < _size288; ++_i292)
             {
-              std::string _key285;
-              xfer += iprot->readString(_key285);
-              std::set<IteratorScope::type> & _val286 = this->success[_key285];
+              std::string _key293;
+              xfer += iprot->readString(_key293);
+              std::set<IteratorScope::type> & _val294 = this->success[_key293];
               {
-                _val286.clear();
-                uint32_t _size287;
-                ::apache::thrift::protocol::TType _etype290;
-                xfer += iprot->readSetBegin(_etype290, _size287);
-                uint32_t _i291;
-                for (_i291 = 0; _i291 < _size287; ++_i291)
+                _val294.clear();
+                uint32_t _size295;
+                ::apache::thrift::protocol::TType _etype298;
+                xfer += iprot->readSetBegin(_etype298, _size295);
+                uint32_t _i299;
+                for (_i299 = 0; _i299 < _size295; ++_i299)
                 {
-                  IteratorScope::type _elem292;
-                  int32_t ecast293;
-                  xfer += iprot->readI32(ecast293);
-                  _elem292 = (IteratorScope::type)ecast293;
-                  _val286.insert(_elem292);
+                  IteratorScope::type _elem300;
+                  int32_t ecast301;
+                  xfer += iprot->readI32(ecast301);
+                  _elem300 = (IteratorScope::type)ecast301;
+                  _val294.insert(_elem300);
                 }
                 xfer += iprot->readSetEnd();
               }
@@ -6314,16 +6330,16 @@ uint32_t AccumuloProxy_listIterators_result::write(::apache::thrift::protocol::T
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_SET, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, std::set<IteratorScope::type> > ::const_iterator _iter294;
-      for (_iter294 = this->success.begin(); _iter294 != this->success.end(); ++_iter294)
+      std::map<std::string, std::set<IteratorScope::type> > ::const_iterator _iter302;
+      for (_iter302 = this->success.begin(); _iter302 != this->success.end(); ++_iter302)
       {
-        xfer += oprot->writeString(_iter294->first);
+        xfer += oprot->writeString(_iter302->first);
         {
-          xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(_iter294->second.size()));
-          std::set<IteratorScope::type> ::const_iterator _iter295;
-          for (_iter295 = _iter294->second.begin(); _iter295 != _iter294->second.end(); ++_iter295)
+          xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(_iter302->second.size()));
+          std::set<IteratorScope::type> ::const_iterator _iter303;
+          for (_iter303 = _iter302->second.begin(); _iter303 != _iter302->second.end(); ++_iter303)
           {
-            xfer += oprot->writeI32((int32_t)(*_iter295));
+            xfer += oprot->writeI32((int32_t)(*_iter303));
           }
           xfer += oprot->writeSetEnd();
         }
@@ -6373,29 +6389,29 @@ uint32_t AccumuloProxy_listIterators_presult::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size296;
-            ::apache::thrift::protocol::TType _ktype297;
-            ::apache::thrift::protocol::TType _vtype298;
-            xfer += iprot->readMapBegin(_ktype297, _vtype298, _size296);
-            uint32_t _i300;
-            for (_i300 = 0; _i300 < _size296; ++_i300)
+            uint32_t _size304;
+            ::apache::thrift::protocol::TType _ktype305;
+            ::apache::thrift::protocol::TType _vtype306;
+            xfer += iprot->readMapBegin(_ktype305, _vtype306, _size304);
+            uint32_t _i308;
+            for (_i308 = 0; _i308 < _size304; ++_i308)
             {
-              std::string _key301;
-              xfer += iprot->readString(_key301);
-              std::set<IteratorScope::type> & _val302 = (*(this->success))[_key301];
+              std::string _key309;
+              xfer += iprot->readString(_key309);
+              std::set<IteratorScope::type> & _val310 = (*(this->success))[_key309];
               {
-                _val302.clear();
-                uint32_t _size303;
-                ::apache::thrift::protocol::TType _etype306;
-                xfer += iprot->readSetBegin(_etype306, _size303);
-                uint32_t _i307;
-                for (_i307 = 0; _i307 < _size303; ++_i307)
+                _val310.clear();
+                uint32_t _size311;
+                ::apache::thrift::protocol::TType _etype314;
+                xfer += iprot->readSetBegin(_etype314, _size311);
+                uint32_t _i315;
+                for (_i315 = 0; _i315 < _size311; ++_i315)
                 {
-                  IteratorScope::type _elem308;
-                  int32_t ecast309;
-                  xfer += iprot->readI32(ecast309);
-                  _elem308 = (IteratorScope::type)ecast309;
-                  _val302.insert(_elem308);
+                  IteratorScope::type _elem316;
+                  int32_t ecast317;
+                  xfer += iprot->readI32(ecast317);
+                  _elem316 = (IteratorScope::type)ecast317;
+                  _val310.insert(_elem316);
                 }
                 xfer += iprot->readSetEnd();
               }
@@ -6549,17 +6565,17 @@ uint32_t AccumuloProxy_listConstraints_result::read(::apache::thrift::protocol::
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size310;
-            ::apache::thrift::protocol::TType _ktype311;
-            ::apache::thrift::protocol::TType _vtype312;
-            xfer += iprot->readMapBegin(_ktype311, _vtype312, _size310);
-            uint32_t _i314;
-            for (_i314 = 0; _i314 < _size310; ++_i314)
+            uint32_t _size318;
+            ::apache::thrift::protocol::TType _ktype319;
+            ::apache::thrift::protocol::TType _vtype320;
+            xfer += iprot->readMapBegin(_ktype319, _vtype320, _size318);
+            uint32_t _i322;
+            for (_i322 = 0; _i322 < _size318; ++_i322)
             {
-              std::string _key315;
-              xfer += iprot->readString(_key315);
-              int32_t& _val316 = this->success[_key315];
-              xfer += iprot->readI32(_val316);
+              std::string _key323;
+              xfer += iprot->readString(_key323);
+              int32_t& _val324 = this->success[_key323];
+              xfer += iprot->readI32(_val324);
             }
             xfer += iprot->readMapEnd();
           }
@@ -6614,11 +6630,11 @@ uint32_t AccumuloProxy_listConstraints_result::write(::apache::thrift::protocol:
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, int32_t> ::const_iterator _iter317;
-      for (_iter317 = this->success.begin(); _iter317 != this->success.end(); ++_iter317)
+      std::map<std::string, int32_t> ::const_iterator _iter325;
+      for (_iter325 = this->success.begin(); _iter325 != this->success.end(); ++_iter325)
       {
-        xfer += oprot->writeString(_iter317->first);
-        xfer += oprot->writeI32(_iter317->second);
+        xfer += oprot->writeString(_iter325->first);
+        xfer += oprot->writeI32(_iter325->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -6665,17 +6681,17 @@ uint32_t AccumuloProxy_listConstraints_presult::read(::apache::thrift::protocol:
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size318;
-            ::apache::thrift::protocol::TType _ktype319;
-            ::apache::thrift::protocol::TType _vtype320;
-            xfer += iprot->readMapBegin(_ktype319, _vtype320, _size318);
-            uint32_t _i322;
-            for (_i322 = 0; _i322 < _size318; ++_i322)
+            uint32_t _size326;
+            ::apache::thrift::protocol::TType _ktype327;
+            ::apache::thrift::protocol::TType _vtype328;
+            xfer += iprot->readMapBegin(_ktype327, _vtype328, _size326);
+            uint32_t _i330;
+            for (_i330 = 0; _i330 < _size326; ++_i330)
             {
-              std::string _key323;
-              xfer += iprot->readString(_key323);
-              int32_t& _val324 = (*(this->success))[_key323];
-              xfer += iprot->readI32(_val324);
+              std::string _key331;
+              xfer += iprot->readString(_key331);
+              int32_t& _val332 = (*(this->success))[_key331];
+              xfer += iprot->readI32(_val332);
             }
             xfer += iprot->readMapEnd();
           }
@@ -7720,17 +7736,17 @@ uint32_t AccumuloProxy_removeIterator_args::read(::apache::thrift::protocol::TPr
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->scopes.clear();
-            uint32_t _size325;
-            ::apache::thrift::protocol::TType _etype328;
-            xfer += iprot->readSetBegin(_etype328, _size325);
-            uint32_t _i329;
-            for (_i329 = 0; _i329 < _size325; ++_i329)
+            uint32_t _size333;
+            ::apache::thrift::protocol::TType _etype336;
+            xfer += iprot->readSetBegin(_etype336, _size333);
+            uint32_t _i337;
+            for (_i337 = 0; _i337 < _size333; ++_i337)
             {
-              IteratorScope::type _elem330;
-              int32_t ecast331;
-              xfer += iprot->readI32(ecast331);
-              _elem330 = (IteratorScope::type)ecast331;
-              this->scopes.insert(_elem330);
+              IteratorScope::type _elem338;
+              int32_t ecast339;
+              xfer += iprot->readI32(ecast339);
+              _elem338 = (IteratorScope::type)ecast339;
+              this->scopes.insert(_elem338);
             }
             xfer += iprot->readSetEnd();
           }
@@ -7770,10 +7786,10 @@ uint32_t AccumuloProxy_removeIterator_args::write(::apache::thrift::protocol::TP
   xfer += oprot->writeFieldBegin("scopes", ::apache::thrift::protocol::T_SET, 4);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->scopes.size()));
-    std::set<IteratorScope::type> ::const_iterator _iter332;
-    for (_iter332 = this->scopes.begin(); _iter332 != this->scopes.end(); ++_iter332)
+    std::set<IteratorScope::type> ::const_iterator _iter340;
+    for (_iter340 = this->scopes.begin(); _iter340 != this->scopes.end(); ++_iter340)
     {
-      xfer += oprot->writeI32((int32_t)(*_iter332));
+      xfer += oprot->writeI32((int32_t)(*_iter340));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -7803,10 +7819,10 @@ uint32_t AccumuloProxy_removeIterator_pargs::write(::apache::thrift::protocol::T
   xfer += oprot->writeFieldBegin("scopes", ::apache::thrift::protocol::T_SET, 4);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>((*(this->scopes)).size()));
-    std::set<IteratorScope::type> ::const_iterator _iter333;
-    for (_iter333 = (*(this->scopes)).begin(); _iter333 != (*(this->scopes)).end(); ++_iter333)
+    std::set<IteratorScope::type> ::const_iterator _iter341;
+    for (_iter341 = (*(this->scopes)).begin(); _iter341 != (*(this->scopes)).end(); ++_iter341)
     {
-      xfer += oprot->writeI32((int32_t)(*_iter333));
+      xfer += oprot->writeI32((int32_t)(*_iter341));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -8481,27 +8497,27 @@ uint32_t AccumuloProxy_setLocalityGroups_args::read(::apache::thrift::protocol::
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->groups.clear();
-            uint32_t _size334;
-            ::apache::thrift::protocol::TType _ktype335;
-            ::apache::thrift::protocol::TType _vtype336;
-            xfer += iprot->readMapBegin(_ktype335, _vtype336, _size334);
-            uint32_t _i338;
-            for (_i338 = 0; _i338 < _size334; ++_i338)
+            uint32_t _size342;
+            ::apache::thrift::protocol::TType _ktype343;
+            ::apache::thrift::protocol::TType _vtype344;
+            xfer += iprot->readMapBegin(_ktype343, _vtype344, _size342);
+            uint32_t _i346;
+            for (_i346 = 0; _i346 < _size342; ++_i346)
             {
-              std::string _key339;
-              xfer += iprot->readString(_key339);
-              std::set<std::string> & _val340 = this->groups[_key339];
+              std::string _key347;
+              xfer += iprot->readString(_key347);
+              std::set<std::string> & _val348 = this->groups[_key347];
               {
-                _val340.clear();
-                uint32_t _size341;
-                ::apache::thrift::protocol::TType _etype344;
-                xfer += iprot->readSetBegin(_etype344, _size341);
-                uint32_t _i345;
-                for (_i345 = 0; _i345 < _size341; ++_i345)
+                _val348.clear();
+                uint32_t _size349;
+                ::apache::thrift::protocol::TType _etype352;
+                xfer += iprot->readSetBegin(_etype352, _size349);
+                uint32_t _i353;
+                for (_i353 = 0; _i353 < _size349; ++_i353)
                 {
-                  std::string _elem346;
-                  xfer += iprot->readString(_elem346);
-                  _val340.insert(_elem346);
+                  std::string _elem354;
+                  xfer += iprot->readString(_elem354);
+                  _val348.insert(_elem354);
                 }
                 xfer += iprot->readSetEnd();
               }
@@ -8540,16 +8556,16 @@ uint32_t AccumuloProxy_setLocalityGroups_args::write(::apache::thrift::protocol:
   xfer += oprot->writeFieldBegin("groups", ::apache::thrift::protocol::T_MAP, 3);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_SET, static_cast<uint32_t>(this->groups.size()));
-    std::map<std::string, std::set<std::string> > ::const_iterator _iter347;
-    for (_iter347 = this->groups.begin(); _iter347 != this->groups.end(); ++_iter347)
+    std::map<std::string, std::set<std::string> > ::const_iterator _iter355;
+    for (_iter355 = this->groups.begin(); _iter355 != this->groups.end(); ++_iter355)
     {
-      xfer += oprot->writeString(_iter347->first);
+      xfer += oprot->writeString(_iter355->first);
       {
-        xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(_iter347->second.size()));
-        std::set<std::string> ::const_iterator _iter348;
-        for (_iter348 = _iter347->second.begin(); _iter348 != _iter347->second.end(); ++_iter348)
+        xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(_iter355->second.size()));
+        std::set<std::string> ::const_iterator _iter356;
+        for (_iter356 = _iter355->second.begin(); _iter356 != _iter355->second.end(); ++_iter356)
         {
-          xfer += oprot->writeString((*_iter348));
+          xfer += oprot->writeString((*_iter356));
         }
         xfer += oprot->writeSetEnd();
       }
@@ -8578,16 +8594,16 @@ uint32_t AccumuloProxy_setLocalityGroups_pargs::write(::apache::thrift::protocol
   xfer += oprot->writeFieldBegin("groups", ::apache::thrift::protocol::T_MAP, 3);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_SET, static_cast<uint32_t>((*(this->groups)).size()));
-    std::map<std::string, std::set<std::string> > ::const_iterator _iter349;
-    for (_iter349 = (*(this->groups)).begin(); _iter349 != (*(this->groups)).end(); ++_iter349)
+    std::map<std::string, std::set<std::string> > ::const_iterator _iter357;
+    for (_iter357 = (*(this->groups)).begin(); _iter357 != (*(this->groups)).end(); ++_iter357)
     {
-      xfer += oprot->writeString(_iter349->first);
+      xfer += oprot->writeString(_iter357->first);
       {
-        xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(_iter349->second.size()));
-        std::set<std::string> ::const_iterator _iter350;
-        for (_iter350 = _iter349->second.begin(); _iter350 != _iter349->second.end(); ++_iter350)
+        xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(_iter357->second.size()));
+        std::set<std::string> ::const_iterator _iter358;
+        for (_iter358 = _iter357->second.begin(); _iter358 != _iter357->second.end(); ++_iter358)
         {
-          xfer += oprot->writeString((*_iter350));
+          xfer += oprot->writeString((*_iter358));
         }
         xfer += oprot->writeSetEnd();
       }
@@ -9125,15 +9141,15 @@ uint32_t AccumuloProxy_splitRangeByTablets_result::read(::apache::thrift::protoc
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->success.clear();
-            uint32_t _size351;
-            ::apache::thrift::protocol::TType _etype354;
-            xfer += iprot->readSetBegin(_etype354, _size351);
-            uint32_t _i355;
-            for (_i355 = 0; _i355 < _size351; ++_i355)
+            uint32_t _size359;
+            ::apache::thrift::protocol::TType _etype362;
+            xfer += iprot->readSetBegin(_etype362, _size359);
+            uint32_t _i363;
+            for (_i363 = 0; _i363 < _size359; ++_i363)
             {
-              Range _elem356;
-              xfer += _elem356.read(iprot);
-              this->success.insert(_elem356);
+              Range _elem364;
+              xfer += _elem364.read(iprot);
+              this->success.insert(_elem364);
             }
             xfer += iprot->readSetEnd();
           }
@@ -9188,10 +9204,10 @@ uint32_t AccumuloProxy_splitRangeByTablets_result::write(::apache::thrift::proto
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_SET, 0);
     {
       xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->success.size()));
-      std::set<Range> ::const_iterator _iter357;
-      for (_iter357 = this->success.begin(); _iter357 != this->success.end(); ++_iter357)
+      std::set<Range> ::const_iterator _iter365;
+      for (_iter365 = this->success.begin(); _iter365 != this->success.end(); ++_iter365)
       {
-        xfer += (*_iter357).write(oprot);
+        xfer += (*_iter365).write(oprot);
       }
       xfer += oprot->writeSetEnd();
     }
@@ -9238,15 +9254,15 @@ uint32_t AccumuloProxy_splitRangeByTablets_presult::read(::apache::thrift::proto
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             (*(this->success)).clear();
-            uint32_t _size358;
-            ::apache::thrift::protocol::TType _etype361;
-            xfer += iprot->readSetBegin(_etype361, _size358);
-            uint32_t _i362;
-            for (_i362 = 0; _i362 < _size358; ++_i362)
+            uint32_t _size366;
+            ::apache::thrift::protocol::TType _etype369;
+            xfer += iprot->readSetBegin(_etype369, _size366);
+            uint32_t _i370;
+            for (_i370 = 0; _i370 < _size366; ++_i370)
             {
-              Range _elem363;
-              xfer += _elem363.read(iprot);
-              (*(this->success)).insert(_elem363);
+              Range _elem371;
+              xfer += _elem371.read(iprot);
+              (*(this->success)).insert(_elem371);
             }
             xfer += iprot->readSetEnd();
           }
@@ -9559,17 +9575,17 @@ uint32_t AccumuloProxy_tableIdMap_result::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size364;
-            ::apache::thrift::protocol::TType _ktype365;
-            ::apache::thrift::protocol::TType _vtype366;
-            xfer += iprot->readMapBegin(_ktype365, _vtype366, _size364);
-            uint32_t _i368;
-            for (_i368 = 0; _i368 < _size364; ++_i368)
+            uint32_t _size372;
+            ::apache::thrift::protocol::TType _ktype373;
+            ::apache::thrift::protocol::TType _vtype374;
+            xfer += iprot->readMapBegin(_ktype373, _vtype374, _size372);
+            uint32_t _i376;
+            for (_i376 = 0; _i376 < _size372; ++_i376)
             {
-              std::string _key369;
-              xfer += iprot->readString(_key369);
-              std::string& _val370 = this->success[_key369];
-              xfer += iprot->readString(_val370);
+              std::string _key377;
+              xfer += iprot->readString(_key377);
+              std::string& _val378 = this->success[_key377];
+              xfer += iprot->readString(_val378);
             }
             xfer += iprot->readMapEnd();
           }
@@ -9600,11 +9616,11 @@ uint32_t AccumuloProxy_tableIdMap_result::write(::apache::thrift::protocol::TPro
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, std::string> ::const_iterator _iter371;
-      for (_iter371 = this->success.begin(); _iter371 != this->success.end(); ++_iter371)
+      std::map<std::string, std::string> ::const_iterator _iter379;
+      for (_iter379 = this->success.begin(); _iter379 != this->success.end(); ++_iter379)
       {
-        xfer += oprot->writeString(_iter371->first);
-        xfer += oprot->writeString(_iter371->second);
+        xfer += oprot->writeString(_iter379->first);
+        xfer += oprot->writeString(_iter379->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -9639,17 +9655,17 @@ uint32_t AccumuloProxy_tableIdMap_presult::read(::apache::thrift::protocol::TPro
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size372;
-            ::apache::thrift::protocol::TType _ktype373;
-            ::apache::thrift::protocol::TType _vtype374;
-            xfer += iprot->readMapBegin(_ktype373, _vtype374, _size372);
-            uint32_t _i376;
-            for (_i376 = 0; _i376 < _size372; ++_i376)
+            uint32_t _size380;
+            ::apache::thrift::protocol::TType _ktype381;
+            ::apache::thrift::protocol::TType _vtype382;
+            xfer += iprot->readMapBegin(_ktype381, _vtype382, _size380);
+            uint32_t _i384;
+            for (_i384 = 0; _i384 < _size380; ++_i384)
             {
-              std::string _key377;
-              xfer += iprot->readString(_key377);
-              std::string& _val378 = (*(this->success))[_key377];
-              xfer += iprot->readString(_val378);
+              std::string _key385;
+              xfer += iprot->readString(_key385);
+              std::string& _val386 = (*(this->success))[_key385];
+              xfer += iprot->readString(_val386);
             }
             xfer += iprot->readMapEnd();
           }
@@ -10244,14 +10260,14 @@ uint32_t AccumuloProxy_getActiveScans_result::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size379;
-            ::apache::thrift::protocol::TType _etype382;
-            xfer += iprot->readListBegin(_etype382, _size379);
-            this->success.resize(_size379);
-            uint32_t _i383;
-            for (_i383 = 0; _i383 < _size379; ++_i383)
+            uint32_t _size387;
+            ::apache::thrift::protocol::TType _etype390;
+            xfer += iprot->readListBegin(_etype390, _size387);
+            this->success.resize(_size387);
+            uint32_t _i391;
+            for (_i391 = 0; _i391 < _size387; ++_i391)
             {
-              xfer += this->success[_i383].read(iprot);
+              xfer += this->success[_i391].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -10298,10 +10314,10 @@ uint32_t AccumuloProxy_getActiveScans_result::write(::apache::thrift::protocol::
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->success.size()));
-      std::vector<ActiveScan> ::const_iterator _iter384;
-      for (_iter384 = this->success.begin(); _iter384 != this->success.end(); ++_iter384)
+      std::vector<ActiveScan> ::const_iterator _iter392;
+      for (_iter392 = this->success.begin(); _iter392 != this->success.end(); ++_iter392)
       {
-        xfer += (*_iter384).write(oprot);
+        xfer += (*_iter392).write(oprot);
       }
       xfer += oprot->writeListEnd();
     }
@@ -10344,14 +10360,14 @@ uint32_t AccumuloProxy_getActiveScans_presult::read(::apache::thrift::protocol::
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size385;
-            ::apache::thrift::protocol::TType _etype388;
-            xfer += iprot->readListBegin(_etype388, _size385);
-            (*(this->success)).resize(_size385);
-            uint32_t _i389;
-            for (_i389 = 0; _i389 < _size385; ++_i389)
+            uint32_t _size393;
+            ::apache::thrift::protocol::TType _etype396;
+            xfer += iprot->readListBegin(_etype396, _size393);
+            (*(this->success)).resize(_size393);
+            uint32_t _i397;
+            for (_i397 = 0; _i397 < _size393; ++_i397)
             {
-              xfer += (*(this->success))[_i389].read(iprot);
+              xfer += (*(this->success))[_i397].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -10494,14 +10510,14 @@ uint32_t AccumuloProxy_getActiveCompactions_result::read(::apache::thrift::proto
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size390;
-            ::apache::thrift::protocol::TType _etype393;
-            xfer += iprot->readListBegin(_etype393, _size390);
-            this->success.resize(_size390);
-            uint32_t _i394;
-            for (_i394 = 0; _i394 < _size390; ++_i394)
+            uint32_t _size398;
+            ::apache::thrift::protocol::TType _etype401;
+            xfer += iprot->readListBegin(_etype401, _size398);
+            this->success.resize(_size398);
+            uint32_t _i402;
+            for (_i402 = 0; _i402 < _size398; ++_i402)
             {
-              xfer += this->success[_i394].read(iprot);
+              xfer += this->success[_i402].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -10548,10 +10564,10 @@ uint32_t AccumuloProxy_getActiveCompactions_result::write(::apache::thrift::prot
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->success.size()));
-      std::vector<ActiveCompaction> ::const_iterator _iter395;
-      for (_iter395 = this->success.begin(); _iter395 != this->success.end(); ++_iter395)
+      std::vector<ActiveCompaction> ::const_iterator _iter403;
+      for (_iter403 = this->success.begin(); _iter403 != this->success.end(); ++_iter403)
       {
-        xfer += (*_iter395).write(oprot);
+        xfer += (*_iter403).write(oprot);
       }
       xfer += oprot->writeListEnd();
     }
@@ -10594,14 +10610,14 @@ uint32_t AccumuloProxy_getActiveCompactions_presult::read(::apache::thrift::prot
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size396;
-            ::apache::thrift::protocol::TType _etype399;
-            xfer += iprot->readListBegin(_etype399, _size396);
-            (*(this->success)).resize(_size396);
-            uint32_t _i400;
-            for (_i400 = 0; _i400 < _size396; ++_i400)
+            uint32_t _size404;
+            ::apache::thrift::protocol::TType _etype407;
+            xfer += iprot->readListBegin(_etype407, _size404);
+            (*(this->success)).resize(_size404);
+            uint32_t _i408;
+            for (_i408 = 0; _i408 < _size404; ++_i408)
             {
-              xfer += (*(this->success))[_i400].read(iprot);
+              xfer += (*(this->success))[_i408].read(iprot);
             }
             xfer += iprot->readListEnd();
           }
@@ -10728,17 +10744,17 @@ uint32_t AccumuloProxy_getSiteConfiguration_result::read(::apache::thrift::proto
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size401;
-            ::apache::thrift::protocol::TType _ktype402;
-            ::apache::thrift::protocol::TType _vtype403;
-            xfer += iprot->readMapBegin(_ktype402, _vtype403, _size401);
-            uint32_t _i405;
-            for (_i405 = 0; _i405 < _size401; ++_i405)
+            uint32_t _size409;
+            ::apache::thrift::protocol::TType _ktype410;
+            ::apache::thrift::protocol::TType _vtype411;
+            xfer += iprot->readMapBegin(_ktype410, _vtype411, _size409);
+            uint32_t _i413;
+            for (_i413 = 0; _i413 < _size409; ++_i413)
             {
-              std::string _key406;
-              xfer += iprot->readString(_key406);
-              std::string& _val407 = this->success[_key406];
-              xfer += iprot->readString(_val407);
+              std::string _key414;
+              xfer += iprot->readString(_key414);
+              std::string& _val415 = this->success[_key414];
+              xfer += iprot->readString(_val415);
             }
             xfer += iprot->readMapEnd();
           }
@@ -10785,11 +10801,11 @@ uint32_t AccumuloProxy_getSiteConfiguration_result::write(::apache::thrift::prot
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, std::string> ::const_iterator _iter408;
-      for (_iter408 = this->success.begin(); _iter408 != this->success.end(); ++_iter408)
+      std::map<std::string, std::string> ::const_iterator _iter416;
+      for (_iter416 = this->success.begin(); _iter416 != this->success.end(); ++_iter416)
       {
-        xfer += oprot->writeString(_iter408->first);
-        xfer += oprot->writeString(_iter408->second);
+        xfer += oprot->writeString(_iter416->first);
+        xfer += oprot->writeString(_iter416->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -10832,17 +10848,17 @@ uint32_t AccumuloProxy_getSiteConfiguration_presult::read(::apache::thrift::prot
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size409;
-            ::apache::thrift::protocol::TType _ktype410;
-            ::apache::thrift::protocol::TType _vtype411;
-            xfer += iprot->readMapBegin(_ktype410, _vtype411, _size409);
-            uint32_t _i413;
-            for (_i413 = 0; _i413 < _size409; ++_i413)
+            uint32_t _size417;
+            ::apache::thrift::protocol::TType _ktype418;
+            ::apache::thrift::protocol::TType _vtype419;
+            xfer += iprot->readMapBegin(_ktype418, _vtype419, _size417);
+            uint32_t _i421;
+            for (_i421 = 0; _i421 < _size417; ++_i421)
             {
-              std::string _key414;
-              xfer += iprot->readString(_key414);
-              std::string& _val415 = (*(this->success))[_key414];
-              xfer += iprot->readString(_val415);
+              std::string _key422;
+              xfer += iprot->readString(_key422);
+              std::string& _val423 = (*(this->success))[_key422];
+              xfer += iprot->readString(_val423);
             }
             xfer += iprot->readMapEnd();
           }
@@ -10969,17 +10985,17 @@ uint32_t AccumuloProxy_getSystemConfiguration_result::read(::apache::thrift::pro
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size416;
-            ::apache::thrift::protocol::TType _ktype417;
-            ::apache::thrift::protocol::TType _vtype418;
-            xfer += iprot->readMapBegin(_ktype417, _vtype418, _size416);
-            uint32_t _i420;
-            for (_i420 = 0; _i420 < _size416; ++_i420)
+            uint32_t _size424;
+            ::apache::thrift::protocol::TType _ktype425;
+            ::apache::thrift::protocol::TType _vtype426;
+            xfer += iprot->readMapBegin(_ktype425, _vtype426, _size424);
+            uint32_t _i428;
+            for (_i428 = 0; _i428 < _size424; ++_i428)
             {
-              std::string _key421;
-              xfer += iprot->readString(_key421);
-              std::string& _val422 = this->success[_key421];
-              xfer += iprot->readString(_val422);
+              std::string _key429;
+              xfer += iprot->readString(_key429);
+              std::string& _val430 = this->success[_key429];
+              xfer += iprot->readString(_val430);
             }
             xfer += iprot->readMapEnd();
           }
@@ -11026,11 +11042,11 @@ uint32_t AccumuloProxy_getSystemConfiguration_result::write(::apache::thrift::pr
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, std::string> ::const_iterator _iter423;
-      for (_iter423 = this->success.begin(); _iter423 != this->success.end(); ++_iter423)
+      std::map<std::string, std::string> ::const_iterator _iter431;
+      for (_iter431 = this->success.begin(); _iter431 != this->success.end(); ++_iter431)
       {
-        xfer += oprot->writeString(_iter423->first);
-        xfer += oprot->writeString(_iter423->second);
+        xfer += oprot->writeString(_iter431->first);
+        xfer += oprot->writeString(_iter431->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -11073,17 +11089,17 @@ uint32_t AccumuloProxy_getSystemConfiguration_presult::read(::apache::thrift::pr
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size424;
-            ::apache::thrift::protocol::TType _ktype425;
-            ::apache::thrift::protocol::TType _vtype426;
-            xfer += iprot->readMapBegin(_ktype425, _vtype426, _size424);
-            uint32_t _i428;
-            for (_i428 = 0; _i428 < _size424; ++_i428)
+            uint32_t _size432;
+            ::apache::thrift::protocol::TType _ktype433;
+            ::apache::thrift::protocol::TType _vtype434;
+            xfer += iprot->readMapBegin(_ktype433, _vtype434, _size432);
+            uint32_t _i436;
+            for (_i436 = 0; _i436 < _size432; ++_i436)
             {
-              std::string _key429;
-              xfer += iprot->readString(_key429);
-              std::string& _val430 = (*(this->success))[_key429];
-              xfer += iprot->readString(_val430);
+              std::string _key437;
+              xfer += iprot->readString(_key437);
+              std::string& _val438 = (*(this->success))[_key437];
+              xfer += iprot->readString(_val438);
             }
             xfer += iprot->readMapEnd();
           }
@@ -11210,14 +11226,14 @@ uint32_t AccumuloProxy_getTabletServers_result::read(::apache::thrift::protocol:
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size431;
-            ::apache::thrift::protocol::TType _etype434;
-            xfer += iprot->readListBegin(_etype434, _size431);
-            this->success.resize(_size431);
-            uint32_t _i435;
-            for (_i435 = 0; _i435 < _size431; ++_i435)
+            uint32_t _size439;
+            ::apache::thrift::protocol::TType _etype442;
+            xfer += iprot->readListBegin(_etype442, _size439);
+            this->success.resize(_size439);
+            uint32_t _i443;
+            for (_i443 = 0; _i443 < _size439; ++_i443)
             {
-              xfer += iprot->readString(this->success[_i435]);
+              xfer += iprot->readString(this->success[_i443]);
             }
             xfer += iprot->readListEnd();
           }
@@ -11248,10 +11264,10 @@ uint32_t AccumuloProxy_getTabletServers_result::write(::apache::thrift::protocol
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::vector<std::string> ::const_iterator _iter436;
-      for (_iter436 = this->success.begin(); _iter436 != this->success.end(); ++_iter436)
+      std::vector<std::string> ::const_iterator _iter444;
+      for (_iter444 = this->success.begin(); _iter444 != this->success.end(); ++_iter444)
       {
-        xfer += oprot->writeString((*_iter436));
+        xfer += oprot->writeString((*_iter444));
       }
       xfer += oprot->writeListEnd();
     }
@@ -11286,14 +11302,14 @@ uint32_t AccumuloProxy_getTabletServers_presult::read(::apache::thrift::protocol
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size437;
-            ::apache::thrift::protocol::TType _etype440;
-            xfer += iprot->readListBegin(_etype440, _size437);
-            (*(this->success)).resize(_size437);
-            uint32_t _i441;
-            for (_i441 = 0; _i441 < _size437; ++_i441)
+            uint32_t _size445;
+            ::apache::thrift::protocol::TType _etype448;
+            xfer += iprot->readListBegin(_etype448, _size445);
+            (*(this->success)).resize(_size445);
+            uint32_t _i449;
+            for (_i449 = 0; _i449 < _size445; ++_i449)
             {
-              xfer += iprot->readString((*(this->success))[_i441]);
+              xfer += iprot->readString((*(this->success))[_i449]);
             }
             xfer += iprot->readListEnd();
           }
@@ -12000,17 +12016,17 @@ uint32_t AccumuloProxy_authenticateUser_args::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->properties.clear();
-            uint32_t _size442;
-            ::apache::thrift::protocol::TType _ktype443;
-            ::apache::thrift::protocol::TType _vtype444;
-            xfer += iprot->readMapBegin(_ktype443, _vtype444, _size442);
-            uint32_t _i446;
-            for (_i446 = 0; _i446 < _size442; ++_i446)
+            uint32_t _size450;
+            ::apache::thrift::protocol::TType _ktype451;
+            ::apache::thrift::protocol::TType _vtype452;
+            xfer += iprot->readMapBegin(_ktype451, _vtype452, _size450);
+            uint32_t _i454;
+            for (_i454 = 0; _i454 < _size450; ++_i454)
             {
-              std::string _key447;
-              xfer += iprot->readString(_key447);
-              std::string& _val448 = this->properties[_key447];
-              xfer += iprot->readString(_val448);
+              std::string _key455;
+              xfer += iprot->readString(_key455);
+              std::string& _val456 = this->properties[_key455];
+              xfer += iprot->readString(_val456);
             }
             xfer += iprot->readMapEnd();
           }
@@ -12046,11 +12062,11 @@ uint32_t AccumuloProxy_authenticateUser_args::write(::apache::thrift::protocol::
   xfer += oprot->writeFieldBegin("properties", ::apache::thrift::protocol::T_MAP, 3);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->properties.size()));
-    std::map<std::string, std::string> ::const_iterator _iter449;
-    for (_iter449 = this->properties.begin(); _iter449 != this->properties.end(); ++_iter449)
+    std::map<std::string, std::string> ::const_iterator _iter457;
+    for (_iter457 = this->properties.begin(); _iter457 != this->properties.end(); ++_iter457)
     {
-      xfer += oprot->writeString(_iter449->first);
-      xfer += oprot->writeString(_iter449->second);
+      xfer += oprot->writeString(_iter457->first);
+      xfer += oprot->writeString(_iter457->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -12076,11 +12092,11 @@ uint32_t AccumuloProxy_authenticateUser_pargs::write(::apache::thrift::protocol:
   xfer += oprot->writeFieldBegin("properties", ::apache::thrift::protocol::T_MAP, 3);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->properties)).size()));
-    std::map<std::string, std::string> ::const_iterator _iter450;
-    for (_iter450 = (*(this->properties)).begin(); _iter450 != (*(this->properties)).end(); ++_iter450)
+    std::map<std::string, std::string> ::const_iterator _iter458;
+    for (_iter458 = (*(this->properties)).begin(); _iter458 != (*(this->properties)).end(); ++_iter458)
     {
-      xfer += oprot->writeString(_iter450->first);
-      xfer += oprot->writeString(_iter450->second);
+      xfer += oprot->writeString(_iter458->first);
+      xfer += oprot->writeString(_iter458->second);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -12267,15 +12283,15 @@ uint32_t AccumuloProxy_changeUserAuthorizations_args::read(::apache::thrift::pro
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->authorizations.clear();
-            uint32_t _size451;
-            ::apache::thrift::protocol::TType _etype454;
-            xfer += iprot->readSetBegin(_etype454, _size451);
-            uint32_t _i455;
-            for (_i455 = 0; _i455 < _size451; ++_i455)
+            uint32_t _size459;
+            ::apache::thrift::protocol::TType _etype462;
+            xfer += iprot->readSetBegin(_etype462, _size459);
+            uint32_t _i463;
+            for (_i463 = 0; _i463 < _size459; ++_i463)
             {
-              std::string _elem456;
-              xfer += iprot->readBinary(_elem456);
-              this->authorizations.insert(_elem456);
+              std::string _elem464;
+              xfer += iprot->readBinary(_elem464);
+              this->authorizations.insert(_elem464);
             }
             xfer += iprot->readSetEnd();
           }
@@ -12311,10 +12327,10 @@ uint32_t AccumuloProxy_changeUserAuthorizations_args::write(::apache::thrift::pr
   xfer += oprot->writeFieldBegin("authorizations", ::apache::thrift::protocol::T_SET, 3);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->authorizations.size()));
-    std::set<std::string> ::const_iterator _iter457;
-    for (_iter457 = this->authorizations.begin(); _iter457 != this->authorizations.end(); ++_iter457)
+    std::set<std::string> ::const_iterator _iter465;
+    for (_iter465 = this->authorizations.begin(); _iter465 != this->authorizations.end(); ++_iter465)
     {
-      xfer += oprot->writeBinary((*_iter457));
+      xfer += oprot->writeBinary((*_iter465));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -12340,10 +12356,10 @@ uint32_t AccumuloProxy_changeUserAuthorizations_pargs::write(::apache::thrift::p
   xfer += oprot->writeFieldBegin("authorizations", ::apache::thrift::protocol::T_SET, 3);
   {
     xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->authorizations)).size()));
-    std::set<std::string> ::const_iterator _iter458;
-    for (_iter458 = (*(this->authorizations)).begin(); _iter458 != (*(this->authorizations)).end(); ++_iter458)
+    std::set<std::string> ::const_iterator _iter466;
+    for (_iter466 = (*(this->authorizations)).begin(); _iter466 != (*(this->authorizations)).end(); ++_iter466)
     {
-      xfer += oprot->writeBinary((*_iter458));
+      xfer += oprot->writeBinary((*_iter466));
     }
     xfer += oprot->writeSetEnd();
   }
@@ -13202,14 +13218,14 @@ uint32_t AccumuloProxy_getUserAuthorizations_result::read(::apache::thrift::prot
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size459;
-            ::apache::thrift::protocol::TType _etype462;
-            xfer += iprot->readListBegin(_etype462, _size459);
-            this->success.resize(_size459);
-            uint32_t _i463;
-            for (_i463 = 0; _i463 < _size459; ++_i463)
+            uint32_t _size467;
+            ::apache::thrift::protocol::TType _etype470;
+            xfer += iprot->readListBegin(_etype470, _size467);
+            this->success.resize(_size467);
+            uint32_t _i471;
+            for (_i471 = 0; _i471 < _size467; ++_i471)
             {
-              xfer += iprot->readBinary(this->success[_i463]);
+              xfer += iprot->readBinary(this->success[_i471]);
             }
             xfer += iprot->readListEnd();
           }
@@ -13256,10 +13272,10 @@ uint32_t AccumuloProxy_getUserAuthorizations_result::write(::apache::thrift::pro
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::vector<std::string> ::const_iterator _iter464;
-      for (_iter464 = this->success.begin(); _iter464 != this->success.end(); ++_iter464)
+      std::vector<std::string> ::const_iterator _iter472;
+      for (_iter472 = this->success.begin(); _iter472 != this->success.end(); ++_iter472)
       {
-        xfer += oprot->writeBinary((*_iter464));
+        xfer += oprot->writeBinary((*_iter472));
       }
       xfer += oprot->writeListEnd();
     }
@@ -13302,14 +13318,14 @@ uint32_t AccumuloProxy_getUserAuthorizations_presult::read(::apache::thrift::pro
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size465;
-            ::apache::thrift::protocol::TType _etype468;
-            xfer += iprot->readListBegin(_etype468, _size465);
-            (*(this->success)).resize(_size465);
-            uint32_t _i469;
-            for (_i469 = 0; _i469 < _size465; ++_i469)
+            uint32_t _size473;
+            ::apache::thrift::protocol::TType _etype476;
+            xfer += iprot->readListBegin(_etype476, _size473);
+            (*(this->success)).resize(_size473);
+            uint32_t _i477;
+            for (_i477 = 0; _i477 < _size473; ++_i477)
             {
-              xfer += iprot->readBinary((*(this->success))[_i469]);
+              xfer += iprot->readBinary((*(this->success))[_i477]);
             }
             xfer += iprot->readListEnd();
           }
@@ -13384,9 +13400,9 @@ uint32_t AccumuloProxy_grantSystemPermission_args::read(::apache::thrift::protoc
         break;
       case 3:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast470;
-          xfer += iprot->readI32(ecast470);
-          this->perm = (SystemPermission::type)ecast470;
+          int32_t ecast478;
+          xfer += iprot->readI32(ecast478);
+          this->perm = (SystemPermission::type)ecast478;
           this->__isset.perm = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -13608,9 +13624,9 @@ uint32_t AccumuloProxy_grantTablePermission_args::read(::apache::thrift::protoco
         break;
       case 4:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast471;
-          xfer += iprot->readI32(ecast471);
-          this->perm = (TablePermission::type)ecast471;
+          int32_t ecast479;
+          xfer += iprot->readI32(ecast479);
+          this->perm = (TablePermission::type)ecast479;
           this->__isset.perm = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -13852,9 +13868,9 @@ uint32_t AccumuloProxy_hasSystemPermission_args::read(::apache::thrift::protocol
         break;
       case 3:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast472;
-          xfer += iprot->readI32(ecast472);
-          this->perm = (SystemPermission::type)ecast472;
+          int32_t ecast480;
+          xfer += iprot->readI32(ecast480);
+          this->perm = (SystemPermission::type)ecast480;
           this->__isset.perm = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -14096,9 +14112,9 @@ uint32_t AccumuloProxy_hasTablePermission_args::read(::apache::thrift::protocol:
         break;
       case 4:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast473;
-          xfer += iprot->readI32(ecast473);
-          this->perm = (TablePermission::type)ecast473;
+          int32_t ecast481;
+          xfer += iprot->readI32(ecast481);
+          this->perm = (TablePermission::type)ecast481;
           this->__isset.perm = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -14412,15 +14428,15 @@ uint32_t AccumuloProxy_listLocalUsers_result::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->success.clear();
-            uint32_t _size474;
-            ::apache::thrift::protocol::TType _etype477;
-            xfer += iprot->readSetBegin(_etype477, _size474);
-            uint32_t _i478;
-            for (_i478 = 0; _i478 < _size474; ++_i478)
+            uint32_t _size482;
+            ::apache::thrift::protocol::TType _etype485;
+            xfer += iprot->readSetBegin(_etype485, _size482);
+            uint32_t _i486;
+            for (_i486 = 0; _i486 < _size482; ++_i486)
             {
-              std::string _elem479;
-              xfer += iprot->readString(_elem479);
-              this->success.insert(_elem479);
+              std::string _elem487;
+              xfer += iprot->readString(_elem487);
+              this->success.insert(_elem487);
             }
             xfer += iprot->readSetEnd();
           }
@@ -14475,10 +14491,10 @@ uint32_t AccumuloProxy_listLocalUsers_result::write(::apache::thrift::protocol::
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_SET, 0);
     {
       xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::set<std::string> ::const_iterator _iter480;
-      for (_iter480 = this->success.begin(); _iter480 != this->success.end(); ++_iter480)
+      std::set<std::string> ::const_iterator _iter488;
+      for (_iter488 = this->success.begin(); _iter488 != this->success.end(); ++_iter488)
       {
-        xfer += oprot->writeString((*_iter480));
+        xfer += oprot->writeString((*_iter488));
       }
       xfer += oprot->writeSetEnd();
     }
@@ -14525,15 +14541,15 @@ uint32_t AccumuloProxy_listLocalUsers_presult::read(::apache::thrift::protocol::
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             (*(this->success)).clear();
-            uint32_t _size481;
-            ::apache::thrift::protocol::TType _etype484;
-            xfer += iprot->readSetBegin(_etype484, _size481);
-            uint32_t _i485;
-            for (_i485 = 0; _i485 < _size481; ++_i485)
+            uint32_t _size489;
+            ::apache::thrift::protocol::TType _etype492;
+            xfer += iprot->readSetBegin(_etype492, _size489);
+            uint32_t _i493;
+            for (_i493 = 0; _i493 < _size489; ++_i493)
             {
-              std::string _elem486;
-              xfer += iprot->readString(_elem486);
-              (*(this->success)).insert(_elem486);
+              std::string _elem494;
+              xfer += iprot->readString(_elem494);
+              (*(this->success)).insert(_elem494);
             }
             xfer += iprot->readSetEnd();
           }
@@ -14616,9 +14632,9 @@ uint32_t AccumuloProxy_revokeSystemPermission_args::read(::apache::thrift::proto
         break;
       case 3:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast487;
-          xfer += iprot->readI32(ecast487);
-          this->perm = (SystemPermission::type)ecast487;
+          int32_t ecast495;
+          xfer += iprot->readI32(ecast495);
+          this->perm = (SystemPermission::type)ecast495;
           this->__isset.perm = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -14840,9 +14856,9 @@ uint32_t AccumuloProxy_revokeTablePermission_args::read(::apache::thrift::protoc
         break;
       case 4:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast488;
-          xfer += iprot->readI32(ecast488);
-          this->perm = (TablePermission::type)ecast488;
+          int32_t ecast496;
+          xfer += iprot->readI32(ecast496);
+          this->perm = (TablePermission::type)ecast496;
           this->__isset.perm = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -16398,26 +16414,26 @@ uint32_t AccumuloProxy_updateAndFlush_args::read(::apache::thrift::protocol::TPr
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->cells.clear();
-            uint32_t _size489;
-            ::apache::thrift::protocol::TType _ktype490;
-            ::apache::thrift::protocol::TType _vtype491;
-            xfer += iprot->readMapBegin(_ktype490, _vtype491, _size489);
-            uint32_t _i493;
-            for (_i493 = 0; _i493 < _size489; ++_i493)
+            uint32_t _size497;
+            ::apache::thrift::protocol::TType _ktype498;
+            ::apache::thrift::protocol::TType _vtype499;
+            xfer += iprot->readMapBegin(_ktype498, _vtype499, _size497);
+            uint32_t _i501;
+            for (_i501 = 0; _i501 < _size497; ++_i501)
             {
-              std::string _key494;
-              xfer += iprot->readBinary(_key494);
-              std::vector<ColumnUpdate> & _val495 = this->cells[_key494];
+              std::string _key502;
+              xfer += iprot->readBinary(_key502);
+              std::vector<ColumnUpdate> & _val503 = this->cells[_key502];
               {
-                _val495.clear();
-                uint32_t _size496;
-                ::apache::thrift::protocol::TType _etype499;
-                xfer += iprot->readListBegin(_etype499, _size496);
-                _val495.resize(_size496);
-                uint32_t _i500;
-                for (_i500 = 0; _i500 < _size496; ++_i500)
+                _val503.clear();
+                uint32_t _size504;
+                ::apache::thrift::protocol::TType _etype507;
+                xfer += iprot->readListBegin(_etype507, _size504);
+                _val503.resize(_size504);
+                uint32_t _i508;
+                for (_i508 = 0; _i508 < _size504; ++_i508)
                 {
-                  xfer += _val495[_i500].read(iprot);
+                  xfer += _val503[_i508].read(iprot);
                 }
                 xfer += iprot->readListEnd();
               }
@@ -16456,16 +16472,16 @@ uint32_t AccumuloProxy_updateAndFlush_args::write(::apache::thrift::protocol::TP
   xfer += oprot->writeFieldBegin("cells", ::apache::thrift::protocol::T_MAP, 3);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_LIST, static_cast<uint32_t>(this->cells.size()));
-    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter501;
-    for (_iter501 = this->cells.begin(); _iter501 != this->cells.end(); ++_iter501)
+    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter509;
+    for (_iter509 = this->cells.begin(); _iter509 != this->cells.end(); ++_iter509)
     {
-      xfer += oprot->writeBinary(_iter501->first);
+      xfer += oprot->writeBinary(_iter509->first);
       {
-        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter501->second.size()));
-        std::vector<ColumnUpdate> ::const_iterator _iter502;
-        for (_iter502 = _iter501->second.begin(); _iter502 != _iter501->second.end(); ++_iter502)
+        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter509->second.size()));
+        std::vector<ColumnUpdate> ::const_iterator _iter510;
+        for (_iter510 = _iter509->second.begin(); _iter510 != _iter509->second.end(); ++_iter510)
         {
-          xfer += (*_iter502).write(oprot);
+          xfer += (*_iter510).write(oprot);
         }
         xfer += oprot->writeListEnd();
       }
@@ -16494,16 +16510,16 @@ uint32_t AccumuloProxy_updateAndFlush_pargs::write(::apache::thrift::protocol::T
   xfer += oprot->writeFieldBegin("cells", ::apache::thrift::protocol::T_MAP, 3);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_LIST, static_cast<uint32_t>((*(this->cells)).size()));
-    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter503;
-    for (_iter503 = (*(this->cells)).begin(); _iter503 != (*(this->cells)).end(); ++_iter503)
+    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter511;
+    for (_iter511 = (*(this->cells)).begin(); _iter511 != (*(this->cells)).end(); ++_iter511)
     {
-      xfer += oprot->writeBinary(_iter503->first);
+      xfer += oprot->writeBinary(_iter511->first);
       {
-        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter503->second.size()));
-        std::vector<ColumnUpdate> ::const_iterator _iter504;
-        for (_iter504 = _iter503->second.begin(); _iter504 != _iter503->second.end(); ++_iter504)
+        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter511->second.size()));
+        std::vector<ColumnUpdate> ::const_iterator _iter512;
+        for (_iter512 = _iter511->second.begin(); _iter512 != _iter511->second.end(); ++_iter512)
         {
-          xfer += (*_iter504).write(oprot);
+          xfer += (*_iter512).write(oprot);
         }
         xfer += oprot->writeListEnd();
       }
@@ -16959,26 +16975,26 @@ uint32_t AccumuloProxy_update_args::read(::apache::thrift::protocol::TProtocol* 
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->cells.clear();
-            uint32_t _size505;
-            ::apache::thrift::protocol::TType _ktype506;
-            ::apache::thrift::protocol::TType _vtype507;
-            xfer += iprot->readMapBegin(_ktype506, _vtype507, _size505);
-            uint32_t _i509;
-            for (_i509 = 0; _i509 < _size505; ++_i509)
+            uint32_t _size513;
+            ::apache::thrift::protocol::TType _ktype514;
+            ::apache::thrift::protocol::TType _vtype515;
+            xfer += iprot->readMapBegin(_ktype514, _vtype515, _size513);
+            uint32_t _i517;
+            for (_i517 = 0; _i517 < _size513; ++_i517)
             {
-              std::string _key510;
-              xfer += iprot->readBinary(_key510);
-              std::vector<ColumnUpdate> & _val511 = this->cells[_key510];
+              std::string _key518;
+              xfer += iprot->readBinary(_key518);
+              std::vector<ColumnUpdate> & _val519 = this->cells[_key518];
               {
-                _val511.clear();
-                uint32_t _size512;
-                ::apache::thrift::protocol::TType _etype515;
-                xfer += iprot->readListBegin(_etype515, _size512);
-                _val511.resize(_size512);
-                uint32_t _i516;
-                for (_i516 = 0; _i516 < _size512; ++_i516)
+                _val519.clear();
+                uint32_t _size520;
+                ::apache::thrift::protocol::TType _etype523;
+                xfer += iprot->readListBegin(_etype523, _size520);
+                _val519.resize(_size520);
+                uint32_t _i524;
+                for (_i524 = 0; _i524 < _size520; ++_i524)
                 {
-                  xfer += _val511[_i516].read(iprot);
+                  xfer += _val519[_i524].read(iprot);
                 }
                 xfer += iprot->readListEnd();
               }
@@ -17013,16 +17029,16 @@ uint32_t AccumuloProxy_update_args::write(::apache::thrift::protocol::TProtocol*
   xfer += oprot->writeFieldBegin("cells", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_LIST, static_cast<uint32_t>(this->cells.size()));
-    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter517;
-    for (_iter517 = this->cells.begin(); _iter517 != this->cells.end(); ++_iter517)
+    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter525;
+    for (_iter525 = this->cells.begin(); _iter525 != this->cells.end(); ++_iter525)
     {
-      xfer += oprot->writeBinary(_iter517->first);
+      xfer += oprot->writeBinary(_iter525->first);
       {
-        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter517->second.size()));
-        std::vector<ColumnUpdate> ::const_iterator _iter518;
-        for (_iter518 = _iter517->second.begin(); _iter518 != _iter517->second.end(); ++_iter518)
+        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter525->second.size()));
+        std::vector<ColumnUpdate> ::const_iterator _iter526;
+        for (_iter526 = _iter525->second.begin(); _iter526 != _iter525->second.end(); ++_iter526)
         {
-          xfer += (*_iter518).write(oprot);
+          xfer += (*_iter526).write(oprot);
         }
         xfer += oprot->writeListEnd();
       }
@@ -17047,16 +17063,16 @@ uint32_t AccumuloProxy_update_pargs::write(::apache::thrift::protocol::TProtocol
   xfer += oprot->writeFieldBegin("cells", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_LIST, static_cast<uint32_t>((*(this->cells)).size()));
-    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter519;
-    for (_iter519 = (*(this->cells)).begin(); _iter519 != (*(this->cells)).end(); ++_iter519)
+    std::map<std::string, std::vector<ColumnUpdate> > ::const_iterator _iter527;
+    for (_iter527 = (*(this->cells)).begin(); _iter527 != (*(this->cells)).end(); ++_iter527)
     {
-      xfer += oprot->writeBinary(_iter519->first);
+      xfer += oprot->writeBinary(_iter527->first);
       {
-        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter519->second.size()));
-        std::vector<ColumnUpdate> ::const_iterator _iter520;
-        for (_iter520 = _iter519->second.begin(); _iter520 != _iter519->second.end(); ++_iter520)
+        xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(_iter527->second.size()));
+        std::vector<ColumnUpdate> ::const_iterator _iter528;
+        for (_iter528 = _iter527->second.begin(); _iter528 != _iter527->second.end(); ++_iter528)
         {
-          xfer += (*_iter520).write(oprot);
+          xfer += (*_iter528).write(oprot);
         }
         xfer += oprot->writeListEnd();
       }
@@ -17570,9 +17586,9 @@ uint32_t AccumuloProxy_updateRowConditionally_result::read(::apache::thrift::pro
     {
       case 0:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast521;
-          xfer += iprot->readI32(ecast521);
-          this->success = (ConditionalStatus::type)ecast521;
+          int32_t ecast529;
+          xfer += iprot->readI32(ecast529);
+          this->success = (ConditionalStatus::type)ecast529;
           this->__isset.success = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -17664,9 +17680,9 @@ uint32_t AccumuloProxy_updateRowConditionally_presult::read(::apache::thrift::pr
     {
       case 0:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast522;
-          xfer += iprot->readI32(ecast522);
-          (*(this->success)) = (ConditionalStatus::type)ecast522;
+          int32_t ecast530;
+          xfer += iprot->readI32(ecast530);
+          (*(this->success)) = (ConditionalStatus::type)ecast530;
           this->__isset.success = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -17994,17 +18010,17 @@ uint32_t AccumuloProxy_updateRowsConditionally_args::read(::apache::thrift::prot
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->updates.clear();
-            uint32_t _size523;
-            ::apache::thrift::protocol::TType _ktype524;
-            ::apache::thrift::protocol::TType _vtype525;
-            xfer += iprot->readMapBegin(_ktype524, _vtype525, _size523);
-            uint32_t _i527;
-            for (_i527 = 0; _i527 < _size523; ++_i527)
+            uint32_t _size531;
+            ::apache::thrift::protocol::TType _ktype532;
+            ::apache::thrift::protocol::TType _vtype533;
+            xfer += iprot->readMapBegin(_ktype532, _vtype533, _size531);
+            uint32_t _i535;
+            for (_i535 = 0; _i535 < _size531; ++_i535)
             {
-              std::string _key528;
-              xfer += iprot->readBinary(_key528);
-              ConditionalUpdates& _val529 = this->updates[_key528];
-              xfer += _val529.read(iprot);
+              std::string _key536;
+              xfer += iprot->readBinary(_key536);
+              ConditionalUpdates& _val537 = this->updates[_key536];
+              xfer += _val537.read(iprot);
             }
             xfer += iprot->readMapEnd();
           }
@@ -18036,11 +18052,11 @@ uint32_t AccumuloProxy_updateRowsConditionally_args::write(::apache::thrift::pro
   xfer += oprot->writeFieldBegin("updates", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->updates.size()));
-    std::map<std::string, ConditionalUpdates> ::const_iterator _iter530;
-    for (_iter530 = this->updates.begin(); _iter530 != this->updates.end(); ++_iter530)
+    std::map<std::string, ConditionalUpdates> ::const_iterator _iter538;
+    for (_iter538 = this->updates.begin(); _iter538 != this->updates.end(); ++_iter538)
     {
-      xfer += oprot->writeBinary(_iter530->first);
-      xfer += _iter530->second.write(oprot);
+      xfer += oprot->writeBinary(_iter538->first);
+      xfer += _iter538->second.write(oprot);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -18062,11 +18078,11 @@ uint32_t AccumuloProxy_updateRowsConditionally_pargs::write(::apache::thrift::pr
   xfer += oprot->writeFieldBegin("updates", ::apache::thrift::protocol::T_MAP, 2);
   {
     xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>((*(this->updates)).size()));
-    std::map<std::string, ConditionalUpdates> ::const_iterator _iter531;
-    for (_iter531 = (*(this->updates)).begin(); _iter531 != (*(this->updates)).end(); ++_iter531)
+    std::map<std::string, ConditionalUpdates> ::const_iterator _iter539;
+    for (_iter539 = (*(this->updates)).begin(); _iter539 != (*(this->updates)).end(); ++_iter539)
     {
-      xfer += oprot->writeBinary(_iter531->first);
-      xfer += _iter531->second.write(oprot);
+      xfer += oprot->writeBinary(_iter539->first);
+      xfer += _iter539->second.write(oprot);
     }
     xfer += oprot->writeMapEnd();
   }
@@ -18101,19 +18117,19 @@ uint32_t AccumuloProxy_updateRowsConditionally_result::read(::apache::thrift::pr
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             this->success.clear();
-            uint32_t _size532;
-            ::apache::thrift::protocol::TType _ktype533;
-            ::apache::thrift::protocol::TType _vtype534;
-            xfer += iprot->readMapBegin(_ktype533, _vtype534, _size532);
-            uint32_t _i536;
-            for (_i536 = 0; _i536 < _size532; ++_i536)
+            uint32_t _size540;
+            ::apache::thrift::protocol::TType _ktype541;
+            ::apache::thrift::protocol::TType _vtype542;
+            xfer += iprot->readMapBegin(_ktype541, _vtype542, _size540);
+            uint32_t _i544;
+            for (_i544 = 0; _i544 < _size540; ++_i544)
             {
-              std::string _key537;
-              xfer += iprot->readBinary(_key537);
-              ConditionalStatus::type& _val538 = this->success[_key537];
-              int32_t ecast539;
-              xfer += iprot->readI32(ecast539);
-              _val538 = (ConditionalStatus::type)ecast539;
+              std::string _key545;
+              xfer += iprot->readBinary(_key545);
+              ConditionalStatus::type& _val546 = this->success[_key545];
+              int32_t ecast547;
+              xfer += iprot->readI32(ecast547);
+              _val546 = (ConditionalStatus::type)ecast547;
             }
             xfer += iprot->readMapEnd();
           }
@@ -18168,11 +18184,11 @@ uint32_t AccumuloProxy_updateRowsConditionally_result::write(::apache::thrift::p
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_MAP, 0);
     {
       xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->success.size()));
-      std::map<std::string, ConditionalStatus::type> ::const_iterator _iter540;
-      for (_iter540 = this->success.begin(); _iter540 != this->success.end(); ++_iter540)
+      std::map<std::string, ConditionalStatus::type> ::const_iterator _iter548;
+      for (_iter548 = this->success.begin(); _iter548 != this->success.end(); ++_iter548)
       {
-        xfer += oprot->writeBinary(_iter540->first);
-        xfer += oprot->writeI32((int32_t)_iter540->second);
+        xfer += oprot->writeBinary(_iter548->first);
+        xfer += oprot->writeI32((int32_t)_iter548->second);
       }
       xfer += oprot->writeMapEnd();
     }
@@ -18219,19 +18235,19 @@ uint32_t AccumuloProxy_updateRowsConditionally_presult::read(::apache::thrift::p
         if (ftype == ::apache::thrift::protocol::T_MAP) {
           {
             (*(this->success)).clear();
-            uint32_t _size541;
-            ::apache::thrift::protocol::TType _ktype542;
-            ::apache::thrift::protocol::TType _vtype543;
-            xfer += iprot->readMapBegin(_ktype542, _vtype543, _size541);
-            uint32_t _i545;
-            for (_i545 = 0; _i545 < _size541; ++_i545)
+            uint32_t _size549;
+            ::apache::thrift::protocol::TType _ktype550;
+            ::apache::thrift::protocol::TType _vtype551;
+            xfer += iprot->readMapBegin(_ktype550, _vtype551, _size549);
+            uint32_t _i553;
+            for (_i553 = 0; _i553 < _size549; ++_i553)
             {
-              std::string _key546;
-              xfer += iprot->readBinary(_key546);
-              ConditionalStatus::type& _val547 = (*(this->success))[_key546];
-              int32_t ecast548;
-              xfer += iprot->readI32(ecast548);
-              _val547 = (ConditionalStatus::type)ecast548;
+              std::string _key554;
+              xfer += iprot->readBinary(_key554);
+              ConditionalStatus::type& _val555 = (*(this->success))[_key554];
+              int32_t ecast556;
+              xfer += iprot->readI32(ecast556);
+              _val555 = (ConditionalStatus::type)ecast556;
             }
             xfer += iprot->readMapEnd();
           }
@@ -18599,9 +18615,9 @@ uint32_t AccumuloProxy_getFollowing_args::read(::apache::thrift::protocol::TProt
         break;
       case 2:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          int32_t ecast549;
-          xfer += iprot->readI32(ecast549);
-          this->part = (PartialKey::type)ecast549;
+          int32_t ecast557;
+          xfer += iprot->readI32(ecast557);
+          this->part = (PartialKey::type)ecast557;
           this->__isset.part = true;
         } else {
           xfer += iprot->skip(ftype);
@@ -19201,13 +19217,13 @@ void AccumuloProxyClient::recv_cloneTable()
   return;
 }
 
-void AccumuloProxyClient::compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait)
+void AccumuloProxyClient::compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait, const CompactionStrategyConfig& compactionStrategy)
 {
-  send_compactTable(login, tableName, startRow, endRow, iterators, flush, wait);
+  send_compactTable(login, tableName, startRow, endRow, iterators, flush, wait, compactionStrategy);
   recv_compactTable();
 }
 
-void AccumuloProxyClient::send_compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait)
+void AccumuloProxyClient::send_compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait, const CompactionStrategyConfig& compactionStrategy)
 {
   int32_t cseqid = 0;
   oprot_->writeMessageBegin("compactTable", ::apache::thrift::protocol::T_CALL, cseqid);
@@ -19220,6 +19236,7 @@ void AccumuloProxyClient::send_compactTable(const std::string& login, const std:
   args.iterators = &iterators;
   args.flush = &flush;
   args.wait = &wait;
+  args.compactionStrategy = &compactionStrategy;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();
@@ -24136,7 +24153,7 @@ void AccumuloProxyProcessor::process_compactTable(int32_t seqid, ::apache::thrif
 
   AccumuloProxy_compactTable_result result;
   try {
-    iface_->compactTable(args.login, args.tableName, args.startRow, args.endRow, args.iterators, args.flush, args.wait);
+    iface_->compactTable(args.login, args.tableName, args.startRow, args.endRow, args.iterators, args.flush, args.wait, args.compactionStrategy);
   } catch (AccumuloSecurityException &ouch1) {
     result.ouch1 = ouch1;
     result.__isset.ouch1 = true;

@@ -18,10 +18,6 @@ package org.apache.accumulo.master.tableOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +30,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -55,10 +52,10 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -207,95 +204,17 @@ public class CompactRange extends MasterRepo {
   private final String tableId;
   private byte[] startRow;
   private byte[] endRow;
-  private byte[] iterators;
+  private byte[] config;
 
-  public static class CompactionIterators implements Writable {
-    byte[] startRow;
-    byte[] endRow;
-    List<IteratorSetting> iterators;
 
-    public CompactionIterators(byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) {
-      this.startRow = startRow;
-      this.endRow = endRow;
-      this.iterators = iterators;
-    }
-
-    public CompactionIterators() {
-      startRow = null;
-      endRow = null;
-      iterators = Collections.emptyList();
-    }
-
-    @Override
-    public void write(DataOutput out) throws IOException {
-      out.writeBoolean(startRow != null);
-      if (startRow != null) {
-        out.writeInt(startRow.length);
-        out.write(startRow);
-      }
-
-      out.writeBoolean(endRow != null);
-      if (endRow != null) {
-        out.writeInt(endRow.length);
-        out.write(endRow);
-      }
-
-      out.writeInt(iterators.size());
-      for (IteratorSetting is : iterators) {
-        is.write(out);
-      }
-    }
-
-    @Override
-    public void readFields(DataInput in) throws IOException {
-      if (in.readBoolean()) {
-        startRow = new byte[in.readInt()];
-        in.readFully(startRow);
-      } else {
-        startRow = null;
-      }
-
-      if (in.readBoolean()) {
-        endRow = new byte[in.readInt()];
-        in.readFully(endRow);
-      } else {
-        endRow = null;
-      }
-
-      int num = in.readInt();
-      iterators = new ArrayList<IteratorSetting>(num);
-
-      for (int i = 0; i < num; i++) {
-        iterators.add(new IteratorSetting(in));
-      }
-    }
-
-    public Text getEndRow() {
-      if (endRow == null)
-        return null;
-      return new Text(endRow);
-    }
-
-    public Text getStartRow() {
-      if (startRow == null)
-        return null;
-      return new Text(startRow);
-    }
-
-    public List<IteratorSetting> getIterators() {
-      return iterators;
-    }
-  }
-
-  public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) throws ThriftTableOperationException {
+  public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
+      throws ThriftTableOperationException {
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
 
-    if (iterators.size() > 0) {
-      this.iterators = WritableUtils.toByteArray(new CompactionIterators(this.startRow, this.endRow, iterators));
-    } else {
-      iterators = null;
+    if (iterators.size() > 0 || compactionStrategy != null) {
+      this.config = WritableUtils.toByteArray(new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
     }
 
     if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
@@ -337,12 +256,12 @@ public class CompactRange extends MasterRepo {
 
           StringBuilder encodedIterators = new StringBuilder();
 
-          if (iterators != null) {
+          if (config != null) {
             Hex hex = new Hex();
             encodedIterators.append(",");
             encodedIterators.append(txidString);
             encodedIterators.append("=");
-            encodedIterators.append(new String(hex.encode(iterators), UTF_8));
+            encodedIterators.append(new String(hex.encode(config), UTF_8));
           }
 
           return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);

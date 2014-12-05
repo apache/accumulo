@@ -289,6 +289,23 @@ public interface TableOperations {
       TableNotFoundException, AccumuloException;
 
   /**
+   * Starts a full major compaction of the tablets in the range (start, end]. If the config does not specify a compaction strategy, then all files in a tablet
+   * are compacted. The compaction is performed even for tablets that have only one file.
+   * 
+   * <p>
+   * Only one compact call at a time can pass iterators and/or a compaction strategy. If two threads call compaction with iterators and/or a copmaction
+   * strategy, then one will fail.
+   * 
+   * @param tableName
+   *          the table to compact
+   * @param config
+   *          the configuration to use
+   * 
+   * @since 1.7.0
+   */
+  void compact(String tableName, CompactionConfig config) throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
+
+  /**
    * Cancels a user initiated major compaction of a table initiated with {@link #compact(String, Text, Text, boolean, boolean)} or
    * {@link #compact(String, Text, Text, List, boolean, boolean)}. Compactions of tablets that are currently running may finish, but new compactions of tablets
    * will not start.

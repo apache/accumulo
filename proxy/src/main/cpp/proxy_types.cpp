@@ -2611,6 +2611,105 @@ void swap(WriterOptions &a, WriterOptions &b) {
   swap(a.__isset, b.__isset);
 }
 
+const char* CompactionStrategyConfig::ascii_fingerprint = "F7C641917C22B35AE581CCD54910B00D";
+const uint8_t CompactionStrategyConfig::binary_fingerprint[16] = {0xF7,0xC6,0x41,0x91,0x7C,0x22,0xB3,0x5A,0xE5,0x81,0xCC,0xD5,0x49,0x10,0xB0,0x0D};
+
+uint32_t CompactionStrategyConfig::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->className);
+          this->__isset.className = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_MAP) {
+          {
+            this->options.clear();
+            uint32_t _size125;
+            ::apache::thrift::protocol::TType _ktype126;
+            ::apache::thrift::protocol::TType _vtype127;
+            xfer += iprot->readMapBegin(_ktype126, _vtype127, _size125);
+            uint32_t _i129;
+            for (_i129 = 0; _i129 < _size125; ++_i129)
+            {
+              std::string _key130;
+              xfer += iprot->readString(_key130);
+              std::string& _val131 = this->options[_key130];
+              xfer += iprot->readString(_val131);
+            }
+            xfer += iprot->readMapEnd();
+          }
+          this->__isset.options = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t CompactionStrategyConfig::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("CompactionStrategyConfig");
+
+  xfer += oprot->writeFieldBegin("className", ::apache::thrift::protocol::T_STRING, 1);
+  xfer += oprot->writeString(this->className);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("options", ::apache::thrift::protocol::T_MAP, 2);
+  {
+    xfer += oprot->writeMapBegin(::apache::thrift::protocol::T_STRING, ::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->options.size()));
+    std::map<std::string, std::string> ::const_iterator _iter132;
+    for (_iter132 = this->options.begin(); _iter132 != this->options.end(); ++_iter132)
+    {
+      xfer += oprot->writeString(_iter132->first);
+      xfer += oprot->writeString(_iter132->second);
+    }
+    xfer += oprot->writeMapEnd();
+  }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(CompactionStrategyConfig &a, CompactionStrategyConfig &b) {
+  using ::std::swap;
+  swap(a.className, b.className);
+  swap(a.options, b.options);
+  swap(a.__isset, b.__isset);
+}
+
 const char* UnknownScanner::ascii_fingerprint = "EFB929595D312AC8F305D5A794CFEDA1";
 const uint8_t UnknownScanner::binary_fingerprint[16] = {0xEF,0xB9,0x29,0x59,0x5D,0x31,0x2A,0xC8,0xF3,0x05,0xD5,0xA7,0x94,0xCF,0xED,0xA1};
 

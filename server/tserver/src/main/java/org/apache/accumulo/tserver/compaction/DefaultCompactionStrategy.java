@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -31,13 +30,13 @@ import org.apache.accumulo.server.fs.FileRef;
 public class DefaultCompactionStrategy extends CompactionStrategy {
 
   @Override
-  public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+  public boolean shouldCompact(MajorCompactionRequest request) {
     CompactionPlan plan = getCompactionPlan(request);
     return plan != null && !plan.inputFiles.isEmpty();
   }
 
   @Override
-  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan result = new CompactionPlan();
 
     List<FileRef> toCompact = findMapFilesToCompact(request);

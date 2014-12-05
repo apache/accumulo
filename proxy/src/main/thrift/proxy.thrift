@@ -249,6 +249,11 @@ struct WriterOptions {
  5:optional Durability durability
 }
 
+struct CompactionStrategyConfig {
+  1:string className
+  2:map<string,string> options
+}
+
 enum IteratorScope {
   MINC,
   MAJC,
@@ -310,8 +315,10 @@ service AccumuloProxy
   void cloneTable (1:binary login, 2:string tableName, 3:string newTableName, 4:bool flush, 
                    5:map<string,string> propertiesToSet, 6:set<string> propertiesToExclude) 
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
+  //changed in 1.7.0, see comment at top about compatibility
   void compactTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
-		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait)                             throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
+		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait, 
+		     8:CompactionStrategyConfig compactionStrategy)                                            throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
   void cancelCompaction(1:binary login, 2:string tableName)                                            throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
                                                                                                             
   void createTable (1:binary login, 2:string tableName, 3:bool versioningIter, 4:TimeType type)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableExistsException ouch3);

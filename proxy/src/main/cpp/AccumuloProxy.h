@@ -38,7 +38,7 @@ class AccumuloProxyIf {
   virtual void checkIteratorConflicts(const std::string& login, const std::string& tableName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) = 0;
   virtual void clearLocatorCache(const std::string& login, const std::string& tableName) = 0;
   virtual void cloneTable(const std::string& login, const std::string& tableName, const std::string& newTableName, const bool flush, const std::map<std::string, std::string> & propertiesToSet, const std::set<std::string> & propertiesToExclude) = 0;
-  virtual void compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait) = 0;
+  virtual void compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait, const CompactionStrategyConfig& compactionStrategy) = 0;
   virtual void cancelCompaction(const std::string& login, const std::string& tableName) = 0;
   virtual void createTable(const std::string& login, const std::string& tableName, const bool versioningIter, const TimeType::type type) = 0;
   virtual void deleteTable(const std::string& login, const std::string& tableName) = 0;
@@ -159,7 +159,7 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
   void cloneTable(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* newTableName */, const bool /* flush */, const std::map<std::string, std::string> & /* propertiesToSet */, const std::set<std::string> & /* propertiesToExclude */) {
     return;
   }
-  void compactTable(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* startRow */, const std::string& /* endRow */, const std::vector<IteratorSetting> & /* iterators */, const bool /* flush */, const bool /* wait */) {
+  void compactTable(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* startRow */, const std::string& /* endRow */, const std::vector<IteratorSetting> & /* iterators */, const bool /* flush */, const bool /* wait */, const CompactionStrategyConfig& /* compactionStrategy */) {
     return;
   }
   void cancelCompaction(const std::string& /* login */, const std::string& /* tableName */) {
@@ -1419,7 +1419,7 @@ class AccumuloProxy_cloneTable_presult {
 };
 
 typedef struct _AccumuloProxy_compactTable_args__isset {
-  _AccumuloProxy_compactTable_args__isset() : login(false), tableName(false), startRow(false), endRow(false), iterators(false), flush(false), wait(false) {}
+  _AccumuloProxy_compactTable_args__isset() : login(false), tableName(false), startRow(false), endRow(false), iterators(false), flush(false), wait(false), compactionStrategy(false) {}
   bool login;
   bool tableName;
   bool startRow;
@@ -1427,6 +1427,7 @@ typedef struct _AccumuloProxy_compactTable_args__isset {
   bool iterators;
   bool flush;
   bool wait;
+  bool compactionStrategy;
 } _AccumuloProxy_compactTable_args__isset;
 
 class AccumuloProxy_compactTable_args {
@@ -1444,6 +1445,7 @@ class AccumuloProxy_compactTable_args {
   std::vector<IteratorSetting>  iterators;
   bool flush;
   bool wait;
+  CompactionStrategyConfig compactionStrategy;
 
   _AccumuloProxy_compactTable_args__isset __isset;
 
@@ -1475,6 +1477,10 @@ class AccumuloProxy_compactTable_args {
     wait = val;
   }
 
+  void __set_compactionStrategy(const CompactionStrategyConfig& val) {
+    compactionStrategy = val;
+  }
+
   bool operator == (const AccumuloProxy_compactTable_args & rhs) const
   {
     if (!(login == rhs.login))
@@ -1490,6 +1496,8 @@ class AccumuloProxy_compactTable_args {
     if (!(flush == rhs.flush))
       return false;
     if (!(wait == rhs.wait))
+      return false;
+    if (!(compactionStrategy == rhs.compactionStrategy))
       return false;
     return true;
   }
@@ -1518,6 +1526,7 @@ class AccumuloProxy_compactTable_pargs {
   const std::vector<IteratorSetting> * iterators;
   const bool* flush;
   const bool* wait;
+  const CompactionStrategyConfig* compactionStrategy;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -11342,8 +11351,8 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void cloneTable(const std::string& login, const std::string& tableName, const std::string& newTableName, const bool flush, const std::map<std::string, std::string> & propertiesToSet, const std::set<std::string> & propertiesToExclude);
   void send_cloneTable(const std::string& login, const std::string& tableName, const std::string& newTableName, const bool flush, const std::map<std::string, std::string> & propertiesToSet, const std::set<std::string> & propertiesToExclude);
   void recv_cloneTable();
-  void compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait);
-  void send_compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait);
+  void compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait, const CompactionStrategyConfig& compactionStrategy);
+  void send_compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait, const CompactionStrategyConfig& compactionStrategy);
   void recv_compactTable();
   void cancelCompaction(const std::string& login, const std::string& tableName);
   void send_cancelCompaction(const std::string& login, const std::string& tableName);
@@ -11815,13 +11824,13 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     ifaces_[i]->cloneTable(login, tableName, newTableName, flush, propertiesToSet, propertiesToExclude);
   }
 
-  void compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait) {
+  void compactTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const std::vector<IteratorSetting> & iterators, const bool flush, const bool wait, const CompactionStrategyConfig& compactionStrategy) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->compactTable(login, tableName, startRow, endRow, iterators, flush, wait);
+      ifaces_[i]->compactTable(login, tableName, startRow, endRow, iterators, flush, wait, compactionStrategy);
     }
-    ifaces_[i]->compactTable(login, tableName, startRow, endRow, iterators, flush, wait);
+    ifaces_[i]->compactTable(login, tableName, startRow, endRow, iterators, flush, wait, compactionStrategy);
   }
 
   void cancelCompaction(const std::string& login, const std::string& tableName) {

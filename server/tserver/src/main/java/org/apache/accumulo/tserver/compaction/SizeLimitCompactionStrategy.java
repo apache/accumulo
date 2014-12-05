@@ -53,7 +53,7 @@ public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   }
 
   @Override
-  public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+  public boolean shouldCompact(MajorCompactionRequest request) {
     return super.shouldCompact(filterFiles(request));
   }
 
@@ -63,7 +63,7 @@ public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   }
 
   @Override
-  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     return super.getCompactionPlan(filterFiles(request));
   }
 

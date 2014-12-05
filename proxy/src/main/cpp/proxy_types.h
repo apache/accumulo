@@ -1555,6 +1555,57 @@ class WriterOptions {
 
 void swap(WriterOptions &a, WriterOptions &b);
 
+typedef struct _CompactionStrategyConfig__isset {
+  _CompactionStrategyConfig__isset() : className(false), options(false) {}
+  bool className;
+  bool options;
+} _CompactionStrategyConfig__isset;
+
+class CompactionStrategyConfig {
+ public:
+
+  static const char* ascii_fingerprint; // = "F7C641917C22B35AE581CCD54910B00D";
+  static const uint8_t binary_fingerprint[16]; // = {0xF7,0xC6,0x41,0x91,0x7C,0x22,0xB3,0x5A,0xE5,0x81,0xCC,0xD5,0x49,0x10,0xB0,0x0D};
+
+  CompactionStrategyConfig() : className() {
+  }
+
+  virtual ~CompactionStrategyConfig() throw() {}
+
+  std::string className;
+  std::map<std::string, std::string>  options;
+
+  _CompactionStrategyConfig__isset __isset;
+
+  void __set_className(const std::string& val) {
+    className = val;
+  }
+
+  void __set_options(const std::map<std::string, std::string> & val) {
+    options = val;
+  }
+
+  bool operator == (const CompactionStrategyConfig & rhs) const
+  {
+    if (!(className == rhs.className))
+      return false;
+    if (!(options == rhs.options))
+      return false;
+    return true;
+  }
+  bool operator != (const CompactionStrategyConfig &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const CompactionStrategyConfig & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(CompactionStrategyConfig &a, CompactionStrategyConfig &b);
+
 typedef struct _UnknownScanner__isset {
   _UnknownScanner__isset() : msg(false) {}
   bool msg;

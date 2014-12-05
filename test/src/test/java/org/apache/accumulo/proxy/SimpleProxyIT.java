@@ -69,6 +69,7 @@ import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.Column;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
+import org.apache.accumulo.proxy.thrift.CompactionStrategyConfig;
 import org.apache.accumulo.proxy.thrift.CompactionType;
 import org.apache.accumulo.proxy.thrift.Condition;
 import org.apache.accumulo.proxy.thrift.ConditionalStatus;
@@ -245,7 +246,7 @@ public class SimpleProxyIT {
       fail("exception not thrown");
     } catch (TException ex) {}
     try {
-      client.compactTable(badLogin, table, null, null, null, true, false);
+      client.compactTable(badLogin, table, null, null, null, true, false, null);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -531,7 +532,7 @@ public class SimpleProxyIT {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      client.compactTable(creds, doesNotExist, null, null, null, true, false);
+      client.compactTable(creds, doesNotExist, null, null, null, true, false, null);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
@@ -874,7 +875,7 @@ public class SimpleProxyIT {
       public void run() {
         try {
           Client client2 = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
-          client2.compactTable(creds, "slow", null, null, null, true, true);
+          client2.compactTable(creds, "slow", null, null, null, true, true, null);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -1126,7 +1127,7 @@ public class SimpleProxyIT {
     client.clearLocatorCache(creds, TABLE_TEST);
 
     // compact
-    client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
+    client.compactTable(creds, TABLE_TEST, null, null, null, true, true, null);
     assertEquals(1, countFiles(TABLE_TEST));
     assertScan(expected, TABLE_TEST);
 
@@ -1141,7 +1142,7 @@ public class SimpleProxyIT {
     assertEquals(2, diskUsage.size());
     assertEquals(1, diskUsage.get(0).getTables().size());
     assertEquals(2, diskUsage.get(1).getTables().size());
-    client.compactTable(creds, TABLE_TEST2, null, null, null, true, true);
+    client.compactTable(creds, TABLE_TEST2, null, null, null, true, true, null);
     diskUsage = (client.getDiskUsage(creds, tablesToScan));
     assertEquals(3, diskUsage.size());
     assertEquals(1, diskUsage.get(0).getTables().size());
@@ -1590,5 +1591,41 @@ public class SimpleProxyIT {
     assertEquals(0, range.stop.colQualifier.compareTo(t2bb(range2.getEndKey().getColumnQualifier())));
     assertEquals(range.start.timestamp, range.start.timestamp);
     assertEquals(range.stop.timestamp, range.stop.timestamp);
+  }
+
+  @Test
+  public void testCompactionStrategy() throws Exception {
+    final String tableName = makeTableName();
+
+    client.createTable(creds, tableName, true, TimeType.MILLIS);
+
+    client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
+        System.getProperty("user.dir") + "/src/test/resources/TestCompactionStrat.jar");
+    client.setTableProperty(creds, tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+
+    client.addSplits(creds, tableName, Collections.singleton(s2bb("efg")));
+
+    client.updateAndFlush(creds, tableName, mutation("a", "cf", "cq", "v1"));
+    client.flushTable(creds, tableName, null, null, true);
+
+    client.updateAndFlush(creds, tableName, mutation("b", "cf", "cq", "v2"));
+    client.flushTable(creds, tableName, null, null, true);
+
+    client.updateAndFlush(creds, tableName, mutation("y", "cf", "cq", "v1"));
+    client.flushTable(creds, tableName, null, null, true);
+
+    client.updateAndFlush(creds, tableName, mutation("z", "cf", "cq", "v2"));
+    client.flushTable(creds, tableName, null, null, true);
+
+    assertEquals(4, countFiles(tableName));
+
+    CompactionStrategyConfig csc = new CompactionStrategyConfig();
+
+    // The EfgCompactionStrat will only compact tablets with and end row of efg
+    csc.setClassName("org.apache.accumulo.test.EfgCompactionStrat");
+
+    client.compactTable(creds, tableName, null, null, null, true, true, csc);
+
+    assertEquals(3, countFiles(tableName));
   }
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,6 +59,8 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.log4j.Logger;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
@@ -638,10 +638,12 @@ public class TabletServerResourceManager {
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);
-      } catch (IOException ex) {
-        return false;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
+
+
 
     // END methods that Tablets call to make decisions about major compaction
 
