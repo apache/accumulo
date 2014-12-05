@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.lexicoder;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -44,12 +45,15 @@ public class ReverseLexicoderTest extends LexicoderTest {
 
     ReverseLexicoder<Date> revLex = new ReverseLexicoder<Date>(new DateLexicoder());
 
+    Calendar cal = Calendar.getInstance();
+    cal.set(1920, 1, 2, 3, 4, 5); // create an instance prior to 1970 for ACCUMULO-3385
+    Date date0 = new Date(cal.getTimeInMillis());
     Date date1 = new Date();
     Date date2 = new Date(System.currentTimeMillis() + 10000);
     Date date3 = new Date(System.currentTimeMillis() + 500);
 
     Comparator<Date> comparator = Collections.reverseOrder();
-    assertSortOrder(revLex, comparator, Arrays.asList(date1, date2, date3));
+    assertSortOrder(revLex, comparator, Arrays.asList(date0, date1, date2, date3));
 
     // truncate date to hours
     long time = System.currentTimeMillis() - (System.currentTimeMillis() % 3600000);
