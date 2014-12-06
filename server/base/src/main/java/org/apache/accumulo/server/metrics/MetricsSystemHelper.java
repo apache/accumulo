@@ -16,37 +16,20 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.metrics2.MetricsSystem;
-
-import com.google.common.base.Preconditions;
+import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 
 /**
  *
  */
-public class MetricsFactory {
+public class MetricsSystemHelper {
 
-  private final boolean useOldMetrics;
-  private final MetricsSystem metricsSystem;
-
-  public MetricsFactory(AccumuloConfiguration conf) {
-    Preconditions.checkNotNull(conf);
-    useOldMetrics = conf.getBoolean(Property.GENERAL_LEGACY_METRICS);
-
-    if (useOldMetrics) {
-      metricsSystem = null;
-    } else {
-      metricsSystem = MetricsSystemHelper.getInstance();
-    }
+  private static class MetricsSystemHolder {
+    // Singleton, rely on JVM to initialize the MetricsSystem only when it is accessed.
+    private static final MetricsSystem metricsSystem = DefaultMetricsSystem.initialize(Metrics.PREFIX);
   }
 
-  public Metrics createThriftMetrics(String serverName, String threadName) {
-    if (useOldMetrics) {
-      return new ThriftMetrics(serverName, threadName);
-    }
-
-    return new Metrics2ThriftMetrics(metricsSystem, serverName, threadName);
+  public static MetricsSystem getInstance() {
+    return MetricsSystemHolder.metricsSystem;
   }
-
 }

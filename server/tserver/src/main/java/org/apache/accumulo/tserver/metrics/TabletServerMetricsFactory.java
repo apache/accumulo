@@ -19,9 +19,9 @@ package org.apache.accumulo.tserver.metrics;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.metrics2.MetricsSystem;
-import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 
 import com.google.common.base.Preconditions;
 
@@ -42,7 +42,7 @@ public class TabletServerMetricsFactory {
     if (useOldMetrics) {
       metricsSystem = null;
     } else {
-      metricsSystem = DefaultMetricsSystem.initialize(Metrics.PREFIX);
+      metricsSystem = MetricsSystemHelper.getInstance();
     }
   }
 
