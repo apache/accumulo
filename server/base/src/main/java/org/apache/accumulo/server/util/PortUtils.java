@@ -18,7 +18,6 @@ package org.apache.accumulo.server.util;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Random;
 
 public class PortUtils {
 
