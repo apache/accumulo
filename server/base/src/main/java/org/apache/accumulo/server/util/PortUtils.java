@@ -23,29 +23,26 @@ import java.util.Random;
 public class PortUtils {
 
   public static int getRandomFreePort() {
-    Random r = new Random();
     int count = 0;
-    
+
     while (count < 13) {
-      int port = r.nextInt((1 << 16) - 1024) + 1024;
-      
       ServerSocket so = null;
       try {
-        so = new ServerSocket(port);
+        so = new ServerSocket(0);
         so.setReuseAddress(true);
-        return port;
+        return so.getLocalPort();
       } catch (IOException ioe) {
-        
+
       } finally {
         if (so != null)
           try {
             so.close();
           } catch (IOException e) {}
       }
-      
+
+      count++;
     }
-    
+
     throw new RuntimeException("Unable to find port");
   }
-  
 }
