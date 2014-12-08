@@ -539,6 +539,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           Socket s = null;
           try {
             s = new Socket("localhost", config.getZooKeeperPort());
+            s.setReuseAddress(true);
             s.getOutputStream().write("ruok\n".getBytes());
             s.getOutputStream().flush();
             byte buffer[] = new byte[100];
