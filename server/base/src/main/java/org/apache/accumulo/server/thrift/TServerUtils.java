@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.thrift;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -34,24 +34,17 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.SslConnectionParams;
-import org.apache.accumulo.core.util.TBufferedSocket;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.metrics.MetricsFactory;
-import org.apache.accumulo.server.metrics.ThriftMetrics;
+import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
-import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
-import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 import com.google.common.net.HostAndPort;
@@ -60,16 +53,6 @@ public class TServerUtils {
   private static final Logger log = Logger.getLogger(TServerUtils.class);
 
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
-
-  public static class ServerAddress {
-    public final TServer server;
-    public final HostAndPort address;
-
-    public ServerAddress(TServer server, HostAndPort address) {
-      this.server = server;
-      this.address = address;
-    }
-  }
 
   /**
    * Start a server, at the given port, or higher, if that port is not available.
@@ -103,7 +86,7 @@ public class TServerUtils {
     if (portSearchProperty != null)
       portSearch = service.getConfiguration().getBoolean(portSearchProperty);
     // create the TimedProcessor outside the port search loop so we don't try to register the same metrics mbean more than once
-    TServerUtils.TimedProcessor timedProcessor = new TServerUtils.TimedProcessor(service.getConfiguration(), processor, serverName, threadName);
+    TimedProcessor timedProcessor = new TimedProcessor(service.getConfiguration(), processor, serverName, threadName);
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
 
@@ -141,64 +124,6 @@ public class TServerUtils {
       }
     }
     throw new UnknownHostException("Unable to find a listen port");
-  }
-
-  public static class TimedProcessor implements TProcessor {
-
-    final TProcessor other;
-    Metrics metrics = null;
-    long idleStart = 0;
-
-    TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName, String threadName) {
-      this.other = next;
-      // Register the metrics MBean
-      MetricsFactory factory = new MetricsFactory(conf);
-      metrics = factory.createThriftMetrics(serverName, threadName);
-      try {
-        metrics.register();
-      } catch (Exception e) {
-        log.error("Exception registering MBean with MBean Server", e);
-      }
-      idleStart = System.currentTimeMillis();
-    }
-
-    @Override
-    public boolean process(TProtocol in, TProtocol out) throws TException {
-      long now = 0;
-      if (metrics.isEnabled()) {
-        now = System.currentTimeMillis();
-        metrics.add(ThriftMetrics.idle, (now - idleStart));
-      }
-      try {
-        return other.process(in, out);
-      } finally {
-        if (metrics.isEnabled()) {
-          idleStart = System.currentTimeMillis();
-          metrics.add(ThriftMetrics.execute, idleStart - now);
-        }
-      }
-    }
-  }
-
-  public static class ClientInfoProcessorFactory extends TProcessorFactory {
-
-    public ClientInfoProcessorFactory(TProcessor processor) {
-      super(processor);
-    }
-
-    @Override
-    public TProcessor getProcessor(TTransport trans) {
-      if (trans instanceof TBufferedSocket) {
-        TBufferedSocket tsock = (TBufferedSocket) trans;
-        clientAddress.set(tsock.getClientString());
-      } else if (trans instanceof TSocket) {
-        TSocket tsock = (TSocket) trans;
-        clientAddress.set(tsock.getSocket().getInetAddress().getHostAddress() + ":" + tsock.getSocket().getPort());
-      } else {
-        log.warn("Unable to extract clientAddress from transport of type " + trans.getClass());
-      }
-      return super.getProcessor(trans);
-    }
   }
 
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor, final String serverName, String threadName,
@@ -266,7 +191,7 @@ public class TServerUtils {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory());
-    options.processorFactory(new ClientInfoProcessorFactory(processor));
+    options.processorFactory(new ClientInfoProcessorFactory(clientAddress, processor));
     return new TThreadPoolServer(options);
   }
 
@@ -290,6 +215,11 @@ public class TServerUtils {
         timeBetweenThreadChecks, maxMessageSize, sslParams, sslSocketTimeout);
   }
 
+  /**
+   * Start the appropriate Thrift server (SSL or non-blocking server) for the given parameters. Non-null SSL parameters will cause an SSL server to be started.
+   *
+   * @return A ServerAddress encapsulating the Thrift server created and the host/port which it is bound to.
+   */
   public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads,
     int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
 

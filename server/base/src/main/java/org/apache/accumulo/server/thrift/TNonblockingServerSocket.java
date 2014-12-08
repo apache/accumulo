@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.thrift;
 
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TNonblockingServerTransport;

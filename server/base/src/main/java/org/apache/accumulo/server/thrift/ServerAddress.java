@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.server.thrift;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.thrift.TServerUtils;
+import org.apache.thrift.server.TServer;
 
-public class Session {
-  public final String client;
-  public long lastAccessTime;
-  public long startTime;
-  public boolean reserved;
-  private final TCredentials credentials;
-  
-  public Session(TCredentials credentials) {
-    this.credentials = credentials;
-    this.client = TServerUtils.clientAddress.get();
-  }
-  
-  public String getUser() {
-    return credentials.getPrincipal();
-  }
-  
-  public TCredentials getCredentials() {
-    return credentials;
+import com.google.common.net.HostAndPort;
+
+/**
+ * Encapsulate a Thrift server and the address, host and port, to which it is bound.
+ */
+public class ServerAddress {
+  public final TServer server;
+  public final HostAndPort address;
+
+  public ServerAddress(TServer server, HostAndPort address) {
+    this.server = server;
+    this.address = address;
   }
 
-  public void cleanup() {}
+  public TServer getServer() {
+    return server;
+  }
+
+  public HostAndPort getAddress() {
+    return address;
+  }
 }

@@ -17,9 +17,12 @@
 package org.apache.accumulo.server.util;
 
 import java.util.concurrent.ExecutorService;
+
+import org.apache.accumulo.server.thrift.TServerUtils;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 import static org.easymock.EasyMock.*;
 

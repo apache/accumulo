@@ -69,7 +69,7 @@ import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.util.TServerUtils;
+import org.apache.accumulo.server.thrift.TServerUtils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;

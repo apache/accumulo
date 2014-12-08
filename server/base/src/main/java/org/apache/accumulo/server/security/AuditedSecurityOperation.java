@@ -47,7 +47,7 @@ import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
-import org.apache.accumulo.server.util.TServerUtils;
+import org.apache.accumulo.server.thrift.TServerUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
