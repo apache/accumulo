@@ -128,6 +128,8 @@ speed up performance by utilizing the memory space of the native operating syste
 native map also avoids the performance implications brought on by garbage collection
 in the JVM by causing it to pause much less frequently.
 
+===== Building
+
 32-bit and 64-bit Linux and Mac OS X versions of the native map can be built
 from the Accumulo bin package by executing
 +$ACCUMULO_HOME/bin/build_native_library.sh+. If your system's
@@ -146,6 +148,33 @@ in this directory for the map library. If the file is renamed or moved from its
 target directory, the tablet server may not be able to find it. The system can
 also locate the native maps shared library by setting +LD_LIBRARY_PATH+
 (or +DYLD_LIBRARY_PATH+ on Mac OS X) in +$ACCUMULO_HOME/conf/accumulo-env.sh+.
+
+===== Configuration
+
+As mentioned, Accumulo will use the native libraries if they are found in the expected
+location and if it is not configured to ignore them. Using the native maps over JVM
+Maps nets a noticable improvement in ingest rates; however, certain configuration
+variables are important to modify when increasing the size of the native map.
+
+To adjust the size of the native map, increase the value of +tserver.memory.maps.max+.
+By default, the maximum size of the native map is 1GB. When increasing this value, it is
+also important to adjust the values of +table.compaction.minor.logs.threshold+ and
++tserver.walog.max.size+. +table.compaction.minor.logs.threshold+ is the maximum
+number of write-ahead log files that a tablet can reference before they will be automatically
+minor compacted. +tserver.walog.max.size+ is the maximum size of a write-ahead log.
+
+The maximum size of the native maps for a server should be less than the product
+of the write-ahead log maximum size and minor compaction threshold for log files:
+
++$table.compaction.minor.logs.threshold * $tserver.walog.max.size >= $tserver.memory.maps.max+
+
+This formula ensures that minor compactions won't be automatically triggered before the native
+maps can be completely saturated.
+
+Subsequently, when increasing the size of the write-ahead logs, it can also be important
+to increase the HDFS block size that Accumulo uses when creating the files for the write-ahead log.
+This is controlled via +tserver.wal.blocksize+. A basic recommendation is that when
++tserver.walog.max.size+ is larger than 2GB in size, set +tserver.wal.blocksize+ to 2GB.
 
 ==== Cluster Specification
 
