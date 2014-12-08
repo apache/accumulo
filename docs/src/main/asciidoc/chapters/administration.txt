@@ -175,6 +175,8 @@ Subsequently, when increasing the size of the write-ahead logs, it can also be i
 to increase the HDFS block size that Accumulo uses when creating the files for the write-ahead log.
 This is controlled via +tserver.wal.blocksize+. A basic recommendation is that when
 +tserver.walog.max.size+ is larger than 2GB in size, set +tserver.wal.blocksize+ to 2GB.
+Increasing the block size to a value larger than 2GB can result in decreased write
+performance to the write-ahead log file which will slow ingest.
 
 ==== Cluster Specification
 
