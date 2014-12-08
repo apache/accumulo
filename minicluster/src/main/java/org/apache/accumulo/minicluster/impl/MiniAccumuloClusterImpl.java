@@ -471,9 +471,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
-   *
-   * @throws IllegalStateException
-   *           if already started
    */
   @Override
   public synchronized void start() throws IOException, InterruptedException {

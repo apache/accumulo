@@ -65,9 +65,6 @@ public class MiniAccumuloCluster {
 
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
-   *
-   * @throws IllegalStateException
-   *           if already started
    */
   public void start() throws IOException, InterruptedException {
     impl.start();
