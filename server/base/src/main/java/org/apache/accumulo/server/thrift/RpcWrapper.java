@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * {@link TException} only, by wrapping {@link RuntimeException} and {@link Error} as {@link TException}, so it doesn't just close the connection and look like
  * a network issue, but informs the client that a {@link TApplicationException} had occurred, as it did in Thrift 0.9.0. This performs similar functions as
  * {@link TraceWrap}, but with the additional action of translating exceptions. See also ACCUMULO-1691 and ACCUMULO-2950.
- * 
+ *
  * @since 1.6.1
  */
 public class RpcWrapper {

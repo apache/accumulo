@@ -36,7 +36,7 @@ import java.nio.channels.SocketChannel;
 
 /**
  * Wrapper around ServerSocketChannel.
- * 
+ *
  * This class is copied from org.apache.thrift.transport.TNonblockingServerSocket version 0.9.
  * The only change (apart from the logging statements) is the addition of the {@link #getPort()} method to retrieve the port used by the ServerSocket.
  */
