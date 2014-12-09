@@ -24,6 +24,7 @@ import org.apache.accumulo.core.trace.wrappers.RpcServerInvocationHandler;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -38,17 +39,18 @@ public class RpcWrapper {
 
   public static <T> T service(final T instance) {
     InvocationHandler handler = new RpcServerInvocationHandler<T>(instance) {
+      private final Logger log = LoggerFactory.getLogger(instance.getClass());
       @Override
       public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
         try {
           return super.invoke(obj, method, args);
         } catch (RuntimeException e) {
           String msg = e.getMessage();
-          LoggerFactory.getLogger(instance.getClass()).error(msg, e);
+          log.error(msg, e);
           throw new TException(msg);
         } catch (Error e) {
           String msg = e.getMessage();
-          LoggerFactory.getLogger(instance.getClass()).error(msg, e);
+          log.error(msg, e);
           throw new TException(msg);
         }
       }
