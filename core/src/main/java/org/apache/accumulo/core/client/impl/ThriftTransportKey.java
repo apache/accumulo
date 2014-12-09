@@ -18,7 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import org.apache.accumulo.core.util.SslConnectionParams;
+import org.apache.accumulo.core.rpc.SslConnectionParams;
 
 class ThriftTransportKey {
   private final String location;

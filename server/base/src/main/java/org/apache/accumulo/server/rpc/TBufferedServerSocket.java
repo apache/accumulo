@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.thrift;
+package org.apache.accumulo.server.rpc;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 
-import org.apache.accumulo.core.util.TBufferedSocket;
+import org.apache.accumulo.core.rpc.TBufferedSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;

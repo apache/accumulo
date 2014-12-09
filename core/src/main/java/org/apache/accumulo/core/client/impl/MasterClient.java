@@ -28,7 +28,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TServiceClient;
