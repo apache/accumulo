@@ -16,24 +16,48 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static org.apache.commons.lang.ArrayUtils.EMPTY_STRING_ARRAY;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+/**
+ * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset of those options preferred for a
+ * particular table. Defaults to selecting from all of the options presented. Can be customized via the table property
+ * {@value #PREFERRED_VOLUMES_CUSTOM_KEY}, which should contain a comma separated list of {@link Volume} URIs. Note that both the property
+ * name and the format of its value are specific to this particular implementation.
+ */
 public class PreferredVolumeChooser extends RandomVolumeChooser implements VolumeChooser {
   private static final Logger log = Logger.getLogger(PreferredVolumeChooser.class);
 
   public static final String PREFERRED_VOLUMES_CUSTOM_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "preferredVolumes";
+  // TODO ACCUMULO-3417 replace this with the ability to retrieve by String key.
+  private static final PropertyFilter PREFERRED_VOLUMES_FILTER = new PropertyFilter() {
+    @Override
+    public boolean accept(String key) {
+      return PREFERRED_VOLUMES_CUSTOM_KEY.equals(key);
+    }
+  };
 
-  public PreferredVolumeChooser() {}
+  @SuppressWarnings("unchecked")
+  private final Map<String, Set<String>> parsedPreferredVolumes = Collections.synchronizedMap(new LRUMap(1000));
+  // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see ACCUMULO-3411
+  private volatile ServerConfigurationFactory serverConfs;
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) {
@@ -41,40 +65,49 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
       return super.choose(env, options);
 
     // Get the current table's properties, and find the preferred volumes property
-    TableConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getTableConfiguration(env.getTableId());
-    PropertyFilter filter = new PropertyFilter() {
-      @Override
-      public boolean accept(String key) {
-        return PREFERRED_VOLUMES_CUSTOM_KEY.equals(key);
-      }
-    };
-    Map<String,String> props = new HashMap<>();
-    config.getProperties(props, filter);
+    // This local variable is an intentional component of the single-check idiom.
+    ServerConfigurationFactory localConf = serverConfs;
+    if (localConf == null) {
+      // If we're under contention when first getting here we'll throw away some initializations.
+      localConf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
+      serverConfs = localConf;
+    }
+    TableConfiguration tableConf = localConf.getTableConfiguration(env.getTableId());
+    final Map<String,String> props = new HashMap<String, String>();
+    tableConf.getProperties(props, PREFERRED_VOLUMES_FILTER);
     if (props.isEmpty()) {
       log.warn("No preferred volumes specified. Defaulting to randomly choosing from instance volumes");
       return super.choose(env, options);
     }
     String volumes = props.get(PREFERRED_VOLUMES_CUSTOM_KEY);
-    log.trace("In custom chooser");
-    log.trace("Volumes: " + volumes);
-    log.trace("TableID: " + env.getTableId());
 
-    ArrayList<String> prefVol = new ArrayList<String>();
-    // If the preferred volumes property is specified, split the returned string by the comma and add them to a preferred volumes list
-    prefVol.addAll(Arrays.asList(volumes.split(",")));
+    if (log.isTraceEnabled()) {
+      log.trace("In custom chooser");
+      log.trace("Volumes: " + volumes);
+      log.trace("TableID: " + env.getTableId());
+    }
+    // If the preferred volumes property was specified, split the returned string by the comma and add use it to filter the given options.
+    Set<String> preferred = parsedPreferredVolumes.get(volumes);
+    if (preferred == null) {
+      preferred = new HashSet<String>(Arrays.asList(StringUtils.split(volumes, ',')));
+      parsedPreferredVolumes.put(volumes, preferred);
+    }
 
-    // Change the given array to a List and only keep the preferred volumes that are in the given array.
-    prefVol.retainAll(Arrays.asList(options));
+    // Only keep the options that are in the preferred set
+    final ArrayList<String> filteredOptions = new ArrayList<String>(Arrays.asList(options));
+    filteredOptions.retainAll(preferred);
 
     // If there are no preferred volumes left, then warn the user and choose randomly from the instance volumes
-    if (prefVol.isEmpty()) {
+    if (filteredOptions.isEmpty()) {
       log.warn("Preferred volumes are not instance volumes. Defaulting to randomly choosing from instance volumes");
       return super.choose(env, options);
     }
 
     // Randomly choose the volume from the preferred volumes
-    String choice = prefVol.get(random.nextInt(prefVol.size()));
-    log.trace("Choice = " + choice);
+    String choice = super.choose(env, filteredOptions.toArray(EMPTY_STRING_ARRAY));
+    if (log.isTraceEnabled()) {
+      log.trace("Choice = " + choice);
+    }
     return choice;
   }
 }

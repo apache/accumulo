@@ -164,6 +164,7 @@ public enum Property {
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.MEMORY, "The maximum size of a message that can be sent to a server."),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1", PropertyType.COUNT, "The number of threads to use for "
       + "server-internal scheduled tasks"),
+  // If you update the default type, be sure to update the default used for initialization failures in VolumeManagerImpl
   @Experimental
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", "org.apache.accumulo.server.fs.PerTableVolumeChooser", PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files."),
@@ -467,6 +468,7 @@ public enum Property {
   TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX, "Enumerate a mapping of other systems which this table should " +
       "replicate their data to. The key suffix is the identifying cluster name and the value is an identifier for a location on the target system, " +
       "e.g. the ID of the table on the target to replicate to"),
+  @Experimental
   TABLE_VOLUME_CHOOSER("table.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files for this table."),
 

@@ -33,6 +33,7 @@ import com.google.common.base.Optional;
 /**
  * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes. This also concentrates a bunch of meta-operations like
  * waiting for SAFE_MODE, and closing WALs.
+ * N.B. implementations must be thread safe.
  */
 public interface VolumeManager {
 

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -84,7 +85,8 @@ public class VolumeManagerImpl implements VolumeManager {
     invertVolumesByFileSystem(volumesByName, volumesByFileSystemUri);
     this.conf = conf;
     ensureSyncIsEnabled();
-    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new RandomVolumeChooser());
+    // Keep in sync with default type in the property definition.
+    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new PerTableVolumeChooser());
   }
 
   private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<URI,Volume> inverted) {
@@ -572,9 +574,19 @@ public class VolumeManagerImpl implements VolumeManager {
     return getVolumeByPath(dir).getFileSystem().getContentSummary(dir);
   }
 
+  // Only used as a fall back if the configured chooser misbehaves.
+  private final VolumeChooser failsafeChooser = new RandomVolumeChooser();
+
   @Override
   public String choose(Optional<String> tableId, String[] options) {
-    return chooser.choose(new VolumeChooserEnvironment(tableId), options);
+    final VolumeChooserEnvironment env = new VolumeChooserEnvironment(tableId);
+    final String choice = chooser.choose(env, options);
+    if (!(ArrayUtils.contains(options, choice))) {
+      log.error("The configured volume chooser, '" +  chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; " +
+          "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.");
+      return failsafeChooser.choose(env, options);
+    }
+    return choice;
   }
 
   @Override
