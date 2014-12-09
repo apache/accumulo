@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import jline.console.ConsoleReader;
 
@@ -750,6 +751,112 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("scan", true, "v901", false);
 
     ts.exec("deletetable -f " + table);
+  }
+
+  @Test
+  public void testCompactionSelection() throws Exception {
+    final String table = name.getMethodName();
+    final String clone = table + "_clone";
+
+    ts.exec("createtable " + table);
+    ts.exec("insert a b c d");
+    ts.exec("flush -w");
+    ts.exec("insert x y z v");
+    ts.exec("flush -w");
+
+    ts.exec("clonetable -s " + Property.TABLE_MAJC_RATIO.getKey() + "=10 " + table + " " + clone);
+
+    ts.exec("table " + clone);
+    ts.exec("insert m n l o");
+    ts.exec("flush -w");
+
+    String tableId = getTableId(table);
+    String cloneId = getTableId(clone);
+
+    assertEquals(3, countFiles(cloneId));
+
+    // compact only files from src table
+    ts.exec("compact -t " + clone + " -w --sf-epath .*tables/" + tableId + ".*");
+
+    assertEquals(2, countFiles(cloneId));
+
+    ts.exec("insert r s t u");
+    ts.exec("flush -w");
+
+    assertEquals(3, countFiles(cloneId));
+
+    // compact all flush files
+    ts.exec("compact -t " + clone + " -w --sf-ename F.*");
+
+    assertEquals(2, countFiles(cloneId));
+
+    // create two large files
+    Random rand = new Random();
+    StringBuilder sb = new StringBuilder("insert b v q ");
+    for (int i = 0; i < 10000; i++) {
+      sb.append('a' + rand.nextInt(26));
+    }
+
+    ts.exec(sb.toString());
+    ts.exec("flush -w");
+
+    ts.exec(sb.toString());
+    ts.exec("flush -w");
+
+    assertEquals(4, countFiles(cloneId));
+
+    // compact only small files
+    ts.exec("compact -t " + clone + " -w --sf-lt-esize 1000");
+
+    assertEquals(3, countFiles(cloneId));
+
+    // compact large files if 3 or more
+    ts.exec("compact -t " + clone + " -w --sf-gt-esize 1K --min-files 3");
+
+    assertEquals(3, countFiles(cloneId));
+
+    // compact large files if 2 or more
+    ts.exec("compact -t " + clone + " -w --sf-gt-esize 1K --min-files 2");
+
+    assertEquals(2, countFiles(cloneId));
+
+    // compact if tablet has 3 or more files
+    ts.exec("compact -t " + clone + " -w --min-files 3");
+
+    assertEquals(2, countFiles(cloneId));
+
+    // compact if tablet has 2 or more files
+    ts.exec("compact -t " + clone + " -w --min-files 2");
+
+    assertEquals(1, countFiles(cloneId));
+
+    // create two small and one large flush files in order to test AND
+    ts.exec(sb.toString());
+    ts.exec("flush -w");
+
+    ts.exec("insert m n l o");
+    ts.exec("flush -w");
+
+    ts.exec("insert m n l o");
+    ts.exec("flush -w");
+
+    assertEquals(4, countFiles(cloneId));
+
+    // should only compact two small flush files leaving large flush file
+    ts.exec("compact -t " + clone + " -w --sf-ename F.* --sf-lt-esize 1K");
+
+    assertEquals(3, countFiles(cloneId));
+  }
+
+  @Test
+  public void testCompactionSelectionAndStrategy() throws Exception {
+
+    final String table = name.getMethodName();
+
+    ts.exec("createtable " + table);
+
+    // expect this to fail
+    ts.exec("compact -t " + table + " -w --sf-ename F.* -s " + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A", false);
   }
 
   @Test

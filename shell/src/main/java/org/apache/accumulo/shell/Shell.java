@@ -1104,6 +1104,7 @@ public class Shell extends ShellOptions {
 
   public static final void setDebugging(boolean debuggingEnabled) {
     Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
+    Logger.getLogger(Shell.class.getPackage().getName()).setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
   }
 
   public static final boolean isDebuggingEnabled() {
