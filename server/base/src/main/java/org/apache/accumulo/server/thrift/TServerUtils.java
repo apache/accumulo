@@ -16,14 +16,11 @@
  */
 package org.apache.accumulo.server.thrift;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -168,23 +165,6 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHostText(), transport.getPort());
     }
     return new ServerAddress(new CustomNonBlockingServer(options), address);
-  }
-
-  public static ServerAddress createThreadPoolServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads)
-      throws TTransportException {
-
-    // if port is zero, then we must bind to get the port number
-    ServerSocket sock;
-    try {
-      sock = ServerSocketChannel.open().socket();
-      sock.setReuseAddress(true);
-      sock.bind(new InetSocketAddress(address.getHostText(), address.getPort()));
-      address = HostAndPort.fromParts(address.getHostText(), sock.getLocalPort());
-    } catch (IOException ex) {
-      throw new TTransportException(ex);
-    }
-    TServerTransport transport = new TBufferedServerSocket(sock, 32 * 1024);
-    return new ServerAddress(createThreadPoolServer(transport, processor), address);
   }
 
   public static TServer createThreadPoolServer(TServerTransport transport, TProcessor processor) {
