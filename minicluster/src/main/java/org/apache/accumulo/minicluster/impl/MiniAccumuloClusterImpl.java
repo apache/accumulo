@@ -551,6 +551,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               throw new ZooKeeperBindException("Zookeeper did not start within " + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
                   + config.getLogDir() + " for errors.  Last exception: " + e);
             }
+            // Don't spin absurdly fast
+            Thread.sleep(250);
           } finally {
             if (s != null)
               s.close();
