@@ -123,6 +123,9 @@ public class TServerUtils {
     throw new UnknownHostException("Unable to find a listen port");
   }
 
+  /**
+   * Create a NonBlockingServer with a custom thread pool that can dynamically resize itself.
+   */
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor, final String serverName, String threadName,
       final int numThreads, final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
