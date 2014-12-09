@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -41,7 +42,7 @@ import org.junit.Test;
 
 public class SystemCredentialsIT extends ConfigurableMacIT {
 
-  private static final int FAIL_CODE = 7;
+  private static final int FAIL_CODE = 7, BAD_PASSWD_FAIL_CODE = 8;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -52,6 +53,7 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
   public void testSystemCredentials() throws Exception {
     assertEquals(0, exec(SystemCredentialsIT.class, "good", getCluster().getZooKeepers()).waitFor());
     assertEquals(FAIL_CODE, exec(SystemCredentialsIT.class, "bad", getCluster().getZooKeepers()).waitFor());
+    assertEquals(BAD_PASSWD_FAIL_CODE, exec(SystemCredentialsIT.class, "bad_password", getCluster().getZooKeepers()).waitFor());
   }
 
   public static void main(final String[] args) throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
@@ -59,7 +61,7 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
     if (args.length < 2)
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     if (args[0].equals("bad")) {
-      creds = new SystemCredentials(new Instance() {
+      Instance inst = new Instance() {
 
         @Override
         public int getZooKeepersSessionTimeOut() {
@@ -114,12 +116,78 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
           throw new UnsupportedOperationException();
         }
 
-      });
+      };
+      creds = SystemCredentials.get(inst);
     } else if (args[0].equals("good")) {
       creds = SystemCredentials.get(HdfsZooInstance.getInstance());
+    } else if (args[0].equals("bad_password")) {
+      Instance inst = new Instance() {
+
+        @Override
+        public int getZooKeepersSessionTimeOut() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getZooKeepers() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getRootTabletLocation() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<String> getMasterLocations() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getInstanceName() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getInstanceID() {
+          return SystemCredentials.class.getName();
+        }
+
+        @Override
+        public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+          throw new UnsupportedOperationException();
+        }
+
+        @Deprecated
+        @Override
+        public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+          throw new UnsupportedOperationException();
+        }
+
+        @Deprecated
+        @Override
+        public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+          throw new UnsupportedOperationException();
+        }
+
+        @Deprecated
+        @Override
+        public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+          throw new UnsupportedOperationException();
+        }
+
+      };
+      creds = new SystemCredentials(inst, "!SYSTEM", new PasswordToken("fake"));
     }
     Instance instance = HdfsZooInstance.getInstance();
-    Connector conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+    Connector conn;
+    try {
+      conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+    } catch (AccumuloSecurityException e) {
+      e.printStackTrace(System.err);
+      System.exit(BAD_PASSWD_FAIL_CODE);
+      return;
+    }
     try {
       Scanner scan = conn.createScanner(RootTable.NAME, Authorizations.EMPTY);
       for (Entry<Key,Value> e : scan) {

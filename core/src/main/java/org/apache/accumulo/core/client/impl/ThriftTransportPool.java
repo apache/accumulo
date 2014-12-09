@@ -465,7 +465,7 @@ public class ThriftTransportPool {
       try {
         return new Pair<String,TTransport>(ttk.getServer().toString(), createNewTransport(ttk));
       } catch (TTransportException tte) {
-        log.debug("Failed to connect to " + servers.get(index), tte);
+        log.debug("Failed to connect to {}", servers.get(index), tte);
         servers.remove(index);
         retryCount++;
       }
@@ -475,7 +475,7 @@ public class ThriftTransportPool {
   }
 
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(), (int) cacheKey.getTimeout(), cacheKey.getSslParams());
+    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(), (int) cacheKey.getTimeout(), cacheKey.getSslParams(), cacheKey.getSaslParams());
 
     log.trace("Creating new connection to connection to {}", cacheKey.getServer());
 

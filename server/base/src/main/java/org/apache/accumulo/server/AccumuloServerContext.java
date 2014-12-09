@@ -16,14 +16,24 @@
  */
 package org.apache.accumulo.server;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.hadoop.security.UserGroupInformation;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials and have access to the system files and configuration.
@@ -38,6 +48,31 @@ public class AccumuloServerContext extends ClientContext {
   public AccumuloServerContext(ServerConfigurationFactory confFactory) {
     super(confFactory.getInstance(), getCredentials(confFactory.getInstance()), confFactory.getConfiguration());
     this.confFactory = confFactory;
+    if (null != getServerSaslParams()) {
+      // Server-side "client" check to make sure we're logged in as a user we expect to be
+      enforceKerberosLogin();
+    }
+  }
+
+  /**
+   * A "client-side" assertion for servers to validate that they are logged in as the expected user, per the configuration, before performing any RPC
+   */
+  // Should be private, but package-protected so EasyMock will work
+  void enforceKerberosLogin() {
+    final AccumuloConfiguration conf = confFactory.getSiteConfiguration();
+    // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
+    final String kerberosPrincipal = SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+    UserGroupInformation loginUser;
+    try {
+      // The system user should be logged in via keytab when the process is started, not the currentUser() like KerberosToken
+      loginUser = UserGroupInformation.getLoginUser();
+    } catch (IOException e) {
+      throw new RuntimeException("Could not get login user", e);
+    }
+
+    Preconditions.checkArgument(loginUser.hasKerberosCredentials(), "Server does not have Kerberos credentials");
+    Preconditions.checkArgument(kerberosPrincipal.equals(loginUser.getUserName()),
+        "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
   }
 
   /**
@@ -62,6 +97,37 @@ public class AccumuloServerContext extends ClientContext {
    */
   public SslConnectionParams getServerSslParams() {
     return SslConnectionParams.forServer(getConfiguration());
+  }
+
+  public SaslConnectionParams getServerSaslParams() {
+    // Not functionally different than the client SASL params, just uses the site configuration
+    return SaslConnectionParams.forConfig(getServerConfigurationFactory().getSiteConfiguration());
+  }
+
+  /**
+   * Determine the type of Thrift server to instantiate given the server's configuration.
+   *
+   * @return A {@link ThriftServerType} value to denote the type of Thrift server to construct
+   */
+  public ThriftServerType getThriftServerType() {
+    AccumuloConfiguration conf = getConfiguration();
+    if (conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED)) {
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        throw new IllegalStateException("Cannot create a Thrift server capable of both SASL and SSL");
+      }
+
+      return ThriftServerType.SSL;
+    } else if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      if (conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED)) {
+        throw new IllegalStateException("Cannot create a Thrift server capable of both SASL and SSL");
+      }
+
+      return ThriftServerType.SASL;
+    } else {
+      // Lets us control the type of Thrift server created, primarily for benchmarking purposes
+      String serverTypeName = conf.get(Property.GENERAL_RPC_SERVER_TYPE);
+      return ThriftServerType.get(serverTypeName);
+    }
   }
 
 }

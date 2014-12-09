@@ -20,9 +20,13 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
@@ -62,6 +66,12 @@ public class ZooZap {
     if (!opts.zapMaster && !opts.zapTservers && !opts.zapTracers) {
       new JCommander(opts).usage();
       return;
+    }
+
+    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    // Login as the server on secure HDFS
+    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      SecurityUtil.serverLogin(siteConf);
     }
 
     String iid = opts.getInstance().getInstanceID();

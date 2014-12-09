@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.TraceFormatter;
 
 abstract class Basic extends BasicServlet {
@@ -86,6 +87,10 @@ abstract class Basic extends BasicServlet {
       AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
       token.init(props);
       at = token;
+    }
+
+    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      principal = SecurityUtil.getServerPrincipal(principal);
     }
 
     String table = conf.get(Property.TRACE_TABLE);

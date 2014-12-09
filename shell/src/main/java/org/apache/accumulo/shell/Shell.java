@@ -199,7 +199,6 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private String principal;
   private AuthenticationToken token;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private final Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
@@ -275,8 +274,22 @@ public class Shell extends ShellOptions {
     authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
+    ClientConfiguration clientConf;
+    try {
+      clientConf = options.getClientConfiguration();
+    } catch (Exception e) {
+      printException(e);
+      return true;
+    }
+
     // get the options that were parsed
-    String user = options.getUsername();
+    final String user;
+    try {
+      user = options.getUsername();
+    } catch (Exception e) {
+      printException(e);
+      return true;
+    }
     String password = options.getPassword();
 
     tabCompletion = !options.isTabCompletionDisabled();
@@ -285,7 +298,13 @@ public class Shell extends ShellOptions {
     setInstance(options);
 
     // AuthenticationToken options
-    token = options.getAuthenticationToken();
+    try {
+      token = options.getAuthenticationToken();
+    } catch (Exception e) {
+      printException(e);
+      return true;
+    }
+
     Map<String,String> loginOptions = options.getTokenProperties();
 
     // process default parameters if unspecified
@@ -328,12 +347,11 @@ public class Shell extends ShellOptions {
       }
 
       if (!options.isFake()) {
-        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", options.getClientConfiguration());
+        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", clientConf);
       }
 
       this.setTableName("");
-      this.principal = user;
-      connector = instance.getConnector(this.principal, token);
+      connector = instance.getConnector(user, token);
 
     } catch (Exception e) {
       printException(e);
@@ -1157,12 +1175,11 @@ public class Shell extends ShellOptions {
 
   public void updateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     connector = instance.getConnector(principal, token);
-    this.principal = principal;
     this.token = token;
   }
 
   public String getPrincipal() {
-    return principal;
+    return connector.whoami();
   }
 
   public AuthenticationToken getToken() {

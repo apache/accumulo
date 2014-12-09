@@ -221,6 +221,8 @@ public class CompactRange extends MasterRepo {
 
     if (iterators.size() > 0 || !compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)) {
       this.config = WritableUtils.toByteArray(new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
+    } else {
+      log.info("No iterators or compaction strategy");
     }
 
     if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
@@ -255,6 +257,9 @@ public class CompactRange extends MasterRepo {
           for (int i = 1; i < tokens.length; i++) {
             if (tokens[i].startsWith(txidString))
               continue; // skip self
+
+            log.debug("txidString : " + txidString);
+            log.debug("tokens[" + i + "] : " + tokens[i]);
 
             throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
                 "Another compaction with iterators and/or a compaction strategy is running");

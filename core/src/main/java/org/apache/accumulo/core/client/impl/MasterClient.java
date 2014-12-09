@@ -68,7 +68,8 @@ public class MasterClient {
       MasterClientService.Client client = ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
       return client;
     } catch (TTransportException tte) {
-      if (tte.getCause().getClass().equals(UnknownHostException.class)) {
+      Throwable cause = tte.getCause();
+      if (null != cause && cause instanceof UnknownHostException) {
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }

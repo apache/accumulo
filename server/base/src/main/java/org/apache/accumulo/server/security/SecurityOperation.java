@@ -51,6 +51,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
+import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.apache.accumulo.server.security.handler.ZKAuthorizor;
@@ -68,6 +69,7 @@ public class SecurityOperation {
   protected Authorizor authorizor;
   protected Authenticator authenticator;
   protected PermissionHandler permHandle;
+  protected boolean isKerberos;
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;
@@ -126,11 +128,11 @@ public class SecurityOperation {
         || !permHandle.validSecurityHandlers(authent, author))
       throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
           + " do not play nice with eachother. Please choose authentication and authorization mechanisms that are compatible with one another.");
+
+    isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
-    authenticate(credentials);
-
     if (!isSystemUser(credentials))
       throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -160,11 +162,31 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
 
     Credentials creds = Credentials.fromThrift(credentials);
+
     if (isSystemUser(credentials)) {
       if (!(context.getCredentials().equals(creds))) {
+        log.debug("Provided credentials did not match server's expected credentials. Expected " + context.getCredentials() + " but got " + creds);
         throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       }
     } else {
+      // Not the system user
+
+      if (isKerberos) {
+        // If we have kerberos credentials for a user from the network but no account
+        // in the system, we need to make one before proceeding
+        try {
+          if (!authenticator.userExists(creds.getPrincipal())) {
+            // If we call the normal createUser method, it will loop back into this method
+            // when it tries to check if the user has permission to create users
+            _createUser(credentials, creds, Authorizations.EMPTY);
+          }
+        } catch (AccumuloSecurityException e) {
+          log.debug("Failed to determine if user exists", e);
+          throw e.asThriftException();
+        }
+      }
+
+      // Check that the user is authenticated (a no-op at this point for kerberos)
       try {
         if (!authenticator.authenticateUser(creds.getPrincipal(), creds.getToken())) {
           throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
@@ -190,6 +212,15 @@ public class SecurityOperation {
       return true;
     try {
       Credentials toCreds = Credentials.fromThrift(toAuth);
+
+      if (isKerberos) {
+        // If we have kerberos credentials for a user from the network but no account
+        // in the system, we need to make one before proceeding
+        if (!authenticator.userExists(toCreds.getPrincipal())) {
+          createUser(credentials, toCreds, Authorizations.EMPTY);
+        }
+      }
+
       return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -579,14 +610,23 @@ public class SecurityOperation {
   public void createUser(TCredentials credentials, Credentials newUser, Authorizations authorizations) throws ThriftSecurityException {
     if (!canCreateUser(credentials, newUser.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    _createUser(credentials, newUser, authorizations);
+    if (canChangeAuthorizations(credentials, newUser.getPrincipal())) {
+      try {
+        authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
+      } catch (AccumuloSecurityException ase) {
+        throw ase.asThriftException();
+      }
+    }
+  }
+
+  protected void _createUser(TCredentials credentials, Credentials newUser, Authorizations authorizations) throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();
       authenticator.createUser(newUser.getPrincipal(), token);
       authorizor.initUser(newUser.getPrincipal());
       permHandle.initUser(newUser.getPrincipal());
       log.info("Created user " + newUser.getPrincipal() + " at the request of user " + credentials.getPrincipal());
-      if (canChangeAuthorizations(credentials, newUser.getPrincipal()))
-        authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
     } catch (AccumuloSecurityException ase) {
       throw ase.asThriftException();
     }

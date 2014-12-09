@@ -69,15 +69,27 @@ public class SecurityUtil {
    */
   public static boolean login(String principalConfig, String keyTabPath) {
     try {
-      String principalName = org.apache.hadoop.security.SecurityUtil.getServerPrincipal(principalConfig, InetAddress.getLocalHost().getCanonicalHostName());
+      String principalName = getServerPrincipal(principalConfig);
       if (keyTabPath != null && principalName != null && keyTabPath.length() != 0 && principalName.length() != 0) {
+        log.info("Attempting to login with keytab as " + principalName);
         UserGroupInformation.loginUserFromKeytab(principalName, keyTabPath);
-        log.info("Succesfully logged in as user " + principalConfig);
+        log.info("Succesfully logged in as user " + principalName);
         return true;
       }
     } catch (IOException io) {
       log.error("Error logging in user " + principalConfig + " using keytab at " + keyTabPath, io);
     }
     return false;
+  }
+
+  /**
+   * {@link org.apache.hadoop.security.SecurityUtil#getServerPrincipal(String, String)}
+   */
+  public static String getServerPrincipal(String configuredPrincipal) {
+    try {
+      return org.apache.hadoop.security.SecurityUtil.getServerPrincipal(configuredPrincipal, InetAddress.getLocalHost().getCanonicalHostName());
+    } catch (IOException e) {
+      throw new RuntimeException("Could not convert configured server principal: " + configuredPrincipal, e);
+    }
   }
 }

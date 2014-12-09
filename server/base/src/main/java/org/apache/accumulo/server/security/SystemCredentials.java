@@ -30,8 +30,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Base64;
@@ -51,8 +53,8 @@ public final class SystemCredentials extends Credentials {
 
   private final TCredentials AS_THRIFT;
 
-  SystemCredentials(Instance instance) {
-    super(SYSTEM_PRINCIPAL, SystemToken.get(instance));
+  SystemCredentials(Instance instance, String principal, AuthenticationToken token) {
+    super(principal, token);
     AS_THRIFT = super.toThrift(instance);
   }
 
@@ -65,7 +67,16 @@ public final class SystemCredentials extends Credentials {
 
   public static SystemCredentials get(Instance instance) {
     check_permission();
-    return new SystemCredentials(instance);
+    String principal = SYSTEM_PRINCIPAL;
+    AccumuloConfiguration conf = SiteConfiguration.getInstance();
+    SaslConnectionParams saslParams = SaslConnectionParams.forConfig(conf);
+    if (null != saslParams) {
+      // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the principal server-side, but the principal for SystemCredentials
+      // isnt' actually used anywhere, so it really doesn't matter. We can't include the kerberos principal in the SystemToken as it would break equality when
+      // different Accumulo servers are using different kerberos principals are their accumulo principal
+      principal = SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+    }
+    return new SystemCredentials(instance, principal, SystemToken.get(instance));
   }
 
   @Override

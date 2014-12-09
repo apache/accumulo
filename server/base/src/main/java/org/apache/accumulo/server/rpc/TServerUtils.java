@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.BindException;
 import java.net.InetAddress;
@@ -33,26 +34,34 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.thrift.UGIAssumingProcessor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.hadoop.security.SaslRpcServer;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TSSLTransportFactory;
+import org.apache.thrift.transport.TSaslServerTransport;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -115,6 +124,11 @@ public class TServerUtils {
       portSearch = config.getBoolean(portSearchProperty);
 
     final int simpleTimerThreadpoolSize = config.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+    final ThriftServerType serverType = service.getThriftServerType();
+
+    if (ThriftServerType.SASL == serverType) {
+      processor = updateSaslProcessor(serverType, processor);
+    }
 
     // create the TimedProcessor outside the port search loop so we don't try to register the same metrics mbean more than once
     TimedProcessor timedProcessor = new TimedProcessor(config, processor, serverName, threadName);
@@ -135,8 +149,9 @@ public class TServerUtils {
           port = 1024 + port % (65535 - 1024);
         try {
           HostAndPort addr = HostAndPort.fromParts(hostname, port);
-          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, simpleTimerThreadpoolSize, timeBetweenThreadChecks,
-              maxMessageSize, service.getServerSslParams(), service.getClientTimeoutInMillis());
+          return TServerUtils.startTServer(addr, serverType, timedProcessor, serverName, threadName, minThreads,
+              simpleTimerThreadpoolSize, timeBetweenThreadChecks, maxMessageSize,
+              service.getServerSslParams(), service.getServerSaslParams(), service.getClientTimeoutInMillis());
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
           if (ex.getCause() == null || ex.getCause().getClass() == BindException.class) {
@@ -209,7 +224,31 @@ public class TServerUtils {
   }
 
   /**
-   * Create a TThreadPoolServer with the given transport and processor
+   * Creates a TTheadPoolServer for normal unsecure operation. Useful for comparing performance against SSL or SASL transports.
+   *
+   * @param address
+   *          Address to bind to
+   * @param processor
+   *          TProcessor for the server
+   * @param maxMessageSize
+   *          Maximum size of a Thrift message allowed
+   * @return A configured TThreadPoolServer and its bound address information
+   */
+  public static ServerAddress createBlockingServer(HostAndPort address, TProcessor processor, long maxMessageSize) throws TTransportException {
+
+    TServerSocket transport = new TServerSocket(address.getPort());
+    TThreadPoolServer server = createThreadPoolServer(transport, processor, ThriftUtil.transportFactory(maxMessageSize));
+
+    if (address.getPort() == 0) {
+      address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+    }
+
+    return new ServerAddress(server, address);
+
+  }
+
+  /**
+   * Create a TThreadPoolServer with the given transport and processo with the default transport factory.r
    *
    * @param transport
    *          TServerTransport for the server
@@ -218,9 +257,23 @@ public class TServerUtils {
    * @return A configured TThreadPoolServer
    */
   public static TThreadPoolServer createThreadPoolServer(TServerTransport transport, TProcessor processor) {
-    final TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
+    return createThreadPoolServer(transport, processor, ThriftUtil.transportFactory());
+  }
+
+  /**
+   * Create a TServer with the provided server transport, processor and transport factory.
+   *
+   * @param transport
+   *          TServerTransport for the server
+   * @param processor
+   *          TProcessor for the server
+   * @param transportFactory
+   *          TTransportFactory for the server
+   */
+  public static TThreadPoolServer createThreadPoolServer(TServerTransport transport, TProcessor processor, TTransportFactory transportFactory) {
+    TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
-    options.transportFactory(ThriftUtil.transportFactory());
+    options.transportFactory(transportFactory);
     options.processorFactory(new ClientInfoProcessorFactory(clientAddress, processor));
     return new TThreadPoolServer(options);
   }
@@ -284,7 +337,7 @@ public class TServerUtils {
    */
   public static ServerAddress createSslThreadPoolServer(HostAndPort address, TProcessor processor, long socketTimeout, SslConnectionParams sslParams)
       throws TTransportException {
-    org.apache.thrift.transport.TServerSocket transport;
+    TServerSocket transport;
     try {
       transport = getSslServerSocket(address.getPort(), (int) socketTimeout, InetAddress.getByName(address.getHostText()), sslParams);
     } catch (UnknownHostException e) {
@@ -296,14 +349,63 @@ public class TServerUtils {
     return new ServerAddress(createThreadPoolServer(transport, processor), address);
   }
 
-  /**
-   * Create a Thrift server given the provided and Accumulo configuration.
-   */
-  public static ServerAddress startTServer(AccumuloConfiguration conf, HostAndPort address, TProcessor processor, String serverName, String threadName,
-      int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout)
+  public static ServerAddress createSaslThreadPoolServer(HostAndPort address, TProcessor processor, long socketTimeout, SaslConnectionParams params,
+      final String serverName, String threadName, final int numThreads, final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
-    return startTServer(address, new TimedProcessor(conf, processor, serverName, threadName), serverName, threadName, numThreads, numSTThreads,
-        timeBetweenThreadChecks, maxMessageSize, sslParams, sslSocketTimeout);
+    // We'd really prefer to use THsHaServer (or similar) to avoid 1 RPC == 1 Thread that the TThreadPoolServer does,
+    // but sadly this isn't the case. Because TSaslTransport needs to issue a handshake when it open()'s which will fail
+    // when the server does an accept() to (presumably) wake up the eventing system.
+    log.info("Creating SASL thread pool thrift server on port=" + address.getPort());
+    TServerSocket transport = new TServerSocket(address.getPort());
+
+    final String hostname;
+    try {
+      hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
+    } catch (UnknownHostException e) {
+      throw new TTransportException(e);
+    }
+
+    final UserGroupInformation serverUser;
+    try {
+      serverUser = UserGroupInformation.getLoginUser();
+    } catch (IOException e) {
+      throw new TTransportException(e);
+    }
+
+    log.trace("Logged in as {}, creating TSsaslServerTransport factory as {}/{}", serverUser, params.getKerberosServerPrimary(), hostname);
+
+    // Make the SASL transport factory with the instance and primary from the kerberos server principal, SASL properties
+    // and the SASL callback handler from Hadoop to ensure authorization ID is the authentication ID. Despite the 'protocol' argument seeming to be useless, it
+    // *must* be the primary of the server.
+    TSaslServerTransport.Factory saslTransportFactory = new TSaslServerTransport.Factory();
+    saslTransportFactory.addServerDefinition(ThriftUtil.GSSAPI, params.getKerberosServerPrimary(), hostname, params.getSaslProperties(),
+        new SaslRpcServer.SaslGssCallbackHandler());
+
+    // Updates the clientAddress threadlocal so we know who the client's address
+    final ClientInfoProcessorFactory clientInfoFactory = new ClientInfoProcessorFactory(clientAddress, processor);
+
+    // Make sure the TTransportFactory is performing a UGI.doAs
+    TTransportFactory ugiTransportFactory = new UGIAssumingTransportFactory(saslTransportFactory, serverUser);
+
+    if (address.getPort() == 0) {
+      address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+    }
+
+    return new ServerAddress(new TThreadPoolServer(new TThreadPoolServer.Args(transport).transportFactory(ugiTransportFactory)
+        .processorFactory(clientInfoFactory)
+        .protocolFactory(ThriftUtil.protocolFactory())), address);
+  }
+
+  public static ServerAddress startTServer(AccumuloConfiguration conf, HostAndPort address, ThriftServerType serverType, TProcessor processor,
+      String serverName, String threadName, int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
+      SaslConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
+
+    if (ThriftServerType.SASL == serverType) {
+      processor = updateSaslProcessor(serverType, processor);
+    }
+
+    return startTServer(address, serverType, new TimedProcessor(conf, processor, serverName, threadName), serverName, threadName, numThreads, numSTThreads,
+        timeBetweenThreadChecks, maxMessageSize, sslParams, saslParams, serverSocketTimeout);
   }
 
   /**
@@ -311,14 +413,33 @@ public class TServerUtils {
    *
    * @return A ServerAddress encapsulating the Thrift server created and the host/port which it is bound to.
    */
-  public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads,
-      int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
+  public static ServerAddress startTServer(HostAndPort address,ThriftServerType serverType, TimedProcessor processor, String serverName, String threadName, int numThreads,
+      int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize,  SslConnectionParams sslParams,
+      SaslConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
+
+    // This is presently not supported. It's hypothetically possible, I believe, to work, but it would require changes in how the transports
+    // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's quality of protection addresses privacy issues.
+    Preconditions.checkArgument(!(sslParams != null && saslParams != null), "Cannot start a Thrift server using both SSL and SASL");
 
     ServerAddress serverAddress;
-    if (sslParams != null) {
-      serverAddress = createSslThreadPoolServer(address, processor, sslSocketTimeout, sslParams);
-    } else {
-      serverAddress = createNonBlockingServer(address, processor, serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
+    switch (serverType) {
+      case SSL:
+        log.debug("Instantiating SSL Thrift server");
+        serverAddress = createSslThreadPoolServer(address, processor, serverSocketTimeout, sslParams);
+        break;
+      case SASL:
+        log.debug("Instantiating SASL Thrift server");
+        serverAddress = createSaslThreadPoolServer(address, processor, serverSocketTimeout, saslParams, serverName, threadName, numThreads, numSTThreads,
+            timeBetweenThreadChecks, maxMessageSize);
+        break;
+      case THREADPOOL:
+        log.debug("Instantiating unsecure TThreadPool Thrift server");
+        serverAddress = createBlockingServer(address, processor, maxMessageSize);
+        break;
+      case CUSTOM_HS_HA: // Intentional passthrough -- Our custom wrapper around HsHa is the default
+      default:
+        log.debug("Instantiating default, unsecure custom half-async Thrift server");
+        serverAddress = createNonBlockingServer(address, processor, serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
     }
 
     final TServer finalServer = serverAddress.server;
@@ -367,5 +488,22 @@ public class TServerUtils {
     } catch (Exception e) {
       log.error("Unable to call shutdownNow", e);
     }
+  }
+
+  /**
+   * Wrap the provided processor in the {@link UGIAssumingProcessor} so Kerberos authentication works. Requires the <code>serverType</code> to be
+   * {@link ThriftServerType#SASL} and throws an exception when it is not.
+   *
+   * @return A {@link UGIAssumingProcessor} which wraps the provided processor
+   */
+  private static TProcessor updateSaslProcessor(ThriftServerType serverType, TProcessor processor) {
+    Preconditions.checkArgument(ThriftServerType.SASL == serverType);
+
+    // Wrap the provided processor in our special processor which proxies the provided UGI on the logged-in UGI
+    // Important that we have Timed -> UGIAssuming -> [provided] to make sure that the metrics are still reported
+    // as the logged-in user.
+    log.info("Wrapping {} in UGIAssumingProcessor", processor.getClass());
+
+    return new UGIAssumingProcessor(processor);
   }
 }

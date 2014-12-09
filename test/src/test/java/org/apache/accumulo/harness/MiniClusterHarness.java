@@ -21,16 +21,24 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
+import org.apache.accumulo.server.security.handler.KerberosAuthorizor;
+import org.apache.accumulo.server.security.handler.KerberosPermissionHandler;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -39,11 +47,16 @@ import com.google.common.base.Preconditions;
  * Harness that sets up a MiniAccumuloCluster in a manner expected for Accumulo integration tests.
  */
 public class MiniClusterHarness {
+  private static final Logger log = LoggerFactory.getLogger(MiniClusterHarness.class);
 
   private static final AtomicLong COUNTER = new AtomicLong(0);
 
   public static final String USE_SSL_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useSslForIT",
-      USE_CRED_PROVIDER_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useCredProviderForIT", TRUE = Boolean.toString(true);
+      USE_CRED_PROVIDER_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useCredProviderForIT",
+      USE_KERBEROS_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useKrbForIT", TRUE = Boolean.toString(true);
+
+  // TODO These are defined in MiniKdc >= 2.6.0
+  public static final String JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf", SUN_SECURITY_KRB5_DEBUG = "sun.security.krb5.debug";
 
   /**
    * Create a MiniAccumuloCluster using the given Token as the credentials for the root user.
@@ -56,34 +69,53 @@ public class MiniClusterHarness {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase);
+  public MiniAccumuloClusterImpl create(AccumuloIT testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
+    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, kdc);
+  }
+
+  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
+    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase, kdc);
   }
 
   public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, MiniClusterConfigurationCallback callback) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase);
+    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, callback);
   }
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token) throws Exception {
     return create(testClassName, testMethodName, token, MiniClusterConfigurationCallback.NO_CALLBACK);
   }
 
+  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token, TestingKdc kdc) throws Exception {
+    return create(testClassName, testMethodName, token, MiniClusterConfigurationCallback.NO_CALLBACK, kdc);
+  }
+
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token, MiniClusterConfigurationCallback configCallback)
       throws Exception {
-    Preconditions.checkNotNull(token);
-    Preconditions.checkArgument(PasswordToken.class.isAssignableFrom(token.getClass()));
+    return create(testClassName, testMethodName, token, configCallback, null);
+  }
 
-    String passwd = new String(((PasswordToken) token).getPassword(), Charsets.UTF_8);
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName), passwd);
+  public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token,
+      MiniClusterConfigurationCallback configCallback, TestingKdc kdc) throws Exception {
+    Preconditions.checkNotNull(token);
+    Preconditions.checkArgument(token instanceof PasswordToken || token instanceof KerberosToken, "A PasswordToken or KerberosToken is required");
+
+    String rootPasswd;
+    if (token instanceof PasswordToken) {
+      rootPasswd = new String(((PasswordToken) token).getPassword(), Charsets.UTF_8);
+    } else {
+      rootPasswd = UUID.randomUUID().toString();
+    }
+
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName), rootPasswd);
 
     // Enable native maps by default
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
 
-    // Setup SSL and credential providers if the properties request such
-    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
-
     Configuration coreSite = new Configuration(false);
+
+    // Setup SSL and credential providers if the properties request such
+    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSharedTestDir(this.getClass().getName() + "-ssl"), coreSite, kdc);
 
     // Invoke the callback for tests to configure MAC before it starts
     configCallback.configureMiniCluster(cfg, coreSite);
@@ -104,12 +136,24 @@ public class MiniClusterHarness {
     return miniCluster;
   }
 
-  protected void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
+  protected void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder, Configuration coreSite, TestingKdc kdc) {
     if (TRUE.equals(System.getProperty(USE_SSL_FOR_IT_OPTION))) {
       configureForSsl(cfg, folder);
     }
     if (TRUE.equals(System.getProperty(USE_CRED_PROVIDER_FOR_IT_OPTION))) {
       cfg.setUseCredentialProvider(true);
+    }
+
+    if (TRUE.equals(System.getProperty(USE_KERBEROS_FOR_IT_OPTION))) {
+      if (TRUE.equals(System.getProperty(USE_SSL_FOR_IT_OPTION))) {
+        throw new RuntimeException("Cannot use both SSL and Kerberos");
+      }
+
+      try {
+        configureForKerberos(cfg, folder, coreSite, kdc);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to initialize KDC", e);
+      }
     }
   }
 
@@ -140,5 +184,45 @@ public class MiniClusterHarness {
     siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
     siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
     cfg.setSiteConfig(siteConfig);
+  }
+
+  protected void configureForKerberos(MiniAccumuloConfigImpl cfg, File folder, Configuration coreSite, TestingKdc kdc) throws Exception {
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    if (TRUE.equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
+      throw new RuntimeException("Cannot use both SSL and SASL/Kerberos");
+    }
+
+    if (TRUE.equals(siteConfig.get(Property.INSTANCE_RPC_SASL_ENABLED.getKey()))) {
+      // already enabled
+      return;
+    }
+
+    if (null == kdc) {
+      throw new IllegalStateException("MiniClusterKdc was null");
+    }
+
+    log.info("Enabling Kerberos/SASL for minicluster");
+
+    // Turn on SASL and set the keytab/principal information
+    cfg.setProperty(Property.INSTANCE_RPC_SASL_ENABLED, "true");
+    cfg.setProperty(Property.GENERAL_KERBEROS_KEYTAB, kdc.getAccumuloKeytab().getAbsolutePath());
+    cfg.setProperty(Property.GENERAL_KERBEROS_PRINCIPAL, kdc.getAccumuloPrincipal());
+    cfg.setProperty(Property.INSTANCE_SECURITY_AUTHENTICATOR, KerberosAuthenticator.class.getName());
+    cfg.setProperty(Property.INSTANCE_SECURITY_AUTHORIZOR, KerberosAuthorizor.class.getName());
+    cfg.setProperty(Property.INSTANCE_SECURITY_PERMISSION_HANDLER, KerberosPermissionHandler.class.getName());
+    // Piggy-back on the "system user" credential, but use it as a normal KerberosToken, not the SystemToken.
+    cfg.setProperty(Property.TRACE_USER, kdc.getAccumuloPrincipal());
+    cfg.setProperty(Property.TRACE_TOKEN_TYPE, KerberosToken.CLASS_NAME);
+
+    // Pass down some KRB5 debug properties
+    Map<String,String> systemProperties = cfg.getSystemProperties();
+    systemProperties.put(JAVA_SECURITY_KRB5_CONF, System.getProperty(JAVA_SECURITY_KRB5_CONF, ""));
+    systemProperties.put(SUN_SECURITY_KRB5_DEBUG, System.getProperty(SUN_SECURITY_KRB5_DEBUG, "false"));
+    cfg.setSystemProperties(systemProperties);
+
+    // Make sure UserGroupInformation will do the correct login
+    coreSite.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
+
+    cfg.setRootUserName(kdc.getClientPrincipal());
   }
 }

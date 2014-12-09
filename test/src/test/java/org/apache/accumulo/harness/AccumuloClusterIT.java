@@ -34,7 +34,9 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,6 +50,7 @@ import com.google.common.base.Preconditions;
  */
 public abstract class AccumuloClusterIT extends AccumuloIT implements MiniClusterConfigurationCallback {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);
+  private static final String TRUE = Boolean.toString(true);
 
   public static enum ClusterType {
     MINI, STANDALONE;
@@ -62,13 +65,66 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   protected static AccumuloCluster cluster;
   protected static ClusterType type;
   protected static AccumuloClusterPropertyConfiguration clusterConf;
+  protected static TestingKdc krb;
 
   @BeforeClass
   public static void setUp() throws Exception {
     clusterConf = AccumuloClusterPropertyConfiguration.get();
     type = clusterConf.getClusterType();
 
+    if (ClusterType.MINI == type && TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
+      krb = new TestingKdc();
+      krb.start();
+    }
+
     initialized = true;
+  }
+
+  @AfterClass
+  public static void tearDownKdc() throws Exception {
+    if (null != krb) {
+      krb.stop();
+    }
+  }
+
+  /**
+   * {@link TestingKdc#getAccumuloKeytab()}
+   */
+  public static File getAccumuloKeytab() {
+    if (null == krb) {
+      throw new RuntimeException("KDC not enabled");
+    }
+    return krb.getAccumuloKeytab();
+  }
+
+  /**
+   * {@link TestingKdc#getAccumuloPrincipal()}
+   */
+  public static String getAccumuloPrincipal() {
+    if (null == krb) {
+      throw new RuntimeException("KDC not enabled");
+    }
+    return krb.getAccumuloPrincipal();
+  }
+
+  /**
+   * {@link TestingKdc#getClientKeytab()}
+   */
+  public static File getClientKeytab() {
+    if (null == krb) {
+      throw new RuntimeException("KDC not enabled");
+    }
+    return krb.getClientKeytab();
+  }
+
+  /**
+   * {@link TestingKdc#getClientPrincipal()}
+   */
+  public static String getClientPrincipal() {
+    if (null == krb) {
+      throw new RuntimeException("KDC not enabled");
+    }
+    return krb.getClientPrincipal();
   }
 
   @Before
@@ -80,7 +136,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
       case MINI:
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
         // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and core-site.xml
-        cluster = miniClusterHarness.create(this, getToken());
+        cluster = miniClusterHarness.create(this, getToken(), krb);
         break;
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration conf = (StandaloneAccumuloClusterConfiguration) clusterConf;
@@ -98,6 +154,10 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
 
     if (type.isDynamic()) {
       cluster.start();
+      if (null != krb) {
+        // Log in the 'client' user
+        UserGroupInformation.loginUserFromKeytab(getClientPrincipal(), getClientKeytab().getAbsolutePath());
+      }
     } else {
       log.info("Removing tables which appear to be from a previous test run");
       cleanupTables();

@@ -176,10 +176,16 @@ public class TraceServer implements Watcher {
     Connector connector = null;
     while (true) {
       try {
+        final boolean isDefaultTokenType = conf.get(Property.TRACE_TOKEN_TYPE).equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
         String principal = conf.get(Property.TRACE_USER);
+        if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+          // Make sure that we replace _HOST if it exists in the principal
+          principal = SecurityUtil.getServerPrincipal(principal);
+        }
         AuthenticationToken at;
         Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
-        if (loginMap.isEmpty()) {
+        if (loginMap.isEmpty() && isDefaultTokenType) {
+          // Assume the old type of user/password specification
           Property p = Property.TRACE_PASSWORD;
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {

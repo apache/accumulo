@@ -118,7 +118,9 @@ import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
+import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -1090,7 +1092,14 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
 
     clientHandler = new MasterClientServiceHandler(this);
-    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(clientHandler));
+    Iface rpcProxy = RpcWrapper.service(clientHandler);
+    final Processor<Iface> processor;
+    if (ThriftServerType.SASL == getThriftServerType()) {
+      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass());
+      processor = new Processor<Iface>(tcredsProxy);
+    } else {
+      processor = new Processor<Iface>(rpcProxy);
+    }
     ServerAddress sa = TServerUtils.startServer(this, hostname, Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
         Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;

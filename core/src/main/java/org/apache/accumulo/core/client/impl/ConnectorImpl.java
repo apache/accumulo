@@ -46,6 +46,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
 
 public class ConnectorImpl extends Connector {
+  private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security.SystemCredentials$SystemToken";
   private final ClientContext context;
   private SecurityOperations secops = null;
   private TableOperationsImpl tableops = null;
@@ -60,8 +61,9 @@ public class ConnectorImpl extends Connector {
 
     this.context = context;
 
-    // Skip fail fast for system services; string literal for class name, to avoid
-    if (!"org.apache.accumulo.server.security.SystemCredentials$SystemToken".equals(context.getCredentials().getToken().getClass().getName())) {
+    // Skip fail fast for system services; string literal for class name, to avoid dependency on server jar
+    final String tokenClassName = context.getCredentials().getToken().getClass().getName();
+    if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
       ServerClient.execute(context, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {

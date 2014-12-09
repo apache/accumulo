@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -105,7 +106,7 @@ public class ClientOpts extends Help {
   }
 
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
-  public String principal = System.getProperty("user.name");
+  public String principal = null;
 
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
   public Password password = null;
@@ -114,17 +115,19 @@ public class ClientOpts extends Help {
   public Password securePassword = null;
 
   @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
-  public String tokenClassName = PasswordToken.class.getName();
+  public String tokenClassName = null;
 
   @DynamicParameter(names = "-l",
       description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
   public Map<String,String> loginProps = new LinkedHashMap<String,String>();
 
   public AuthenticationToken getToken() {
-    if (!loginProps.isEmpty()) {
-      Properties props = new Properties();
-      for (Entry<String,String> loginOption : loginProps.entrySet())
-        props.put(loginOption.getKey(), loginOption.getValue());
+    if (null != tokenClassName) {
+      final Properties props = new Properties();
+      if (!loginProps.isEmpty()) {
+        for (Entry<String,String> loginOption : loginProps.entrySet())
+          props.put(loginOption.getKey(), loginOption.getValue());
+      }
 
       try {
         AuthenticationToken token = Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
@@ -166,6 +169,9 @@ public class ClientOpts extends Help {
   @Parameter(names = "--ssl", description = "Connect to accumulo over SSL")
   public boolean sslEnabled = false;
 
+  @Parameter(names = "--sasl", description = "Connecto to Accumulo using SASL (supports Kerberos)")
+  public boolean saslEnabled = false;
+
   @Parameter(names = "--config-file", description = "Read the given client config file. "
       + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
       + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
@@ -189,11 +195,32 @@ public class ClientOpts extends Help {
     Trace.off();
   }
 
+  /**
+   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
+   * specifically.
+   */
+  protected void updateKerberosCredentials() {
+    ClientConfiguration clientConfig;
+    try {
+      if (clientConfigFile == null)
+        clientConfig = ClientConfiguration.loadDefault();
+      else
+        clientConfig = new ClientConfiguration(new PropertiesConfiguration(clientConfigFile));
+    } catch (Exception e) {
+      throw new IllegalArgumentException(e);
+    }
+    final boolean clientConfSaslEnabled = Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+    if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
+      tokenClassName = KerberosToken.CLASS_NAME;
+    }
+  }
+
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     startDebugLogging();
     startTracing(programName);
+    updateKerberosCredentials();
   }
 
   protected Instance cachedInstance = null;
@@ -207,10 +234,25 @@ public class ClientOpts extends Help {
     return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
   }
 
+  public String getPrincipal() throws AccumuloSecurityException {
+    if (null == principal) {
+      AuthenticationToken token = getToken();
+      if (null == token) {
+        throw new AccumuloSecurityException("No principal or authentication token was provided", SecurityErrorCode.BAD_CREDENTIALS);
+      }
+
+      // Try to extract the principal automatically from Kerberos
+      if (token instanceof KerberosToken) {
+        principal = ((KerberosToken) token).getPrincipal();
+      } else {
+        principal = System.getProperty("user.name");
+      }
+    }
+    return principal;
+  }
+
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    if (this.principal == null || this.getToken() == null)
-      throw new AccumuloSecurityException("You must provide a user (-u) and password (-p)", SecurityErrorCode.BAD_CREDENTIALS);
-    return getInstance().getConnector(principal, getToken());
+    return getInstance().getConnector(getPrincipal(), getToken());
   }
 
   public ClientConfiguration getClientConfiguration() throws IllegalArgumentException {
@@ -228,6 +270,10 @@ public class ClientOpts extends Help {
     }
     if (sslEnabled)
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+
+    if (saslEnabled)
+      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+
     if (siteFile != null) {
       AccumuloConfiguration config = new AccumuloConfiguration() {
         Configuration xml = new Configuration();

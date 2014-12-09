@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -59,6 +63,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
+import org.easymock.IAnswer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -90,14 +96,36 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Before
   public void setUp() throws Exception {
+    SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     instance = createMock(Instance.class);
     expect(instance.getInstanceID()).andReturn("mock").anyTimes();
-    systemConfig = createMock(AccumuloConfiguration.class);
+    expect(instance.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(instance.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    systemConfig = new ConfigurationCopy(new HashMap<String,String>());
     volMgr = createMock(VolumeManager.class);
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getConfiguration()).andReturn(systemConfig).anyTimes();
     expect(factory.getInstance()).andReturn(instance).anyTimes();
-    replay(instance, factory);
+    expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+
+    // Just make the SiteConfiguration delegate to our AccumuloConfiguration
+    // Presently, we only need get(Property) and iterator().
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<String>() {
+      @Override
+      public String answer() {
+        Object[] args = EasyMock.getCurrentArguments();
+        return systemConfig.get((Property) args[0]);
+      }
+    }).anyTimes();
+
+    EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
+      @Override
+      public Iterator<Entry<String,String>> answer() {
+        return systemConfig.iterator();
+      }
+    }).anyTimes();
+
+    replay(instance, factory, siteConfig);
     AccumuloServerContext context = new AccumuloServerContext(factory);
     gcwal = new GarbageCollectWriteAheadLogs(context, volMgr, false);
     modTime = System.currentTimeMillis();

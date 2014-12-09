@@ -29,10 +29,15 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -42,6 +47,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
+import org.easymock.IAnswer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,20 +57,42 @@ public class SimpleGarbageCollectorTest {
   private Credentials credentials;
   private Opts opts;
   private SimpleGarbageCollector gc;
-  private AccumuloConfiguration systemConfig;
+  private ConfigurationCopy systemConfig;
 
   @Before
   public void setUp() {
     volMgr = createMock(VolumeManager.class);
     instance = createMock(Instance.class);
+    SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     expect(instance.getInstanceID()).andReturn("mock").anyTimes();
+    expect(instance.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(instance.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
 
     opts = new Opts();
-    systemConfig = mockSystemConfig();
+    systemConfig = createSystemConfig();
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getInstance()).andReturn(instance).anyTimes();
-    expect(factory.getConfiguration()).andReturn(mockSystemConfig()).anyTimes();
-    replay(instance, factory);
+    expect(factory.getConfiguration()).andReturn(systemConfig).anyTimes();
+    expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+
+    // Just make the SiteConfiguration delegate to our AccumuloConfiguration
+    // Presently, we only need get(Property) and iterator().
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<String>() {
+      @Override
+      public String answer() {
+        Object[] args = EasyMock.getCurrentArguments();
+        return systemConfig.get((Property) args[0]);
+      }
+    }).anyTimes();
+
+    EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
+      @Override
+      public Iterator<Entry<String,String>> answer() {
+        return systemConfig.iterator();
+      }
+    }).anyTimes();
+
+    replay(instance, factory, siteConfig);
 
     credentials = SystemCredentials.get(instance);
     gc = new SimpleGarbageCollector(opts, volMgr, factory);
@@ -76,26 +104,20 @@ public class SimpleGarbageCollectorTest {
     assertNotNull(gc.getStatus(createMock(TInfo.class), createMock(TCredentials.class)));
   }
 
-  private AccumuloConfiguration mockSystemConfig() {
-    AccumuloConfiguration systemConfig = createMock(AccumuloConfiguration.class);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
-    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2).times(2);
-    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
-    expect(systemConfig.getBoolean(Property.GC_FILE_ARCHIVE)).andReturn(false);
-    replay(systemConfig);
-    return systemConfig;
+  private ConfigurationCopy createSystemConfig() {
+    Map<String,String> conf = new HashMap<>();
+    conf.put(Property.INSTANCE_RPC_SASL_ENABLED.getKey(), "false");
+    conf.put(Property.GC_CYCLE_START.getKey(), "1");
+    conf.put(Property.GC_CYCLE_DELAY.getKey(), "20");
+    conf.put(Property.GC_DELETE_THREADS.getKey(), "2");
+    conf.put(Property.GC_TRASH_IGNORE.getKey(), "false");
+    conf.put(Property.GC_FILE_ARCHIVE.getKey(), "false");
+
+    return new ConfigurationCopy(conf);
   }
 
   @Test
   public void testInit() throws Exception {
-    EasyMock.reset(systemConfig);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L).times(2);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
-    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2).times(2);
-    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
-    replay(systemConfig);
     assertSame(volMgr, gc.getVolumeManager());
     assertSame(instance, gc.getInstance());
     assertEquals(credentials, gc.getCredentials());
@@ -124,13 +146,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_NotUsingTrash() throws Exception {
-    AccumuloConfiguration systemConfig = createMock(AccumuloConfiguration.class);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
-    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
-    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
-    expect(systemConfig.getBoolean(Property.GC_FILE_ARCHIVE)).andReturn(false);
-    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(true);
-    replay(systemConfig);
+    systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
     Path path = createMock(Path.class);
     assertFalse(gc.archiveOrMoveToTrash(path));
   }

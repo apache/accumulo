@@ -95,11 +95,13 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
@@ -280,11 +282,27 @@ public class Initialize {
       log.fatal("Failed to talk to zookeeper", e);
       return false;
     }
-    opts.rootpass = getRootPassword(opts);
-    return initialize(opts, instanceNamePath, fs);
+
+    String rootUser;
+    try {
+      rootUser = getRootUserName(opts);
+    } catch (Exception e) {
+      log.fatal("Failed to obtain user for administrative privileges");
+      return false;
+    }
+
+    // Don't prompt for a password when we're running SASL(Kerberos)
+    final AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      opts.rootpass = UUID.randomUUID().toString().getBytes(UTF_8);
+    } else {
+      opts.rootpass = getRootPassword(opts, rootUser);
+    }
+
+    return initialize(opts, instanceNamePath, fs, rootUser);
   }
 
-  private static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs) {
+  private static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs, String rootUser) {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
@@ -320,9 +338,38 @@ public class Initialize {
       return false;
     }
 
+    final ServerConfigurationFactory confFactory = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
+
+    // When we're using Kerberos authentication, we need valid credentials to perform initialization. If the user provided some, use them.
+    // If they did not, fall back to the credentials present in accumulo-site.xml that the servers will use themselves.
     try {
-      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
-      initSecurity(context, opts, uuid.toString());
+      final SiteConfiguration siteConf = confFactory.getSiteConfiguration();
+      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        // We don't have any valid creds to talk to HDFS
+        if (!ugi.hasKerberosCredentials()) {
+          final String accumuloKeytab = siteConf.get(Property.GENERAL_KERBEROS_KEYTAB), accumuloPrincipal = siteConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+
+          // Fail if the site configuration doesn't contain appropriate credentials to login as servers
+          if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
+            log.fatal("No Kerberos credentials provided, and Accumulo is not properly configured for server login");
+            return false;
+          }
+
+          log.info("Logging in as " + accumuloPrincipal + " with " + accumuloKeytab);
+
+          // Login using the keytab as the 'accumulo' user
+          UserGroupInformation.loginUserFromKeytab(accumuloPrincipal, accumuloKeytab);
+        }
+      }
+    } catch (IOException e) {
+      log.fatal("Failed to get the Kerberos user", e);
+      return false;
+    }
+
+    try {
+      AccumuloServerContext context = new AccumuloServerContext(confFactory);
+      initSecurity(context, opts, uuid.toString(), rootUser);
     } catch (Exception e) {
       log.fatal("Failed to initialize security", e);
       return false;
@@ -525,18 +572,43 @@ public class Initialize {
     return instanceNamePath;
   }
 
-  private static byte[] getRootPassword(Opts opts) throws IOException {
+  private static String getRootUserName(Opts opts) throws IOException {
+    AccumuloConfiguration conf = SiteConfiguration.getInstance();
+    final String keytab = conf.get(Property.GENERAL_KERBEROS_KEYTAB);
+    if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue()) || !conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      return DEFAULT_ROOT_USER;
+    }
+
+    ConsoleReader c = getConsoleReader();
+    c.println("Running against secured HDFS");
+
+    if (null != opts.rootUser) {
+      return opts.rootUser;
+    }
+
+    do {
+      String user = c.readLine("Principal (user) to grant administrative privileges to : ");
+      if (user == null) {
+        // should not happen
+        System.exit(1);
+      }
+      if (!user.isEmpty()) {
+        return user;
+      }
+    } while (true);
+  }
+
+  private static byte[] getRootPassword(Opts opts, String rootUser) throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader()
-          .readLine("Enter initial password for " + DEFAULT_ROOT_USER + " (this may not be applicable for your security setup): ", '*');
+      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + " (this may not be applicable for your security setup): ", '*');
       if (rootpass == null)
         System.exit(0);
-      confirmpass = getConsoleReader().readLine("Confirm initial password for " + DEFAULT_ROOT_USER + ": ", '*');
+      confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
       if (confirmpass == null)
         System.exit(0);
       if (!rootpass.equals(confirmpass))
@@ -545,8 +617,9 @@ public class Initialize {
     return rootpass.getBytes(UTF_8);
   }
 
-  private static void initSecurity(AccumuloServerContext context, Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
-    AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(), DEFAULT_ROOT_USER, opts.rootpass);
+  private static void initSecurity(AccumuloServerContext context, Opts opts, String iid, String rootUser) throws AccumuloSecurityException,
+      ThriftSecurityException, IOException {
+    AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(), rootUser, opts.rootpass);
   }
 
   public static void initSystemTablesConfig() throws IOException {
@@ -635,6 +708,8 @@ public class Initialize {
     String cliInstanceName;
     @Parameter(names = "--password", description = "set the password on the command line")
     String cliPassword;
+    @Parameter(names = {"-u", "--user"}, description = "the name of the user to grant system permissions to")
+    String rootUser = null;
 
     byte[] rootpass = null;
   }
@@ -653,8 +728,9 @@ public class Initialize {
       if (opts.resetSecurity) {
         AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
         if (isInitialized(fs)) {
-          opts.rootpass = getRootPassword(opts);
-          initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID());
+          final String rootUser = getRootUserName(opts);
+          opts.rootpass = getRootPassword(opts, rootUser);
+          initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID(), rootUser);
         } else {
           log.fatal("Attempted to reset security on accumulo before it was initialized");
         }

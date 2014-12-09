@@ -70,10 +70,12 @@ public class CleanWalIT extends AccumuloClusterIT {
 
   @After
   public void onlineTraceTable() throws Exception {
-    Connector conn = getConnector();
-    String traceTable = conn.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
-    if (conn.tableOperations().exists(traceTable)) {
-      conn.tableOperations().online(traceTable, true);
+    if (null != cluster) {
+      Connector conn = getConnector();
+      String traceTable = conn.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
+      if (conn.tableOperations().exists(traceTable)) {
+        conn.tableOperations().online(traceTable, true);
+      }
     }
   }
 

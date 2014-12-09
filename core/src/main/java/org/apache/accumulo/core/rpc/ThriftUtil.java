@@ -18,6 +18,7 @@ package org.apache.accumulo.core.rpc;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,17 +38,20 @@ import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.log4j.Logger;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSSLTransportFactory;
+import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -55,11 +59,13 @@ import com.google.common.net.HostAndPort;
  * Factory methods for creating Thrift client objects
  */
 public class ThriftUtil {
-  private static final Logger log = Logger.getLogger(ThriftUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
   private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
+
+  public static final String GSSAPI = "GSSAPI";
 
   /**
    * An instance of {@link TraceProtocolFactory}
@@ -246,7 +252,7 @@ public class ThriftUtil {
    *          RPC options
    */
   public static TTransport createTransport(HostAndPort address, ClientContext context) throws TException {
-    return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams());
+    return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams(), context.getClientSaslParams());
   }
 
   /**
@@ -283,13 +289,23 @@ public class ThriftUtil {
    *          Client socket timeout
    * @param sslParams
    *          RPC options for SSL servers
+   * @param saslParams
+   *          RPC options for SASL servers
    * @return An open TTransport which must be closed when finished
    */
-  public static TTransport createClientTransport(HostAndPort address, int timeout, SslConnectionParams sslParams) throws TTransportException {
+  public static TTransport createClientTransport(HostAndPort address, int timeout, SslConnectionParams sslParams, SaslConnectionParams saslParams)
+      throws TTransportException {
     boolean success = false;
     TTransport transport = null;
     try {
       if (sslParams != null) {
+        // The check in AccumuloServerContext ensures that servers are brought up with sane configurations, but we also want to validate clients
+        if (null != saslParams) {
+          throw new IllegalStateException("Cannot use both SSL and SASL");
+        }
+
+        log.trace("Creating SSL client transport");
+
         // TSSLTransportFactory handles timeout 0 -> forever natively
         if (sslParams.useJsse()) {
           transport = TSSLTransportFactory.getClientSocket(address.getHostText(), address.getPort(), timeout);
@@ -309,20 +325,59 @@ public class ThriftUtil {
 
           // Create the TSocket from that
           transport = createClient(wrappingSslSockFactory, address.getHostText(), address.getPort(), timeout);
+          // TSSLTransportFactory leaves transports open, so no need to open here
         }
-        // TSSLTransportFactory leaves transports open, so no need to open here
-      } else if (timeout == 0) {
+
+        transport = ThriftUtil.transportFactory().getTransport(transport);
+      } else if (null != saslParams) {
+        if (!UserGroupInformation.isSecurityEnabled()) {
+          throw new IllegalStateException("Expected Kerberos security to be enabled if SASL is in use");
+        }
+
+        log.trace("Creating SASL connection to {}:{}", address.getHostText(), address.getPort());
+
         transport = new TSocket(address.getHostText(), address.getPort());
-        transport.open();
-      } else {
+
         try {
-          transport = TTimeoutTransport.create(address, timeout);
-        } catch (IOException ex) {
-          throw new TTransportException(ex);
+          // Log in via UGI, ensures we have logged in with our KRB credentials
+          final UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+
+          // Is this pricey enough that we want to cache it?
+          final String hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
+
+          log.trace("Opening transport to server as {} to {}/{}", currentUser, saslParams.getKerberosServerPrimary(), hostname);
+
+          // Create the client SASL transport using the information for the server
+          // Despite the 'protocol' argument seeming to be useless, it *must* be the primary of the server being connected to
+          transport = new TSaslClientTransport(GSSAPI, null, saslParams.getKerberosServerPrimary(), hostname, saslParams.getSaslProperties(), null, transport);
+
+          // Wrap it all in a processor which will run with a doAs the current user
+          transport = new UGIAssumingTransport(transport, currentUser);
+
+          // Open the transport
+          transport.open();
+        } catch (IOException e) {
+          log.warn("Failed to open SASL transport", e);
+          throw new TTransportException(e);
         }
-        transport.open();
+      } else {
+        log.trace("Opening normal transport");
+        if (timeout == 0) {
+          transport = new TSocket(address.getHostText(), address.getPort());
+          transport.open();
+        } else {
+          try {
+            transport = TTimeoutTransport.create(address, timeout);
+          } catch (IOException ex) {
+            log.warn("Failed to open transport to " + address);
+            throw new TTransportException(ex);
+          }
+
+          // Open the transport
+          transport.open();
+        }
+        transport = ThriftUtil.transportFactory().getTransport(transport);
       }
-      transport = ThriftUtil.transportFactory().getTransport(transport);
       success = true;
     } finally {
       if (!success && transport != null) {

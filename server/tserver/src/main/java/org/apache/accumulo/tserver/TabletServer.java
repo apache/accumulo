@@ -172,7 +172,9 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
+import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -315,7 +317,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     Instance instance = getInstance();
     this.sessionManager = new SessionManager(aconf);
     this.logSorter = new LogSorter(instance, fs, aconf);
-    this.replWorker = new ReplicationWorker(instance, fs, aconf);
+    this.replWorker = new ReplicationWorker(this, fs);
     this.statsKeeper = new TabletStatsKeeper();
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
       @Override
@@ -2272,8 +2274,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    Iface tch = RpcWrapper.service(new ThriftClientHandler());
-    Processor<Iface> processor = new Processor<Iface>(tch);
+    Iface rpcProxy = RpcWrapper.service(new ThriftClientHandler());
+    final Processor<Iface> processor;
+    if (ThriftServerType.SASL == getThriftServerType()) {
+      Iface tcredProxy = TCredentialsUpdatingWrapper.service(rpcProxy, ThriftClientHandler.class);
+      processor = new Processor<Iface>(tcredProxy);
+    } else {
+      processor = new Processor<Iface>(rpcProxy);
+    }
     HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor,
         "Thrift Client Server");
     log.info("address = " + address);
@@ -2281,7 +2289,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   private HostAndPort startReplicationService() throws UnknownHostException {
-    ReplicationServicer.Iface repl = RpcWrapper.service(new ReplicationServicerHandler(this));
+    final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
+    ReplicationServicer.Iface rpcProxy = RpcWrapper.service(handler);
+    ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass());
     ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<ReplicationServicer.Iface>(repl);
     AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);

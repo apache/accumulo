@@ -21,10 +21,16 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Convenience class which starts a single MAC instance for a test to leverage.
@@ -34,10 +40,14 @@ import org.junit.BeforeClass;
  * can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
  */
 public abstract class SharedMiniClusterIT extends AccumuloIT {
+  private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterIT.class);
+  private static final String TRUE = Boolean.toString(true);
 
+  private static String principal = "root";
   private static String rootPassword;
   private static AuthenticationToken token;
   private static MiniAccumuloClusterImpl cluster;
+  private static TestingKdc krb;
 
   @BeforeClass
   public static void startMiniCluster() throws Exception {
@@ -47,17 +57,42 @@ public abstract class SharedMiniClusterIT extends AccumuloIT {
     // Make a shared MAC instance instead of spinning up one per test method
     MiniClusterHarness harness = new MiniClusterHarness();
 
-    rootPassword = "rootPasswordShared1";
-    token = new PasswordToken(rootPassword);
+    if (TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
+      krb = new TestingKdc();
+      krb.start();
+      // Enabled krb auth
+      Configuration conf = new Configuration(false);
+      conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
+      UserGroupInformation.setConfiguration(conf);
+      // Login as the client
+      UserGroupInformation.loginUserFromKeytab(krb.getClientPrincipal(), krb.getClientKeytab().getAbsolutePath());
+      // Get the krb token
+      principal = krb.getClientPrincipal();
+      token = new KerberosToken(principal);
+    } else {
+      rootPassword = "rootPasswordShared1";
+      token = new PasswordToken(rootPassword);
+    }
 
-    cluster = harness.create(SharedMiniClusterIT.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token);
+    cluster = harness.create(SharedMiniClusterIT.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token, krb);
     cluster.start();
   }
 
   @AfterClass
   public static void stopMiniCluster() throws Exception {
     if (null != cluster) {
-      cluster.stop();
+      try {
+        cluster.stop();
+      } catch (Exception e) {
+        log.error("Failed to stop minicluster", e);
+      }
+    }
+    if (null != krb) {
+      try {
+        krb.stop();
+      } catch (Exception e) {
+        log.error("Failed to stop KDC", e);
+      }
     }
   }
 
@@ -79,7 +114,7 @@ public abstract class SharedMiniClusterIT extends AccumuloIT {
 
   public static Connector getConnector() {
     try {
-      return getCluster().getConnector("root", getToken());
+      return getCluster().getConnector(principal, getToken());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

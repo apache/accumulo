@@ -21,14 +21,22 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.security.auth.DestroyFailedException;
+
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
@@ -48,14 +56,14 @@ public class TestClientOpts {
   public TestName testName = new TestName();
 
   @Test
-  public void test() {
+  public void test() throws Exception {
     BatchWriterConfig cfg = new BatchWriterConfig();
 
     // document the defaults
     ClientOpts args = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
-    assertEquals(System.getProperty("user.name"), args.principal);
+    assertNull(args.principal);
     assertNull(args.securePassword);
     assertNull(args.getToken());
     assertEquals(Long.valueOf(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
@@ -146,4 +154,106 @@ public class TestClientOpts {
     args.getInstance();
   }
 
+  @Test
+  public void testSsl() {
+    ClientOpts args = new ClientOpts();
+
+    JCommander jc = new JCommander();
+    jc.addObject(args);
+    jc.parse("--ssl");
+    assertEquals(true, args.sslEnabled);
+  }
+
+  @Test
+  public void testSaslWithClientConfig() throws IOException {
+    ClientOpts args = new ClientOpts();
+
+    File clientConfFile = tmpDir.newFile();
+    FileWriter writer = new FileWriter(clientConfFile);
+
+    try {
+      writer.write(String.format("%s=%s\n", ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), "true"));
+    } finally {
+      writer.close();
+    }
+
+    JCommander jc = new JCommander();
+    jc.addObject(args);
+    jc.parse("--config-file", clientConfFile.getCanonicalPath());
+    args.updateKerberosCredentials();
+
+    assertEquals(KerberosToken.CLASS_NAME, args.tokenClassName);
+  }
+
+  @Test
+  public void testSasl() {
+    ClientOpts args = new ClientOpts();
+    JCommander jc = new JCommander();
+    jc.addObject(args);
+    jc.parse("--sasl");
+    assertEquals(true, args.saslEnabled);
+  }
+
+  @Test
+  public void testEmptyTokenProperties() {
+    ClientOpts args = new ClientOpts();
+
+    JCommander jc = new JCommander();
+    jc.addObject(args);
+    jc.parse("-tc", EmptyToken.class.getName());
+    assertEquals(new EmptyToken(), args.getToken());
+  }
+
+  @Test
+  public void testPrincipalWithSasl() throws IOException {
+    ClientOpts args = new ClientOpts();
+
+    File clientConfFile = tmpDir.newFile();
+
+    JCommander jc = new JCommander();
+    jc.addObject(args);
+    jc.parse("--config-file", clientConfFile.getCanonicalPath(), "--sasl", "-i", "instance_name");
+
+    ClientConfiguration clientConf = args.getClientConfiguration();
+    assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+  }
+
+  /**
+   * An authentication token which requires no options
+   */
+  private static class EmptyToken implements AuthenticationToken {
+    public EmptyToken() {}
+
+    @Override
+    public void write(DataOutput out) throws IOException {}
+
+    @Override
+    public void readFields(DataInput in) throws IOException {}
+
+    @Override
+    public void destroy() throws DestroyFailedException {}
+
+    @Override
+    public boolean isDestroyed() {
+      return false;
+    }
+
+    @Override
+    public void init(Properties properties) {}
+
+    @Override
+    public Set<TokenProperty> getProperties() {
+      return null;
+    }
+
+    @Override
+    public AuthenticationToken clone() {
+      return null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof EmptyToken;
+    }
+  }
 }

@@ -1,0 +1,355 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+== Kerberos
+
+=== Overview
+
+Kerberos is a network authentication protocol that provides a secure way for
+peers to prove their identity over an unsecure network in a client-server model.
+A centralized key-distribution center (KDC) is the service that coordinates
+authentication between a client and a server. Clients and servers use "tickets",
+obtained from the KDC via a password or a special file called a "keytab", to
+communicate with the KDC and prove their identity. A KDC administrator must
+create the principal (name for the client/server identiy) and the password
+or keytab, securely passing the necessary information to the actual user/service.
+Properly securing the KDC and generated ticket material is central to the security
+model and is mentioned only as a warning to administrators running their own KDC.
+
+To interact with Kerberos programmatically, GSSAPI and SASL are two standards
+which allow cross-language integration with Kerberos for authentication. GSSAPI,
+the generic security service application program interface, is a standard which
+Kerberos implements. In the Java programming language, the language itself also implements
+GSSAPI which is leveraged by other applications, like Apache Hadoop and Apache Thrift.
+SASL, simple authentication and security layer, is a framework for authentication and
+and security over the network. SASL provides a number of mechanisms for authentication,
+one of which is GSSAPI. Thus, SASL provides the transport which authenticates 
+using GSSAPI that Kerberos implements.
+
+Kerberos is a very complicated software application and is deserving of much
+more description than can be provided here. An http://www.roguelynn.com/words/explain-like-im-5-kerberos/[explain like
+I'm 5] blog post is very good at distilling the basics, while http://web.mit.edu/kerberos/[MIT Kerberos's project page]
+contains lots of documentation for users or administrators. Various Hadoop "vendors"
+also provide free documentation that includes step-by-step instructions for
+configuring Hadoop and ZooKeeper (which will be henceforth considered as prerequisites).
+
+=== Within Hadoop
+
+Out of the box, HDFS and YARN have no ability to enforce that a user is who
+they claim they are. Thus, any basic Hadoop installation should be treated as
+unsecure: any user with access to the cluster has the ability to access any data.
+Using Kerberos to provide authentication, users can be strongly identified, delegating
+to Kerberos to determine who a user is and enforce that a user is who they claim to be.
+As such, Kerberos is widely used across the entire Hadoop ecosystem for strong
+authentication. Since server processes accessing HDFS or YARN are required
+to use Kerberos to authenticate with HDFS, it makes sense that they also require
+Kerberos authentication from their clients, in addition to other features provided
+by SASL.
+
+A typical deployment involves the creation of Kerberos principals for all server
+processes (Hadoop datanodes and namenode(s), ZooKeepers), the creation of a keytab
+file for each principal and then proper configuration for the Hadoop site xml files.
+Users also need Kerberos principals created for them; however, a user typically
+uses a password to identify themselves instead of a keytab. Users can obtain a
+ticket granting ticket (TGT) from the KDC using their password which allows them
+to authenticate for the lifetime of the TGT (typically one day by default) and alleviates
+the need for further password authentication.
+
+For client server applications, like web servers, a keytab can be created which
+allow for fully-automated Kerberos identification removing the need to enter any
+password, at the cost of needing to protect the keytab file. These principals
+will apply directly to authentication for clients accessing Accumulo and the
+Accumulo processes accessing HDFS.
+
+=== Configuring Accumulo
+
+To configure Accumulo for use with Kerberos, both client-facing and server-facing
+changes must be made for a functional system on secured Hadoop. As previously mentioned,
+numerous guidelines already exist on the subject of configuring Hadoop and ZooKeeper for
+use with Kerberos and won't be covered here. It is assumed that you have functional
+Hadoop and ZooKeeper already installed.
+
+==== Servers
+
+The first step is to obtain a Kerberos identity for the Accumulo server processes.
+When running Accumulo with Kerberos enabled, a valid Kerberos identity will be required
+to initiate any RPC between Accumulo processes (e.g. Master and TabletServer) in addition
+to any HDFS action (e.g. client to HDFS or TabletServer to HDFS).
+
+===== Generate Principal and Keytab
+
+In the +kadmin.local+ shell or using the +-q+ option on +kadmin.local+, create a
+principal for Accumulo for all hosts that are running Accumulo processes. A Kerberos
+principal is of the form "primary/instance@REALM". "accumulo" is commonly the "primary"
+(although not required) and the "instance" is the fully-qualified domain name for
+the host that will be running the Accumulo process -- this is required.
+
+----
+kadmin.local -q "addprinc -randkey accumulo/host.domain.com"
+----
+
+Perform the above for each node running Accumulo processes in the instance, modifying
+"host.domain.com" for your network. The +randkey+ option generates a random password
+because we will use a keytab for authentication, not a password, since the Accumulo
+server processes don't have an interactive console to enter a password into.
+
+----
+kadmin.local -q "xst -k accumulo.hostname.keytab accumulo/host.domain.com"
+----
+
+To simplify deployments, at thet cost of security, all Accumulo principals could
+be globbed into a single keytab
+
+----
+kadmin.local -q "xst -k accumulo.service.keytab -glob accumulo*"
+----
+
+To ensure that the SASL handshake can occur from clients to servers and servers to servers,
+all Accumulo servers must share the same instance and realm principal components as the
+"client" must know these to setup the connection with the "server".
+
+===== Server Configuration
+
+A number of properties need to be changed to account to properly configure servers
+in +accumulo-site.xml+.
+
+* *general.kerberos.keytab*=_/etc/security/keytabs/accumulo.service.keytab_
+** The path to the keytab for Accumulo on local filesystem.
+** Change the value to the actual path on your system.
+* *general.kerberos.principal*=_accumulo/_HOST@REALM_
+** The Kerberos principal for Accumulo, needs to match the keytab.
+** "_HOST" can be used instead of the actual hostname in the principal and will be
+automatically expanded to the current FQDN which reduces the configuration file burden.
+* *instance.rpc.sasl.enabled*=_true_
+** Enables SASL for the Thrift Servers (supports GSSAPI)
+* *instance.security.authenticator*=_org.apache.accumulo.server.security.handler.KerberosAuthenticator_
+** Configures Accumulo to use the Kerberos principal as the Accumulo username/principal
+* *instance.security.authorizor*=_org.apache.accumulo.server.security.handler.KerberosAuthorizor_
+** Configures Accumulo to use the Kerberos principal for authorization purposes
+* *instance.security.permissionHandler*=_org.apache.accumulo.server.security.handler.KerberosPermissionHandler_
+** Configures Accumulo to use the Kerberos principal for permission purposes
+* *trace.token.type*=_org.apache.accumulo.core.client.security.tokens.KerberosToken_
+** Configures the Accumulo Tracer to use the KerberosToken for authentication when
+serializing traces to the trace table.
+* *trace.user*=_accumulo/_HOST@REALM_
+** The tracer process needs valid credentials to serialize traces to Accumulo.
+** While the other server processes are creating a SystemToken from the provided keytab and principal, we can
+still use a normal KerberosToken and the same keytab/principal to serialize traces. Like
+non-Kerberized instances, the table must be created and permissions granted to the trace.user.
+** The same +_HOST+ replacement is performed on this value, substituted the FQDN for +_HOST+.
+
+Although it should be a prerequisite, it is ever important that you have DNS properly
+configured for your nodes and that Accumulo is configured to use the FQDN. It
+is extremely important to use the FQDN in each of the "hosts" files for each
+Accumulo process: +masters+, +monitors+, +slaves+, +tracers+, and +gc+.
+
+===== KerberosAuthenticator
+
+The +KerberosAuthenticator+ is an implementation of the pluggable security interfaces
+that Accumulo provides. It builds on top of what the default ZooKeeper-based implementation,
+but removes the need to create user accounts with passwords in Accumulo for clients. As
+long as a client has a valid Kerberos identity, they can connect to and interact with
+Accumulo, but without any permissions (e.g. cannot create tables or write data). Leveraging
+ZooKeeper removes the need to change the permission handler and authorizor, so other Accumulo
+functions regarding permissions and cell-level authorizations do not change.
+
+It is extremely important to note that, while user operations like +SecurityOperations.listLocalUsers()+,
++SecurityOperations.dropLocalUser()+, and +SecurityOperations.createLocalUser()+ will not return
+errors, these methods are not equivalent to normal installations, as they will only operate on
+users which have, at one point in time, authenticated with Accumulo using their Kerberos identity.
+The KDC is still the authoritative entity for user management. The previously mentioned methods
+are provided as they simplify management of users within Accumulo, especially with respect
+to granting Authorizations and Permissions to new users.
+
+===== Verifying secure access
+
+To verify that servers have correctly started with Kerberos enabled, ensure that the processes
+are actually running (they should exit immediately if login fails) and verify that you see
+something similar to the following in the application log.
+
+----
+2015-01-07 11:57:56,826 [security.SecurityUtil] INFO : Attempting to login with keytab as accumulo/hostname@EXAMPLE.COM
+2015-01-07 11:57:56,830 [security.UserGroupInformation] INFO : Login successful for user accumulo/hostname@EXAMPLE.COM using keytab file /etc/security/keytabs/accumulo.service.keytab
+----
+
+==== Clients
+
+===== Create client principal
+
+Like the Accumulo servers, clients must also have a Kerberos principal created for them. The
+primary difference between a server principal is that principals for users are created
+with a password and also not qualified to a specific instance (host).
+
+----
+kadmin.local -q "addprinc $user"
+----
+
+The above will prompt for a password for that user which will be used to identify that $user.
+The user can verify that they can authenticate with the KDC using the command `kinit $user`.
+Upon entering the correct password, a local credentials cache will be made which can be used
+to authenticate with Accumulo, access HDFS, etc.
+
+The user can verify the state of their local credentials cache by using the command `klist`.
+
+----
+$ klist
+Ticket cache: FILE:/tmp/krb5cc_123
+Default principal: user@EXAMPLE.COM
+
+Valid starting       Expires              Service principal
+01/07/2015 11:56:35  01/08/2015 11:56:35  krbtgt/EXAMPLE.COM@EXAMPLE.COM
+	renew until 01/14/2015 11:56:35
+----
+
+===== Configuration
+
+The second thing clients need to do is to set up their client configuration file. By
+default, this file is stored in +~/.accumulo/conf+, +$ACCUMULO_CONF_DIR/client.conf+ or
++$ACCUMULO_HOME/conf/client.conf+. Accumulo utilities also allow you to provide your own
+copy of this file in any location using the +--config-file+ command line option.
+
+Three items need to be set to enable access to Accumulo:
+
+* +instance.rpc.sasl.enabled+=_true_
+* +kerberos.server.primary+=_accumulo_
+* +kerberos.server.realm+=_EXAMPLE.COM_
+
+The second and third properties *must* match the configuration of the accumulo servers; this is
+required to set up the SASL transport.
+
+==== Debugging
+
+*Q*: I have valid Kerberos credentials and a correct client configuration file but 
+I still get errors like:
+
+----
+java.io.IOException: Failed on local exception: java.io.IOException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)]
+----
+
+*A*: When you have a valid client configuration and Kerberos TGT, it is possible that the search
+path for your local credentials cache is incorrect. Check the value of the KRB5CCNAME environment
+value, and ensure it matches the value reported by `klist`.
+
+----
+$ echo $KRB5CCNAME
+
+$ klist 
+Ticket cache: FILE:/tmp/krb5cc_123
+Default principal: user@EXAMPLE.COM
+
+Valid starting       Expires              Service principal
+01/07/2015 11:56:35  01/08/2015 11:56:35  krbtgt/EXAMPLE.COM@EXAMPLE.COM
+	renew until 01/14/2015 11:56:35
+$ export KRB5CCNAME=/tmp/krb5cc_123
+$ echo $KRB5CCNAME
+/tmp/krb5cc_123
+----
+
+*Q*: I thought I had everything configured correctly, but my client/server still fails to log in.
+I don't know what is actually failing.
+
+*A*: Add the following system property to the JVM invocation:
+
+----
+-Dsun.security.krb5.debug=true
+----
+
+This will enable lots of extra debugging at the JVM level which is often sufficient to
+diagnose some high-level configuration problem. Client applications can add this system property by
+hand to the command line and Accumulo server processes or applications started using the `accumulo`
+script by adding the property to +ACCUMULO_GENERAL_OPTS+ in +$ACCUMULO_CONF_DIR/accumulo-env.sh+.
+
+Additionally, you can increase the log4j levels on +org.apache.hadoop.security+, which includes the 
+Hadoop +UserGroupInformation+ class, which will include some high-level debug statements. This
+can be controlled in your client application, or using +$ACCUMULO_CONF_DIR/generic_logger.xml+
+
+*Q*: All of my Accumulo processes successfully start and log in with their
+keytab, but they are unable to communicate with each other, showing the
+following errors:
+
+----
+2015-01-12 14:47:27,055 [transport.TSaslTransport] ERROR: SASL negotiation failure
+javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)]
+        at com.sun.security.sasl.gsskerb.GssKrb5Client.evaluateChallenge(GssKrb5Client.java:212)
+        at org.apache.thrift.transport.TSaslClientTransport.handleSaslStartMessage(TSaslClientTransport.java:94)
+        at org.apache.thrift.transport.TSaslTransport.open(TSaslTransport.java:253)
+        at org.apache.thrift.transport.TSaslClientTransport.open(TSaslClientTransport.java:37)
+        at org.apache.accumulo.core.rpc.UGIAssumingTransport$1.run(UGIAssumingTransport.java:53)
+        at org.apache.accumulo.core.rpc.UGIAssumingTransport$1.run(UGIAssumingTransport.java:49)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at javax.security.auth.Subject.doAs(Subject.java:415)
+        at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1628)
+        at org.apache.accumulo.core.rpc.UGIAssumingTransport.open(UGIAssumingTransport.java:49)
+        at org.apache.accumulo.core.rpc.ThriftUtil.createClientTransport(ThriftUtil.java:357)
+        at org.apache.accumulo.core.rpc.ThriftUtil.createTransport(ThriftUtil.java:255)
+        at org.apache.accumulo.server.master.LiveTServerSet$TServerConnection.getTableMap(LiveTServerSet.java:106)
+        at org.apache.accumulo.master.Master.gatherTableInformation(Master.java:996)
+        at org.apache.accumulo.master.Master.access$600(Master.java:160)
+        at org.apache.accumulo.master.Master$StatusThread.updateStatus(Master.java:911)
+        at org.apache.accumulo.master.Master$StatusThread.run(Master.java:901)
+Caused by: GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)
+        at sun.security.jgss.krb5.Krb5Context.initSecContext(Krb5Context.java:710)
+        at sun.security.jgss.GSSContextImpl.initSecContext(GSSContextImpl.java:248)
+        at sun.security.jgss.GSSContextImpl.initSecContext(GSSContextImpl.java:179)
+        at com.sun.security.sasl.gsskerb.GssKrb5Client.evaluateChallenge(GssKrb5Client.java:193)
+        ... 16 more
+Caused by: KrbException: Server not found in Kerberos database (7) - LOOKING_UP_SERVER
+        at sun.security.krb5.KrbTgsRep.<init>(KrbTgsRep.java:73)
+        at sun.security.krb5.KrbTgsReq.getReply(KrbTgsReq.java:192)
+        at sun.security.krb5.KrbTgsReq.sendAndGetCreds(KrbTgsReq.java:203)
+        at sun.security.krb5.internal.CredentialsUtil.serviceCreds(CredentialsUtil.java:309)
+        at sun.security.krb5.internal.CredentialsUtil.acquireServiceCreds(CredentialsUtil.java:115)
+        at sun.security.krb5.Credentials.acquireServiceCreds(Credentials.java:454)
+        at sun.security.jgss.krb5.Krb5Context.initSecContext(Krb5Context.java:641)
+        ... 19 more
+Caused by: KrbException: Identifier doesn't match expected value (906)
+        at sun.security.krb5.internal.KDCRep.init(KDCRep.java:143)
+        at sun.security.krb5.internal.TGSRep.init(TGSRep.java:66)
+        at sun.security.krb5.internal.TGSRep.<init>(TGSRep.java:61)
+        at sun.security.krb5.KrbTgsRep.<init>(KrbTgsRep.java:55)
+        ... 25 more
+----
+
+or 
+
+----
+2015-01-12 14:47:29,440 [server.TThreadPoolServer] ERROR: Error occurred during processing of message.
+java.lang.RuntimeException: org.apache.thrift.transport.TTransportException: Peer indicated failure: GSS initiate failed
+        at org.apache.thrift.transport.TSaslServerTransport$Factory.getTransport(TSaslServerTransport.java:219)
+        at org.apache.accumulo.core.rpc.UGIAssumingTransportFactory$1.run(UGIAssumingTransportFactory.java:51)
+        at org.apache.accumulo.core.rpc.UGIAssumingTransportFactory$1.run(UGIAssumingTransportFactory.java:48)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at javax.security.auth.Subject.doAs(Subject.java:356)
+        at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1608)
+        at org.apache.accumulo.core.rpc.UGIAssumingTransportFactory.getTransport(UGIAssumingTransportFactory.java:48)
+        at org.apache.thrift.server.TThreadPoolServer$WorkerProcess.run(TThreadPoolServer.java:208)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+        at java.lang.Thread.run(Thread.java:745)
+Caused by: org.apache.thrift.transport.TTransportException: Peer indicated failure: GSS initiate failed
+        at org.apache.thrift.transport.TSaslTransport.receiveSaslMessage(TSaslTransport.java:190)
+        at org.apache.thrift.transport.TSaslServerTransport.handleSaslStartMessage(TSaslServerTransport.java:125)
+        at org.apache.thrift.transport.TSaslTransport.open(TSaslTransport.java:253)
+        at org.apache.thrift.transport.TSaslServerTransport.open(TSaslServerTransport.java:41)
+        at org.apache.thrift.transport.TSaslServerTransport$Factory.getTransport(TSaslServerTransport.java:216)
+        ... 10 more
+----
+
+*A*: As previously mentioned, the hostname, and subsequently the address each Accumulo process is bound/listening
+on, is extremely important when negotiating an SASL connection. This problem commonly arises when the Accumulo
+servers are not configured to listen on the address denoted by their FQDN.
+
+The values in the Accumulo "hosts" files (In +$ACCUMULO_CONF_DIR+: +masters+, +monitors+, +slaves+, +tracers+,
+and +gc+) should match the instance componentof the Kerberos server principal (e.g. +host+ in +accumulo/host\@EXAMPLE.COM+).

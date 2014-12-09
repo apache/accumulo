@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -557,7 +558,21 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               s.close();
           }
         }
-        Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword());
+
+        LinkedList<String> args = new LinkedList<>();
+        args.add("--instance-name");
+        args.add(config.getInstanceName());
+        args.add("--user");
+        args.add(config.getRootUserName());
+
+        // If we aren't using SASL, add in the root password
+        final String saslEnabled = config.getSiteConfig().get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
+        if (null == saslEnabled || !Boolean.parseBoolean(saslEnabled)) {
+          args.add("--password");
+          args.add(config.getRootPassword());
+        }
+
+        Process initProcess = exec(Initialize.class, args.toArray(new String[0]));
         int ret = initProcess.waitFor();
         if (ret != 0) {
           throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");

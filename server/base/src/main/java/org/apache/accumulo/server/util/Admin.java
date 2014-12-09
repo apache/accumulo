@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
@@ -174,6 +176,13 @@ public class Admin {
       cl.usage();
       return;
     }
+
+    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    // Login as the server on secure HDFS
+    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      SecurityUtil.serverLogin(siteConf);
+    }
+
     Instance instance = opts.getInstance();
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
 

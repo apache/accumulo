@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 
 import com.google.common.net.HostAndPort;
@@ -26,6 +27,7 @@ class ThriftTransportKey {
   private final HostAndPort server;
   private final long timeout;
   private final SslConnectionParams sslParams;
+  private final SaslConnectionParams saslParams;
 
   private int hash = -1;
 
@@ -34,6 +36,24 @@ class ThriftTransportKey {
     this.server = server;
     this.timeout = timeout;
     this.sslParams = context.getClientSslParams();
+    this.saslParams = context.getClientSaslParams();
+    if (null != saslParams) {
+      // TSasl and TSSL transport factories don't play nicely together
+      if (null != sslParams) {
+        throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
+      }
+    }
+  }
+
+  /**
+   * Visible only for testing
+   */
+  ThriftTransportKey(HostAndPort server, long timeout, SslConnectionParams sslParams, SaslConnectionParams saslParams) {
+    checkNotNull(server, "location is null");
+    this.server = server;
+    this.timeout = timeout;
+    this.sslParams = sslParams;
+    this.saslParams = saslParams;
   }
 
   HostAndPort getServer() {
@@ -48,12 +68,17 @@ class ThriftTransportKey {
     return sslParams != null;
   }
 
+  public boolean isSasl() {
+    return saslParams != null;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ThriftTransportKey))
       return false;
     ThriftTransportKey ttk = (ThriftTransportKey) o;
-    return server.equals(ttk.server) && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)));
+    return server.equals(ttk.server) && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
+        && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));
   }
 
   @Override
@@ -65,10 +90,20 @@ class ThriftTransportKey {
 
   @Override
   public String toString() {
-    return (isSsl() ? "ssl:" : "") + server + " (" + Long.toString(timeout) + ")";
+    String prefix = "";
+    if (isSsl()) {
+      prefix = "ssl:";
+    } else if (isSasl()) {
+      prefix = "sasl:" + saslParams.getPrincipal() + "@";
+    }
+    return prefix + server + " (" + Long.toString(timeout) + ")";
   }
 
   public SslConnectionParams getSslParams() {
     return sslParams;
+  }
+
+  public SaslConnectionParams getSaslParams() {
+    return saslParams;
   }
 }

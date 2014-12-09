@@ -67,6 +67,17 @@ KeyStore to alleviate passwords stored in cleartext. When stored in HDFS, a sing
 KeyStore can be used across an entire instance. Be aware that KeyStores stored on
 the local filesystem must be made available to all nodes in the Accumulo cluster.
 
+[source,java]
+----
+KerberosToken token = new KerberosToken();
+Connector conn = inst.getConnector(token.getPrincipal(), token);
+----
+
+The KerberosToken can be provided to use the authentication provided by Kerberos.
+Using Kerberos requires external setup and additional configuration, but provides
+a single point of authentication through HDFS, YARN and ZooKeeper and allowing
+for password-less authentication with Accumulo.
+
 === Writing Data
 
 Data are written to Accumulo by creating Mutation objects that represent all the

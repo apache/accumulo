@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -52,6 +54,7 @@ public class ClientContext {
 
   private final Instance inst;
   private Credentials creds;
+  private ClientConfiguration clientConf;
   private final AccumuloConfiguration rpcConf;
   private Connector conn;
 
@@ -60,6 +63,7 @@ public class ClientContext {
    */
   public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
     this(instance, credentials, convertClientConfig(checkNotNull(clientConf, "clientConf is null")));
+    this.clientConf = clientConf;
   }
 
   /**
@@ -69,6 +73,7 @@ public class ClientContext {
     inst = checkNotNull(instance, "instance is null");
     creds = checkNotNull(credentials, "credentials is null");
     rpcConf = checkNotNull(serverConf, "serverConf is null");
+    clientConf = null;
   }
 
   /**
@@ -112,6 +117,17 @@ public class ClientContext {
    */
   public SslConnectionParams getClientSslParams() {
     return SslConnectionParams.forClient(getConfiguration());
+  }
+
+  /**
+   * Retrieve SASL configuration to initiate an RPC connection to a server
+   */
+  public SaslConnectionParams getClientSaslParams() {
+    // Use the clientConf if we have it
+    if (null != clientConf) {
+      return SaslConnectionParams.forConfig(clientConf);
+    }
+    return SaslConnectionParams.forConfig(getConfiguration());
   }
 
   /**
@@ -171,10 +187,19 @@ public class ClientContext {
             }
           }
         }
+
         if (config.containsKey(key))
           return config.getString(key);
-        else
+        else {
+          // Reconstitute the server kerberos property from the client config
+          if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
+            if (config.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+              // Avoid providing a realm since we don't know what it is...
+              return config.getString(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+            }
+          }
           return defaults.get(property);
+        }
       }
 
       @Override
@@ -186,6 +211,16 @@ public class ClientContext {
           String key = keyIter.next().toString();
           if (filter.accept(key))
             props.put(key, config.getString(key));
+        }
+
+        // Two client props that don't exist on the server config. Client doesn't need to know about the Kerberos instance from the principle, but servers do
+        // Automatically reconstruct the server property when converting a client config.
+        if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+          if (filter.accept(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
+            // Use the _HOST expansion. It should be unnecessary in "client land".
+            props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
+          }
         }
 
         // Attempt to load sensitive properties from a CredentialProvider, if configured

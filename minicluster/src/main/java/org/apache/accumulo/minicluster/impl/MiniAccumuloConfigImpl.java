@@ -52,6 +52,7 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> systemProperties = new HashMap<String,String>();
 
   private String instanceName = "miniInstance";
+  private String rootUserName = "root";
 
   private File libDir;
   private File libExtDir;
@@ -666,5 +667,24 @@ public class MiniAccumuloConfigImpl {
    */
   public Configuration getHadoopConfiguration() {
     return hadoopConf;
+  }
+
+  /**
+   * @return the default Accumulo "superuser"
+   * @since 1.7.0
+   */
+  public String getRootUserName() {
+    return rootUserName;
+  }
+
+  /**
+   * Sets the default Accumulo "superuser".
+   *
+   * @param rootUserName
+   *          The name of the user to create with administrative permissions during initialization
+   * @since 1.7.0
+   */
+  public void setRootUserName(String rootUserName) {
+    this.rootUserName = rootUserName;
   }
 }

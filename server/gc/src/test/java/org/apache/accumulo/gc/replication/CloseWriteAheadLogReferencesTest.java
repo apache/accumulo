@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.verify;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -84,12 +88,34 @@ public class CloseWriteAheadLogReferencesTest {
   @Before
   public void setup() {
     inst = createMock(Instance.class);
+    SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     expect(inst.getInstanceID()).andReturn(testName.getMethodName()).anyTimes();
-    AccumuloConfiguration systemConf = createMock(AccumuloConfiguration.class);
+    expect(inst.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(inst.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<String,String>());
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getConfiguration()).andReturn(systemConf).anyTimes();
     expect(factory.getInstance()).andReturn(inst).anyTimes();
-    replay(inst, factory);
+    expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+
+    // Just make the SiteConfiguration delegate to our AccumuloConfiguration
+    // Presently, we only need get(Property) and iterator().
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<String>() {
+      @Override
+      public String answer() {
+        Object[] args = EasyMock.getCurrentArguments();
+        return systemConf.get((Property) args[0]);
+      }
+    }).anyTimes();
+
+    EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
+      @Override
+      public Iterator<Entry<String,String>> answer() {
+        return systemConf.iterator();
+      }
+    }).anyTimes();
+
+    replay(inst, factory, siteConfig);
     refs = new CloseWriteAheadLogReferences(new AccumuloServerContext(factory));
   }
 

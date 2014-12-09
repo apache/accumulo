@@ -122,7 +122,7 @@
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <!-- overwritten in profiles hadoop-2 -->
-    <hadoop.version>2.2.0</hadoop.version>
+    <hadoop.version>2.3.0</hadoop.version>
     <htrace.version>3.0.4</htrace.version>
     <httpclient.version>3.1</httpclient.version>
     <java.ver>1.7</java.ver>
@@ -355,6 +355,11 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minicluster</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-minikdc</artifactId>
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
@@ -877,6 +882,12 @@
             </rules>
           </configuration>
         </plugin>
+        <plugin>
+          <!-- Allows us to get the apache-ds bundle artifacts -->
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-bundle-plugin</artifactId>
+          <version>2.4.0</version>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -1069,6 +1080,13 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <!-- Allows us to get the apache-ds bundle artifacts -->
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <extensions>true</extensions>
+        <inherited>true</inherited>
       </plugin>
     </plugins>
     <extensions>
@@ -1303,7 +1321,7 @@
         <!-- Denotes intention and allows the enforcer plugin to pass when
              the user is relying on default behavior; won't work to activate profile -->
         <hadoop.profile>2</hadoop.profile>
-        <hadoop.version>2.2.0</hadoop.version>
+        <hadoop.version>2.3.0</hadoop.version>
         <httpclient.version>3.1</httpclient.version>
         <slf4j.version>1.7.5</slf4j.version>
       </properties>
@@ -1320,7 +1338,7 @@
         </property>
       </activation>
       <properties>
-        <hadoop.version>2.2.0</hadoop.version>
+        <hadoop.version>2.3.0</hadoop.version>
         <httpclient.version>3.1</httpclient.version>
         <slf4j.version>1.7.5</slf4j.version>
       </properties>

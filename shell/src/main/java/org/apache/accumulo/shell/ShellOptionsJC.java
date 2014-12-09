@@ -27,8 +27,10 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +41,10 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
 public class ShellOptionsJC {
-  private static final Logger log = LoggerFactory.getLogger(Shell.class);
+  private static final Logger log = LoggerFactory.getLogger(ShellOptionsJC.class);
 
   @Parameter(names = {"-u", "--user"}, description = "username (defaults to your OS user)")
-  private String username = System.getProperty("user.name", "root");
+  private String username = null;
 
   public static class PasswordConverter implements IStringConverter<String> {
     public static final String STDIN = "stdin";
@@ -126,7 +128,7 @@ public class ShellOptionsJC {
         return Class.forName(value).asSubclass(AuthenticationToken.class).newInstance();
       } catch (Exception e) {
         // Catching ClassNotFoundException, ClassCastException, InstantiationException and IllegalAccessException
-        log.error("Could not instantiate AuthenticationToken " + value, e);
+        log.error("Could not instantiate AuthenticationToken {}", value, e);
         throw new ParameterException(e);
       }
     }
@@ -169,6 +171,9 @@ public class ShellOptionsJC {
   @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
   private boolean useSsl = false;
 
+  @Parameter(names = "--sasl", description = "use SASL to connect to Accumulo (Kerberos)")
+  private boolean useSasl = false;
+
   @Parameter(names = "--config-file", description = "read the given client config file. "
       + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
       + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
@@ -189,7 +194,19 @@ public class ShellOptionsJC {
   @Parameter(hidden = true)
   private List<String> unrecognizedOptions;
 
-  public String getUsername() {
+  public String getUsername() throws Exception {
+    if (null == username) {
+      final ClientConfiguration clientConf = getClientConfiguration();
+      if (Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED))) {
+        if (!UserGroupInformation.isSecurityEnabled()) {
+          throw new RuntimeException("Kerberos security is not enabled");
+        }
+        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        username = ugi.getUserName();
+      } else {
+        username = System.getProperty("user.name", "root");
+      }
+    }
     return username;
   }
 
@@ -197,7 +214,15 @@ public class ShellOptionsJC {
     return password;
   }
 
-  public AuthenticationToken getAuthenticationToken() {
+  public AuthenticationToken getAuthenticationToken() throws Exception {
+    if (null == authenticationToken) {
+      final ClientConfiguration clientConf = getClientConfiguration();
+      // Automatically use a KerberosToken if the client conf is configured for SASL
+      final boolean saslEnabled = Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+      if (saslEnabled) {
+        authenticationToken = new KerberosToken();
+      }
+    }
     return authenticationToken;
   }
 
@@ -275,7 +300,13 @@ public class ShellOptionsJC {
     if (useSsl()) {
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
     }
+    if (useSasl()) {
+      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+    }
     return clientConfig;
   }
 
+  public boolean useSasl() {
+    return useSasl;
+  }
 }

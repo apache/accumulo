@@ -47,6 +47,7 @@ public class ClientConfiguration extends CompositeConfiguration {
   public static final String GLOBAL_CONF_FILENAME = "client.conf";
 
   public enum ClientProperty {
+    // SSL
     RPC_SSL_TRUSTSTORE_PATH(Property.RPC_SSL_TRUSTSTORE_PATH),
     RPC_SSL_TRUSTSTORE_PASSWORD(Property.RPC_SSL_TRUSTSTORE_PASSWORD),
     RPC_SSL_TRUSTSTORE_TYPE(Property.RPC_SSL_TRUSTSTORE_TYPE),
@@ -57,13 +58,34 @@ public class ClientConfiguration extends CompositeConfiguration {
     GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS),
     INSTANCE_RPC_SSL_CLIENT_AUTH(Property.INSTANCE_RPC_SSL_CLIENT_AUTH),
     INSTANCE_RPC_SSL_ENABLED(Property.INSTANCE_RPC_SSL_ENABLED),
+
+    // ZooKeeper
     INSTANCE_ZK_HOST(Property.INSTANCE_ZK_HOST),
     INSTANCE_ZK_TIMEOUT(Property.INSTANCE_ZK_TIMEOUT),
+
+    // Instance information
     INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
     INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
+
+    // Tracing
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
     TRACE_SPAN_RECEIVER_PREFIX(Property.TRACE_SPAN_RECEIVER_PREFIX),
-    TRACE_ZK_PATH(Property.TRACE_ZK_PATH);
+    TRACE_ZK_PATH(Property.TRACE_ZK_PATH),
+
+    // SASL / GSSAPI(Kerberos)
+    /**
+     * @since 1.7.0
+     */
+    INSTANCE_RPC_SASL_ENABLED(Property.INSTANCE_RPC_SASL_ENABLED),
+    /**
+     * @since 1.7.0
+     */
+    RPC_SASL_QOP(Property.RPC_SASL_QOP),
+    /**
+     * @since 1.7.0
+     */
+    KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", PropertyType.STRING,
+        "The first component of the Kerberos principal, the 'primary', that Accumulo servers use to login");
 
     private String key;
     private String defaultValue;
@@ -355,5 +377,27 @@ public class ClientConfiguration extends CompositeConfiguration {
     if (type != null)
       setProperty(ClientProperty.RPC_SSL_KEYSTORE_TYPE, type);
     return this;
+  }
+
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED.
+   *
+   * @since 1.7.0
+   */
+  public ClientConfiguration withSasl(boolean saslEnabled) {
+    return with(ClientProperty.INSTANCE_RPC_SASL_ENABLED, String.valueOf(saslEnabled));
+  }
+
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
+   *
+   * @param saslEnabled
+   *          Should SASL(kerberos) be enabled
+   * @param kerberosServerPrimary
+   *          The 'primary' component of the Kerberos principal Accumulo servers use to login (e.g. 'accumulo' in 'accumulo/_HOST@REALM')
+   * @since 1.7.0
+   */
+  public ClientConfiguration withSasl(boolean saslEnabled, String kerberosServerPrimary) {
+    return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
   }
 }

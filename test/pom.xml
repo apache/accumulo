@@ -156,6 +156,21 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-minikdc</artifactId>
+      <!-- Specifically depend on this version of minikdc to avoid having
+           to increase out normal hadoop dependency --> 
+      <version>2.3.0</version>
+      <scope>test</scope>
+      <exclusions>
+        <!-- Pulls in an older bouncycastle version -->
+        <exclusion>
+          <groupId>bouncycastle</groupId>
+          <artifactId>bcprov-jdk15</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
       <scope>test</scope>
@@ -202,6 +217,7 @@
               <timeout.factor>${timeout.factor}</timeout.factor>
               <org.apache.accumulo.test.functional.useCredProviderForIT>${useCredProviderForIT}</org.apache.accumulo.test.functional.useCredProviderForIT>
               <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>
+              <org.apache.accumulo.test.functional.useKrbForIT>${useKrbForIT}</org.apache.accumulo.test.functional.useKrbForIT>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -212,6 +228,7 @@
             <systemPropertyVariables>
               <org.apache.accumulo.test.functional.useCredProviderForIT>${useCredProviderForIT}</org.apache.accumulo.test.functional.useCredProviderForIT>
               <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>
+              <org.apache.accumulo.test.functional.useKrbForIT>${useKrbForIT}</org.apache.accumulo.test.functional.useKrbForIT>
             </systemPropertyVariables>
           </configuration>
         </plugin>

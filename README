@@ -364,45 +364,9 @@ certain column.
     row1 colf1:colq2 []    val2
 
 
-If you are running on top of hdfs with kerberos enabled, then you need to do
-some extra work. First, create an Accumulo principal
-
-  kadmin.local -q "addprinc -randkey accumulo/<host.domain.name>"
-
-where <host.domain.name> is replaced by a fully qualified domain name. Export
-the principals to a keytab file. It is safer to create a unique keytab file for each
-server, but you can also glob them if you wish.
-
-  kadmin.local -q "xst -k accumulo.keytab -glob accumulo*"
-
-Place this file in $ACCUMULO_CONF_DIR for every host. It should be owned by
-the accumulo user and chmodded to 400. Add the following to the accumulo-env.sh
-
-  kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
-
-In the accumulo-site.xml file on each node, add settings for general.kerberos.keytab
-and general.kerberos.principal, where the keytab setting is the absolute path
-to the keytab file ($ACCUMULO_HOME is valid to use) and principal is set to
-accumulo/_HOST@<REALM>, where REALM is set to your kerberos realm. You may use
-_HOST in lieu of your individual host names.
-
-  <property>
-    <name>general.kerberos.keytab</name>
-    <value>$ACCUMULO_CONF_DIR/accumulo.keytab</value>
-  </property>
-
-  <property>
-    <name>general.kerberos.principal</name>
-    <value>accumulo/_HOST@MYREALM</value>
-  </property> 
-
-You can then start up Accumulo as you would with the accumulo user, and it will
-automatically handle the kerberos keys needed to access hdfs.
-
-Please Note: You may have issues initializing Accumulo while running kerberos HDFS.
-You can resolve this by temporarily granting the accumulo user write access to the
-hdfs root directory, running init, and then revoking write permission in the root 
-directory (be sure to maintain access to the /accumulo directory).
+For information on how to configure Accumulo for on top of Secure HDFS with
+Kerberos, please consult the Accumulo user manual section specifically devoted
+to client and server configuration with Kerberos.
 
 ******************************************************************************
 6. Monitoring Apache Accumulo

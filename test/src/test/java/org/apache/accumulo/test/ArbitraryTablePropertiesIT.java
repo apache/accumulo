@@ -21,12 +21,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
@@ -36,6 +39,11 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
   protected int defaultTimeoutSeconds() {
     return 30;
   };
+
+  @Before
+  public void checkNoKerberos() {
+    Assume.assumeFalse(getToken() instanceof KerberosToken);
+  }
 
   // Test set, get, and remove arbitrary table properties on the root account
   @Test
