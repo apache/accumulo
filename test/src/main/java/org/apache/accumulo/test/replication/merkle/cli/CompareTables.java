@@ -157,8 +157,20 @@ public class CompareTables {
     CompareTables compareTables = new CompareTables(opts);
     Map<String,String> tableToHashes = compareTables.computeAllHashes();
 
+    boolean hashesEqual = true;
+    String previousHash = null;
     for (Entry<String,String> entry : tableToHashes.entrySet()) {
+      // Set the previous hash if we dont' have one
+      if (null == previousHash) {
+        previousHash = entry.getValue();
+      } else if (hashesEqual) {
+        // If the hashes are still equal, check that the new hash is also equal
+        hashesEqual = previousHash.equals(entry.getValue());
+      }
+
       System.out.println(entry.getKey() + " " + entry.getValue());
     }
+
+    System.exit(hashesEqual ? 0 : 1);
   }
 }
