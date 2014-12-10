@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.log4j.Logger;
 import org.htrace.Sampler;
 import org.htrace.Trace;
 import org.htrace.TraceScope;
@@ -45,7 +46,7 @@ import com.beust.jcommander.Parameter;
  * 
  */
 public class TracingExample {
-
+  private static final Logger log = Logger.getLogger(TracingExample.class);
   private static final String DEFAULT_TABLE_NAME = "test";
 
   static class Opts extends ClientOnDefaultTable {
@@ -130,14 +131,18 @@ public class TracingExample {
   }
 
   public static void main(String[] args) throws Exception {
+    try {
+      TracingExample tracingExample = new TracingExample();
+      Opts opts = new Opts();
+      ScannerOpts scannerOpts = new ScannerOpts();
+      opts.parseArgs(TracingExample.class.getName(), args, scannerOpts);
 
-    TracingExample tracingExample = new TracingExample();
-    Opts opts = new Opts();
-    ScannerOpts scannerOpts = new ScannerOpts();
-    opts.parseArgs(TracingExample.class.getName(), args, scannerOpts);
-
-    tracingExample.enableTracing(opts);
-    tracingExample.execute(opts);
+      tracingExample.enableTracing(opts);
+      tracingExample.execute(opts);
+    } catch (Exception e) {
+      log.error("Caught exception running TraceExample", e);
+      System.exit(1);
+    }
   }
 
 }
