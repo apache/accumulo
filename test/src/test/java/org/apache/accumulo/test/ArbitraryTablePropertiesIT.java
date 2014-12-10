@@ -24,13 +24,12 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-@SuppressWarnings("deprecation")
-public class ArbitraryTablePropertiesIT extends SimpleMacIT {
+public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
   private static final Logger log = Logger.getLogger(ArbitraryTablePropertiesIT.class);
 
   @Override

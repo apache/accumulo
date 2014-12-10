@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -53,8 +53,7 @@ import com.google.common.io.Files;
  *
  */
 // TODO Can switch to AccumuloClusterIT when FileSystem access from the Cluster is implemented.
-@SuppressWarnings("deprecation")
-public class ImportExportIT extends SimpleMacIT {
+public class ImportExportIT extends SharedMiniClusterIT {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 

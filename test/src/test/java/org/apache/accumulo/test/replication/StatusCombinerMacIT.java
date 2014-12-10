@@ -38,8 +38,8 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -49,8 +49,7 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-@SuppressWarnings("deprecation")
-public class StatusCombinerMacIT extends SimpleMacIT {
+public class StatusCombinerMacIT extends SharedMiniClusterIT {
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {

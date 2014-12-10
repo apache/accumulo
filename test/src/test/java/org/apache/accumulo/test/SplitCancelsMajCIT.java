@@ -31,14 +31,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-2862
-@SuppressWarnings("deprecation")
-public class SplitCancelsMajCIT extends SimpleMacIT{
+public class SplitCancelsMajCIT extends SharedMiniClusterIT {
 
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {

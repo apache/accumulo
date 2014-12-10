@@ -26,11 +26,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.junit.Test;
 
 // ACCUMULO-2880
-@SuppressWarnings("deprecation")
-public class DeletedTablesDontFlushIT extends SimpleMacIT {
+public class DeletedTablesDontFlushIT extends SharedMiniClusterIT {
 
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {

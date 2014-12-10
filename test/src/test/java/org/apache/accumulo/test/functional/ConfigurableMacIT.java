@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -31,9 +32,13 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
+import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
@@ -41,14 +46,58 @@ import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Before;
 
-public class ConfigurableMacIT extends AbstractMacIT {
-  protected static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
+/**
+ * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for testing. Tests using these typically do very disruptive things
+ * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterIT} instead.
+ */
+public class ConfigurableMacIT extends AccumuloIT {
+  public static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
 
-  public MiniAccumuloClusterImpl cluster;
+  protected MiniAccumuloClusterImpl cluster;
 
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
+  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
-  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {}
+  protected void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {}
+
+  protected static final String ROOT_PASSWORD = "testRootPassword1";
+
+  public static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
+    if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
+      configureForSsl(cfg, folder);
+    }
+    if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useCredProviderForIT"))) {
+      cfg.setUseCredentialProvider(true);
+    }
+  }
+
+  protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
+      // already enabled; don't mess with it
+      return;
+    }
+
+    File sslDir = new File(folder, "ssl");
+    sslDir.mkdirs();
+    File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
+    File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
+    File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
+    final String rootKeystorePassword = "root_keystore_password", truststorePassword = "truststore_password";
+    try {
+      new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(), "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
+          .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
+              truststorePassword);
+    } catch (Exception e) {
+      throw new RuntimeException("error creating MAC keystore", e);
+    }
+
+    siteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
+    siteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), localKeystoreFile.getAbsolutePath());
+    siteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
+    siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
+    siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
+    cfg.setSiteConfig(siteConfig);
+  }
 
   @Before
   public void setUp() throws Exception {
@@ -92,33 +141,29 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   @After
   public void tearDown() throws Exception {
-    cleanUp(cluster);
+    if (cluster != null)
+      try {
+        cluster.stop();
+      } catch (Exception e) {}
   }
 
-  public MiniAccumuloClusterImpl getCluster() {
+  protected MiniAccumuloClusterImpl getCluster() {
     return cluster;
   }
 
-  @Override
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+  protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     return getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
   }
 
-  public Process exec(Class<?> clazz, String... args) throws IOException {
+  protected Process exec(Class<?> clazz, String... args) throws IOException {
     return getCluster().exec(clazz, args);
   }
 
-  @Override
-  public String rootPath() {
-    return getCluster().getConfig().getDir().getAbsolutePath();
-  }
-
-  public String getMonitor() throws KeeperException, InterruptedException {
+  protected String getMonitor() throws KeeperException, InterruptedException {
     Instance instance = new ZooKeeperInstance(getCluster().getClientConfig());
     return MonitorUtil.getLocation(instance);
   }
 
-  @Override
   protected ClientConfiguration getClientConfig() throws Exception {
     return new ClientConfiguration(new PropertiesConfiguration(getCluster().getConfig().getClientConfFile()));
   }
