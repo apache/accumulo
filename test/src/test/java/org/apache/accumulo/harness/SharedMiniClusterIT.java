@@ -29,8 +29,8 @@ import org.junit.BeforeClass;
 /**
  * Convenience class which starts a single MAC instance for a test to leverage.
  *
- * There isn't a good way to build this off of the AccumuloClusterIT (as would be the logical place) because we need to start the MiniAccumuloCluster in a
- * static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation, the actual test classes
+ * There isn't a good way to build this off of the {@link AccumuloClusterIT} (as would be the logical place) because we need to start the MiniAccumuloCluster in
+ * a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation, the actual test classes
  * can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
  */
 public abstract class SharedMiniClusterIT extends AccumuloIT {

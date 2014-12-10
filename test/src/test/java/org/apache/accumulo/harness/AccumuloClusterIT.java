@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 /**
- * General Integration-Test base class that provides an Accumulo instance
+ * General Integration-Test base class that provides access to an Accumulo instance for testing. This instance could be MAC or a standalone instance.
  */
 public abstract class AccumuloClusterIT extends AccumuloIT implements MiniClusterConfigurationCallback {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);

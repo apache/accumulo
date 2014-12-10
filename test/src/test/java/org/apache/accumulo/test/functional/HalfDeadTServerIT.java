@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
@@ -165,7 +166,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
         assertEquals(0, ingest.waitFor());
         VerifyIngest.Opts vopts = new VerifyIngest.Opts();
         vopts.rows = rows;
-        VerifyIngest.verifyIngest(c, vopts, SOPTS);
+        VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
       } else {
         UtilWaitThread.sleep(5 * 1000);
         tserver.waitFor();
