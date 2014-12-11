@@ -164,8 +164,7 @@ public class ContinuousVerify extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(this.getClass().getName(), args);
 
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
 
     job.setInputFormatClass(AccumuloInputFormat.class);

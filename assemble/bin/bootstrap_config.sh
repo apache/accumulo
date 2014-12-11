@@ -323,7 +323,7 @@ else
   mv temp ${CONF_DIR}/${ACCUMULO_SITE}
 fi
 
-#Configure for hadoop 1
+# Configure hadoop version
 if [[ "${HADOOP_VERSION}" == "2" ]]; then
   sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
       -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \

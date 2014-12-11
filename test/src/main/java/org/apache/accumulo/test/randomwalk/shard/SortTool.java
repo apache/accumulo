@@ -44,6 +44,7 @@ public class SortTool extends Configured implements Tool {
     this.splits = splits;
   }
 
+  @Override
   public int run(String[] args) throws Exception {
     Job job = Job.getInstance(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
