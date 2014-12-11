@@ -56,15 +56,15 @@ import org.apache.log4j.Logger;
 /**
  * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat} accepts keys and values of type {@link Text} (for a table
  * name) and {@link Mutation} from the Map and Reduce functions.
- * 
+ *
  * The user must specify the following via static configurator methods:
- * 
+ *
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, String)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
- * 
+ *
  * Other static methods are optional.
  */
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
@@ -74,11 +74,11 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-   * 
+   *
    * <p>
    * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
    * conversion to a string, and is not intended to be secure.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param principal
@@ -93,10 +93,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-   * 
+   *
    * <p>
    * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param principal
@@ -111,7 +111,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Determines if the connector has been configured.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
@@ -124,7 +124,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the principal from the configuration.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return the user name
@@ -137,7 +137,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the serialized token class from either the configuration or the token file.
-   * 
+   *
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
@@ -148,7 +148,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the serialized token from either the configuration or the token file.
-   * 
+   *
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
@@ -159,7 +159,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @return the principal's authentication token
@@ -173,9 +173,28 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)} instead.
+   */
+
+  @Deprecated
+  public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
+    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
+  }
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   *
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
@@ -186,7 +205,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Configures a {@link MockInstance} for this job.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param instanceName
@@ -199,7 +218,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
@@ -213,7 +232,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Sets the log level for this job.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param level
@@ -226,7 +245,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the log level from this configuration.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return the log level
@@ -240,7 +259,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   /**
    * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
    * underscores.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param tableName
@@ -253,7 +272,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the default table name from the configuration.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return the default table name
@@ -267,7 +286,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   /**
    * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
    * used. Setting the configuration multiple times overwrites any previous configuration.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param bwConfig
@@ -280,7 +299,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Gets the {@link BatchWriterConfig} settings.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return the configuration object
@@ -293,10 +312,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param enableFeature
@@ -309,7 +328,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Determines whether tables are permitted to be created as needed.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return true if the feature is disabled, false otherwise
@@ -322,10 +341,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param enableFeature
@@ -338,7 +357,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Determines whether this feature is enabled.
-   * 
+   *
    * @param job
    *          the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
