@@ -52,10 +52,8 @@ public class ScanServlet extends BasicServlet {
       long count = 0;
       long oldest = 0;
       if (stats != null) {
-        count = stats.scans.size();
-        for (ActiveScan scan : stats.scans) {
-          oldest = Math.max(scan.age, oldest);
-        }
+        count = stats.scanCount;
+        oldest = stats.oldestScan;
       }
       TableRow row = scanTable.prepareRow();
       row.add(tserverInfo);
