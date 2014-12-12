@@ -23,7 +23,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.ScanStats;
 import org.apache.accumulo.monitor.util.Table;
