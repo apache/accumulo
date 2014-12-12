@@ -122,7 +122,7 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * A fraction representing how much of the JVM's available memory should be used for gathering candidates.
    */
-  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
+  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
 
