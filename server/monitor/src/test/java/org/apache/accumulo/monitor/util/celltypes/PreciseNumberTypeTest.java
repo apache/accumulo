@@ -14,26 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.servlets;
+package org.apache.accumulo.monitor.util.celltypes;
 
-import org.apache.accumulo.monitor.util.celltypes.NumberType;
+import org.apache.accumulo.monitor.servlets.PreciseNumberType;
 
-public class PreciseNumberType extends NumberType<Integer> {
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+public class PreciseNumberTypeTest {
   
-  public PreciseNumberType(int warnMin, int warnMax, int errMin, int errMax) {
-    super(warnMin, warnMax, errMin, errMax);
+  @Test
+  public void test() {
+    PreciseNumberType p = new PreciseNumberType(500, 5000, 100, 6000);
+    assertEquals("1,000", p.format(1000));
+    assertEquals("<span class='error'>1</span>", p.format(1));
+    assertEquals("<span class='warning'>5,005</span>", p.format(5005));
+    assertEquals("<span class='error'>10,000</span>", p.format(10000));
   }
   
-  @Override
-  public String format(Object obj) {
-    int i = (Integer)obj;
-    String display = String.format("%,d", obj);
-    if (i < errMin || i > errMax)
-      return String.format("<span class='error'>%s</span>", display);
-    if (i < warnMin || i > warnMax)
-      return String.format("<span class='warning'>%s</span>", display);
-    return display;
-  }
-
-  public PreciseNumberType() {}
 }
