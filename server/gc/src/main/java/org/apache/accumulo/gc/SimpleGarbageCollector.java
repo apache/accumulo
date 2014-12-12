@@ -425,10 +425,10 @@ public class SimpleGarbageCollector implements Iface {
                 synchronized (SimpleGarbageCollector.this) {
                   ++status.current.errors;
                 }
-                String parts[] = delete.split("/");
+                String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
-                  String tableId = parts[parts.length - 3];
-                  String tabletDir = parts[parts.length - 2];
+                  String tableId = parts[1];
+                  String tabletDir = parts[2];
                   TableManager.getInstance().updateTableStateCache(tableId);
                   TableState tableState = TableManager.getInstance().getTableState(tableId);
                   if (tableState != null && tableState != TableState.DELETING) {
