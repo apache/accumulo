@@ -126,6 +126,7 @@
     <hadoop.version>2.2.0</hadoop.version>
     <htrace.version>3.0.4</htrace.version>
     <httpclient.version>3.1</httpclient.version>
+    <java.ver>1.7</java.ver>
     <jetty.version>9.1.5.v20140505</jetty.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
@@ -590,8 +591,8 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>1.7</source>
-            <target>1.7</target>
+            <source>${java.ver}</source>
+            <target>${java.ver}</target>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
@@ -616,7 +617,7 @@
             <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
             <reportOutputDirectory>docs</reportOutputDirectory>
-            <javadocVersion>1.7</javadocVersion>
+            <javadocVersion>${java.ver}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
         </plugin>
@@ -1007,7 +1008,7 @@
           </excludes>
           <format>html</format>
           <includeTests>true</includeTests>
-          <targetJdk>1.7</targetJdk>
+          <targetJdk>${java.ver}</targetJdk>
         </configuration>
       </plugin>
       <plugin>
