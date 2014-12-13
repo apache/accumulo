@@ -123,6 +123,7 @@
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <hadoop.version>2.2.0</hadoop.version>
     <httpclient.version>3.1</httpclient.version>
+    <java.ver>1.6</java.ver>
     <jetty.version>8.1.15.v20140411</jetty.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
@@ -572,8 +573,8 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
+            <source>${java.ver}</source>
+            <target>${java.ver}</target>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
@@ -598,7 +599,7 @@
             <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
             <reportOutputDirectory>docs</reportOutputDirectory>
-            <javadocVersion>1.6</javadocVersion>
+            <javadocVersion>${java.ver}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
         </plugin>
@@ -977,7 +978,7 @@
           </excludes>
           <format>html</format>
           <includeTests>true</includeTests>
-          <targetJdk>1.6</targetJdk>
+          <targetJdk>${java.ver}</targetJdk>
         </configuration>
       </plugin>
       <plugin>
