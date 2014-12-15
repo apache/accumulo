@@ -64,7 +64,7 @@ public class TracingExample {
   }
 
   public void enableTracing(Opts opts) throws Exception {
-    DistributedTrace.enable(opts.getInstance(), new ZooReader(opts.getInstance().getZooKeepers(), 1000), "myHost", "myApp");
+    DistributedTrace.enable(opts.getInstance(), new ZooReader(opts.getInstance().getZooKeepers(), 15000), "myHost", "myApp");
   }
 
   public void execute(Opts opts) throws TableNotFoundException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException {

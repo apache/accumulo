@@ -99,7 +99,8 @@ public class ExamplesIT extends AccumuloClusterIT {
   private static final Logger log = Logger.getLogger(ExamplesIT.class);
   private static final BatchWriterOpts bwOpts = new BatchWriterOpts();
   private static final BatchWriterConfig bwc = new BatchWriterConfig();
-  private static final String visibility = "A|B";
+  // quoted to make sure the shell doesn't interpret the pipe
+  private static final String visibility = "\"A|B\"";
   private static final String auths = "A,B";
 
   Connector c;
@@ -200,7 +201,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     Entry<Integer,String> entry = getClusterControl().execWithStdout(
         Ingest.class,
         new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable", dataTable,
-            "--vis", "'" + visibility + "'", "--chunkSize", Integer.toString(10000), getUsableDir()});
+            "--vis", visibility, "--chunkSize", Integer.toString(10000), getUsableDir()});
     assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0, entry.getKey().intValue());
     entry = getClusterControl()
         .execWithStdout(
@@ -416,7 +417,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     goodExec(SequentialBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--start", "0", "--num", "100000",
-        "--size", "50", "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", "'" + visibility + "'");
+        "--size", "50", "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility);
 
   }
 
@@ -434,7 +435,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     goodExec(RandomBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "100000", "--min", "0", "--max",
-        "100000", "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", "'" + visibility + "'");
+        "100000", "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility);
     goodExec(RandomBatchScanner.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "10000", "--min", "0", "--max",
         "100000", "--size", "100", "--scanThreads", "4", "--auths", auths);
     goodExec(Flush.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName);
