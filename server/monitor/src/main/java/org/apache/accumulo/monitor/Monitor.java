@@ -511,7 +511,7 @@ public class Monitor {
 
   public static class ScanStats {
     public final long scanCount;
-    public final long oldestScan;
+    public final Long oldestScan;
     public final long fetched;
     ScanStats(List<ActiveScan> active) {
       this.scanCount = active.size();
@@ -519,7 +519,7 @@ public class Monitor {
       for (ActiveScan scan : active) {
         oldest = Math.max(oldest, scan.age);
       }
-      this.oldestScan = oldest;
+      this.oldestScan = oldest < 0 ? null : oldest;
       this.fetched = System.currentTimeMillis();
     }
   }
