@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.servlets;
+package org.apache.accumulo.monitor.util.celltypes;
 
-import org.apache.accumulo.monitor.util.celltypes.NumberType;
 
 public class PreciseNumberType extends NumberType<Integer> {
   
@@ -26,12 +25,16 @@ public class PreciseNumberType extends NumberType<Integer> {
   
   @Override
   public String format(Object obj) {
-    int i = (Integer)obj;
+    if (obj == null)
+      return "-";
+    int i = ((Number)obj).intValue();
     String display = String.format("%,d", obj);
-    if (i < errMin || i > errMax)
+    if ((errMin != null && i < errMin) || (errMax != null && i > errMax)) {
       return String.format("<span class='error'>%s</span>", display);
-    if (i < warnMin || i > warnMax)
+    }
+    if ((warnMin != null && i < warnMin) || (warnMax != null && i > warnMax)) {
       return String.format("<span class='warning'>%s</span>", display);
+    }
     return display;
   }
 

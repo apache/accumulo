@@ -22,6 +22,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.monitor.util.celltypes.PreciseNumberType;
+
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.ScanStats;
@@ -48,17 +50,13 @@ public class ScanServlet extends BasicServlet {
     scanTable.addSortableColumn("Oldest&nbsp;Age", new DurationType(0l, 5 * 60 * 1000l), "The age of the oldest scan on this server.");
     for (TabletServerStatus tserverInfo : Monitor.getMmi().getTServerInfo()) {
       ScanStats stats = scans.get(tserverInfo.name);
-      long count = 0;
-      long oldest = 0;
       if (stats != null) {
-        count = stats.scanCount;
-        oldest = stats.oldestScan;
+        TableRow row = scanTable.prepareRow();
+        row.add(tserverInfo);
+        row.add(stats.scanCount);
+        row.add(stats.oldestScan);
+        scanTable.addRow(row);
       }
-      TableRow row = scanTable.prepareRow();
-      row.add(tserverInfo);
-      row.add(count);
-      row.add(oldest);
-      scanTable.addRow(row);
     }
     scanTable.generate(req, sb);
   }

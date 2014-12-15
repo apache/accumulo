@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.monitor.util.celltypes;
 
-import org.apache.accumulo.monitor.servlets.PreciseNumberType;
-
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -30,6 +28,8 @@ public class PreciseNumberTypeTest {
     assertEquals("<span class='error'>1</span>", p.format(1));
     assertEquals("<span class='warning'>5,005</span>", p.format(5005));
     assertEquals("<span class='error'>10,000</span>", p.format(10000));
+    assertEquals("-", p.format(null));
+    assertEquals("3,000", p.format(Long.valueOf(3000L)));
   }
   
 }
