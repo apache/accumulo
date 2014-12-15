@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import org.junit.Test;
 /**
  *
  */
-public class CreateTableWithNewTableConfigIT extends SimpleMacIT {
+public class CreateTableWithNewTableConfigIT extends SharedMiniClusterIT {
   static private final Logger log = Logger.getLogger(CreateTableWithNewTableConfigIT.class);
 
   @Override
