@@ -23,14 +23,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.htrace.HTraceConfiguration;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * Find a Span collector via zookeeper and push spans there via Thrift RPC
@@ -45,6 +51,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   boolean pathExists = false;
   final Random random = new Random();
   final List<String> hosts = new ArrayList<String>();
+  long retryPause = 5000l;
 
   public ZooTraceClient() {
     super();
@@ -52,6 +59,11 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
 
   public ZooTraceClient(long millis) {
     super(millis);
+  }
+
+  // Visibile for testing
+  protected void setRetryPause(long pause) {
+    retryPause = pause;
   }
 
   @Override
@@ -72,21 +84,48 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
     int timeout = conf.getInt(DistributedTrace.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
     zoo = new ZooReader(keepers, timeout);
     path = conf.get(DistributedTrace.TRACER_ZK_PATH, Constants.ZTRACERS);
-    process(null);
+    setInitialTraceHosts();
   }
 
   @Override
   public void process(WatchedEvent event) {
     log.debug("Processing event for trace server zk watch");
     try {
-      if (pathExists || zoo.exists(path)) {
-        pathExists = true;
-        updateHosts(path, zoo.getChildren(path, this));
-      } else {
-        zoo.exists(path, this);
-      }
+      updateHostsFromZooKeeper();
     } catch (Exception ex) {
       log.error("unable to get destination hosts in zookeeper", ex);
+    }
+  }
+
+  protected void setInitialTraceHosts() {
+    // Make a single thread pool with a daemon thread
+    final ScheduledExecutorService svc = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build());
+    final Runnable task = new Runnable() {
+      @Override
+      public void run() {
+        try {
+          updateHostsFromZooKeeper();
+          log.info("Successfully initialized tracer hosts from ZooKeeper");
+          // Once this passes, we can issue a shutdown of the pool
+          svc.shutdown();
+        } catch (Exception e) {
+          log.error("Unabled to get destination tracer hosts in ZooKeeper, will retry in 5 seconds", e);
+          // We failed to connect to ZK, try again in 5seconds
+          svc.schedule(this, retryPause, TimeUnit.MILLISECONDS);
+        }
+      }
+    };
+
+    // Start things off
+    task.run();
+  }
+
+  protected void updateHostsFromZooKeeper() throws KeeperException, InterruptedException {
+    if (pathExists || zoo.exists(path)) {
+      pathExists = true;
+      updateHosts(path, zoo.getChildren(path, this));
+    } else {
+      zoo.exists(path, this);
     }
   }
 
