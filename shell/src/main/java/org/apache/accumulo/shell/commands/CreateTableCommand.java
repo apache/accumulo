@@ -19,12 +19,14 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -40,6 +42,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 
 public class CreateTableCommand extends Command {
@@ -52,12 +55,14 @@ public class CreateTableCommand extends Command {
   private Option createTableOptEVC;
   private Option base64Opt;
   private Option createTableOptFormatter;
+  private Option createTableOptInitProp;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException, IOException, ClassNotFoundException {
 
     final String testTableName = cl.getArgs()[0];
+    final HashMap<String,String> props = new HashMap<String,String>();
 
     if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
       shellState.getReader().println("Only letters, numbers and underscores are allowed for use in table names.");
@@ -93,8 +98,16 @@ public class CreateTableCommand extends Command {
       timeType = TimeType.LOGICAL;
     }
 
+    if (cl.hasOption(createTableOptInitProp.getOpt())) {
+      String[] keyVals = StringUtils.split(cl.getOptionValue(createTableOptInitProp.getOpt()), ',');
+      for (String keyVal : keyVals) {
+        String[] sa = StringUtils.split(keyVal, '=');
+        props.put(sa[0], sa[1]);
+      }
+    }
+
     // create table
-    shellState.getConnector().tableOperations().create(tableName, true, timeType);
+    shellState.getConnector().tableOperations().create(tableName, new NewTableConfiguration().setTimeType(timeType).setProperties(props));
     if (partitions.size() > 0) {
       shellState.getConnector().tableOperations().addSplits(tableName, partitions);
     }
@@ -134,7 +147,6 @@ public class CreateTableCommand extends Command {
 
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
-
     return 0;
   }
 
@@ -161,11 +173,13 @@ public class CreateTableCommand extends Command {
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevent users from writing data they cannot read.  When enabling this, consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
+    createTableOptInitProp = new Option("prop", "init-properties", true, "user defined initial properties");
 
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
+    createTableOptInitProp.setArgName("properties");
 
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive
@@ -187,6 +201,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableNoDefaultIters);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
+    o.addOption(createTableOptInitProp);
 
     return o;
   }

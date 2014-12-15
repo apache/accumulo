@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -69,7 +70,7 @@ public class MockTableOperationsTest {
     String t = "tableName1";
 
     {
-      conn.tableOperations().create(t, false, TimeType.LOGICAL);
+      conn.tableOperations().create(t, new NewTableConfiguration().withoutDefaultIterators().setTimeType(TimeType.LOGICAL));
 
       writeVersionable(conn, t, 3);
       assertVersionable(conn, t, 3);
@@ -83,7 +84,7 @@ public class MockTableOperationsTest {
     }
 
     {
-      conn.tableOperations().create(t, true, TimeType.MILLIS);
+      conn.tableOperations().create(t, new NewTableConfiguration().setTimeType(TimeType.MILLIS));
 
       try {
         IteratorSetting settings = new IteratorSetting(20, VersioningIterator.class);

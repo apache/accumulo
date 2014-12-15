@@ -28,6 +28,7 @@ import java.util.SortedSet;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
@@ -83,7 +84,9 @@ public interface TableOperations {
    *           if the user does not have permission
    * @throws TableExistsException
    *           if the table already exists
+   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
+  @Deprecated
   void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
@@ -99,8 +102,27 @@ public interface TableOperations {
    *           if the user does not have permission
    * @throws TableExistsException
    *           if the table already exists
+   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
+  @Deprecated
   void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param ntc
+   *          specifies the new table's configuration variable, which are: 1. enable/disable the versioning iterator, which will limit the number of Key
+   *          versions kept; 2. specifies logical or real-time based time recording for entries in the table; 3. user defined properties to be merged into the
+   *          initial properties of the table
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws TableExistsException
+   *           if the table already exists
+   * @since 1.7.0
+   */
+  void create(String tableName, NewTableConfiguration ntc) throws AccumuloSecurityException, AccumuloException, TableExistsException;
 
   /**
    * Imports a table exported via exportTable and copied via hadoop distcp.

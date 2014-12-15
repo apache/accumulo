@@ -56,6 +56,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -175,7 +176,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    create(tableName, true, TimeType.MILLIS);
+    create(tableName, new NewTableConfiguration());
   }
 
   /**
@@ -185,6 +186,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
    */
   @Override
+  @Deprecated
   public void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, limitVersion, TimeType.MILLIS);
   }
@@ -198,17 +200,36 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
    */
   @Override
+  @Deprecated
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(timeType != null, "timeType is null");
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(timeType.name().getBytes(UTF_8)));
+    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
 
-    Map<String,String> opts;
     if (limitVersion)
-      opts = IteratorUtil.generateInitialTableProperties(limitVersion);
+      create(tableName, ntc);
     else
-      opts = Collections.emptyMap();
+      create(tableName, ntc.withoutDefaultIterators());
+  }
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param ntc
+   *          specifies the new table's configuration. It determines whether the versioning iterator is enabled or disabled, logical or real-time based time
+   *          recording for entries in the table
+   * 
+   */
+  @Override
+  public void create(String tableName, NewTableConfiguration ntc) throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(ntc != null, "ntc is null");
+
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
+        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
+
+    Map<String,String> opts = ntc.getProperties();
 
     try {
       doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_CREATE, args, opts);

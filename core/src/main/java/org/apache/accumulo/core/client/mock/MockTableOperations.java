@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -62,6 +63,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Preconditions;
+
 class MockTableOperations extends TableOperationsHelper {
   private static final Logger log = Logger.getLogger(MockTableOperations.class);
   private static final byte[] ZERO = {0};
@@ -89,27 +92,35 @@ class MockTableOperations extends TableOperationsHelper {
 
   @Override
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    create(tableName, true, TimeType.MILLIS);
+    create(tableName, new NewTableConfiguration());
   }
 
   @Override
+  @Deprecated
   public void create(String tableName, boolean versioningIter) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, versioningIter, TimeType.MILLIS);
   }
 
   @Override
+  @Deprecated
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
+
+    if (versioningIter)
+      create(tableName, ntc);
+    else
+      create(tableName, ntc.withoutDefaultIterators());
+  }
+
+  @Override
+  public void create(String tableName, NewTableConfiguration ntc) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     String namespace = Tables.qualify(tableName).getFirst();
-    if (!tableName.matches(Tables.VALID_NAME_REGEX)) {
-      throw new IllegalArgumentException();
-    }
+
+    Preconditions.checkArgument(tableName.matches(Tables.VALID_NAME_REGEX));
     if (exists(tableName))
       throw new TableExistsException(tableName, tableName, "");
-
-    if (!namespaceExists(namespace)) {
-      throw new IllegalArgumentException("Namespace (" + namespace + ") does not exist, create it first");
-    }
-    acu.createTable(username, tableName, versioningIter, timeType);
+    Preconditions.checkArgument(namespaceExists(namespace), "Namespace (" + namespace + ") does not exist, create it first");
+    acu.createTable(username, tableName, ntc.getTimeType(), ntc.getProperties());
   }
 
   @Override

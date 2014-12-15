@@ -71,6 +71,7 @@ import org.apache.hadoop.tools.DistCp;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -436,7 +437,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("users", true, "xyzzy", false);
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void durability() throws Exception {
     final String table = name.getMethodName();
     ts.exec("createtable " + table);
@@ -703,6 +704,32 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
+  }
+
+  @Test
+  public void createTableWithProperties() throws Exception {
+    final String table = name.getMethodName();
+
+    // create table with initial properties
+    String testProp = "table.custom.description=description,table.custom.testProp=testProp," + Property.TABLE_SPLIT_THRESHOLD.getKey() + "=10K";
+
+    ts.exec("createtable " + table + " -prop " + testProp, true);
+    ts.exec("insert a b c value", true);
+    ts.exec("scan", true, "value", true);
+
+    Connector connector = getConnector();
+    for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
+      if (entry.getKey().equals("table.custom.description"))
+        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("description"));
+
+      if (entry.getKey().equals("table.custom.testProp"))
+        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("testProp"));
+      
+      if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
+        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
+
+    }
+    ts.exec("deletetable -f " + table);
   }
 
   @Test

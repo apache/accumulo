@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -227,11 +228,11 @@ public class CyclicReplicationIT {
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(master1Cluster.getInstanceName(), master1Cluster.getZooKeepers())));
 
-      connMaster1.tableOperations().create(master1Table, false);
+      connMaster1.tableOperations().create(master1Table, new NewTableConfiguration().withoutDefaultIterators());
       String master1TableId = connMaster1.tableOperations().tableIdMap().get(master1Table);
       Assert.assertNotNull(master1TableId);
 
-      connMaster2.tableOperations().create(master2Table, false);
+      connMaster2.tableOperations().create(master2Table, new NewTableConfiguration().withoutDefaultIterators());
       String master2TableId = connMaster2.tableOperations().tableIdMap().get(master2Table);
       Assert.assertNotNull(master2TableId);
 

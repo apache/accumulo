@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -180,7 +181,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName, false);
+    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
 
     String tableId = connector.tableOperations().tableIdMap().get(tableName);
 

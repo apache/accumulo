@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -87,7 +88,7 @@ public class MiniAccumuloClusterTest {
   public void test() throws Exception {
     Connector conn = accumulo.getConnector("root", "superSecret");
 
-    conn.tableOperations().create("table1", true);
+    conn.tableOperations().create("table1", new NewTableConfiguration());
 
     conn.securityOperations().createLocalUser("user1", new PasswordToken("pass1"));
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));

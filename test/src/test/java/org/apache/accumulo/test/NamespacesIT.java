@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -489,7 +490,7 @@ public class NamespacesIT extends AccumuloIT {
   public void verifyConstraintInheritance() throws Exception {
     String t1 = namespace + ".1";
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t1, false);
+    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaultIterators());
     String constraintClassName = NumericValueConstraint.class.getName();
 
     assertFalse(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));

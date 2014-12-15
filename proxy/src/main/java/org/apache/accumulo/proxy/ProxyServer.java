@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -119,7 +120,7 @@ import com.google.common.cache.RemovalNotification;
  */
 public class ProxyServer implements AccumuloProxy.Iface {
   
-  private static final Logger logger = Logger.getLogger(ProxyServer.class);
+  public static final Logger logger = Logger.getLogger(ProxyServer.class);
   protected Instance instance;
   
   protected Class<? extends AuthenticationToken> tokenClass;
@@ -383,7 +384,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (type == null)
         type = org.apache.accumulo.proxy.thrift.TimeType.MILLIS;
       
-      getConnector(login).tableOperations().create(tableName, versioningIter, TimeType.valueOf(type.toString()));
+      NewTableConfiguration tConfig = new NewTableConfiguration().setTimeType(TimeType.valueOf(type.toString()));
+      if (!versioningIter)
+        tConfig = tConfig.withoutDefaultIterators();
+      getConnector(login).tableOperations().create(tableName, tConfig);
     } catch (TableExistsException e) {
       throw new org.apache.accumulo.proxy.thrift.TableExistsException(e.toString());
     } catch (Exception e) {

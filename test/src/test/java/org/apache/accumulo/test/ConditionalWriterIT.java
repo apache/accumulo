@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -411,7 +412,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
 
-    conn.tableOperations().create(tableName, false);
+    conn.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
