@@ -20,7 +20,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class PreciseNumberTypeTest {
-  
+
   @Test
   public void test() {
     PreciseNumberType p = new PreciseNumberType(500, 5000, 100, 6000);
@@ -31,5 +31,5 @@ public class PreciseNumberTypeTest {
     assertEquals("-", p.format(null));
     assertEquals("3,000", p.format(Long.valueOf(3000L)));
   }
-  
+
 }
