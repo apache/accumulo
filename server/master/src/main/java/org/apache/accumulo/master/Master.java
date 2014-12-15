@@ -205,17 +205,17 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   static final boolean X = true;
-  static final boolean ⁔ = false; // use U+2054 because a single underscore is deprecated as an identifier in Java 8.
+  static final boolean O = false;
   // @formatter:off
   static final boolean transitionOK[][] = {
       //                              INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */                   {X,     X,        ⁔,        ⁔,      ⁔,         ⁔,          X},
-      /* HAVE_LOCK */                 {⁔,     X,        X,        X,      ⁔,         ⁔,          X},
-      /* SAFE_MODE */                 {⁔,     ⁔,        X,        X,      X,         ⁔,          X},
-      /* NORMAL */                    {⁔,     ⁔,        X,        X,      X,         ⁔,          X},
-      /* UNLOAD_METADATA_TABLETS */   {⁔,     ⁔,        X,        X,      X,         X,          X},
-      /* UNLOAD_ROOT_TABLET */        {⁔,     ⁔,        ⁔,        X,      X,         X,          X},
-      /* STOP */                      {⁔,     ⁔,        ⁔,        ⁔,      ⁔,         X,          X}};
+      /* INITIAL */                   {X,     X,        O,        O,      O,         O,          X},
+      /* HAVE_LOCK */                 {O,     X,        X,        X,      O,         O,          X},
+      /* SAFE_MODE */                 {O,     O,        X,        X,      X,         O,          X},
+      /* NORMAL */                    {O,     O,        X,        X,      X,         O,          X},
+      /* UNLOAD_METADATA_TABLETS */   {O,     O,        X,        X,      X,         X,          X},
+      /* UNLOAD_ROOT_TABLET */        {O,     O,        O,        X,      X,         X,          X},
+      /* STOP */                      {O,     O,        O,        O,      O,         X,          X}};
   //@formatter:on
   synchronized void setMasterState(MasterState newState) {
     if (state.equals(newState))
