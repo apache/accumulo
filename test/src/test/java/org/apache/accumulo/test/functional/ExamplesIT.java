@@ -169,10 +169,7 @@ public class ExamplesIT extends AccumuloClusterIT {
       count++;
     }
     assertTrue(count > 0);
-    pair = cluster.getClusterControl().execWithStdout(TracingExample.class,
-        new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c"});
-    Assert.assertEquals("Expected return code of zero. STDOUT=" + pair.getValue(), 0, pair.getKey().intValue());
-    assertTrue(pair.getValue().contains("myHost@myApp"));
+    assertTrue("Output did not contain myApp@myHost", pair.getValue().contains("myApp@myHost"));
     if (ClusterType.MINI == getClusterType() && null != trace) {
       trace.destroy();
     }
