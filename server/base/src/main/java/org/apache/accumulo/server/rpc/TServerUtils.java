@@ -110,7 +110,7 @@ public class TServerUtils {
             // Note: with a TNonblockingServerSocket a "port taken" exception is a cause-less
             // TTransportException, and with a TSocket created by TSSLTransportFactory, it
             // comes through as caused by a BindException.
-            log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
+            log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
             UtilWaitThread.sleep(250);
           } else {
             // thrift is passing up a nested exception that isn't a BindException,
@@ -145,7 +145,7 @@ public class TServerUtils {
       public void run() {
         if (pool.getCorePoolSize() <= pool.getActiveCount()) {
           int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-          log.info("Increasing server thread pool size on " + serverName + " to " + larger);
+          log.info("Increasing server thread pool size on {} to {}", serverName, larger);
           pool.setMaximumPoolSize(larger);
           pool.setCorePoolSize(larger);
         } else {
@@ -156,7 +156,7 @@ public class TServerUtils {
               // we decrease the core pool size... so the active count could end up higher than
               // the core pool size, in which case everything will be queued... the increase case
               // should handle this and prevent deadlock
-              log.info("Decreasing server thread pool size on " + serverName + " to " + smaller);
+              log.info("Decreasing server thread pool size on {} to {}", serverName, smaller);
               pool.setCorePoolSize(smaller);
             }
           }
@@ -251,7 +251,7 @@ public class TServerUtils {
       ExecutorService es = (ExecutorService) f.get(s);
       es.shutdownNow();
     } catch (Exception e) {
-      TServerUtils.log.error("Unable to call shutdownNow", e);
+      log.error("Unable to call shutdownNow", e);
     }
   }
 }

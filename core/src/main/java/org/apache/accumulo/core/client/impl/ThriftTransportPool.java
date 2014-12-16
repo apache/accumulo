@@ -34,9 +34,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -53,7 +54,7 @@ public class ThriftTransportPool {
 
   private CountDownLatch closerExitLatch;
 
-  private static final Logger log = Logger.getLogger(ThriftTransportPool.class);
+  private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
 
   private static final Long ERROR_THRESHOLD = 20l;
   private static final int STUCK_THRESHOLD = 2 * 60 * 1000;
@@ -175,9 +176,8 @@ public class ThriftTransportPool {
         lastIoCount = -1;
       } else {
         if ((ioCount & 1) == 1) {
-          // connection unreserved, but it seems io may still be
-          // happening
-          log.warn("Connection returned to thrift connection pool that may still be in use " + ioThreadName + " " + Thread.currentThread().getName(),
+          // connection unreserved, but it seems io may still be happening
+          log.warn("Connection returned to thrift connection pool that may still be in use {} {}", ioThreadName, Thread.currentThread().getName(),
               new Exception());
         }
 
@@ -204,7 +204,7 @@ public class ThriftTransportPool {
           long delta = System.currentTimeMillis() - ioStartTime;
           if (delta >= threshold && stuckThreadName == null) {
             stuckThreadName = ioThreadName;
-            log.warn("Thread \"" + ioThreadName + "\" stuck on IO  to " + cacheKey + " for at least " + delta + " ms");
+            log.warn("Thread \"{}\" stuck on IO to {} for at least {} ms", ioThreadName, cacheKey, delta);
           }
         } else {
           // remember this ioCount and the time we saw it, need to see
@@ -214,7 +214,7 @@ public class ThriftTransportPool {
 
           if (stuckThreadName != null) {
             // doing I/O, but ioCount changed so no longer stuck
-            log.info("Thread \"" + stuckThreadName + "\" no longer stuck on IO  to " + cacheKey + " sawError = " + sawError);
+            log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName, cacheKey, sawError);
             stuckThreadName = null;
           }
         }
@@ -222,7 +222,7 @@ public class ThriftTransportPool {
         // I/O is not currently happening
         if (stuckThreadName != null) {
           // no longer stuck, and was stuck in the past
-          log.info("Thread \"" + stuckThreadName + "\" no longer stuck on IO  to " + cacheKey + " sawError = " + sawError);
+          log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName, cacheKey, sawError);
           stuckThreadName = null;
         }
       }
@@ -406,8 +406,7 @@ public class ThriftTransportPool {
       for (CachedConnection cachedConnection : ccl) {
         if (!cachedConnection.isReserved()) {
           cachedConnection.setReserved(true);
-          if (log.isTraceEnabled())
-            log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+          log.trace("Using existing connection to {}:{}", cacheKey.getLocation(), cacheKey.getPort());
           return cachedConnection.transport;
         }
       }
@@ -436,8 +435,7 @@ public class ThriftTransportPool {
             for (CachedConnection cachedConnection : getCache().get(ttk)) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
-                if (log.isTraceEnabled())
-                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort());
+                log.trace("Using existing connection to {}:{}", ttk.getLocation(), ttk.getPort());
                 return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
               }
             }
@@ -458,8 +456,7 @@ public class ThriftTransportPool {
             for (CachedConnection cachedConnection : cachedConnList) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
-                if (log.isTraceEnabled())
-                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort() + " timeout " + ttk.getTimeout());
+                log.trace("Using existing connection to {}:{} timeout {}", ttk.getLocation(), ttk.getPort(), ttk.getTimeout());
                 return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
               }
             }
@@ -483,8 +480,7 @@ public class ThriftTransportPool {
     TTransport transport = ThriftUtil.createClientTransport(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), (int) cacheKey.getTimeout(),
         cacheKey.getSslParams());
 
-    if (log.isTraceEnabled())
-      log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+    log.trace("Creating new connection to connection to {}:{}", cacheKey.getLocation(), cacheKey.getPort());
 
     CachedTTransport tsc = new CachedTTransport(transport, cacheKey);
 
@@ -528,8 +524,7 @@ public class ThriftTransportPool {
             closeList.add(cachedConnection);
             iterator.remove();
 
-            if (log.isTraceEnabled())
-              log.trace("Returned connection had error " + ctsc.getCacheKey());
+            log.trace("Returned connection had error {}", ctsc.getCacheKey());
 
             Long ecount = errorCount.get(ctsc.getCacheKey());
             if (ecount == null)
@@ -543,16 +538,14 @@ public class ThriftTransportPool {
             }
 
             if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.contains(ctsc.getCacheKey())) {
-              log.warn("Server " + ctsc.getCacheKey() + " had " + ecount + " failures in a short time period, will not complain anymore ");
+              log.warn("Server {} had {} failures in a short time period, will not complain anymore", ctsc.getCacheKey(), ecount);
               serversWarnedAbout.add(ctsc.getCacheKey());
             }
 
             cachedConnection.setReserved(false);
 
           } else {
-
-            if (log.isTraceEnabled())
-              log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount);
+            log.trace("Returned connection {} ioCount: {}", ctsc.getCacheKey(), cachedConnection.transport.ioCount);
 
             cachedConnection.lastReturnTime = System.currentTimeMillis();
             cachedConnection.setReserved(false);
@@ -595,7 +588,7 @@ public class ThriftTransportPool {
    */
   public synchronized void setIdleTime(long time) {
     this.killTime = time;
-    log.debug("Set thrift transport pool idle time to " + time);
+    log.debug("Set thrift transport pool idle time to {}", time);
   }
 
   private static ThriftTransportPool instance = new ThriftTransportPool();
