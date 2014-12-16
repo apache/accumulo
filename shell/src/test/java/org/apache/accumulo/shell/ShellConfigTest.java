@@ -73,9 +73,9 @@ public class ShellConfigTest {
   }
   
   @Test
-  public void testToken() {
+  public void testTokenWithoutOptions() {
     assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName()));
-    assertTrue(output.get().contains(ParameterException.class.getCanonicalName()));
+    assertFalse(output.get().contains(ParameterException.class.getCanonicalName()));
   }
   
   @Test
