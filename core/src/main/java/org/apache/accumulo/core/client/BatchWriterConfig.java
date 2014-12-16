@@ -180,16 +180,17 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
-   * Change the durability for the BatchWriter session. The default durability is "default" which 
+   * Change the durability for the BatchWriter session. The default durability is "default" which
    * is the table's durability setting.  If the durability is set to something other than the default,
    * it will override the durability setting of the table.
-   * 
+   *
    * @param durability the Durability to be used by the BatchWriter
    * @since 1.7.0
    *
    */
-  public void setDurability(Durability durability) {
+  public BatchWriterConfig setDurability(Durability durability) {
     this.durability = durability;
+    return this;
   }
 
   @Override
