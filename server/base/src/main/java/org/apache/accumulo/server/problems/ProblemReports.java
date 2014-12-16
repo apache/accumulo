@@ -53,12 +53,13 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProblemReports implements Iterable<ProblemReport> {
-  
-  private static final Logger log = Logger.getLogger(ProblemReports.class);
-  
+
+  private static final Logger log = LoggerFactory.getLogger(ProblemReports.class);
+
   private final LRUMap problemReports = new LRUMap(1000);
   
   /*

@@ -230,18 +230,19 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
-  private static final Logger log = Logger.getLogger(TabletServer.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
@@ -325,7 +326,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             try {
               tablet.updateRates(now);
             } catch (Exception ex) {
-              log.error(ex, ex);
+              log.error("Error updating rates for {}", tablet.getExtent(), ex);
             }
         }
       }
@@ -561,7 +562,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         if (!security.userHasAuthorizations(credentials, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
       } catch (ThriftSecurityException tse) {
-        log.error(tse, tse);
+        log.error("{} is not authorized", credentials.getPrincipal(), tse);
         throw tse;
       }
       Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, new TKeyExtentTranslator(), new Translator.ListTranslator<TRange,Range>(
@@ -985,7 +986,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             }
             break;
           } catch (IOException ex) {
-            log.warn(ex, ex);
+            log.warn("Error writing mutations to log", ex);
           }
         }
 
@@ -1357,7 +1358,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (ThriftSecurityException e) {
         log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
         if (getCredentials().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
-          log.fatal("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
+          log.error("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
           fatal = true;
         }
         throw e;
@@ -1412,7 +1413,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, lock, "loadTablet");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to load a tablet", e);
         throw new RuntimeException(e);
       }
 
@@ -1493,7 +1494,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, lock, "unloadTablet");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to unload a tablet", e);
         throw new RuntimeException(e);
       }
 
@@ -1507,7 +1508,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, lock, "flush");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to flush a table", e);
         throw new RuntimeException(e);
       }
 
@@ -1544,7 +1545,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, lock, "flushTablet");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to flush a tablet", e);
         throw new RuntimeException(e);
       }
 
@@ -1573,7 +1574,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           try {
             tabletServerLock.unlock();
           } catch (Exception e) {
-            log.error(e, e);
+            log.error("Caught exception unlocking TabletServer lock", e);
           }
         }
       });
@@ -1598,7 +1599,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, null, "getScans");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to get active scans", e);
         throw e;
       }
 
@@ -1610,7 +1611,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, lock, "chop");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to chop extent", e);
         throw new RuntimeException(e);
       }
 
@@ -1627,7 +1628,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, lock, "compact");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to compact a table", e);
         throw new RuntimeException(e);
       }
 
@@ -1722,7 +1723,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         checkPermission(credentials, null, "getActiveCompactions");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
+        log.error("Caller doesn't have permission to get active compactions", e);
         throw e;
       }
 
@@ -2323,7 +2324,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             @Override
             public void run() {
               if (!serverStopRequested)
-                log.fatal("Lost tablet server lock (reason = " + reason + "), exiting.");
+                log.error("Lost tablet server lock (reason = " + reason + "), exiting.");
               gcLogger.logGCInfo(getConfiguration());
             }
           });
@@ -2334,7 +2335,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           Halt.halt(0, new Runnable() {
             @Override
             public void run() {
-              log.fatal("Lost ability to monitor tablet server lock, exiting.", e);
+              log.error("Lost ability to monitor tablet server lock, exiting.", e);
             }
           });
 

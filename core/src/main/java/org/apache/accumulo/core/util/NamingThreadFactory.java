@@ -20,11 +20,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.trace.wrappers.TraceRunnable;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NamingThreadFactory implements ThreadFactory {
-  private static final Logger log = Logger.getLogger(NamingThreadFactory.class);
-  
+  private static final Logger log = LoggerFactory.getLogger(NamingThreadFactory.class);
+
   private AtomicInteger threadNum = new AtomicInteger(1);
   private String name;
   

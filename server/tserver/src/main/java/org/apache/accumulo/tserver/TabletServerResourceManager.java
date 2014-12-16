@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,9 +60,8 @@ import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.log4j.Logger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
@@ -70,7 +71,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class TabletServerResourceManager {
 
-  private static final Logger log = Logger.getLogger(TabletServerResourceManager.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerResourceManager.class);
 
   private final ExecutorService minorCompactionThreadPool;
   private final ExecutorService majorCompactionThreadPool;
@@ -123,7 +124,7 @@ public class TabletServerResourceManager {
             tp.setMaximumPoolSize(max);
           }
         } catch (Throwable t) {
-          log.error(t, t);
+          log.error("Failed to change thread pool size", t);
         }
       }
 
@@ -227,7 +228,7 @@ public class TabletServerResourceManager {
    * exceed a threshold. If the time is exceeded a warning is printed and a stack trace is logged for the running assignment.
    */
   protected static class AssignmentWatcher implements Runnable {
-    private static final Logger log = Logger.getLogger(AssignmentWatcher.class);
+    private static final Logger log = LoggerFactory.getLogger(AssignmentWatcher.class);
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
     private final AccumuloConfiguration conf;
@@ -385,7 +386,7 @@ public class TabletServerResourceManager {
           }
 
         } catch (InterruptedException e) {
-          log.warn(e, e);
+          log.warn("Interrupted processing tablet memory statistics", e);
         }
       }
     }
@@ -513,7 +514,7 @@ public class TabletServerResourceManager {
             break;
           log.info("Waiting for thread pool " + entry.getKey() + " to shutdown");
         } catch (InterruptedException e) {
-          log.warn(e);
+          log.warn("Interrupted waiting for executor to terminate", e);
         }
       }
     }
@@ -744,7 +745,7 @@ public class TabletServerResourceManager {
         }
         break;
       } catch (InterruptedException ex) {
-        log.info(ex, ex);
+        log.info("Interrupted waiting for splits executor to terminate", ex);
       }
     }
   }
@@ -758,7 +759,7 @@ public class TabletServerResourceManager {
         }
         break;
       } catch (InterruptedException ex) {
-        log.info(ex, ex);
+        log.info("Interrupted waiting for assignment executor to terminate", ex);
       }
     }
   }
@@ -772,7 +773,7 @@ public class TabletServerResourceManager {
         }
         break;
       } catch (InterruptedException ex) {
-        log.info(ex, ex);
+        log.info("Interrupted waiting for metadata assignment executor to terminate", ex);
       }
     }
   }

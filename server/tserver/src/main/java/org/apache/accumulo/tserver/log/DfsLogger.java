@@ -42,9 +42,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -67,7 +64,11 @@ import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 
 /**
  * Wrap a connection to a logger.
@@ -77,7 +78,7 @@ public class DfsLogger {
   public static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
 
-  private static final Logger log = Logger.getLogger(DfsLogger.class);
+  private static final Logger log = LoggerFactory.getLogger(DfsLogger.class);
 
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;
@@ -517,7 +518,7 @@ public class DfsLogger {
       try {
         logFile.close();
       } catch (IOException ex) {
-        log.error(ex);
+        log.error("Failed to close log file", ex);
         throw new LogClosedException();
       }
   }
@@ -557,7 +558,7 @@ public class DfsLogger {
       } catch (ClosedChannelException ex) {
         throw new LogClosedException();
       } catch (Exception e) {
-        log.error(e, e);
+        log.error("Failed to write log entries", e);
         work.exception = e;
       }
     }

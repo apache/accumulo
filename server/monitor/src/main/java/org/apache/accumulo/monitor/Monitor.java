@@ -90,8 +90,9 @@ import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -99,7 +100,7 @@ import com.google.common.net.HostAndPort;
  * Serve master statistics with an embedded web server.
  */
 public class Monitor {
-  private static final Logger log = Logger.getLogger(Monitor.class);
+  private static final Logger log = LoggerFactory.getLogger(Monitor.class);
 
   private static final int REFRESH_TIME = 5;
   private static long lastRecalc = 0L;
@@ -551,7 +552,7 @@ public class Monitor {
           allScans.put(server, new ScanStats(scans));
         }
       } catch (Exception ex) {
-        log.debug(ex, ex);
+        log.debug("Failed to get active scans from {}", server, ex);
       } finally {
         ThriftUtil.returnClient(tserver);
       }
@@ -643,7 +644,7 @@ public class Monitor {
       Halt.halt(-1, new Runnable() {
         @Override
         public void run() {
-          log.fatal("No longer able to monitor Monitor lock node", e);
+          log.error("No longer able to monitor Monitor lock node", e);
         }
       });
 

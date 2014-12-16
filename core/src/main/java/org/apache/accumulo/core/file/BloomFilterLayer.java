@@ -59,14 +59,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.bloom.Key;
 import org.apache.hadoop.util.hash.Hash;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A class that sits on top of different accumulo file formats and provides bloom filter functionality.
  * 
  */
 public class BloomFilterLayer {
-  private static final Logger LOG = Logger.getLogger(BloomFilterLayer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;
   

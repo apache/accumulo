@@ -68,13 +68,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TServiceClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BulkImporter {
-  
-  private static final Logger log = Logger.getLogger(BulkImporter.class);
-  
+
+  private static final Logger log = LoggerFactory.getLogger(BulkImporter.class);
+
   public static List<String> bulkLoad(ClientContext context, long tid, String tableId, List<String> files, String errorDir, boolean setTime)
       throws IOException, AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
     AssignmentStats stats = new BulkImporter(context, tid, tableId, setTime).importFiles(files, new Path(errorDir));

@@ -81,11 +81,12 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
   
@@ -94,9 +95,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
   }
-  
-  private static final Logger log = Logger.getLogger(ConditionalWriterImpl.class);
-  
+
+  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
+
   private static final int MAX_SLEEP = 30000;
   
   private Authorizations auths;

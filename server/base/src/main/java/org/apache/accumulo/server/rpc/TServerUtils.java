@@ -36,18 +36,19 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class TServerUtils {
-  private static final Logger log = Logger.getLogger(TServerUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(TServerUtils.class);
 
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
 
