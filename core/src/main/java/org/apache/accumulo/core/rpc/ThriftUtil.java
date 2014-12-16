@@ -18,20 +18,12 @@ package org.apache.accumulo.core.rpc;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.KeyStore;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -44,101 +36,168 @@ import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TMessage;
-import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSSLTransportFactory;
-import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
+/**
+ * Factory methods for creating Thrift client objects
+ */
 public class ThriftUtil {
   private static final Logger log = Logger.getLogger(ThriftUtil.class);
 
-  public static class TraceProtocol extends TCompactProtocol {
-    private Span span = null;
+  private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
+  private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
+  private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
 
-    @Override
-    public void writeMessageBegin(TMessage message) throws TException {
-      span = Trace.start("client:" + message.name);
-      super.writeMessageBegin(message);
-    }
-
-    @Override
-    public void writeMessageEnd() throws TException {
-      super.writeMessageEnd();
-      span.stop();
-    }
-
-    public TraceProtocol(TTransport transport) {
-      super(transport);
-    }
+  /**
+   * An instance of {@link TraceProtocolFactory}
+   *
+   * @return The default Thrift TProtocolFactory for RPC
+   */
+  public static TProtocolFactory protocolFactory() {
+    return protocolFactory;
   }
 
-  public static class TraceProtocolFactory extends TCompactProtocol.Factory {
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public TProtocol getProtocol(TTransport trans) {
-      return new TraceProtocol(trans);
-    }
+  /**
+   * An instance of {@link TFramedTransport.Factory}
+   *
+   * @return The default Thrift TTransportFactory for RPC
+   */
+  public static TTransportFactory transportFactory() {
+    return transportFactory;
   }
 
-  static private TProtocolFactory protocolFactory = new TraceProtocolFactory();
-  static private TTransportFactory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
-
-  static public <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory, TTransport transport) {
+  /**
+   * Create a Thrift client using the given factory and transport
+   */
+  public static <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory, TTransport transport) {
     return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context) throws TTransportException {
-    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, context));
+  /**
+   * Create a Thrift client using the given factory with a pooled transport (if available), the address and client context
+   *
+   * @param factory
+   *          Thrift client factory
+   * @param address
+   *          Server address for client to connect to
+   * @param context
+   *          RPC options
+   */
+  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context) throws TTransportException {
+    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address.toString(), context));
   }
 
-  static public <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, ClientContext context)
+  /**
+   * Create a Thrift client using the given factory with a pooled transport (if available), the address, and client context with no timeout.
+   *
+   * @param factory
+   *          Thrift client factory
+   * @param address
+   *          Server address for client to connect to
+   * @param context
+   *          RPC options
+   */
+  public static <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, ClientContext context)
       throws TTransportException {
     return getClient(factory, address, context, 0);
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context) throws TTransportException {
+  /**
+   * Create a Thrift client using the given factory with a pooled transport (if available), the address and client context. Client timeout is extracted from the
+   * ClientContext
+   *
+   * @param factory
+   *          Thrift client factory
+   * @param address
+   *          Server address for client to connect to
+   * @param context
+   *          RPC options
+   */
+  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context) throws TTransportException {
     TTransport transport = ThriftTransportPool.getInstance().getTransport(address, context.getClientTimeoutInMillis(), context);
     return createClient(factory, transport);
   }
 
-  static private <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context, long timeout)
+  /**
+   * Create a Thrift client using the given factory with a pooled transport (if available) using the address, client context and timeou
+   *
+   * @param factory
+   *          Thrift client factory
+   * @param address
+   *          Server address for client to connect to
+   * @param context
+   *          RPC options
+   * @param timeout
+   *          Socket timeout which overrides the ClientContext timeout
+   */
+  private static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context, long timeout)
       throws TTransportException {
     TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, context);
     return createClient(factory, transport);
   }
 
-  static public void returnClient(TServiceClient iface) { // Eew... the typing here is horrible
+  /**
+   * Return the transport used by the client to the shared pool.
+   *
+   * @param iface
+   *          The Client being returned or null.
+   */
+  public static void returnClient(TServiceClient iface) { // Eew... the typing here is horrible
     if (iface != null) {
       ThriftTransportPool.getInstance().returnTransport(iface.getInputProtocol().getTransport());
     }
   }
 
-  static public TabletClientService.Client getTServerClient(String address, ClientContext context) throws TTransportException {
+  /**
+   * Create a TabletServer Thrift client
+   *
+   * @param address
+   *          Server address for client to connect to
+   * @param context
+   *          RPC options
+   */
+  public static TabletClientService.Client getTServerClient(String address, ClientContext context) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context);
   }
 
-  static public TabletClientService.Client getTServerClient(String address, ClientContext context, long timeout) throws TTransportException {
+  /**
+   * Create a TabletServer Thrift client
+   *
+   * @param address
+   *          Server address for client to connect to
+   * @param context
+   *          Options for connecting to the server
+   * @param timeout
+   *          Socket timeout which overrides the ClientContext timeout
+   */
+  public static TabletClientService.Client getTServerClient(String address, ClientContext context, long timeout) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context, timeout);
   }
 
+  /**
+   * Execute the provided closure against a TabletServer at the given address. If a Thrift transport exception occurs, the operation will be automatically
+   * retried.
+   *
+   * @param address
+   *          TabletServer address
+   * @param context
+   *          RPC options
+   * @param exec
+   *          The closure to execute
+   */
   public static void execute(String address, ClientContext context, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
@@ -160,6 +219,18 @@ public class ThriftUtil {
     }
   }
 
+  /**
+   * Execute the provided closure against the TabletServer at the given address, and return the result of the closure to the client. If a Thrift transport
+   * exception occurs, the operation will be automatically retried.
+   *
+   * @param address
+   *          TabletServer address
+   * @param context
+   *          RPC options
+   * @param exec
+   *          Closure with a return value to execute
+   * @return The result from the closure
+   */
   public static <T> T execute(String address, ClientContext context, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
@@ -181,19 +252,25 @@ public class ThriftUtil {
   }
 
   /**
-   * create a transport that is not pooled
+   * Create a transport that is not pooled
+   *
+   * @param address
+   *          Server address to open the transport to
+   * @param context
+   *          RPC options
    */
   public static TTransport createTransport(HostAndPort address, ClientContext context) throws TException {
     return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams());
   }
 
-  public static TTransportFactory transportFactory() {
-    return transportFactory;
-  }
-
-  private final static Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
-
-  synchronized public static TTransportFactory transportFactory(int maxFrameSize) {
+  /**
+   * Get an instance of the TTransportFactory with the provided maximum frame size
+   *
+   * @param maxFrameSize
+   *          Maximum Thrift message frame size
+   * @return A, possibly cached, TTransportFactory with the requested maximum frame size
+   */
+  public static synchronized TTransportFactory transportFactory(int maxFrameSize) {
     TTransportFactory factory = factoryCache.get(maxFrameSize);
     if (factory == null) {
       factory = new TFramedTransport.Factory(maxFrameSize);
@@ -202,47 +279,26 @@ public class ThriftUtil {
     return factory;
   }
 
-  synchronized public static TTransportFactory transportFactory(long maxFrameSize) {
+  /**
+   * @see #transportFactory(int)
+   */
+  public static synchronized TTransportFactory transportFactory(long maxFrameSize) {
     if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
       throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
     return transportFactory((int) maxFrameSize);
   }
 
-  public static TProtocolFactory protocolFactory() {
-    return protocolFactory;
-  }
-
-  public static TServerSocket getServerSocket(int port, int timeout, InetAddress address, SslConnectionParams params) throws TTransportException {
-    TServerSocket tServerSock;
-    if (params.useJsse()) {
-      tServerSock = TSSLTransportFactory.getServerSocket(port, timeout, params.isClientAuth(), address);
-    } else {
-      tServerSock = TSSLTransportFactory.getServerSocket(port, timeout, address, params.getTTransportParams());
-    }
-
-    ServerSocket serverSock = tServerSock.getServerSocket();
-    if (serverSock instanceof SSLServerSocket) {
-      SSLServerSocket sslServerSock = (SSLServerSocket) serverSock;
-      String[] protocols = params.getServerProtocols();
-
-      // Be nice for the user and automatically remove protocols that might not exist in their JVM. Keeps us from forcing config alterations too
-      // e.g. TLSv1.1 and TLSv1.2 don't exist in JDK6
-      Set<String> socketEnabledProtocols = new HashSet<String>(Arrays.asList(sslServerSock.getEnabledProtocols()));
-      // Keep only the enabled protocols that were specified by the configuration
-      socketEnabledProtocols.retainAll(Arrays.asList(protocols));
-      if (socketEnabledProtocols.isEmpty()) {
-        // Bad configuration...
-        throw new RuntimeException("No available protocols available for secure socket. Availaable protocols: "
-            + Arrays.toString(sslServerSock.getEnabledProtocols()) + ", allowed protocols: " + Arrays.toString(protocols));
-      }
-
-      // Set the protocol(s) on the server socket
-      sslServerSock.setEnabledProtocols(socketEnabledProtocols.toArray(new String[0]));
-    }
-
-    return tServerSock;
-  }
-
+  /**
+   * Create a TTransport for clients to the given address with the provided socket timeout and session-layer configuration
+   *
+   * @param address
+   *          Server address to connect to
+   * @param timeout
+   *          Client socket timeout
+   * @param sslParams
+   *          RPC options for SSL servers
+   * @return An open TTransport which must be closed when finished
+   */
   public static TTransport createClientTransport(HostAndPort address, int timeout, SslConnectionParams sslParams) throws TTransportException {
     boolean success = false;
     TTransport transport = null;
@@ -351,82 +407,6 @@ public class ThriftUtil {
       return new TSocket(socket);
     } catch (Exception e) {
       throw new TTransportException("Could not connect to " + host + " on port " + port, e);
-    }
-  }
-
-  /**
-   * JDK6's SSLSocketFactory doesn't seem to properly set the protocols on the Sockets that it creates which causes an SSLv2 client hello message during
-   * handshake, even when only TLSv1 is enabled. This only appears to be an issue on the client sockets, not the server sockets.
-   *
-   * This class wraps the SSLSocketFactory ensuring that the Socket is properly configured.
-   * http://www.coderanch.com/t/637177/Security/Disabling-handshake-message-Java
-   *
-   * This class can be removed when JDK6 support is officially unsupported by Accumulo
-   */
-  private static class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
-
-    private final SSLSocketFactory delegate;
-    private final String[] enabledProtocols;
-
-    public ProtocolOverridingSSLSocketFactory(final SSLSocketFactory delegate, final String[] enabledProtocols) {
-      Preconditions.checkNotNull(enabledProtocols);
-      Preconditions.checkArgument(0 != enabledProtocols.length, "Expected at least one protocol");
-      this.delegate = delegate;
-      this.enabledProtocols = enabledProtocols;
-    }
-
-    @Override
-    public String[] getDefaultCipherSuites() {
-      return delegate.getDefaultCipherSuites();
-    }
-
-    @Override
-    public String[] getSupportedCipherSuites() {
-      return delegate.getSupportedCipherSuites();
-    }
-
-    @Override
-    public Socket createSocket(final Socket socket, final String host, final int port, final boolean autoClose) throws IOException {
-      final Socket underlyingSocket = delegate.createSocket(socket, host, port, autoClose);
-      return overrideProtocol(underlyingSocket);
-    }
-
-    @Override
-    public Socket createSocket(final String host, final int port) throws IOException, UnknownHostException {
-      final Socket underlyingSocket = delegate.createSocket(host, port);
-      return overrideProtocol(underlyingSocket);
-    }
-
-    @Override
-    public Socket createSocket(final String host, final int port, final InetAddress localAddress, final int localPort) throws IOException, UnknownHostException {
-      final Socket underlyingSocket = delegate.createSocket(host, port, localAddress, localPort);
-      return overrideProtocol(underlyingSocket);
-    }
-
-    @Override
-    public Socket createSocket(final InetAddress host, final int port) throws IOException {
-      final Socket underlyingSocket = delegate.createSocket(host, port);
-      return overrideProtocol(underlyingSocket);
-    }
-
-    @Override
-    public Socket createSocket(final InetAddress host, final int port, final InetAddress localAddress, final int localPort) throws IOException {
-      final Socket underlyingSocket = delegate.createSocket(host, port, localAddress, localPort);
-      return overrideProtocol(underlyingSocket);
-    }
-
-    /**
-     * Set the {@link javax.net.ssl.SSLSocket#getEnabledProtocols() enabled protocols} to {@link #enabledProtocols} if the <code>socket</code> is a
-     * {@link SSLSocket}
-     *
-     * @param socket
-     *          The Socket
-     */
-    private Socket overrideProtocol(final Socket socket) {
-      if (socket instanceof SSLSocket) {
-        ((SSLSocket) socket).setEnabledProtocols(enabledProtocols);
-      }
-      return socket;
     }
   }
 }

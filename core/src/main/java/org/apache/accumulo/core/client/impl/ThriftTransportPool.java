@@ -385,8 +385,8 @@ public class ThriftTransportPool {
 
   private ThriftTransportPool() {}
 
-  public TTransport getTransportWithDefaultTimeout(HostAndPort addr, ClientContext context) throws TTransportException {
-    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), context.getClientTimeoutInMillis(), context);
+  public TTransport getTransportWithDefaultTimeout(String addr, ClientContext context) throws TTransportException {
+    return getTransport(addr, context.getClientTimeoutInMillis(), context);
   }
 
   public TTransport getTransport(String location, long milliseconds, ClientContext context) throws TTransportException {
