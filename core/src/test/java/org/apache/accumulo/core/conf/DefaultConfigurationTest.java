@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.util.Iterator;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.AllFilter;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,11 +37,8 @@ public class DefaultConfigurationTest {
 
   @Test
   public void testGetProperties() {
-    Iterator<Map.Entry<String,String>> iter = c.iterator();
-    while (iter.hasNext()) {
-      Map.Entry<String,String> e = iter.next();
-      Property p = Property.getPropertyByKey(e.getKey());
-      assertEquals(p.getDefaultValue(), e.getValue());
-    }
+    Map<String,String> p = new java.util.HashMap<String,String>();
+    c.getProperties(p, new AllFilter());
+    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
   }
 }

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
@@ -42,7 +43,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * <li>{@link AccumuloRowInputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(Job, Authorizations)}
- * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloRowInputFormat#setMockInstance(Job, String)}
+ * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(Job, ClientConfiguration)} OR {@link AccumuloRowInputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
  * Other static methods are optional.
@@ -54,7 +55,7 @@ public class AccumuloRowInputFormat extends InputFormatBase<Text,PeekingIterator
     log.setLevel(getLogLevel(context));
     return new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
       RowIterator rowIterator;
-      
+
       @Override
       public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
         super.initialize(inSplit, attempt);
@@ -62,7 +63,7 @@ public class AccumuloRowInputFormat extends InputFormatBase<Text,PeekingIterator
         currentK = new Text();
         currentV = null;
       }
-      
+
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (!rowIterator.hasNext())

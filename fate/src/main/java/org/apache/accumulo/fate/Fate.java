@@ -17,6 +17,7 @@
 package org.apache.accumulo.fate;
 
 import java.util.EnumSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.Daemon;
@@ -43,11 +44,13 @@ public class Fate<T> {
   
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
   
+  private AtomicBoolean keepRunning = new AtomicBoolean(true);
+  
   private class TransactionRunner implements Runnable {
     
     @Override
     public void run() {
-      while (true) {
+      while (keepRunning.get()) {
         long deferTime = 0;
         long tid = store.reserve();
         try {
@@ -137,11 +140,12 @@ public class Fate<T> {
     
   }
   
-  public Fate(T environment, TStore<T> store, int numTreads) {
+  // TODO: move thread creation to another method ACCUMULO-2136
+  public Fate(T environment, TStore<T> store, int numThreads) {
     this.store = store;
     this.environment = environment;
     
-    for (int i = 0; i < numTreads; i++) {
+    for (int i = 0; i < numThreads; i++) {
       // TODO: use an ExecutorService, maybe a utility to do these steps throughout the server packages - ACCUMULO-1311
       Thread thread = new Daemon(new LoggingRunnable(log, new TransactionRunner()), "Repo runner " + i);
       thread.start();
@@ -232,4 +236,11 @@ public class Fate<T> {
     }
   }
   
+  /**
+   * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
+   */
+  public void shutdown() {
+    keepRunning.set(false);
+  }
+
 }

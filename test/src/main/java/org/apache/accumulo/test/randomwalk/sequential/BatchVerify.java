@@ -61,7 +61,7 @@ public class BatchVerify extends Test {
         if (rangeEnd > (numWrites - 1)) {
           rangeEnd = numWrites - 1;
         }
-        count += (rangeEnd - rangeStart) + 1;
+        count += rangeEnd - rangeStart + 1;
         ranges.add(new Range(new Text(String.format("%010d", rangeStart)), new Text(String.format("%010d", rangeEnd))));
       }
       

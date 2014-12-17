@@ -18,7 +18,6 @@ package org.apache.accumulo.examples.simple.client;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -106,9 +106,9 @@ public class RowOperations {
     bw.flush();
     
     // Now lets look at the rows
-    Scanner rowThree = getRow(opts, scanOpts, new Text("row3"));
-    Scanner rowTwo = getRow(opts, scanOpts, new Text("row2"));
-    Scanner rowOne = getRow(opts, scanOpts, new Text("row1"));
+    Scanner rowThree = getRow(scanOpts, new Text("row3"));
+    Scanner rowTwo = getRow(scanOpts, new Text("row2"));
+    Scanner rowOne = getRow(scanOpts, new Text("row1"));
     
     // And print them
     log.info("This is everything");
@@ -118,13 +118,13 @@ public class RowOperations {
     System.out.flush();
     
     // Now lets delete rowTwo with the iterator
-    rowTwo = getRow(opts, scanOpts, new Text("row2"));
+    rowTwo = getRow(scanOpts, new Text("row2"));
     deleteRow(rowTwo);
     
     // Now lets look at the rows again
-    rowThree = getRow(opts, scanOpts, new Text("row3"));
-    rowTwo = getRow(opts, scanOpts, new Text("row2"));
-    rowOne = getRow(opts, scanOpts, new Text("row1"));
+    rowThree = getRow(scanOpts, new Text("row3"));
+    rowTwo = getRow(scanOpts, new Text("row2"));
+    rowOne = getRow(scanOpts, new Text("row1"));
     
     // And print them
     log.info("This is row1 and row3");
@@ -136,12 +136,12 @@ public class RowOperations {
     // Should only see the two rows
     // Now lets delete rowOne without passing in the iterator
     
-    deleteRow(opts, scanOpts, row1);
+    deleteRow(scanOpts, row1);
     
     // Now lets look at the rows one last time
-    rowThree = getRow(opts, scanOpts, new Text("row3"));
-    rowTwo = getRow(opts, scanOpts, new Text("row2"));
-    rowOne = getRow(opts, scanOpts, new Text("row1"));
+    rowThree = getRow(scanOpts, new Text("row3"));
+    rowTwo = getRow(scanOpts, new Text("row2"));
+    rowOne = getRow(scanOpts, new Text("row1"));
     
     // And print them
     log.info("This is just row3");
@@ -166,8 +166,8 @@ public class RowOperations {
   /**
    * Deletes a row given a text object
    */
-  private static void deleteRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    deleteRow(getRow(opts, scanOpts, row));
+  private static void deleteRow(ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    deleteRow(getRow(scanOpts, row));
   }
   
   /**
@@ -199,9 +199,9 @@ public class RowOperations {
   /**
    * Gets a scanner over one row
    */
-  private static Scanner getRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private static Scanner getRow(ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner
-    Scanner scanner = connector.createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = connector.createScanner(table, Authorizations.EMPTY);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     // Say start key is the one with key of row
     // and end key is the one that immediately follows the row

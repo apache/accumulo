@@ -26,31 +26,27 @@ is to select a unique identifier as the row ID for each entity to be stored and 
 all the other attributes to be tracked to be columns under this row ID. For example,
 if we have the following data in a comma-separated file:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
     userid,age,address,account-balance
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
-We might choose to store this data using the userid as the rowID and the rest of the
-data in column families:
+We might choose to store this data using the userid as the rowID, the column
+name in the column family, and a blank column qualifier:
 
-\small
-\begin{verbatim}
-Mutation m = new Mutation(new Text(userid));
-m.put(new Text("age"), age);
-m.put(new Text("address"), address);
-m.put(new Text("balance"), account_balance);
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+Mutation m = new Mutation(userid);
+final String column_qualifier = "";
+m.put("age", column_qualifier, age);
+m.put("address", column_qualifier, address);
+m.put("balance", column_qualifier, account_balance);
 
 writer.add(m);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 We could then retrieve any of the columns for a specific userid by specifying the
 userid as the range of a scanner and fetching specific columns:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Range r = new Range(userid, userid); // single row
 Scanner s = conn.createScanner("userdata", auths);
 s.setRange(r);
@@ -58,8 +54,7 @@ s.fetchColumnFamily(new Text("age"));
 
 for(Entry<Key,Value> entry : s)
     System.out.println(entry.getValue().toString());
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{RowID Design}
 
@@ -68,48 +63,82 @@ that is optimal for anticipated access patterns. A good example of this is rever
 the order of components of internet domain names in order to group rows of the
 same parent domain together:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 com.google.code
 com.google.labs
 com.google.mail
 com.yahoo.mail
 com.yahoo.research
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Some data may result in the creation of very large rows - rows with many columns.
 In this case the table designer may wish to split up these rows for better load
 balancing while keeping them sorted together for scanning purposes. This can be
 done by appending a random substring at the end of the row:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 com.google.code_00
 com.google.code_01
 com.google.code_02
 com.google.labs_00
 com.google.mail_00
 com.google.mail_01
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 It could also be done by adding a string representation of some period of time such as date to the week
 or month:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 com.google.code_201003
 com.google.code_201004
 com.google.code_201005
 com.google.labs_201003
 com.google.mail_201003
 com.google.mail_201004
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Appending dates provides the additional capability of restricting a scan to a given
 date range.
+
+\section{Lexicoders}
+Since Keys in Accumulo are sorted lexicographically by default, it's often useful to encode
+common data types into a byte format in which their sort order corresponds to the sort order
+in their native form. An example of this is encoding dates and numerical data so that they can
+be better seeked or searched in ranges.
+
+The lexicoders are a standard and extensible way of encoding Java types. Here's an example
+of a lexicoder that encodes a java Date object so that it sorts lexicographically:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+// create new date lexicoder
+DateLexicoder dateEncoder = new DateLexicoder();
+
+// truncate time to hours
+long epoch = System.currentTimeMillis();
+Date hour = new Date(epoch - (epoch % 3600000));
+
+// encode the rowId so that it is sorted lexicographically
+Mutation mutation = new Mutation(dateEncoder.encode(hour));
+mutation.put(new Text("colf"), new Text("colq"), new Value(new byte[]{}));
+\end{verbatim}\endgroup
+
+If we want to return the most recent date first, we can reverse the sort order
+with the reverse lexicoder:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+// create new date lexicoder and reverse lexicoder
+DateLexicoder dateEncoder = new DateLexicoder();
+ReverseLexicoder reverseEncoder = new ReverseLexicoder(dateEncoder);
+
+// truncate date to hours
+long epoch = System.currentTimeMillis();
+Date hour = new Date(epoch - (epoch % 3600000));
+
+// encode the rowId so that it sorts in reverse lexicographic order
+Mutation mutation = new Mutation(reverseEncoder.encode(hour));
+mutation.put(new Text("colf"), new Text("colq"), new Value(new byte[]{}));
+\end{verbatim}\endgroup
+
 
 \section{Indexing}
 In order to support lookups via more than one attribute of an entity, additional
@@ -145,8 +174,7 @@ BatchScanner, which performs the lookups in multiple threads to multiple servers
 and returns an Iterator over all the rows retrieved. The rows returned are NOT in
 sorted order, as is the case with the basic Scanner interface.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 // first we scan the index for IDs of rows matching our query
 
 Text term = new Text("mySearchTerm");
@@ -168,8 +196,7 @@ bscan.fetchColumnFamily(new Text("attributes"));
 
 for(Entry<Key,Value> entry : bscan)
     System.out.println(entry.getValue());
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 One advantage of the dynamic schema capabilities of Accumulo is that different
 fields may be indexed into the same physical table. However, it may be necessary to
@@ -288,8 +315,7 @@ bins, a search of all documents must search every bin. We can use the BatchScann
 to scan all bins in parallel. The Intersecting Iterator should be enabled on a
 BatchScanner within user query code as follows:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Text[] terms = {new Text("the"), new Text("white"), new Text("house")};
 
 BatchScanner bs = conn.createBatchScanner(table, auths, 20);
@@ -301,8 +327,7 @@ bs.setRanges(Collections.singleton(new Range()));
 for(Entry<Key,Value> entry : bs) {
     System.out.println(" " + entry.getKey().getColumnQualifier());
 }
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This code effectively has the BatchScanner scan all tablets of a table, looking for
 documents that match all the given terms. Because all tablets are being scanned for

@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.util.format;
 
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParsePosition;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -27,42 +31,92 @@ import org.apache.hadoop.io.Text;
 public class DefaultFormatter implements Formatter {
   private Iterator<Entry<Key,Value>> si;
   private boolean doTimestamps;
+  private static final ThreadLocal<DateFormat> formatter = new ThreadLocal<DateFormat>() {
+    @Override
+    protected DateFormat initialValue() {
+      return new DefaultDateFormat();
+    }
+    
+    class DefaultDateFormat extends DateFormat {
+      private static final long serialVersionUID = 1L;
+
+      @Override
+      public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
+        toAppendTo.append(Long.toString(date.getTime()));
+        return toAppendTo;
+      }
+
+      @Override
+      public Date parse(String source, ParsePosition pos) {
+        return new Date(Long.parseLong(source));
+      }
+      
+    }
+  };
   
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    checkState(si, false);
+    checkState(false);
     si = scanner.iterator();
     doTimestamps = printTimestamps;
   }
   
   public boolean hasNext() {
-    checkState(si, true);
+    checkState(true);
     return si.hasNext();
   }
   
   public String next() {
-    checkState(si, true);
-    return formatEntry(si.next(), doTimestamps);
+    DateFormat timestampFormat = null;
+    
+    if(doTimestamps) {
+      timestampFormat = formatter.get();
+    }
+    
+    return next(timestampFormat);
+  }
+  
+  protected String next(DateFormat timestampFormat) {
+    checkState(true);
+    return formatEntry(si.next(), timestampFormat);
   }
   
   public void remove() {
-    checkState(si, true);
+    checkState(true);
     si.remove();
   }
   
-  static void checkState(Iterator<Entry<Key,Value>> si, boolean expectInitialized) {
+  protected void checkState(boolean expectInitialized) {
     if (expectInitialized && si == null)
       throw new IllegalStateException("Not initialized");
     if (!expectInitialized && si != null)
       throw new IllegalStateException("Already initialized");
   }
-  
+
   // this should be replaced with something like Record.toString();
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
+    DateFormat timestampFormat = null;
+    
+    if(showTimestamps) {
+      timestampFormat = formatter.get();
+    }
+    
+    return formatEntry(entry, timestampFormat);
+  }
+  
+  /* so a new date object doesn't get created for every record in the scan result */
+  private static ThreadLocal<Date> tmpDate = new ThreadLocal<Date>() {
+    @Override
+    protected Date initialValue() { 
+      return new Date();
+    }
+  };
+  
+  public static String formatEntry(Entry<Key,Value> entry, DateFormat timestampFormat) {
     StringBuilder sb = new StringBuilder();
     Key key = entry.getKey();
     Text buffer = new Text();
-    
+
     // append row
     appendText(sb, key.getRow(buffer)).append(" ");
     
@@ -76,18 +130,22 @@ public class DefaultFormatter implements Formatter {
     sb.append(new ColumnVisibility(key.getColumnVisibility(buffer)));
     
     // append timestamp
-    if (showTimestamps)
-      sb.append(" ").append(key.getTimestamp());
-    
+    if (timestampFormat != null) {
+      tmpDate.get().setTime(entry.getKey().getTimestamp());
+      sb.append(" ").append(timestampFormat.format(tmpDate.get()));
+    }
+
+    Value value = entry.getValue();
+
     // append value
-    if (entry.getValue() != null && entry.getValue().getSize() > 0) {
+    if (value != null && value.getSize() > 0) {
       sb.append("\t");
-      appendValue(sb, entry.getValue());
+      appendValue(sb, value);
     }
     
     return sb.toString();
   }
-  
+
   static StringBuilder appendText(StringBuilder sb, Text t) {
     return appendBytes(sb, t.getBytes(), 0, t.getLength());
   }
@@ -111,5 +169,9 @@ public class DefaultFormatter implements Formatter {
   
   public Iterator<Entry<Key,Value>> getScannerIterator() {
     return si;
+  }
+
+  protected boolean isDoTimestamps() {
+    return doTimestamps;
   }
 }

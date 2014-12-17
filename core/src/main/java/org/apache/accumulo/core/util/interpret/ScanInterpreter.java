@@ -23,13 +23,13 @@ import org.apache.hadoop.io.Text;
  */
 public interface ScanInterpreter {
   
-  public Text interpretRow(Text row);
+  Text interpretRow(Text row);
 
-  public Text interpretBeginRow(Text row);
+  Text interpretBeginRow(Text row);
   
-  public Text interpretEndRow(Text row);
+  Text interpretEndRow(Text row);
   
-  public Text interpretColumnFamily(Text cf);
+  Text interpretColumnFamily(Text cf);
   
-  public Text interpretColumnQualifier(Text cq);
+  Text interpretColumnQualifier(Text cq);
 }

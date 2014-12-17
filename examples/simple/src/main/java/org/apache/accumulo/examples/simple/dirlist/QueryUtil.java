@@ -256,7 +256,7 @@ public class QueryUtil {
   public static class Opts extends ClientOnRequiredTable {
     @Parameter(names="--path", description="the directory to list")
     String path = "/";
-    @Parameter(names="--search", description="find a file or directorys with the given name")
+    @Parameter(names="--search", description="find a file or directory with the given name")
     boolean search = false;
   }
   

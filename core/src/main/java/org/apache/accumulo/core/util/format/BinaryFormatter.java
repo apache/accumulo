@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
@@ -24,66 +23,43 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
-public class BinaryFormatter implements Formatter {
-  private Iterator<Entry<Key,Value>> si;
-  private boolean doTimestamps;
+public class BinaryFormatter extends DefaultFormatter {
   private static int showLength;
   
-  @Override
-  public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    checkState(si, false);
-    si = scanner.iterator();
-    doTimestamps = printTimestamps;
-  }
-  
-  public boolean hasNext() {
-    checkState(si, true);
-    return si.hasNext();
-  }
-  
   public String next() {
-    checkState(si, true);
-    return formatEntry(si.next(), doTimestamps);
-  }
-  
-  public void remove() {
-    checkState(si, true);
-    si.remove();
-  }
-  
-  static void checkState(Iterator<Entry<Key,Value>> si, boolean expectInitialized) {
-    if (expectInitialized && si == null)
-      throw new IllegalStateException("Not initialized");
-    if (!expectInitialized && si != null)
-      throw new IllegalStateException("Already initialized");
+    checkState(true);
+    return formatEntry(getScannerIterator().next(), isDoTimestamps());
   }
   
   // this should be replaced with something like Record.toString();
+  // it would be great if we were able to combine code with DefaultFormatter.formatEntry, but that currently does not respect the showLength option.
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
     StringBuilder sb = new StringBuilder();
     
+    Key key = entry.getKey();
+
     // append row
-    appendText(sb, entry.getKey().getRow()).append(" ");
-    
+    appendText(sb, key.getRow()).append(" ");
+
     // append column family
-    appendText(sb, entry.getKey().getColumnFamily()).append(":");
-    
+    appendText(sb, key.getColumnFamily()).append(":");
+
     // append column qualifier
-    appendText(sb, entry.getKey().getColumnQualifier()).append(" ");
-    
+    appendText(sb, key.getColumnQualifier()).append(" ");
+
     // append visibility expression
-    sb.append(new ColumnVisibility(entry.getKey().getColumnVisibility()));
+    sb.append(new ColumnVisibility(key.getColumnVisibility()));
     
     // append timestamp
     if (showTimestamps)
       sb.append(" ").append(entry.getKey().getTimestamp());
     
     // append value
-    if (entry.getValue() != null && entry.getValue().getSize() > 0) {
+    Value value = entry.getValue();
+    if (value != null && value.getSize() > 0) {
       sb.append("\t");
-      appendValue(sb, entry.getValue());
+      appendValue(sb, value);
     }
-    
     return sb.toString();
   }
   
@@ -92,41 +68,12 @@ public class BinaryFormatter implements Formatter {
   }
   
   static StringBuilder appendValue(StringBuilder sb, Value value) {
-    
     return appendBytes(sb, value.get(), 0, value.get().length);
   }
   
   static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
-    if (len > showLength) {
-      for (int i = 0; i < showLength; i++) {
-        int c = 0xff & ba[offset + i];
-        if (c == '\\')
-          sb.append("\\\\");
-        else if (c >= 32 && c <= 126)
-          sb.append((char) c);
-        else
-          sb.append("\\x").append(String.format("%02X", c));
-      }
-      return sb;
-    }
-    
-    else {
-      for (int i = 0; i < len; i++) {
-        
-        int c = 0xff & ba[offset + i];
-        if (c == '\\')
-          sb.append("\\\\");
-        else if (c >= 32 && c <= 126)
-          sb.append((char) c);
-        else
-          sb.append("\\x").append(String.format("%02X", c));
-      }
-      return sb;
-    }
-  }
-  
-  public Iterator<Entry<Key,Value>> getScannerIterator() {
-    return si;
+    int length = Math.min(len, showLength);
+    return DefaultFormatter.appendBytes(sb, ba, offset, length);
   }
   
   public static void getlength(int length) {

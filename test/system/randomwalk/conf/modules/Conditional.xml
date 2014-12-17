@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<module>
+
+<package prefix="ct" value="org.apache.accumulo.test.randomwalk.conditional"/>
+
+
+<init id="ct.Setup"/>
+
+<node id="dummy.ToAll">
+  <edge id="ct.Compact" weight="1"/>
+  <edge id="ct.Flush" weight="1"/>
+  <edge id="ct.Merge" weight="1"/>
+  <edge id="ct.Split" weight="1"/>
+  <edge id="ct.Transfer" weight="100000"/>
+  <edge id="ct.Verify" weight="2"/>
+</node>
+
+<node id="ct.Setup">
+  <property key="numAccts" value="10000"/>
+  <property key="numBanks" value="1000"/>
+  <edge id="ct.Init" weight="1"/>
+</node>
+
+<node id="ct.Init">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.Compact">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.Flush">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.Merge">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.Split">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+ 
+<node id="ct.Transfer">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.Verify">
+  <edge id="dummy.ToAll" weight="1000"/>
+  <edge id="ct.TearDown" weight="1"/>
+</node>
+
+
+<node id="ct.TearDown">
+  <edge id="END" weight="1"/>
+</node>
+
+</module>

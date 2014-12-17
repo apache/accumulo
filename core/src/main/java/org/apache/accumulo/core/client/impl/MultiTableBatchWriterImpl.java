@@ -33,7 +33,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.log4j.Logger;
 
@@ -91,7 +91,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       String tableId = Tables.getNameToIdMap(instance).get(tableName);
 
       if (tableId == null)
-        throw new TableNotFoundException(tableId, tableName, null);
+        throw new TableNotFoundException(null, tableName, null);
 
       if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
         throw new TableOfflineException(instance, tableId);
@@ -106,11 +106,11 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   private Instance instance;
   private final LoadingCache<String,String> nameToIdCache;
 
-  public MultiTableBatchWriterImpl(Instance instance, TCredentials credentials, BatchWriterConfig config) {
+  public MultiTableBatchWriterImpl(Instance instance, Credentials credentials, BatchWriterConfig config) {
     this(instance, credentials, config, DEFAULT_CACHE_TIME, DEFAULT_CACHE_TIME_UNIT);
   }
 
-  public MultiTableBatchWriterImpl(Instance instance, TCredentials credentials, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
+  public MultiTableBatchWriterImpl(Instance instance, Credentials credentials, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
     ArgumentChecker.notNull(instance, credentials, config, cacheTimeUnit);
     this.instance = instance;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);
@@ -215,12 +215,14 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
     String tableId = getId(tableName);
 
-    BatchWriter tbw = tableWriters.get(tableId);
-    if (tbw == null) {
-      tbw = new TableBatchWriter(tableId);
-      tableWriters.put(tableId, tbw);
+    synchronized (tableWriters) {
+      BatchWriter tbw = tableWriters.get(tableId);
+      if (tbw == null) {
+        tbw = new TableBatchWriter(tableId);
+        tableWriters.put(tableId, tbw);
+      }
+      return tbw;
     }
-    return tbw;
   }
 
   @Override

@@ -23,7 +23,6 @@ import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -68,7 +68,7 @@ public class Search extends Test {
     
     log.debug("Looking up terms " + searchTerms + " expect to find " + docID);
     
-    BatchScanner bs = state.getConnector().createBatchScanner(indexTableName, Constants.NO_AUTHS, 10);
+    BatchScanner bs = state.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 10);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, columns);
     bs.addScanIterator(ii);
@@ -90,7 +90,7 @@ public class Search extends Test {
   }
   
   static Entry<Key,Value> findRandomDocument(State state, String dataTableName, Random rand) throws Exception {
-    Scanner scanner = state.getConnector().createScanner(dataTableName, Constants.NO_AUTHS);
+    Scanner scanner = state.getConnector().createScanner(dataTableName, Authorizations.EMPTY);
     scanner.setBatchSize(1);
     scanner.setRange(new Range(Integer.toString(rand.nextInt(0xfffffff), 16), null));
     

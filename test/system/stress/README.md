@@ -98,3 +98,8 @@ For readers, make a similar readers file, and use `start-readers.sh` and
 The start scripts copy out stress-env.sh to each of the writers and readers,
 overwriting what is there, so you only need to edit the file on the host from
 which you run those scripts.
+
+Note that in versions of Accumulo greater than 1.6.0, users should verify that
+the cell sizes they supply meet the criteria set forth by the key constraints
+on their tables. By default, tables are configured to reject keys that are
+greater than 1MB.

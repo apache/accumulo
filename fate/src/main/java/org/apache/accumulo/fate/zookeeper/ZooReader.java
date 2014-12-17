@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -28,8 +29,11 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReader implements IZooReader {
+  private static final Logger log = Logger.getLogger(ZooReader.class);
+
   protected String keepers;
   protected int timeout;
+  private final RetryFactory retryFactory;
 
   protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
     return ZooSession.getSession(keepers, timeout, scheme, auth);
@@ -39,39 +43,157 @@ public class ZooReader implements IZooReader {
     return getSession(keepers, timeout, null, null);
   }
 
+  protected RetryFactory getRetryFactory() {
+    return retryFactory;
+  }
+
+  protected void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {
+    log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
+    if (retry.canRetry()) {
+      retry.useRetry();
+      return;
+    }
+
+    log.error("Retry attempts (" + retry.retriesCompleted() + ") exceeded trying to communicate with ZooKeeper");
+    throw e;
+  }
+
   @Override
   public byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException {
-    return getZooKeeper().getData(zPath, false, stat);
+    return getData(zPath, false, stat);
+  }
+
+  @Override
+  public byte[] getData(String zPath, boolean watch, Stat stat) throws KeeperException, InterruptedException {
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().getData(zPath, watch, stat);
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
-    return getZooKeeper().exists(zPath, false);
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().exists(zPath, false);
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
   public Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
-    return getZooKeeper().exists(zPath, watcher);
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().exists(zPath, watcher);
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
-    return getZooKeeper().getChildren(zPath, false);
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().getChildren(zPath, false);
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
   public List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
-    return getZooKeeper().getChildren(zPath, watcher);
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().getChildren(zPath, watcher);
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
-    return getZooKeeper().exists(zPath, false) != null;
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().exists(zPath, false) != null;
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
   public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
-    return getZooKeeper().exists(zPath, watcher) != null;
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        return getZooKeeper().exists(zPath, watcher) != null;
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   @Override
@@ -101,5 +223,6 @@ public class ZooReader implements IZooReader {
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
+    this.retryFactory = RetryFactory.DEFAULT_INSTANCE;
   }
 }

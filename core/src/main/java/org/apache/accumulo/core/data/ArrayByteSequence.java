@@ -19,6 +19,7 @@ package org.apache.accumulo.core.data;
 import static com.google.common.base.Charsets.UTF_8;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
@@ -50,6 +51,19 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     this(s.getBytes(UTF_8));
   }
   
+  public ArrayByteSequence(ByteBuffer buffer) {
+    this.length = buffer.remaining();
+
+    if (buffer.hasArray()) {
+      this.data = buffer.array();
+      this.offset = buffer.position();
+    } else {
+      this.data = new byte[length];
+      this.offset = 0;
+      buffer.get(data);
+    }
+  }
+
   @Override
   public byte byteAt(int i) {
     

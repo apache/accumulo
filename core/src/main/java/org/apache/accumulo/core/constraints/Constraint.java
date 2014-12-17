@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -41,12 +42,15 @@ import org.apache.accumulo.core.security.Authorizations;
 
 public interface Constraint {
   
-  public interface Environment {
+  interface Environment {
     KeyExtent getExtent();
     
     String getUser();
     
+    @Deprecated
     Authorizations getAuthorizations();
+
+    AuthorizationContainer getAuthorizationsContainer();
   }
   
   /**

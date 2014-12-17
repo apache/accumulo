@@ -19,8 +19,8 @@ package org.apache.accumulo.core.file.blockfile.cache;
 public interface CacheEntry {
   byte[] getBuffer();
   
-  public Object getIndex();
+  Object getIndex();
   
-  public void setIndex(Object idx);
+  void setIndex(Object idx);
   
 }

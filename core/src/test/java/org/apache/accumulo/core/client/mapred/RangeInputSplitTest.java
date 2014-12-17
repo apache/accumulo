@@ -43,7 +43,7 @@ public class RangeInputSplitTest {
 
   @Test
   public void testSimpleWritable() throws IOException {
-    RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
+    RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
     
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -61,7 +61,7 @@ public class RangeInputSplitTest {
 
   @Test
   public void testAllFieldsWritable() throws IOException {
-    RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
+    RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
     
     Set<Pair<Text,Text>> fetchedColumns = new HashSet<Pair<Text,Text>>();
     

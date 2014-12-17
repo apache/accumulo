@@ -16,40 +16,25 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.net.InetSocketAddress;
-
-import org.apache.hadoop.io.Text;
-import org.apache.thrift.transport.TSocket;
+import com.google.common.net.HostAndPort;
 
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
-  static public InetSocketAddress parseAddress(String address, int defaultPort) throws NumberFormatException {
-    String[] parts = address.split(":", 2);
-    if (address.contains("+"))
-      parts = address.split("\\+", 2);
-    if (parts.length == 2) {
-      if (parts[1].isEmpty())
-        return new InetSocketAddress(parts[0], defaultPort);
-      return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
-    }
-    return new InetSocketAddress(address, defaultPort);
-  }
-  
-  static public InetSocketAddress parseAddress(Text address, int defaultPort) {
-    return parseAddress(address.toString(), defaultPort);
-  }
-  
-  static public TSocket createTSocket(String address, int defaultPort) {
-    InetSocketAddress addr = parseAddress(address, defaultPort);
-    return new TSocket(addr.getHostName(), addr.getPort());
-  }
-  
-  static public String getHostAddress(InetSocketAddress addr) {
-    return addr.getAddress().getHostAddress();
+
+  static public HostAndPort parseAddress(String address) throws NumberFormatException {
+    return parseAddress(address, false);
   }
 
-  static public String toString(InetSocketAddress addr) {
-    return addr.getAddress().getHostAddress() + ":" + addr.getPort();
+  static public HostAndPort parseAddress(String address, boolean ignoreMissingPort) throws NumberFormatException {
+    address = address.replace('+', ':');
+    HostAndPort hap = HostAndPort.fromString(address);
+    if (!ignoreMissingPort && !hap.hasPort())
+      throw new IllegalArgumentException("Address was expected to contain port. address=" + address);
+    
+    return hap;
   }
-  
+
+  public static HostAndPort parseAddress(String address, int defaultPort) {
+    return parseAddress(address, true).withDefaultPort(defaultPort);
+  }
 }

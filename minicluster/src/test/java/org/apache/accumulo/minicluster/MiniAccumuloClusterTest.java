@@ -16,9 +16,13 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -26,7 +30,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -37,36 +40,54 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloClusterTest {
 
-  public static TemporaryFolder folder = new TemporaryFolder();
+  public static File testDir;
 
   private static MiniAccumuloCluster accumulo;
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
+    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    baseDir.mkdirs();
+    testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
 
-    folder.create();
-
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-
+    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, "superSecret").setJDWPEnabled(true);
+    config.setZooKeeperPort(0);
+    HashMap<String,String> site = new HashMap<String,String>();
+    site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
+    config.setSiteConfig(site);
+    accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
+  }
 
+  @Test
+  public void checkDFSConstants() {
+    // check for unexpected changes in static constants because these will be inlined
+    // and we won't otherwise know that they won't work on a particular version
+    assertEquals("dfs.namenode.name.dir", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
+    assertEquals("dfs.datanode.data.dir", DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY);
+    assertEquals("dfs.replication", DFSConfigKeys.DFS_REPLICATION_KEY);
   }
 
   @Test(timeout = 30000)
   public void test() throws Exception {
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
+    Connector conn = accumulo.getConnector("root", "superSecret");
 
-    conn.tableOperations().create("table1");
+    conn.tableOperations().create("table1", true);
 
     conn.securityOperations().createLocalUser("user1", new PasswordToken("pass1"));
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));
@@ -79,7 +100,7 @@ public class MiniAccumuloClusterTest {
 
     conn.tableOperations().attachIterator("table1", is);
 
-    Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("user1", new PasswordToken("pass1"));
+    Connector uconn = accumulo.getConnector("user1", "pass1");
 
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
 
@@ -132,16 +153,18 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table1");
   }
 
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
 
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
+    Connector conn = accumulo.getConnector("root", "superSecret");
 
     conn.tableOperations().create("table2");
 
-    File jarFile = File.createTempFile("iterator", ".jar");
+    File jarFile = folder.newFile("iterator.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
-    jarFile.deleteOnExit();
 
     conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
@@ -175,12 +198,30 @@ public class MiniAccumuloClusterTest {
 
     conn.instanceOperations().removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
+  }
 
+  @Test(timeout = 10000)
+  public void testDebugPorts() {
+
+    Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();
+    Assert.assertEquals(5, debugPorts.size());
+    for (Pair<ServerType,Integer> debugPort : debugPorts) {
+      Assert.assertTrue(debugPort.getSecond() > 0);
+    }
+  }
+
+  @Test
+  public void testConfig() {
+    // ensure what user passed in is what comes back
+    Assert.assertEquals(0, accumulo.getConfig().getZooKeeperPort());
+    HashMap<String,String> site = new HashMap<String,String>();
+    site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
+    Assert.assertEquals(site, accumulo.getConfig().getSiteConfig());
   }
 
   @Test
   public void testRandomPorts() throws Exception {
-    File confDir = new File(folder.getRoot(), "conf");
+    File confDir = new File(testDir, "conf");
     File accumuloSite = new File(confDir, "accumulo-site.xml");
     Configuration conf = new Configuration(false);
     conf.addResource(accumuloSite.toURI().toURL());
@@ -195,7 +236,6 @@ public class MiniAccumuloClusterTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    // folder.delete();
   }
 
 }

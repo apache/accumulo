@@ -35,11 +35,9 @@ Pre-splitting a table ensures that there are as many tablets as desired availabl
 before ingest begins to take advantage of all the parallelism possible with the cluster
 hardware. Tables can be split anytime by using the shell:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance mytable> addsplits -sf /local_splitfile -t mytable
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 For the purposes of providing parallelism to ingest it is not necessary to create more
 tablets than there are physical machines within the cluster as the aggregate ingest
@@ -78,8 +76,7 @@ data. The split points can be obtained from the shell and used by the MapReduce
 RangePartitioner. Note that this is only useful if the existing table is already split
 into multiple tablets.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance mytable> getsplits
 aa
 ab
@@ -88,18 +85,15 @@ ac
 zx
 zy
 zz
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Run the MapReduce job, using the AccumuloFileOutputFormat to create the files to
 be introduced to Accumulo. Once this is complete, the files can be added to
 Accumulo via the shell:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance mytable> importdirectory /files_dir /failures
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Note that the paths referenced are directories within the same HDFS instance over
 which Accumulo is running. Accumulo places any files that failed to be added to the

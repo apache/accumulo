@@ -23,63 +23,90 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class DeleteIterCommand extends Command {
-  private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
-  
+  private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
+
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
+    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+    boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
+
     final String name = cl.getOptionValue(nameOpt.getOpt());
-    if (!shellState.getConnector().tableOperations().listIterators(tableName).containsKey(name)) {
-      Shell.log.warn("no iterators found that match your criteria");
-      return 0;
+
+    if (namespaces) {
+      if (!shellState.getConnector().namespaceOperations().listIterators(OptUtil.getNamespaceOpt(cl, shellState)).containsKey(name)) {
+        Shell.log.warn("no iterators found that match your criteria");
+        return 0;
+      }
+    } else if (tables) {
+      if (!shellState.getConnector().tableOperations().listIterators(OptUtil.getTableOpt(cl, shellState)).containsKey(name)) {
+        Shell.log.warn("no iterators found that match your criteria");
+        return 0;
+      }
+    } else {
+      throw new IllegalArgumentException("No table or namespace specified");
     }
-    
+
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
-    if (cl.hasOption(mincScopeOpt.getOpt())) {
+    if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);
     }
-    if (cl.hasOption(majcScopeOpt.getOpt())) {
+    if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(majcScopeOpt.getOpt())) {
       scopes.add(IteratorScope.majc);
     }
-    if (cl.hasOption(scanScopeOpt.getOpt())) {
+    if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(scanScopeOpt.getOpt())) {
       scopes.add(IteratorScope.scan);
     }
     if (scopes.isEmpty()) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }
-    shellState.getConnector().tableOperations().removeIterator(tableName, name, scopes);
+
+    if (namespaces) {
+      shellState.getConnector().namespaceOperations().removeIterator(OptUtil.getNamespaceOpt(cl, shellState), name, scopes);
+    } else if (tables) {
+      shellState.getConnector().tableOperations().removeIterator(OptUtil.getTableOpt(cl, shellState), name, scopes);
+    } else {
+      throw new IllegalArgumentException("No table or namespace specified");
+    }
     return 0;
   }
-  
+
   @Override
   public String description() {
-    return "deletes a table-specific iterator";
+    return "deletes a table-specific or namespace-specific iterator";
   }
-  
+
+  @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");
     nameOpt.setRequired(true);
-    
+
+    allScopeOpt = new Option("all", "all-scopes", false, "remove from all scopes");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "remove from minor compaction scope");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "remove from major compaction scope");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "remove from scan scope");
-    
-    o.addOption(OptUtil.tableOpt("table to delete the iterator from"));
+
+    OptionGroup grp = new OptionGroup();
+    grp.addOption(OptUtil.tableOpt("table to delete the iterator from"));
+    grp.addOption(OptUtil.namespaceOpt("namespace to delete the iterator from"));
+    o.addOptionGroup(grp);
     o.addOption(nameOpt);
-    
+
+    o.addOption(allScopeOpt);
     o.addOption(mincScopeOpt);
     o.addOption(majcScopeOpt);
     o.addOption(scanScopeOpt);
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

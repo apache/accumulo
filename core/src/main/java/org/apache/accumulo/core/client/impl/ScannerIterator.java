@@ -26,6 +26,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -39,7 +40,7 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -49,13 +50,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private static final Logger log = Logger.getLogger(ScannerIterator.class);
   
   // scanner options
-  private Text tableName;
+  private Text tableId;
   private int timeOut;
   
   // scanner state
   private Iterator<KeyValue> iter;
   private ScanState scanState;
-  private TCredentials credentials;
+  private Credentials credentials;
   private Instance instance;
   
   private ScannerOptions options;
@@ -64,14 +65,15 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   
   private boolean finished = false;
   
-  private boolean readaheadInProgress;
+  private boolean readaheadInProgress = false;
   private long batchCount = 0;
+  private long readaheadThreshold;
   
   private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
   
   private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3l, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
-
+  
   private class Reader implements Runnable {
     
     @Override
@@ -79,7 +81,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       
       try {
         while (true) {
-          List<KeyValue> currentBatch = ThriftScanner.scan(instance, credentials, scanState, timeOut, instance.getConfiguration());
+          List<KeyValue> currentBatch = ThriftScanner.scan(instance, credentials, scanState, timeOut, ServerConfigurationUtil.getConfiguration(instance));
           
           if (currentBatch == null) {
             synchQ.add(EMPTY_LIST);
@@ -121,12 +123,18 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     
   }
   
-  ScannerIterator(Instance instance, TCredentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
+  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated) {
+    this(instance, credentials, table, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
+  }
+  
+  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
+      ScannerOptions options, boolean isolated, long readaheadThreshold) {
     this.instance = instance;
-    this.tableName = new Text(table);
+    this.tableId = new Text(table);
     this.timeOut = timeOut;
     this.credentials = credentials;
+    this.readaheadThreshold = readaheadThreshold;
     
     this.options = new ScannerOptions(options);
     
@@ -136,9 +144,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
     
-    scanState = new ScanState(credentials, tableName, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
-        options.serverSideIteratorOptions, isolated);
-    readaheadInProgress = false;
+    scanState = new ScanState(instance, credentials, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
+        options.serverSideIteratorOptions, isolated, readaheadThreshold);
+    
+    // If we want to start readahead immediately, don't wait for hasNext to be called
+    if (0l == readaheadThreshold) {
+      initiateReadAhead();
+    }
     iter = null;
   }
   
@@ -147,6 +159,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     readaheadPool.execute(new Reader());
   }
   
+  @Override
   @SuppressWarnings("unchecked")
   public boolean hasNext() {
     if (finished)
@@ -184,7 +197,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       iter = currentBatch.iterator();
       batchCount++;
       
-      if (batchCount > 3) {
+      if (batchCount > readaheadThreshold) {
         // start a thread to read the next batch
         initiateReadAhead();
       }
@@ -196,6 +209,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     return true;
   }
   
+  @Override
   public Entry<Key,Value> next() {
     if (hasNext())
       return iter.next();
@@ -204,6 +218,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   
   // just here to satisfy the interface
   // could make this actually delete things from the database
+  @Override
   public void remove() {
     throw new UnsupportedOperationException("remove is not supported in Scanner");
   }

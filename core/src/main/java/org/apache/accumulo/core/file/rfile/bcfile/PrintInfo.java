@@ -22,19 +22,21 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class PrintInfo {
-  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path) throws IOException {
+  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path, AccumuloConfiguration accumuloConfiguration) throws IOException {
     FSDataInputStream fsin = fs.open(path);
     BCFile.Reader bcfr = null;
     try {
-      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf);
+      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
       
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
       
@@ -55,11 +57,16 @@ public class PrintInfo {
   
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
-    @SuppressWarnings("deprecation")
-    FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    AccumuloConfiguration siteConf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
+    // TODO ACCUMULO-2462 not going to operate as expected with volumes when a path, not URI, is given
+    FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, siteConf).getFileSystem();
     FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(args[0]);
-    FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
-    printMetaBlockInfo(conf, fs, path);
+    FileSystem fs;
+    if (args[0].contains(":"))
+      fs = path.getFileSystem(conf);
+    else
+      fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+    printMetaBlockInfo(conf, fs, path, siteConf);
   }
 }

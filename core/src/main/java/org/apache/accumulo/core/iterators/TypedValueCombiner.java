@@ -107,10 +107,10 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * An interface for translating from byte[] to V and back.
    */
-  public static interface Encoder<V> {
-    public byte[] encode(V v);
+  public interface Encoder<V> {
+    byte[] encode(V v);
     
-    public V decode(byte[] b) throws ValueFormatException;
+    V decode(byte[] b) throws ValueFormatException;
   }
   
   /**

@@ -20,8 +20,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Accumulo system permissions. Each permission has an associated byte ID.
+ */
 public enum SystemPermission {
-  // One can add new permissions, with new numbers, but please don't change or use numbers previously assigned
+  /*
+   * One may add new permissions, but new permissions must use new numbers.
+   * Current numbers in use must not be changed.
+   */
   GRANT((byte) 0),
   CREATE_TABLE((byte) 1),
   DROP_TABLE((byte) 2),
@@ -29,7 +35,10 @@ public enum SystemPermission {
   CREATE_USER((byte) 4),
   DROP_USER((byte) 5),
   ALTER_USER((byte) 6),
-  SYSTEM((byte) 7);
+  SYSTEM((byte) 7),
+  CREATE_NAMESPACE((byte) 8),
+  DROP_NAMESPACE((byte) 9),
+  ALTER_NAMESPACE((byte) 10);
   
   private byte permID;
   
@@ -44,10 +53,20 @@ public enum SystemPermission {
     this.permID = id;
   }
   
+  /**
+   * Gets the byte ID of this permission.
+   *
+   * @return byte ID
+   */
   public byte getId() {
     return this.permID;
   }
   
+  /**
+   * Returns a list of printable permission values.
+   *
+   * @return list of system permission values, as "System." + permission name
+   */
   public static List<String> printableValues() {
     SystemPermission[] a = SystemPermission.values();
     
@@ -59,6 +78,13 @@ public enum SystemPermission {
     return list;
   }
   
+  /**
+   * Gets the permission matching the given byte ID.
+   *
+   * @param id byte ID
+   * @return system permission
+   * @throws IndexOutOfBoundsException if the byte ID is invalid
+   */
   public static SystemPermission getPermissionById(byte id) {
     if (mapping.containsKey(id))
       return mapping.get(id);

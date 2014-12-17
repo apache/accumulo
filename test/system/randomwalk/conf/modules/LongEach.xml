@@ -44,6 +44,10 @@
 </node>
 
 <node id="Bulk.xml" maxSec="3600" teardown="true">
+  <edge id="Conditional.xml" weight="1"/>
+</node>
+
+<node id="Conditional.xml" maxSec="3600" teardown="true">
   <edge id="END" weight="1"/>
 </node>
 

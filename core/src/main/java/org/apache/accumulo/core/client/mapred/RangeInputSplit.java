@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapred;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.mapred.InputSplit;
 
@@ -28,8 +30,11 @@ public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.R
     super();
   }
 
-  public RangeInputSplit(Range range, String[] locations) {
-    super(range, locations);
+  public RangeInputSplit(RangeInputSplit split) throws IOException {
+    super(split);
   }
-
+  
+  protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+    super(table, tableId, range, locations);
+  }
 }

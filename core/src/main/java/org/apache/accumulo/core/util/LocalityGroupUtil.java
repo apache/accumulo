@@ -16,10 +16,12 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -32,6 +34,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 
 public class LocalityGroupUtil {
@@ -178,4 +184,113 @@ public class LocalityGroupUtil {
     return ecf;
   }
   
+  private static class PartitionedMutation extends Mutation {
+    private byte[] row;
+    private List<ColumnUpdate> updates;
+    
+    PartitionedMutation(byte[] row, List<ColumnUpdate> updates) {
+      this.row = row;
+      this.updates = updates;
+    }
+    
+    @Override
+    public byte[] getRow() {
+      return row;
+    }
+    
+    @Override
+    public List<ColumnUpdate> getUpdates() {
+      return updates;
+    }
+    
+    @Override
+    public TMutation toThrift() {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public int hashCode() {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public boolean equals(Mutation m) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  public static class Partitioner {
+    
+    private Map<ByteSequence,Integer> colfamToLgidMap;
+    private Map<ByteSequence,MutableLong>[] groups;
+    
+    public Partitioner(Map<ByteSequence,MutableLong> groups[]) {
+      this.groups = groups;
+      this.colfamToLgidMap = new HashMap<ByteSequence,Integer>();
+      
+      for (int i = 0; i < groups.length; i++) {
+        for (ByteSequence cf : groups[i].keySet()) {
+          colfamToLgidMap.put(cf, i);
+        }
+      }
+    }
+    
+    public void partition(List<Mutation> mutations, List<Mutation> partitionedMutations[]) {
+
+      MutableByteSequence mbs = new MutableByteSequence(new byte[0], 0, 0);
+      
+      @SuppressWarnings("unchecked")
+      List<ColumnUpdate> parts[] = new List[groups.length + 1];
+      
+      for (Mutation mutation : mutations) {
+        if (mutation.getUpdates().size() == 1) {
+          int lgid = getLgid(mbs, mutation.getUpdates().get(0));
+          partitionedMutations[lgid].add(mutation);
+        } else {
+          for (int i = 0; i < parts.length; i++) {
+            parts[i] = null;
+          }
+          
+          int lgcount = 0;
+
+          for (ColumnUpdate cu : mutation.getUpdates()) {
+            int lgid = getLgid(mbs, cu);
+
+            if (parts[lgid] == null) {
+              parts[lgid] = new ArrayList<ColumnUpdate>();
+              lgcount++;
+            }
+            
+            parts[lgid].add(cu);
+          }
+          
+          if (lgcount == 1) {
+            for (int i = 0; i < parts.length; i++)
+              if (parts[i] != null) {
+                partitionedMutations[i].add(mutation);
+                break;
+              }
+          } else {
+            for (int i = 0; i < parts.length; i++)
+              if (parts[i] != null)
+                partitionedMutations[i].add(new PartitionedMutation(mutation.getRow(), parts[i]));
+          }
+        }
+      }
+    }
+    
+    private Integer getLgid(MutableByteSequence mbs, ColumnUpdate cu) {
+      mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
+      Integer lgid = colfamToLgidMap.get(mbs);
+      if (lgid == null)
+        lgid = groups.length;
+      return lgid;
+    }
+  }
+
 }

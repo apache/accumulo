@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -30,8 +30,16 @@ public class EmptySplitsAccumuloInputFormat extends AccumuloInputFormat {
 
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    super.getSplits(context);
+    List<InputSplit> oldSplits = super.getSplits(context);
+    List<InputSplit> newSplits = new ArrayList<InputSplit>(oldSplits.size());
 
-    return Arrays.<InputSplit> asList(new org.apache.accumulo.core.client.mapreduce.RangeInputSplit());
+    // Copy only the necessary information
+    for (InputSplit oldSplit : oldSplits) {
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit = new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
+          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
+      newSplits.add(newSplit);
+    }
+
+    return newSplits;
   }
 }

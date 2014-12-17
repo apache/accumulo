@@ -30,7 +30,8 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
+import org.apache.accumulo.core.util.MutableByteSequence;
+import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -39,25 +40,25 @@ public class RelativeKeyTest {
   
   @Test
   public void testBasicRelativeKey() {
-    assertEquals(1, RelativeKey.nextArraySize(0));
-    assertEquals(1, RelativeKey.nextArraySize(1));
-    assertEquals(2, RelativeKey.nextArraySize(2));
-    assertEquals(4, RelativeKey.nextArraySize(3));
-    assertEquals(4, RelativeKey.nextArraySize(4));
-    assertEquals(8, RelativeKey.nextArraySize(5));
-    assertEquals(8, RelativeKey.nextArraySize(8));
-    assertEquals(16, RelativeKey.nextArraySize(9));
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(0));
+    assertEquals(1, UnsynchronizedBuffer.nextArraySize(1));
+    assertEquals(2, UnsynchronizedBuffer.nextArraySize(2));
+    assertEquals(4, UnsynchronizedBuffer.nextArraySize(3));
+    assertEquals(4, UnsynchronizedBuffer.nextArraySize(4));
+    assertEquals(8, UnsynchronizedBuffer.nextArraySize(5));
+    assertEquals(8, UnsynchronizedBuffer.nextArraySize(8));
+    assertEquals(16, UnsynchronizedBuffer.nextArraySize(9));
     
-    assertEquals(1 << 16, RelativeKey.nextArraySize((1 << 16) - 1));
-    assertEquals(1 << 16, RelativeKey.nextArraySize(1 << 16));
-    assertEquals(1 << 17, RelativeKey.nextArraySize((1 << 16) + 1));
+    assertEquals(1 << 16, UnsynchronizedBuffer.nextArraySize((1 << 16) - 1));
+    assertEquals(1 << 16, UnsynchronizedBuffer.nextArraySize(1 << 16));
+    assertEquals(1 << 17, UnsynchronizedBuffer.nextArraySize((1 << 16) + 1));
     
-    assertEquals(1 << 30, RelativeKey.nextArraySize((1 << 30) - 1));
+    assertEquals(1 << 30, UnsynchronizedBuffer.nextArraySize((1 << 30) - 1));
 
-    assertEquals(1 << 30, RelativeKey.nextArraySize(1 << 30));
+    assertEquals(1 << 30, UnsynchronizedBuffer.nextArraySize(1 << 30));
 
-    assertEquals(Integer.MAX_VALUE, RelativeKey.nextArraySize(Integer.MAX_VALUE - 1));
-    assertEquals(Integer.MAX_VALUE, RelativeKey.nextArraySize(Integer.MAX_VALUE));
+    assertEquals(Integer.MAX_VALUE, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE - 1));
+    assertEquals(Integer.MAX_VALUE, UnsynchronizedBuffer.nextArraySize(Integer.MAX_VALUE));
   }
   
   @Test
@@ -175,7 +176,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key();
     Key prevKey = new Key();
     Key currKey = null;
-    MByteSequence value = new MByteSequence(new byte[64], 0, 0);
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
     
     RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
     assertEquals(1, skippr.skipped);
@@ -206,7 +207,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();
     Key currKey = null;
-    MByteSequence value = new MByteSequence(new byte[64], 0, 0);
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
     
     RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
   }
@@ -217,7 +218,7 @@ public class RelativeKeyTest {
     Key seekKey = expectedKeys.get(seekIndex);
     Key prevKey = new Key();
     Key currKey = null;
-    MByteSequence value = new MByteSequence(new byte[64], 0, 0);
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
     
     RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
     

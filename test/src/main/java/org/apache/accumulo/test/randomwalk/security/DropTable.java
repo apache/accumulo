@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -50,9 +50,10 @@ public class DropTable extends Test {
     Connector conn = state.getInstance().getConnector(principal, token);
     
     String tableName = WalkingSecurity.get(state).getTableName();
+    String namespaceName = WalkingSecurity.get(state).getNamespaceName();
     
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), tableName);
+    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(new Credentials(principal, token).toThrift(state.getInstance()), tableName, namespaceName);
     
     try {
       conn.tableOperations().delete(tableName);

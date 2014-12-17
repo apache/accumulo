@@ -21,9 +21,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.util.StringUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.Text;
 
 public class LogEntry {
   public KeyExtent extent;
@@ -33,6 +38,17 @@ public class LogEntry {
   public int tabletId;
   public Collection<String> logSet;
   
+  public LogEntry() {}
+
+  public LogEntry(LogEntry le) {
+    this.extent = le.extent;
+    this.timestamp = le.timestamp;
+    this.server = le.server;
+    this.filename = le.filename;
+    this.tabletId = le.tabletId;
+    this.logSet = new ArrayList<String>(le.logSet);
+  }
+
   public String toString() {
     return extent.toString() + " " + filename + " (" + tabletId + ")";
   }
@@ -71,4 +87,34 @@ public class LogEntry {
     this.logSet = logSet;
   }
   
+  static private final Text EMPTY_TEXT = new Text();
+
+  public static LogEntry fromKeyValue(Key key, Value value) {
+    LogEntry result = new LogEntry();
+    result.extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
+    String[] parts = key.getColumnQualifier().toString().split("/", 2);
+    result.server = parts[0];
+    result.filename = parts[1];
+    parts = value.toString().split("\\|");
+    result.tabletId = Integer.parseInt(parts[1]);
+    result.logSet = Arrays.asList(parts[0].split(";"));
+    result.timestamp = key.getTimestamp();
+    return result;
+  }
+  
+  public Text getRow() {
+    return extent.getMetadataEntry();
+  }
+  
+  public Text getColumnFamily() {
+    return MetadataSchema.TabletsSection.LogColumnFamily.NAME;
+  }
+  
+  public Text getColumnQualifier() {
+    return new Text(server + "/" + filename);
+  }
+  
+  public Value getValue() {
+    return new Value((StringUtil.join(logSet, ";") + "|" + tabletId).getBytes());
+  }
 }

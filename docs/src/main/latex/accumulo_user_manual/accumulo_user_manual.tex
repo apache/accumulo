@@ -16,15 +16,13 @@
 
 \documentclass[11pt]{report}
 \title{Apache Accumulo User Manual\\
-Version 1.5}
+Version 1.6}
 \usepackage{alltt}
 \usepackage{multirow}
 \usepackage{graphicx}
 \usepackage[T1]{fontenc}
+\usepackage{ulem}
 \renewcommand{\ttdefault}{txtt}
-%\def\verbatim{%
-%	\def\verbatim@font{\small\ttfamily}%
-%	\verbatim}
 
 \setlength{\textwidth}{6.25in}
 \evensidemargin=0in
@@ -50,4 +48,8 @@ Version 1.5}
 \include{chapters/analytics}
 \include{chapters/security}
 \include{chapters/administration}
+\include{chapters/multivolume}
+\include{chapters/troubleshooting}
+\appendix
+\include{appendices/config}
 \end{document}

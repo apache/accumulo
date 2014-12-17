@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import static org.apache.accumulo.examples.simple.client.RandomBatchWriter.abs;
 
 import com.beust.jcommander.Parameter;
 
@@ -99,7 +100,7 @@ public class RandomBatchScanner {
   static void generateRandomQueries(int num, long min, long max, Random r, HashSet<Range> ranges, HashMap<Text,Boolean> expectedRows) {
     log.info(String.format("Generating %,d random queries...", num));
     while (ranges.size() < num) {
-      long rowid = (Math.abs(r.nextLong()) % (max - min)) + min;
+      long rowid = (abs(r.nextLong()) % (max - min)) + min;
       
       Text row1 = new Text(String.format("row_%010d", rowid));
       

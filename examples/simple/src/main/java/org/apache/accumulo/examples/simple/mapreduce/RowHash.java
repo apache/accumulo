@@ -25,9 +25,9 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.MD5Hash;
 import org.apache.hadoop.io.Text;
@@ -50,47 +50,46 @@ public class RowHash extends Configured implements Tool {
       context.write(null, m);
       context.progress();
     }
-    
+
     @Override
     public void setup(Context job) {}
   }
-  
+
   private static class Opts extends ClientOnRequiredTable {
     @Parameter(names = "--column", required = true)
     String column = null;
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
-    Job job = new Job(getConf(), this.getClass().getName());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(this.getClass().getName());
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RowHash.class.getName(), args);
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
-    
+
     String col = opts.column;
     int idx = col.indexOf(":");
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
     if (cf.getLength() > 0)
       AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
-    
+
     job.setMapperClass(HashDataMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(CachedConfiguration.getInstance(), new RowHash(), args);
-    if (res != 0)
-      System.exit(res);
+    ToolRunner.run(new Configuration(), new RowHash(), args);
   }
 }

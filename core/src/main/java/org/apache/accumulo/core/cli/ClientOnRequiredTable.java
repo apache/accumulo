@@ -28,13 +28,22 @@ public class ClientOnRequiredTable extends ClientOpts {
   @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
   public String tableName = null;
   
+  @Parameter(names = {"-tf", "--tokenFile"}, description = "File in hdfs containing the user's authentication token create with \"bin/accumulo create-token\"")
+  public String tokenFile = "";
+  
   @Override
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     super.setAccumuloConfigs(job);
-    AccumuloInputFormat.setConnectorInfo(job, principal, getToken());
+    
+    if (tokenFile.isEmpty()) {
+      AccumuloInputFormat.setConnectorInfo(job, principal, getToken());
+      AccumuloOutputFormat.setConnectorInfo(job, principal, getToken());
+    } else {
+      AccumuloInputFormat.setConnectorInfo(job, principal, tokenFile);
+      AccumuloOutputFormat.setConnectorInfo(job, principal, tokenFile);
+    }
     AccumuloInputFormat.setInputTableName(job, tableName);
     AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloOutputFormat.setConnectorInfo(job, principal, getToken());
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, tableName);
   }

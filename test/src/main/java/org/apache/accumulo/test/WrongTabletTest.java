@@ -16,14 +16,14 @@
  */
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -31,7 +31,7 @@ import com.beust.jcommander.Parameter;
 public class WrongTabletTest {
   
   static class Opts extends ClientOpts {
-    @Parameter(names="--location", required=true)
+    @Parameter(names = "--location", required = true)
     String location;
   }
   
@@ -45,7 +45,8 @@ public class WrongTabletTest {
       
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       mutation.putDelete(new Text("colf"), new Text("colq"));
-      client.update(Tracer.traceInfo(), CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), new KeyExtent(new Text("!!"), null, new Text("row_0003750000")).toThrift(), mutation.toThrift());
+      client.update(Tracer.traceInfo(), new Credentials(opts.principal, opts.getToken()).toThrift(opts.getInstance()), new KeyExtent(new Text("!!"), null,
+          new Text("row_0003750000")).toThrift(), mutation.toThrift());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

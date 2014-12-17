@@ -18,7 +18,9 @@
 
 Accumulo tables have a few options that can be configured to alter the default
 behavior of Accumulo as well as improve performance based on the data stored.
-These include locality groups, constraints, bloom filters, iterators, and block cache.
+These include locality groups, constraints, bloom filters, iterators, and block
+cache. For a complete list of available configuration options, see
+Appendix~\ref{app:config}.
 
 \section{Locality Groups}
 Accumulo supports storing sets of column families separately on disk to allow
@@ -33,21 +35,18 @@ programmatically as follows:
 
 \subsection{Managing Locality Groups via the Shell}
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 usage: setgroups <group>=<col fam>{,<col fam>}{ <group>=<col fam>{,<col
 fam>}} [-?] -t <table>
 
 user@myinstance mytable> setgroups group_one=colf1,colf2 -t mytable
 
 user@myinstance mytable> getgroups -t mytable
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \subsection{Managing Locality Groups via the Client API}
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Connector conn;
 
 HashMap<String,Set<Text>> localityGroups = new HashMap<String, Set<Text>>();
@@ -68,8 +67,7 @@ conn.tableOperations().setLocalityGroups("mytable", localityGroups);
 // existing locality groups can be obtained as follows
 Map<String, Set<Text>> groups =
     conn.tableOperations().getLocalityGroups("mytable");
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The assignment of Column Families to Locality Groups can be changed anytime. The
 physical movement of column families into their new locality groups takes place via
@@ -77,11 +75,9 @@ the periodic Major Compaction process that takes place continuously in the
 background. Major Compaction can also be scheduled to take place immediately
 through the shell:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance mytable> compact -t mytable
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{Constraints}
 
@@ -92,18 +88,20 @@ client.
 
 Constraints can be enabled by setting a table property as follows:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance mytable> constraint -t mytable -a com.test.ExampleConstraint com.test.AnotherConstraint
 user@myinstance mytable> constraint -l
 com.test.ExampleConstraint=1
 com.test.AnotherConstraint=2
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Currently there are no general-purpose constraints provided with the Accumulo
 distribution. New constraints can be created by writing a Java class that implements
-the org.apache.accumulo.core.constraints.Constraint interface.
+the following interface:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+org.apache.accumulo.core.constraints.Constraint
+\end{verbatim}\endgroup
 
 To deploy a new constraint, create a jar file containing the class implementing the
 new constraint and place it in the lib directory of the Accumulo installation. New
@@ -112,7 +110,7 @@ change to an existing constraint class requires Accumulo to be restarted.
 
 An example of constraints can be found in\\
 \texttt{accumulo/docs/examples/README.constraints} with corresponding code under\\
-\texttt{accumulo/examples/simple/main/java/accumulo/examples/simple/constraints} .
+\texttt{accumulo/examples/simple/src/main/java/accumulo/examples/simple/constraints} .
 
 \section{Bloom Filters}
 As mutations are applied to an Accumulo table, several files are created per tablet. If
@@ -122,11 +120,9 @@ This can speed up lookups considerably.
 
 To enable bloom filters, enter the following command in the Shell:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance> config -t mytable -s table.bloom.enabled=true
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 An extensive example of using Bloom Filters can be found at\\
 \texttt{accumulo/docs/examples/README.bloom} .
@@ -149,25 +145,25 @@ compaction scopes. If the Iterator implements the OptionDescriber interface, the
 setiter command can be used which will interactively prompt the user to provide
 values for the given necessary options. 
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 usage: setiter [-?] -ageoff | -agg | -class <name> | -regex | 
 -reqvis | -vers   [-majc] [-minc] [-n <itername>] -p <pri>   
 [-scan] [-t <table>]
 
 user@myinstance mytable> setiter -t mytable -scan -p 15 -n myiter -class com.company.MyIterator
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The config command can always be used to manually configure iterators which is useful 
 in cases where the Iterator does not implement the OptionDescriber interface.
 
-\small
-\begin{verbatim}
-config -t mytable -s table.iterator.{scan|minc|majc}.myiter=15,com.company.MyIterator
-config -t mytable -s table.iteartor.{scan|minc|majc}.myiter.opt.myoptionname=myoptionvalue
-\end{verbatim}
-\normalsize
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+config -t mytable -s table.iterator.scan.myiter=15,com.company.MyIterator
+config -t mytable -s table.iterator.minc.myiter=15,com.company.MyIterator
+config -t mytable -s table.iterator.majc.myiter=15,com.company.MyIterator
+config -t mytable -s table.iterator.scan.myiter.opt.myoptionname=myoptionvalue
+config -t mytable -s table.iterator.minc.myiter.opt.myoptionname=myoptionvalue
+config -t mytable -s table.iterator.majc.myiter.opt.myoptionname=myoptionvalue
+\end{verbatim}\endgroup
 
 Typically, a table will have multiple iterators. Accumulo configures a set of
 system level iterators for each table. These iterators provide core
@@ -179,26 +175,22 @@ stack.
 
 \subsection{Setting Iterators Programmatically}
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 scanner.addIterator(new IteratorSetting(
     15, // priority
     "myiter", // name this iterator
     "com.company.MyIterator" // class name
 ));
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Some iterators take additional parameters from client code, as in the following
 example:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 IteratorSetting iter = new IteratorSetting(...);
 iter.addOption("myoptionname", "myoptionvalue");
 scanner.addIterator(iter)
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Tables support separate Iterator settings to be applied at scan time, upon minor
 compaction and upon major compaction. For most uses, tables will have identical
@@ -220,26 +212,22 @@ given date. The default is to return the one most recent version.
 The version policy can be changed by changing the VersioningIterator options for a
 table as follows:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance mytable> config -t mytable -s table.iterator.scan.vers.opt.maxVersions=3
 
 user@myinstance mytable> config -t mytable -s table.iterator.minc.vers.opt.maxVersions=3
 
 user@myinstance mytable> config -t mytable -s table.iterator.majc.vers.opt.maxVersions=3
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 When a table is created, by default its configured to use the
 VersioningIterator and keep one version. A table can be created without the
 VersioningIterator with the -ndi option in the shell. Also the Java API
 has the following method 
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 connector.tableOperations.create(String tableName, boolean limitVersion).
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 
 \subsubsection{Logical Time}
@@ -254,11 +242,9 @@ always move forward and never backwards.
 
 A table can be configured to use logical timestamps at creation time as follows:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance> createtable -tl logical
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \subsubsection{Deletes}
 Deletes are special keys in Accumulo that get sorted along will all the other data.
@@ -279,14 +265,16 @@ The AgeOff filter can be configured to remove data older than a certain date or 
 amount of time from the present. The following example sets a table to delete
 everything inserted over 30 seconds ago:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@myinstance> createtable filtertest
 user@myinstance filtertest> setiter -t filtertest -scan -minc -majc -p 10 -n myfilter -ageoff
 AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old
-----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter negate, default false keeps k/v that pass accept method, true rejects k/v that pass accept method: 
-----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter ttl, time to live (milliseconds): 3000
-----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter currentTime, if set, use the given value as the absolute time in milliseconds as the current time of day: 
+----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter negate, default false
+                keeps k/v that pass accept method, true rejects k/v that pass accept method: 
+----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter ttl, time to
+                live (milliseconds): 3000
+----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter currentTime, if set,
+                use the given value as the absolute time in milliseconds as the current time of day: 
 user@myinstance filtertest> 
 user@myinstance filtertest> scan
 user@myinstance filtertest> insert foo a b c
@@ -295,13 +283,11 @@ foo a:b [] c
 user@myinstance filtertest> sleep 4
 user@myinstance filtertest> scan
 user@myinstance filtertest>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 To see the iterator settings for a table, use:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 user@example filtertest> config -t filtertest -f iterator
 ---------+---------------------------------------------+------------------
 SCOPE    | NAME                                        | VALUE
@@ -318,9 +304,8 @@ table    | table.iterator.scan.myfilter .............. | 10,org.apache.accumulo.
 table    | table.iterator.scan.myfilter.opt.ttl ...... | 3000
 table    | table.iterator.scan.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
 table    | table.iterator.scan.vers.opt.maxVersions .. | 1
----------+------------------------------------------+------------------
-\end{verbatim}
-\normalsize
+---------+---------------------------------------------+------------------
+\end{verbatim}\endgroup
 
 \subsection{Combiners}
 
@@ -333,26 +318,21 @@ the values associated with a particular key.
 For example, if a summing combiner were configured on a table and the following
 mutations were inserted:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Row     Family Qualifier Timestamp  Value
 rowID1  colfA  colqA     20100101   1
 rowID1  colfA  colqA     20100102   1
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The table would reflect only one aggregate value:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 rowID1  colfA  colqA     -          2
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Combiners can be enabled for a table using the setiter command in the shell. Below is an example.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@a14 perDayCounts> setiter -t perDayCounts -p 10 -scan -minc -majc -n daycount 
                        -class org.apache.accumulo.core.iterators.user.SummingCombiner
 TypedValueCombiner can interpret Values as a variety of number encodings 
@@ -371,8 +351,7 @@ root@a14 perDayCounts> scan
 bar day:20080101 []    2
 foo day:20080101 []    2
 foo day:20080103 []    1
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Accumulo includes some useful Combiners out of the box. To find these look in
 the\\ \texttt{org.apache.accumulo.core.iterators.user} package.
@@ -381,8 +360,11 @@ Additional Combiners can be added by creating a Java class that extends\\
 \texttt{org.apache.accumulo.core.iterators.Combiner} and adding a jar containing that
 class to Accumulo's lib/ext directory.
 
-An example of a Combiner can be found under\\
-accumulo/examples/simple/main/java/org/apache/accumulo/examples/simple/combiner/StatsCombiner.java
+An example of a Combiner can be found under
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+accumulo/examples/simple/src/main/java/org/apache/accumulo/examples/simple/combiner/StatsCombiner.java
+\end{verbatim}\endgroup
 
 
 \section{Block Cache}
@@ -394,18 +376,21 @@ Typical queries to Accumulo result in a binary search over several index blocks 
 
 The block cache can be configured on a per-table basis, and all tablets hosted on a tablet server share a single resource pool.
 To configure the size of the tablet server's block cache, set the following properties:
-\begin{verbatim}
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 tserver.cache.data.size: Specifies the size of the cache for file data blocks.
 tserver.cache.index.size: Specifies the size of the cache for file indices.
-\end{verbatim}
+\end{verbatim}\endgroup
+
 To enable the block cache for your table, set the following properties:
-\begin{verbatim}
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 table.cache.block.enable: Determines whether file (data) block cache is enabled.
 table.cache.index.enable: Determines whether index cache is enabled.
-\end{verbatim}
+\end{verbatim}\endgroup
 
 The block cache can have a significant effect on alleviating hot spots, as well as reducing query latency.
-It is enabled by default for the !METADATA table.
+It is enabled by default for the metadata tables.
 
 \section{Compaction}
 
@@ -417,9 +402,9 @@ decide which tablets to compact and which files within a tablet to compact.
 This decision is made using the compaction ratio, which is configurable on a
 per table basis. To configure this ratio modify the following property:
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 table.compaction.major.ratio
-\end{verbatim}  
+\end{verbatim}\endgroup
 
 Increasing this ratio will result in more files per tablet and less compaction
 work. More files per tablet means more higher query latency. So adjusting
@@ -436,16 +421,16 @@ compaction is triggered or there are no files left to consider.
 The number of background threads tablet servers use to run major compactions is
 configurable. To configure this modify the following property:
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 tserver.compaction.major.concurrent.max
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Also, the number of threads tablet servers use for minor compactions is
 configurable. To configure this modify the following property:
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 tserver.compaction.minor.concurrent.max
-\end{verbatim}
+\end{verbatim}\endgroup
 
 The numbers of minor and major compactions running and queued is visible on the
 Accumulo monitor page. This allows you to see if compactions are backing up
@@ -469,9 +454,9 @@ be done.
 Another option to deal with the files per tablet growing too large is to adjust
 the following property:
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 table.file.max  
-\end{verbatim}
+\end{verbatim}\endgroup
 
 When a tablet reaches this number of files and needs to flush its in-memory
 data to disk, it will choose to do a merging minor compaction. A merging minor
@@ -507,12 +492,10 @@ is new, or small, you can add split points and generate new tablets.
 
 In the shell:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> createtable newTable
 root@myinstance> addsplits -t newTable g n t
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This will create a new table with 4 tablets. The table will be split
 on the letters ``g'', ``n'', and ``t'' which will work nicely if the
@@ -536,54 +519,44 @@ Accumulo supports tablet merging, which can be used to reduce
 the number of split points. The following command will merge all rows
 from ``A'' to ``Z'' into a single tablet:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> merge -t myTable -s A -e Z
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 If the result of a merge produces a tablet that is larger than the
 configured split size, the tablet may be split by the tablet server.
 Be sure to increase your tablet size prior to any merges if the goal
 is to have larger tablets:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> config -t myTable -s table.split.threshold=2G
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 In order to merge small tablets, you can ask Accumulo to merge
 sections of a table smaller than a given size.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> merge -t myTable -s 100M
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 By default, small tablets will not be merged into tablets that are
 already larger than the given size. This can leave isolated small
 tablets. To force small tablets to be merged into larger tablets use
-the ``--{}--force'' option:
+the ``-{}-force'' option:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> merge -t myTable -s 100M --force
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Merging away small tablets works on one section at a time. If your
 table contains many sections of small split points, or you are
 attempting to change the split size of the entire table, it will be
 faster to set the split point and merge the entire table:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> config -t myTable -s table.split.threshold=256M
 root@myinstance> merge -t myTable
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{Delete Range}
 
@@ -594,24 +567,20 @@ this date, say to remove all the data older than the current year.
 Accumulo supports a delete range operation which efficiently
 removes data between two rows. For example:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> deleterange -t myTable -s 2010 -e 2011
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This will delete all rows starting with ``2010'' and it will stop at
 any row starting ``2011''. You can delete any data prior to 2011
 with:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> deleterange -t myTable -e 2011 --force
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The shell will not allow you to delete an unbounded range (no start)
-unless you provide the ``--{}--force'' option.
+unless you provide the ``-{}-force'' option.
 
 Range deletion is implemented using splits at the given start/end
 positions, and will affect the number of splits in the table.
@@ -640,8 +609,7 @@ created, only the user that created the clone can read and write to it.
 In the following example we see that data inserted after the clone operation is
 not visible in the clone.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@a14> createtable people
 root@a14 people> insert 890435 name last Doe
 root@a14 people> insert 890435 name first John
@@ -658,8 +626,7 @@ root@a14 test> scan
 890435 name:first []    John
 890435 name:last []    Doe
 root@a14 test> 
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The du command in the shell shows how much space a table is using in HDFS.
 This command can also show how much overlapping space two cloned tables have in
@@ -669,8 +636,7 @@ inserted into cic and its flushed, du shows the two tables still share 428M but
 cic has 226 bytes to itself. Finally, table cic is compacted and then du shows
 that each table uses 428M.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@a14> du ci           
              428,482,573 [ci]
 root@a14> clonetable ci cic
@@ -692,8 +658,7 @@ root@a14 cic> du ci cic
              428,482,573 [ci]
              428,482,612 [cic]
 root@a14 cic> 
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{Exporting Tables}
 

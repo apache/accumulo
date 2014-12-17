@@ -14,6 +14,18 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+/*
+ * Compatibility.
+ *
+ * Its possible that over time that this IDL may change in ways that breaks
+ * client code.  However newer versions of the proxy server will use thrift
+ * mechanisms to maintain compatibility with older versions of the proxy IDL.
+ * So proxy clients using 1.4.x or 1.5.x IDL can use a 1.6.x proxy server.
+ * Therefore if changes to this IDL break your client code, then using an older
+ * version of the IDL with a new version of the proxy server is an option.
+ */
+
 namespace cpp accumulo
 namespace java org.apache.accumulo.proxy.thrift
 namespace rb Accumulo
@@ -43,6 +55,12 @@ struct ColumnUpdate {
   4:optional i64 timestamp,
   5:optional binary value,
   6:optional bool deleteCell
+}
+
+//since 1.6.0
+struct DiskUsage {
+  1:list<string> tables,
+  2:i64 usage
 }
 
 struct KeyValue {
@@ -136,6 +154,37 @@ struct Column {
   1:binary colFamily;
   2:binary colQualifier;
   3:binary colVisibility;
+}
+
+//since 1.6.0
+struct Condition {
+  1:Column column;
+  2:optional i64 timestamp;
+  3:optional binary value;
+  4:optional list<IteratorSetting> iterators;
+}
+
+//since 1.6.0
+struct ConditionalUpdates {
+	2:list<Condition> conditions
+	3:list<ColumnUpdate> updates 
+}
+
+//since 1.6.0
+enum ConditionalStatus {
+  ACCEPTED,
+  REJECTED,
+  VIOLATED,
+  UNKNOWN,
+  INVISIBLE_VISIBILITY
+}
+
+//since 1.6.0
+struct ConditionalWriterOptions {
+   1:optional i64 maxMemory
+   2:optional i64 timeoutMs
+   3:optional i32 threads
+   4:optional set<binary> authorizations;
 }
 
 struct ActiveScan {
@@ -259,6 +308,8 @@ service AccumuloProxy
   void flushTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
                    5:bool wait)
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  //since 1.6.0                                                                                                       
+  list<DiskUsage> getDiskUsage(1:binary login, 2:set<string> tables)                                   throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,set<string>> getLocalityGroups (1:binary login, 2:string tableName)                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   IteratorSetting getIteratorSetting (1:binary login, 2:string tableName, 
                                       3:string iteratorName, 4:IteratorScope scope) 
@@ -276,8 +327,10 @@ service AccumuloProxy
   map<string,set<IteratorScope>> listIterators (1:binary login, 2:string tableName)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,i32> listConstraints (1:binary login, 2:string tableName)                                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void mergeTablets (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow)           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void offlineTable (1:binary login, 2:string tableName)                                               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void onlineTable (1:binary login, 2:string tableName)                                                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  //changed in 1.6.0, see comment at top about compatibility
+  void offlineTable (1:binary login, 2:string tableName, 3:bool wait=false)                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  //changed in 1.6.0, see comment at top about compatibility
+  void onlineTable (1:binary login, 2:string tableName, 3:bool wait=false)                             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void removeConstraint (1:binary login, 2:string tableName, 3:i32 constraint)                         throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void removeIterator (1:binary login, 2:string tableName, 3:string iterName, 
                        4:set<IteratorScope> scopes)
@@ -318,7 +371,6 @@ service AccumuloProxy
   void revokeSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
-
   // scanning
   string createBatchScanner(1:binary login, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   string createScanner(1:binary login, 2:string tableName, 3:ScanOptions options)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
@@ -337,6 +389,20 @@ service AccumuloProxy
   oneway void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
   void flush(1:string writer)                                                                      throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
   void closeWriter(1:string writer)                                                                throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
+
+  //api for a single conditional update
+  ConditionalStatus updateRowConditionally(1:binary login, 2:string tableName, 3:binary row, 
+                                           4:ConditionalUpdates updates)                           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  
+  //api for batch conditional updates
+  //since 1.6.0
+  string createConditionalWriter(1:binary login, 2:string tableName, 
+                                 3:ConditionalWriterOptions options)                               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  //since 1.6.0
+  map<binary, ConditionalStatus> updateRowsConditionally(1:string conditionalWriter,                   
+                                                     2:map<binary, ConditionalUpdates> updates)    throws (1:UnknownWriter ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  //since 1.6.0
+  void closeConditionalWriter(1:string conditionalWriter);
 
   // utilities
   Range getRowRange(1:binary row);

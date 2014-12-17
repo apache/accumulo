@@ -22,7 +22,7 @@ import java.util.Map;
  * Base interface for gathering and reporting statistics about a block of execution.
  */
 public interface Span {
-  public static final long ROOT_SPAN_ID = 0;
+  static final long ROOT_SPAN_ID = 0;
   
   /** Begin gathering timing information */
   void start();

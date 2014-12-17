@@ -21,6 +21,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -47,7 +48,7 @@ public abstract class ScaleTest {
     String password = this.scaleProps.getProperty("PASSWORD");
     System.out.println(password);
     
-    conn = new ZooKeeperInstance(instanceName, zookeepers).getConnector(user, new PasswordToken(password));
+    conn = new ZooKeeperInstance(new ClientConfiguration().withInstance(instanceName).withZkHosts(zookeepers)).getConnector(user, new PasswordToken(password));
   }
   
   protected void startTimer() {
@@ -56,7 +57,7 @@ public abstract class ScaleTest {
   
   protected void stopTimer(long numEntries, long numBytes) {
     long endTime = System.currentTimeMillis();
-    System.out.printf("ELAPSEDMS %d %d %d%n", (endTime - startTime), numEntries, numBytes);
+    System.out.printf("ELAPSEDMS %d %d %d%n", endTime - startTime, numEntries, numBytes);
   }
   
   public abstract void setup();

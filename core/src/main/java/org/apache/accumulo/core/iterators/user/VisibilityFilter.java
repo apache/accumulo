@@ -98,12 +98,6 @@ public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.
     return io;
   }
   
-  @Override
-  public boolean validateOptions(Map<String,String> options) {
-    // All local options are valid; only check super options
-    return super.validateOptions(options);
-  }
-  
   public static void setAuthorizations(IteratorSetting setting, Authorizations auths) {
     setting.addOption(AUTHS, auths.serialize());
   }

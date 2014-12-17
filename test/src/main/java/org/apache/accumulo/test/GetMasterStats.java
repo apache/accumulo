@@ -16,26 +16,31 @@
  */
 package org.apache.accumulo.test;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.monitor.Monitor;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.accumulo.trace.instrument.Tracer;
 
 public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     try {
-      client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
-      stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+      Instance instance = HdfsZooInstance.getInstance();
+      client = MasterClient.getConnectionWithRetry(instance);
+      stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
     } finally {
       if (client != null)
         MasterClient.close(client);
@@ -56,6 +61,12 @@ public class GetMasterStats {
         out(1, "%s: %d", entry.getKey(), (int) entry.getValue());
       }
     }
+    out(0, "Dead tablet servers count: %s", stats.deadTabletServers.size());
+    for (DeadServer dead : stats.deadTabletServers) {
+      out(1, "Dead tablet server: %s", dead.server);
+      out(2, "Last report: %s", new SimpleDateFormat().format(new Date(dead.lastStatus)));
+      out(2, "Cause: %s", dead.status);
+    }
     if (stats.tableMap != null && stats.tableMap.size() > 0) {
       out(0, "Tables");
       for (Entry<String,TableInfo> entry : stats.tableMap.entrySet()) {
@@ -73,7 +84,7 @@ public class GetMasterStats {
       out(0, "Tablet Servers");
       long now = System.currentTimeMillis();
       for (TabletServerStatus server : stats.tServerInfo) {
-        TableInfo summary = Monitor.summarizeTableStats(server);
+        TableInfo summary = TableInfoUtil.summarizeTableStats(server);
         out(1, "Name: %s", server.name);
         out(2, "Ingest: %.2f", summary.ingestRate);
         out(2, "Last Contact: %s", server.lastContact);

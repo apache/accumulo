@@ -116,21 +116,21 @@ public class HexFormatter implements Formatter, ScanInterpreter {
   
   @Override
   public Text interpretBeginRow(Text row) {
-    return new Text(toBinary(row.toString()));
+    return interpretRow(row);
   }
 
   @Override
   public Text interpretEndRow(Text row) {
-    return new Text(toBinary(row.toString()));
+    return interpretRow(row);
   }
 
   @Override
   public Text interpretColumnFamily(Text cf) {
-    return new Text(toBinary(cf.toString()));
+    return interpretRow(cf);
   }
 
   @Override
   public Text interpretColumnQualifier(Text cq) {
-    return new Text(toBinary(cq.toString()));
+    return interpretRow(cq);
   }
 }

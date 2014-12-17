@@ -25,9 +25,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -45,14 +45,14 @@ import com.beust.jcommander.Parameter;
  * <tablename> <column> <hdfs-output-path>
  */
 public class TableToFile extends Configured implements Tool {
-  
+
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names = "--output", description = "output directory", required = true)
     String output;
     @Parameter(names = "--columns", description = "columns to extract, in cf:cq{,cf:cq,...} form")
     String columns = "";
   }
-  
+
   /**
    * The Mapper class that given a row number, will generate the appropriate output line.
    */
@@ -66,12 +66,12 @@ public class TableToFile extends Configured implements Tool {
         public Key getKey() {
           return r;
         }
-        
+
         @Override
         public Value getValue() {
           return v;
         }
-        
+
         @Override
         public Value setValue(Value value) {
           return null;
@@ -81,17 +81,18 @@ public class TableToFile extends Configured implements Tool {
       context.setStatus("Outputed Value");
     }
   }
-  
+
   @Override
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
-    Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
-    
+
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
-    
+
     HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<Pair<Text,Text>>();
     for (String col : opts.columns.split(",")) {
       int idx = col.indexOf(":");
@@ -102,28 +103,26 @@ public class TableToFile extends Configured implements Tool {
     }
     if (!columnsToFetch.isEmpty())
       AccumuloInputFormat.fetchColumns(job, columnsToFetch);
-    
+
     job.setMapperClass(TTFMapper.class);
     job.setMapOutputKeyClass(NullWritable.class);
     job.setMapOutputValueClass(Text.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(TextOutputFormat.class);
     TextOutputFormat.setOutputPath(job, new Path(opts.output));
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   /**
    * 
    * @param args
    *          instanceName zookeepers username password table columns outputpath
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);
-    if (res != 0)
-      System.exit(res);
+    ToolRunner.run(new Configuration(), new TableToFile(), args);
   }
 }

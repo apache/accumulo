@@ -1,3 +1,21 @@
+Title: Apache Accumulo
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
 ******************************************************************************
 0. Introduction
 
@@ -10,78 +28,182 @@ key/value pairs at various points in the data management process.
 ******************************************************************************
 1. Building
 
-In the normal tarball or RPM release of accumulo, everything is built and
+In the normal tarball release of accumulo, everything is built and
 ready to go on x86 GNU/Linux: there is no build step.
 
 However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo prerequisites from repositories.  See
-the pom.xml file for the necessary components. Activate the 'docs' profile to build
-the Accumulo developer and user manual.
+the pom.xml file for the necessary components. 
 
-Run "mvn package -P assemble" to build a distribution, or run 
-"mvn package -P assemble,docs" to also build the documentation. By default, 
-Accumulo compiles against Hadoop 1.2.1.  To compile against a different version
-that is compatible with Hadoop 1, specify hadoop.version on the command line,
-e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
-against Hadoop 2, specify "-Dhadoop.profile=2".  By default this uses
-2.2.0.  To compile against a different 2-compatible version, specify
-the profile and version, e.g. "-Dhadoop.profile=2 -Dhadoop.version=0.23.5".
+You can build an Accumulo binary distribution, which is created in the 
+assemble/target directory, using the following command. Note that maven 3
+is required starting with Accumulo v1.5.0. By default, Accumulo compiles
+against Hadoop 2.2.0, but these artifacts should be compatible with Apache
+Hadoop 1.2.x or Apache Hadoop 2.2.x releases.
+
+  mvn package -P assemble
+
+By default, Accumulo compiles against Apache Hadoop 2.2.0. To compile against 
+a  different Hadoop 2-compatible version, specify the profile and version,
+e.g. "-Dhadoop.version=0.23.5".
+
+To compile against Apache Hadoop 1.2.1, or a different version that is compatible 
+with Hadoop 1, specify hadoop.profile and hadoop.version on the command line,
+e.g. "-Dhadoop.profile=1 -Dhadoop.version=0.20.205.0" or
+     "-Dhadoop.profile=1 -Dhadoop.version=1.1.0".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
-but having them available suppresses a runtime warning:
+but having them available suppresses a runtime warning and enables Accumulo
+to run faster. You can execute the following script to automatically unpack
+and install the native library. Be sure to have a JDK and a C++ compiler 
+installed with the JAVA_HOME environment variable set.
 
-  $ ( cd ./server/src/main/c++ ; make )
+  $ ./bin/build_native_library.sh
 
-If you want to build the debian release, use the command "mvn install -Pdeb" to 
-generate the .deb files in the target/ directory. Please follow the steps at 
-https://cwiki.apache.org/BIGTOP/how-to-install-hadoop-distribution-from-bigtop.html
-to add bigtop to your debian sources list. This will make it substantially
-easier to install.
+If your system's default compiler options are insufficient, you can add
+additional compiler options to the command line, such as options for the
+architecture. These will be passed to the Makefile in the environment variable
+USERFLAGS:
+
+  $ ./bin/build_native_library.sh -m32
+
+Alternatively, you can manually unpack the accumulo-native tarball in the 
+$ACCUMULO_HOME/lib directory. Change to the accumulo-native directory in 
+the current directory and issue `make`. Then, copy the resulting 'libaccumulo' 
+library into the $ACCUMULO_HOME/lib/native/map.
+
+  $ mkdir -p $ACCUMULO_HOME/lib/native/map
+  $ cp libaccumulo.* $ACCUMULO_HOME/lib/native/map
+
+
+Building Documentation
+
+Use the following command to build the User Manual (docs/target/accumulo_user_manual.pdf)
+and the configuration HTML page (docs/target/config.html)
+
+  mvn package -P docs -DskipTests
 
 ******************************************************************************
 2. Deployment
 
 Copy the accumulo tar file produced by mvn package from the assemble/target/
 directory to the desired destination, then untar it (e.g. 
-tar xzf accumulo-1.5.0-bin.tar.gz).
+tar xzf accumulo-1.6.0-bin.tar.gz).
 
-If you are using the RPM, install the RPM on every machine that will run
-accumulo.
+Another option is to package Accumulo directly to a working directory. For example,
+
+  mvn package -DskipTests -DDEV_ACCUMULO_HOME=/var/tmp
+
+The above command would create a directory with a name similar to
+/var/tmp/accumulo-1.6.0-dev/accumulo-1.6.0/, containing all the contents
+that are normally contained in accumulo-1.6.0-bin.tar.gz, but already unpacked.
+If the DEV_ACCUMULO_HOME parameter is not specified, this directory would
+normally be created in assemble/target, but that is subject to deletion by
+the 'mvn clean' command. Specifying an external directory would not be subject
+to 'mvn clean'. When executed more than once, newer files overwrite older files,
+and files a user adds (such as configuration files in conf/) will be left alone.
+
+If HDFS and Zookeeper are running, you can run Accumulo directly from this
+working directory. See the 'Running Apache Accumulo' section later in this document.
+
+You can avoid specifying the working directory each time you compile by adding
+a profile to maven's settings.xml file. Below is an example of $HOME/.m2/settings.xml
+
+ <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+   <profiles>
+     <profile>
+       <id>inject-accumulo-home</id>
+       <properties>
+         <DEV_ACCUMULO_HOME>/var/tmp</DEV_ACCUMULO_HOME>
+       </properties>
+     </profile>
+   </profiles>
+   <activeProfiles>
+     <activeProfile>inject-accumulo-home</activeProfile>
+   </activeProfiles>
+ </settings>
 
 ******************************************************************************
-3. Upgrading from 1.4 to 1.5
+3. Upgrading
 
- This happens automatically the first time Accumulo 1.5 is started.  
+3.1. From 1.5 to 1.6
+
+ This happens automatically the first time Accumulo 1.6 is started.
+
+ If your instance previously upgraded from 1.4 to 1.5, you must verify that your
+ 1.5 instance has no outstanding local write ahead logs. You can do this by ensuring
+ either:
+
+  - All of your tables are online and the Monitor shows all tablets hosted
+  - The directory for write ahead logs (logger.dir.walog) from 1.4 has no files remaining
+    on any tablet server / logger hosts
+
+ To upgrade from 1.5 to 1.6 you must:
 
   * Verify that there are no outstanding FATE operations
-    - Under 1.4 you can list what's in FATE by running
+    - Under 1.5 you can list what's in FATE by running
       $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.fate.Admin print
     - Note that operations in any state will prevent an upgrade. It is safe
       to delete operations with status SUCCESSFUL. For others, you should restart
-      your 1.4 cluster and allow them to finish.
-  * Stop the 1.4 instance.  
-  * Configure 1.5 to use the hdfs directory, walog directories, and zookeepers
-    that 1.4 was using.
-  * Copy other 1.4 configuration options as needed.
-  * Start Accumulo 1.5. 
+      your 1.5 cluster and allow them to finish.
+  * Stop the 1.5 instance.
+  * Configure 1.6 to use the hdfs directory and zookeepers that 1.5 was using.
+  * Copy other 1.5 configuration options as needed.
+  * Start Accumulo 1.6.
 
   The upgrade process must make changes to Accumulo's internal state in both ZooKeeper and
-  the table metadata. This process may take some time as Tablet Servers move write-ahead
-  logs to HDFS and then do recovery. During this time, the Monitor will claim that the
-  Master is down and some services may send the Monitor log messages about failure to
-  communicate with each other. These messages are safe to ignore. If you need detail on
-  the upgrade's progress you should view the local logs on the Tablet Servers and active
-  Master.
+  the table metadata. This process may take some time if Tablet Servers have to go through
+  recovery. During this time, the Monitor will claim that the Master is down and some
+  services may send the Monitor log messages about failure to communicate with each other.
+  These messages are safe to ignore. If you need detail on the upgrade's progress you should
+  view the local logs on the Tablet Servers and active Master.
+
+3.2. From 1.4 to 1.6
+
+ To upgrade from 1.4 to 1.6 you must perform a manual initial step.
+
+ Prior to upgrading you must:
+   * Verify that there are no outstanding FATE operations
+     - Under 1.4 you can list what's in FATE by running
+       $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.fate.Admin print
+     - Note that operations in any state will prevent an upgrade. It is safe
+       to delete operations with status SUCCESSFUL. For others, you should restart
+       your 1.4 cluster and allow them to finish.
+   * Stop the 1.4 instance.
+   * Configure 1.6 to use the hdfs directory, walog directories, and zookeepers
+     that 1.4 was using.
+   * Copy other 1.4 configuration options as needed.
+
+  Prior to starting the 1.6 instance you will need to run the LocalWALRecovery tool
+  on each node that previously ran an instance of the Logger role.
+
+    $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.tserver.log.LocalWALRecovery
+
+  The recovery tool will rewrite the 1.4 write ahead logs into a format that 1.6 can read.
+  After this step has completed on all nodes, start the 1.6 cluster to continue the upgrade.
+
+  The upgrade process must make changes to Accumulo's internal state in both ZooKeeper and
+  the table metadata. This process may take some time if Tablet Servers have to go through
+  recovery. During this time, the Monitor will claim that the Master is down and some
+  services may send the Monitor log messages about failure to communicate with each other.
+  While the upgrade is in progress, the Garbage Collector may complain about invalid paths.
+  The Master may also complain about failure to create the trace table because it already
+  exists. These messages are safe to ignore. If other error messages occur, you should seek
+  out support before continuing to use Accumulo. If you need detail on the upgrade's progress
+  you should view the local logs on the Tablet Servers and active Master.
+
+  Note that the LocalWALRecovery tool does not delete the local files. Once you confirm that
+  1.6 is successfully running, you should delete these files on the local filesystem.
 
 ******************************************************************************
 4. Configuring
 
 Apache Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper must be 
-at least version 3.3.0. Both of these must be installed and configured. 
-Zookeeper normally only allows for 10 connections from one computer.  On a 
-single-host install, this number is a little too low.  Add the following to the 
-$ZOOKEEPER_HOME/conf/zoo.cfg file:
+at least version 3.3.0. Both of these must be installed and configured. Some
+versions of Zookeeper may only allow 10 connections from one computer by default.
+On a single-host install, this number is a little too low. Add the following to
+the $ZOOKEEPER_HOME/conf/zoo.cfg file:
 
    maxClientCnxns=100
 
@@ -91,26 +213,19 @@ found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
 You will need to have hadoop installed and configured on your system.  Accumulo
-1.5.0 has been tested with hadoop version 1.0.4.  To avoid data loss,
+1.6.0 has been tested with hadoop version 1.0.4.  To avoid data loss,
 you must enable HDFS durable sync.  How you enable this depends on your version
 of Hadoop. Please consult the table below for information regarding your version.
 If you need to set the coniguration, please be sure to restart HDFS. See 
-ACCUMULO-623 for more information.
+ACCUMULO-623 and ACCUMULO-1637 for more information.
 
-HADOOP RELEASE          VERSION           SYNC NAME             DEFAULT
-Apache Hadoop           0.20.205          dfs.support.append    false
-Apache Hadoop            0.23.x           dfs.support.append    true
-Apache Hadoop             1.0.x           dfs.support.append    false
-Apache Hadoop             1.1.x           dfs.durable.sync      true
-Apache Hadoop          2.0.0-2.0.4        dfs.support.append    true
-Cloudera CDH             3u0-3u3             ????               true
-Cloudera CDH               3u4            dfs.support.append    true
-Hortonworks HDP           `1.0            dfs.support.append    false
-Hortonworks HDP           `1.1            dfs.support.append    false
+The following releases of Apache Hadoop require special configuration to ensure 
+that data is not inadvertently lost; however, in all releases of Apache Hadoop, 
+`dfs.durable.sync` and `dfs.support.append` should *not* be configured as `false`.
 
-Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclose'
-in your hdfs-site.xml configuration file to ensure that, in the face of unexpected 
-power loss to a datanode, files are wholly synced to disk.
+VERSION        NAME=VALUE
+0.20.205.0  -  dfs.support.append=true
+1.0.x       -  dfs.support.append=true
 
 Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclose'
 (only available in Apache Hadoop >=1.1.1 or >=0.23) in your hdfs-site.xml configuration 
@@ -314,14 +429,25 @@ redirected to the log dir.
 ******************************************************************************
 9. API
 
-The public accumulo API is composed of :
-  
- * everything under org.apache.accumulo.core.client, excluding impl packages  
- * Key, Mutation, Value, and Range  in org.apache.accumulo.core.data.
- * org.apache.accumulo.minicluster
- 
+The public Accumulo API is composed of :
+
+ * All public classes and interfaces in the org.apache.accumulo.core.client
+   package, as as well as all of its subpackages excluding those named "impl".
+ * Key, Mutation, Value, Range, Condition, and ConditionalMutation in
+   org.apache.accumulo.core.data.
+ * All public classes and interfaces in the org.apache.accumulo.minicluster
+   package, as well as all of its subpackages excluding those named "impl".
+ * Anything with public or protected acccess within any Class or Interface that
+   is in the public API. This includes, but is not limited to: methods, members
+   classes, interfaces, and enums.
+
+The Accumulo project maintains binary compatibility across this API within a major
+release, as defined in the Java Language Specification 3rd ed. API changes should
+only be made on major releases, with continued support of deprecated API elements
+for at least one major revision.
+
 To get started using accumulo review the example and the javadoc for the
-packages and classes mentioned above. 
+packages and classes mentioned above.
 
 ******************************************************************************
 10. Performance Tuning
@@ -361,6 +487,9 @@ The following provides more details on the included cryptographic software: ...
 Apache Accumulo uses the built-in java cryptography libraries in it's RFile 
 encryption implementation. See 
 http://www.oracle.com/us/products/export/export-regulations-345813.html
-for more details for on Java's cryptography features.
+for more details for on Java's cryptography features. Apache Accumulo also uses
+the bouncycastle library for some crypographic technology as well. See 
+http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions for
+more details on bouncycastle's cryptography features.
 
 ******************************************************************************

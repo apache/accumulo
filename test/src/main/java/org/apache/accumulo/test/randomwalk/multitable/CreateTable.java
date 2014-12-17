@@ -46,10 +46,11 @@ public class CreateTable extends Test {
     String tableName = String.format("%s_%d", state.getString("tableNamePrefix"), nextId);
     try {
       conn.tableOperations().create(tableName);
-      // Add some splits to make the server's life easier
-      conn.tableOperations().addSplits(tableName, splits);
       String tableId = Tables.getNameToIdMap(state.getInstance()).get(tableName);
       log.debug("created " + tableName + " (id:" + tableId + ")");
+      // Add some splits to make the server's life easier
+      conn.tableOperations().addSplits(tableName, splits);
+      log.debug("created " + splits.size() + " splits on " + tableName);
       @SuppressWarnings("unchecked")
       ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
       tables.add(tableName);

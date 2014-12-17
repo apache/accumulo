@@ -30,7 +30,7 @@ public class VisibilityEvaluatorTest {
   
   @Test
   public void testVisibilityEvaluator() throws VisibilityParseException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("one", "two", "three", "four"));
+    VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations(ByteArraySet.fromStrings("one", "two", "three", "four")));
     
     // test for empty vis
     assertTrue(ct.evaluate(new ColumnVisibility(new byte[0])));

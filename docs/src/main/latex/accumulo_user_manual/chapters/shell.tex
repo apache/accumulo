@@ -21,18 +21,14 @@ configuration settings.
 
 The shell can be started by the following command:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo shell -u [username]
-\end{verbatim}
-
-\normalsize
+\end{verbatim}\endgroup
 
 The shell will prompt for the corresponding password to the username specified
 and then display the following prompt:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Shell - Apache Accumulo Interactive Shell
 -
 - version 1.5
@@ -41,25 +37,25 @@ Shell - Apache Accumulo Interactive Shell
 -
 - type 'help' for a list of available commands
 -
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{Basic Administration}
 
 The Accumulo shell can be used to create and delete tables, as well as to configure
 table and instance specific options.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance> tables
-!METADATA
+accumulo.metadata
+accumulo.root
 
 root@myinstance> createtable mytable
 
 root@myinstance mytable>
 
 root@myinstance mytable> tables
-!METADATA
+accumulo.metadata
+accumulo.root
 mytable
 
 root@myinstance mytable> createtable testtable
@@ -71,14 +67,12 @@ deletetable { testtable } (yes|no)? yes
 Table: [testtable] has been deleted. 
 
 root@myinstance>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The Shell can also be used to insert updates and scan tables. This is useful for
 inspecting tables.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance mytable> scan
 
 root@myinstance mytable> insert row1 colf colq value1
@@ -86,8 +80,7 @@ insert successful
 
 root@myinstance mytable> scan
 row1 colf:colq [] value1
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The value in brackets "[]" would be the visibility labels. Since none were used, this is empty for this row.
 You can use the "-st" option to scan to see the timestamp for the cell, too.
@@ -97,30 +90,25 @@ You can use the "-st" option to scan to see the timestamp for the cell, too.
 The \textbf{compact} command instructs Accumulo to schedule a compaction of the table during which
 files are consolidated and deleted entries are removed.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance mytable> compact -t mytable
 07 16:13:53,201 [shell.Shell] INFO : Compaction of table mytable started for given range
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The \textbf{flush} command instructs Accumulo to write all entries currently in memory for a given table
 to disk.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance mytable> flush -t mytable
 07 16:14:19,351 [shell.Shell] INFO : Flush of table mytable
 initiated...
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{User Administration}
 
 The Shell can be used to add, remove, and grant privileges to users.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@myinstance mytable> createuser bob
 Enter new password for 'bob': *********
 Please confirm new password for 'bob': *********
@@ -136,7 +124,7 @@ Enter current password for 'bob': *********
 
 bob@myinstance mytable> userpermissions
 System permissions: System.CREATE_TABLE
-Table permissions (!METADATA): Table.READ
+Table permissions (accumulo.metadata): Table.READ
 Table permissions (mytable): NONE
 
 bob@myinstance mytable> createtable bobstable
@@ -146,6 +134,5 @@ bob@myinstance bobstable> user root
 Enter current password for 'root': *********
 
 root@myinstance bobstable> revoke System.CREATE_TABLE -s -u bob
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 

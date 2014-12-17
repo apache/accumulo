@@ -30,31 +30,26 @@ settings between runs.
 
 While normal interaction with the Accumulo client looks like this:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Instance instance = new ZooKeeperInstance(...);
 Connector conn = instance.getConnector(user, passwordToken);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 To interact with the MockAccumulo, just replace the ZooKeeperInstance with MockInstance:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Instance instance = new MockInstance();
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
-In fact, you can use the "--fake" option to the Accumulo shell and interact with
+In fact, you can use the "fake" option to the Accumulo shell and interact with
 MockAccumulo:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo shell --fake -u root -p ''
 
 Shell - Apache Accumulo Interactive Shell
 -
-- version: 1.5
+- version: 1.6
 - instance name: fake
 - instance id: mock-instance-id
 -
@@ -71,19 +66,16 @@ row3 cf:cq []    value3
 root@fake test> scan -b row2 -e row2
 row2 cf:cq []    value2
 root@fake test>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 When testing Map Reduce jobs, you can also set the Mock Accumulo on the AccumuloInputFormat
 and AccumuloOutputFormat classes:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 // ... set up job configuration
 AccumuloInputFormat.setMockInstance(job, "mockInstance");
 AccumuloOutputFormat.setMockInstance(job, "mockInstance");
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{Mini Accumulo Cluster}
 
@@ -96,28 +88,22 @@ up HDFS.
 
 To start it up, you will need to supply an empty directory and a root password as arguments:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 File tempDirectory = // JUnit and Guava supply mechanisms for creating temp directories
 MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDirectory, "password");
 accumulo.start();
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Once we have our mini cluster running, we will want to interact with the Accumulo client API:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Instance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
 Connector conn = instance.getConnector("root", new PasswordToken("password"));
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Upon completion of our development code, we will want to shutdown our MiniAccumuloCluster:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 accumulo.stop()
 // delete your temporary folder
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup

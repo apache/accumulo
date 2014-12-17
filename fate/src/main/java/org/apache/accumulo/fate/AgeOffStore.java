@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
  */
 public class AgeOffStore<T> implements TStore<T> {
   
-  public static interface TimeSource {
+  public interface TimeSource {
     long currentTimeMillis();
   }
   

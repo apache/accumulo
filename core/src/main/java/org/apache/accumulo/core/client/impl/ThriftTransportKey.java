@@ -17,19 +17,27 @@
 package org.apache.accumulo.core.client.impl;
 
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.SslConnectionParams;
 
 class ThriftTransportKey {
   private final String location;
   private final int port;
   private final long timeout;
+  private final SslConnectionParams sslParams;
   
   private int hash = -1;
   
-  ThriftTransportKey(String location, int port, long timeout) {
+  ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
     ArgumentChecker.notNull(location);
-    this.location = location;
-    this.port = port;
+    String[] locationAndPort = location.split(":", 2);
+    if (locationAndPort.length == 2) {
+      this.location = locationAndPort[0];
+      this.port = Integer.parseInt(locationAndPort[1]);
+    } else
+      throw new IllegalArgumentException("Location was expected to contain port but did not. location=" + location);
+    
     this.timeout = timeout;
+    this.sslParams = sslParams;
   }
   
   String getLocation() {
@@ -44,23 +52,31 @@ class ThriftTransportKey {
     return timeout;
   }
   
+  public boolean isSsl() {
+    return sslParams != null;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ThriftTransportKey))
       return false;
     ThriftTransportKey ttk = (ThriftTransportKey) o;
-    return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout;
+    return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)));
   }
   
   @Override
   public int hashCode() {
     if (hash == -1)
-      hash = (location + Integer.toString(port) + Long.toString(timeout)).hashCode();
+      hash = toString().hashCode();
     return hash;
   }
   
   @Override
   public String toString() {
-    return location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ")";
+    return (isSsl()?"ssl:":"") + location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ")";
+  }
+
+  public SslConnectionParams getSslParams() {
+    return sslParams;
   }
 }

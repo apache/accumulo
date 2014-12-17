@@ -59,6 +59,9 @@
      <appender-ref ref="A2" />
      <appender-ref ref="A3" />
   </logger>
+  <logger name="org.apache.accumulo.core.file.rfile.bcfile.Compression">
+     <level value="INFO"/>
+  </logger>
 
   <!-- Log non-accumulo events to the debug and normal logs. -->
   <root>

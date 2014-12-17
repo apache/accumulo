@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 
 /**
@@ -27,9 +28,9 @@ public class TableNotFoundException extends Exception {
    * 
    */
   private static final long serialVersionUID = 1L;
-  
+
   private String tableName;
-  
+
   /**
    * @param tableId
    *          the internal id of the table that was sought
@@ -43,7 +44,7 @@ public class TableNotFoundException extends Exception {
         + " does not exist" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.tableName = tableName;
   }
-  
+
   /**
    * @param tableId
    *          the internal id of the table that was sought
@@ -58,7 +59,7 @@ public class TableNotFoundException extends Exception {
     this(tableId, tableName, description);
     super.initCause(cause);
   }
-  
+
   /**
    * @param e
    *          constructs an exception from a thrift exception
@@ -66,7 +67,17 @@ public class TableNotFoundException extends Exception {
   public TableNotFoundException(ThriftTableOperationException e) {
     this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
-  
+
+  /**
+   * @param tableName
+   *          the original specified table
+   * @param e
+   *          indicates that a table wasn't found because the namespace specified in the table name wasn't found
+   */
+  public TableNotFoundException(String tableName, NamespaceNotFoundException e) {
+    this(null, tableName, "Namespace " + Tables.qualify(tableName).getFirst() + " does not exist.", e);
+  }
+
   /**
    * @return the name of the table sought
    */

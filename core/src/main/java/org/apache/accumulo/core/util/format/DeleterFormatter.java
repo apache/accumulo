@@ -63,6 +63,9 @@ public class DeleterFormatter extends DefaultFormatter {
     return true;
   }
   
+  /**
+   * @return null, because the iteration will provide prompts and handle deletes internally.
+   */
   @Override
   public String next() {
     Entry<Key,Value> next = getScannerIterator().next();
@@ -72,7 +75,7 @@ public class DeleterFormatter extends DefaultFormatter {
     boolean delete = force;
     try {
       if (!force) {
-        shellState.getReader().flushConsole();
+        shellState.getReader().flush();
         String line = shellState.getReader().readLine("Delete { " + entryStr + " } ? ");
         more = line != null;
         delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
@@ -88,7 +91,7 @@ public class DeleterFormatter extends DefaultFormatter {
               log.trace(cvs.toString());
         }
       }
-      shellState.getReader().printString(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
+      shellState.getReader().print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
     } catch (IOException e) {
       log.error("Cannot write to console", e);
       throw new RuntimeException(e);

@@ -18,14 +18,13 @@ package org.apache.accumulo.core.util;
 
 import static com.google.common.base.Charsets.UTF_8;
 
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
 
 public class Encoding {
   
   public static String encodeAsBase64FileName(Text data) {
-    String encodedRow = new String(Base64.encodeBase64(TextUtil.getBytes(data)), UTF_8);
-    encodedRow = encodedRow.replace('/', '_').replace('+', '-');
+    String encodedRow = Base64.encodeBase64URLSafeString(TextUtil.getBytes(data));
     
     int index = encodedRow.length() - 1;
     while (index >= 0 && encodedRow.charAt(index) == '=')
@@ -38,9 +37,7 @@ public class Encoding {
   public static byte[] decodeBase64FileName(String node) {
     while (node.length() % 4 != 0)
       node += "=";
-    
-    node = node.replace('_', '/').replace('-', '+');
-    
+    /* decode transparently handles URLSafe encodings */
     return Base64.decodeBase64(node.getBytes(UTF_8));
   }
   

@@ -26,10 +26,10 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -38,14 +38,19 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.net.HostAndPort;
+
 /**
- * This little program can be used to write a lot of entries to the !METADATA table and measure the performance of varying numbers of threads doing !METADATA
+ * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata
  * lookups using the batch scanner.
  * 
  * 
@@ -55,8 +60,8 @@ public class MetadataBatchScanTest {
   
   public static void main(String[] args) throws Exception {
     
-    final Connector connector = new ZooKeeperInstance("acu14", "localhost")
-        .getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
+    final Connector connector = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost")).getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get()
+        .getToken());
     
     TreeSet<Long> splits = new TreeSet<Long>();
     Random r = new Random(42);
@@ -82,17 +87,17 @@ public class MetadataBatchScanTest {
     
     if (args[0].equals("write")) {
       
-      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+      BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();
-        new TServerInstance(AddressUtil.parseAddress("192.168.1.100", 4567), "DEADBEEF").putLocation(mut);
+        new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF").putLocation(mut);
         bw.addMutation(mut);
       }
       
       bw.close();
     } else if (args[0].equals("writeFiles")) {
-      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+      BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       
       for (KeyExtent extent : extents) {
         
@@ -100,10 +105,10 @@ public class MetadataBatchScanTest {
         
         String dir = "/t-" + UUID.randomUUID();
         
-        Constants.METADATA_DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
         
         for (int i = 0; i < 5; i++) {
-          mut.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(UTF_8)));
+          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(UTF_8)));
         }
         
         bw.addMutation(mut);
@@ -163,14 +168,11 @@ public class MetadataBatchScanTest {
   }
   
   private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges) throws Exception {
-    Scanner scanner = null;/*
-                            * connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS); ColumnFQ.fetch(scanner,
-                            * Constants.METADATA_LOCATION_COLUMN); ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-                            */
+    Scanner scanner = null;
     
-    BatchScanner bs = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 1);
-    bs.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-    Constants.METADATA_PREV_ROW_COLUMN.fetch(bs);
+    BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
+    bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
     
     bs.setRanges(ranges);
     
@@ -223,9 +225,10 @@ public class MetadataBatchScanTest {
     Entry<Key,Value> entry : bs) {
       count++;
     }
+    bs.close();
     long t2 = System.currentTimeMillis();
     
-    ss.delta1 = (t2 - t1);
+    ss.delta1 = t2 - t1;
     ss.count1 = count;
     
     count = 0;
@@ -236,7 +239,7 @@ public class MetadataBatchScanTest {
     
     t2 = System.currentTimeMillis();
     
-    ss.delta2 = (t2 - t1);
+    ss.delta2 = t2 - t1;
     ss.count2 = count;
     
     return ss;

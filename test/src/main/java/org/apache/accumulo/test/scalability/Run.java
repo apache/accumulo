@@ -22,7 +22,6 @@ import java.net.InetAddress;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.test.scalability.ScaleTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -59,8 +58,11 @@ public class Run {
     Properties testProps = new Properties();
     try {
       FileInputStream fis = new FileInputStream(sitePath);
-      scaleProps.load(fis);
-      fis.close();
+      try {
+        scaleProps.load(fis);
+      } finally {
+        fis.close();
+      }
       fis = new FileInputStream(testPath);
       testProps.load(fis);
     } catch (Exception e) {

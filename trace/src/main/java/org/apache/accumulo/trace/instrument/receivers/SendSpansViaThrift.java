@@ -46,9 +46,11 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
     if (destination == null)
       return null;
     try {
-      String[] hostAddr = destination.split(":", 2);
-      log.debug("Connecting to " + hostAddr[0] + ":" + hostAddr[1]);
-      InetSocketAddress addr = new InetSocketAddress(hostAddr[0], Integer.parseInt(hostAddr[1]));
+      int portSeparatorIndex = destination.lastIndexOf(':');
+      String host = destination.substring(0, portSeparatorIndex);
+      int port = Integer.parseInt(destination.substring(portSeparatorIndex+1));
+      log.debug("Connecting to " + host + ":" + port);
+      InetSocketAddress addr = new InetSocketAddress(host, port);
       Socket sock = new Socket();
       sock.connect(addr);
       TTransport transport = new TSocket(sock);

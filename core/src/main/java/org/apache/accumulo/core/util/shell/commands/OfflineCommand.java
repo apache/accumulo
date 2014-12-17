@@ -16,24 +16,46 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 public class OfflineCommand extends TableOperation {
+  
+  private boolean wait;
+  private Option waitOpt;
+  
   @Override
   public String description() {
     return "starts the process of taking table offline";
   }
   
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
-      Shell.log.info("  You cannot take the " + Constants.METADATA_TABLE_NAME + " offline.");
+    if (tableName.equals(MetadataTable.NAME)) {
+      Shell.log.info("  You cannot take the " + MetadataTable.NAME + " offline.");
     } else {
-      Shell.log.info("Attempting to begin taking " + tableName + " offline");
-      shellState.getConnector().tableOperations().offline(tableName);
+      shellState.getConnector().tableOperations().offline(tableName, wait);
+      Shell.log.info("Offline of table " + tableName + (wait ? " completed." : " initiated..."));
     }
+  }
+  
+  
+  @Override
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    wait = cl.hasOption(waitOpt.getLongOpt());
+    return super.execute(fullCommand, cl, shellState);
+  }
+  
+  @Override
+  public Options getOptions() {
+    final Options opts = super.getOptions();
+    waitOpt = new Option("w", "wait", false, "wait for offline to finish");
+    opts.addOption(waitOpt); 
+    return opts;
   }
 }

@@ -27,13 +27,12 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -51,7 +50,7 @@ public class StopTabletServer extends Test {
           Stat stat = new Stat();
           byte[] data = rdr.getData(base + "/" + child + "/" + children.get(0), stat);
           if (!"master".equals(new String(data, UTF_8))) {
-            result.add(new TServerInstance(AddressUtil.parseAddress(child, Property.TSERV_CLIENTPORT), stat.getEphemeralOwner()));
+            result.add(new TServerInstance(AddressUtil.parseAddress(child, false), stat.getEphemeralOwner()));
           }
         }
       } catch (KeeperException.NoNodeException ex) {

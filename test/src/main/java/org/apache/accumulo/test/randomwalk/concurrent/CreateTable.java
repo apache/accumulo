@@ -20,7 +20,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -42,7 +45,16 @@ public class CreateTable extends Test {
       conn.tableOperations().create(tableName);
       log.debug("Created table " + tableName);
     } catch (TableExistsException e) {
-      log.debug("Create " + tableName + " failed, it exist");
+      log.debug("Create " + tableName + " failed, it exists");
+    } catch (AccumuloException e) {
+      if (e.getCause() != null && e.getCause() instanceof NamespaceNotFoundException)
+        log.debug("Create " + tableName + " failed, the namespace does not exist");
+      else
+        throw e;
+    } catch (IllegalArgumentException e) {
+      log.debug("Create: " + e.toString());
+    } catch (AccumuloSecurityException e) {
+      log.debug("Could not create table: " + e);
     }
   }
 }

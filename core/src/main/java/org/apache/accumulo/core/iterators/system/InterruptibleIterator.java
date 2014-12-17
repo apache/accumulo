@@ -23,5 +23,5 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public interface InterruptibleIterator extends SortedKeyValueIterator<Key,Value> {
-  public void setInterruptFlag(AtomicBoolean flag);
+  void setInterruptFlag(AtomicBoolean flag);
 }

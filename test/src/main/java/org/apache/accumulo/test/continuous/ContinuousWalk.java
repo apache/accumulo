@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.CRC32;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -45,7 +44,6 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
-
 public class ContinuousWalk {
   
   static public class Opts extends ContinuousQuery.Opts {
@@ -59,7 +57,8 @@ public class ContinuousWalk {
         }
       }
     }
-    @Parameter(names="--authsFile", description="read the authorities to use from a file")
+    
+    @Parameter(names = "--authsFile", description = "read the authorities to use from a file")
     RandomAuths randomAuths = new RandomAuths();
   }
   
@@ -76,12 +75,12 @@ public class ContinuousWalk {
     private List<Authorizations> auths;
     
     RandomAuths() {
-      auths = Collections.singletonList(Constants.NO_AUTHS);
+      auths = Collections.singletonList(Authorizations.EMPTY);
     }
     
     RandomAuths(String file) throws IOException {
       if (file == null) {
-        auths = Collections.singletonList(Constants.NO_AUTHS);
+        auths = Collections.singletonList(Authorizations.EMPTY);
         return;
       }
       
@@ -103,7 +102,7 @@ public class ContinuousWalk {
       return auths.get(r.nextInt(auths.size()));
     }
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ContinuousWalk.class.getName(), args);

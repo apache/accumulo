@@ -37,7 +37,7 @@ public class Write extends Test {
     state.set("numWrites", state.getLong("numWrites") + 1);
     
     Long totalWrites = state.getLong("totalWrites") + 1;
-    if ((totalWrites % 10000) == 0) {
+    if (totalWrites % 10000 == 0) {
       log.debug("Total writes: " + totalWrites);
     }
     state.set("totalWrites", totalWrites);

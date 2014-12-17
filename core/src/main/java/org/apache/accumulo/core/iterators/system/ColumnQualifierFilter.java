@@ -19,6 +19,7 @@ package org.apache.accumulo.core.iterators.system;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -36,7 +37,7 @@ public class ColumnQualifierFilter extends Filter {
   
   public ColumnQualifierFilter() {}
   
-  public ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<Column> columns) {
+  public ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, Set<Column> columns) {
     setSource(iterator);
     init(columns);
   }
@@ -63,7 +64,7 @@ public class ColumnQualifierFilter extends Filter {
     return cfset != null && cfset.contains(key.getColumnFamilyData());
   }
   
-  public void init(HashSet<Column> columns) {
+  public void init(Set<Column> columns) {
     this.columnFamilies = new HashSet<ByteSequence>();
     this.columnsQualifiers = new HashMap<ByteSequence,HashSet<ByteSequence>>();
     

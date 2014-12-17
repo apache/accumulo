@@ -19,8 +19,14 @@ package org.apache.accumulo.core.security;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Accumulo table permissions. Each permission has an associated byte ID.
+ */
 public enum TablePermission {
-  // One can add new permissions, with new numbers, but please don't change or use numbers previously assigned
+  /*
+   * One may add new permissions, but new permissions must use new numbers.
+   * Current numbers in use must not be changed.
+   */
   // CREATE_LOCALITY_GROUP(0),
   // DROP_LOCALITY_GROUP(1),
   READ((byte) 2),
@@ -42,10 +48,20 @@ public enum TablePermission {
     this.permID = id;
   }
   
+  /**
+   * Gets the byte ID of this permission.
+   *
+   * @return byte ID
+   */
   public byte getId() {
     return this.permID;
   }
   
+  /**
+   * Returns a list of printable permission values.
+   *
+   * @return list of table permission values, as "Table." + permission name
+   */
   public static List<String> printableValues() {
     TablePermission[] a = TablePermission.values();
     
@@ -57,6 +73,13 @@ public enum TablePermission {
     return list;
   }
   
+  /**
+   * Gets the permission matching the given byte ID.
+   *
+   * @param id byte ID
+   * @return table permission
+   * @throws IndexOutOfBoundsException if the byte ID is invalid
+   */
   public static TablePermission getPermissionById(byte id) {
     TablePermission result = mapping[id];
     if (result != null)

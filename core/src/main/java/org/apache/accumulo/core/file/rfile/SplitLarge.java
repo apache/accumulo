@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -58,8 +59,9 @@ public class SplitLarge {
     opts.parseArgs(SplitLarge.class.getName(), args);
     
     for (String file : opts.files) {
+      AccumuloConfiguration aconf = DefaultConfiguration.getDefaultConfiguration(); 
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
+      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(rdr);
       
       if (!file.endsWith(".rf")) {
@@ -68,10 +70,10 @@ public class SplitLarge {
       String smallName = file.substring(0, file.length() - 3) + "_small.rf";
       String largeName = file.substring(0, file.length() - 3) + "_large.rf";
       
-      int blockSize = (int) DefaultConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
-      Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", conf), blockSize);
+      int blockSize = (int) aconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
+      Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", conf, aconf), blockSize);
       small.startDefaultLocalityGroup();
-      Writer large = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(largeName), "gz", conf), blockSize);
+      Writer large = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(largeName), "gz", conf, aconf), blockSize);
       large.startDefaultLocalityGroup();
 
       iter.seek(new Range(), new ArrayList<ByteSequence>(), false);

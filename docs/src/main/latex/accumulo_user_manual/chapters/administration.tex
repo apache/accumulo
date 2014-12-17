@@ -80,12 +80,10 @@ same default ports) on the same hardware.
 Choose a directory for the Accumulo installation. This directory will be referenced
 by the environment variable \texttt{\$ACCUMULO\_HOME}. Run the following:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ tar xzf accumulo-1.5.0-bin.tar.gz    # unpack to subdirectory
 $ mv accumulo-1.5.0 $ACCUMULO_HOME # move to desired location
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Repeat this step at each machine within the cluster. Usually all machines have the
 same \texttt{\$ACCUMULO\_HOME}.
@@ -145,19 +143,57 @@ speed up performance by utilizing the memory space of the native operating syste
 native map also avoids the performance implications brought on by garbage collection
 in the JVM by causing it to pause much less frequently.
 
-32-bit and 64-bit Linux versions of the native map ship with the Accumulo dist package.
-For other operating systems, the native map can be built from the codebase in two ways-
-from maven or from the Makefile.
+\subsubsection{Building}
+
+32-bit and 64-bit Linux and Mac OS X versions of the native map can be built
+from the Accumulo bin package by executing
+\texttt{\$ACCUMULO\_HOME/bin/build\_native\_library.sh}. If your system's
+default compiler options are insufficient, you can add additional compiler
+options to the command line, such as options for the architecture. These will be
+passed to the Makefile in the environment variable USERFLAGS.
+
+Examples:
 
 \begin{enumerate}
-\item{Build from maven using the following command: \texttt{mvn clean package -Pnative.}}
-\item{Build from the c++ source by running \texttt{make} in the \texttt{\$ACCUMULO\_HOME/server/src/main/c++} directory.}
+\item{\texttt{\$ACCUMULO\_HOME/bin/build\_native\_library.sh}}
+\item{\texttt{\$ACCUMULO\_HOME/bin/build\_native\_library.sh -m32}}
 \end{enumerate}
 
 After building the native map from the source, you will find the artifact in
 \texttt{\$ACCUMULO\_HOME/lib/native.} Upon starting up, the tablet server will look
 in this directory for the map library. If the file is renamed or moved from its
-target directory, the tablet server may not be able to find it.
+target directory, the tablet server may not be able to find it. The system can
+also locate the native maps shared library by setting LD\_LIBRARY\_PATH
+(or DYLD\_LIBRARY\_PATH on Mac OS X) in \texttt{\$ACCUMULO\_HOME/conf/accumulo-env.sh}.
+
+\subsubsection{Configuration}
+
+As mentioned, Accumulo will use the native libraries if they are found in the expected
+location and if it is not configured to ignore them. Using the native maps over JVM
+Maps nets a noticable improvement in ingest rates; however, certain configuration
+variables are important to modify when increasing the size of the native map.
+
+To adjust the size of the native map, increase the value of \texttt{tserver.memory.maps.max}.
+By default, the maximum size of the native map is 1GB. When increasing this value, it is
+also important to adjust the values of \texttt{table.compaction.minor.logs.threshold} and
+\texttt{tserver.walog.max.size}. \texttt{table.compaction.minor.logs.threshold} is the maximum
+number of write-ahead log files that a tablet can reference before they will be automatically
+minor compacted. \texttt{tserver.walog.max.size} is the maximum size of a write-ahead log.
+
+The maximum size of the native maps for a server should be less than the product
+of the write-ahead log maximum size and minor compaction threshold for log files:
+
+\(\$table.compaction.minor.logs.threshold * \$tserver.walog.max.size >= \$tserver.memory.maps.max\)
+
+This formula ensures that minor compactions won't be automatically triggered before the native
+maps can be completely saturated.
+
+Subsequently, when increasing the size of the write-ahead logs, it can also be important
+to increase the HDFS block size that Accumulo uses when creating the files for the write-ahead log.
+This is controlled via \texttt{tserver.wal.blocksize}. A basic recommendation is that when
+\texttt{tserver.walog.max.size} is larger than 2GB in size, set \texttt{tserver.wal.blocksize}
+to 2GB. Increasing the block size to a value larger than 2GB can result in decreased write
+performance to the write-ahead log file which will slow ingest.
 
 \subsection{Cluster Specification}
 
@@ -176,41 +212,89 @@ of errors.
 Specify appropriate values for the following settings in\\
 \texttt{\$ACCUMULO\_HOME/conf/accumulo-site.xml} :
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 <property>
     <name>instance.zookeeper.host</name>
     <value>zooserver-one:2181,zooserver-two:2181</value>
     <description>list of zookeeper servers</description>
 </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
 settings between processes and helps finalize TabletServer failure.
 
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 <property>
     <name>instance.secret</name>
     <value>DEFAULT</value>
 </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The instance needs a secret to enable secure communication between servers. Configure your
 secret and make sure that the \texttt{accumulo-site.xml} file is not readable to other users.
+For alternatives to storing the \texttt{instance.secret} in plaintext, please read the
+\texttt{Sensitive Configuration Values} section.
 
 Some settings can be modified via the Accumulo shell and take effect immediately, but
 some settings require a process restart to take effect. See the configuration documentation
-(available on the monitor web pages) for details.
+(available in the docs directory of the tarball and in Appendix~\ref{app:config}) for details.
 
 \subsection{Deploy Configuration}
 
 Copy the masters, slaves, accumulo-env.sh, and if necessary, accumulo-site.xml
 from the\\\texttt{\$ACCUMULO\_HOME/conf/} directory on the master to all the machines
 specified in the slaves file.
+
+\subsection{Sensitive Configuration Values}
+
+Accumulo has a number of properties that can be specified via the accumulo-site.xml
+file which are sensitive in nature, instance.secret and trace.token.property.password
+are two common examples. Both of these properties, if compromised, have the ability
+to result in data being leaked to users who should not have access to that data.
+
+In Hadoop-2.6.0, a new CredentialProvider class was introduced which serves as a common
+implementation to abstract away the storage and retrieval of passwords from plaintext
+storage in configuration files. Any Property marked with the \texttt{Sensitive} annotation
+is a candidate for use with these CredentialProviders. For version of Hadoop which lack
+these classes, the feature will just be unavailable for use.
+
+A comma separated list of CredentialProviders can be configured using the Accumulo Property
+\texttt{general.security.credential.provider.paths}. Each configured URL will be consulted
+when the Configuration object for accumulo-site.xml is accessed.
+
+\subsection{Using a JavaKeyStoreCredentialProvider for storage}
+
+One of the implementations provided in Hadoop-2.6.0 is a Java KeyStore CredentialProvider.
+Each entry in the KeyStore is the Accumulo Property key name. For example, to store the
+\texttt{instance.secret}, the following command can be used:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+hadoop credential create instance.secret --provider jceks://file/etc/accumulo/conf/accumulo.jceks
+\end{verbatim}\endgroup
+
+The command will then prompt you to enter the secret to use and create a keystore in: 
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+/etc/accumulo/conf/accumulo.jceks
+\end{verbatim}\endgroup
+
+Then, accumulo-site.xml must be configured to use this KeyStore as a CredentialProvider:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+<property>
+    <name>general.security.credential.provider.paths</name>
+    <value>jceks://file/etc/accumulo/conf/accumulo.jceks</value>
+</property>
+\end{verbatim}\endgroup
+
+This configuration will then transparently extract the \texttt{instance.secret} from
+the configured KeyStore and alleviates a human readable storage of the sensitive
+property.
+
+A KeyStore can also be stored in HDFS, which will make the KeyStore readily available to
+all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
+will expect the KeyStore in the same location.
 
 \section{Initialization}
 
@@ -239,7 +323,7 @@ Start Accumulo using the \texttt{bin/start-all.sh} script.
 
 To verify that Accumulo is running, check the Status page as described under
 \emph{Monitoring}. In addition, the Shell can provide some information about the status of
-tables via reading the !METADATA table.
+tables via reading the metadata tables.
 
 \subsection{Stopping Accumulo}
 
@@ -251,12 +335,15 @@ take some time for particular configurations.
 
 Update your \texttt{\$ACCUMULO\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to account for the addition.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
-\end{verbatim}
+\end{verbatim}\endgroup
 
-Alternatively, you can ssh to each of the hosts you want to add and run 
-\texttt{\$ACCUMULO\_HOME/bin/start-here.sh}.
+Alternatively, you can ssh to each of the hosts you want to add and run:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+$ACCUMULO\_HOME/bin/start-here.sh
+\end{verbatim}\endgroup
 
 Make sure the host in question has the new configuration, or else the tablet 
 server won't start; at a minimum this needs to be on the host(s) being added, 
@@ -267,12 +354,15 @@ but in practice it's good to ensure consistent configuration across all nodes.
 If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet 
 server. Accumulo will automatically rebalance the tablets across the available tablet servers.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
-\end{verbatim}
+\end{verbatim}\endgroup
 
-Alternatively, you can ssh to each of the hosts you want to remove and run 
-\texttt{\$ACCUMULO\_HOME/bin/stop-here.sh}.
+Alternatively, you can ssh to each of the hosts you want to remove and run:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+$ACCUMULO\_HOME/bin/stop-here.sh
+\end{verbatim}\endgroup
 
 Be sure to update your \texttt{\$ACCUMUL\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
@@ -313,33 +403,33 @@ from clients and writes them to the \texttt{trace} table. The Accumulo
 user that the tracer connects to Accumulo with can be configured with
 the following properties
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 trace.user
 trace.token.property.password
-\end{verbatim}
+\end{verbatim}\endgroup
 
 \subsection{Instrumenting a Client}
 Tracing can be used to measure a client operation, such as a scan, as
 the operation traverses the distributed system. To enable tracing for
 your application call
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 DistributedTrace.enable(instance, new ZooReader(instance), hostname, "myApplication");
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Once tracing has been enabled, a client can wrap an operation in a trace.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Trace.on("Client Scan");
 BatchScanner scanner = conn.createBatchScanner(...);
 // Configure your scanner
 for (Entry entry : scanner) {
 }
 Trace.off();
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Additionally, the user can create additional Spans within a Trace.
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Trace.on("Client Update");
 ...
 Span readSpan = Trace.start("Read");
@@ -350,23 +440,23 @@ Span writeSpan = Trace.start("Write");
 ...
 writeSpan.stop();
 Trace.off();
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Like Dapper, Accumulo tracing supports user defined annotations to associate additional data with a Trace.
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 ...
 int numberOfEntriesRead = 0;
 Span readSpan = Trace.start("Read");
 // Do the read, update the counter
 ...
 readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Some client operations may have a high volume within your
 application. As such, you may wish to only sample a percentage of
 operations for tracing. As seen below, the CountSampler can be used to
 help enable tracing for 1-in-1000 operations
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Sampler sampler = new CountSampler(1000);
 ...
 if (sampler.next()) {
@@ -374,7 +464,7 @@ if (sampler.next()) {
 }
 ...
 Trace.offNoFlush();
-\end{verbatim}
+\end{verbatim}\endgroup
 
 It should be noted that it is safe to turn off tracing even if it
 isn't currently active. The Trace.offNoFlush() should be used if the
@@ -390,7 +480,7 @@ UI. You can also programmatically access and print traces using the
 You can enable tracing for operations run from the shell by using the
 \texttt{trace on} and \texttt{trace off} commands.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@test test> trace on
 root@test test> scan
 a b:c []    d
@@ -404,7 +494,7 @@ Time  Start  Service@Location       Name
     7+1691       shell@localhost scan:location
     6+1692         tserver@localhost startScan
     5+1692           tserver@localhost tablet read ahead 6
-\end{verbatim}
+\end{verbatim}\endgroup
 
 \section{Logging}
 Accumulo processes each write to a set of log files. By default these are found under\\

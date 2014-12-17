@@ -19,12 +19,12 @@ package org.apache.accumulo.test.randomwalk.sequential;
 import java.util.Properties;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -50,7 +50,7 @@ public class MapRedVerify extends Test {
       return;
     }
     
-    Scanner outputScanner = state.getConnector().createScanner(args[7], Constants.NO_AUTHS);
+    Scanner outputScanner = state.getConnector().createScanner(args[7], Authorizations.EMPTY);
     outputScanner.setRange(new Range());
     
     int count = 0;

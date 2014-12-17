@@ -19,50 +19,32 @@ package org.apache.accumulo.test;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.junit.AfterClass;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class KeyValueEqualityTest {
-  public static TemporaryFolder folder = new TemporaryFolder();
-  public static MiniAccumuloCluster cluster;
-  private static final PasswordToken password = new PasswordToken("secret");
+public class KeyValueEqualityTest extends AccumuloClusterIT {
 
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), new String(password.getPassword()));
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
-  }
-
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    folder.delete();
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
   }
 
   @Test
   public void testEquality() throws Exception {
-    final ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    final Connector conn = instance.getConnector("root", password);
+    Connector conn = this.getConnector();
     final BatchWriterConfig config = new BatchWriterConfig();
 
-    final String table1 = "table1", table2 = "table2";
+    final String[] tables = getUniqueNames(2);
+    final String table1 = tables[0], table2 = tables[1];
     final TableOperations tops = conn.tableOperations();
     tops.create(table1);
     tops.create(table2);
@@ -81,7 +63,7 @@ public class KeyValueEqualityTest {
     bw1.close();
     bw2.close();
 
-    Iterator<Entry<Key,Value>> t1 = conn.createScanner(table1, Constants.NO_AUTHS).iterator(), t2 = conn.createScanner(table2, Constants.NO_AUTHS).iterator();
+    Iterator<Entry<Key,Value>> t1 = conn.createScanner(table1, Authorizations.EMPTY).iterator(), t2 = conn.createScanner(table2, Authorizations.EMPTY).iterator();
     while (t1.hasNext() && t2.hasNext()) {
       // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode properly
       Entry<Key,Value> e1 = t1.next(), e2 = t2.next();

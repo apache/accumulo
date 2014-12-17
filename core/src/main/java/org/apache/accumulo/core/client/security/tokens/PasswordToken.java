@@ -47,7 +47,9 @@ public class PasswordToken implements AuthenticationToken {
   /**
    * Constructor for use with {@link Writable}. Call {@link #readFields(DataInput)}.
    */
-  public PasswordToken() {}
+  public PasswordToken() {
+    password = new byte[0];
+  }
   
   /**
    * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
@@ -123,8 +125,12 @@ public class PasswordToken implements AuthenticationToken {
       throw new RuntimeException(e);
     }
   }
-  
-  private void setPassword(CharBuffer charBuffer) {
+
+  protected void setPassword(byte[] password) {
+    this.password = Arrays.copyOf(password, password.length);
+  }
+
+  protected void setPassword(CharBuffer charBuffer) {
     // encode() kicks back a C-string, which is not compatible with the old passwording system
     ByteBuffer bb = UTF_8.encode(charBuffer);
     // create array using byter buffer length
@@ -138,15 +144,14 @@ public class PasswordToken implements AuthenticationToken {
       }
     }
   }
-
+  
   @Override
   public void init(Properties properties) {
-    if (properties.containsKey("password")){
+    if (properties.containsKey("password")) {
       setPassword(CharBuffer.wrap(properties.get("password")));
-    }else
+    } else
       throw new IllegalArgumentException("Missing 'password' property");
   }
-
   
   @Override
   public Set<TokenProperty> getProperties() {

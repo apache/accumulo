@@ -25,9 +25,12 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -37,6 +40,9 @@ import org.apache.commons.vfs2.cache.SoftRefFilesCache;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
+import org.apache.commons.vfs2.provider.FileReplicator;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
 /**
@@ -59,9 +65,10 @@ import org.apache.log4j.Logger;
  * 
  */
 public class AccumuloVFSClassLoader {
-  
+
   public static class AccumuloVFSClassLoaderShutdownThread implements Runnable {
-    
+
+    @Override
     public void run() {
       try {
         AccumuloVFSClassLoader.close();
@@ -69,80 +76,77 @@ public class AccumuloVFSClassLoader {
         // do nothing, we are shutting down anyway
       }
     }
-    
+
   }
-  
+
   private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
       .synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
-  
+
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
-  
-  public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar\n";
-  
+
+  public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar";
+
   public static final String VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY = "general.vfs.classpaths";
-  
+
   public static final String VFS_CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
-  
+
   public static final String VFS_CACHE_DIR = "general.vfs.cache.dir";
   
+  public static final AtomicInteger uniqueDirectoryGenerator = new AtomicInteger(0);
+
   private static ClassLoader parent = null;
   private static volatile ReloadingClassLoader loader = null;
   private static final Object lock = new Object();
-  
+
   private static ContextManager contextManager;
-  
+
   private static Logger log = Logger.getLogger(AccumuloVFSClassLoader.class);
-  
+
   static {
     // Register the shutdown hook
     Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));
   }
-  
+
   public synchronized static <U> Class<? extends U> loadClass(String classname, Class<U> extension) throws ClassNotFoundException {
     try {
-      return (Class<? extends U>) getClassLoader().loadClass(classname).asSubclass(extension);
+      return getClassLoader().loadClass(classname).asSubclass(extension);
     } catch (IOException e) {
       throw new ClassNotFoundException("IO Error loading class " + classname, e);
     }
   }
-  
+
   public static Class<?> loadClass(String classname) throws ClassNotFoundException {
     return loadClass(classname, Object.class).asSubclass(Object.class);
   }
-  
+
   static FileObject[] resolve(FileSystemManager vfs, String uris) throws FileSystemException {
     return resolve(vfs, uris, new ArrayList<FileObject>());
   }
-  
+
   static FileObject[] resolve(FileSystemManager vfs, String uris, ArrayList<FileObject> pathsToMonitor) throws FileSystemException {
     if (uris == null)
       return new FileObject[0];
-    
+
     ArrayList<FileObject> classpath = new ArrayList<FileObject>();
-    
+
     pathsToMonitor.clear();
-    
+
     for (String path : uris.split(",")) {
-      
+
       path = path.trim();
-      
+
       if (path.equals(""))
         continue;
-      
+
       path = AccumuloClassLoader.replaceEnvVars(path, System.getenv());
-      
+
       FileObject fo = vfs.resolveFile(path);
-      
+
       switch (fo.getType()) {
         case FILE:
+        case FOLDER:
           classpath.add(fo);
           pathsToMonitor.add(fo);
-          break;
-        case FOLDER:
-          pathsToMonitor.add(fo);
-          for (FileObject child : fo.getChildren()) {
-            classpath.add(child);
-          }
           break;
         case IMAGINARY:
           // assume its a pattern
@@ -163,69 +167,85 @@ public class AccumuloVFSClassLoader {
           log.warn("ignoring classpath entry " + fo);
           break;
       }
-      
+
     }
-    
+
     return classpath.toArray(new FileObject[classpath.size()]);
   }
-  
+
   private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws FileSystemException, IOException {
     String dynamicCPath = AccumuloClassLoader.getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
-    
+
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
     if (null != envJars && !envJars.equals(""))
       if (dynamicCPath != null && !dynamicCPath.equals(""))
         dynamicCPath = dynamicCPath + "," + envJars;
       else
         dynamicCPath = envJars;
-    
+
     ReloadingClassLoader wrapper = new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return parent;
       }
     };
-    
+
     if (dynamicCPath == null || dynamicCPath.equals(""))
       return wrapper;
-    
+
     // TODO monitor time for lib/ext was 1 sec... should this be configurable? - ACCUMULO-1301
     return new AccumuloReloadingVFSClassLoader(dynamicCPath, generateVfs(), wrapper, 1000, true);
   }
-  
+
   public static ClassLoader getClassLoader() throws IOException {
     ReloadingClassLoader localLoader = loader;
     while (null == localLoader) {
       synchronized (lock) {
         if (null == loader) {
-          
+
           FileSystemManager vfs = generateVfs();
-          
+
           // Set up the 2nd tier class loader
           if (null == parent) {
             parent = AccumuloClassLoader.getClassLoader();
           }
-          
+
           FileObject[] vfsCP = resolve(vfs, AccumuloClassLoader.getAccumuloString(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, ""));
-          
+
           if (vfsCP.length == 0) {
             localLoader = createDynamicClassloader(parent);
             loader = localLoader;
             return localLoader.getClassLoader();
           }
-          
+
           // Create the Accumulo Context ClassLoader using the DEFAULT_CONTEXT
           localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, vfs, parent));
           loader = localLoader;
+
+          //An HDFS FileSystem and Configuration object were created for each unique HDFS namespace in the call to resolve above.
+          //The HDFS Client did us a favor and cached these objects so that the next time someone calls FileSystem.get(uri), they
+          //get the cached object. However, these objects were created not with the system VFS classloader, but the classloader above
+          //it. We need to override the classloader on the Configuration objects. Ran into an issue were log recovery was being attempted
+          //and SequenceFile$Reader was trying to instantiate the key class via WritableName.getClass(String, Configuration)
+          for (FileObject fo : vfsCP) {
+            if (fo instanceof HdfsFileObject) {
+              String uri = fo.getName().getRootURI();
+              Configuration c = new Configuration(true);
+              c.set(FileSystem.FS_DEFAULT_NAME_KEY, uri);
+              FileSystem fs = FileSystem.get(c);
+              fs.getConf().setClassLoader(loader.getClassLoader());
+            }
+          }
+
         }
       }
     }
-    
+
     return localLoader.getClassLoader();
   }
-  
+
   public static FileSystemManager generateVfs() throws FileSystemException {
-    DefaultFileSystemManager vfs = new FinalCloseDefaultFileSystemManager();
+    DefaultFileSystemManager vfs = new DefaultFileSystemManager();
     vfs.addProvider("res", new org.apache.commons.vfs2.provider.res.ResourceFileProvider());
     vfs.addProvider("zip", new org.apache.commons.vfs2.provider.zip.ZipFileProvider());
     vfs.addProvider("gz", new org.apache.commons.vfs2.provider.gzip.GzipFileProvider());
@@ -260,21 +280,25 @@ public class AccumuloVFSClassLoader {
     vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
     vfs.setFilesCache(new SoftRefFilesCache());
     String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, "");
-    String procName = ManagementFactory.getRuntimeMXBean().getName();
-    File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
+    File cacheDir = computeTopCacheDir(); 
     if (!cacheDirPath.isEmpty())
-      cacheDir = new File(cacheDirPath);
+      cacheDir = new File(cacheDirPath, "" + uniqueDirectoryGenerator.getAndIncrement());
     vfs.setReplicator(new UniqueFileReplicator(cacheDir));
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
     vfs.init();
     vfsInstances.add(new WeakReference<DefaultFileSystemManager>(vfs));
     return vfs;
   }
-  
+
+  private static File computeTopCacheDir() {
+    String procName = ManagementFactory.getRuntimeMXBean().getName();
+    return new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
+  }
+
   public interface Printer {
     void print(String s);
   }
-  
+
   public static void printClassPath() {
     printClassPath(new Printer() {
       @Override
@@ -283,28 +307,28 @@ public class AccumuloVFSClassLoader {
       }
     });
   }
-  
+
   public static void printClassPath(Printer out) {
     try {
       ClassLoader cl = getClassLoader();
       ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
-      
+
       while (cl != null) {
         classloaders.add(cl);
         cl = cl.getParent();
       }
-      
+
       Collections.reverse(classloaders);
-      
+
       int level = 0;
-      
+
       for (ClassLoader classLoader : classloaders) {
         if (level > 0)
           out.print("");
         level++;
-        
+
         String classLoaderDescription;
-        
+
         switch (level) {
           case 1:
             classLoaderDescription = level + ": Java System Classloader (loads Java system resources)";
@@ -323,16 +347,16 @@ public class AccumuloVFSClassLoader {
                 + AccumuloVFSClassLoader.class.getName() + ")";
             break;
         }
-        
+
         if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
           URLClassLoader ucl = (URLClassLoader) classLoader;
           out.print("Level " + classLoaderDescription + " URL classpath items are:");
-          
+
           for (URL u : ucl.getURLs()) {
             out.print("\t" + u.toExternalForm());
           }
-          
+
         } else if (classLoader instanceof VFSClassLoader) {
           out.print("Level " + classLoaderDescription + " VFS classpaths items are:");
           VFSClassLoader vcl = (VFSClassLoader) classLoader;
@@ -343,12 +367,12 @@ public class AccumuloVFSClassLoader {
           out.print("Unknown classloader configuration " + classLoader.getClass());
         }
       }
-      
+
     } catch (Throwable t) {
       throw new RuntimeException(t);
     }
   }
-  
+
   public static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
@@ -363,15 +387,30 @@ public class AccumuloVFSClassLoader {
         }
       });
     }
-    
+
     return contextManager;
   }
 
   public static void close() {
     for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
       DefaultFileSystemManager ref = vfsInstance.get();
-      if (ref != null)
+      if (ref != null) {
+        FileReplicator replicator;
+        try {
+          replicator = ref.getReplicator();
+          if (replicator instanceof UniqueFileReplicator) {
+            ((UniqueFileReplicator) replicator).close();
+          }
+        } catch (FileSystemException e) {
+          log.error(e, e);
+        }
         ref.close();
+      }
+    }
+    try {
+      FileUtils.deleteDirectory(computeTopCacheDir());
+    } catch (IOException e) {
+      log.error(e, e);
     }
   }
 }

@@ -21,7 +21,12 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.accumulo.core.data.thrift.TKey;
+import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -132,5 +137,33 @@ public class KeyTest {
     TKey tk = k.toThrift();
     tk.setRow((byte[]) null);
     new Key(tk);
+  }
+
+  @Test
+  public void testCompressDecompress() {
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    kvs.add(new KeyValue(new Key(), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r", "cf"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r2", "cf"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r", "cf", "cq"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r2", "cf2", "cq"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r", "cf", "cq", "cv"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r2", "cf2", "cq2", "cv"), new byte[] {}));
+    kvs.add(new KeyValue(new Key("r2", "cf2", "cq2", "cv"), new byte[] {}));
+    kvs.add(new KeyValue(new Key(), new byte[] {}));
+
+    List<TKeyValue> tkvs = Key.compress(kvs);
+    Key.decompress(tkvs);
+
+    assertEquals(kvs.size(), tkvs.size());
+    Iterator<KeyValue> kvi = kvs.iterator();
+    Iterator<TKeyValue> tkvi = tkvs.iterator();
+
+    while (kvi.hasNext()) {
+      KeyValue kv = kvi.next();
+      TKeyValue tkv = tkvi.next();
+      assertEquals(kv.getKey(), new Key(tkv.getKey()));
+    }
   }
 }

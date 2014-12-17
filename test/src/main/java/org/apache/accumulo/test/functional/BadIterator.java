@@ -30,6 +30,11 @@ public class BadIterator extends WrappingIterator {
   }
   
   @Override
+  public boolean hasTop() {
+    throw new NullPointerException();
+  }
+  
+  @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }

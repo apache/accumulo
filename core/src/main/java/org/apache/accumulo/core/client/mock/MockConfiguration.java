@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -38,9 +37,13 @@ class MockConfiguration extends AccumuloConfiguration {
   public String get(Property property) {
     return map.get(property.getKey());
   }
-  
+
   @Override
-  public Iterator<Entry<String,String>> iterator() {
-    return map.entrySet().iterator();
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    for (Entry<String,String> entry : map.entrySet()) {
+      if (filter.accept(entry.getKey())) {
+        props.put(entry.getKey(), entry.getValue());
+      }
+    }
   }
 }

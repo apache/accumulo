@@ -43,7 +43,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -54,15 +53,18 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -118,7 +120,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   private AccumuloConfiguration config;
 
-  public OfflineIterator(ScannerOptions options, Instance instance, TCredentials credentials, Authorizations authorizations, Text table, Range range) {
+  public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
     this.range = range;
@@ -132,7 +134,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     
     try {
-      conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+      conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
       config = new ConfigurationCopy(conn.instanceOperations().getSiteConfiguration());
       nextTablet();
       
@@ -221,13 +223,23 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
 
-    String tablesDir = Constants.getTablesDir(config);
+    // Old property is only used to resolve relative paths into absolute paths. For systems upgraded
+    // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the configuration
+    @SuppressWarnings("deprecation")
+    String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
+
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
-      if (relPath.startsWith(".."))
-        absFiles.add(tablesDir + relPath.substring(2));
-      else
-        absFiles.add(tablesDir + "/" + tableId + relPath);
+      if (relPath.contains(":")) {
+        absFiles.add(relPath);
+      } else {
+        // handle old-style relative paths
+        if (relPath.startsWith("..")) {
+          absFiles.add(tablesDir + relPath.substring(2));
+        } else {
+          absFiles.add(tablesDir + "/" + tableId + relPath);
+        }
+      }
     }
     
     iter = createIterator(extent, absFiles);
@@ -237,7 +249,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
   
   private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles) throws TableNotFoundException {
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setBatchSize(100);
     scanner.setRange(nextRange);
     
@@ -251,16 +263,16 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       Entry<Key,Value> entry = row.next();
       Key key = entry.getKey();
       
-      if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+      if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         relFiles.add(key.getColumnQualifier().toString());
       }
       
-      if (key.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)
-          || key.getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+      if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME)
+          || key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
         location = entry.getValue().toString();
       }
       
-      if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+      if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
         extent = new KeyExtent(key.getRow(), entry.getValue());
       }
       
@@ -276,8 +288,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     Configuration conf = CachedConfiguration.getInstance();
 
-    FileSystem fs = FileUtil.getFileSystem(conf, config);
-
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();
     }
@@ -286,6 +296,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
+      FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
       readers.add(reader);
     }
@@ -328,11 +339,11 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Range range;
   
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   private Authorizations authorizations;
   private Text tableId;
   
-  public OfflineScanner(Instance instance, TCredentials credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, Credentials credentials, String tableId, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, tableId, authorizations);
     this.instance = instance;
     this.credentials = credentials;
@@ -390,6 +401,16 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     return new OfflineIterator(this, instance, credentials, authorizations, tableId, range);
+  }
+
+  @Override
+  public long getReadaheadThreshold() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    throw new UnsupportedOperationException();
   }
   
 }

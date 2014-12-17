@@ -26,6 +26,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -57,6 +58,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   
   private Range range;
   private boolean isolated = false;
+  private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   
   /**
    * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can use it as a source.
@@ -137,6 +139,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
     this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
+    this.readaheadThreshold = scanner.getReadaheadThreshold();
   }
   
   /**
@@ -150,6 +153,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
     smi.scanner.setTimeout(timeOut, TimeUnit.MILLISECONDS);
+    smi.scanner.setReadaheadThreshold(readaheadThreshold);
     if (isolated)
       smi.scanner.enableIsolation();
     else
@@ -251,5 +255,18 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public void disableIsolation() {
     this.isolated = false;
+  }
+
+  @Override
+  public long getReadaheadThreshold() {
+    return readaheadThreshold;
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    if (0 > batches) {
+      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+    }
+    this.readaheadThreshold = batches;
   }
 }

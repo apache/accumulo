@@ -16,164 +16,82 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
  * A class that contains information about an ActiveScan
  * 
  */
+public abstract class ActiveScan {
 
-public class ActiveScan {
-  
-  private long scanid;
-  private String client;
-  private String table;
-  private long age;
-  private long idle;
-  private ScanType type;
-  private ScanState state;
-  private KeyExtent extent;
-  private List<Column> columns;
-  private List<String> ssiList;
-  private Map<String,Map<String,String>> ssio;
-  private String user;
-  private Authorizations authorizations;
-  
-  ActiveScan(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan) throws TableNotFoundException {
-    this.client = activeScan.client;
-    this.user = activeScan.user;
-    this.age = activeScan.age;
-    this.idle = activeScan.idleTime;
-    this.table = Tables.getTableName(instance, activeScan.tableId);
-    this.type = ScanType.valueOf(activeScan.getType().name());
-    this.state = ScanState.valueOf(activeScan.state.name());
-    this.extent = new KeyExtent(activeScan.extent);
-    this.authorizations = new Authorizations(activeScan.authorizations);
-    
-    this.columns = new ArrayList<Column>(activeScan.columns.size());
-    
-    for (TColumn tcolumn : activeScan.columns)
-      this.columns.add(new Column(tcolumn));
-    
-    this.ssiList = new ArrayList<String>();
-    for (IterInfo ii : activeScan.ssiList) {
-      this.ssiList.add(ii.iterName + "=" + ii.priority + "," + ii.className);
-    }
-    this.ssio = activeScan.ssio;
-  }
-  
   /**
    * @return an id that uniquely identifies that scan on the server
    */
-  public long getScanid() {
-    return scanid;
-  }
+  public abstract long getScanid();
   
   /**
    * @return the address of the client that initiated the scan
    */
-  
-  public String getClient() {
-    return client;
-  }
+  public abstract String getClient();
   
   /**
    * @return the user that initiated the scan
    */
-  
-  public String getUser() {
-    return user;
-  }
+  public abstract String getUser();
   
   /**
    * @return the table the scan is running against
    */
-  
-  public String getTable() {
-    return table;
-  }
+  public abstract String getTable();
   
   /**
    * @return the age of the scan in milliseconds
    */
-  
-  public long getAge() {
-    return age;
-  }
+  public abstract long getAge();
   
   /**
    * @return milliseconds since last time client read data from the scan
    */
+  public abstract long getLastContactTime();
   
-  public long getLastContactTime() {
-    return idle;
-  }
+  public abstract ScanType getType();
   
-  public ScanType getType() {
-    return type;
-  }
-  
-  public ScanState getState() {
-    return state;
-  }
+  public abstract ScanState getState();
   
   /**
    * @return tablet the scan is running against, if a batch scan may be one of many or null
    */
-  
-  public KeyExtent getExtent() {
-    return extent;
-  }
+  public abstract KeyExtent getExtent();
   
   /**
    * @return columns requested by the scan
    */
-  
-  public List<Column> getColumns() {
-    return columns;
-  }
+  public abstract List<Column> getColumns();
   
   /**
    * @return server side iterators used by the scan
    */
-  
-  public List<String> getSsiList() {
-    return ssiList;
-  }
+  public abstract List<String> getSsiList();
   
   /**
    * @return server side iterator options
    */
-  
-  public Map<String,Map<String,String>> getSsio() {
-    return ssio;
-  }
+  public abstract Map<String,Map<String,String>> getSsio();
   
   /**
    * @return the authorizations being used for this scan
    * @since 1.5.0
    */
-  
-  public Authorizations getAuthorizations() {
-    return authorizations;
-  }
+  public abstract Authorizations getAuthorizations();
   
   /**
    * @return the time this scan has been idle in the tablet server
    * @since 1.5.0
    */
-  public long getIdleTime() {
-    return idle;
-  }
+  public abstract long getIdleTime();
 }

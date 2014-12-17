@@ -61,7 +61,7 @@ public class ConfigSanityCheck {
     }
   }
   
-  private static interface CheckTimeDuration {
+  private interface CheckTimeDuration {
     boolean check(long propVal);
     
     String getDescription(Property prop);

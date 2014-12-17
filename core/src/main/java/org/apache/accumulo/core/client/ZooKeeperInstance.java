@@ -18,33 +18,29 @@ package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Charsets.UTF_8;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.commons.configuration.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -76,6 +72,9 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
+  private AccumuloConfiguration accumuloConf;
+  private ClientConfiguration clientConf;
+
   /**
    * 
    * @param instanceName
@@ -83,9 +82,8 @@ public class ZooKeeperInstance implements Instance {
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    */
-
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
-    this(instanceName, zooKeepers, (int) AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -96,15 +94,11 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
-
+  @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
-    ArgumentChecker.notNull(instanceName, zooKeepers);
-    this.instanceName = instanceName;
-    this.zooKeepers = zooKeepers;
-    this.zooKeepersSessionTimeOut = sessionTimeout;
-    zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
-    getInstanceID();
+    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
   }
 
   /**
@@ -113,10 +107,11 @@ public class ZooKeeperInstance implements Instance {
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
-
+  @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
-    this(instanceId, zooKeepers, (int) AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers));
   }
 
   /**
@@ -127,14 +122,36 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
-
+  @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
-    ArgumentChecker.notNull(instanceId, zooKeepers);
-    this.instanceId = instanceId.toString();
-    this.zooKeepers = zooKeepers;
-    this.zooKeepersSessionTimeOut = sessionTimeout;
-    zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
+    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
+  }
+
+  /**
+   * @param config
+   *          Client configuration for specifying connection options.
+   *          See {@link ClientConfiguration} which extends Configuration with convenience methods specific to Accumulo.
+   * @since 1.6.0
+   */
+  public ZooKeeperInstance(Configuration config) {
+    this(config, new ZooCacheFactory());
+  }
+  ZooKeeperInstance(Configuration config, ZooCacheFactory zcf) {
+    ArgumentChecker.notNull(config);
+    if (config instanceof ClientConfiguration) {
+      this.clientConf = (ClientConfiguration)config;
+    } else {
+      this.clientConf = new ClientConfiguration(config);
+    }
+    this.instanceId = clientConf.get(ClientProperty.INSTANCE_ID);
+    this.instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
+    if ((instanceId == null) == (instanceName == null))
+      throw new IllegalArgumentException("Expected exactly one of instanceName and instanceId to be set");
+    this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
+    this.zooKeepersSessionTimeOut = (int) AccumuloConfiguration.getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
+    zooCache = zcf.getZooCache(zooKeepers, zooKeepersSessionTimeOut);
   }
 
   @Override
@@ -177,7 +194,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public String getRootTabletLocation() {
-    String zRootLocPath = ZooUtil.getRoot(this) + Constants.ZROOT_TABLET_LOCATION;
+    String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);
@@ -222,12 +239,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
-  }
-
-  @SuppressWarnings("deprecation")
-  private Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, credential);
+    return new ConnectorImpl(this, new Credentials(principal, token));
   }
 
   @Override
@@ -236,32 +248,20 @@ public class ZooKeeperInstance implements Instance {
     return getConnector(principal, new PasswordToken(pass));
   }
 
-  private AccumuloConfiguration conf = null;
-
   @Override
-  public AccumuloConfiguration getConfiguration() {
-    if (conf == null)
-      conf = AccumuloConfiguration.getDefaultConfiguration();
-    return conf;
-  }
-
-  @Override
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
-  }
-
-  /**
-   * @deprecated Use {@link #lookupInstanceName(org.apache.accumulo.fate.zookeeper.ZooCache, UUID)} instead
-   */
   @Deprecated
-  public static String lookupInstanceName(org.apache.accumulo.core.zookeeper.ZooCache zooCache, UUID instanceId) {
-    return lookupInstanceName((ZooCache) zooCache, instanceId);
+  public AccumuloConfiguration getConfiguration() {
+    return ServerConfigurationUtil.convertClientConfig(accumuloConf == null ? DefaultConfiguration.getInstance() : accumuloConf, clientConf);
+  }
+
+  @Override
+  @Deprecated
+  public void setConfiguration(AccumuloConfiguration conf) {
+    this.accumuloConf = conf;
   }
 
   /**
    * Given a zooCache and instanceId, look up the instance name.
-   * 
-   * @return the instance name
    */
   public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
     ArgumentChecker.notNull(zooCache, instanceId);
@@ -274,47 +274,5 @@ public class ZooKeeperInstance implements Instance {
       }
     }
     return null;
-  }
-
-  /**
-   * To be moved to server code. Only lives here to support certain client side utilities to minimize command-line options.
-   */
-  @Deprecated
-  public static String getInstanceIDFromHdfs(Path instanceDirectory) {
-    try {
-      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), AccumuloConfiguration.getSiteConfiguration());
-      FileStatus[] files = null;
-      try {
-        files = fs.listStatus(instanceDirectory);
-      } catch (FileNotFoundException ex) {
-        // ignored
-      }
-      log.debug("Trying to read instance id from " + instanceDirectory);
-      if (files == null || files.length == 0) {
-        log.error("unable obtain instance id at " + instanceDirectory);
-        throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory);
-      } else if (files.length != 1) {
-        log.error("multiple potential instances in " + instanceDirectory);
-        throw new RuntimeException("Accumulo found multiple possible instance ids in " + instanceDirectory);
-      } else {
-        String result = files[0].getPath().getName();
-        return result;
-      }
-    } catch (IOException e) {
-      log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
-      throw new RuntimeException("Can't tell if Accumulo is initialized; can't read instance id at " + instanceDirectory, e);
-    } catch (IllegalArgumentException exception) {
-      /* HDFS throws this when there's a UnknownHostException due to DNS troubles. */
-      if (exception.getCause() instanceof UnknownHostException) {
-        log.error("Problem reading instance id out of hdfs at " + instanceDirectory, exception);
-      }
-      throw exception;
-    }
-  }
-
-  @Deprecated
-  @Override
-  public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.password);
   }
 }

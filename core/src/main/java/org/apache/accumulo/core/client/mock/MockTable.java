@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mock;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -56,7 +57,7 @@ public class MockTable {
     
     @Override
     public boolean equals(Object other) {
-      return (other instanceof MockMemKey) && super.equals((MockMemKey)other) && count == ((MockMemKey)other).count;
+      return (other instanceof MockMemKey) && super.equals((MockMemKey) other) && count == ((MockMemKey) other).count;
     }
     
     @Override
@@ -88,7 +89,9 @@ public class MockTable {
   Map<String,EnumSet<TablePermission>> userPermissions = new HashMap<String,EnumSet<TablePermission>>();
   private TimeType timeType;
   SortedSet<Text> splits = new ConcurrentSkipListSet<Text>();
-  Map<String,Set<Text>> localityGroups = new TreeMap<String, Set<Text>>();
+  Map<String,Set<Text>> localityGroups = new TreeMap<String,Set<Text>>();
+  private MockNamespace namespace;
+  private String namespaceName;
   private String tableId;
   
   MockTable(boolean limitVersion, TimeType timeType, String tableId) {
@@ -96,6 +99,18 @@ public class MockTable {
     this.tableId = tableId;
     settings = IteratorUtil.generateInitialTableProperties(limitVersion);
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
+      String key = entry.getKey();
+      if (key.startsWith(Property.TABLE_PREFIX.getKey()))
+        settings.put(key, entry.getValue());
+    }
+  }
+  
+  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId) {
+    this(limitVersion, timeType, tableId);
+    Set<Entry<String,String>> set = namespace.settings.entrySet();
+    Iterator<Entry<String,String>> entries = set.iterator();
+    while (entries.hasNext()) {
+      Entry<String,String> entry = entries.next();
       String key = entry.getKey();
       if (key.startsWith(Property.TABLE_PREFIX.getKey()))
         settings.put(key, entry.getValue());
@@ -133,6 +148,7 @@ public class MockTable {
   public void setLocalityGroups(Map<String,Set<Text>> groups) {
     localityGroups = groups;
   }
+  
   public Map<String,Set<Text>> getLocalityGroups() {
     return localityGroups;
   }
@@ -144,6 +160,22 @@ public class MockTable {
     splits.removeAll(splits.subSet(start, end));
     if (reAdd)
       splits.add(start);
+  }
+  
+  public void setNamespaceName(String n) {
+    this.namespaceName = n;
+  }
+  
+  public void setNamespace(MockNamespace n) {
+    this.namespace = n;
+  }
+  
+  public String getNamespaceName() {
+    return this.namespaceName;
+  }
+  
+  public MockNamespace getNamespace() {
+    return this.namespace;
   }
 
   public String getTableId() {

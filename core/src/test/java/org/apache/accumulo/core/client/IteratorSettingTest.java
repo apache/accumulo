@@ -19,9 +19,13 @@ package org.apache.accumulo.core.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import java.util.Map;
+
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 /**
  * Test cases for the IteratorSetting class
@@ -32,7 +36,7 @@ public class IteratorSettingTest {
   IteratorSetting setting2 = new IteratorSetting(500, "combiner", Combiner.class.getName());
   IteratorSetting setting3 = new IteratorSetting(500, "combiner", Combiner.class.getName());
   IteratorSetting devnull = new IteratorSetting(500, "devNull", DevNull.class.getName());
-  IteratorSetting nullsetting = null;
+  final IteratorSetting nullsetting = null;
   IteratorSetting setting4 = new IteratorSetting(300, "combiner", Combiner.class.getName());
   IteratorSetting setting5 = new IteratorSetting(500, "foocombiner", Combiner.class.getName());
   IteratorSetting setting6 = new IteratorSetting(500, "combiner", "MySuperCombiner");
@@ -88,5 +92,23 @@ public class IteratorSettingTest {
     assertNotEquals(setting1, setting4);
     assertNotEquals(setting1, setting5);
     assertNotEquals(setting1, setting6);
+  }
+  
+  @Test
+  public void testEquivalentConstructor() {
+    IteratorSetting setting1 = new IteratorSetting(100, Combiner.class);
+    IteratorSetting setting2 = new IteratorSetting(100, "Combiner", Combiner.class, Maps.<String,String> newHashMap());
+    
+    assertEquals(setting1, setting2);
+    
+    IteratorSetting notEqual1 = new IteratorSetting(100, "FooCombiner", Combiner.class, Maps.<String,String> newHashMap());
+    
+    assertNotEquals(setting1, notEqual1);
+    
+    Map<String,String> props = Maps.newHashMap();
+    props.put("foo", "bar");
+    IteratorSetting notEquals2 = new IteratorSetting(100, "Combiner", Combiner.class, props);
+    
+    assertNotEquals(setting1, notEquals2);
   }
 }

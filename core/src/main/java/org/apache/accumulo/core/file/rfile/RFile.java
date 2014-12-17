@@ -53,13 +53,17 @@ import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
-import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.HeapIterator;
+import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
+import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
+import org.apache.accumulo.core.util.MutableByteSequence;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
@@ -77,24 +81,12 @@ public class RFile {
   // static final int RINDEX_VER_5 = 5; // unreleased
   static final int RINDEX_VER_4 = 4;
   static final int RINDEX_VER_3 = 3;
-  
-  private static class Count {
-    public Count(int i) {
-      this.count = i;
-    }
     
-    public Count(long count) {
-      this.count = count;
-    }
-    
-    long count;
-  }
-  
   private static class LocalityGroupMetadata implements Writable {
     
     private int startBlock;
     private Key firstKey;
-    private Map<ByteSequence,Count> columnFamilies;
+    private Map<ByteSequence,MutableLong> columnFamilies;
     
     private boolean isDefaultLG = false;
     private String name;
@@ -104,14 +96,14 @@ public class RFile {
     private MultiLevelIndex.Reader indexReader;
     
     public LocalityGroupMetadata(int version, BlockFileReader br) {
-      columnFamilies = new HashMap<ByteSequence,Count>();
+      columnFamilies = new HashMap<ByteSequence,MutableLong>();
       indexReader = new MultiLevelIndex.Reader(br, version);
     }
     
     public LocalityGroupMetadata(int nextBlock, Set<ByteSequence> pcf, int indexBlockSize, BlockFileWriter bfw) {
       this.startBlock = nextBlock;
       isDefaultLG = true;
-      columnFamilies = new HashMap<ByteSequence,Count>();
+      columnFamilies = new HashMap<ByteSequence,MutableLong>();
       previousColumnFamilies = pcf;
       
       indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
@@ -121,9 +113,9 @@ public class RFile {
       this.startBlock = nextBlock;
       this.name = name;
       isDefaultLG = false;
-      columnFamilies = new HashMap<ByteSequence,Count>();
+      columnFamilies = new HashMap<ByteSequence,MutableLong>();
       for (ByteSequence cf : cfset) {
-        columnFamilies.put(cf, new Count(0));
+        columnFamilies.put(cf, new MutableLong(0));
       }
       
       indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
@@ -155,7 +147,7 @@ public class RFile {
       }
       
       ByteSequence cf = key.getColumnFamilyData();
-      Count count = columnFamilies.get(cf);
+      MutableLong count = columnFamilies.get(cf);
       
       if (count == null) {
         if (!isDefaultLG) {
@@ -171,12 +163,12 @@ public class RFile {
           columnFamilies = null;
           return;
         }
-        count = new Count(0);
+        count = new MutableLong(0);
         columnFamilies.put(new ArrayByteSequence(cf.getBackingArray(), cf.offset(), cf.length()), count);
         
       }
       
-      count.count++;
+      count.increment();
       
     }
     
@@ -199,7 +191,7 @@ public class RFile {
         columnFamilies = null;
       } else {
         if (columnFamilies == null)
-          columnFamilies = new HashMap<ByteSequence,Count>();
+          columnFamilies = new HashMap<ByteSequence,MutableLong>();
         else
           columnFamilies.clear();
         
@@ -209,7 +201,7 @@ public class RFile {
           in.readFully(cf);
           long count = in.readLong();
           
-          columnFamilies.put(new ArrayByteSequence(cf), new Count(count));
+          columnFamilies.put(new ArrayByteSequence(cf), new MutableLong(count));
         }
       }
       
@@ -239,10 +231,10 @@ public class RFile {
       } else {
         out.writeInt(columnFamilies.size());
         
-        for (Entry<ByteSequence,Count> entry : columnFamilies.entrySet()) {
+        for (Entry<ByteSequence,MutableLong> entry : columnFamilies.entrySet()) {
           out.writeInt(entry.getKey().length());
           out.write(entry.getKey().getBackingArray(), entry.getKey().offset(), entry.getKey().length());
-          out.writeLong(entry.getValue().count);
+          out.writeLong(entry.getValue().longValue());
         }
       }
       
@@ -268,7 +260,7 @@ public class RFile {
       out.println("\tFirst key            : " + firstKey);
       
       Key lastKey = null;
-      if (indexReader != null && indexReader.size() > 0) {
+      if (indexReader.size() > 0) {
         lastKey = indexReader.getLastKey();
       }
       
@@ -474,26 +466,23 @@ public class RFile {
     }
   }
   
-  private static class LocalityGroupReader implements FileSKVIterator {
+  private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
     
     private BlockFileReader reader;
     private MultiLevelIndex.Reader index;
     private int blockCount;
     private Key firstKey;
     private int startBlock;
-    private Map<ByteSequence,Count> columnFamilies;
-    private boolean isDefaultLocalityGroup;
     private boolean closed = false;
     private int version;
     private boolean checkRange = true;
     
     private LocalityGroupReader(BlockFileReader reader, LocalityGroupMetadata lgm, int version) throws IOException {
+      super(lgm.columnFamilies, lgm.isDefaultLG);
       this.firstKey = lgm.firstKey;
       this.index = lgm.indexReader;
       this.startBlock = lgm.startBlock;
       blockCount = index.size();
-      this.columnFamilies = lgm.columnFamilies;
-      this.isDefaultLocalityGroup = lgm.isDefaultLG;
       this.version = version;
       
       this.reader = reader;
@@ -501,12 +490,11 @@ public class RFile {
     }
     
     public LocalityGroupReader(LocalityGroupReader lgr) {
+      super(lgr.columnFamilies, lgr.isDefaultLocalityGroup);
       this.firstKey = lgr.firstKey;
       this.index = lgr.index;
       this.startBlock = lgr.startBlock;
       this.blockCount = lgr.blockCount;
-      this.columnFamilies = lgr.columnFamilies;
-      this.isDefaultLocalityGroup = lgr.isDefaultLocalityGroup;
       this.reader = lgr.reader;
       this.version = lgr.version;
     }
@@ -683,7 +671,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
+          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
           SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey());
           if (skippr.skipped > 0) {
             entriesLeft -= skippr.skipped;
@@ -730,7 +718,7 @@ public class RFile {
           if (!checkRange)
             hasTop = true;
 
-          MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
+          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -747,7 +735,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new MByteSequence(val.get(), 0, val.getSize());
+                valbs = new MutableByteSequence(val.get(), 0, val.getSize());
                 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
@@ -810,12 +798,15 @@ public class RFile {
     public void setInterruptFlag(AtomicBoolean flag) {
       this.interruptFlag = flag;
     }
+    
+    @Override
+    public InterruptibleIterator getIterator() {
+      return this;
+    }
   }
   
   public static class Reader extends HeapIterator implements FileSKVIterator {
-    
-    private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
-    
+
     private BlockFileReader reader;
     
     private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
@@ -832,29 +823,30 @@ public class RFile {
       this.reader = rdr;
       
       ABlockReader mb = reader.getMetaBlock("RFile.index");
-      
-      int magic = mb.readInt();
-      int ver = mb.readInt();
-      
-      if (magic != RINDEX_MAGIC)
-        throw new IOException("Did not see expected magic number, saw " + magic);
-      if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
-        throw new IOException("Did not see expected version, saw " + ver);
-      
-      int size = mb.readInt();
-      lgReaders = new LocalityGroupReader[size];
-      
-      deepCopies = new LinkedList<Reader>();
-      
-      for (int i = 0; i < size; i++) {
-        LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
-        lgm.readFields(mb);
-        localityGroups.add(lgm);
-        
-        lgReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+      try{
+        int magic = mb.readInt();
+        int ver = mb.readInt();
+
+        if (magic != RINDEX_MAGIC)
+          throw new IOException("Did not see expected magic number, saw " + magic);
+        if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+          throw new IOException("Did not see expected version, saw " + ver);
+
+        int size = mb.readInt();
+        lgReaders = new LocalityGroupReader[size];
+
+        deepCopies = new LinkedList<Reader>();
+
+        for (int i = 0; i < size; i++) {
+          LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
+          lgm.readFields(mb);
+          localityGroups.add(lgm);
+
+          lgReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+        }
+      } finally {
+        mb.close();
       }
-      
-      mb.close();
       
       nonDefaultColumnFamilies = new HashSet<ByteSequence>();
       for (LocalityGroupMetadata lgm : localityGroups) {
@@ -985,66 +977,7 @@ public class RFile {
     
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      
-      clear();
-      
-      numLGSeeked = 0;
-      
-      Set<ByteSequence> cfSet;
-      if (columnFamilies.size() > 0)
-        if (columnFamilies instanceof Set<?>) {
-          cfSet = (Set<ByteSequence>) columnFamilies;
-        } else {
-          cfSet = new HashSet<ByteSequence>();
-          cfSet.addAll(columnFamilies);
-        }
-      else
-        cfSet = Collections.emptySet();
-      
-      for (LocalityGroupReader lgr : lgReaders) {
-        
-        // when include is set to true it means this locality groups contains
-        // wanted column families
-        boolean include = false;
-        
-        if (cfSet.size() == 0) {
-          include = !inclusive;
-        } else if (lgr.isDefaultLocalityGroup && lgr.columnFamilies == null) {
-          // do not know what column families are in the default locality group,
-          // only know what column families are not in it
-          
-          if (inclusive) {
-            if (!nonDefaultColumnFamilies.containsAll(cfSet)) {
-              // default LG may contain wanted and unwanted column families
-              include = true;
-            }// else - everything wanted is in other locality groups, so nothing to do
-          } else {
-            // must include, if all excluded column families are in other locality groups
-            // then there are not unwanted column families in default LG
-            include = true;
-          }
-        } else {
-          /*
-           * Need to consider the following cases for inclusive and exclusive (lgcf:locality group column family set, cf:column family set) lgcf and cf are
-           * disjoint lgcf and cf are the same cf contains lgcf lgcf contains cf lgccf and cf intersect but neither is a subset of the other
-           */
-          
-          for (Entry<ByteSequence,Count> entry : lgr.columnFamilies.entrySet())
-            if (entry.getValue().count > 0)
-              if (cfSet.contains(entry.getKey())) {
-                if (inclusive)
-                  include = true;
-              } else if (!inclusive) {
-                include = true;
-              }
-        }
-        
-        if (include) {
-          lgr.seek(range, EMPTY_CF_SET, false);
-          addSource(lgr);
-          numLGSeeked++;
-        }// every column family is excluded, zero count, or not present
-      }
+      numLGSeeked = LocalityGroupIterator.seek(this, lgReaders, nonDefaultColumnFamilies, range, columnFamilies, inclusive);
     }
     
     int getNumLocalityGroupsSeeked() {

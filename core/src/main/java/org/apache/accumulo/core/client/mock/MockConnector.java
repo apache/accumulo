@@ -18,10 +18,13 @@ package org.apache.accumulo.core.client.mock;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -29,8 +32,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
 
 public class MockConnector extends Connector {
   
@@ -38,12 +45,14 @@ public class MockConnector extends Connector {
   private final MockAccumulo acu;
   private final Instance instance;
   
-  MockConnector(String username, MockInstance instance) {
-    this(username, new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
+  MockConnector(String username, MockInstance instance) throws AccumuloSecurityException {
+    this(new Credentials(username, new NullToken()), new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
   }
   
-  MockConnector(String username, MockAccumulo acu, MockInstance instance) {
-    this.username = username;
+  MockConnector(Credentials credentials, MockAccumulo acu, MockInstance instance) throws AccumuloSecurityException {
+    if (credentials.getToken().isDestroyed())
+      throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
+    this.username = credentials.getPrincipal();
     this.acu = acu;
     this.instance = instance;
   }
@@ -115,17 +124,28 @@ public class MockConnector extends Connector {
   
   @Override
   public TableOperations tableOperations() {
-    return new MockTableOperations(acu, username);
+    return new MockTableOperationsImpl(acu, username);
   }
   
   @Override
   public SecurityOperations securityOperations() {
-    return new MockSecurityOperations(acu);
+    return new MockSecurityOperationsImpl(acu);
   }
   
   @Override
   public InstanceOperations instanceOperations() {
-    return new MockInstanceOperations(acu);
+    return new MockInstanceOperationsImpl(acu);
+  }
+
+  @Override
+  public NamespaceOperations namespaceOperations() {
+    return new MockNamespaceOperations(acu, username);
+  }
+  
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config) throws TableNotFoundException {
+    // TODO add implementation
+    throw new UnsupportedOperationException();
   }
   
 }

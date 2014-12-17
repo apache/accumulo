@@ -27,7 +27,7 @@ public class SystemPermissionsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     for (String p : SystemPermission.printableValues()) {
-      shellState.getReader().printString(p + "\n");
+      shellState.getReader().println(p);
     }
     return 0;
   }

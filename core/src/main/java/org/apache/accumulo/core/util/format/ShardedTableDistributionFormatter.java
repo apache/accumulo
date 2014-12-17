@@ -18,7 +18,6 @@ package org.apache.accumulo.core.util.format;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -33,20 +32,12 @@ import org.apache.accumulo.core.data.Value;
  * 
  * scan -b tableId -c ~tab:loc
  */
-public class ShardedTableDistributionFormatter extends DefaultFormatter {
+public class ShardedTableDistributionFormatter extends AggregatingFormatter {
   
   private Map<String,HashSet<String>> countsByDay = new HashMap<String,HashSet<String>>();
   
   @Override
-  public String next() {
-    Iterator<Entry<Key,Value>> si = super.getScannerIterator();
-    checkState(si, true);
-    while (si.hasNext())
-      aggregateStats(si.next());
-    return getStats();
-  }
-  
-  private void aggregateStats(Entry<Key,Value> entry) {
+  protected void aggregateStats(Entry<Key,Value> entry) {
     if (entry.getKey().getColumnFamily().toString().equals("~tab") && entry.getKey().getColumnQualifier().toString().equals("loc")) {
       // The row for the sharded table should look like: <tableId>;yyyyMMhh_N
       String row = entry.getKey().getRow().toString();
@@ -65,7 +56,8 @@ public class ShardedTableDistributionFormatter extends DefaultFormatter {
     }
   }
   
-  private String getStats() {
+  @Override
+  protected String getStats() {
     StringBuilder buf = new StringBuilder();
     buf.append("DAY   \t\tSERVERS\n");
     buf.append("------\t\t-------\n");

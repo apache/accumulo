@@ -40,7 +40,7 @@ public interface InstanceOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
-  public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException;
+  void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Removes a system property from zookeeper. Changes can be seen using {@link #getSystemConfiguration()}
@@ -52,7 +52,7 @@ public interface InstanceOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
-  public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
+  void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * 
@@ -60,7 +60,7 @@ public interface InstanceOperations {
    *         server. If nothing is set in an accumulo-site.xml file it will return the default value for each property.
    */
 
-  public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
+  Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
   
   /**
    * 
@@ -68,7 +68,7 @@ public interface InstanceOperations {
    *         for each property.
    */
 
-  public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
+  Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
   
   /**
    * List the currently active tablet servers participating in the accumulo instance
@@ -76,7 +76,7 @@ public interface InstanceOperations {
    * @return A list of currently active tablet servers.
    */
   
-  public List<String> getTabletServers();
+  List<String> getTabletServers();
   
   /**
    * List the active scans on tablet server.
@@ -86,7 +86,7 @@ public interface InstanceOperations {
    * @return A list of active scans on tablet server.
    */
   
-  public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException;
+  List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * List the active compaction running on a tablet server
@@ -97,7 +97,7 @@ public interface InstanceOperations {
    * @since 1.5.0
    */
   
-  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
+  List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Throws an exception if a tablet server can not be contacted.
@@ -106,7 +106,7 @@ public interface InstanceOperations {
    *          The tablet server address should be of the form <ip address>:<port>
    * @since 1.5.0
    */
-  public void ping(String tserver) throws AccumuloException;
+  void ping(String tserver) throws AccumuloException;
   
   /**
    * Test to see if the instance can load the given class as the given type. This check does not consider per table classpaths, see
@@ -114,6 +114,6 @@ public interface InstanceOperations {
    * 
    * @return true if the instance can load the given class as the given type, false otherwise
    */
-  public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException;
+  boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException;
   
 }

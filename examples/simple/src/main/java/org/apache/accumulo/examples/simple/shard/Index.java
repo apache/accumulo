@@ -68,8 +68,7 @@ public class Index {
       bw.addMutation(m);
   }
   
-  private static void index(int numPartitions, File src, String splitRegex, BatchWriter bw) throws Exception {
-    
+  public static void index(int numPartitions, File src, String splitRegex, BatchWriter bw) throws Exception {
     if (src.isDirectory()) {
       for (File child : src.listFiles()) {
         index(numPartitions, child, splitRegex, bw);

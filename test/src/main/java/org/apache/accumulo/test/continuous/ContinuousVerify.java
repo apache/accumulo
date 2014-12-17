@@ -56,9 +56,9 @@ import com.beust.jcommander.validators.PositiveInteger;
  */
 
 public class ContinuousVerify extends Configured implements Tool {
+
   // work around hadoop-1/hadoop-2 runtime incompatibility
   static private Method INCREMENT;
-
   static {
     try {
       INCREMENT = Counter.class.getMethod("increment", Long.TYPE);
@@ -67,7 +67,7 @@ public class ContinuousVerify extends Configured implements Tool {
     }
   }
 
-  public static void increment(Object obj) {
+  static void increment(Object obj) {
     try {
       INCREMENT.invoke(obj, 1L);
     } catch (Exception ex) {
@@ -184,6 +184,7 @@ public class ContinuousVerify extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(this.getClass().getName(), args);
 
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
 

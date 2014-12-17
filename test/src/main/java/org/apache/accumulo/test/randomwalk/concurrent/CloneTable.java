@@ -22,34 +22,44 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CloneTable extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String srcTableName = tableNames.get(rand.nextInt(tableNames.size()));
     String newTableName = tableNames.get(rand.nextInt(tableNames.size()));
     boolean flush = rand.nextBoolean();
-    
+
     try {
       log.debug("Cloning table " + srcTableName + " " + newTableName + " " + flush);
       conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(), new HashSet<String>());
     } catch (TableExistsException e) {
-      log.debug("Clone " + srcTableName + " failed, " + newTableName + " exist");
+      log.debug("Clone " + srcTableName + " failed, " + newTableName + " exists");
     } catch (TableNotFoundException e) {
       log.debug("Clone " + srcTableName + " failed, doesnt exist");
+    } catch (IllegalArgumentException e) {
+      log.debug("Clone: " + e.toString());
+    } catch (AccumuloException e) {
+      Throwable cause = e.getCause();
+      if (cause != null && cause instanceof NamespaceNotFoundException)
+        log.debug("Clone: " + srcTableName + " to " + newTableName + " failed, namespace not found");
+      else
+        throw e;
     }
   }
 }

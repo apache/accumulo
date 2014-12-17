@@ -34,7 +34,7 @@ public interface BatchDeleter extends ScannerBase {
    * @throws TableNotFoundException
    *           when the table does not exist
    */
-  public void delete() throws MutationsRejectedException, TableNotFoundException;
+  void delete() throws MutationsRejectedException, TableNotFoundException;
   
   /**
    * Allows deleting multiple ranges efficiently.

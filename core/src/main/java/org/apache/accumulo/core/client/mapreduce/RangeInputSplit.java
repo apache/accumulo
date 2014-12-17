@@ -24,24 +24,27 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -53,7 +56,9 @@ import org.apache.log4j.Level;
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
-  private String table, instanceName, zooKeepers, principal;
+  private String tableId, tableName, instanceName, zooKeepers, principal;
+  private TokenSource tokenSource;
+  private String tokenFile;
   private AuthenticationToken token;
   private Boolean offline, mockInstance, isolatedScan, localIterators;
   private Authorizations auths;
@@ -64,11 +69,22 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public RangeInputSplit() {
     range = new Range();
     locations = new String[0];
+    tableName = "";
+    tableId = "";
   }
 
-  public RangeInputSplit(Range range, String[] locations) {
+  public RangeInputSplit(RangeInputSplit split) throws IOException {
+    this.setRange(split.getRange());
+    this.setLocations(split.getLocations());
+    this.setTableName(split.getTableName());
+    this.setTableId(split.getTableId());
+  }
+
+  protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
     this.range = range;
     setLocations(locations);
+    this.tableName = table;
+    this.tableId = tableId;
   }
 
   public Range getRange() {
@@ -145,9 +161,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     range.readFields(in);
-    if (in.readBoolean()) {
-      table = in.readUTF();
-    }
+    tableName = in.readUTF();
+    tableId = in.readUTF();
     int numLocs = in.readInt();
     locations = new String[numLocs];
     for (int i = 0; i < numLocs; ++i)
@@ -189,14 +204,24 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
-      String tokenClass = in.readUTF();
-      byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
-      byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
+      int ordinal = in.readInt();
+      this.tokenSource = TokenSource.values()[ordinal];
 
-      try {
-        token = CredentialHelper.extractToken(tokenClass, tokenBytes);
-      } catch (AccumuloSecurityException e) {
-        throw new IOException(e);
+      switch (this.tokenSource) {
+        case INLINE:
+          String tokenClass = in.readUTF();
+          byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
+          byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
+
+          this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
+          break;
+
+        case FILE:
+          this.tokenFile = in.readUTF();
+
+          break;
+        default:
+          throw new IOException("Cannot parse unknown TokenSource ordinal");
       }
     }
 
@@ -224,12 +249,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     range.write(out);
-
-    out.writeBoolean(null != table);
-    if (null != table) {
-      out.writeUTF(table);
-    }
-
+    out.writeUTF(tableName);
+    out.writeUTF(tableId);
     out.writeInt(locations.length);
     for (int i = 0; i < locations.length; ++i)
       out.writeUTF(locations[i]);
@@ -273,13 +294,17 @@ public class RangeInputSplit extends InputSplit implements Writable {
       out.writeUTF(principal);
     }
 
-    out.writeBoolean(null != token);
-    if (null != token) {
-      out.writeUTF(token.getClass().getCanonicalName());
-      try {
-        out.writeUTF(CredentialHelper.tokenAsBase64(token));
-      } catch (AccumuloSecurityException e) {
-        throw new IOException(e);
+    out.writeBoolean(null != tokenSource);
+    if (null != tokenSource) {
+      out.writeInt(tokenSource.ordinal());
+
+      if (null != token && null != tokenFile) {
+        throw new IOException("Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
+      } else if (null != token) {
+        out.writeUTF(token.getClass().getCanonicalName());
+        out.writeUTF(Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+      } else {
+        out.writeUTF(tokenFile);
       }
     }
 
@@ -312,11 +337,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
     StringBuilder sb = new StringBuilder(256);
     sb.append("Range: ").append(range);
     sb.append(" Locations: ").append(Arrays.asList(locations));
-    sb.append(" Table: ").append(table);
+    sb.append(" Table: ").append(tableName);
+    sb.append(" TableID: ").append(tableId);
     sb.append(" InstanceName: ").append(instanceName);
     sb.append(" zooKeepers: ").append(zooKeepers);
     sb.append(" principal: ").append(principal);
+    sb.append(" tokenSource: ").append(tokenSource);
     sb.append(" authenticationToken: ").append(token);
+    sb.append(" authenticationTokenFile: ").append(tokenFile);
     sb.append(" Authorizations: ").append(auths);
     sb.append(" offlineScan: ").append(offline);
     sb.append(" mockInstance: ").append(mockInstance);
@@ -328,12 +356,36 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return sb.toString();
   }
 
+  /**
+   * Use {@link #getTableName}
+   */
+  @Deprecated
   public String getTable() {
-    return table;
+    return getTableName();
   }
 
+  public String getTableName() {
+    return tableName;
+  }
+
+  /**
+   * Use {@link #setTableName}
+   */
+  @Deprecated
   public void setTable(String table) {
-    this.table = table;
+    setTableName(table);
+  }
+
+  public void setTableName(String table) {
+    this.tableName = table;
+  }
+
+  public void setTableId(String tableId) {
+    this.tableId = tableId;
+  }
+
+  public String getTableId() {
+    return tableId;
   }
 
   public Instance getInstance() {
@@ -348,8 +400,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (null == zooKeepers) {
       return null;
     }
-    
-    return new ZooKeeperInstance(getInstanceName(), getZooKeepers());
+
+    return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
   }
 
   public String getInstanceName() {
@@ -381,8 +433,13 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setToken(AuthenticationToken token) {
+    this.tokenSource = TokenSource.INLINE;
     this.token = token;
-    ;
+  }
+
+  public void setToken(String tokenFile) {
+    this.tokenSource = TokenSource.FILE;
+    this.tokenFile = tokenFile;
   }
 
   public Boolean isOffline() {
@@ -435,6 +492,13 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public Set<Pair<Text,Text>> getFetchedColumns() {
     return fetchedColumns;
+  }
+
+  public void setFetchedColumns(Collection<Pair<Text,Text>> fetchedColumns) {
+    this.fetchedColumns = new HashSet<Pair<Text,Text>>();
+    for (Pair<Text,Text> columns : fetchedColumns) {
+      this.fetchedColumns.add(columns);
+    }
   }
 
   public void setFetchedColumns(Set<Pair<Text,Text>> fetchedColumns) {

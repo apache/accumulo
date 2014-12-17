@@ -56,7 +56,7 @@ public class Write extends Test {
     int minSize = Integer.parseInt(props.getProperty("minSize"));
     
     Random rand = new Random();
-    int numBytes = rand.nextInt((maxSize - minSize)) + minSize;
+    int numBytes = rand.nextInt(maxSize - minSize) + minSize;
     byte[] imageBytes = new byte[numBytes];
     rand.nextBytes(imageBytes);
     m.put(CONTENT_COLUMN_FAMILY, IMAGE_COLUMN_QUALIFIER, new Value(imageBytes));

@@ -67,7 +67,7 @@ public class TestProxyClient {
     
     TestProxyClient tpc = new TestProxyClient("localhost", 42424);
     String principal = "root";
-    Map<String, String> props = new TreeMap<String, String>();
+    Map<String,String> props = new TreeMap<String,String>();
     props.put("password", "secret");
     
     System.out.println("Logging in");

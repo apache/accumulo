@@ -38,15 +38,13 @@ two format classes to do the following:
 To read from an Accumulo table create a Mapper with the following class
 parameterization and be sure to configure the AccumuloInputFormat.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 class MyMapper extends Mapper<Key,Value,WritableComparable,Writable> {
     public void map(Key k, Value v, Context c) {
         // transform key and value data here
     }
 }
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 To write to an Accumulo table, create a Reducer with the following class
 parameterization and be sure to configure the AccumuloOutputFormat. The key
@@ -55,21 +53,15 @@ allows a single Reducer to write to more than one table if desired. A default ta
 can be configured using the AccumuloOutputFormat, in which case the output table
 name does not have to be passed to the Context object within the Reducer.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 class MyReducer extends Reducer<WritableComparable, Writable, Text, Mutation> {
-
     public void reduce(WritableComparable key, Iterable<Text> values, Context c) {
-        
         Mutation m;
-        
         // create the mutation based on input key and value
-        
         c.write(new Text("output-table"), m);
     }
 }
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The Text object passed as the output should contain the name of the table to which
 this mutation should be applied. The Text can be null in which case the mutation
@@ -78,8 +70,7 @@ options.
 
 \subsection{AccumuloInputFormat options}
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Job job = new Job(getConf());
 AccumuloInputFormat.setInputInfo(job,
         "user",
@@ -89,44 +80,107 @@ AccumuloInputFormat.setInputInfo(job,
 
 AccumuloInputFormat.setZooKeeperInstance(job, "myinstance",
         "zooserver-one,zooserver-two");
-\end{verbatim}
+\end{verbatim}\endgroup
+
+\Large
+\textbf{Optional Settings:}
+\normalsize
+
+To restrict Accumulo to a set of row ranges:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+ArrayList<Range> ranges = new ArrayList<Range>();
+// populate array list of row ranges ...
+AccumuloInputFormat.setRanges(job, ranges);
+\end{verbatim}\endgroup
+
+To restrict Accumulo to a list of columns:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+ArrayList<Pair<Text,Text>> columns = new ArrayList<Pair<Text,Text>>();
+// populate list of columns
+AccumuloInputFormat.fetchColumns(job, columns);
+\end{verbatim}\endgroup
+
+To use a regular expression to match row IDs:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+IteratorSetting is = new IteratorSetting(30, RexExFilter.class);
+RegExFilter.setRegexs(is, ".*suffix", null, null, null, true);
+AccumuloInputFormat.addIterator(job, is);
+\end{verbatim}\endgroup
+
+\subsection{AccumuloMultiTableInputFormat options}
+
+The AccumuloMultiTableInputFormat allows the scanning over multiple tables 
+in a single MapReduce job. Separate ranges, columns, and iterators can be 
+used for each table. 
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+InputTableConfig tableOneConfig = new InputTableConfig();
+InputTableConfig tableTwoConfig = new InputTableConfig();
+\end{verbatim}\endgroup
+
+To set the configuration objects on the job:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+Map<String, InputTableConfig> configs = new HashMap<String,InputTableConfig>();
+configs.put("table1", tableOneConfig);
+configs.put("table2", tableTwoConfig);
+AccumuloMultiTableInputFormat.setInputTableConfigs(job, configs);
+\end{verbatim}\endgroup
 
 \Large
 \textbf{Optional settings:}
 \normalsize
 
-To restrict Accumulo to a set of row ranges:
+To restrict to a set of ranges:
 
-\small
-\begin{verbatim}
-ArrayList<Range> ranges = new ArrayList<Range>();
-// populate array list of row ranges ...
-AccumuloInputFormat.setRanges(job, ranges);
-\end{verbatim}
-\normalsize
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+ArrayList<Range> tableOneRanges = new ArrayList<Range>();
+ArrayList<Range> tableTwoRanges = new ArrayList<Range>();
+// populate array lists of row ranges for tables...
+tableOneConfig.setRanges(tableOneRanges);
+tableTwoConfig.setRanges(tableTwoRanges);
+\end{verbatim}\endgroup
 
 To restrict Accumulo to a list of columns:
 
-\small
-\begin{verbatim}
-ArrayList<Pair<Text,Text>> columns = new ArrayList<Pair<Text,Text>>();
-// populate list of columns
-AccumuloInputFormat.fetchColumns(job, columns);
-\end{verbatim}
-\normalsize
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+ArrayList<Pair<Text,Text>> tableOneColumns = new ArrayList<Pair<Text,Text>>();
+ArrayList<Pair<Text,Text>> tableTwoColumns = new ArrayList<Pair<Text,Text>>();
+// populate lists of columns for each of the tables ...
+tableOneConfig.fetchColumns(tableOneColumns);
+tableTwoConfig.fetchColumns(tableTwoColumns);
+\end{verbatim}\endgroup
 
-To use a regular expression to match row IDs:
+To set scan iterators:
 
-\small
-\begin{verbatim}
-AccumuloInputFormat.setRegex(job, RegexType.ROW, "^.*");
-\end{verbatim}
-\normalsize
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+List<IteratorSetting> tableOneIterators = new ArrayList<IteratorSetting>();
+List<IteratorSetting> tableTwoIterators = new ArrayList<IteratorSetting>();
+// populate the lists of iterator settings for each of the tables ...
+tableOneConfig.setIterators(tableOneIterators);
+tableTwoConfig.setIterators(tableTwoIterators);
+\end{verbatim}\endgroup
+
+
+The name of the table can be retrieved from the input split:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+class MyMapper extends Mapper<Key,Value,WritableComparable,Writable> {
+    public void map(Key k, Value v, Context c) {
+        RangeInputSplit split = (RangeInputSplit)c.getInputSplit();
+        String tableName = split.getTableName();
+        // do something with table name 
+    }
+}
+\end{verbatim}\endgroup
+
 
 \subsection{AccumuloOutputFormat options}
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 boolean createTables = true;
 String defaultTable = "mytable";
 
@@ -138,18 +192,16 @@ AccumuloOutputFormat.setOutputInfo(job,
 
 AccumuloOutputFormat.setZooKeeperInstance(job, "myinstance",
         "zooserver-one,zooserver-two");
-\end{verbatim}
+\end{verbatim}\endgroup
 
 \Large
 \textbf{Optional Settings:}
 \normalsize
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 AccumuloOutputFormat.setMaxLatency(job, 300000); // milliseconds
 AccumuloOutputFormat.setMaxMutationBufferSize(job, 50000000); // bytes
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 An example of using MapReduce with Accumulo can be found at\\
 accumulo/docs/examples/README.mapred

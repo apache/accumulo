@@ -22,7 +22,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.Fixture;
@@ -32,7 +31,7 @@ public class SecurityFixture extends Fixture {
   
   @Override
   public void setUp(State state) throws Exception {
-    String secTableName, systemUserName, tableUserName;
+    String secTableName, systemUserName, tableUserName, secNamespaceName;
     Connector conn = state.getConnector();
     
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
@@ -40,6 +39,7 @@ public class SecurityFixture extends Fixture {
     systemUserName = String.format("system_%s", hostname);
     tableUserName = String.format("table_%s", hostname);
     secTableName = String.format("security_%s", hostname);
+    secNamespaceName = String.format("securityNs_%s", hostname);
     
     if (conn.tableOperations().exists(secTableName))
       conn.tableOperations().delete(secTableName);
@@ -53,7 +53,8 @@ public class SecurityFixture extends Fixture {
     conn.securityOperations().createLocalUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).setTableName(secTableName);
-    state.set("rootUserPass", CredentialHelper.extractToken(state.getCredentials()));
+    WalkingSecurity.get(state).setNamespaceName(secNamespaceName);
+    state.set("rootUserPass", state.getCredentials().getToken());
     
     WalkingSecurity.get(state).setSysUserName(systemUserName);
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
@@ -84,6 +85,13 @@ public class SecurityFixture extends Fixture {
       log.debug("Dropping tables: " + secTableName);
       
       conn.tableOperations().delete(secTableName);
+    }
+    
+    if (WalkingSecurity.get(state).getNamespaceExists()) {
+      String secNamespaceName = WalkingSecurity.get(state).getNamespaceName();
+      log.debug("Dropping namespace: " + secNamespaceName);
+      
+      conn.namespaceOperations().delete(secNamespaceName);
     }
     
     if (WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName())) {

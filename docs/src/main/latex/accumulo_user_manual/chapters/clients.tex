@@ -35,11 +35,9 @@ classpath. For Zookeeper 3.3 you only need to add the Zookeeper jar, and not
 what is in the Zookeeper lib directory. You can run the following command on a
 configured Accumulo system to see what its using for its classpath.
 
-\small 
-\begin{verbatim} 
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo classpath
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Another option for running your code is to put a jar file in
 \texttt{\$ACCUMULO\_HOME/lib/ext}. After doing this you can use the accumulo
@@ -55,15 +53,23 @@ bin/tool.sh script to run those jobs. See the map reduce example.
 All clients must first identify the Accumulo instance to which they will be
 communicating. Code to do this is as follows:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 String instanceName = "myinstance";
 String zooServers = "zooserver-one,zooserver-two"
 Instance inst = new ZooKeeperInstance(instanceName, zooServers);
 
 Connector conn = inst.getConnector("user", new PasswordToken("passwd"));
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
+
+The PasswordToken is the most common implementation of an \texttt{AuthenticationToken}.
+This general interface allow authentication as an Accumulo user to come from
+a variety of sources or means. The CredentialProviderToken leverages the Hadoop
+CredentialProviders (new in Hadoop 2.6).
+
+For example, the CredentialProviderToken can be used in conjunction with a Java
+KeyStore to alleviate passwords stored in cleartext. When stored in HDFS, a single
+KeyStore can be used across an entire instance. Be aware that KeyStores stored on
+the local filesystem must be made available to all nodes in the Accumulo cluster.
 
 \section{Writing Data}
 
@@ -74,8 +80,7 @@ the appropriate TabletServers.
 
 Mutations can be created thus:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Text rowID = new Text("row1");
 Text colFam = new Text("myColFam");
 Text colQual = new Text("myColQual");
@@ -86,8 +91,7 @@ Value value = new Value("myValue".getBytes());
 
 Mutation mutation = new Mutation(rowID);
 mutation.put(colFam, colQual, colVis, timestamp, value);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \subsection{BatchWriter}
 The BatchWriter is highly optimized to send Mutations to multiple TabletServers
@@ -98,9 +102,7 @@ batching.
 
 Mutations are added to a BatchWriter thus:
 
-\small
-\begin{verbatim}
-
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 //BatchWriterConfig has reasonable defaults
 BatchWriterConfig config = new BatchWriterConfig();
 config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
@@ -110,11 +112,35 @@ BatchWriter writer = conn.createBatchWriter("table", config)
 writer.add(mutation);
 
 writer.close();
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 An example of using the batch writer can be found at\\
 accumulo/docs/examples/README.batch
+
+\subsection{ConditionalWriter} 
+The ConditionalWriter enables efficient, atomic read-modify-write operations on
+rows.  The ConditionalWriter writes special Mutations which have a list of per
+column conditions that must all be met before the mutation is applied.  The
+conditions are checked in the tablet server while a row lock is
+held\footnote{Mutations written by the BatchWriter will not obtain a row
+lock.}.  The conditions that can be checked for a column are equality and
+absence.  For example a conditional mutation can require that column A is
+absent inorder to be applied.  Iterators can be applied when checking
+conditions.  Using iterators, many other operations besides equality and
+absence can be checked.  For example, using an iterator that converts values
+less than 5 to 0 and everything else to 1, its possible to only apply a
+mutation when a column is less than 5.
+
+In the case when a tablet server dies after a client sent a conditional
+mutation, its not known if the mutation was applied or not.  When this happens
+the ConditionalWriter reports a status of UNKNOWN for the ConditionalMutation.
+In many cases this situation can be dealt with by simply reading the row again
+and possibly sending another conditional mutation.  If this is not sufficient,
+then a higher level of abstraction can be built by storing transactional
+information within a row.
+ 
+An example of using the batch writer can be found at\\
+accumulo/docs/examples/README.reservations
 
 \section{Reading Data}
 
@@ -127,8 +153,7 @@ To retrieve data, Clients use a Scanner, which acts like an Iterator over
 keys and values. Scanners can be configured to start and stop at particular keys, and
 to return a subset of the columns available.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 // specify which visibilities we are allowed to see
 Authorizations auths = new Authorizations("public");
 
@@ -142,8 +167,7 @@ for(Entry<Key,Value> entry : scan) {
     Text row = entry.getKey().getRow();
     Value value = entry.getValue();
 }
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \subsection{Isolated Scanner}
 
@@ -168,8 +192,11 @@ crash a tablet server. By default rows are buffered in memory, but the user
 can easily supply their own buffer if they wish to buffer to disk when rows are
 large.
 
-For an example, look at the following\\
-\texttt{examples/simple/src/main/java/org/apache/accumulo/examples/simple/isolation/InterferenceTest.java}
+For an example, look at the following
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+examples/simple/src/main/java/org/apache/accumulo/examples/simple/isolation/InterferenceTest.java
+\end{verbatim}\endgroup
 
 \subsection{BatchScanner}
 
@@ -183,8 +210,7 @@ BatchScanners accept a set of Ranges. It is important to note that the keys retu
 by a BatchScanner are not in sorted order since the keys streamed are from multiple
 TabletServers in parallel.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 ArrayList<Range> ranges = new ArrayList<Range>();
 // populate list of ranges ...
 
@@ -195,8 +221,7 @@ bscan.setRanges(ranges);
 bscan.fetchColumnFamily(new Text("attributes"));
 for(Entry<Key,Value> entry : scan)
     System.out.println(entry.getValue());
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 An example of the BatchScanner can be found at\\
 accumulo/docs/examples/README.batch
@@ -218,23 +243,19 @@ Data nodes. A proxy client only needs the ability to communicate with the proxy 
 The configuration options for the proxy server live inside of a properties file. At
 the very least, you need to supply the following properties:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 protocolFactory=org.apache.thrift.protocol.TCompactProtocol$Factory
 tokenClass=org.apache.accumulo.core.client.security.tokens.PasswordToken
 port=42424
 instance=test
 zookeepers=localhost:2181
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 You can find a sample configuration file in your distribution:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/proxy/proxy.properties.
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This sample configuration file further demonstrates an abilty to back the proxy server
 by MockAccumulo or the MiniAccumuloCluster.
@@ -245,11 +266,9 @@ After the properties file holding the configuration is created, the proxy server
 can be started using the following command in the Accumulo distribution (assuming
 you your properties file is named config.properties):
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo proxy -p config.properties
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \subsection{Creating a Proxy Client}
 
@@ -260,11 +279,9 @@ location such as /usr/lib/python/site-packages/thrift.
 
 You can find the thrift file for generating the client:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/proxy/proxy.thrift.
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 After a client is generated, the port specified in the configuration properties above will be
 used to connect to the server.
@@ -277,13 +294,11 @@ the Thrift compiler. After initiating a connection to the Proxy (see Apache Thri
 documentation for examples of connecting to a Thrift service), the methods on the
 proxy client will be available. The first thing to do is log in:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Map password = new HashMap<String,String>();
 password.put("password", "secret");
 ByteBuffer token = client.login("root", password);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Once logged in, the token returned will be used for most subsequent calls to the client.
 Let's create a table, add some data, scan the table, and delete it.
@@ -291,17 +306,14 @@ Let's create a table, add some data, scan the table, and delete it.
 
 First, create a table.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 client.createTable(token, "myTable", true, TimeType.MILLIS);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 
 Next, add some data:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 // first, create a writer on the server
 String writer = client.createWriter(token, "myTable", new WriterOptions());
 
@@ -312,14 +324,12 @@ Map<ByteBuffer, List<ColumnUpdate> cells> cellsToUpdate = //...
 client.updateAndFlush(writer, "myTable", cellsToUpdate);
 
 client.closeWriter(writer);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 
 Scan for the data and batch the return of the results on the server:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 String scanner = client.createScanner(token, "myTable", new ScanOptions());
 ScanResult results = client.nextK(scanner, 100);
 

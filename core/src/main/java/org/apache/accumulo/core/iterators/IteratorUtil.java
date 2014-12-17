@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
@@ -100,7 +101,9 @@ public class IteratorUtil {
           props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
         }
     }
-    
+
+    props.put(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1", DefaultKeySizeConstraint.class.getName());
+
     return props;
   }
   
@@ -147,7 +150,7 @@ public class IteratorUtil {
         log.warn("Unrecognizable option: " + entry.getKey());
       }
     }
-    
+
     Collections.sort(iters, new IterInfoComparator());
   }
   

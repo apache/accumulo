@@ -31,12 +31,33 @@ public class Setup extends Test {
     Random rand = new Random();
     state.set("rand", rand);
     
-    int numTables = Integer.parseInt(props.getProperty("numTables", "5"));
+    int numTables = Integer.parseInt(props.getProperty("numTables", "9"));
+    int numNamespaces = Integer.parseInt(props.getProperty("numNamespaces", "2"));
     log.debug("numTables = " + numTables);
+    log.debug("numNamespaces = " + numNamespaces);
     List<String> tables = new ArrayList<String>();
-    for (int i = 0; i < numTables; i++)
+    List<String> namespaces = new ArrayList<String>();
+    
+    for (int i = 0; i < numNamespaces; i++) {
+      namespaces.add(String.format("nspc_%03d", i));
+    }
+    
+    // Make tables in the default namespace
+    double tableCeil = Math.ceil((double)numTables / (numNamespaces + 1));
+    for (int i = 0; i < tableCeil; i++) {
       tables.add(String.format("ctt_%03d", i));
+    }
+    
+    // Make tables in each namespace
+    double tableFloor = Math.floor(numTables / (numNamespaces + 1));
+    for (String n : namespaces) {
+      for (int i = 0; i < tableFloor; i++) {
+        tables.add(String.format(n + ".ctt_%03d", i));
+      }
+    }
+    
     state.set("tables", tables);
+    state.set("namespaces", namespaces);
     
     int numUsers = Integer.parseInt(props.getProperty("numUsers", "5"));
     log.debug("numUsers = " + numUsers);

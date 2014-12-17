@@ -49,7 +49,7 @@ public class Setup extends Test {
     try {
       if (!tableOps.exists(getTableName())) {
         tableOps.create(getTableName());
-        IteratorSetting is = new IteratorSetting(10, org.apache.accumulo.core.iterators.user.SummingCombiner.class);
+        IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
         SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
         SummingCombiner.setCombineAllColumns(is, true);
         tableOps.attachIterator(getTableName(), is);

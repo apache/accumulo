@@ -16,17 +16,10 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import static com.google.common.base.Charsets.UTF_8;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.util.Iterator;
+
+import jline.console.history.History.Entry;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -34,59 +27,27 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
+
 public class HistoryCommand extends Command {
-  
   private Option clearHist;
+  private Option disablePaginationOpt;
   
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    
-    String home = System.getProperty("HOME");
-    if (home == null)
-      home = System.getenv("HOME");
-    final String histDir = home + "/.accumulo";
-    int counter = 0;
-    
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.hasOption(clearHist.getOpt())) {
-      PrintWriter out = null;
-      try {
-        FileOutputStream file = new FileOutputStream(histDir + "/shell_history.txt");
-        final BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(file, UTF_8));
-        out = new PrintWriter(fileWriter);
-      } catch (FileNotFoundException e) { 
-        e.printStackTrace();
-      } finally {
-        // If the file existed, closing the 
-        if (null != out) {
-          out.close();
+      shellState.getReader().getHistory().clear();
+    } else {
+      Iterator<Entry> source = shellState.getReader().getHistory().entries();
+      Iterator<String> historyIterator = Iterators.transform(source, new Function<Entry,String>() {
+        @Override
+        public String apply(Entry input) {
+          return String.format("%d: %s", input.index() + 1, input.value());
         }
-      }
-    }
-    
-    else {
-      BufferedReader in = null;
-      try {
-        in = new BufferedReader(new InputStreamReader(new FileInputStream(histDir + "/shell_history.txt"), UTF_8));
-        String Line;
-        try {
-          Line = in.readLine();
-          while (Line != null) {
-            shellState.getReader().printString(counter + " " + Line + "\n");
-            counter++;
-            Line = in.readLine();
-          }
-        } catch (IOException e) {
-          
-          e.printStackTrace();
-        }
-      } catch (FileNotFoundException e) {
-        
-        e.printStackTrace();
-      } finally {
-        if (null != in) {
-          in.close();
-        }
-      }
+      });
+
+      shellState.printLines(historyIterator, !cl.hasOption(disablePaginationOpt.getOpt()));
     }
     
     return 0;
@@ -105,12 +66,10 @@ public class HistoryCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
     clearHist = new Option("c", "clear", false, "clear history file");
-    clearHist.setRequired(false);
-    
     o.addOption(clearHist);
-    
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
+    o.addOption(disablePaginationOpt);
     return o;
   }
 }

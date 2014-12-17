@@ -39,13 +39,15 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   private static final char[] TMP_RESERVED_CHARS = new char[] {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
   private static final Logger log = Logger.getLogger(UniqueFileReplicator.class);
-  
+
   private File tempDir;
   private VfsComponentContext context;
   private List<File> tmpFiles = Collections.synchronizedList(new ArrayList<File>());
 
   public UniqueFileReplicator(File tempDir) {
     this.tempDir = tempDir;
+    if (!tempDir.exists() && !tempDir.mkdirs())
+      log.warn("Unexpected error creating directory " + tempDir);
   }
 
   @Override
@@ -53,7 +55,6 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
     String baseName = srcFile.getName().getBaseName();
 
     try {
-      tempDir.mkdirs();
       String safeBasename = UriParser.encode(baseName, TMP_RESERVED_CHARS).replace('%', '_');
       File file = File.createTempFile("vfsr_", "_" + safeBasename, tempDir);
       file.deleteOnExit();
@@ -87,7 +88,8 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
   public void close() {
     synchronized (tmpFiles) {
       for (File tmpFile : tmpFiles) {
-        tmpFile.delete();
+        if (!tmpFile.delete())
+          log.warn("File does not exist: " + tmpFile);
       }
     }
 

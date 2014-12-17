@@ -24,14 +24,14 @@ import org.apache.hadoop.util.bloom.Key;
 public class RowFunctor implements KeyFunctor {
   
   @Override
-  public org.apache.hadoop.util.bloom.Key transform(org.apache.accumulo.core.data.Key acuKey) {
+  public Key transform(org.apache.accumulo.core.data.Key acuKey) {
     byte keyData[];
     
     ByteSequence row = acuKey.getRowData();
     keyData = new byte[row.length()];
     System.arraycopy(row.getBackingArray(), 0, keyData, 0, row.length());
     
-    return new org.apache.hadoop.util.bloom.Key(keyData, 1.0);
+    return new Key(keyData, 1.0);
   }
   
   @Override

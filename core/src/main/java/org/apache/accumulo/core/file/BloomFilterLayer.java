@@ -115,7 +115,14 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), KeyFunctor.class);
+        String context = acuconf.get(Property.TABLE_CLASSPATH);
+        String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
+        Class<? extends KeyFunctor> clazz;
+        if (context != null && !context.equals(""))
+          clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, classname, KeyFunctor.class);
+        else
+          clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
+
         transformer = clazz.newInstance();
         
       } catch (Exception e) {
@@ -141,7 +148,7 @@ public class BloomFilterLayer {
         return;
       
       DataOutputStream out = writer.createMetaStore(BLOOM_FILE_NAME);
-      out.writeUTF(transformer.getClass().getCanonicalName());
+      out.writeUTF(transformer.getClass().getName());
       bloomFilter.write(out);
       out.flush();
       out.close();
@@ -187,7 +194,10 @@ public class BloomFilterLayer {
       
       loadThreshold = acuconf.getCount(Property.TABLE_BLOOM_LOAD_THRESHOLD);
       
+      final String context = acuconf.get(Property.TABLE_CLASSPATH);
+
       loadTask = new Runnable() {
+        @Override
         public void run() {
           
           // no need to load the bloom filter if the map file is closed
@@ -208,8 +218,12 @@ public class BloomFilterLayer {
              * Load classname for keyFunctor
              */
             ClassName = in.readUTF();
-            
-            Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
+
+            Class<? extends KeyFunctor> clazz;
+            if (context != null && !context.equals(""))
+              clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName, KeyFunctor.class);
+            else
+              clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
             transformer = clazz.newInstance();
             
             /**
@@ -281,8 +295,8 @@ public class BloomFilterLayer {
     }
     
     /**
-     * Checks if this {@link RFile} contains keys from this range. The membership test is performed using a Bloom filter, so the result has always non-zero probability of
-     * false positives.
+     * Checks if this {@link RFile} contains keys from this range. The membership test is performed using a Bloom filter, so the result has always non-zero
+     * probability of false positives.
      * 
      * @param range
      *          range of keys to check
@@ -341,6 +355,7 @@ public class BloomFilterLayer {
       }
     }
     
+    @Override
     public synchronized void close() throws IOException {
       bfl.close();
       reader.close();

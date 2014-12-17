@@ -18,7 +18,6 @@ package org.apache.accumulo.core.conf;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -45,8 +44,12 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   }
   
   @Override
-  public Iterator<Entry<String,String>> iterator() {
-    return copy.entrySet().iterator();
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    for (Entry<String,String> entry : copy.entrySet()) {
+      if (filter.accept(entry.getKey())) {
+        props.put(entry.getKey(), entry.getValue());
+      }
+    }
   }
   
   public void set(Property prop, String value) {

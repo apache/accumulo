@@ -20,13 +20,13 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>13</version>
+    <version>14</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>1.5.3-SNAPSHOT</version>
+  <version>1.6.2-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>Apache Accumulo Project</name>
+  <name>Apache Accumulo</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
   <!-- this URL is where the site derived via the maven-site-plugin ends up, not the generic site -->
   <url>http://accumulo.apache.org/maven-site/</url>
@@ -75,13 +75,21 @@
     <module>trace</module>
     <module>core</module>
     <module>fate</module>
-    <module>server</module>
     <module>start</module>
-    <module>examples</module>
+    <module>examples/simple</module>
     <module>assemble</module>
     <module>proxy</module>
     <module>test</module>
     <module>minicluster</module>
+    <module>docs</module>
+    <module>maven-plugin</module>
+    <module>server/base</module>
+    <module>server/gc</module>
+    <module>server/master</module>
+    <module>server/monitor</module>
+    <module>server/native</module>
+    <module>server/tracer</module>
+    <module>server/tserver</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -108,19 +116,27 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <!-- bouncycastle version for test dependencies -->
+    <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- surefire/failsafe plugin option -->
+    <forkCount>1</forkCount>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
-    <hadoop.version>1.2.1</hadoop.version>
-    <httpclient.version>3.0.1</httpclient.version>
+    <hadoop.version>2.2.0</hadoop.version>
+    <httpclient.version>3.1</httpclient.version>
+    <java.ver>1.6</java.ver>
+    <jetty.version>8.1.15.v20140411</jetty.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.5</powermock.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- surefire/failsafe plugin option -->
+    <reuseForks>false</reuseForks>
     <sealJars>false</sealJars>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
-    <slf4j.version>1.4.3</slf4j.version>
+    <slf4j.version>1.7.5</slf4j.version>
+    <!-- Thrift version -->
+    <thrift.version>0.9.1</thrift.version>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
     <zookeeper.version>3.3.6</zookeeper.version>
   </properties>
@@ -129,7 +145,7 @@
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.30</version>
+        <version>1.32</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
@@ -182,14 +198,9 @@
         <version>1.1.1</version>
       </dependency>
       <dependency>
-        <groupId>commons-logging</groupId>
-        <artifactId>commons-logging-api</artifactId>
-        <version>1.0.4</version>
-      </dependency>
-      <dependency>
         <groupId>javax.servlet</groupId>
-        <artifactId>servlet-api</artifactId>
-        <version>2.5</version>
+        <artifactId>javax.servlet-api</artifactId>
+        <version>3.0.1</version>
       </dependency>
       <dependency>
         <groupId>javax.ws.rs</groupId>
@@ -199,7 +210,7 @@
       <dependency>
         <groupId>jline</groupId>
         <artifactId>jline</artifactId>
-        <version>1.0</version>
+        <version>2.11</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -218,6 +229,13 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-docs</artifactId>
+        <version>${project.version}</version>
+        <classifier>user-manual</classifier>
+        <type>pdf</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-examples-simple</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -228,8 +246,34 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-gc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-master</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-maven-plugin</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-minicluster</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-monitor</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-native</artifactId>
+        <version>${project.version}</version>
+        <type>tar.gz</type>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -238,7 +282,7 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server</artifactId>
+        <artifactId>accumulo-server-base</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -254,6 +298,16 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-trace</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-tracer</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-tserver</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -297,9 +351,39 @@
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-artifact</artifactId>
+        <version>${maven.min-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-core</artifactId>
+        <version>${maven.min-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-model</artifactId>
+        <version>${maven.min-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-plugin-api</artifactId>
+        <version>${maven.min-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.plugin-tools</groupId>
+        <artifactId>maven-plugin-annotations</artifactId>
+        <version>3.2</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
-        <version>0.9.0</version>
+        <version>${thrift.version}</version>
         <exclusions>
           <exclusion>
             <groupId>org.apache.httpcomponents</groupId>
@@ -317,9 +401,54 @@
         <version>${zookeeper.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
         <version>3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-continuation</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-http</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-io</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-security</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-servlet</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-util</artifactId>
+        <version>${jetty.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mortbay.jetty</groupId>
@@ -367,9 +496,21 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>findbugs-maven-plugin</artifactId>
+          <version>3.0.0</version>
+          <configuration>
+            <xmlOutput>true</xmlOutput>
+            <effort>Max</effort>
+            <failOnError>true</failOnError>
+            <includeTests>true</includeTests>
+            <maxRank>6</maxRank>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>com.google.code.sortpom</groupId>
           <artifactId>maven-sortpom-plugin</artifactId>
-          <version>2.1.0</version>
+          <version>2.3.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <lineSeparator>\n</lineSeparator>
@@ -383,10 +524,15 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.6.1</version>
+          <version>0.7.0</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>native-maven-plugin</artifactId>
+          <version>1.0-alpha-8</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -415,24 +561,10 @@
           <configuration>
             <filesets>
               <fileset>
-                <directory>lib</directory>
-                <includes>
-                  <include>*.jar</include>
-                </includes>
-              </fileset>
-              <fileset>
-                <directory>docs/apidocs</directory>
-              </fileset>
-              <fileset>
-                <directory>test</directory>
-                <includes>
-                  <include>**/*.so</include>
-                </includes>
-              </fileset>
-              <fileset>
                 <directory>./</directory>
                 <includes>
                   <include>**/*.pyc</include>
+                  <include>**/*.so</include>
                 </includes>
               </fileset>
             </filesets>
@@ -441,19 +573,12 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
+            <source>${java.ver}</source>
+            <target>${java.ver}</target>
             <optimize>true</optimize>
-            <encoding>UTF-8</encoding>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
           </configuration>
-        </plugin>
-        <plugin>
-          <!-- should be in the Apache parent, but isn't -->
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.8</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -471,10 +596,10 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
-            <encoding>UTF-8</encoding>
+            <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
             <reportOutputDirectory>docs</reportOutputDirectory>
-            <javadocVersion>1.6</javadocVersion>
+            <javadocVersion>${java.ver}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
         </plugin>
@@ -484,12 +609,12 @@
           <!-- Work around MRELEASE-812 -->
           <version>2.5</version>
           <configuration>
-            <arguments>-P apache-release,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
+            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
-            <goals>clean compile javadoc:aggregate deploy</goals>
-            <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
+            <goals>clean deploy</goals>
+            <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>seal-jars</releaseProfiles>
+            <releaseProfiles>seal-jars,skip-findbugs</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -498,25 +623,15 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.3</version>
           <configuration>
             <skipDeploy>true</skipDeploy>
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <argLine>-Xmx1G</argLine>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <version>0.10</version>
-          <configuration>
-            <excludes>
-              <exclude>docs/apidocs/package-list</exclude>
-            </excludes>
           </configuration>
         </plugin>
         <plugin>
@@ -527,7 +642,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>cobertura-maven-plugin</artifactId>
-          <version>2.5.2</version>
+          <version>2.6</version>
           <configuration>
             <aggregate>true</aggregate>
             <formats>
@@ -552,17 +667,26 @@
           <version>1.1</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>rpm-maven-plugin</artifactId>
-          <version>2.1-alpha-3</version>
-        </plugin>
-        <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
           <version>1.0.0</version>
           <configuration>
             <lifecycleMappingMetadata>
               <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <versionRange>[3.2,)</versionRange>
+                    <goals>
+                      <goal>helpmojo</goal>
+                      <goal>descriptor</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -591,6 +715,36 @@
                 </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
+                    <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <versionRange>[0.8,)</versionRange>
+                    <goals>
+                      <goal>check</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>native-maven-plugin</artifactId>
+                    <versionRange>[1.0-alpha-7,)</versionRange>
+                    <goals>
+                      <goal>compile</goal>
+                      <goal>initialize</goal>
+                      <goal>javah</goal>
+                      <goal>link</goal>
+                      <goal>unzipinc</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <versionRange>[1.0,)</versionRange>
@@ -609,6 +763,19 @@
                     <versionRange>[1.0,)</versionRange>
                     <goals>
                       <goal>enforce</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-invoker-plugin</artifactId>
+                    <versionRange>[1.7,)</versionRange>
+                    <goals>
+                      <goal>install</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>
@@ -645,6 +812,29 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <configuration>
+            <rules>
+              <requireMavenVersion>
+                <version>[${maven.min-version},)</version>
+              </requireMavenVersion>
+              <requireProperty>
+                <property>hadoop.profile</property>
+                <regex>(1|2)</regex>
+                <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
+  Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
+              </requireProperty>
+              <requireProperty>
+                <property>thrift.version</property>
+                <regex>0[.]9[.]1</regex>
+                <regexMessage>Thrift version must be 0.9.1; Any alteration requires a review of ACCUMULO-1691
+                  (See server/base/src/main/java/org/apache/accumulo/server/util/CustomNonBlockingServer.java)</regexMessage>
+              </requireProperty>
+            </rules>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -664,27 +854,6 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy-dependencies</id>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>../lib</outputDirectory>
-              <!-- just grab the non-provided runtime dependencies -->
-              <stripVersion>true</stripVersion>
-              <includeScope>runtime</includeScope>
-              <excludeTransitive>true</excludeTransitive>
-              <excludeClassifiers>sources,test-sources</excludeClassifiers>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
           <execution>
@@ -692,19 +861,6 @@
             <goals>
               <goal>enforce</goal>
             </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[${maven.min-version},)</version>
-                </requireMavenVersion>
-                <requireProperty>
-                  <property>hadoop.profile</property>
-                  <regex>(1|2)</regex>
-                  <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
-    Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
-                </requireProperty>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -729,15 +885,20 @@
             <id>run-integration-tests</id>
             <goals>
               <goal>integration-test</goal>
-            </goals>
-            <phase>integration-test</phase>
-          </execution>
-          <execution>
-            <id>verify-integration-tests</id>
-            <goals>
               <goal>verify</goal>
             </goals>
-            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>run-findbugs</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
@@ -754,13 +915,25 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-licenses</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <extensions>
       <extension>
         <!-- enable ssh deployment of site with maven 3 -->
         <groupId>org.apache.maven.wagon</groupId>
         <artifactId>wagon-ssh</artifactId>
-        <version>2.4</version>
+        <version>2.6</version>
       </extension>
     </extensions>
   </build>
@@ -781,7 +954,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9</version>
+        <version>2.9.1</version>
         <reportSets>
           <reportSet>
             <reports>
@@ -793,19 +966,19 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
-        <version>2.3</version>
+        <version>2.4</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.1</version>
         <configuration>
           <excludes>
             <exclude>**/thrift/*.java</exclude>
           </excludes>
           <format>html</format>
           <includeTests>true</includeTests>
-          <targetJdk>1.6</targetJdk>
+          <targetJdk>${java.ver}</targetJdk>
         </configuration>
       </plugin>
       <plugin>
@@ -830,7 +1003,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>2.5.2</version>
+        <version>2.5.3</version>
         <configuration>
           <excludeFilterFile>contrib/findbugs-exclude.xml</excludeFilterFile>
           <findbugsXmlOutput>true</findbugsXmlOutput>
@@ -838,6 +1011,7 @@
           <xmlOutput>true</xmlOutput>
           <effort>Max</effort>
           <threshold>Medium</threshold>
+          <failOnError>false</failOnError>
         </configuration>
       </plugin>
     </plugins>
@@ -870,7 +1044,6 @@
                   <descriptorRefs>
                     <descriptorRef>source-release-zip-tar</descriptorRef>
                   </descriptorRefs>
-                  <tarLongFileFormat>gnu</tarLongFileFormat>
                 </configuration>
               </execution>
             </executions>
@@ -927,29 +1100,25 @@
       <id>seal-jars</id>
       <properties>
         <sealJars>true</sealJars>
+        <skipITs>true</skipITs>
         <skipTests>true</skipTests>
       </properties>
     </profile>
     <profile>
-      <!-- Automatically check for licenses.
-           Activate with -P check-licenses -->
-      <id>check-licenses</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-                <phase>verify</phase>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
+      <!-- Skip findbugs executing when the
+           apache-release profile is activated. -->
+      <id>skip-findbugs</id>
+      <properties>
+        <findbugs.skip>true</findbugs.skip>
+      </properties>
+    </profile>
+    <profile>
+      <!-- Minimal testing profile. (a.k.a. SunnyDay) -->
+      <id>sunny</id>
+      <properties>
+        <failIfNoTests>false</failIfNoTests>
+        <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT,ShellServerIT</it.test>
+      </properties>
     </profile>
     <profile>
       <!-- Generate cobertura reports with site.
@@ -960,7 +1129,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>cobertura-maven-plugin</artifactId>
-            <version>2.5.2</version>
+            <version>2.6</version>
             <configuration>
               <aggregate>true</aggregate>
               <formats>
@@ -990,14 +1159,13 @@
       <properties>
         <!-- Denotes intention and allows the enforcer plugin to pass when
              the user is relying on default behavior; won't work to activate profile -->
-        <hadoop.profile>1</hadoop.profile>
-        <hadoop.version>1.2.1</hadoop.version>
-        <httpclient.version>3.0.1</httpclient.version>
-        <slf4j.version>1.4.3</slf4j.version>
+        <hadoop.profile>2</hadoop.profile>
+        <hadoop.version>2.2.0</hadoop.version>
+        <httpclient.version>3.1</httpclient.version>
+        <slf4j.version>1.7.5</slf4j.version>
       </properties>
     </profile>
     <!-- profile for building against Hadoop 1.x
-     XXX Since this is the default, make sure to sync hadoop-default when changing.
     Activate using: mvn -Dhadoop.profile=1 -->
     <profile>
       <id>hadoop-1</id>
@@ -1010,10 +1178,11 @@
       <properties>
         <hadoop.version>1.2.1</hadoop.version>
         <httpclient.version>3.0.1</httpclient.version>
-        <slf4j.version>1.4.3</slf4j.version>
+        <slf4j.version>1.7.5</slf4j.version>
       </properties>
     </profile>
     <!-- profile for building against Hadoop 2.x
+     XXX Since this is the default, make sure to sync hadoop-default when changing.
     Activate using: mvn -Dhadoop.profile=2 -->
     <profile>
       <id>hadoop-2</id>

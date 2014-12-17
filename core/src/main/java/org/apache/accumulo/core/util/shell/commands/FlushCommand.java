@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -41,12 +40,6 @@ public class FlushCommand extends TableOperation {
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
     Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
-    if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
-      Shell.log.info("  May need to flush " + Constants.METADATA_TABLE_NAME + " table multiple times.");
-      Shell.log.info("  Flushing " + Constants.METADATA_TABLE_NAME + " causes writes to itself and");
-      Shell.log.info("  minor compactions, which also cause writes to itself.");
-      Shell.log.info("  Check the monitor web page and give it time to settle.");
-    }
   }
   
   @Override

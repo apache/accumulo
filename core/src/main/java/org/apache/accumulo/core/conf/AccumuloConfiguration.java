@@ -20,19 +20,55 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
+
+  public interface PropertyFilter {
+    boolean accept(String key);
+  }
+
+  public static class AllFilter implements PropertyFilter {
+    @Override
+    public boolean accept(String key) {
+      return true;
+    }
+  }
+
+  public static class PrefixFilter implements PropertyFilter {
+
+    private String prefix;
+
+    public PrefixFilter(String prefix) {
+      this.prefix = prefix;
+    }
+
+    @Override
+    public boolean accept(String key) {
+      return key.startsWith(prefix);
+    }
+  }
+
   private static final Logger log = Logger.getLogger(AccumuloConfiguration.class);
   
   public abstract String get(Property property);
   
-  public abstract Iterator<Entry<String,String>> iterator();
+  public abstract void getProperties(Map<String,String> props, PropertyFilter filter);
+
+  @Override
+  public Iterator<Entry<String,String>> iterator() {
+    TreeMap<String,String> entries = new TreeMap<String,String>();
+    getProperties(entries, new AllFilter());
+    return entries.entrySet().iterator();
+  }
   
   private void checkType(Property property, PropertyType type) {
     if (!property.getType().equals(type)) {
@@ -45,20 +81,16 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   
   /**
    * This method returns all properties in a map of string->string under the given prefix property.
-   * @param property the prefix property, and must be of type PropertyType.PREFIX
+   * 
+   * @param property
+   *          the prefix property, and must be of type PropertyType.PREFIX
    * @return a map of strings to strings of the resulting properties
    */
-  public Map<String, String> getAllPropertiesWithPrefix(Property property) {
+  public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
     
-    Map<String, String> propMap = new HashMap<String, String>(); 
-    
-    for (Entry<String, String> entry : this) {
-      if (entry.getKey().startsWith(property.getKey())) {
-        propMap.put(entry.getKey(), entry.getValue());
-      }
-    }
-    
+    Map<String,String> propMap = new HashMap<String,String>();
+    getProperties(propMap, new PrefixFilter(property.getKey()));
     return propMap;
   }
   
@@ -162,18 +194,23 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return Integer.parseInt(countString);
   }
   
+  public String getPath(Property property) {
+    checkType(property, PropertyType.PATH);
+
+    String pathString = get(property);
+    if (pathString == null) return null;
+
+    for (String replaceableEnvVar : Constants.PATH_PROPERTY_ENV_VARS) {
+      String envValue = System.getenv(replaceableEnvVar);
+      if (envValue != null)
+        pathString = pathString.replace("$" + replaceableEnvVar, envValue);
+    }
+
+    return pathString;
+  }
+
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
     return DefaultConfiguration.getInstance();
-  }
-  
-  // Only here for Shell option-free start-up
-  /**
-   * 
-   * @deprecated not for client use
-   */
-  @Deprecated
-  public static synchronized AccumuloConfiguration getSiteConfiguration() {
-    return SiteConfiguration.getInstance(getDefaultConfiguration());
   }
   
   public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId) throws TableNotFoundException, AccumuloException {
@@ -191,7 +228,26 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return maxFilesPerTablet;
   }
   
-  public void invalidateCache() {
-    // overridden in ZooConfiguration
+  // overridden in ZooConfiguration
+  public void invalidateCache() {}
+  
+  public <T> T instantiateClassProperty(Property property, Class<T> base, T defaultInstance) {
+    String clazzName = get(property);
+    T instance = null;
+    
+    try {
+      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+      instance = clazz.newInstance();
+      log.info("Loaded class : " + clazzName);
+    } catch (Exception e) {
+      log.warn("Failed to load class ", e);
+    }
+    
+    if (instance == null) {
+      log.info("Using " + defaultInstance.getClass().getName());
+      instance = defaultInstance;
+    }
+    return instance;
   }
+  
 }

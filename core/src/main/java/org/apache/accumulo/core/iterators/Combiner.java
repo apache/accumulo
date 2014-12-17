@@ -82,21 +82,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return source.hasTop() && !source.getTopKey().isDeleted() && topKey.equals(source.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS);
     }
 
-    /**
-     * @return <tt>true</tt> if there is another Value
-     * 
-     * @see java.util.Iterator#hasNext()
-     */
     @Override
     public boolean hasNext() {
       return hasNext;
     }
 
-    /**
-     * @return the next Value
-     * 
-     * @see java.util.Iterator#next()
-     */
     @Override
     public Value next() {
       if (!hasNext)
@@ -112,9 +102,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     /**
-     * unsupported
+     * This method is unsupported in this iterator.
      * 
-     * @see java.util.Iterator#remove()
+     * @throws UnsupportedOperationException
+     *           when called
      */
     @Override
     public void remove() {
@@ -274,7 +265,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
     if (!options.containsKey(COLUMNS_OPTION))
       throw new IllegalArgumentException("options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
-    
+
     String encodedColumns = options.get(COLUMNS_OPTION);
     if (encodedColumns.length() == 0)
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);

@@ -16,33 +16,36 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.util.Map;
+import java.util.Map.Entry;
+
 public class Pair<A,B> {
   A first;
   B second;
-  
+
   public Pair(A f, B s) {
     this.first = f;
     this.second = s;
   }
-  
+
   private int hashCode(Object o) {
     if (o == null)
       return 0;
     return o.hashCode();
   }
-  
+
   @Override
   public int hashCode() {
     return hashCode(first) + hashCode(second);
   }
-  
+
   private boolean equals(Object o1, Object o2) {
     if (o1 == null || o2 == null)
       return o1 == o2;
-    
+
     return o1.equals(o2);
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof Pair<?,?>) {
@@ -51,16 +54,50 @@ public class Pair<A,B> {
     }
     return false;
   }
-  
+
   public A getFirst() {
     return first;
   }
-  
+
   public B getSecond() {
     return second;
   }
-  
+
+  @Override
   public String toString() {
-    return "(" + first + "," + second + ")";
+    return toString("(", ",", ")");
   }
+
+  public String toString(String prefix, String separator, String suffix) {
+    return prefix + first + separator + second + suffix;
+  }
+
+  public Entry<A,B> toMapEntry() {
+    return new Map.Entry<A,B>() {
+
+      @Override
+      public A getKey() {
+        return getFirst();
+      }
+
+      @Override
+      public B getValue() {
+        return getSecond();
+      }
+
+      @Override
+      public B setValue(B value) {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
+  public Pair<B,A> swap() {
+    return new Pair<B,A>(getSecond(), getFirst());
+  }
+
+  public static <K,V> Pair<K,V> fromEntry(Entry<K,V> entry) {
+    return new Pair<K,V>(entry.getKey(), entry.getValue());
+  }
+
 }

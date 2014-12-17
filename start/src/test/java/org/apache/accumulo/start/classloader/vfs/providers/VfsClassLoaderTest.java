@@ -32,29 +32,28 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class VfsClassLoaderTest extends AccumuloDFSBase {
-  
+
   private static final Path TEST_DIR = new Path(getHdfsUri() + "/test-dir");
 
   private FileSystem hdfs = null;
   private VFSClassLoader cl = null;
-  
+
   @Before
   public void setup() throws Exception {
-    
+
     this.hdfs = cluster.getFileSystem();
     this.hdfs.mkdirs(TEST_DIR);
-    
-    //Copy jar file to TEST_DIR
+
+    // Copy jar file to TEST_DIR
     URL jarPath = this.getClass().getResource("/HelloWorld.jar");
     Path src = new Path(jarPath.toURI().toString());
     Path dst = new Path(TEST_DIR, src.getName());
     this.hdfs.copyFromLocalFile(src, dst);
-    
-    
+
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    //Point the VFSClassLoader to all of the objects in TEST_DIR
+    // Point the VFSClassLoader to all of the objects in TEST_DIR
     this.cl = new VFSClassLoader(dirContents, vfs);
   }
 
@@ -64,7 +63,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     Object o = helloWorldClass.newInstance();
     Assert.assertEquals("Hello World!", o.toString());
   }
-  
+
   @Test
   public void testFileMonitor() throws Exception {
     MyFileMonitor listener = new MyFileMonitor();
@@ -73,8 +72,8 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     monitor.addFile(testDir);
     monitor.start();
-    
-    //Copy jar file to a new file name
+
+    // Copy jar file to a new file name
     URL jarPath = this.getClass().getResource("/HelloWorld.jar");
     Path src = new Path(jarPath.toURI().toString());
     Path dst = new Path(TEST_DIR, "HelloWorld2.jar");
@@ -84,7 +83,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     Thread.sleep(7000);
     Assert.assertTrue(listener.isFileCreated());
 
-    //Update the jar
+    // Update the jar
     jarPath = this.getClass().getResource("/HelloWorld.jar");
     src = new Path(jarPath.toURI().toString());
     dst = new Path(TEST_DIR, "HelloWorld2.jar");
@@ -93,41 +92,39 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
     Assert.assertTrue(listener.isFileChanged());
-    
+
     this.hdfs.delete(dst, false);
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
     Assert.assertTrue(listener.isFileDeleted());
-    
+
     monitor.stop();
-    
+
   }
-  
-  
+
   @After
   public void tearDown() throws Exception {
     this.hdfs.delete(TEST_DIR, true);
   }
-  
-  
+
   public static class MyFileMonitor implements FileListener {
 
     private boolean fileChanged = false;
     private boolean fileDeleted = false;
     private boolean fileCreated = false;
-    
+
     public void fileCreated(FileChangeEvent event) throws Exception {
-      //System.out.println(event.getFile() + " created");
+      // System.out.println(event.getFile() + " created");
       this.fileCreated = true;
     }
 
     public void fileDeleted(FileChangeEvent event) throws Exception {
-      //System.out.println(event.getFile() + " deleted");
+      // System.out.println(event.getFile() + " deleted");
       this.fileDeleted = true;
     }
 
     public void fileChanged(FileChangeEvent event) throws Exception {
-      //System.out.println(event.getFile() + " changed");
+      // System.out.println(event.getFile() + " changed");
       this.fileChanged = true;
     }
 
@@ -142,7 +139,6 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     public boolean isFileCreated() {
       return fileCreated;
     }
-    
-    
+
   }
 }

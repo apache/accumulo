@@ -21,14 +21,14 @@ import static com.google.common.base.Charsets.UTF_8;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.test.randomwalk.State;
 
-public class BulkMinusOne extends BulkTest {
-  
+public class BulkMinusOne extends BulkImportTest {
+
   private static final Value negOne = new Value("-1".getBytes(UTF_8));
-  
+
   @Override
   protected void runLater(State state) throws Exception {
     log.info("Decrementing");
     BulkPlusOne.bulkLoadLots(log, state, negOne);
   }
-  
+
 }

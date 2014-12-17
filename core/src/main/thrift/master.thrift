@@ -23,138 +23,150 @@ include "client.thrift"
 include "trace.thrift"
 
 struct Compacting {
-    1:i32 running
-    2:i32 queued
+  1:i32 running
+  2:i32 queued
 }
 
 struct TableInfo {
-    1:i64 recs
-    2:i64 recsInMemory
-    3:i32 tablets
-    4:i32 onlineTablets
-    5:double ingestRate
-    6:double ingestByteRate
-    7:double queryRate
-    8:double queryByteRate
-    9:Compacting minors;
-    10:Compacting majors;
-    11:Compacting scans;
-    12:double scanRate;
+  1:i64 recs
+  2:i64 recsInMemory
+  3:i32 tablets
+  4:i32 onlineTablets
+  5:double ingestRate
+  6:double ingestByteRate
+  7:double queryRate
+  8:double queryByteRate
+  9:Compacting minors;
+  10:Compacting majors;
+  11:Compacting scans;
+  12:double scanRate;
 }
 
 struct RecoveryStatus {
-    2:string name
-    5:i32 runtime                   // in millis
-    6:double progress
+  2:string name
+  5:i32 runtime                   // in millis
+  6:double progress
 }
 
 struct TabletServerStatus {
-    1:map<string, TableInfo> tableMap
-    2:i64 lastContact
-    3:string name
-    5:double osLoad
-    7:i64 holdTime
-    8:i64 lookups
-    10:i64 indexCacheHits    
-    11:i64 indexCacheRequest   
-    12:i64 dataCacheHits   
-    13:i64 dataCacheRequest
-    14:list<RecoveryStatus> logSorts
+  1:map<string, TableInfo> tableMap
+  2:i64 lastContact
+  3:string name
+  5:double osLoad
+  7:i64 holdTime
+  8:i64 lookups
+  10:i64 indexCacheHits
+  11:i64 indexCacheRequest
+  12:i64 dataCacheHits
+  13:i64 dataCacheRequest
+  14:list<RecoveryStatus> logSorts
 }
 
 enum MasterState {
-    INITIAL,
-    HAVE_LOCK,
-    SAFE_MODE,
-    NORMAL, 
-    UNLOAD_METADATA_TABLETS, 
-    UNLOAD_ROOT_TABLET, 
-    STOP
+  INITIAL
+  HAVE_LOCK
+  SAFE_MODE
+  NORMAL
+  UNLOAD_METADATA_TABLETS
+  UNLOAD_ROOT_TABLET
+  STOP
 }
 
 enum MasterGoalState {
-    CLEAN_STOP,
-    SAFE_MODE,
-    NORMAL,
+  CLEAN_STOP
+  SAFE_MODE
+  NORMAL
 }
 
 struct DeadServer {
-    1:string server,
-    2:i64 lastStatus,
-    3:string status,
+  1:string server
+  2:i64 lastStatus
+  3:string status
 }
 
 struct MasterMonitorInfo {
-    1:map<string, TableInfo> tableMap
-    2:list<TabletServerStatus> tServerInfo
-    3:map<string, byte> badTServers
-    6:MasterState state
-    8:MasterGoalState goalState
-    7:i32 unassignedTablets
-    9:set<string> serversShuttingDown
-    10:list<DeadServer> deadTabletServers
+  1:map<string, TableInfo> tableMap
+  2:list<TabletServerStatus> tServerInfo
+  3:map<string, byte> badTServers
+  6:MasterState state
+  8:MasterGoalState goalState
+  7:i32 unassignedTablets
+  9:set<string> serversShuttingDown
+  10:list<DeadServer> deadTabletServers
 }
 
 struct TabletSplit {
-    1:data.TKeyExtent oldTablet
-    2:list<data.TKeyExtent> newTablets
+  1:data.TKeyExtent oldTablet
+  2:list<data.TKeyExtent> newTablets
 }
 
 exception RecoveryException {
-    1:string why
+  1:string why
 }
 
 enum TabletLoadState {
-    LOADED,
-    LOAD_FAILURE,
-    UNLOADED,
-    UNLOAD_FAILURE_NOT_SERVING,
-    UNLOAD_ERROR,
-    CHOPPED
+  LOADED
+  LOAD_FAILURE
+  UNLOADED
+  UNLOAD_FAILURE_NOT_SERVING
+  UNLOAD_ERROR
+  CHOPPED
 }
 
-enum TableOperation {
-  CREATE
-  CLONE
-  DELETE
-  RENAME
-  ONLINE
-  OFFLINE
-  MERGE
-  DELETE_RANGE
-  BULK_IMPORT
-  COMPACT
-  IMPORT
-  EXPORT
-  COMPACT_CANCEL
+enum FateOperation {
+  TABLE_CREATE
+  TABLE_CLONE
+  TABLE_DELETE
+  TABLE_RENAME
+  TABLE_ONLINE
+  TABLE_OFFLINE
+  TABLE_MERGE
+  TABLE_DELETE_RANGE
+  TABLE_BULK_IMPORT
+  TABLE_COMPACT
+  TABLE_IMPORT
+  TABLE_EXPORT
+  TABLE_CANCEL_COMPACT
+  NAMESPACE_CREATE
+  NAMESPACE_DELETE
+  NAMESPACE_RENAME
 }
 
-service MasterClientService {
+service FateService {
+  // register a fate operation by reserving an opid
+  i64 beginFateOperation(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+  // initiate execution of the fate operation; set autoClean to true if not waiting for completion
+  void executeFateOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:FateOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  // wait for completion of the operation and get the returned exception, if any
+  string waitForFateOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  // clean up fate operation if autoClean was not set, after waiting
+  void finishFateOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec)
+}
 
-    // table management methods
-    i64 initiateFlush(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-    void waitForFlush(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 6:binary startRow, 7:binary endRow, 3:i64 flushID, 4:i64 maxLoops) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-    
-    void setTableProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-    void removeTableProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+service MasterClientService extends FateService {
 
-    // system management methods
-    void setMasterGoalState(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:MasterGoalState state) throws (1:client.ThriftSecurityException sec);
-    void shutdown(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:bool stopTabletServers) throws (1:client.ThriftSecurityException sec)
-    void shutdownTabletServer(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tabletServer, 4:bool force) throws (1: client.ThriftSecurityException sec)
-    void setSystemProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property, 3:string value) throws (1:client.ThriftSecurityException sec)
-    void removeSystemProperty(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property) throws (1:client.ThriftSecurityException sec)
+  // table management methods
+  i64 initiateFlush(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  void waitForFlush(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 6:binary startRow, 7:binary endRow, 3:i64 flushID, 4:i64 maxLoops) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
 
-    // system monitoring methods
-    MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
-    
-    // tablet server reporting
-    oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)
-    oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
+  void setTableProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  void removeTableProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
 
-   //table operations
-   i64 beginTableOperation(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
-   void executeTableOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean)throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-   string waitForTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-   void finishTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec)
+  void setNamespaceProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  void removeNamespaceProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+
+  // system management methods
+  void setMasterGoalState(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:MasterGoalState state) throws (1:client.ThriftSecurityException sec);
+  void shutdown(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:bool stopTabletServers) throws (1:client.ThriftSecurityException sec)
+  void shutdownTabletServer(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tabletServer, 4:bool force) throws (1: client.ThriftSecurityException sec)
+  void setSystemProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property, 3:string value) throws (1:client.ThriftSecurityException sec)
+  void removeSystemProperty(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property) throws (1:client.ThriftSecurityException sec)
+
+  // system monitoring methods
+  MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+
+  // tablet server reporting
+  oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)
+  oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
+
 }

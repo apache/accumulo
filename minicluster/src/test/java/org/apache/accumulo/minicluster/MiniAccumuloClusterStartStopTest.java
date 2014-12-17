@@ -19,49 +19,44 @@ package org.apache.accumulo.minicluster;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloClusterStartStopTest {
-  
+
   public TemporaryFolder folder = new TemporaryFolder();
-  
+
   @Before
   public void createMacDir() throws IOException {
     folder.create();
   }
-  
+
   @After
   public void deleteMacDir() {
     folder.delete();
   }
-  
+
   @Test
-  public void multipleStartsThrowsAnException() throws Exception {
+  public void multipleStartsDoesntThrowAnException() throws Exception {
     MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-    accumulo.start();
-    
+
+    // In 1.6.0, multiple start's did not throw an exception as advertised
     try {
       accumulo.start();
-      Assert.fail("Invoking start() while already started is an error");
-    } catch (IllegalStateException e) {
-      // pass
+      accumulo.start();
     } finally {
       accumulo.stop();
     }
   }
-  
+
   @Test
   public void multipleStopsIsAllowed() throws Exception {
     MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
     accumulo.start();
-    
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
+
+    Connector conn = accumulo.getConnector("root", "superSecret");
     conn.tableOperations().create("foo");
 
     accumulo.stop();

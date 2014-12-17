@@ -38,7 +38,7 @@ public class DebugCommand extends Command {
         throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (cl.getArgs().length == 0) {
-      shellState.getReader().printString(Shell.isDebuggingEnabled() ? "on\n" : "off\n");
+      shellState.getReader().println(Shell.isDebuggingEnabled() ? "on" : "off");
     } else {
       shellState.printException(new IllegalArgumentException("Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
       printHelp(shellState);

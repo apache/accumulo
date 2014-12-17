@@ -29,6 +29,7 @@
   <edge id="MultiTable.xml" weight="1"/>
   <edge id="Shard.xml" weight="1"/>
   <edge id="Concurrent.xml" weight="1"/>
+  <edge id="Conditional.xml" weight="1"/>
   <edge id="Security.xml" weight="1"/>
   <edge id="Bulk.xml" weight="1"/>
 </node>
@@ -46,6 +47,10 @@
 </node>
 
 <node id="Concurrent.xml">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="Conditional.xml">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 

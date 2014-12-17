@@ -81,12 +81,25 @@ public class BlockIndex {
     }
     
     @Override
+    public boolean equals(Object o) {
+      if (o instanceof BlockIndexEntry)
+        return compareTo((BlockIndexEntry) o) == 0;
+      return false;
+    }
+    
+    @Override
     public String toString() {
       return prevKey + " " + entriesLeft + " " + pos;
     }
     
     public Key getPrevKey() {
       return prevKey;
+    }
+    
+    @Override
+    public int hashCode() {
+      assert false : "hashCode not designed";
+      return 42; // any arbitrary constant will do
     }
   }
   

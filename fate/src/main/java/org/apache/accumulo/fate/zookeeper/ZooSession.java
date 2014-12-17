@@ -33,7 +33,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
 public class ZooSession {
-  
+
   public static class ZooSessionShutdownException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
@@ -41,31 +41,32 @@ public class ZooSession {
   }
 
   private static final Logger log = Logger.getLogger(ZooSession.class);
-  
+
   private static class ZooSessionInfo {
     public ZooSessionInfo(ZooKeeper zooKeeper, ZooWatcher watcher) {
       this.zooKeeper = zooKeeper;
     }
-    
+
     ZooKeeper zooKeeper;
   }
-  
+
   private static Map<String,ZooSessionInfo> sessions = new HashMap<String,ZooSessionInfo>();
-  
+
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
     return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth, UTF_8));
   }
-  
+
   private static class ZooWatcher implements Watcher {
-    
+
+    @Override
     public void process(WatchedEvent event) {
       if (event.getState() == KeeperState.Expired) {
         log.debug("Session expired, state of current session : " + event.getState());
       }
     }
-    
+
   }
-  
+
   /**
    * @param host comma separated list of zk servers
    * @param timeout in milliseconds
@@ -75,18 +76,18 @@ public class ZooSession {
    */
   public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
-    final int TOTAL_CONNECT_TIME_WAIT_MS = 10 * 1000;
+    int connectTimeWait = Math.min(10 * 1000, timeout);
     boolean tryAgain = true;
-    int sleepTime = 100;
+    long sleepTime = 100;
     ZooKeeper zooKeeper = null;
-    
+
     long startTime = System.currentTimeMillis();
 
     while (tryAgain) {
       try {
         zooKeeper = new ZooKeeper(host, timeout, watcher);
         // it may take some time to get connected to zookeeper if some of the servers are down
-        for (int i = 0; i < TOTAL_CONNECT_TIME_WAIT_MS / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
+        for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
             if (auth != null)
               zooKeeper.addAuthInfo(scheme, auth);
@@ -94,7 +95,7 @@ public class ZooSession {
           } else
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
-        
+
       } catch (IOException e) {
         if (e instanceof UnknownHostException) {
           /*
@@ -116,38 +117,46 @@ public class ZooSession {
       if (System.currentTimeMillis() - startTime > 2 * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
       }
-      
+
       if (tryAgain) {
+        if (startTime + 2 * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
+          sleepTime = startTime + 2 * timeout - System.currentTimeMillis() - connectTimeWait;
+        if (sleepTime < 0)
+        {
+          connectTimeWait -= sleepTime;
+          sleepTime = 0;
+        }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
-          sleepTime = (int) (sleepTime + sleepTime * Math.random());
+          sleepTime = sleepTime + (long)(sleepTime * Math.random());
       }
     }
-    
+
     return zooKeeper;
   }
-  
+
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout) {
     return getSession(zooKeepers, timeout, null, null);
   }
-  
+
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme, byte[] auth) {
-    
+
     if (sessions == null)
       throw new ZooSessionShutdownException();
 
     String sessionKey = sessionKey(zooKeepers, timeout, scheme, auth);
-    
+
     // a read-only session can use a session with authorizations, so cache a copy for it w/out auths
     String readOnlySessionKey = sessionKey(zooKeepers, timeout, null, null);
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
+      log.debug("Removing closed ZooKeeper session to " + zooKeepers);
       if (auth != null && sessions.get(readOnlySessionKey) == zsi)
         sessions.remove(readOnlySessionKey);
       zsi = null;
       sessions.remove(sessionKey);
     }
-    
+
     if (zsi == null) {
       ZooWatcher watcher = new ZooWatcher();
       log.debug("Connecting to " + zooKeepers + " with timeout " + timeout + " with auth");

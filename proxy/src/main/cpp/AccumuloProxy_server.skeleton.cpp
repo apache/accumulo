@@ -108,6 +108,11 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
     printf("flushTable\n");
   }
 
+  void getDiskUsage(std::vector<DiskUsage> & _return, const std::string& login, const std::set<std::string> & tables) {
+    // Your implementation goes here
+    printf("getDiskUsage\n");
+  }
+
   void getLocalityGroups(std::map<std::string, std::set<std::string> > & _return, const std::string& login, const std::string& tableName) {
     // Your implementation goes here
     printf("getLocalityGroups\n");
@@ -163,12 +168,12 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
     printf("mergeTablets\n");
   }
 
-  void offlineTable(const std::string& login, const std::string& tableName) {
+  void offlineTable(const std::string& login, const std::string& tableName, const bool wait) {
     // Your implementation goes here
     printf("offlineTable\n");
   }
 
-  void onlineTable(const std::string& login, const std::string& tableName) {
+  void onlineTable(const std::string& login, const std::string& tableName, const bool wait) {
     // Your implementation goes here
     printf("onlineTable\n");
   }
@@ -386,6 +391,26 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
   void closeWriter(const std::string& writer) {
     // Your implementation goes here
     printf("closeWriter\n");
+  }
+
+  ConditionalStatus::type updateRowConditionally(const std::string& login, const std::string& tableName, const std::string& row, const ConditionalUpdates& updates) {
+    // Your implementation goes here
+    printf("updateRowConditionally\n");
+  }
+
+  void createConditionalWriter(std::string& _return, const std::string& login, const std::string& tableName, const ConditionalWriterOptions& options) {
+    // Your implementation goes here
+    printf("createConditionalWriter\n");
+  }
+
+  void updateRowsConditionally(std::map<std::string, ConditionalStatus::type> & _return, const std::string& conditionalWriter, const std::map<std::string, ConditionalUpdates> & updates) {
+    // Your implementation goes here
+    printf("updateRowsConditionally\n");
+  }
+
+  void closeConditionalWriter(const std::string& conditionalWriter) {
+    // Your implementation goes here
+    printf("closeConditionalWriter\n");
   }
 
   void getRowRange(Range& _return, const std::string& row) {

@@ -1,0 +1,160 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+<title>Accumulo Timestamps</title>
+<link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
+</head>
+<body>
+
+<h1>Apache Accumulo Documentation : Timestamps</h1>
+
+<p>Everything inserted into accumulo has a timestamp. If the user does not
+set it, then the system will set the timestamp. The timestamp is the last
+thing accumulo sorts on. So when two keys have the same row, column family,
+column qualifier, and column visibility then the timestamp of the two keys is
+compared.
+
+<p>Timestamps are sorted in descending order, so the most recent data comes
+first. When a table is created in accumulo, by default it has a versioning
+iterator that only shows the most recent. In the example below two identical
+things are inserted. The scan after that only shows the most recent version.
+However when the versioning iterator configuration is changed, then both are
+seen. When data is inserted with a lower timestamp than existing data, it will
+fall behind the existing data and may not be seen depending on the versioning
+settings. This is why the insert made with a timestamp of 500 is not seen in
+the scan below.
+
+<p><pre>
+root@ac12&gt; createtable foo
+root@ac12 foo&gt;
+root@ac12 foo&gt;
+root@ac12 foo&gt; insert r1 cf1 cq1 value1
+root@ac12 foo&gt; insert r1 cf1 cq1 value2
+root@ac12 foo&gt; scan -st
+r1 cf1:cq1 [] 1279906856203    value2
+root@ac12 foo&gt; config -t foo -f iterator
+---------+---------------------------------------------+-----------------------------------------------------------------------------------------------------
+SCOPE    | NAME                                        | VALUE
+---------+---------------------------------------------+-----------------------------------------------------------------------------------------------------
+table    | table.iterator.majc.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
+table    | table.iterator.majc.vers.opt.maxVersions .. | 1
+table    | table.iterator.minc.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
+table    | table.iterator.minc.vers.opt.maxVersions .. | 1
+table    | table.iterator.scan.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
+table    | table.iterator.scan.vers.opt.maxVersions .. | 1
+---------+---------------------------------------------+-----------------------------------------------------------------------------------------------------
+root@ac12 foo&gt; config -t foo -s table.iterator.scan.vers.opt.maxVersions=3
+root@ac12 foo&gt; config -t foo -s table.iterator.minc.vers.opt.maxVersions=3
+root@ac12 foo&gt; config -t foo -s table.iterator.majc.vers.opt.maxVersions=3
+root@ac12 foo&gt; scan -st
+r1 cf1:cq1 [] 1279906856203    value2
+r1 cf1:cq1 [] 1279906853170    value1
+root@ac12 foo&gt; insert -t 600 r1 cf1 cq1 value3
+root@ac12 foo&gt; insert -t 500 r1 cf1 cq1 value4
+root@ac12 foo&gt; scan -st
+r1 cf1:cq1 [] 1279906856203    value2
+r1 cf1:cq1 [] 1279906853170    value1
+r1 cf1:cq1 [] 600    value3
+root@ac12 foo&gt;
+
+</pre>
+
+<p>Deletes are special keys in accumulo that get sorted along will all the other
+data. When a delete key is inserted, accumulo will not show anything that has
+a timestamp less than or equal to the delete key. In the example below an
+insert is made with timestamp 5 and then a delete is inserted with timestamp 3.
+The scan after that show that the delete marker does not hide the key. However
+when a delete is inserted with timestamp 5, then nothing can be seen. Once a
+delete marker is inserted, it is there until a full major compaction occurs.
+That is why the insert made after the delete can not be seen. The insert after
+the flush and compact commands can be seen because the delete marker is gone.
+The flush forced a minor compaction and compact forced a full major compaction.
+
+<p><pre>
+root@ac12&gt; createtable bar
+root@ac12 bar&gt; insert -t 5 r1 cf1 cq1 val1
+root@ac12 bar&gt; scan -st
+r1 cf1:cq1 [] 5    val1
+root@ac12 bar&gt; delete -t 3 r1 cf1 cq1
+root@ac12 bar&gt; scan
+r1 cf1:cq1 []    val1
+root@ac12 bar&gt; scan -st
+r1 cf1:cq1 [] 5    val1
+root@ac12 bar&gt; delete -t 5 r1 cf1 cq1
+root@ac12 bar&gt; scan -st
+root@ac12 bar&gt; insert -t 5 r1 cf1 cq1 val2
+root@ac12 bar&gt; scan -st
+root@ac12 bar&gt; flush -t bar
+23 14:01:36,587 [shell.Shell] INFO : Flush of table bar initiated...
+root@ac12 bar&gt; compact -t bar
+23 14:02:00,042 [shell.Shell] INFO : Compaction of table bar scheduled for 20100723140200EDT
+root@ac12 bar&gt; insert -t 5 r1 cf1 cq1 val1
+root@ac12 bar&gt; scan
+r1 cf1:cq1 []    val1
+</pre>
+
+<p>If two inserts are made into accumulo with the same row, column, and
+timestamp, then the behavior is non-deterministic.
+
+<p>Accumulo 1.2 introduces the concept of logical time. This ensures that
+timestamps set by accumulo always move forward. There have been many problems
+caused by tablet servers with different system times. In the case where a
+tablet servers time is in the future, tablets hosted on that tablet server and
+then migrated will have future timestamps in their data. This can cause newer
+keys to fall behind existing keys, which can result in seeing older data or not
+seeing data if a new key falls behind on old delete. Logical time prevents
+this by ensuring that accumulo set time stamps never go backwards, on a per
+tablet basis. So if a tablet servers time is a year in the future, then any
+tablet hosted there will generate timestamps a year in the future even when
+later hosted on a server with correct time. Logical time can be configured on a
+per table basis to either set time in millis or to use a per tablet counter.
+The per tablet counter gives unique one up time stamps on a per mutation
+basis. When using time in millis, if two things arrive within the same
+millisecond then both receive the same timestamp.
+
+<p>The example below shows a table created using a per tablet counter for
+timestamps. Two inserts are made, the first gets timestamp 0 the second 1.
+After that the table is split into two tablets and two more inserts are made.
+These inserts get the same timestamp because they are made on different
+tablets. When the original tablet is split into two, the two child tablets
+inherit the next timestamp of their parent and start from there. So do not
+expect this configuration to offer unique timestamps across a table. Its only
+purpose is to uniquely order events within a tablet.
+
+<p><pre>
+root@ac12 foo&gt; createtable -tl logical
+root@ac12 logical&gt; insert 000892 person name "John Doe"
+root@ac12 logical&gt; insert 003042 person name "Jane Doe"
+root@ac12 logical&gt; scan -st
+000892 person:name [] 0    John Doe
+003042 person:name [] 1    Jane Doe
+root@ac12 logical&gt;
+root@ac12 logical&gt; addsplits -t logical 002000
+root@ac12 logical&gt; insert 003042 person address "123 Somewhere"
+root@ac12 logical&gt; insert 000892 person address "123 Nowhere"
+root@ac12 logical&gt; scan -st
+000892 person:address [] 2    123 Nowhere
+000892 person:name [] 0    John Doe
+003042 person:address [] 2    123 Somewhere
+003042 person:name [] 1    Jane Doe
+root@ac12 logical&gt;
+
+</pre>
+
+</body>
+</html>

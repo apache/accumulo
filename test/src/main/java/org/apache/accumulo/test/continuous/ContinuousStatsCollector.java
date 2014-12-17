@@ -22,9 +22,6 @@ import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -39,14 +36,19 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.monitor.Monitor;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.ClusterStatus;
@@ -88,9 +90,9 @@ public class ContinuousStatsCollector {
     private String getTabletStats() throws Exception {
       
       Connector conn = opts.getConnector();
-      Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
+      Scanner scanner = conn.createScanner(MetadataTable.NAME, opts.auths);
       scanner.setBatchSize(scanBatchSize);
-      scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       
@@ -110,15 +112,21 @@ public class ContinuousStatsCollector {
     }
     
     private String getFSStats() throws Exception {
-      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-      Path acudir = new Path(ServerConstants.getTablesDir());
-      ContentSummary contentSummary = fs.getContentSummary(acudir);
+      VolumeManager fs = VolumeManagerImpl.get();
+      long length1 = 0, dcount1 = 0, fcount1 = 0;
+      long length2 = 0, dcount2 = 0, fcount2 = 0;
+      for (String dir : ServerConstants.getTablesDirs()) {
+        ContentSummary contentSummary = fs.getContentSummary(new Path(dir));
+        length1 += contentSummary.getLength();
+        dcount1 += contentSummary.getDirectoryCount();
+        fcount1 += contentSummary.getFileCount();
+        contentSummary = fs.getContentSummary(new Path(dir, tableId));
+        length2 += contentSummary.getLength();
+        dcount2 += contentSummary.getDirectoryCount();
+        fcount2 += contentSummary.getFileCount();
+      }
       
-      Path tableDir = new Path(ServerConstants.getTablesDir() + "/" + tableId);
-      ContentSummary contentSummary2 = fs.getContentSummary(tableDir);
-      
-      return "" + contentSummary.getLength() + " " + contentSummary.getDirectoryCount() + " " + contentSummary.getFileCount() + " "
-          + contentSummary2.getLength() + " " + contentSummary2.getDirectoryCount() + " " + contentSummary2.getFileCount();
+      return "" + length1 + " " + dcount1 + " " + fcount1 + " " + length2 + " " + dcount2 + " " + fcount2;
     }
     
     private String getACUStats() throws Exception {
@@ -126,7 +134,7 @@ public class ContinuousStatsCollector {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(opts.getInstance());
-        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(opts.getInstance()));
         
         TableInfo all = new TableInfo();
         Map<String,TableInfo> tableSummaries = new HashMap<String,TableInfo>();
@@ -138,8 +146,8 @@ public class ContinuousStatsCollector {
               tableSummary = new TableInfo();
               tableSummaries.put(info.getKey(), tableSummary);
             }
-            Monitor.add(tableSummary, info.getValue());
-            Monitor.add(all, info.getValue());
+            TableInfoUtil.add(tableSummary, info.getValue());
+            TableInfoUtil.add(all, info.getValue());
           }
         }
         
@@ -169,8 +177,7 @@ public class ContinuousStatsCollector {
     
   }
   
-  static class Opts extends ClientOnRequiredTable {
-  }
+  static class Opts extends ClientOnRequiredTable {}
   
   public static void main(String[] args) {
     Opts opts = new Opts();

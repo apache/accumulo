@@ -20,10 +20,20 @@ import static com.google.common.base.Charsets.UTF_8;
 
 import java.text.ParseException;
 
+/**
+ * An exception thrown when a visibility string cannot be parsed.
+ */
 public class VisibilityParseException extends ParseException {
   private static final long serialVersionUID = 1L;
   private String visibility;
-  
+
+  /**
+   * Creates a new exception.
+   *
+   * @param reason reason string
+   * @param visibility visibility that could not be parsed
+   * @param errorOffset offset into visibility where parsing failed
+   */
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);
     this.visibility = new String(visibility, UTF_8);

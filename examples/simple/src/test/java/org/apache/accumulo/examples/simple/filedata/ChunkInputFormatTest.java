@@ -16,13 +16,16 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -34,26 +37,33 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-public class ChunkInputFormatTest extends TestCase {
+public class ChunkInputFormatTest {
+
   private static AssertionError e0 = null;
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
   private static IOException e3 = null;
-  
+
   private static final Authorizations AUTHS = new Authorizations("A", "B", "C", "D");
-  
+
   private static List<Entry<Key,Value>> data;
   private static List<Entry<Key,Value>> baddata;
-  
-  {
+
+  @BeforeClass
+  public static void setupClass() {
+    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
+
     data = new ArrayList<Entry<Key,Value>>();
     ChunkInputStreamTest.addData(data, "a", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamTest.addData(data, "a", "refs", "ida\0name", "A&B", "name");
@@ -70,16 +80,16 @@ public class ChunkInputFormatTest extends TestCase {
     ChunkInputStreamTest.addData(baddata, "c", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamTest.addData(baddata, "c", "refs", "ida\0name", "A&B", "name");
   }
-  
+
   public static void entryEquals(Entry<Key,Value> e1, Entry<Key,Value> e2) {
     assertEquals(e1.getKey(), e2.getKey());
     assertEquals(e1.getValue(), e2.getValue());
   }
-  
+
   public static class CIFTester extends Configured implements Tool {
     public static class TestMapper extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       int count = 0;
-      
+
       @Override
       protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
         byte[] b = new byte[20];
@@ -112,7 +122,7 @@ public class ChunkInputFormatTest extends TestCase {
         }
         count++;
       }
-      
+
       @Override
       protected void cleanup(Context context) throws IOException, InterruptedException {
         try {
@@ -122,10 +132,10 @@ public class ChunkInputFormatTest extends TestCase {
         }
       }
     }
-    
+
     public static class TestNoClose extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       int count = 0;
-      
+
       @Override
       protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
         byte[] b = new byte[5];
@@ -151,7 +161,7 @@ public class ChunkInputFormatTest extends TestCase {
         }
       }
     }
-    
+
     public static class TestBadData extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       @Override
       protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
@@ -181,53 +191,55 @@ public class ChunkInputFormatTest extends TestCase {
         } catch (Exception e) {}
       }
     }
-    
+
     @Override
     public int run(String[] args) throws Exception {
       if (args.length != 5) {
         throw new IllegalArgumentException("Usage : " + CIFTester.class.getName() + " <instance name> <user> <pass> <table> <mapperClass>");
       }
-      
+
       String instance = args[0];
       String user = args[1];
       String pass = args[2];
       String table = args[3];
-      
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+
+      Job job = JobUtil.getJob(getConf());
+      job.setJobName(this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
-      
+
       job.setInputFormatClass(ChunkInputFormat.class);
-      
+
       ChunkInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       ChunkInputFormat.setInputTableName(job, table);
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
       ChunkInputFormat.setMockInstance(job, instance);
-      
+
       @SuppressWarnings("unchecked")
       Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[4]);
       job.setMapperClass(forName);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormatClass(NullOutputFormat.class);
-      
+
       job.setNumReduceTasks(0);
-      
+
       job.waitForCompletion(true);
-      
+
       return job.isSuccessful() ? 0 : 1;
     }
-    
-    public static int main(String[] args) throws Exception {
-      return ToolRunner.run(CachedConfiguration.getInstance(), new CIFTester(), args);
+
+    public static int main(String... args) throws Exception {
+      return ToolRunner.run(new Configuration(), new CIFTester(), args);
     }
   }
-  
+
+  @Test
   public void test() throws Exception {
     MockInstance instance = new MockInstance("instance1");
     Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
-    
+
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
@@ -235,18 +247,19 @@ public class ChunkInputFormatTest extends TestCase {
       bw.addMutation(m);
     }
     bw.close();
-    
-    assertEquals(0, CIFTester.main(new String[] {"instance1", "root", "", "test", CIFTester.TestMapper.class.getName()}));
+
+    assertEquals(0, CIFTester.main("instance1", "root", "", "test", CIFTester.TestMapper.class.getName()));
     assertNull(e1);
     assertNull(e2);
   }
-  
+
+  @Test
   public void testErrorOnNextWithoutClose() throws Exception {
     MockInstance instance = new MockInstance("instance2");
     Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
-    
+
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
@@ -254,13 +267,14 @@ public class ChunkInputFormatTest extends TestCase {
       bw.addMutation(m);
     }
     bw.close();
-    
-    assertEquals(1, CIFTester.main(new String[] {"instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()}));
+
+    assertEquals(1, CIFTester.main("instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()));
     assertNull(e1);
     assertNull(e2);
     assertNotNull(e3);
   }
-  
+
+  @Test
   public void testInfoWithoutChunks() throws Exception {
     MockInstance instance = new MockInstance("instance3");
     Connector conn = instance.getConnector("root", new PasswordToken(""));
@@ -273,8 +287,8 @@ public class ChunkInputFormatTest extends TestCase {
       bw.addMutation(m);
     }
     bw.close();
-    
-    assertEquals(0, CIFTester.main(new String[] {"instance3", "root", "", "test", CIFTester.TestBadData.class.getName()}));
+
+    assertEquals(0, CIFTester.main("instance3", "root", "", "test", CIFTester.TestBadData.class.getName()));
     assertNull(e0);
     assertNull(e1);
     assertNull(e2);

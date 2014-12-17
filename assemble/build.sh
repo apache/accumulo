@@ -45,36 +45,20 @@ cacheGPG() {
   touch "${TESTFILE}" && gpg --sign "${TESTFILE}" && rm -f "${TESTFILE}" "${TESTFILE}.gpg"
 }
 
-setupRPM() {
-  # if you want the RPM signed, copy contrib/dotfile-rpmmacros to $HOME/.rpmmacros
-  diff -q "contrib/dotfile-rpmmacros" "$HOME/.rpmmacros"
-  R=$?
-  if [[ $R = 0 ]]; then
-    true
-  elif [[ $R = 1 ]]; then
-    run mv -n "$HOME/.rpmmacros" "$HOME/.rpmmacros-bak-$(date -u +%s)"
-    run cp "contrib/dotfile-rpmmacros" "$HOME/.rpmmacros"
-  elif [[ ! -r "$HOME/.rpmmacros" ]]; then
-    run cp "contrib/dotfile-rpmmacros" "$HOME/.rpmmacros"
-  else
-    fail diff returned $R
-  fi
-}
-
 if [[ $1 = '--create-release-candidate' ]]; then
-  cacheGPG; setupRPM
+  cacheGPG
   # create a release candidate from a branch
   run mvn clean release:clean release:prepare release:perform
 elif [[ $1 = '--seal-jars' ]]; then
-  cacheGPG; setupRPM
+  cacheGPG
   # build a tag, but with sealed jars
-  run mvn clean compile javadoc:aggregate install \
-   -P apache-release,seal-jars,check-licenses,thrift,native,assemble,docs,rpm,deb
+  run mvn clean install \
+   -P apache-release,seal-jars,thrift,assemble,docs
 elif [[ $1 = '--test' ]]; then
-  cacheGPG; setupRPM
+  cacheGPG
   # build a tag, but with tests
-  run mvn clean compile javadoc:aggregate install \
-   -P apache-release,check-licenses,thrift,native,assemble,docs,rpm,deb
+  run mvn clean install \
+   -P apache-release,thrift,assemble,docs
 else
   fail "Missing one of: --create-release-candidate, --test, --seal-jars"
 fi

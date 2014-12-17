@@ -18,13 +18,14 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.master.state.SetGoalState;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -32,26 +33,28 @@ import org.apache.accumulo.trace.instrument.Tracer;
 public class Shutdown extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception  {
-    log.debug("shutting down");
-    SetGoalState.main(new String[]{MasterGoalState.CLEAN_STOP.name()});
+  public void visit(State state, Properties props) throws Exception {
+    log.info("shutting down");
+    SetGoalState.main(new String[] {MasterGoalState.CLEAN_STOP.name()});
     
     while (!state.getConnector().instanceOperations().getTabletServers().isEmpty()) {
       UtilWaitThread.sleep(1000);
     }
     
     while (true) {
-        try {
-          Client client = MasterClient.getConnection(HdfsZooInstance.getInstance());
-          client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
-        } catch (Exception e) {
-          // assume this is due to server shutdown
-          break;
-        }
-        UtilWaitThread.sleep(1000);
+      try {
+        Instance instance = HdfsZooInstance.getInstance();
+        Client client = MasterClient.getConnection(instance);
+        client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
+      } catch (Exception e) {
+        // assume this is due to server shutdown
+        break;
+      }
+      UtilWaitThread.sleep(1000);
     }
-
-    log.debug("tablet servers stopped");
+    
+    log.info("servers stopped");
+    UtilWaitThread.sleep(10000);
   }
   
 }

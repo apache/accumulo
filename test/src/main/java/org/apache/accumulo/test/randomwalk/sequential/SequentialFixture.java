@@ -65,7 +65,7 @@ public class SequentialFixture extends Fixture {
       } catch (MutationsRejectedException e) {
         log.error("Ignoring mutations that weren't flushed", e);
       }
-
+      
       // Reset the MTBW on the state to null
       state.resetMultiTableBatchWriter();
     }

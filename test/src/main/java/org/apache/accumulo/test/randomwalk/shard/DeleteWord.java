@@ -21,7 +21,6 @@ import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -50,7 +50,7 @@ public class DeleteWord extends Test {
     String wordToDelete = Insert.generateRandomWord(rand);
     
     // use index to find all documents containing word
-    Scanner scanner = state.getConnector().createScanner(indexTableName, Constants.NO_AUTHS);
+    Scanner scanner = state.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text(wordToDelete));
     
     ArrayList<Range> documentsToDelete = new ArrayList<Range>();
@@ -60,7 +60,7 @@ public class DeleteWord extends Test {
     
     if (documentsToDelete.size() > 0) {
       // use a batch scanner to fetch all documents
-      BatchScanner bscanner = state.getConnector().createBatchScanner(docTableName, Constants.NO_AUTHS, 8);
+      BatchScanner bscanner = state.getConnector().createBatchScanner(docTableName, Authorizations.EMPTY, 8);
       bscanner.setRanges(documentsToDelete);
       
       BatchWriter ibw = state.getMultiTableBatchWriter().getBatchWriter(indexTableName);

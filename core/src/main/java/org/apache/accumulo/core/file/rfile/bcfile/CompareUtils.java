@@ -53,7 +53,7 @@ class CompareUtils {
   /**
    * Interface for all objects that has a single integer magnitude.
    */
-  static interface Scalar {
+  interface Scalar {
     long magnitude();
   }
   

@@ -28,45 +28,42 @@ import javax.security.auth.DestroyFailedException;
  * @since 1.5.0
  */
 public class NullToken implements AuthenticationToken {
-
+  
   @Override
   public void readFields(DataInput arg0) throws IOException {
-    return;
   }
-
+  
   @Override
   public void write(DataOutput arg0) throws IOException {
-    return;
   }
-
+  
   @Override
   public void destroy() throws DestroyFailedException {
-    return;
   }
-
+  
   @Override
   public boolean isDestroyed() {
     return false;
   }
-
+  
   @Override
   public NullToken clone() {
     return new NullToken();
   }
-
+  
   @Override
   public boolean equals(Object obj) {
     return obj instanceof NullToken;
   }
-
+  
   @Override
   public void init(Properties properties) {}
-
+  
   @Override
   public Set<TokenProperty> getProperties() {
     return Collections.emptySet();
   }
-
+  
   @Override
   public int hashCode() {
     return 0;

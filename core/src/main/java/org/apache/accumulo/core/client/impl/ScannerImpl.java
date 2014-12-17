@@ -27,18 +27,16 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
  * provides scanner functionality
  * 
- * "Clients can iterate over multiple column families, and there are several 
- * mechanisms for limiting the rows, columns, and timestamps traversed by a 
- * scan. For example, we could restrict [a] scan ... to only produce anchors 
- * whose columns match [a] regular expression ..., or to only produce 
- * anchors whose timestamps fall within ten days of the current time."
+ * "Clients can iterate over multiple column families, and there are several mechanisms for limiting the rows, columns, and timestamps traversed by a scan. For
+ * example, we could restrict [a] scan ... to only produce anchors whose columns match [a] regular expression ..., or to only produce anchors whose timestamps
+ * fall within ten days of the current time."
  * 
  */
 public class ScannerImpl extends ScannerOptions implements Scanner {
@@ -49,7 +47,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and just query for the next highest row from the tablet server
   
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   private Authorizations authorizations;
   private Text table;
   
@@ -57,8 +55,9 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   
   private Range range;
   private boolean isolated = false;
+  private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   
-  public ScannerImpl(Instance instance, TCredentials credentials, String table, Authorizations authorizations) {
+  public ScannerImpl(Instance instance, Credentials credentials, String table, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
     this.credentials = credentials;
@@ -99,7 +98,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
    */
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated);
+    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
   
   @Override
@@ -128,5 +127,19 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     if (timeout >= Integer.MAX_VALUE)
       return Integer.MAX_VALUE;
     return (int) timeout;
+  }
+  
+  @Override
+  public synchronized void setReadaheadThreshold(long batches) {
+    if (0 > batches) {
+      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+    }
+    
+    readaheadThreshold = batches;
+  }
+  
+  @Override
+  public synchronized long getReadaheadThreshold() {
+    return readaheadThreshold;
   }
 }

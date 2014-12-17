@@ -115,11 +115,11 @@ public class ImageFixture extends Fixture {
       } catch (MutationsRejectedException e) {
         log.error("Ignoring mutations that weren't flushed", e);
       }
-
+      
       // Reset the MTBW on the state to null
       state.resetMultiTableBatchWriter();
     }
-
+    
     // Now we can safely delete the tables
     log.debug("Dropping tables: " + imageTableName + " " + indexTableName);
     

@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -124,12 +124,12 @@ public class RegExTest {
   
   private void runTest(Range range, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
     
-    Scanner s = conn.createScanner("ret", Constants.NO_AUTHS);
+    Scanner s = conn.createScanner("ret", Authorizations.EMPTY);
     s.setRange(range);
     setRegexs(s, rowRegEx, cfRegEx, cqRegEx, valRegEx);
     runTest(s, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
     
-    BatchScanner bs = conn.createBatchScanner("ret", Constants.NO_AUTHS, 1);
+    BatchScanner bs = conn.createBatchScanner("ret", Authorizations.EMPTY, 1);
     bs.setRanges(Collections.singletonList(range));
     setRegexs(bs, rowRegEx, cfRegEx, cqRegEx, valRegEx);
     runTest(bs, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);

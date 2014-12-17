@@ -43,15 +43,6 @@ public class ColumnUpdate {
     this.val = val;
   }
   
-  /**
-   * @deprecated use setTimestamp(long);
-   */
-  @Deprecated
-  public void setSystemTimestamp(long timestamp) {
-    if (hasTimestamp)
-      throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
-  }
-  
   public boolean hasTimestamp() {
     return hasTimestamp;
   }

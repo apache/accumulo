@@ -16,29 +16,13 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.net.InetSocketAddress;
 import java.util.EnumMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
+import com.google.common.net.HostAndPort;
 
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {
-    TSERV_CLIENT, MASTER_CLIENT, GC_CLIENT;
-    
-    // not necessary: everything should be advertizing ports in zookeeper
-    int getDefaultPort() {
-      switch (this) {
-        case TSERV_CLIENT:
-          return AccumuloConfiguration.getDefaultConfiguration().getPort(Property.TSERV_CLIENTPORT);
-        case MASTER_CLIENT:
-          return AccumuloConfiguration.getDefaultConfiguration().getPort(Property.MASTER_CLIENTPORT);
-        case GC_CLIENT:
-          return AccumuloConfiguration.getDefaultConfiguration().getPort(Property.GC_PORT);
-        default:
-          throw new IllegalArgumentException();
-      }
-    }
+    TSERV_CLIENT, GC_CLIENT;
   }
   
   public static final String SERVICE_SEPARATOR = ";";
@@ -65,23 +49,17 @@ public class ServerServices implements Comparable<ServerServices> {
     return services.get(service);
   }
   
-  public InetSocketAddress getAddress(Service service) {
-    String address = getAddressString(service);
-    String[] parts = address.split(":", 2);
-    if (parts.length == 2) {
-      if (parts[1].isEmpty())
-        return new InetSocketAddress(parts[0], service.getDefaultPort());
-      return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
-    }
-    return new InetSocketAddress(address, service.getDefaultPort());
+  public HostAndPort getAddress(Service service) {
+    return AddressUtil.parseAddress(getAddressString(service), false);
   }
   
   // DON'T CHANGE THIS; WE'RE USING IT FOR SERIALIZATION!!!
+  @Override
   public String toString() {
     if (stringForm == null) {
       StringBuilder sb = new StringBuilder();
       String prefix = "";
-      for (Service service : new Service[] {Service.MASTER_CLIENT, Service.TSERV_CLIENT, Service.GC_CLIENT}) {
+      for (Service service : new Service[] {Service.TSERV_CLIENT, Service.GC_CLIENT}) {
         if (services.containsKey(service)) {
           sb.append(prefix).append(service.name()).append(SEPARATOR_CHAR).append(services.get(service));
           prefix = SERVICE_SEPARATOR;

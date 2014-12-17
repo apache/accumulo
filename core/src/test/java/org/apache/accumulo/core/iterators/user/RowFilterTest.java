@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -67,7 +67,7 @@ public class RowFilterTest {
       if (rowIterator.hasTop()) {
         firstKey = new Key(rowIterator.getTopKey());
       }
-
+      
       while (rowIterator.hasTop()) {
         sum += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -198,8 +198,8 @@ public class RowFilterTest {
     }
     IteratorSetting is = new IteratorSetting(40, SummingRowFilter.class);
     conn.tableOperations().attachIterator("table1", is);
-
-    Scanner scanner = conn.createScanner("table1", Constants.NO_AUTHS);
+    
+    Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
     assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
 
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
@@ -226,7 +226,7 @@ public class RowFilterTest {
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
     scanner.fetchColumn(new Text("cf1"), new Text("cq4"));
     assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(scanner));
-
+    
   }
 
   @Test
@@ -241,7 +241,7 @@ public class RowFilterTest {
     }
     conn.tableOperations().attachIterator("chained_row_filters", new IteratorSetting(40, "trueFilter1", TrueFilter.class));
     conn.tableOperations().attachIterator("chained_row_filters", new IteratorSetting(41, "trueFilter2", TrueFilter.class));
-    Scanner scanner = conn.createScanner("chained_row_filters", Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner("chained_row_filters", Authorizations.EMPTY);
     assertEquals(new HashSet<String>(Arrays.asList("0", "1", "2", "3", "4")), getRows(scanner));
   }
 
@@ -257,7 +257,7 @@ public class RowFilterTest {
     }
     conn.tableOperations().attachIterator("filter_conjunction", new IteratorSetting(40, "rowZeroOrOne", RowZeroOrOneFilter.class));
     conn.tableOperations().attachIterator("filter_conjunction", new IteratorSetting(41, "rowOneOrTwo", RowOneOrTwoFilter.class));
-    Scanner scanner = conn.createScanner("filter_conjunction", Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner("filter_conjunction", Authorizations.EMPTY);
     assertEquals(new HashSet<String>(Arrays.asList("1")), getRows(scanner));
   }
 

@@ -16,34 +16,31 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.security.SecurityPermission;
+import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.BadVersionException;
-import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
-  
+  private static final Logger log = Logger.getLogger(ZooReaderWriter.class);
+
   private static SecurityPermission ZOOWRITER_PERMISSION = new SecurityPermission("zookeeperWriterPermission");
-  
+
   private static ZooReaderWriter instance = null;
-  private static IZooReaderWriter retryingInstance = null;
   private final String scheme;
   private final byte[] auth;
-  
+  private final ZooKeeperConnectionInfo info;
+
   @Override
   public ZooKeeper getZooKeeper() {
     SecurityManager sm = System.getSecurityManager();
@@ -52,146 +49,160 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     }
     return getSession(keepers, timeout, scheme, auth);
   }
-  
+
   public ZooReaderWriter(String string, int timeInMillis, String scheme, byte[] auth) {
     super(string, timeInMillis);
     this.scheme = scheme;
-    this.auth = auth;
+    this.auth = Arrays.copyOf(auth, auth.length);
+    this.info = new ZooKeeperConnectionInfo(string, timeInMillis, scheme, this.auth);
   }
-  
+
   @Override
   public void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.recursiveDelete(getZooKeeper(), zPath, policy);
+    ZooUtil.recursiveDelete(info, zPath, policy);
   }
-  
+
   /**
    * Create a persistent node with the default ACL
-   * 
+   *
    * @return true if the node was created or altered; false if it was skipped
    */
   @Override
   public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    return ZooUtil.putPersistentData(getZooKeeper(), zPath, data, policy);
+    return ZooUtil.putPersistentData(info, zPath, data, policy);
   }
-  
+
+  @Override
+  public boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls) throws KeeperException,
+      InterruptedException {
+    return ZooUtil.putPersistentData(info, zPath, data, version, policy, acls);
+  }
+
   @Override
   public boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    return ZooUtil.putPrivatePersistentData(getZooKeeper(), zPath, data, policy);
+    return ZooUtil.putPrivatePersistentData(info, zPath, data, policy);
   }
-  
+
   @Override
   public void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.putPersistentData(getZooKeeper(), zPath, data, version, policy);
+    ZooUtil.putPersistentData(info, zPath, data, version, policy);
   }
-  
+
   @Override
   public String putPersistentSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return ZooUtil.putPersistentSequential(getZooKeeper(), zPath, data);
+    return ZooUtil.putPersistentSequential(info, zPath, data);
   }
-  
+
   @Override
   public String putEphemeralData(String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return ZooUtil.putEphemeralData(getZooKeeper(), zPath, data);
+    return ZooUtil.putEphemeralData(info, zPath, data);
   }
-  
+
   @Override
   public String putEphemeralSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return ZooUtil.putEphemeralSequential(getZooKeeper(), zPath, data);
+    return ZooUtil.putEphemeralSequential(info, zPath, data);
   }
-  
+
   @Override
   public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.recursiveCopyPersistent(getZooKeeper(), source, destination, policy);
+    ZooUtil.recursiveCopyPersistent(info, source, destination, policy);
   }
-  
+
   @Override
   public void delete(String path, int version) throws InterruptedException, KeeperException {
-    getZooKeeper().delete(path, version);
+    final Retry retry = getRetryFactory().create();
+    while (true) {
+      try {
+        getZooKeeper().delete(path, version);
+        return;
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.NONODE) {
+          if (retry.hasRetried()) {
+            // A retried delete could have deleted the node, assume that was the case
+            log.debug("Delete saw no node on a retry. Assuming node was deleted");
+            return;
+          }
+
+          throw e;
+        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          // retry if we have more attempts to do so
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
-  
-  public interface Mutator {
-    byte[] mutate(byte[] currentValue) throws Exception;
-  }
-  
+
   @Override
   public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator) throws Exception {
     if (createValue != null) {
-      try {
-        getZooKeeper().create(zPath, createValue, acl, CreateMode.PERSISTENT);
-        return createValue;
-      } catch (NodeExistsException ex) {
-        // expected
+      while (true) {
+        final Retry retry = getRetryFactory().create();
+        try {
+          getZooKeeper().create(zPath, createValue, acl, CreateMode.PERSISTENT);
+          return createValue;
+        } catch (KeeperException ex) {
+          final Code code = ex.code();
+          if (code == Code.NODEEXISTS) {
+            // expected
+            break;
+          } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS || code == Code.SESSIONEXPIRED) {
+            retryOrThrow(retry, ex);
+          } else {
+            throw ex;
+          }
+        }
+
+        retry.waitForNextAttempt();
       }
     }
     do {
+      final Retry retry = getRetryFactory().create();
       Stat stat = new Stat();
-      byte[] data = getZooKeeper().getData(zPath, false, stat);
+      byte[] data = getData(zPath, false, stat);
       data = mutator.mutate(data);
       if (data == null)
         return data;
       try {
         getZooKeeper().setData(zPath, data, stat.getVersion());
         return data;
-      } catch (BadVersionException ex) {
-        //
+      } catch (KeeperException ex) {
+        final Code code = ex.code();
+        if (code == Code.BADVERSION) {
+          // Retry, but don't increment. This makes it backwards compatible with the infinite
+          // loop that previously happened. I'm not sure if that's really desirable though.
+        } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS || code == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, ex);
+          retry.waitForNextAttempt();
+        } else {
+          throw ex;
+        }
       }
     } while (true);
   }
-  
+
   public static synchronized ZooReaderWriter getInstance(String zookeepers, int timeInMillis, String scheme, byte[] auth) {
     if (instance == null)
       instance = new ZooReaderWriter(zookeepers, timeInMillis, scheme, auth);
     return instance;
   }
-  
-  /**
-   * get an instance that retries when zookeeper connection errors occur
-   * 
-   * @return an instance that retries when Zookeeper connection errors occur.
-   */
-  public static synchronized IZooReaderWriter getRetryingInstance(String zookeepers, int timeInMillis, String scheme, byte[] auth) {
-    
-    if (retryingInstance == null) {
-      final IZooReaderWriter inst = getInstance(zookeepers, timeInMillis, scheme, auth);
-      
-      InvocationHandler ih = new InvocationHandler() {
-        @Override
-        public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
-          long retryTime = 250;
-          while (true) {
-            try {
-              return method.invoke(inst, args);
-            } catch (InvocationTargetException e) {
-              if (e.getCause() instanceof KeeperException.ConnectionLossException) {
-                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in " + String.format("%.2f secs", retryTime / 1000.0), e.getCause());
-                UtilWaitThread.sleep(retryTime);
-                retryTime = Math.min(5000, retryTime + 250);
-              } else {
-                throw e.getCause();
-              }
-            }
-          }
-        }
-      };
-      
-      retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(ZooReaderWriter.class.getClassLoader(), new Class[] {IZooReaderWriter.class}, ih);
-    }
-    
-    return retryingInstance;
-  }
-  
+
   @Override
   public boolean isLockHeld(ZooUtil.LockID lockID) throws KeeperException, InterruptedException {
-    return ZooUtil.isLockHeld(getZooKeeper(), lockID);
+    return ZooUtil.isLockHeld(info, lockID);
   }
-  
+
   @Override
   public void mkdirs(String path) throws KeeperException, InterruptedException {
     if (path.equals(""))
       return;
     if (!path.startsWith("/"))
       throw new IllegalArgumentException(path + "does not start with /");
-    if (getZooKeeper().exists(path, false) != null)
+    if (exists(path))
       return;
     String parent = path.substring(0, path.lastIndexOf("/"));
     mkdirs(parent);

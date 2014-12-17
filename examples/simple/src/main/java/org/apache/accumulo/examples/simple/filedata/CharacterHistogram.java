@@ -29,7 +29,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.SummingArrayCombiner;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -45,14 +46,15 @@ import com.beust.jcommander.Parameter;
  */
 public class CharacterHistogram extends Configured implements Tool {
   public static final String VIS = "vis";
-  
+
   public static void main(String[] args) throws Exception {
-    System.exit(ToolRunner.run(CachedConfiguration.getInstance(), new CharacterHistogram(), args));
+    System.exit(ToolRunner.run(new Configuration(), new CharacterHistogram(), args));
   }
-  
+
   public static class HistMapper extends Mapper<List<Entry<Key,Value>>,InputStream,Text,Mutation> {
     private ColumnVisibility cv;
-    
+
+    @Override
     public void map(List<Entry<Key,Value>> k, InputStream v, Context context) throws IOException, InterruptedException {
       Long[] hist = new Long[256];
       for (int i = 0; i < hist.length; i++)
@@ -67,22 +69,22 @@ public class CharacterHistogram extends Configured implements Tool {
       m.put("info", "hist", cv, new Value(SummingArrayCombiner.STRING_ARRAY_ENCODER.encode(Arrays.asList(hist))));
       context.write(new Text(), m);
     }
-    
+
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
       cv = new ColumnVisibility(context.getConfiguration().get(VIS, ""));
     }
   }
-  
+
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names="--vis")
+    @Parameter(names = "--vis")
     String visibilities = "";
   }
-  
-  
+
   @Override
   public int run(String[] args) throws Exception {
-    Job job = new Job(getConf(), this.getClass().getSimpleName());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
 
     Opts opts = new Opts();
@@ -91,15 +93,15 @@ public class CharacterHistogram extends Configured implements Tool {
     job.setInputFormatClass(ChunkInputFormat.class);
     opts.setAccumuloConfigs(job);
     job.getConfiguration().set(VIS, opts.visibilities.toString());
-    
+
     job.setMapperClass(HistMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }

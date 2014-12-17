@@ -69,30 +69,6 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
     m.putDelete(colf, colq);
   }
   
-  /**
-   * @deprecated since 1.5, use {@link #fetch(ScannerBase)} instead
-   */
-  @Deprecated
-  public static void fetch(ScannerBase sb, ColumnFQ cfq) {
-    sb.fetchColumn(cfq.colf, cfq.colq);
-  }
-  
-  /**
-   * @deprecated since 1.5, use {@link #put(Mutation, Value)} instead
-   */
-  @Deprecated
-  public static void put(Mutation m, ColumnFQ cfq, Value v) {
-    m.put(cfq.colf, cfq.colq, v);
-  }
-  
-  /**
-   * @deprecated since 1.5, use {@link #putDelete(Mutation)} instead
-   */
-  @Deprecated
-  public static void putDelete(Mutation m, ColumnFQ cfq) {
-    m.putDelete(cfq.colf, cfq.colq);
-  }
-
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ColumnFQ))

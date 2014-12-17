@@ -28,11 +28,11 @@ import java.io.IOException;
 
 public interface BlockFileWriter {
   
-  public ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException;
+  ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException;
   
-  public ABlockWriter prepareMetaBlock(String name) throws IOException;
+  ABlockWriter prepareMetaBlock(String name) throws IOException;
   
-  public ABlockWriter prepareDataBlock() throws IOException;
+  ABlockWriter prepareDataBlock() throws IOException;
   
-  public void close() throws IOException;
+  void close() throws IOException;
 }

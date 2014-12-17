@@ -93,7 +93,7 @@ public class ZooSpanClient extends SendSpansViaThrift {
       super.sendSpans();
     }
   }
-
+  
   synchronized private void updateHosts(String path, List<String> children) {
     log.debug("Scanning trace hosts in zookeeper: " + path);
     try {

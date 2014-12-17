@@ -27,6 +27,7 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
+import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -97,16 +98,18 @@ public class Proxy {
       final File folder = Files.createTempDir();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
-      opts.prop.setProperty("instance", accumulo.getInstanceName());
+      opts.prop.setProperty("instance", accumulo.getConfig().getInstanceName());
       opts.prop.setProperty("zookeepers", accumulo.getZooKeepers());
       Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
         public void start() {
           try {
             accumulo.stop();
           } catch (Exception e) {
             throw new RuntimeException();
           } finally {
-            folder.delete();
+            if (!folder.delete())
+              log.warn("Unexpected error removing " + folder);
           }
         }
       });
@@ -132,7 +135,7 @@ public class Proxy {
     @SuppressWarnings("unchecked")
     Constructor<? extends TProcessor> proxyProcConstructor = (Constructor<? extends TProcessor>) proxyProcClass.getConstructor(proxyIfaceClass);
     
-    final TProcessor processor = proxyProcConstructor.newInstance(impl);
+    final TProcessor processor = proxyProcConstructor.newInstance(RpcWrapper.service(impl));
     
     THsHaServer.Args args = new THsHaServer.Args(socket);
     args.processor(processor);

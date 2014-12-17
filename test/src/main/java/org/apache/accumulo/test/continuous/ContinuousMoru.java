@@ -132,7 +132,8 @@ public class ContinuousMoru extends Configured implements Tool {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(ContinuousMoru.class.getName(), args, bwOpts);
-    
+
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     

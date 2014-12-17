@@ -73,7 +73,7 @@ public class ListShellIterCommand extends Command {
       sb.append("-\n");
     }
 
-    shellState.getReader().printString(sb.toString());
+    shellState.getReader().print(sb.toString());
 
     return 0;
   }

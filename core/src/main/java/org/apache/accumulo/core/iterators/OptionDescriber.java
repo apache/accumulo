@@ -31,7 +31,7 @@ import java.util.Map;
  * 
  */
 public interface OptionDescriber {
-  public static class IteratorOptions {
+  public class IteratorOptions {
     public LinkedHashMap<String,String> namedOptions;
     public ArrayList<String> unnamedOptionDescriptions;
     public String name;
@@ -51,7 +51,7 @@ public interface OptionDescriber {
      *          is a list of descriptions of additional options that don't have fixed names (null if unused). The descriptions are intended to describe a
      *          category, and the user will provide parameter names and values in that category; e.g., the FilteringIterator needs a list of Filters intended to
      *          be named by their priority numbers, so its unnamedOptionDescriptions =
-     *          Collections.singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")
+     *          Collections.singletonList("&lt;filterPriorityNumber&gt; &lt;ageoff|regex|filterClass&gt;")
      */
     public IteratorOptions(String name, String description, Map<String,String> namedOptions, List<String> unnamedOptionDescriptions) {
       this.name = name;
@@ -115,7 +115,7 @@ public interface OptionDescriber {
    * 
    * @return an iterator options object
    */
-  public IteratorOptions describeOptions();
+  IteratorOptions describeOptions();
   
   /**
    * Check to see if an options map contains all options required by an iterator and that the option values are in the expected formats.
@@ -126,5 +126,5 @@ public interface OptionDescriber {
    * @exception IllegalArgumentException
    *              if there are problems with the options
    */
-  public boolean validateOptions(Map<String,String> options);
+  boolean validateOptions(Map<String,String> options);
 }

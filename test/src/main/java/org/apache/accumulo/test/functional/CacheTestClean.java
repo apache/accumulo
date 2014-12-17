@@ -17,11 +17,11 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.File;
-import java.util.Arrays;
 
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.commons.io.FileUtils;
 
 public class CacheTestClean {
   
@@ -35,14 +35,9 @@ public class CacheTestClean {
       zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
     }
     
-    if (!reportDir.exists()) {
-      reportDir.mkdir();
-    } else {
-      File[] files = reportDir.listFiles();
-      if (files.length != 0)
-        throw new Exception("dir " + reportDir + " is not empty: " + Arrays.asList(files));
+    if (reportDir.exists()) {
+      FileUtils.deleteDirectory(reportDir);
     }
-    
+    reportDir.mkdirs();
   }
-  
 }

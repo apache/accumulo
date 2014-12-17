@@ -39,7 +39,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @throws IllegalArgumentException
    *           if the setting conflicts with existing iterators
    */
-  public void addScanIterator(IteratorSetting cfg);
+  void addScanIterator(IteratorSetting cfg);
   
   /**
    * Remove an iterator from the list of iterators.
@@ -47,7 +47,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param iteratorName
    *          nickname used for the iterator
    */
-  public void removeScanIterator(String iteratorName);
+  void removeScanIterator(String iteratorName);
   
   /**
    * Update the options for an iterator. Note that this does <b>not</b> change the iterator options during a scan, it just replaces the given option on a
@@ -60,7 +60,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param value
    *          the new value for the named option
    */
-  public void updateScanIteratorOption(String iteratorName, String key, String value);
+  void updateScanIteratorOption(String iteratorName, String key, String value);
   
   /**
    * Adds a column family to the list of columns that will be fetched by this scanner. By default when no columns have been added the scanner fetches all
@@ -69,7 +69,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param col
    *          the column family to be fetched
    */
-  public void fetchColumnFamily(Text col);
+  void fetchColumnFamily(Text col);
   
   /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is identified by family and qualifier. By default when no columns
@@ -80,17 +80,17 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param colQual
    *          the column qualifier of the column to be fetched
    */
-  public void fetchColumn(Text colFam, Text colQual);
+  void fetchColumn(Text colFam, Text colQual);
   
   /**
    * Clears the columns to be fetched (useful for resetting the scanner for reuse). Once cleared, the scanner will fetch all columns.
    */
-  public void clearColumns();
+  void clearColumns();
   
   /**
    * Clears scan iterators prior to returning a scanner to the pool.
    */
-  public void clearScanIterators();
+  void clearScanIterators();
   
   /**
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime, so setting options will have no effect
@@ -100,8 +100,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * 
    * @return an iterator over Key,Value pairs which meet the restrictions set on the scanner
    */
-  @Override
-  public Iterator<Entry<Key,Value>> iterator();
+  Iterator<Entry<Key,Value>> iterator();
   
   /**
    * This setting determines how long a scanner will automatically retry when a failure occurs. By default a scanner will retry forever.
@@ -112,7 +111,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          determines how timeout is interpreted
    * @since 1.5.0
    */
-  public void setTimeout(long timeOut, TimeUnit timeUnit);
+  void setTimeout(long timeOut, TimeUnit timeUnit);
   
   /**
    * Returns the setting for how long a scanner will automatically retry when a failure occurs.
@@ -120,11 +119,11 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @return the timeout configured for this scanner
    * @since 1.5.0
    */
-  public long getTimeout(TimeUnit timeUnit);
+  long getTimeout(TimeUnit timeUnit);
 
   /**
    * Closes any underlying connections on the scanner
    * @since 1.5.0
    */
-  public void close();
+  void close();
 }

@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.test;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 
+import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileSystemException;
@@ -36,62 +35,45 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+@SuppressWarnings("deprecation")
 public class AccumuloDFSBase {
-  
+
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
-  
+ 
   private static URI HDFS_URI;
-  
+
   protected static URI getHdfsUri() {
     return HDFS_URI;
   }
-  
+
   @BeforeClass
   public static void miniDfsClusterSetup() {
+    System.setProperty("java.io.tmpdir", System.getProperty("user.dir") + "/target");
     // System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
     // Logger.getRootLogger().setLevel(Level.ERROR);
     
     // Put the MiniDFSCluster directory in the target directory
     System.setProperty("test.build.data", "target/build/test/data");
-    
+
     // Setup HDFS
     conf = new Configuration();
     conf.set("hadoop.security.token.service.use_ip", "true");
-    
-    // MiniDFSCluster will check the permissions on the data directories, but does not
-    // do a good job of setting them properly. We need to get the users umask and set
-    // the appropriate Hadoop property so that the data directories will be created
-    // with the correct permissions.
-    try {
-      Process p = Runtime.getRuntime().exec("/bin/sh -c umask");
-      BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
-      String line = bri.readLine();
-      p.waitFor();
-      
-      Short umask = Short.parseShort(line.trim(), 8);
-      // Need to set permission to 777 xor umask
-      // leading zero makes java interpret as base 8
-      int newPermission = 0777 ^ umask;
-      
-      conf.set("dfs.datanode.data.dir.perm", String.format("%03o", newPermission));
-    } catch (Exception e) {
-      throw new RuntimeException("Error getting umask from O/S", e);
-    }
-    
+
+    conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
     
     try {
       cluster = new MiniDFSCluster(conf, 1, true, null);
-      cluster.waitActive();
+      cluster.waitClusterUp();
       // We can't assume that the hostname of "localhost" will still be "localhost" after
       // starting up the NameNode. We may get mapped into a FQDN via settings in /etc/hosts.
       HDFS_URI = cluster.getFileSystem().getUri();
     } catch (IOException e) {
       throw new RuntimeException("Error setting up mini cluster", e);
     }
-    
+
     // Set up the VFS
     vfs = new DefaultFileSystemManager();
     try {
@@ -136,12 +118,14 @@ public class AccumuloDFSBase {
     } catch (FileSystemException e) {
       throw new RuntimeException("Error setting up VFS", e);
     }
-    
+
   }
-  
+
   @AfterClass
   public static void tearDownMiniDfsCluster() {
-    cluster.shutdown();
+    if (null != cluster) {
+      cluster.shutdown();
+    }
   }
-  
+
 }

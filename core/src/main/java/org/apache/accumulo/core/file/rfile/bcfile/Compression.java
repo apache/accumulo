@@ -39,7 +39,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 /**
  * Compression related stuff.
  */
-final class Compression {
+public final class Compression {
   static final Log LOG = LogFactory.getLog(Compression.class);
   
   /**
@@ -68,11 +68,20 @@ final class Compression {
     }
   }
   
+  /** snappy codec **/
+  public static final String COMPRESSION_SNAPPY = "snappy";
+  /** compression: gzip */
+  public static final String COMPRESSION_GZ = "gz";
+  /** compression: lzo */
+  public static final String COMPRESSION_LZO = "lzo";
+  /** compression: none */
+  public static final String COMPRESSION_NONE = "none";
+  
   /**
    * Compression algorithms.
    */
-  static enum Algorithm {
-    LZO(TFile.COMPRESSION_LZO) {
+  public static enum Algorithm {
+    LZO(COMPRESSION_LZO) {
       private transient boolean checked = false;
       private static final String defaultClazz = "org.apache.hadoop.io.compress.LzoCodec";
       private transient CompressionCodec codec = null;
@@ -137,7 +146,7 @@ final class Compression {
       }
     },
     
-    GZ(TFile.COMPRESSION_GZ) {
+    GZ(COMPRESSION_GZ) {
       private transient DefaultCodec codec;
       
       @Override
@@ -181,7 +190,7 @@ final class Compression {
       }
     },
     
-    NONE(TFile.COMPRESSION_NONE) {
+    NONE(COMPRESSION_NONE) {
       @Override
       CompressionCodec getCodec() {
         return null;
@@ -210,7 +219,7 @@ final class Compression {
       }
     },
     
-    SNAPPY(TFile.COMPRESSION_SNAPPY) {
+    SNAPPY(COMPRESSION_SNAPPY) {
       // Use base type to avoid compile-time dependencies.
       private transient CompressionCodec snappyCodec = null;
       private transient boolean checked = false;
@@ -369,7 +378,7 @@ final class Compression {
     throw new IllegalArgumentException("Unsupported compression algorithm name: " + compressName);
   }
   
-  static String[] getSupportedAlgorithms() {
+  public static String[] getSupportedAlgorithms() {
     Algorithm[] algos = Algorithm.class.getEnumConstants();
     
     ArrayList<String> ret = new ArrayList<String>();

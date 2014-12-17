@@ -139,7 +139,8 @@ service TabletClientService extends client.ClientService {
                              7:map<string, map<string, string>> ssio,
                              8:list<binary> authorizations
                              9:bool waitForWrites,
-                             10:bool isolated)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
+                             10:bool isolated,
+                             12:i64 readaheadThreshold)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
                              
   data.ScanResult continueScan(2:trace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
   oneway void closeScan(2:trace.TInfo tinfo, 1:data.ScanID scanID),
@@ -160,13 +161,21 @@ service TabletClientService extends client.ClientService {
   data.UpdateID startUpdate(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec),
   oneway void applyUpdates(1:trace.TInfo tinfo, 2:data.UpdateID updateID, 3:data.TKeyExtent keyExtent, 4:list<data.TMutation> mutations),
   data.UpdateErrors closeUpdate(2:trace.TInfo tinfo, 1:data.UpdateID updateID) throws (1:NoSuchScanIDException nssi),
-  
+
   //the following call supports making a single update to a tablet
   void update(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation)
     throws (1:client.ThriftSecurityException sec, 
             2:NotServingTabletException nste, 
             3:ConstraintViolationException cve),
+
+  data.TConditionalSession startConditionalUpdate(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<binary> authorizations, 4:string tableID)
+     throws (1:client.ThriftSecurityException sec);
   
+  list<data.TCMResult> conditionalUpdate(1:trace.TInfo tinfo, 2:data.UpdateID sessID, 3:data.CMBatch mutations, 4:list<string> symbols)
+     throws (1:NoSuchScanIDException nssi);
+  void invalidateConditionalUpdate(1:trace.TInfo tinfo, 2:data.UpdateID sessID);
+  oneway void closeConditionalUpdate(1:trace.TInfo tinfo, 2:data.UpdateID sessID);
+
   // on success, returns an empty list
   list<data.TKeyExtent> bulkImport(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:i64 tid, 2:data.TabletFiles files, 5:bool setTime) throws (1:client.ThriftSecurityException sec),
 

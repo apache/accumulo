@@ -42,9 +42,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -64,48 +64,11 @@ public class AccumuloInputFormatTest {
   private static final String PREFIX = AccumuloInputFormatTest.class.getSimpleName();
 
   /**
-   * Test basic setting & getting of max versions.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Deprecated
-  @Test
-  public void testMaxVersions() throws IOException {
-    Job job = new Job();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 1);
-    int version = AccumuloInputFormat.getMaxVersions(job.getConfiguration());
-    assertEquals(1, version);
-  }
-
-  /**
-   * Test max versions with an invalid value.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Deprecated
-  @Test(expected = IOException.class)
-  public void testMaxVersionsLessThan1() throws IOException {
-    Job job = new Job();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 0);
-  }
-
-  /**
-   * Test no max version configured.
-   */
-  @Deprecated
-  @Test
-  public void testNoMaxVersion() throws IOException {
-    Job job = new Job();
-    assertEquals(-1, AccumuloInputFormat.getMaxVersions(job.getConfiguration()));
-  }
-
-  /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    */
   @Test
   public void testSetIterator() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
 
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
@@ -114,11 +77,12 @@ public class AccumuloInputFormatTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = conf.get("AccumuloInputFormat.ScanOpts.Iterators");
-    assertEquals(new String(Base64.encodeBase64(baos.toByteArray())), iterators);
+    assertEquals(Base64.encodeBase64String(baos.toByteArray()), iterators);
   }
 
   @Test
   public void testAddIterator() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
 
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
@@ -167,6 +131,7 @@ public class AccumuloInputFormatTest {
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     AccumuloInputFormat.addIterator(job, someSetting);
 
@@ -193,6 +158,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testGetIteratorSettings() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
 
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
@@ -224,6 +190,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testSetRegex() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
 
     String regex = ">\"*%<>\'\\";
@@ -277,11 +244,13 @@ public class AccumuloInputFormatTest {
       String user = args[0];
       String pass = args[1];
       String table = args[2];
+
       String instanceName = args[3];
       String inputFormatClassName = args[4];
       @SuppressWarnings("unchecked")
       Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
+      @SuppressWarnings("deprecation")
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
@@ -331,6 +300,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testCorrectRangeInputSplits() throws Exception {
+    @SuppressWarnings("deprecation")
     Job job = new Job(new Configuration(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
 
     String username = "user", table = "table", instance = "mapreduce_testCorrectRangeInputSplits";
@@ -366,7 +336,7 @@ public class AccumuloInputFormatTest {
     RangeInputSplit risplit = (RangeInputSplit) split;
 
     Assert.assertEquals(username, risplit.getPrincipal());
-    Assert.assertEquals(table, risplit.getTable());
+    Assert.assertEquals(table, risplit.getTableName());
     Assert.assertEquals(password, risplit.getToken());
     Assert.assertEquals(auths, risplit.getAuths());
     Assert.assertEquals(instance, risplit.getInstanceName());
@@ -374,21 +344,6 @@ public class AccumuloInputFormatTest {
     Assert.assertEquals(localIters, risplit.usesLocalIterators());
     Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
     Assert.assertEquals(level, risplit.getLogLevel());
-  }
-
-  static class TestMapper extends Mapper<Key,Value,Key,Value> {
-    Key key = null;
-    int count = 0;
-
-    @Override
-    protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
-      if (key != null)
-        assertEquals(key.getRow().toString(), new String(v.get()));
-      assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-      assertEquals(new String(v.get()), String.format("%09x", count));
-      key = new Key(k);
-      count++;
-    }
   }
 
   @Test
@@ -442,6 +397,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testEmptyColumnFamily() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     Set<Pair<Text,Text>> cols = new HashSet<Pair<Text,Text>>();
     cols.add(new Pair<Text,Text>(new Text(""), null));

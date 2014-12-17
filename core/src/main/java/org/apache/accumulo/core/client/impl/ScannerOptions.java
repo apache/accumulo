@@ -46,7 +46,7 @@ public class ScannerOptions implements ScannerBase {
   protected SortedSet<Column> fetchedColumns = new TreeSet<Column>();
   
   protected long timeOut = Long.MAX_VALUE;
-
+  
   private String regexIterName = null;
   
   protected ScannerOptions() {}
@@ -102,7 +102,7 @@ public class ScannerOptions implements ScannerBase {
     
     serverSideIteratorOptions.remove(iteratorName);
   }
-    
+  
   /**
    * Override any existing options on the given named iterator
    */
@@ -190,7 +190,7 @@ public class ScannerOptions implements ScannerBase {
     if (timeOut < 0) {
       throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
     }
-
+    
     if (timeout == 0)
       this.timeOut = Long.MAX_VALUE;
     else
@@ -201,7 +201,7 @@ public class ScannerOptions implements ScannerBase {
   public long getTimeout(TimeUnit timeunit) {
     return timeunit.convert(timeOut, TimeUnit.MILLISECONDS);
   }
-
+  
   @Override
   public void close() {
     // Nothing needs to be closed

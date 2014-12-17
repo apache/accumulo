@@ -28,7 +28,6 @@ import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -270,6 +270,33 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
   
+  public void test6() throws IOException {
+    columnFamilies = new Text[1];
+    columnFamilies[0] = new Text("C");
+    otherColumnFamilies = new Text[4];
+    otherColumnFamilies[0] = new Text("A");
+    otherColumnFamilies[1] = new Text("B");
+    otherColumnFamilies[2] = new Text("D");
+    otherColumnFamilies[3] = new Text("F");
+    
+    float hitRatio = 0.5f;
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
+    IntersectingIterator iter = new IntersectingIterator();
+    iter.init(source, is.getOptions(), env);
+    iter.seek(new Range(), EMPTY_COL_FAMS, false);
+    int hitCount = 0;
+    while (iter.hasTop()) {
+      hitCount++;
+      Key k = iter.getTopKey();
+      assertTrue(docs.contains(k.getColumnQualifier()));
+      iter.next();
+    }
+    assertTrue(hitCount == docs.size());
+    cleanup();
+  }
+  
   public void testWithBatchScanner() throws Exception {
     Value empty = new Value(new byte[] {});
     MockInstance inst = new MockInstance("mockabye");
@@ -282,7 +309,7 @@ public class IntersectingIteratorTest extends TestCase {
     bw.addMutation(m);
     bw.close();
     
-    BatchScanner bs = connector.createBatchScanner("index", Constants.NO_AUTHS, 10);
+    BatchScanner bs = connector.createBatchScanner("index", Authorizations.EMPTY, 10);
     IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});
     bs.addScanIterator(ii);

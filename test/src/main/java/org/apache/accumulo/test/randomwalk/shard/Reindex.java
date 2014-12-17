@@ -20,12 +20,12 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -42,7 +42,7 @@ public class Reindex extends Test {
     
     ShardFixture.createIndexTable(this.log, state, "_tmp", rand);
     
-    Scanner scanner = state.getConnector().createScanner(docTableName, Constants.NO_AUTHS);
+    Scanner scanner = state.getConnector().createScanner(docTableName, Authorizations.EMPTY);
     BatchWriter tbw = state.getConnector().createBatchWriter(tmpIndexTableName, new BatchWriterConfig());
     
     int count = 0;

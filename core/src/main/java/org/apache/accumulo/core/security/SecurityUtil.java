@@ -29,26 +29,18 @@ import org.apache.log4j.Logger;
  */
 public class SecurityUtil {
   private static final Logger log = Logger.getLogger(SecurityUtil.class);
-  private static final String ACCUMULO_HOME = "ACCUMULO_HOME", ACCUMULO_CONF_DIR = "ACCUMULO_CONF_DIR";
   public static boolean usingKerberos = false;
 
   /**
    * This method is for logging a server in kerberos. If this is used in client code, it will fail unless run as the accumulo keytab's owner. Instead, use
    * {@link #login(String, String)}
    */
-  public static void serverLogin() {
-    @SuppressWarnings("deprecation")
-    AccumuloConfiguration acuConf = AccumuloConfiguration.getSiteConfiguration();
-    String keyTab = acuConf.get(Property.GENERAL_KERBEROS_KEYTAB);
+  public static void serverLogin(AccumuloConfiguration acuConf) {
+    String keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     if (keyTab == null || keyTab.length() == 0)
       return;
     
     usingKerberos = true;
-    if (keyTab.contains("$" + ACCUMULO_HOME) && System.getenv(ACCUMULO_HOME) != null)
-      keyTab = keyTab.replace("$" + ACCUMULO_HOME, System.getenv(ACCUMULO_HOME));
-    
-    if (keyTab.contains("$" + ACCUMULO_CONF_DIR) && System.getenv(ACCUMULO_CONF_DIR) != null)
-      keyTab = keyTab.replace("$" + ACCUMULO_CONF_DIR, System.getenv(ACCUMULO_CONF_DIR));
     
     String principalConfig = acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
     if (principalConfig == null || principalConfig.length() == 0)

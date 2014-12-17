@@ -19,15 +19,18 @@ package org.apache.accumulo.core.client.mock;
 import static com.google.common.base.Charsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 
-import jline.ConsoleReader;
+import org.apache.commons.io.output.WriterOutputStream;
+
+import org.apache.commons.cli.CommandLine;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.commons.cli.CommandLine;
+import org.apache.accumulo.core.util.shell.ShellOptionsJC;
 
 /**
  * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to the Shell for testing purposes.
@@ -36,12 +39,29 @@ public class MockShell extends Shell {
   private static final String NEWLINE = "\n";
   
   protected InputStream in;
-  protected Writer writer;
-  
-  public MockShell(InputStream in, Writer writer) throws IOException {
+  protected OutputStream out;
+
+  /**
+   * Will only be set if you use either the Writer constructor or the setWriter(Writer) method
+   * @deprecated since 1.6.0; use out
+   */
+  @Deprecated
+  protected Writer writer = null;
+
+  public MockShell(InputStream in, OutputStream out) throws IOException {
     super();
     this.in = in;
-    this.writer = writer;
+    this.out = out;
+    // we presume they don't use the writer field unless they use the other constructor.
+  }
+
+  /**
+   * @deprecated since 1.6.0; use OutputStream version
+   */
+  @Deprecated
+  public MockShell(InputStream in, Writer out) throws IOException {
+    this(in, new WriterOutputStream(out, UTF_8.name()));
+    this.writer = out;
   }
   
   public boolean config(String... args) {
@@ -49,15 +69,15 @@ public class MockShell extends Shell {
     
     // Update the ConsoleReader with the input and output "redirected"
     try {
-      this.reader = new ConsoleReader(in, writer);
+      this.reader = new ConsoleReader(in, out);
     } catch (Exception e) {
       printException(e);
       configError = true;
     }
     
     // Don't need this for testing purposes
-    this.reader.setUseHistory(false);
-    this.reader.setUsePagination(false);
+    this.reader.setHistoryEnabled(false);
+    this.reader.setPaginationEnabled(false);
     
     // Make the parsing from the client easier;
     this.verbose = false;
@@ -65,9 +85,18 @@ public class MockShell extends Shell {
   }
   
   @Override
-  protected void setInstance(CommandLine cl) {
+  protected void setInstance(ShellOptionsJC options) {
     // We always want a MockInstance for this test
     instance = new MockInstance();
+  }
+
+  /**
+   * @deprecated since 1.6.0; use ShellOptionsJC version
+   */
+  @Deprecated
+  protected void setInstance(CommandLine cl) {
+    // same result as in previous version
+    setInstance((ShellOptionsJC)null);
   }
   
   public int start() throws IOException {
@@ -79,7 +108,7 @@ public class MockShell extends Shell {
       printInfo();
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(new File(execFile), UTF_8.name());
+      java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -98,10 +127,10 @@ public class MockShell extends Shell {
       if (hasExited())
         return exitCode;
       
-      reader.setDefaultPrompt(getDefaultPrompt());
+      reader.setPrompt(getDefaultPrompt());
       input = reader.readLine();
       if (input == null) {
-        reader.printNewline();
+        reader.println();
         return exitCode;
       } // user canceled
       
@@ -118,11 +147,20 @@ public class MockShell extends Shell {
   }
   
   /**
-   * @param writer
-   *          the writer to set
+   * @param out
+   *          the output stream to set
    */
-  public void setConsoleWriter(Writer writer) {
-    this.writer = writer;
+  public void setConsoleWriter(OutputStream out) {
+    this.out = out;
+  }
+
+  /**
+   * @deprecated since 1.6.0; use the OutputStream version
+   */
+  @Deprecated
+  public void setConsoleWriter(Writer out) {
+    setConsoleWriter(new WriterOutputStream(out, UTF_8.name()));
+    this.writer = out;
   }
   
   /**

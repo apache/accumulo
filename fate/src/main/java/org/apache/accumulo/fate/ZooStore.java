@@ -69,12 +69,16 @@ public class ZooStore<T> implements TStore<T> {
       throw new RuntimeException(e);
     }
   }
-  
+
   private Object deserialize(byte ser[]) {
     try {
       ByteArrayInputStream bais = new ByteArrayInputStream(ser);
       ObjectInputStream ois = new ObjectInputStream(bais);
-      return ois.readObject();
+      try {
+        return ois.readObject();
+      } finally {
+        ois.close();
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

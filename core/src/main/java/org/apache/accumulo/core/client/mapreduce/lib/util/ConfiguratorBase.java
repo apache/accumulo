@@ -16,31 +16,31 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-import static com.google.common.base.Charsets.UTF_8;
-
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 /**
+ * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
  * @since 1.5.0
  */
+@Deprecated
 public class ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
    * 
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static enum ConnectorInfo {
     IS_CONFIGURED, PRINCIPAL, TOKEN, TOKEN_CLASS
   }
@@ -48,8 +48,10 @@ public class ConfiguratorBase {
   /**
    * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
    * 
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   protected static enum InstanceOpts {
     TYPE, NAME, ZOO_KEEPERS;
   }
@@ -57,8 +59,10 @@ public class ConfiguratorBase {
   /**
    * Configuration keys for general configuration options.
    * 
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   protected static enum GeneralOpts {
     LOG_LEVEL
   }
@@ -71,8 +75,10 @@ public class ConfiguratorBase {
    * @param e
    *          the enum used to provide the unique part of the configuration key
    * @return the configuration key
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
     return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
   }
@@ -92,18 +98,13 @@ public class ConfiguratorBase {
    *          a valid Accumulo user name
    * @param token
    *          the user's password
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (isConnectorInfoSet(implementingClass, conf))
-      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
-
-    ArgumentChecker.notNull(principal, token);
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS), token.getClass().getCanonicalName());
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), CredentialHelper.tokenAsBase64(token));
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setConnectorInfo(implementingClass, conf, principal, token);
   }
 
   /**
@@ -114,11 +115,13 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
+  @Deprecated
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
-    return conf.getBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), false);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.isConnectorInfoSet(implementingClass, conf);
   }
 
   /**
@@ -129,14 +132,20 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the principal
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
+  @Deprecated
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getPrincipal(implementingClass, conf);
   }
 
   /**
+   * DON'T USE THIS. No, really, don't use this. You already have an {@link AuthenticationToken} with
+   * {@link org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase#getAuthenticationToken(Class, Configuration)}. You don't need to construct it
+   * yourself.
+   * <p>
    * Gets the serialized token class from the configuration.
    * 
    * @param implementingClass
@@ -144,14 +153,20 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the principal
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
+  @Deprecated
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getAuthenticationToken(implementingClass, conf).getClass().getName();
   }
 
   /**
+   * DON'T USE THIS. No, really, don't use this. You already have an {@link AuthenticationToken} with
+   * {@link org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase#getAuthenticationToken(Class, Configuration)}. You don't need to construct it
+   * yourself.
+   * <p>
    * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
    * provide a charset safe conversion to a string, and is not intended to be secure.
    * 
@@ -160,11 +175,14 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the decoded principal's authentication token
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
+  @Deprecated
   public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
-    return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), "").getBytes(UTF_8));
+    return AuthenticationTokenSerializer.serialize(org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getAuthenticationToken(
+        implementingClass, conf));
   }
 
   /**
@@ -178,17 +196,13 @@ public class ConfiguratorBase {
    *          the Accumulo instance name
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, String instanceName, String zooKeepers) {
-    String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
-    if (!conf.get(key, "").isEmpty())
-      throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
-    conf.set(key, "ZooKeeperInstance");
-
-    ArgumentChecker.notNull(instanceName, zooKeepers);
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS), zooKeepers);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setZooKeeperInstance(implementingClass, conf,
+        new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -200,16 +214,12 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param instanceName
    *          the Accumulo instance name
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setMockInstance(Class<?> implementingClass, Configuration conf, String instanceName) {
-    String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
-    if (!conf.get(key, "").isEmpty())
-      throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
-    conf.set(key, "MockInstance");
-
-    ArgumentChecker.notNull(instanceName);
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setMockInstance(implementingClass, conf, instanceName);
   }
 
   /**
@@ -220,21 +230,14 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setZooKeeperInstance(Class, Configuration, String, String)
    * @see #setMockInstance(Class, Configuration, String)
    */
+  @Deprecated
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
-    String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
-    if ("MockInstance".equals(instanceType))
-      return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
-    else if ("ZooKeeperInstance".equals(instanceType)) {
-      return new ZooKeeperInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)), conf.get(enumToConfKey(implementingClass,
-          InstanceOpts.ZOO_KEEPERS)));
-    } else if (instanceType.isEmpty())
-      throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
-    else
-      throw new IllegalStateException("Unrecognized instance type " + instanceType);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getInstance(implementingClass, conf);
   }
 
   /**
@@ -246,12 +249,12 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param level
    *          the logging level
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
-    ArgumentChecker.notNull(level);
-    Logger.getLogger(implementingClass).setLevel(level);
-    conf.setInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), level.toInt());
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setLogLevel(implementingClass, conf, level);
   }
 
   /**
@@ -262,11 +265,13 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the log level
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setLogLevel(Class, Configuration, Level)
    */
+  @Deprecated
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
-    return Level.toLevel(conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getLogLevel(implementingClass, conf);
   }
 
 }

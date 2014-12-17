@@ -16,41 +16,39 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-import static com.google.common.base.Charsets.UTF_8;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.hadoop.conf.Configuration;
 
 /**
+ * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
  * @since 1.5.0
  */
+@Deprecated
 public class OutputConfigurator extends ConfiguratorBase {
-  
+
   /**
    * Configuration keys for {@link BatchWriter}.
    * 
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static enum WriteOpts {
     DEFAULT_TABLE_NAME, BATCH_WRITER_CONFIG
   }
-  
+
   /**
    * Configuration keys for various features.
    * 
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static enum Features {
     CAN_CREATE_TABLES, SIMULATION_MODE
   }
-  
+
   /**
    * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
    * underscores.
@@ -61,13 +59,14 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param tableName
    *          the table to use when the tablename is null in the write call
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setDefaultTableName(Class<?> implementingClass, Configuration conf, String tableName) {
-    if (tableName != null)
-      conf.set(enumToConfKey(implementingClass, WriteOpts.DEFAULT_TABLE_NAME), tableName);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setDefaultTableName(implementingClass, conf, tableName);
   }
-  
+
   /**
    * Gets the default table name from the configuration.
    * 
@@ -76,13 +75,15 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the default table name
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setDefaultTableName(Class, Configuration, String)
    */
+  @Deprecated
   public static String getDefaultTableName(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, WriteOpts.DEFAULT_TABLE_NAME));
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.getDefaultTableName(implementingClass, conf);
   }
-  
+
   /**
    * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
    * used. Setting the configuration multiple times overwrites any previous configuration.
@@ -93,21 +94,14 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param bwConfig
    *          the configuration for the {@link BatchWriter}
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf, BatchWriterConfig bwConfig) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    String serialized;
-    try {
-      bwConfig.write(new DataOutputStream(baos));
-      serialized = new String(baos.toByteArray(), UTF_8);
-      baos.close();
-    } catch (IOException e) {
-      throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
-    }
-    conf.set(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG), serialized);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setBatchWriterOptions(implementingClass, conf, bwConfig);
   }
-  
+
   /**
    * Gets the {@link BatchWriterConfig} settings.
    * 
@@ -116,26 +110,15 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the configuration object
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setBatchWriterOptions(Class, Configuration, BatchWriterConfig)
    */
+  @Deprecated
   public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass, Configuration conf) {
-    String serialized = conf.get(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG));
-    BatchWriterConfig bwConfig = new BatchWriterConfig();
-    if (serialized == null || serialized.isEmpty()) {
-      return bwConfig;
-    } else {
-      try {
-        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(UTF_8));
-        bwConfig.readFields(new DataInputStream(bais));
-        bais.close();
-        return bwConfig;
-      } catch (IOException e) {
-        throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
-      }
-    }
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.getBatchWriterOptions(implementingClass, conf);
   }
-  
+
   /**
    * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
    * 
@@ -148,12 +131,14 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setCreateTables(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    conf.setBoolean(enumToConfKey(implementingClass, Features.CAN_CREATE_TABLES), enableFeature);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setCreateTables(implementingClass, conf, enableFeature);
   }
-  
+
   /**
    * Determines whether tables are permitted to be created as needed.
    * 
@@ -162,13 +147,15 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the feature is disabled, false otherwise
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setCreateTables(Class, Configuration, boolean)
    */
+  @Deprecated
   public static Boolean canCreateTables(Class<?> implementingClass, Configuration conf) {
-    return conf.getBoolean(enumToConfKey(implementingClass, Features.CAN_CREATE_TABLES), false);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.canCreateTables(implementingClass, conf);
   }
-  
+
   /**
    * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
    * 
@@ -181,12 +168,14 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
+  @Deprecated
   public static void setSimulationMode(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    conf.setBoolean(enumToConfKey(implementingClass, Features.SIMULATION_MODE), enableFeature);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setSimulationMode(implementingClass, conf, enableFeature);
   }
-  
+
   /**
    * Determines whether this feature is enabled.
    * 
@@ -195,11 +184,13 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the feature is enabled, false otherwise
+   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setSimulationMode(Class, Configuration, boolean)
    */
+  @Deprecated
   public static Boolean getSimulationMode(Class<?> implementingClass, Configuration conf) {
-    return conf.getBoolean(enumToConfKey(implementingClass, Features.SIMULATION_MODE), false);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.getSimulationMode(implementingClass, conf);
   }
-  
+
 }

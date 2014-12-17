@@ -19,17 +19,18 @@
 </version>
 
 <archives>
-  ../../../lib/accumulo-core.jar
+  CHANGEME/accumulo-1.5.0/lib/accumulo-core.jar
+  CHANGEME/accumulo-1.5.0/lib/accumulo-minicluster.jar
 </archives>
 
 <skip_packages>
   org.apache.accumulo.core.client.impl
-  org.apache.accumulo.core.client.mock
   org.apache.accumulo.core.data.thrift
 </skip_packages>
 
 <packages>
   org.apache.accumulo.core.client
   org.apache.accumulo.core.data
+  org.apache.accumulo.minicluster
 </packages>
 

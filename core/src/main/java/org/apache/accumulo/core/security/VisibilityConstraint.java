@@ -27,6 +27,15 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.BadArgumentException;
 
+/**
+ * A constraint that checks the visibility of columns against the actor's
+ * authorizations. Violation codes:
+ * <p>
+ * <ul>
+ * <li>1 = failure to parse visibility expression</li>
+ * <li>2 = insufficient authorization</li>
+ * </ul>
+ */
 public class VisibilityConstraint implements Constraint {
   
   @Override
@@ -62,7 +71,7 @@ public class VisibilityConstraint implements Constraint {
         try {
           
           if (ve == null)
-            ve = new VisibilityEvaluator(env.getAuthorizations());
+            ve = new VisibilityEvaluator(env);
           
           if (!ve.evaluate(new ColumnVisibility(cv)))
             return Collections.singletonList(Short.valueOf((short) 2));

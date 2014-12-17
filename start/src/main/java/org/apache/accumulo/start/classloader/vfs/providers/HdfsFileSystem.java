@@ -42,107 +42,107 @@ import org.apache.hadoop.fs.Path;
  */
 public class HdfsFileSystem extends AbstractFileSystem
 {
-    private static final Log log = LogFactory.getLog(HdfsFileSystem.class);
-
-    private FileSystem fs;
-
-    protected HdfsFileSystem(final FileName rootName, final FileSystemOptions fileSystemOptions)
+  private static final Log log = LogFactory.getLog(HdfsFileSystem.class);
+  
+  private FileSystem fs;
+  
+  protected HdfsFileSystem(final FileName rootName, final FileSystemOptions fileSystemOptions)
+  {
+    super(rootName, null, fileSystemOptions);
+  }
+  
+  /**
+   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#addCapabilities(java.util.Collection)
+   */
+  @Override
+  protected void addCapabilities(final Collection<Capability> capabilities)
+  {
+    capabilities.addAll(HdfsFileProvider.CAPABILITIES);
+  }
+  
+  /**
+   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#close()
+   */
+  @Override
+  synchronized public void close()
+  {
+    try
     {
-        super(rootName, null, fileSystemOptions);
+      if (null != fs)
+      {
+        fs.close();
+      }
     }
-
-    /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#addCapabilities(java.util.Collection)
-     */
-    @Override
-    protected void addCapabilities(final Collection<Capability> capabilities)
+    catch (final IOException e)
     {
-        capabilities.addAll(HdfsFileProvider.CAPABILITIES);
+      throw new RuntimeException("Error closing HDFS client", e);
     }
-
-    /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#close()
-     */
-    @Override
-    public void close()
+    super.close();
+  }
+  
+  /**
+   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#createFile(org.apache.commons.vfs2.provider.AbstractFileName)
+   */
+  @Override
+  protected FileObject createFile(final AbstractFileName name) throws Exception
+  {
+    throw new FileSystemException("Operation not supported");
+  }
+  
+  /**
+   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#resolveFile(org.apache.commons.vfs2.FileName)
+   */
+  @Override
+  public FileObject resolveFile(final FileName name) throws FileSystemException
+  {
+    
+    synchronized (this)
     {
+      if (null == this.fs)
+      {
+        final String hdfsUri = name.getRootURI();
+        final Configuration conf = new Configuration(true);
+        conf.set(org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY, hdfsUri);
+        this.fs = null;
         try
         {
-            if (null != fs)
-            {
-                fs.close();
-            }
+          fs = org.apache.hadoop.fs.FileSystem.get(conf);
         }
         catch (final IOException e)
         {
-            throw new RuntimeException("Error closing HDFS client", e);
+          log.error("Error connecting to filesystem " + hdfsUri, e);
+          throw new FileSystemException("Error connecting to filesystem " + hdfsUri, e);
         }
-        super.close();
+      }
     }
-
-    /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#createFile(org.apache.commons.vfs2.provider.AbstractFileName)
-     */
-    @Override
-    protected FileObject createFile(final AbstractFileName name) throws Exception
+    
+    boolean useCache = (null != getContext().getFileSystemManager().getFilesCache());
+    FileObject file;
+    if (useCache)
     {
-        throw new FileSystemException("Operation not supported");
+      file = this.getFileFromCache(name);
     }
-
-    /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#resolveFile(org.apache.commons.vfs2.FileName)
-     */
-    @Override
-    public FileObject resolveFile(final FileName name) throws FileSystemException
+    else
     {
-
-        synchronized (this)
-        {
-            if (null == this.fs)
-            {
-                final String hdfsUri = name.getRootURI();
-                final Configuration conf = new Configuration(true);
-                conf.set(org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY, hdfsUri);
-                this.fs = null;
-                try
-                {
-                    fs = org.apache.hadoop.fs.FileSystem.get(conf);
-                }
-                catch (final IOException e)
-                {
-                    log.error("Error connecting to filesystem " + hdfsUri, e);
-                    throw new FileSystemException("Error connecting to filesystem " + hdfsUri, e);
-                }
-            }
-        }
-
-        boolean useCache = (null != getContext().getFileSystemManager().getFilesCache());
-        FileObject file;
-        if (useCache)
-        {
-            file = this.getFileFromCache(name);
-        }
-        else
-        {
-            file = null;
-        }
-        if (null == file)
-        {
-            String path = null;
-            try
-            {
-                path = URLDecoder.decode(name.getPath(), "UTF-8");
-            }
-            catch (final UnsupportedEncodingException e)
-            {
-                path = name.getPath();
-            }
-            final Path filePath = new Path(path);
-            file = new HdfsFileObject((AbstractFileName) name, this, fs, filePath);
-            if (useCache)
-            {
+      file = null;
+    }
+    if (null == file)
+    {
+      String path = null;
+      try
+      {
+        path = URLDecoder.decode(name.getPath(), "UTF-8");
+      }
+      catch (final UnsupportedEncodingException e)
+      {
+        path = name.getPath();
+      }
+      final Path filePath = new Path(path);
+      file = new HdfsFileObject((AbstractFileName) name, this, fs, filePath);
+      if (useCache)
+      {
         this.putFileToCache(file);
-            }
+      }
       
     }
     
@@ -155,5 +155,5 @@ public class HdfsFileSystem extends AbstractFileSystem
     
     return file;
   }
-
+  
 }

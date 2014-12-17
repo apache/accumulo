@@ -17,6 +17,7 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
@@ -118,8 +119,8 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
-  public FileObject[] getFiles() {
-    return this.files;
+  synchronized public FileObject[] getFiles() {
+    return Arrays.copyOf(this.files, this.files.length);
   }
   
   /**
@@ -137,13 +138,13 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
+      log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
     setClassloader(null);
   }
 
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
+      log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
     setClassloader(null);
   }
 

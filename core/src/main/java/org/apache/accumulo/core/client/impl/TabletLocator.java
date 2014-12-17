@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -32,19 +31,22 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
   
-  public abstract TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException,
+  public abstract TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException;
   
-  public abstract void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures,
-      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  public abstract <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+      List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
-  public abstract List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials)
+  public abstract List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
   public abstract void invalidateCache(KeyExtent failedExtent);
@@ -90,37 +92,20 @@ public abstract class TabletLocator {
   
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
   
-  private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null);
-  
-  public static synchronized TabletLocator getInstance(Instance instance, Text tableId) {
+  public static synchronized TabletLocator getLocator(Instance instance, Text tableId) {
+    
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
-    
     TabletLocator tl = locators.get(key);
-    
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
       
-      if (tableId.toString().equals(Constants.METADATA_TABLE_ID)) {
-        RootTabletLocator rootTabletLocator = new RootTabletLocator(instance);
-        tl = new TabletLocatorImpl(new Text(Constants.METADATA_TABLE_ID), rootTabletLocator, mlo) {
-          @Override
-          public TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
-              TableNotFoundException {
-            // add a special case for the root tablet itself to the cache of information in the root tablet
-            int comparison_result = row.compareTo(ROOT_TABLET_MDE);
-            
-            if ((skipRow && comparison_result < 0) || (!skipRow && comparison_result <= 0)) {
-              return parent.locateTablet(row, skipRow, retry, credentials);
-            }
-            
-            return super._locateTablet(row, skipRow, retry, lock, credentials);
-          }
-        };
+      if (tableId.toString().equals(RootTable.ID)) {
+        tl = new RootTabletLocator(instance, new ZookeeperLockChecker(instance));
+      } else if (tableId.toString().equals(MetadataTable.ID)) {
+        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(instance, new Text(RootTable.ID)), mlo, new ZookeeperLockChecker(instance));
       } else {
-        TabletLocator rootTabletCache = getInstance(instance, new Text(Constants.METADATA_TABLE_ID));
-        tl = new TabletLocatorImpl(tableId, rootTabletCache, mlo);
+        tl = new TabletLocatorImpl(tableId, getLocator(instance, new Text(MetadataTable.ID)), mlo, new ZookeeperLockChecker(instance));
       }
-      
       locators.put(key, tl);
     }
     
@@ -167,18 +152,20 @@ public abstract class TabletLocator {
     
     public final KeyExtent tablet_extent;
     public final String tablet_location;
+    public final String tablet_session;
     
-    public TabletLocation(KeyExtent tablet_extent, String tablet_location) {
-      ArgumentChecker.notNull(tablet_extent, tablet_location);
+    public TabletLocation(KeyExtent tablet_extent, String tablet_location, String session) {
+      ArgumentChecker.notNull(tablet_extent, tablet_location, session);
       this.tablet_extent = tablet_extent;
       this.tablet_location = dedupeLocation(tablet_location);
+      this.tablet_session = dedupeLocation(session);
     }
     
     @Override
     public boolean equals(Object o) {
       if (o instanceof TabletLocation) {
         TabletLocation otl = (TabletLocation) o;
-        return tablet_extent.equals(otl.tablet_extent) && tablet_location.equals(otl.tablet_location);
+        return tablet_extent.equals(otl.tablet_extent) && tablet_location.equals(otl.tablet_location) && tablet_session.equals(otl.tablet_session);
       }
       return false;
     }
@@ -190,37 +177,46 @@ public abstract class TabletLocator {
     
     @Override
     public String toString() {
-      return "(" + tablet_extent + "," + tablet_location + ")";
+      return "(" + tablet_extent + "," + tablet_location + "," + tablet_session + ")";
     }
     
     @Override
     public int compareTo(TabletLocation o) {
       int result = tablet_extent.compareTo(o.tablet_extent);
-      if (result == 0)
+      if (result == 0) {
         result = tablet_location.compareTo(o.tablet_location);
+        if (result == 0)
+          result = tablet_session.compareTo(o.tablet_session);
+      }
       return result;
     }
   }
   
-  public static class TabletServerMutations {
-    private Map<KeyExtent,List<Mutation>> mutations;
-    
-    public TabletServerMutations() {
-      mutations = new HashMap<KeyExtent,List<Mutation>>();
+  public static class TabletServerMutations<T extends Mutation> {
+    private Map<KeyExtent,List<T>> mutations;
+    private String tserverSession;
+
+    public TabletServerMutations(String tserverSession) {
+      this.tserverSession = tserverSession;
+      this.mutations = new HashMap<KeyExtent,List<T>>();
     }
-    
-    public void addMutation(KeyExtent ke, Mutation m) {
-      List<Mutation> mutList = mutations.get(ke);
+
+    public void addMutation(KeyExtent ke, T m) {
+      List<T> mutList = mutations.get(ke);
       if (mutList == null) {
-        mutList = new ArrayList<Mutation>();
+        mutList = new ArrayList<T>();
         mutations.put(ke, mutList);
       }
       
       mutList.add(m);
     }
     
-    public Map<KeyExtent,List<Mutation>> getMutations() {
+    public Map<KeyExtent,List<T>> getMutations() {
       return mutations;
+    }
+    
+    final String getSession() {
+      return tserverSession;
     }
   }
 }

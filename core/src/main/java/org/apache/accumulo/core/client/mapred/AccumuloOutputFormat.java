@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -33,15 +34,15 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.lib.util.OutputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -60,16 +61,17 @@ import org.apache.log4j.Logger;
  * 
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, String)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
  * Other static methods are optional.
  */
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
-  
+
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    * 
@@ -88,7 +90,25 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job, principal, token);
   }
-  
+
+  /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   * 
+   * <p>
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param principal
+   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
+   * @param tokenFile
+   *          the path to the password file
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
+    OutputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
+  }
+
   /**
    * Determines if the connector has been configured.
    * 
@@ -101,7 +121,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static Boolean isConnectorInfoSet(JobConf job) {
     return OutputConfigurator.isConnectorInfoSet(CLASS, job);
   }
-  
+
   /**
    * Gets the principal from the configuration.
    * 
@@ -114,34 +134,43 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static String getPrincipal(JobConf job) {
     return OutputConfigurator.getPrincipal(CLASS, job);
   }
-  
+
   /**
-   * Gets the serialized token class from the configuration.
+   * Gets the serialized token class from either the configuration or the token file.
    * 
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
+  @Deprecated
   protected static String getTokenClass(JobConf job) {
-    return OutputConfigurator.getTokenClass(CLASS, job);
+    return getAuthenticationToken(job).getClass().getName();
   }
-  
+
   /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * Gets the serialized token from either the configuration or the token file.
+   * 
+   * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
+   */
+  @Deprecated
+  protected static byte[] getToken(JobConf job) {
+    return AuthenticationTokenSerializer.serialize(getAuthenticationToken(job));
+  }
+
+  /**
+   * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
    * 
    * @param job
-   *          the Hadoop context for the configured job
-   * @return the decoded user password
-   * @since 1.5.0
+   *          the Hadoop job instance to be configured
+   * @return the principal's authentication token
+   * @since 1.6.0
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   * @see #setConnectorInfo(JobConf, String, String)
    */
-  protected static byte[] getToken(JobConf job) {
-    return OutputConfigurator.getToken(CLASS, job);
+  protected static AuthenticationToken getAuthenticationToken(JobConf job) {
+    return OutputConfigurator.getAuthenticationToken(CLASS, job);
   }
-  
+
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
    * 
@@ -152,11 +181,27 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)} instead.
    */
+
+  @Deprecated
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
+    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
   }
-  
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param clientConfig
+   *          client configuration for specifying connection timeouts, SSL connection options, etc.
+   * @since 1.6.0
+   */
+  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+    OutputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
+  }
+
   /**
    * Configures a {@link MockInstance} for this job.
    * 
@@ -169,7 +214,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setMockInstance(JobConf job, String instanceName) {
     OutputConfigurator.setMockInstance(CLASS, job, instanceName);
   }
-  
+
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
    * 
@@ -183,7 +228,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static Instance getInstance(JobConf job) {
     return OutputConfigurator.getInstance(CLASS, job);
   }
-  
+
   /**
    * Sets the log level for this job.
    * 
@@ -196,7 +241,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setLogLevel(JobConf job, Level level) {
     OutputConfigurator.setLogLevel(CLASS, job, level);
   }
-  
+
   /**
    * Gets the log level from this configuration.
    * 
@@ -209,7 +254,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static Level getLogLevel(JobConf job) {
     return OutputConfigurator.getLogLevel(CLASS, job);
   }
-  
+
   /**
    * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
    * underscores.
@@ -223,7 +268,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setDefaultTableName(JobConf job, String tableName) {
     OutputConfigurator.setDefaultTableName(CLASS, job, tableName);
   }
-  
+
   /**
    * Gets the default table name from the configuration.
    * 
@@ -236,7 +281,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static String getDefaultTableName(JobConf job) {
     return OutputConfigurator.getDefaultTableName(CLASS, job);
   }
-  
+
   /**
    * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
    * used. Setting the configuration multiple times overwrites any previous configuration.
@@ -250,7 +295,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setBatchWriterOptions(JobConf job, BatchWriterConfig bwConfig) {
     OutputConfigurator.setBatchWriterOptions(CLASS, job, bwConfig);
   }
-  
+
   /**
    * Gets the {@link BatchWriterConfig} settings.
    * 
@@ -263,7 +308,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static BatchWriterConfig getBatchWriterOptions(JobConf job) {
     return OutputConfigurator.getBatchWriterOptions(CLASS, job);
   }
-  
+
   /**
    * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
    * 
@@ -279,7 +324,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setCreateTables(JobConf job, boolean enableFeature) {
     OutputConfigurator.setCreateTables(CLASS, job, enableFeature);
   }
-  
+
   /**
    * Determines whether tables are permitted to be created as needed.
    * 
@@ -292,7 +337,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static Boolean canCreateTables(JobConf job) {
     return OutputConfigurator.canCreateTables(CLASS, job);
   }
-  
+
   /**
    * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
    * 
@@ -308,7 +353,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setSimulationMode(JobConf job, boolean enableFeature) {
     OutputConfigurator.setSimulationMode(CLASS, job, enableFeature);
   }
-  
+
   /**
    * Determines whether this feature is enabled.
    * 
@@ -321,7 +366,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   protected static Boolean getSimulationMode(JobConf job) {
     return OutputConfigurator.getSimulationMode(CLASS, job);
   }
-  
+
   /**
    * A base class to be used to create {@link RecordWriter} instances that write to Accumulo.
    */
@@ -329,36 +374,36 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws = null;
     private Text defaultTableName = null;
-    
+
     private boolean simulate = false;
     private boolean createTables = false;
-    
+
     private long mutCount = 0;
     private long valCount = 0;
-    
+
     private Connector conn;
-    
+
     protected AccumuloRecordWriter(JobConf job) throws AccumuloException, AccumuloSecurityException, IOException {
       Level l = getLogLevel(job);
       if (l != null)
         log.setLevel(getLogLevel(job));
       this.simulate = getSimulationMode(job);
       this.createTables = canCreateTables(job);
-      
+
       if (simulate)
         log.info("Simulating output only. No writes to tables will occur");
-      
+
       this.bws = new HashMap<Text,BatchWriter>();
-      
+
       String tname = getDefaultTableName(job);
       this.defaultTableName = (tname == null) ? null : new Text(tname);
-      
+
       if (!simulate) {
-        this.conn = getInstance(job).getConnector(getPrincipal(job), CredentialHelper.extractToken(getTokenClass(job), getToken(job)));
+        this.conn = getInstance(job).getConnector(getPrincipal(job), getAuthenticationToken(job));
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
-    
+
     /**
      * Push a mutation into a table. If table is null, the defaultTable will be used. If canCreateTable is set, the table will be created if it does not exist.
      * The table name must only contain alphanumerics and underscore.
@@ -367,17 +412,17 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     public void write(Text table, Mutation mutation) throws IOException {
       if (table == null || table.toString().isEmpty())
         table = this.defaultTableName;
-      
+
       if (!simulate && table == null)
         throw new IOException("No table or default table specified. Try simulation mode next time");
-      
+
       ++mutCount;
       valCount += mutation.size();
       printMutation(table, mutation);
-      
+
       if (simulate)
         return;
-      
+
       if (!bws.containsKey(table))
         try {
           addTable(table);
@@ -385,24 +430,24 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
           e.printStackTrace();
           throw new IOException(e);
         }
-      
+
       try {
         bws.get(table).addMutation(mutation);
       } catch (MutationsRejectedException e) {
         throw new IOException(e);
       }
     }
-    
+
     public void addTable(Text tableName) throws AccumuloException, AccumuloSecurityException {
       if (simulate) {
         log.info("Simulating adding table: " + tableName);
         return;
       }
-      
+
       log.debug("Adding table: " + tableName);
       BatchWriter bw = null;
       String table = tableName.toString();
-      
+
       if (createTables && !conn.tableOperations().exists(table)) {
         try {
           conn.tableOperations().create(table);
@@ -413,7 +458,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
           // Shouldn't happen
         }
       }
-      
+
       try {
         bw = mtbw.getBatchWriter(table);
       } catch (TableNotFoundException e) {
@@ -424,11 +469,11 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       } catch (AccumuloSecurityException e) {
         throw e;
       }
-      
+
       if (bw != null)
         bws.put(tableName, bw);
     }
-    
+
     private int printMutation(Text table, Mutation m) {
       if (log.isTraceEnabled()) {
         log.trace(String.format("Table %s row key: %s", table, hexDump(m.getRow())));
@@ -440,7 +485,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       }
       return m.getUpdates().size();
     }
-    
+
     private String hexDump(byte[] ba) {
       StringBuilder sb = new StringBuilder();
       for (byte b : ba) {
@@ -451,13 +496,13 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       }
       return sb.toString();
     }
-    
+
     @Override
     public void close(Reporter reporter) throws IOException {
       log.debug("mutations written: " + mutCount + ", values written: " + valCount);
       if (simulate)
         return;
-      
+
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
@@ -471,25 +516,27 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
             }
             secCodes.addAll(ke.getValue());
           }
-          
+
           log.error("Not authorized to write to tables : " + tables);
         }
-        
+
         if (e.getConstraintViolationSummaries().size() > 0) {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
       }
     }
   }
-  
+
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
     if (!isConnectorInfoSet(job))
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      Connector c = getInstance(job).getConnector(getPrincipal(job), CredentialHelper.extractToken(getTokenClass(job), getToken(job)));
-      if (!c.securityOperations().authenticateUser(getPrincipal(job), CredentialHelper.extractToken(getTokenClass(job), getToken(job))))
+      String principal = getPrincipal(job);
+      AuthenticationToken token = getAuthenticationToken(job);
+      Connector c = getInstance(job).getConnector(principal, token);
+      if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
@@ -497,7 +544,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       throw new IOException(e);
     }
   }
-  
+
   @Override
   public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
     try {
@@ -506,5 +553,5 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       throw new IOException(e);
     }
   }
-  
+
 }

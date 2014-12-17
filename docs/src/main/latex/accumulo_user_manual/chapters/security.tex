@@ -29,8 +29,7 @@ When mutations are applied, users can specify a security label for each value. T
 done as the Mutation is created by passing a ColumnVisibility object to the put()
 method:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Text rowID = new Text("row1");
 Text colFam = new Text("myColFam");
 Text colQual = new Text("myColQual");
@@ -41,8 +40,7 @@ Value value = new Value("myValue");
 
 Mutation mutation = new Mutation(rowID);
 mutation.put(colFam, colQual, colVis, timestamp, value);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{Security Label Expression Syntax}
 
@@ -60,18 +58,15 @@ with a backslash.
 For example, suppose within our organization we want to label our data values with
 security labels defined in terms of user roles. We might have tokens such as:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 admin
 audit
 system
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 These can be specified alone or combined using logical operators:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 // Users must have admin privileges:
 admin
 
@@ -83,8 +78,7 @@ admin|audit
 
 // Users must have audit and one or both of admin or system
 (admin|system)&audit
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 When both \verb^|^ and \verb^&^ operators are used, parentheses must be used to specify
 precedence of the operators.
@@ -99,14 +93,12 @@ results sent back to the client.
 
 Authorizations are specified as a comma-separated list of tokens the user possesses:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 // user possess both admin and system level access
 Authorization auths = new Authorization("admin","system");
 
 Scanner s = connector.createScanner("table", auths);
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{User Authorizations}
 
@@ -124,11 +116,9 @@ enable this constraint. For existing tables use the following shell command to
 enable the visibility constraint. Ensure the constraint number does not
 conflict with any existing constraints.
   
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 config -t table -s table.constraint.1=org.apache.accumulo.core.security.VisibilityConstraint
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Any user with the alter table permission can add or remove this constraint.
 This constraint is not applied to bulk imported data, if this a concern then

@@ -40,4 +40,8 @@ public class FormatterFactory {
   public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     return getFormatter(DefaultFormatter.class, scanner, printTimestamps);
   }
+
+  private FormatterFactory() {
+    // prevent instantiation
+  }
 }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.SoftReference;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
@@ -55,18 +56,18 @@ public class CachableBlockFile {
     private BlockWrite _bw;
     private FSDataOutputStream fsout = null;
     
-    public Writer(FileSystem fs, Path fName, String compressAlgor, Configuration conf) throws IOException {
+    public Writer(FileSystem fs, Path fName, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.fsout = fs.create(fName);
-      init(fsout, compressAlgor, conf);
+      init(fsout, compressAlgor, conf, accumuloConfiguration);
     }
     
-    public Writer(FSDataOutputStream fsout, String compressAlgor, Configuration conf) throws IOException {
+    public Writer(FSDataOutputStream fsout, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.fsout = fsout;
-      init(fsout, compressAlgor, conf);
+      init(fsout, compressAlgor, conf, accumuloConfiguration);
     }
     
-    private void init(FSDataOutputStream fsout, String compressAlgor, Configuration conf) throws IOException {
-      _bc = new BCFile.Writer(fsout, compressAlgor, conf, false);
+    private void init(FSDataOutputStream fsout, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
     }
     
     public ABlockWriter prepareMetaBlock(String name) throws IOException {
@@ -130,7 +131,7 @@ public class CachableBlockFile {
     @Override
     public long getStartPos() throws IOException {
       return _ba.getStartPos();
-    }
+    }    
     
   }
   
@@ -149,6 +150,7 @@ public class CachableBlockFile {
     private FileSystem fs;
     private Configuration conf;
     private boolean closed = false;
+    private AccumuloConfiguration accumuloConfiguration = null;
     
     private interface BlockLoader {
       BlockReader get() throws IOException;
@@ -166,7 +168,7 @@ public class CachableBlockFile {
       
       @Override
       public BlockReader get() throws IOException {
-        return getBCFile().getDataBlock(blockIndex);
+        return getBCFile(accumuloConfiguration).getDataBlock(blockIndex);
       }
       
       @Override
@@ -190,7 +192,7 @@ public class CachableBlockFile {
       
       @Override
       public BlockReader get() throws IOException {
-        return getBCFile().getDataBlock(offset, compressedSize, rawSize);
+        return getBCFile(accumuloConfiguration).getDataBlock(offset, compressedSize, rawSize);
       }
       
       @Override
@@ -202,14 +204,16 @@ public class CachableBlockFile {
     private class MetaBlockLoader implements BlockLoader {
       
       private String name;
+      private AccumuloConfiguration accumuloConfiguration;
       
-      MetaBlockLoader(String name) {
+      MetaBlockLoader(String name, AccumuloConfiguration accumuloConfiguration) {
         this.name = name;
+        this.accumuloConfiguration = accumuloConfiguration;
       }
       
       @Override
       public BlockReader get() throws IOException {
-        return getBCFile().getMetaBlock(name);
+        return getBCFile(accumuloConfiguration).getMetaBlock(name);
       }
       
       @Override
@@ -218,7 +222,7 @@ public class CachableBlockFile {
       }
     }
     
-    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data, BlockCache index) throws IOException {
+    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data, BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
       
       /*
        * Grab path create input stream grab len create file
@@ -229,24 +233,25 @@ public class CachableBlockFile {
       this._iCache = index;
       this.fs = fs;
       this.conf = conf;
+      this.accumuloConfiguration = accumuloConfiguration;
     }
     
-    public Reader(FSDataInputStream fsin, long len, Configuration conf, BlockCache data, BlockCache index) throws IOException {
+    public Reader(FSDataInputStream fsin, long len, Configuration conf, BlockCache data, BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this._dCache = data;
       this._iCache = index;
-      init(fsin, len, conf);
+      init(fsin, len, conf, accumuloConfiguration);
     }
 
-    public Reader(FSDataInputStream fsin, long len, Configuration conf) throws IOException {
+    public Reader(FSDataInputStream fsin, long len, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
       // this.fin = fsin;
-      init(fsin, len, conf);
+      init(fsin, len, conf, accumuloConfiguration);
     }
     
-    private void init(FSDataInputStream fsin, long len, Configuration conf) throws IOException {
-      this._bc = new BCFile.Reader(this, fsin, len, conf);
+    private void init(FSDataInputStream fsin, long len, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this._bc = new BCFile.Reader(this, fsin, len, conf, accumuloConfiguration);
     }
     
-    private synchronized BCFile.Reader getBCFile() throws IOException {
+    private synchronized BCFile.Reader getBCFile(AccumuloConfiguration accumuloConfiguration) throws IOException {
       if (closed)
         throw new IllegalStateException("File " + fileName + " is closed");
       
@@ -254,7 +259,7 @@ public class CachableBlockFile {
         // lazily open file if needed
         Path path = new Path(fileName);
         fin = fs.open(path);
-        init(fin, fs.getFileStatus(path).getLen(), conf);
+        init(fin, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
       }
       
       return _bc;
@@ -364,7 +369,7 @@ public class CachableBlockFile {
      */
     public BlockRead getMetaBlock(String blockName) throws IOException {
       String _lookup = this.fileName + "M" + blockName;
-      return getBlock(_lookup, _iCache, new MetaBlockLoader(blockName));
+      return getBlock(_lookup, _iCache, new MetaBlockLoader(blockName, accumuloConfiguration));
     }
     
     @Override

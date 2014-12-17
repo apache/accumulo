@@ -55,7 +55,7 @@ public class CombinerTest {
   
   static Key nk(int row, int colf, int colq, long ts, boolean deleted) {
     Key k = nk(row, colf, colq, ts);
-    k.setDeleted(true);
+    k.setDeleted(deleted);
     return k;
   }
   

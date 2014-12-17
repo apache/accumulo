@@ -29,8 +29,8 @@ class CloudStone1(Benchmark):
                'and we can reach all the slaves. Lower is better.'
 
     def runTest(self):
-        code, out, err = cloudshell.run(self.username, self.password, 'table !METADATA\nscan\n')
-        self.assertEqual(code, 0, "Could not scan the !METADATA table. %s %s" % (out, err))
+        code, out, err = cloudshell.run(self.username, self.password, 'table accumulo.metadata\nscan\n')
+        self.assertEqual(code, 0, "Could not scan the metadata table. %s %s" % (out, err))
         results = runAll('echo help | %s shell -u %s -p %s' %
                          (accumulo('bin', 'accumulo'), self.username, self.password))
                          

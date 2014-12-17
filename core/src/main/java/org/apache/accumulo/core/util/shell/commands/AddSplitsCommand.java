@@ -22,13 +22,13 @@ import java.io.File;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class AddSplitsCommand extends Command {

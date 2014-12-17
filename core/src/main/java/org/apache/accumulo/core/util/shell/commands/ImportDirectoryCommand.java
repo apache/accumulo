@@ -16,19 +16,14 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 public class ImportDirectoryCommand extends Command {
   
@@ -45,17 +40,7 @@ public class ImportDirectoryCommand extends Command {
     String dir = cl.getArgs()[0];
     String failureDir = cl.getArgs()[1];
     final boolean setTime = Boolean.parseBoolean(cl.getArgs()[2]);
-    
-    final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    FileStatus failStatus = null;
-    try {
-      failStatus = fs.getFileStatus(new Path(failureDir));
-    } catch (FileNotFoundException ex) {
-      // ignored
-    }
-    if (failStatus == null || !failStatus.isDir() || fs.listStatus(new Path(failureDir)).length != 0) {
-      throw new AccumuloException(failureDir + " is not an empty directory");
-    }
+
     shellState.getConnector().tableOperations().importDirectory(shellState.getTableName(), dir, failureDir, setTime);
     return 0;
   }

@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -42,7 +42,7 @@ public class RegexExample extends Configured implements Tool {
       context.write(row, data);
     }
   }
-  
+
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names = "--rowRegex")
     String rowRegex;
@@ -55,42 +55,43 @@ public class RegexExample extends Configured implements Tool {
     @Parameter(names = "--output", required = true)
     String destination;
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
-    
-    Job job = new Job(getConf(), getClass().getSimpleName());
+
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(getClass().getSimpleName());
     job.setJarByClass(getClass());
-    
+
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
-    
+
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
     RegExFilter.setRegexs(regex, opts.rowRegex, opts.columnFamilyRegex, opts.columnQualifierRegex, opts.valueRegex, false);
     AccumuloInputFormat.addIterator(job, regex);
-    
+
     job.setMapperClass(RegexMapper.class);
     job.setMapOutputKeyClass(Key.class);
     job.setMapOutputValueClass(Value.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(TextOutputFormat.class);
     TextOutputFormat.setOutputPath(job, new Path(opts.destination));
-    
+
     System.out.println("setRowRegex: " + opts.rowRegex);
     System.out.println("setColumnFamilyRegex: " + opts.columnFamilyRegex);
     System.out.println("setColumnQualifierRegex: " + opts.columnQualifierRegex);
     System.out.println("setValueRegex: " + opts.valueRegex);
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(CachedConfiguration.getInstance(), new RegexExample(), args);
+    int res = ToolRunner.run(new Configuration(), new RegexExample(), args);
     if (res != 0)
       System.exit(res);
   }
