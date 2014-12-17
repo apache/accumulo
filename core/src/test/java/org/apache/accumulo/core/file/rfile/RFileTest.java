@@ -169,13 +169,13 @@ public class RFileTest {
 
   public static class TestRFile {
 
-    private Configuration conf = CachedConfiguration.getInstance();
+    protected Configuration conf = CachedConfiguration.getInstance();
     public RFile.Writer writer;
-    private ByteArrayOutputStream baos;
-    private FSDataOutputStream dos;
-    private SeekableByteArrayInputStream bais;
-    private FSDataInputStream in;
-    private AccumuloConfiguration accumuloConfiguration;
+    protected ByteArrayOutputStream baos;
+    protected FSDataOutputStream dos;
+    protected SeekableByteArrayInputStream bais;
+    protected FSDataInputStream in;
+    protected AccumuloConfiguration accumuloConfiguration;
     public Reader reader;
     public SortedKeyValueIterator<Key,Value> iter;
 
@@ -186,18 +186,25 @@ public class RFileTest {
     }
 
     public void openWriter(boolean startDLG) throws IOException {
+      openWriter(startDLG, 1000);
+    }
 
+    public void openWriter(boolean startDLG, int blockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf, accumuloConfiguration);
-      writer = new RFile.Writer(_cbw, 1000, 1000);
+      writer = new RFile.Writer(_cbw, blockSize, 1000);
 
       if (startDLG)
         writer.startDefaultLocalityGroup();
     }
 
     public void openWriter() throws IOException {
-      openWriter(true);
+      openWriter(true, 1000);
+    }
+
+    public void openWriter(int blockSize) throws IOException {
+      openWriter(true, blockSize);
     }
 
     public void closeWriter() throws IOException {
@@ -210,6 +217,10 @@ public class RFileTest {
     }
 
     public void openReader() throws IOException {
+      openReader(true);
+    }
+
+    public void openReader(boolean cfsi) throws IOException {
 
       int fileLength = 0;
       byte[] data = null;
@@ -224,7 +235,8 @@ public class RFileTest {
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
       reader = new RFile.Reader(_cbr);
-      iter = new ColumnFamilySkippingIterator(reader);
+      if (cfsi)
+        iter = new ColumnFamilySkippingIterator(reader);
 
       checkIndex(reader);
     }

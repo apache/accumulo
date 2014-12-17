@@ -18,6 +18,8 @@ package org.apache.accumulo.core.file.rfile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -47,6 +49,10 @@ public class PrintInfo implements KeywordExecutable {
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
+    @Parameter(names = {"-v", "--vis"}, description = "show visibility metrics")
+    boolean vis = false;
+    @Parameter(names = {"--visHash"}, description = "show visibilities as hashes, implies -v")
+    boolean hash = false;
     @Parameter(names = {"--histogram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
     @Parameter(description = " <file> { <file> ... }")
@@ -98,29 +104,46 @@ public class PrintInfo implements KeywordExecutable {
 
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(_rdr);
+      MetricsGatherer<Map<String, ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
+
+      if (opts.vis || opts.hash)
+        iter.registerMetrics(vmg);
 
       iter.printInfo();
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
 
-      if (opts.histogram || opts.dump) {
-        iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
-        while (iter.hasTop()) {
-          Key key = iter.getTopKey();
-          Value value = iter.getTopValue();
-          if (opts.dump)
-            System.out.println(key + " -> " + value);
-          if (opts.histogram) {
-            long size = key.getSize() + value.getSize();
-            int bucket = (int) Math.log10(size);
-            countBuckets[bucket]++;
-            sizeBuckets[bucket] += size;
-            totalSize += size;
+      Map<String, ArrayList<ByteSequence>> localityGroupCF = null;
+
+      if (opts.histogram || opts.dump || opts.vis || opts.hash) {
+        localityGroupCF = iter.getLocalityGroupCF();
+
+        for (Entry<String,ArrayList<ByteSequence>> cf : localityGroupCF.entrySet()) {
+
+          iter.seek(new Range((Key) null, (Key) null), cf.getValue(), true);
+          while (iter.hasTop()) {
+            Key key = iter.getTopKey();
+            Value value = iter.getTopValue();
+            if (opts.dump)
+              System.out.println(key + " -> " + value);
+            if (opts.histogram) {
+              long size = key.getSize() + value.getSize();
+              int bucket = (int) Math.log10(size);
+              countBuckets[bucket]++;
+              sizeBuckets[bucket] += size;
+              totalSize += size;
+            }
+            iter.next();
           }
-          iter.next();
         }
       }
+      System.out.println();
+
       iter.close();
+
+      if (opts.vis || opts.hash)
+        vmg.printMetrics(opts.hash, "Visibility", System.out);
+
       if (opts.histogram) {
         System.out.println("Up to size      count      %-age");
         for (int i = 1; i < countBuckets.length; i++) {

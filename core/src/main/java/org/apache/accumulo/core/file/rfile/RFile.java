@@ -554,6 +554,8 @@ public class RFile {
 
       if (entriesLeft == 0) {
         currBlock.close();
+        if (metricsGatherer != null)
+          metricsGatherer.startBlock();
 
         if (iiter.hasNext()) {
           IndexEntry indexEntry = iiter.next();
@@ -561,7 +563,7 @@ public class RFile {
           currBlock = getDataBlock(indexEntry);
 
           checkRange = range.afterEndKey(indexEntry.getKey());
-          if (!checkRange)
+    if (!checkRange)
             hasTop = true;
 
         } else {
@@ -575,6 +577,10 @@ public class RFile {
       prevKey = rk.getKey();
       rk.readFields(currBlock);
       val.readFields(currBlock);
+
+      if (metricsGatherer != null)
+        metricsGatherer.addMetric(rk.getKey(), val);
+
       entriesLeft--;
       if (checkRange)
         hasTop = !range.afterEndKey(rk.getKey());
@@ -760,6 +766,11 @@ public class RFile {
       while (hasTop() && range.beforeStartKey(getTopKey())) {
         next();
       }
+
+      if (metricsGatherer != null) {
+        metricsGatherer.startLocalityGroup(rk.getKey().getColumnFamily());
+        metricsGatherer.addMetric(rk.getKey(), val);
+      }
     }
 
     @Override
@@ -802,6 +813,12 @@ public class RFile {
     @Override
     public InterruptibleIterator getIterator() {
       return this;
+    }
+
+    private MetricsGatherer<?> metricsGatherer;
+
+    public void registerMetrics(MetricsGatherer<?> vmg) {
+      metricsGatherer = vmg;
     }
   }
 
@@ -973,7 +990,37 @@ public class RFile {
 
     }
 
+    public Map<String,ArrayList<ByteSequence>> getLocalityGroupCF() {
+      Map<String,ArrayList<ByteSequence>> cf = new HashMap<>();
+
+      for (LocalityGroupMetadata lcg : localityGroups) {
+        ArrayList<ByteSequence> setCF = new ArrayList<ByteSequence>();
+
+        for (Entry<ByteSequence,MutableLong> entry : lcg.columnFamilies.entrySet()) {
+          setCF.add(entry.getKey());
+        }
+
+        cf.put(lcg.name, setCF);
+      }
+
+      return cf;
+    }
+
     private int numLGSeeked = 0;
+
+    /**
+     * Method that registers the given MetricsGatherer. You can only register one as it will clobber any previously set. The MetricsGatherer should be
+     * registered before iterating through the LocalityGroups.
+     *
+     * @param vmg
+     *          MetricsGatherer to be registered with the LocalityGroupReaders
+     */
+    public void registerMetrics(MetricsGatherer<?> vmg) {
+      vmg.init(getLocalityGroupCF());
+      for (LocalityGroupReader lgr : lgReaders) {
+        lgr.registerMetrics(vmg);
+      }
+    }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
@@ -999,7 +1046,6 @@ public class RFile {
       for (LocalityGroupMetadata lgm : localityGroups) {
         lgm.printInfo();
       }
-
     }
 
     @Override
