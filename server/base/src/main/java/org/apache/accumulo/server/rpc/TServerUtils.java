@@ -69,6 +69,8 @@ public class TServerUtils {
   /**
    * Start a server, at the given port, or higher, if that port is not available.
    *
+   * @param service
+   *          RPC configuration
    * @param portHintProperty
    *          the port to attempt to open, can be zero, meaning "any available port"
    * @param processor
@@ -77,29 +79,46 @@ public class TServerUtils {
    *          the name of the class that is providing the service
    * @param threadName
    *          name this service's thread for better debugging
+   * @param portSearchProperty
+   *          A boolean Property to control if port-search should be used, or null to disable
+   * @param minThreadProperty
+   *          A Property to control the minimum number of threads in the pool
+   * @param timeBetweenThreadChecksProperty
+   *          A Property to control the amount of time between checks to resize the thread pool
+   * @param maxMessageSizeProperty
+   *          A Property to control the maximum Thrift message size accepted
    * @return the server object created, and the port actually used
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerAddress startServer(AccumuloServerContext service, String address, Property portHintProperty, TProcessor processor, String serverName,
+  public static ServerAddress startServer(AccumuloServerContext service, String hostname, Property portHintProperty, TProcessor processor, String serverName,
       String threadName, Property portSearchProperty, Property minThreadProperty, Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
       throws UnknownHostException {
-    int portHint = service.getConfiguration().getPort(portHintProperty);
+    final AccumuloConfiguration config = service.getConfiguration();
+
+    final int portHint = config.getPort(portHintProperty);
+
     int minThreads = 2;
     if (minThreadProperty != null)
-      minThreads = service.getConfiguration().getCount(minThreadProperty);
+      minThreads = config.getCount(minThreadProperty);
+
     long timeBetweenThreadChecks = 1000;
     if (timeBetweenThreadChecksProperty != null)
-      timeBetweenThreadChecks = service.getConfiguration().getTimeInMillis(timeBetweenThreadChecksProperty);
+      timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
+
     long maxMessageSize = 10 * 1000 * 1000;
     if (maxMessageSizeProperty != null)
-      maxMessageSize = service.getConfiguration().getMemoryInBytes(maxMessageSizeProperty);
+      maxMessageSize = config.getMemoryInBytes(maxMessageSizeProperty);
+
     boolean portSearch = false;
     if (portSearchProperty != null)
-      portSearch = service.getConfiguration().getBoolean(portSearchProperty);
+      portSearch = config.getBoolean(portSearchProperty);
+
+    final int simpleTimerThreadpoolSize = config.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
 
     // create the TimedProcessor outside the port search loop so we don't try to register the same metrics mbean more than once
-    TimedProcessor timedProcessor = new TimedProcessor(service.getConfiguration(), processor, serverName, threadName);
+    TimedProcessor timedProcessor = new TimedProcessor(config, processor, serverName, threadName);
+
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
 
@@ -115,9 +134,9 @@ public class TServerUtils {
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
         try {
-          HostAndPort addr = HostAndPort.fromParts(address, port);
+          HostAndPort addr = HostAndPort.fromParts(hostname, port);
           return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads,
-              service.getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), timeBetweenThreadChecks, maxMessageSize,
+              simpleTimerThreadpoolSize, timeBetweenThreadChecks, maxMessageSize,
               service.getServerSslParams(), service.getClientTimeoutInMillis());
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
@@ -144,8 +163,10 @@ public class TServerUtils {
    */
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor, final String serverName, String threadName,
       final int numThreads, final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
-    TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
-    CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
+
+    final TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
+    final CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
+
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
     options.maxReadBufferBytes = maxMessageSize;
@@ -177,11 +198,14 @@ public class TServerUtils {
         }
       }
     }, timeBetweenThreadChecks, timeBetweenThreadChecks);
+
     options.executorService(pool);
     options.processorFactory(new TProcessorFactory(processor));
+
     if (address.getPort() == 0) {
       address = HostAndPort.fromParts(address.getHostText(), transport.getPort());
     }
+
     return new ServerAddress(new CustomNonBlockingServer(options), address);
   }
 
@@ -195,7 +219,7 @@ public class TServerUtils {
    * @return A configured TThreadPoolServer
    */
   public static TThreadPoolServer createThreadPoolServer(TServerTransport transport, TProcessor processor) {
-    TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
+    final TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory());
     options.processorFactory(new ClientInfoProcessorFactory(clientAddress, processor));
@@ -224,7 +248,7 @@ public class TServerUtils {
       tServerSock = TSSLTransportFactory.getServerSocket(port, timeout, address, params.getTTransportParams());
     }
 
-    ServerSocket serverSock = tServerSock.getServerSocket();
+    final ServerSocket serverSock = tServerSock.getServerSocket();
     if (serverSock instanceof SSLServerSocket) {
       SSLServerSocket sslServerSock = (SSLServerSocket) serverSock;
       String[] protocols = params.getServerProtocols();
@@ -299,6 +323,7 @@ public class TServerUtils {
     } else {
       serverAddress = createNonBlockingServer(address, processor, serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
     }
+
     final TServer finalServer = serverAddress.server;
     Runnable serveTask = new Runnable() {
       @Override
@@ -310,9 +335,11 @@ public class TServerUtils {
         }
       }
     };
+
     serveTask = new LoggingRunnable(TServerUtils.log, serveTask);
     Thread thread = new Daemon(serveTask, threadName);
     thread.start();
+
     // check for the special "bind to everything address"
     if (serverAddress.address.getHostText().equals("0.0.0.0")) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
