@@ -34,6 +34,8 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
+import com.google.common.net.HostAndPort;
+
 public class MasterClient {
   private static final Logger log = Logger.getLogger(MasterClient.class);
 
@@ -57,8 +59,8 @@ public class MasterClient {
       return null;
     }
 
-    String master = locations.get(0);
-    if (master.endsWith(":0"))
+    HostAndPort master = HostAndPort.fromString(locations.get(0));
+    if (0 == master.getPort())
       return null;
 
     try {

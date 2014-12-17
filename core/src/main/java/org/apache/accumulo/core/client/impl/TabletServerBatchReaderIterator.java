@@ -70,6 +70,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import com.google.common.net.HostAndPort;
+
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
   
   private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
@@ -608,12 +610,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     timeoutTracker.startingScan();
     TTransport transport = null;
     try {
-      TabletClientService.Client client;
+      final HostAndPort parsedServer = HostAndPort.fromString(server);
+      final TabletClientService.Client client;
       if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-        client = ThriftUtil.getTServerClient(server, context, timeoutTracker.getTimeOut());
+        client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
       else
-        client = ThriftUtil.getTServerClient(server, context);
-      
+        client = ThriftUtil.getTServerClient(parsedServer, context);
+
       try {
         
         OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Starting multi scan, tserver=" + server + "  #tablets=" + requested.size() + "  #ranges="
@@ -628,8 +631,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             Translator.translate(columns, Translators.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
         if (waitForWrites)
-          ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
-        
+          ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
+
         MultiScanResult scanResult = imsr.result;
         
         opTimer.stop("Got 1st multi scan results, #results=" + scanResult.results.size() + (scanResult.more ? "  scanID=" + imsr.scanID : "")

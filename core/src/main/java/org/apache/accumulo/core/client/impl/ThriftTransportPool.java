@@ -385,11 +385,7 @@ public class ThriftTransportPool {
 
   private ThriftTransportPool() {}
 
-  public TTransport getTransportWithDefaultTimeout(String addr, ClientContext context) throws TTransportException {
-    return getTransport(addr, context.getClientTimeoutInMillis(), context);
-  }
-
-  public TTransport getTransport(String location, long milliseconds, ClientContext context) throws TTransportException {
+  public TTransport getTransport(HostAndPort location, long milliseconds, ClientContext context) throws TTransportException {
     return getTransport(new ThriftTransportKey(location, milliseconds, context));
   }
 
@@ -406,7 +402,7 @@ public class ThriftTransportPool {
       for (CachedConnection cachedConnection : ccl) {
         if (!cachedConnection.isReserved()) {
           cachedConnection.setReserved(true);
-          log.trace("Using existing connection to {}:{}", cacheKey.getLocation(), cacheKey.getPort());
+          log.trace("Using existing connection to {}", cacheKey.getServer());
           return cachedConnection.transport;
         }
       }
@@ -435,8 +431,9 @@ public class ThriftTransportPool {
             for (CachedConnection cachedConnection : getCache().get(ttk)) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
-                log.trace("Using existing connection to {}:{}", ttk.getLocation(), ttk.getPort());
-                return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
+                final String serverAddr = ttk.getServer().toString();
+                log.trace("Using existing connection to {}", serverAddr);
+                return new Pair<String,TTransport>(serverAddr, cachedConnection.transport);
               }
             }
           }
@@ -456,8 +453,9 @@ public class ThriftTransportPool {
             for (CachedConnection cachedConnection : cachedConnList) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
-                log.trace("Using existing connection to {}:{} timeout {}", ttk.getLocation(), ttk.getPort(), ttk.getTimeout());
-                return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
+                final String serverAddr = ttk.getServer().toString();
+                log.trace("Using existing connection to {} timeout {}", serverAddr, ttk.getTimeout());
+                return new Pair<String,TTransport>(serverAddr, cachedConnection.transport);
               }
             }
           }
@@ -465,7 +463,7 @@ public class ThriftTransportPool {
       }
 
       try {
-        return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), createNewTransport(ttk));
+        return new Pair<String,TTransport>(ttk.getServer().toString(), createNewTransport(ttk));
       } catch (TTransportException tte) {
         log.debug("Failed to connect to " + servers.get(index), tte);
         servers.remove(index);
@@ -477,10 +475,9 @@ public class ThriftTransportPool {
   }
 
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    TTransport transport = ThriftUtil.createClientTransport(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), (int) cacheKey.getTimeout(),
-        cacheKey.getSslParams());
+    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(), (int) cacheKey.getTimeout(), cacheKey.getSslParams());
 
-    log.trace("Creating new connection to connection to {}:{}", cacheKey.getLocation(), cacheKey.getPort());
+    log.trace("Creating new connection to connection to {}", cacheKey.getServer());
 
     CachedTTransport tsc = new CachedTTransport(transport, cacheKey);
 

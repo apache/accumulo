@@ -72,6 +72,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 /**
  *
@@ -167,11 +168,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       // trying to replicate it again later some other time.
       int numAttempts = localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS);
       for (int i = 0; i < numAttempts; i++) {
-        String peerTserver;
+        String peerTserverStr;
         Span span = Trace.start("Fetch peer tserver");
         try {
           // Ask the master on the remote what TServer we should talk with to replicate the data
-          peerTserver = ReplicationClient.executeCoordinatorWithReturn(peerContext, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
+          peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
 
             @Override
             public String execute(ReplicationCoordinator.Client client) throws Exception {
@@ -187,11 +188,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           span.stop();
         }
 
-        if (null == peerTserver) {
+        if (null == peerTserverStr) {
           // Something went wrong, and we didn't get a valid tserver from the remote for some reason
           log.warn("Did not receive tserver from master at {}, cannot proceed with replication. Will retry.", target);
           continue;
         }
+
+        final HostAndPort peerTserver = HostAndPort.fromString(peerTserverStr);
 
         // We have a tserver on the remote -- send the data its way.
         Status finalStatus;
@@ -217,7 +220,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
           return finalStatus;
         } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
-          log.warn("Could not connect to remote server {}, will retry", peerTserver, e);
+          log.warn("Could not connect to remote server {}, will retry", peerTserverStr, e);
           UtilWaitThread.sleep(1000);
         }
       }
@@ -231,7 +234,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateRFiles(ClientContext peerContext, final String peerTserver, final ReplicationTarget target,
+  protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target,
       final Path p, final Status status, final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper)
       throws TTransportException, AccumuloException, AccumuloSecurityException {
     DataInputStream input;
@@ -277,7 +280,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateLogs(ClientContext peerContext, final String peerTserver, final ReplicationTarget target,
+  protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target,
       final Path p, final Status status, final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper)
       throws TTransportException, AccumuloException, AccumuloSecurityException {
 
@@ -334,7 +337,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span.data("Batch size (bytes)", Long.toString(sizeLimit));
       span.data("File", p.toString());
       span.data("Peer instance name", peerContext.getInstance().getInstanceName());
-      span.data("Peer tserver", peerTserver);
+      span.data("Peer tserver", peerTserver.toString());
       span.data("Remote table ID", remoteTableId);
 
       ReplicationStats replResult;

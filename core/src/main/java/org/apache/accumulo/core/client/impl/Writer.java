@@ -38,6 +38,8 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
+import com.google.common.net.HostAndPort;
+
 public class Writer {
   
   private static final Logger log = Logger.getLogger(Writer.class);
@@ -55,8 +57,8 @@ public class Writer {
   public Writer(ClientContext context, String table) {
     this(context, new Text(table));
   }
-  
-  private static void updateServer(ClientContext context, Mutation m, KeyExtent extent, String server) throws TException, NotServingTabletException,
+
+  private static void updateServer(ClientContext context, Mutation m, KeyExtent extent, HostAndPort server) throws TException, NotServingTabletException,
       ConstraintViolationException, AccumuloSecurityException {
     checkArgument(m != null, "m is null");
     checkArgument(extent != null, "extent is null");
@@ -89,20 +91,21 @@ public class Writer {
         UtilWaitThread.sleep(500);
         continue;
       }
-      
+
+      final HostAndPort parsedLocation = HostAndPort.fromString(tabLoc.tablet_location);
       try {
-        updateServer(context, m, tabLoc.tablet_extent, tabLoc.tablet_location);
+        updateServer(context, m, tabLoc.tablet_extent, parsedLocation);
         return;
       } catch (NotServingTabletException e) {
-        log.trace("Not serving tablet, server = " + tabLoc.tablet_location);
+        log.trace("Not serving tablet, server = " + parsedLocation);
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
       } catch (ConstraintViolationException cve) {
-        log.error("error sending update to " + tabLoc.tablet_location + ": " + cve);
+        log.error("error sending update to " + parsedLocation + ": " + cve);
         // probably do not need to invalidate cache, but it does not hurt
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
         throw cve;
       } catch (TException e) {
-        log.error("error sending update to " + tabLoc.tablet_location + ": " + e);
+        log.error("error sending update to " + parsedLocation + ": " + e);
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
       }
       

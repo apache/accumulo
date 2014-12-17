@@ -105,7 +105,7 @@ public class ReplicationClient {
 
     try {
       // Master requests can take a long time: don't ever time out
-      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(), coordinatorAddr.toString(), context);
+      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(), coordinatorAddr, context);
       return client;
     } catch (TTransportException tte) {
       log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr, tte);
@@ -122,7 +122,7 @@ public class ReplicationClient {
    *          Server to connect to
    * @return A ReplicationServicer client to the given host in the given instance
    */
-  public static ReplicationServicer.Client getServicerConnection(ClientContext context, String server) throws TTransportException {
+  public static ReplicationServicer.Client getServicerConnection(ClientContext context, HostAndPort server) throws TTransportException {
     checkNotNull(context);
     checkNotNull(server);
 
@@ -202,7 +202,7 @@ public class ReplicationClient {
     }
   }
 
-  public static <T> T executeServicerWithReturn(ClientContext context, String tserver, ClientExecReturn<T,ReplicationServicer.Client> exec)
+  public static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver, ClientExecReturn<T,ReplicationServicer.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TTransportException {
     ReplicationServicer.Client client = null;
     while (true) {
@@ -222,7 +222,7 @@ public class ReplicationClient {
     }
   }
 
-  public static void executeServicer(ClientContext context, String tserver, ClientExec<ReplicationServicer.Client> exec) throws AccumuloException,
+  public static void executeServicer(ClientContext context, HostAndPort tserver, ClientExec<ReplicationServicer.Client> exec) throws AccumuloException,
       AccumuloSecurityException, TTransportException {
     ReplicationServicer.Client client = null;
     try {

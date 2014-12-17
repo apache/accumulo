@@ -2238,12 +2238,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     return sp.address;
   }
 
-  private String getMasterAddress() {
+  private HostAndPort getMasterAddress() {
     try {
       List<String> locations = getInstance().getMasterLocations();
       if (locations.size() == 0)
         return null;
-      return locations.get(0);
+      return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
       log.warn("Failed to obtain master host " + e);
     }
@@ -2252,7 +2252,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   // Connect to the master for posting asynchronous results
-  private MasterClientService.Client masterConnection(String address) {
+  private MasterClientService.Client masterConnection(HostAndPort address) {
     try {
       if (address == null) {
         return null;
@@ -2438,7 +2438,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     };
     SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
 
-    String masterHost;
+    HostAndPort masterHost;
     while (!serverStopRequested) {
       // send all of the pending messages
       try {

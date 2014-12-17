@@ -533,10 +533,11 @@ public class Monitor {
       this.fetched = System.currentTimeMillis();
     }
   }
-  static final Map<String, ScanStats> allScans = new HashMap<String, ScanStats>();
-  public static Map<String, ScanStats> getScans() {
+
+  static final Map<HostAndPort,ScanStats> allScans = new HashMap<HostAndPort,ScanStats>();
+  public static Map<HostAndPort, ScanStats> getScans() {
     synchronized (allScans) {
-      return new TreeMap<String, ScanStats>(allScans);
+      return new TreeMap<HostAndPort, ScanStats>(allScans);
     }
   }
 
@@ -545,11 +546,12 @@ public class Monitor {
       return;
     Connector c = context.getConnector();
     for (String server : c.instanceOperations().getTabletServers()) {
-      Client tserver = ThriftUtil.getTServerClient(server, context);
+      final HostAndPort parsedServer = HostAndPort.fromString(server);
+      Client tserver = ThriftUtil.getTServerClient(parsedServer, context);
       try {
         List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
         synchronized (allScans) {
-          allScans.put(server, new ScanStats(scans));
+          allScans.put(parsedServer, new ScanStats(scans));
         }
       } catch (Exception ex) {
         log.debug("Failed to get active scans from {}", server, ex);
@@ -558,10 +560,10 @@ public class Monitor {
       }
     }
     // Age off old scan information
-    Iterator<Entry<String,ScanStats>> entryIter = allScans.entrySet().iterator();
+    Iterator<Entry<HostAndPort,ScanStats>> entryIter = allScans.entrySet().iterator();
     long now = System.currentTimeMillis();
     while (entryIter.hasNext()) {
-      Entry<String,ScanStats> entry = entryIter.next();
+      Entry<HostAndPort,ScanStats> entry = entryIter.next();
       if (now - entry.getValue().fetched > 5 * 60 * 1000) {
         entryIter.remove();
       }

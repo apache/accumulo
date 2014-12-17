@@ -71,6 +71,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
+import com.google.common.net.HostAndPort;
+
 /*
  * Differences from previous TabletServerBatchWriter
  *   + As background threads finish sending mutations to tablet servers they decrement memory usage
@@ -841,13 +843,14 @@ public class TabletServerBatchWriter {
       timeoutTracker.startingWrite();
       
       try {
-        TabletClientService.Iface client;
-        
+        final HostAndPort parsedServer = HostAndPort.fromString(location);
+        final TabletClientService.Iface client;
+
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-          client = ThriftUtil.getTServerClient(location, context, timeoutTracker.getTimeOut());
+          client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
         else
-          client = ThriftUtil.getTServerClient(location, context);
-        
+          client = ThriftUtil.getTServerClient(parsedServer, context);
+
         try {
           MutationSet allFailures = new MutationSet();
           

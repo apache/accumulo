@@ -48,6 +48,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import com.google.common.net.HostAndPort;
+
 /**
  * Provides a class for administering the accumulo instance
  */
@@ -124,9 +126,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
+    final HostAndPort parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, context);
+      client = ThriftUtil.getTServerClient(parsedTserver, context);
 
       List<ActiveScan> as = new ArrayList<ActiveScan>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), context.rpcCreds())) {
@@ -161,9 +164,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
+    final HostAndPort parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, context);
+      client = ThriftUtil.getTServerClient(parsedTserver, context);
 
       List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(), context.rpcCreds())) {

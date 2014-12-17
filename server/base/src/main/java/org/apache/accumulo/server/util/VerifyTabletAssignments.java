@@ -57,6 +57,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.net.HostAndPort;
 
 public class VerifyTabletAssignments {
   private static final Logger log = Logger.getLogger(VerifyTabletAssignments.class);
@@ -91,9 +92,9 @@ public class VerifyTabletAssignments {
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
-    
-    Map<String,List<KeyExtent>> extentsPerServer = new TreeMap<String,List<KeyExtent>>();
-    
+
+    Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<HostAndPort,List<KeyExtent>>();
+
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       KeyExtent keyExtent = entry.getKey();
       String loc = entry.getValue();
@@ -103,10 +104,11 @@ public class VerifyTabletAssignments {
         System.out.println(" Tablet " + keyExtent + " is located at " + loc);
       
       if (loc != null) {
-        List<KeyExtent> extentList = extentsPerServer.get(loc);
+        final HostAndPort parsedLoc = HostAndPort.fromString(loc);
+        List<KeyExtent> extentList = extentsPerServer.get(parsedLoc);
         if (extentList == null) {
           extentList = new ArrayList<KeyExtent>();
-          extentsPerServer.put(loc, extentList);
+          extentsPerServer.put(parsedLoc, extentList);
         }
         
         if (check == null || check.contains(keyExtent))
@@ -115,7 +117,7 @@ public class VerifyTabletAssignments {
     }
     
     ExecutorService tp = Executors.newFixedThreadPool(20);
-    for (final Entry<String,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
+    for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = new Runnable() {
         
         @Override
@@ -140,16 +142,16 @@ public class VerifyTabletAssignments {
     if (failures.size() > 0)
       checkTable(context, opts, tableName, failures);
   }
-  
-  private static void checkFailures(String server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {
+
+  private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {
     for (TKeyExtent tke : scanResult.failures.keySet()) {
       KeyExtent ke = new KeyExtent(tke);
       System.out.println(" Tablet " + ke + " failed at " + server);
       failures.add(ke);
     }
   }
-  
-  private static void checkTabletServer(ClientContext context, Entry<String,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
+
+  private static void checkTabletServer(ClientContext context, Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
       throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), context);
     

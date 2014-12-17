@@ -59,6 +59,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
+
 /**
  * ACCUMULO-3302 series of tests which ensure that a WAL is prematurely closed when a TServer may still continue to use it. Checking that no tablet references a
  * WAL is insufficient to determine if a WAL will never be used in the future.
@@ -403,7 +405,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     Assert.assertEquals("Expected only one active tservers", 1, tservers.size());
 
-    String tserver = tservers.get(0);
+    HostAndPort tserver = HostAndPort.fromString(tservers.get(0));
 
     // Get the active WALs from that server
     log.info("Fetching active WALs from {}", tserver);

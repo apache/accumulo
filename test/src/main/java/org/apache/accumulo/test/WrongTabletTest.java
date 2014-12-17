@@ -31,6 +31,7 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.net.HostAndPort;
 
 public class WrongTabletTest {
 
@@ -43,16 +44,17 @@ public class WrongTabletTest {
     final Opts opts = new Opts();
     opts.parseArgs(WrongTabletTest.class.getName(), args);
 
-    Instance inst = opts.getInstance();
-    ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
-    ClientContext context = new AccumuloServerContext(conf) {
+    final HostAndPort location = HostAndPort.fromString(opts.location);
+    final Instance inst = opts.getInstance();
+    final ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
+    final ClientContext context = new AccumuloServerContext(conf) {
       @Override
       public synchronized Credentials getCredentials() {
         return new Credentials(opts.principal, opts.getToken());
       }
     };
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(opts.location, context);
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context);
 
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       mutation.putDelete(new Text("colf"), new Text("colq"));

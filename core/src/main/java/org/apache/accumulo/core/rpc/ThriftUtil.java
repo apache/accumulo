@@ -87,20 +87,6 @@ public class ThriftUtil {
   }
 
   /**
-   * Create a Thrift client using the given factory with a pooled transport (if available), the address and client context
-   *
-   * @param factory
-   *          Thrift client factory
-   * @param address
-   *          Server address for client to connect to
-   * @param context
-   *          RPC options
-   */
-  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context) throws TTransportException {
-    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address.toString(), context));
-  }
-
-  /**
    * Create a Thrift client using the given factory with a pooled transport (if available), the address, and client context with no timeout.
    *
    * @param factory
@@ -110,7 +96,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, ClientContext context)
+  public static <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context)
       throws TTransportException {
     return getClient(factory, address, context, 0);
   }
@@ -126,7 +112,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context) throws TTransportException {
+  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context) throws TTransportException {
     TTransport transport = ThriftTransportPool.getInstance().getTransport(address, context.getClientTimeoutInMillis(), context);
     return createClient(factory, transport);
   }
@@ -143,7 +129,7 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  private static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, ClientContext context, long timeout)
+  private static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context, long timeout)
       throws TTransportException {
     TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, context);
     return createClient(factory, transport);
@@ -169,7 +155,7 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static TabletClientService.Client getTServerClient(String address, ClientContext context) throws TTransportException {
+  public static TabletClientService.Client getTServerClient(HostAndPort address, ClientContext context) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context);
   }
 
@@ -183,7 +169,7 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  public static TabletClientService.Client getTServerClient(String address, ClientContext context, long timeout) throws TTransportException {
+  public static TabletClientService.Client getTServerClient(HostAndPort address, ClientContext context, long timeout) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context, timeout);
   }
 
@@ -198,7 +184,7 @@ public class ThriftUtil {
    * @param exec
    *          The closure to execute
    */
-  public static void execute(String address, ClientContext context, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
+  public static void execute(HostAndPort address, ClientContext context, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
       TabletClientService.Client client = null;
@@ -231,7 +217,7 @@ public class ThriftUtil {
    *          Closure with a return value to execute
    * @return The result from the closure
    */
-  public static <T> T execute(String address, ClientContext context, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
+  public static <T> T execute(HostAndPort address, ClientContext context, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
       TabletClientService.Client client = null;

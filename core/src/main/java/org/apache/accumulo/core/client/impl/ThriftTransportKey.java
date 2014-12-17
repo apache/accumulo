@@ -16,43 +16,34 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 
+import com.google.common.net.HostAndPort;
+
 class ThriftTransportKey {
-  private final String location;
-  private final int port;
+  private final HostAndPort server;
   private final long timeout;
   private final SslConnectionParams sslParams;
-  
+
   private int hash = -1;
-  
-  ThriftTransportKey(String location, long timeout, ClientContext context) {
-    checkArgument(location != null, "location is null");
-    String[] locationAndPort = location.split(":", 2);
-    if (locationAndPort.length == 2) {
-      this.location = locationAndPort[0];
-      this.port = Integer.parseInt(locationAndPort[1]);
-    } else
-      throw new IllegalArgumentException("Location was expected to contain port but did not. location=" + location);
-    
+
+  ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
+    checkNotNull(server, "location is null");
+    this.server = server;
     this.timeout = timeout;
     this.sslParams = context.getClientSslParams();
   }
-  
-  String getLocation() {
-    return location;
+
+  HostAndPort getServer() {
+    return server;
   }
-  
-  int getPort() {
-    return port;
-  }
-  
+
   long getTimeout() {
     return timeout;
   }
-  
+
   public boolean isSsl() {
     return sslParams != null;
   }
@@ -62,19 +53,19 @@ class ThriftTransportKey {
     if (!(o instanceof ThriftTransportKey))
       return false;
     ThriftTransportKey ttk = (ThriftTransportKey) o;
-    return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)));
+    return server.equals(ttk.server) && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)));
   }
-  
+
   @Override
   public int hashCode() {
     if (hash == -1)
       hash = toString().hashCode();
     return hash;
   }
-  
+
   @Override
   public String toString() {
-    return (isSsl()?"ssl:":"") + location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ")";
+    return (isSsl() ? "ssl:" : "") + server + " (" + Long.toString(timeout) + ")";
   }
 
   public SslConnectionParams getSslParams() {

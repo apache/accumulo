@@ -65,6 +65,8 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 
+import com.google.common.net.HostAndPort;
+
 public class ThriftScanner {
   private static final Logger log = Logger.getLogger(ThriftScanner.class);
   
@@ -81,10 +83,11 @@ public class ThriftScanner {
       Authorizations authorizations, boolean retry) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
-    
+
+    final HostAndPort parsedServer = HostAndPort.fromString(server);
     try {
       TInfo tinfo = Tracer.traceInfo();
-      TabletClientService.Client client = ThriftUtil.getTServerClient(server, context);
+      TabletClientService.Client client = ThriftUtil.getTServerClient(parsedServer, context);
       try {
         // not reading whole rows (or stopping on row boundries) so there is no need to enable isolation below
         ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
@@ -375,10 +378,11 @@ public class ThriftScanner {
       return null;
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE);
-    
-    TInfo tinfo = Tracer.traceInfo();
-    TabletClientService.Client client = ThriftUtil.getTServerClient(loc.tablet_location, context);
-    
+
+    final TInfo tinfo = Tracer.traceInfo();
+    final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
+    TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
+
     String old = Thread.currentThread().getName();
     try {
       ScanResult sr;

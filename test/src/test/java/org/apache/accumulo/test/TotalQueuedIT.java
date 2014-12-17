@@ -38,6 +38,8 @@ import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
+import com.google.common.net.HostAndPort;
+
 // see ACCUMULO-1950
 public class TotalQueuedIT extends ConfigurableMacIT {
   
@@ -119,7 +121,7 @@ public class TotalQueuedIT extends ConfigurableMacIT {
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(c.getInstance());
     AccumuloServerContext context = new AccumuloServerContext(confFactory);
     for (String address : c.instanceOperations().getTabletServers()) {
-      TabletClientService.Client client = ThriftUtil.getTServerClient(address, context);
+      TabletClientService.Client client = ThriftUtil.getTServerClient(HostAndPort.fromString(address), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

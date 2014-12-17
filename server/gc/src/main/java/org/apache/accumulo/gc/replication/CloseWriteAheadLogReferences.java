@@ -295,12 +295,12 @@ public class CloseWriteAheadLogReferences implements Runnable {
     bw.addMutation(m);
   }
 
-  private String getMasterAddress() {
+  private HostAndPort getMasterAddress() {
     try {
       List<String> locations = context.getInstance().getMasterLocations();
       if (locations.size() == 0)
         return null;
-      return locations.get(0);
+      return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
       log.warn("Failed to obtain master host " + e);
     }
@@ -309,7 +309,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
   }
 
   private MasterClientService.Client getMasterConnection() {
-    final String address = getMasterAddress();
+    final HostAndPort address = getMasterAddress();
     try {
       if (address == null) {
         log.warn("Could not fetch Master address");

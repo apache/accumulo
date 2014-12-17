@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -63,6 +62,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -118,6 +118,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 import com.google.common.base.Joiner;
+import com.google.common.net.HostAndPort;
 
 public class TableOperationsImpl extends TableOperationsHelper {
 
@@ -494,12 +495,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         }
 
+        HostAndPort address = HostAndPort.fromString(tl.tablet_location);
+
         try {
-          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, context);
+          TabletClientService.Client client = ThriftUtil.getTServerClient(address, context);
           try {
             OpTimer opTimer = null;
             if (log.isTraceEnabled())
-              opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location + " at " + split);
+              opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + address + " at " + split);
 
             client.splitTablet(Tracer.traceInfo(), context.rpcCreds(), tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
 
@@ -513,7 +516,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           }
 
         } catch (TApplicationException tae) {
-          throw new AccumuloServerException(tl.tablet_location, tae);
+          throw new AccumuloServerException(address.toString(), tae);
         } catch (TTransportException e) {
           tabLocator.invalidateCache(context.getInstance(), tl.tablet_location);
           continue;
