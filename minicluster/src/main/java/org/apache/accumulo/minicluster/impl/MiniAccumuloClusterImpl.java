@@ -286,8 +286,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
       argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
     }
-    argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", "-Dapple.awt.UIElement=true", Main.class.getName(),
-        className));
+    argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", "-Dapple.awt.UIElement=true",
+        "-Djava.net.preferIPv4Stack=true", Main.class.getName(), className));
     argList.addAll(Arrays.asList(args));
 
     ProcessBuilder builder = new ProcessBuilder(argList);
