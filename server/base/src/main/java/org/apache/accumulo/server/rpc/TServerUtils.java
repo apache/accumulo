@@ -135,9 +135,8 @@ public class TServerUtils {
           port = 1024 + port % (65535 - 1024);
         try {
           HostAndPort addr = HostAndPort.fromParts(hostname, port);
-          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads,
-              simpleTimerThreadpoolSize, timeBetweenThreadChecks, maxMessageSize,
-              service.getServerSslParams(), service.getClientTimeoutInMillis());
+          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, simpleTimerThreadpoolSize, timeBetweenThreadChecks,
+              maxMessageSize, service.getServerSslParams(), service.getClientTimeoutInMillis());
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
           if (ex.getCause() == null || ex.getCause().getClass() == BindException.class) {
@@ -238,7 +237,6 @@ public class TServerUtils {
    * @param params
    *          SSL parameters
    * @return A configured TServerSocket configured to use SSL
-   * @throws TTransportException
    */
   public static TServerSocket getSslServerSocket(int port, int timeout, InetAddress address, SslConnectionParams params) throws TTransportException {
     TServerSocket tServerSock;
@@ -283,7 +281,6 @@ public class TServerUtils {
    * @param sslParams
    *          SSL parameters
    * @return A ServerAddress with the bound-socket information and the Thrift server
-   * @throws TTransportException
    */
   public static ServerAddress createSslThreadPoolServer(HostAndPort address, TProcessor processor, long socketTimeout, SslConnectionParams sslParams)
       throws TTransportException {

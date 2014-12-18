@@ -21,7 +21,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
 /**
- * {@link TCompactProtocol.Factory} implementation which injects {@link TraceProtocol} instead of {@link TCompactProtocol}
+ * {@link org.apache.thrift.protocol.TCompactProtocol.Factory} implementation which injects {@link TraceProtocol} instead of {@link TCompactProtocol}
  */
 public class TraceProtocolFactory extends TCompactProtocol.Factory {
   private static final long serialVersionUID = 1L;

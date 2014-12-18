@@ -71,7 +71,7 @@ public class ThriftUtil {
   }
 
   /**
-   * An instance of {@link TFramedTransport.Factory}
+   * An instance of {@link org.apache.thrift.transport.TFramedTransport.Factory}
    *
    * @return The default Thrift TTransportFactory for RPC
    */
