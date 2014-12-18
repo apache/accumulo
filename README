@@ -232,11 +232,21 @@ Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclo
 file to ensure that, in the face of unexpected power loss to a datanode, files are 
 wholly synced to disk.
 
-The example accumulo configuration files are placed in directories based on the 
-memory footprint for the accumulo processes.  If you are using native libraries
-for you tablet server in-memory map, then you can use the files in "native-standalone".
-If you get warnings about not being able to load the native libraries, you can
-use the configuration files in "standalone".
+Accumulo's own configuration files can be bootstrapped with the
+$ACCUMULO_HOME/bin/bootstrap_config.sh script. This script will allow you to
+select options which correspond closely to your particular environment. The
+configuration files produced by this script are examples. You should always
+inspect any configuration files you use to ensure they are appropriate for your
+environment, and to tailor them to your needs, as they are not guaranteed to be
+suitable for all users and all environments.
+
+Some example accumulo configuration files are placed in directories based on the
+memory footprint for the accumulo processes. These are pre-generated from
+particular selections from the bootstrap_config.sh script for your convenience.
+If you are using native libraries for you tablet server in-memory map, then you
+can use the files in "native-standalone".  If you get warnings about not being
+able to load the native libraries, you can use the configuration files in
+"standalone".
 
 For testing on a single computer, use a fairly small configuration:
 
