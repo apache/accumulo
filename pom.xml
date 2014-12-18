@@ -383,7 +383,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.6.1</version>
+          <version>0.7.0</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -484,7 +484,7 @@
           <!-- Work around MRELEASE-812 -->
           <version>2.5</version>
           <configuration>
-            <arguments>-P apache-release,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
+            <arguments>-Dmavanagaiata.dirtyFlag=false -P apache-release,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean compile javadoc:aggregate deploy</goals>
             <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
