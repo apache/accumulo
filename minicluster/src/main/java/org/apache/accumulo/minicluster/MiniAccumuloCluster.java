@@ -149,7 +149,7 @@ public class MiniAccumuloCluster {
     ArrayList<String> argList = new ArrayList<String>();
     
     argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75",
-        "-Dapple.awt.UIElement=true", Main.class.getName(), className));
+        "-Dapple.awt.UIElement=true", "-Djava.net.preferIPv4Stack=true", Main.class.getName(), className));
     
     argList.addAll(Arrays.asList(args));
     
