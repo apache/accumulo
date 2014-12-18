@@ -16,36 +16,40 @@
  */
 package org.apache.accumulo.minicluster;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.junit.After;
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 public class MiniAccumuloClusterStartStopTest {
-  
-  public TemporaryFolder folder = new TemporaryFolder();
-  
+
+  private File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
+  private File testDir;
+
+  @Rule
+  public TestName testName = new TestName();
+
   @Before
   public void createMacDir() throws IOException {
-    folder.create();
+    baseDir.mkdirs();
+    testDir = new File(baseDir, testName.getMethodName());
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
   }
-  
-  @After
-  public void deleteMacDir() {
-    folder.delete();
-  }
-  
+
   @Test
   public void multipleStartsThrowsAnException() throws Exception {
-    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
+    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(testDir, "superSecret");
     accumulo.start();
-    
+
     try {
       accumulo.start();
       Assert.fail("Invoking start() while already started is an error");
@@ -55,12 +59,12 @@ public class MiniAccumuloClusterStartStopTest {
       accumulo.stop();
     }
   }
-  
+
   @Test
   public void multipleStopsIsAllowed() throws Exception {
-    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
+    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(testDir, "superSecret");
     accumulo.start();
-    
+
     Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
     conn.tableOperations().create("foo");
 
