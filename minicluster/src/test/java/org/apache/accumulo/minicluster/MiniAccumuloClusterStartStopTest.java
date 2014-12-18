@@ -16,31 +16,35 @@
  */
 package org.apache.accumulo.minicluster;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Connector;
-import org.junit.After;
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 public class MiniAccumuloClusterStartStopTest {
 
-  public TemporaryFolder folder = new TemporaryFolder();
+  private File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
+  private File testDir;
+
+  @Rule
+  public TestName testName = new TestName();
 
   @Before
   public void createMacDir() throws IOException {
-    folder.create();
-  }
-
-  @After
-  public void deleteMacDir() {
-    folder.delete();
+    baseDir.mkdirs();
+    testDir = new File(baseDir, testName.getMethodName());
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
   }
 
   @Test
   public void multipleStartsDoesntThrowAnException() throws Exception {
-    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
+    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(testDir, "superSecret");
 
     // In 1.6.0, multiple start's did not throw an exception as advertised
     try {
@@ -53,7 +57,7 @@ public class MiniAccumuloClusterStartStopTest {
 
   @Test
   public void multipleStopsIsAllowed() throws Exception {
-    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
+    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(testDir, "superSecret");
     accumulo.start();
 
     Connector conn = accumulo.getConnector("root", "superSecret");
