@@ -75,7 +75,6 @@
     <module>trace</module>
     <module>core</module>
     <module>shell</module>
-    <module>mapreduce</module>
     <module>fate</module>
     <module>start</module>
     <module>examples/simple</module>
@@ -255,11 +254,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-gc</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-mapreduce</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
