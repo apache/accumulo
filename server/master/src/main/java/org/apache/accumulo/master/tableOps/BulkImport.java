@@ -185,11 +185,11 @@ public class BulkImport extends MasterRepo {
   private Path createNewBulkDir(VolumeManager fs, String tableId) throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs());
     if (tempPath == null)
-      throw new IllegalStateException(sourceDir + " is not in a known namespace");
+      throw new IOException(sourceDir + " is not in a volume configured for Accumulo");
 
     String tableDir = tempPath.toString();
     if (tableDir == null)
-      throw new IllegalStateException(sourceDir + " is not in a known namespace");
+      throw new IOException(sourceDir + " is not in a volume configured for Accumulo");
     Path directory = new Path(tableDir + "/" + tableId);
     fs.mkdirs(directory);
 
@@ -204,7 +204,7 @@ public class BulkImport extends MasterRepo {
     while (true) {
       Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
       if (fs.exists(newBulkDir)) // sanity check
-        throw new IllegalStateException("Dir exist when it should not " + newBulkDir);
+        throw new IOException("Dir exist when it should not " + newBulkDir);
       if (fs.mkdirs(newBulkDir))
         return newBulkDir;
       log.warn("Failed to create " + newBulkDir + " for unknown reason");

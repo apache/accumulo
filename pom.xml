@@ -627,7 +627,7 @@
           <!-- Work around MRELEASE-812 -->
           <version>2.5</version>
           <configuration>
-            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
+            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2 -Dmavanagaiata.dirtyFlag=false</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
