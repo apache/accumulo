@@ -246,9 +246,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
           if (classLoader instanceof URLClassLoader) {
 
-            URLClassLoader ucl = (URLClassLoader) classLoader;
-
-            for (URL u : ucl.getURLs()) {
+            for (URL u : ((URLClassLoader) classLoader).getURLs()) {
               append(classpathBuilder, u);
             }
 
