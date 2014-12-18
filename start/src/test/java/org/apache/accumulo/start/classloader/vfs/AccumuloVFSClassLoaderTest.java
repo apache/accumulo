@@ -23,6 +23,7 @@ import java.net.URLClassLoader;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.junit.After;
 import org.junit.Assert;
@@ -126,4 +127,83 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
   }
 
+  @Test
+  public void testDefaultCacheDirectory() throws Exception {
+
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
+
+    File conf = folder1.newFile("accumulo-site.xml");
+    FileWriter out = new FileWriter(conf);
+    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    out.append("<configuration>\n");
+    out.append("<property>\n");
+    out.append("<name>general.classpaths</name>\n");
+    out.append("<value></value>\n");
+    out.append("</property>\n");
+    out.append("<property>\n");
+    out.append("<name>general.vfs.classpaths</name>\n");
+    out.append("<value></value>\n");
+    out.append("</property>\n");
+    out.append("</configuration>\n");
+    out.close();
+
+    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
+    AccumuloVFSClassLoader.getClassLoader();
+    AccumuloReloadingVFSClassLoader loader = Whitebox.getInternalState(AccumuloVFSClassLoader.class, "loader");
+    DefaultFileSystemManager manager = Whitebox.getInternalState(loader, "vfs");
+    UniqueFileReplicator replicator = Whitebox.getInternalState(manager, "fileReplicator");
+    File tempDir = Whitebox.getInternalState(replicator, "tempDir");
+    String tempDirParent = tempDir.getParent();
+    String tempDirName = tempDir.getName();
+    String javaIoTmpDir = System.getProperty("java.io.tmpdir");
+
+    // trim off any final separator, because java.io.File does the same.
+    if (javaIoTmpDir.endsWith(File.separator)) {
+      javaIoTmpDir = javaIoTmpDir.substring(0, javaIoTmpDir.length() - File.separator.length());
+    }
+
+    Assert.assertTrue(javaIoTmpDir.equals(tempDirParent));
+    Assert.assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
+    Assert.assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
+
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
+  }
+
+  @Test
+  public void testCacheDirectoryConfigured() throws Exception {
+
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
+    String cacheDir = "/some/random/cache/dir";
+
+    File conf = folder1.newFile("accumulo-site.xml");
+    FileWriter out = new FileWriter(conf);
+    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    out.append("<configuration>\n");
+    out.append("<property>\n");
+    out.append("<name>general.classpaths</name>\n");
+    out.append("<value></value>\n");
+    out.append("</property>\n");
+    out.append("<property>\n");
+    out.append("<name>" + AccumuloVFSClassLoader.VFS_CACHE_DIR + "</name>\n");
+    out.append("<value>" + cacheDir + "</value>\n");
+    out.append("</property>\n");
+    out.append("</configuration>\n");
+    out.close();
+
+    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
+    AccumuloVFSClassLoader.getClassLoader();
+    AccumuloReloadingVFSClassLoader loader = Whitebox.getInternalState(AccumuloVFSClassLoader.class, "loader");
+    DefaultFileSystemManager manager = Whitebox.getInternalState(loader, "vfs");
+    UniqueFileReplicator replicator = Whitebox.getInternalState(manager, "fileReplicator");
+    File tempDir = Whitebox.getInternalState(replicator, "tempDir");
+    String tempDirParent = tempDir.getParent();
+    String tempDirName = tempDir.getName();
+    Assert.assertTrue(cacheDir.equals(tempDirParent));
+    Assert.assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
+    Assert.assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
+
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
+  }
 }
