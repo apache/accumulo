@@ -316,8 +316,8 @@ public class DfsLogger {
 
             CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
-            input.seek(0);
-            input.readFully(magicBufferV2);
+            // go back to the beginning, but skip over magicV2 already checked earlier
+            input.seek(magicV2.length);
             params.setEncryptedInputStream(input);
 
             params = cryptoModule.getDecryptingInputStream(params);
