@@ -1,0 +1,75 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+== Implementation Details
+
+=== Fault-Tolerant Executor (FATE)
+
+Accumulo must implement a number of distributed, multi-step operations to support
+the client API. Creating a new table is a simple example of an atomic client call
+which requires multiple steps in the implementation: get a unique table ID, configure
+default table permissions, populate information in ZooKeeper to record the table's
+existence, create directories in HDFS for the table's data, etc. Implementing these
+steps in a way that is tolerant to node failure and other concurrent operations is
+very difficult to achieve. Accumulo includes a Fault-Tolerant Executor (FATE) which
+is widely used server-side to implement the client API safely and correctly.
+
+FATE is the implementation detail which ensures that tables in creation when the
+Master dies will be successfully created when another Master process is started.
+This alleviates the need for any external tools to correct some bad state -- Accumulo can
+undo the failure and self-heal without any external intervention.
+
+=== Overview
+
+FATE consists of two primary components: a repeatable, persisted operation (REPO), a storage
+layer for REPOs and an execution system to run REPOs. Accumulo uses ZooKeeper as the storage
+layer for FATE and the Accumulo Master acts as the execution system to run REPOs.
+
+The important characteristic of REPOs are that they implemented in a way that is idempotent:
+every operation must be able to undo or replay a partial execution of itself. Requiring the
+implementation of the operation to support this functional greatly simplifies the execution
+of these operations. This property is also what guarantees safety in light of failure conditions.
+
+=== Administration
+
+Sometimes, it is useful to inspect the current FATE operations, both pending and executing.
+For example, a command that is not completing could be blocked on the execution of another
+operation. Accumulo provides an Accumulo shell command to interact with fate.
+
+The +fate+ shell command accepts a number of arguments for different functionality:
++list+/+print+, +fail+, +delete+.
+
+==== List/Print
+
+Without any additional arguments, this command will print all operations that still exist in
+the FATE store (ZooKeeper). This will include active, pending, and completed operations (completed
+operations are lazily removed from the store). Each operation includes a unique "transaction ID", the
+state of the operation (e.g. +NEW+, +IN_PROGRESS+, +FAILED+), any locks the
+transaction actively holds and any locks it is waiting to acquire.
+
+This option can also accept transaction IDs which will restrict the list of transactions shown.
+
+==== Fail
+
+This command can be used to manually fail a FATE transaction and requires a transaction ID
+as an argument. Failing an operation is not a normal procedure and should only be performed
+by an administrator who understands the implications of why they are failing the operation.
+
+==== Delete
+
+This command requires a transaction ID and will delete any locks that the transaction
+holds. Like the fail command, this command should only be used in extreme circumstances
+by an administrator that understands the implications of the command they are about to
+invoke. It is not normal to invoke this command.

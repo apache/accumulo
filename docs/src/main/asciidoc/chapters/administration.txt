@@ -341,6 +341,26 @@ account for the removal of these hosts. Bear in mind that the monitor will not r
 slaves file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
+==== Restarting process on a node
+
+Occasionally, it might be necessary to restart the processes on a specific node. In addition
+to the +start-all.sh+ and +stop-all.sh+ scripts, Accumulo contains scripts to start/stop all processes
+on a node and start/stop a given process on a node.
+
++start-here.sh+ and +stop-here.sh+ will start/stop all Accumulo processes on the current node. The
+necessary processes to start/stop are determined via the "hosts" files (e.g. slaves, masters, etc).
+These scripts expect no arguments.
+
++start-server.sh+ can also be useful in starting a given process on a host.
+The first argument to the process is the hostname of the machine. Use the same host that
+you specified in hosts file (if you specified FQDN in the masters file, use the FQDN, not
+the shortname). The second argument is the name of the process to start (e.g. master, tserver).
+
+The steps described to decomission a node can also be used (without removal of the host
+from the +$ACCUMUL_HOME/conf/slaves+ file) to gracefully stop a node. This will
+ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
+when the tablets are re-hosted.
+
 [[monitoring]]
 === Monitoring
 
