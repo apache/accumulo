@@ -28,6 +28,7 @@ import java.util.Random;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
@@ -165,8 +166,8 @@ public class TeraSortIngest extends Configured implements Tool {
      */
     @Override
     public List<InputSplit> getSplits(JobContext job) {
-      long totalRows = job.getConfiguration().getLong(NUMROWS, 0);
-      int numSplits = job.getConfiguration().getInt(NUMSPLITS, 1);
+      long totalRows = InputFormatBase.getConfiguration(job).getLong(NUMROWS, 0);
+      int numSplits = InputFormatBase.getConfiguration(job).getInt(NUMSPLITS, 1);
       long rowsPerSplit = totalRows / numSplits;
       System.out.println("Generating " + totalRows + " using " + numSplits + " maps with step of " + rowsPerSplit);
       ArrayList<InputSplit> splits = new ArrayList<InputSplit>(numSplits);
