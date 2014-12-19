@@ -263,7 +263,7 @@ public class DfsLogger {
     FSDataInputStream input = fs.open(path);
     DataInputStream decryptingInput = null;
 
-    byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes();
+    byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
     byte[] magicBuffer = new byte[magic.length];
     try {
       input.readFully(magicBuffer);
@@ -286,7 +286,7 @@ public class DfsLogger {
         }
       } else {
         input.seek(0);
-        byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
+        byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes(UTF_8);
         byte[] magicBufferV2 = new byte[magicV2.length];
         input.readFully(magicBufferV2);
 
