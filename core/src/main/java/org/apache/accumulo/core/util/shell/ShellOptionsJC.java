@@ -126,6 +126,7 @@ public class ShellOptionsJC {
         return Class.forName(value).asSubclass(AuthenticationToken.class).newInstance();
       } catch (Exception e) {
         // Catching ClassNotFoundException, ClassCastException, InstantiationException and IllegalAccessException
+        log.error("Could not instantiate AuthenticationToken " + value, e);
         throw new ParameterException(e);
       }
     }
