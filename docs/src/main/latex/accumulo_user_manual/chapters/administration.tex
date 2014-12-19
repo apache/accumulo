@@ -364,7 +364,7 @@ Alternatively, you can ssh to each of the hosts you want to remove and run:
 $ACCUMULO\_HOME/bin/stop-here.sh
 \end{verbatim}\endgroup
 
-Be sure to update your \texttt{\$ACCUMUL\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
+Be sure to update your \texttt{\$ACCUMULO\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
 slaves file automatically, so it will report the decomissioned servers as down; it's 
 recommended that you restart the monitor so that the node list is up to date.
@@ -385,7 +385,7 @@ you specified in hosts file (if you specified FQDN in the masters file, use the 
 the shortname). The second argument is the name of the process to start (e.g. master, tserver).
 
 The steps described to decomission a node can also be used (without removal of the host
-from the \texttt{\$ACCUMUL\_HOME/conf/slaves} file) to gracefully stop a node. This will
+from the \texttt{\$ACCUMULO\_HOME/conf/slaves} file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
 
