@@ -357,7 +357,7 @@ you specified in hosts file (if you specified FQDN in the masters file, use the 
 the shortname). The second argument is the name of the process to start (e.g. master, tserver).
 
 The steps described to decomission a node can also be used (without removal of the host
-from the +$ACCUMUL_HOME/conf/slaves+ file) to gracefully stop a node. This will
+from the +$ACCUMULO_HOME/conf/slaves+ file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
 
