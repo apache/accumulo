@@ -87,7 +87,10 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 
 class TabletGroupWatcher extends Daemon {
-  
+  // Constants used to make sure assignment logging isn't excessive in quantity or size
+  private static final String ASSIGNMENT_BUFFER_SEPARATOR = ", ";
+  private static final int ASSINGMENT_BUFFER_MAX_LENGTH = 4096;
+
   private final Master master;
   final TabletStateStore store;
   final TabletGroupWatcher dependentWatcher;
@@ -722,6 +725,7 @@ class TabletGroupWatcher extends Daemon {
     
     if (!currentTServers.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<KeyExtent,TServerInstance>();
+      final StringBuilder builder = new StringBuilder(64);
       this.master.tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers), Collections.unmodifiableMap(unassigned), assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
@@ -730,13 +734,33 @@ class TabletGroupWatcher extends Daemon {
               Master.log.warn("balancer assigned " + assignment.getKey() + " to a tablet server that is not current " + assignment.getValue() + " ignoring");
               continue;
             }
-            Master.log.debug(store.name() + " assigning tablet " + assignment);
+
+            if (builder.length() > 0) {
+              builder.append(ASSIGNMENT_BUFFER_SEPARATOR);
+            }
+
+            builder.append(assignment);
+
+            // Don't let the log message get too gigantic
+            if (builder.length() > ASSINGMENT_BUFFER_MAX_LENGTH) {
+              builder.append("]");
+              Master.log.debug(store.name() + " assigning tablets: [" + builder.toString());
+              builder.setLength(0);
+            }
+
             assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
           }
         } else {
           Master.log.warn(store.name() + " load balancer assigning tablet that was not nominated for assignment " + assignment.getKey());
         }
       }
+
+      if (builder.length() > 0) {
+        // Make sure to log any leftover assignments
+        builder.append("]");
+        Master.log.debug(store.name() + " assigning tablets: [" + builder.toString());
+      }
+
       if (!unassigned.isEmpty() && assignedOut.isEmpty())
         Master.log.warn("Load balancer failed to assign any tablets");
     }

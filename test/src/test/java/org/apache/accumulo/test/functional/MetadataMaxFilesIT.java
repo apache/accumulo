@@ -41,6 +41,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -52,6 +53,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacIT {
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     siteConfig.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "10");
     cfg.setSiteConfig(siteConfig);
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
   
   @Override
