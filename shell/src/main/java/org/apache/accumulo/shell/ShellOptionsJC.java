@@ -34,8 +34,11 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellOptionsJC {
+  private static final Logger log = LoggerFactory.getLogger(Shell.class);
 
   @Parameter(names = {"-u", "--user"}, description = "username (defaults to your OS user)")
   private String username = System.getProperty("user.name", "root");
@@ -122,6 +125,7 @@ public class ShellOptionsJC {
         return Class.forName(value).asSubclass(AuthenticationToken.class).newInstance();
       } catch (Exception e) {
         // Catching ClassNotFoundException, ClassCastException, InstantiationException and IllegalAccessException
+        log.error("Could not instantiate AuthenticationToken " + value, e);
         throw new ParameterException(e);
       }
     }
