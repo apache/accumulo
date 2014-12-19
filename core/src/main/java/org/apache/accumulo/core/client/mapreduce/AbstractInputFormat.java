@@ -680,7 +680,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   // use reflection to pull the Configuration out of the JobContext for Hadoop 1 and Hadoop 2 compatibility
-  static Configuration getConfiguration(JobContext context) {
+  public static Configuration getConfiguration(JobContext context) {
     try {
       Class<?> c = AbstractInputFormat.class.getClassLoader().loadClass("org.apache.hadoop.mapreduce.JobContext");
       Method m = c.getMethod("getConfiguration");
