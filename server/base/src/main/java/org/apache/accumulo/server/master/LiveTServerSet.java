@@ -308,7 +308,8 @@ public class LiveTServerSet implements Watcher {
         updates.add(instance);
         TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
         current.put(zPath, tServerInfo);
-        currentInstances.put(info.instance, tServerInfo);
+        currentInstances.remove(info.instance);
+        currentInstances.put(instance, tServerInfo);
       }
     }
   }
