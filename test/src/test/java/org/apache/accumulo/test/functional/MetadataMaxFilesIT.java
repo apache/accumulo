@@ -37,6 +37,7 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -53,6 +54,7 @@ public class MetadataMaxFilesIT extends AccumuloClusterIT {
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     siteConfig.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "10");
     cfg.setSiteConfig(siteConfig);
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Override

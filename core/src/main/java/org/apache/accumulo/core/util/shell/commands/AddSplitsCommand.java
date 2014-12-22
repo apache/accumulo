@@ -34,6 +34,7 @@ import org.apache.hadoop.io.Text;
 public class AddSplitsCommand extends Command {
   private Option optSplitsFile, base64Opt;
   
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     final boolean decode = cl.hasOption(base64Opt.getOpt());
@@ -51,6 +52,7 @@ public class AddSplitsCommand extends Command {
           splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
         }
       }
+      file.close();
     } else {
       if (cl.getArgList().isEmpty()) {
         throw new MissingArgumentException("No split points specified");

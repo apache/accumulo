@@ -14,8 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.stress.random;
-
 /**
  * This package contains utility classes designed to test Accumulo when large cells are being written. This is an attempt to observe the behavior Accumulo
  * displays when compacting and reading these cells.
@@ -34,3 +32,4 @@ package org.apache.accumulo.test.stress.random;
  * There is no shared state intended by either of these services. This allows multiple clients to be run in parallel, either on the same host or distributed
  * across hosts.
  */
+package org.apache.accumulo.test.stress.random;

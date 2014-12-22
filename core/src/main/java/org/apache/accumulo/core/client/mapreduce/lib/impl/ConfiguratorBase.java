@@ -266,6 +266,7 @@ public class ConfiguratorBase {
       while (fileScanner.hasNextLine()) {
         Credentials creds = Credentials.deserialize(fileScanner.nextLine());
         if (principal.equals(creds.getPrincipal())) {
+          fileScanner.close();
           return creds.getToken();
         }
       }

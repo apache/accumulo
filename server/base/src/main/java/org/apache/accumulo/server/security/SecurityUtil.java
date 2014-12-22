@@ -50,10 +50,13 @@ public class SecurityUtil {
       try {
         // This spawns a thread to periodically renew the logged in (accumulo) user
         UserGroupInformation.getLoginUser();
+        return;
       } catch (IOException io) {
         log.error("Error starting up renewal thread. This shouldn't be happenining.", io);
       }
     }
+
+    throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
   }
   
   /**
