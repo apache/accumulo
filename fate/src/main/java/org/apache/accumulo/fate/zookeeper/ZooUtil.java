@@ -304,6 +304,7 @@ public class ZooUtil {
                   continue;
                 } else if (code2 == Code.CONNECTIONLOSS || code2 == Code.OPERATIONTIMEOUT || code2 == Code.SESSIONEXPIRED) {
                   retryOrThrow(retry, e2);
+                  break;
                 } else {
                   // unhandled exception on setData()
                   throw e2;
