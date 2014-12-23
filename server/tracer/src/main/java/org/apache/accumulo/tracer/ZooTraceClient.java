@@ -105,7 +105,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       public void run() {
         try {
           updateHostsFromZooKeeper();
-          log.info("Successfully initialized tracer hosts from ZooKeeper");
+          log.debug("Successfully initialized tracer hosts from ZooKeeper");
           // Once this passes, we can issue a shutdown of the pool
           svc.shutdown();
         } catch (Exception e) {
