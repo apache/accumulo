@@ -30,11 +30,15 @@ public class Log4jConfiguration {
   private final boolean usingProperties;
   private final String filename;
   private final File log4jFile;
+  private final String auditConfig;
 
   public Log4jConfiguration(String filename) {
     usingProperties = (filename != null && filename.endsWith(".properties"));
     this.filename = filename;
     log4jFile = new File(filename);
+
+    // Read the auditing config
+    auditConfig = String.format("%s/auditLog.xml", System.getenv("ACCUMULO_CONF_DIR"));
   }
 
   public boolean isUsingProperties() {
@@ -51,6 +55,10 @@ public class Log4jConfiguration {
       } else {
         new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
       }
+
+      // Watch the auditLog.xml for the future updates. Because we reset the subsystem, we have to reconfigure auditing, too.
+      DOMConfigurator.configureAndWatch(auditConfig, 5000l);
     }
+
   }
 }

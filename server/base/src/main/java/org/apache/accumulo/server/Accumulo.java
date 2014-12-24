@@ -54,7 +54,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.LogLog;
-import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.zookeeper.KeeperException;
 
 public class Accumulo {
@@ -161,15 +160,9 @@ public class Accumulo {
     // Turn off messages about not being able to reach the remote logger... we protect against that.
     LogLog.setQuietMode(true);
 
-    // Read the auditing config
-    String auditConfig = String.format("%s/auditLog.xml", System.getenv("ACCUMULO_CONF_DIR"));
-
     // Set up local file-based logging right away
     Log4jConfiguration logConf = new Log4jConfiguration(logConfigFile);
     logConf.resetLogger();
-
-    // Watch the auditLog.xml for the future updates
-    DOMConfigurator.configureAndWatch(auditConfig, 5000);
   }
 
   public static void init(VolumeManager fs, ServerConfiguration serverConfig, String application) throws IOException {
