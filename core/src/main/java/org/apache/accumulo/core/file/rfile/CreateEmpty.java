@@ -59,8 +59,8 @@ public class CreateEmpty {
   static class Opts extends Help {
     @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.", validateWith = IsSupportedCompressionAlgorithm.class)
     String codec = TFile.COMPRESSION_NONE;
-    @Parameter(
-        description = " <path> { <path> ... } Each path given is a URL. Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.",
+    @Parameter(description = " <path> { <path> ... } Each path given is a URL. "
+        + "Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.",
         required = true, validateWith = NamedLikeRFile.class)
     List<String> files = new ArrayList<String>();
   }

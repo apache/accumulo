@@ -157,7 +157,8 @@ public class Initialize {
       c.printNewline();
       c.printString("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName() + " oldPassword newPassword.");
       c.printNewline();
-      c.printString("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. Without this accumulo will not operate correctly");
+      c.printString("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. "
+          + "Without this accumulo will not operate correctly");
       c.printNewline();
     }
 

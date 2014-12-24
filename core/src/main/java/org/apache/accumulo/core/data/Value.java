@@ -139,12 +139,13 @@ public class Value implements WritableComparable<Object> {
     return this.value.length;
   }
 
+  @Override
   public void readFields(final DataInput in) throws IOException {
     this.value = new byte[in.readInt()];
     in.readFully(this.value, 0, this.value.length);
   }
 
-  /** {@inheritDoc} */
+  @Override
   public void write(final DataOutput out) throws IOException {
     out.writeInt(this.value.length);
     out.write(this.value, 0, this.value.length);
@@ -152,7 +153,6 @@ public class Value implements WritableComparable<Object> {
 
   // Below methods copied from BytesWritable
 
-  /** {@inheritDoc} */
   @Override
   public int hashCode() {
     return WritableComparator.hashBytes(value, this.value.length);
@@ -165,6 +165,7 @@ public class Value implements WritableComparable<Object> {
    *          The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
    */
+  @Override
   public int compareTo(Object right_obj) {
     return compareTo(((Value) right_obj).get());
   }
@@ -179,7 +180,6 @@ public class Value implements WritableComparable<Object> {
     return (diff != 0) ? diff : WritableComparator.compareBytes(this.value, 0, this.value.length, that, 0, that.length);
   }
 
-  /** {@inheritDoc} */
   @Override
   public boolean equals(Object right_obj) {
     if (right_obj instanceof byte[]) {
@@ -207,7 +207,6 @@ public class Value implements WritableComparable<Object> {
       super(Value.class);
     }
 
-    /** {@inheritDoc} */
     @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
       return comparator.compare(b1, s1, l1, b2, s2, l2);

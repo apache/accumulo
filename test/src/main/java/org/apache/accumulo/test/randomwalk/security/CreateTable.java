@@ -44,9 +44,8 @@ public class CreateTable extends Test {
       if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
         if (hasPermission)
           throw new AccumuloException("Got a security exception when I should have had permission.", ae);
-        else
-        // create table anyway for sake of state
-        {
+        else {
+          // create table anyway for sake of state
           try {
             state.getConnector().tableOperations().create(tableName);
             WalkingSecurity.get(state).initTable(tableName);

@@ -38,24 +38,24 @@ import org.apache.hadoop.io.WritableComparator;
  * definition of an expression.
  *
  * <P>
- * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the binary operators "&" and "|" indicating that both operands are
+ * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the binary operators "&amp;" and "|" indicating that both operands are
  * necessary, or the either is necessary. The following are valid expressions for visibility:
  *
  * <pre>
  * A
  * A|B
- * (A|B)&(C|D)
- * orange|(red&yellow)
+ * (A|B)&amp;(C|D)
+ * orange|(red&amp;yellow)
  * </pre>
  *
  * <P>
  * The following are not valid expressions for visibility:
  *
  * <pre>
- * A|B&C
+ * A|B&amp;C
  * A=B
  * A|B|
- * A&|B
+ * A&amp;|B
  * ()
  * )
  * dog|!cat

@@ -33,7 +33,7 @@ import org.apache.hadoop.io.WritableUtils;
 /**
  * A TypedValueCombiner that translates each Value to a Long before reducing, then encodes the reduced Long back to a Value.
  *
- * Subclasses must implement a typedReduce method: public Long typedReduce(Key key, Iterator<Long> iter);
+ * Subclasses must implement a typedReduce method: {@code public Long typedReduce(Key key, Iterator<Long> iter);}
  *
  * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Longs) for all non-deleted versions of that Key.
  *
@@ -226,7 +226,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
    * @param is
    *          IteratorSetting object to configure.
    * @param encoderClass
-   *          Class<? extends Encoder<Long>> specifying the encoding type.
+   *          {@code Class<? extends Encoder<Long>>} specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<Long>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());

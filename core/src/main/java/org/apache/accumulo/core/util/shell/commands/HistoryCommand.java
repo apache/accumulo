@@ -61,9 +61,7 @@ public class HistoryCommand extends Command {
           out.close();
         }
       }
-    }
-
-    else {
+    } else {
       BufferedReader in = null;
       try {
         in = new BufferedReader(new InputStreamReader(new FileInputStream(histDir + "/shell_history.txt"), UTF_8));

@@ -38,6 +38,7 @@ public class DUCommand extends Command {
 
   private Option optTablePattern, optHumanReadble;
 
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException {
 
     final SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
@@ -79,7 +80,8 @@ public class DUCommand extends Command {
 
   @Override
   public String description() {
-    return "prints how much space, in bytes, is used by files referenced by a table.  When multiple tables are specified it prints how much space, in bytes, is used by files shared between tables, if any.";
+    return "prints how much space, in bytes, is used by files referenced by a table.  "
+        + "When multiple tables are specified it prints how much space, in bytes, is used by files shared between tables, if any.";
   }
 
   @Override

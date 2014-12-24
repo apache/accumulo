@@ -75,6 +75,7 @@ public class Compactor implements Callable<CompactionStats> {
 
     private long count;
 
+    @Override
     public CountingIterator deepCopy(IteratorEnvironment env) {
       return new CountingIterator(this, env);
     }
@@ -183,7 +184,7 @@ public class Compactor implements Callable<CompactionStats> {
 
       CompactionReason reason;
 
-      if (compactor.imm != null)
+      if (compactor.imm != null) {
         switch (compactor.mincReason) {
           case USER:
             reason = CompactionReason.USER;
@@ -196,7 +197,7 @@ public class Compactor implements Callable<CompactionStats> {
             reason = CompactionReason.SYSTEM;
             break;
         }
-      else
+      } else {
         switch (compactor.reason) {
           case USER:
             reason = CompactionReason.USER;
@@ -212,6 +213,7 @@ public class Compactor implements Callable<CompactionStats> {
             reason = CompactionReason.SYSTEM;
             break;
         }
+      }
 
       List<IterInfo> iiList = new ArrayList<IterInfo>();
       Map<String,Map<String,String>> iterOptions = new HashMap<String,Map<String,String>>();

@@ -36,16 +36,19 @@ public class BinaryFormatter implements Formatter {
     doTimestamps = printTimestamps;
   }
 
+  @Override
   public boolean hasNext() {
     checkState(si, true);
     return si.hasNext();
   }
 
+  @Override
   public String next() {
     checkState(si, true);
     return formatEntry(si.next(), doTimestamps);
   }
 
+  @Override
   public void remove() {
     checkState(si, true);
     si.remove();
@@ -108,9 +111,7 @@ public class BinaryFormatter implements Formatter {
           sb.append("\\x").append(String.format("%02X", c));
       }
       return sb;
-    }
-
-    else {
+    } else {
       for (int i = 0; i < len; i++) {
 
         int c = 0xff & ba[offset + i];
