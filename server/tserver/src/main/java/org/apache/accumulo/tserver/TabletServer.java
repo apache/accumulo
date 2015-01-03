@@ -605,8 +605,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           }
 
-          activeScans.add(new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
-              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB()));
+          ActiveScan activeScan = new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
+              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB());
+
+          // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in ActiveScan constructor
+          activeScan.setScanId(entry.getKey());
+          activeScans.add(activeScan);
 
         } else if (session instanceof MultiScanSession) {
           MultiScanSession mss = (MultiScanSession) session;
