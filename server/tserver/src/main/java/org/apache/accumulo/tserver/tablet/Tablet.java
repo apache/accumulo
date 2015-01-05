@@ -2100,8 +2100,8 @@ public class Tablet implements TabletCommitter {
         span.data("read", "" + majCStats.getEntriesRead());
         span.data("written", "" + majCStats.getEntriesWritten());
       }
+      span.stop();
     }
-    span.stop();
     long count = 0;
     if (majCStats != null)
       count = majCStats.getEntriesRead();
