@@ -2059,56 +2059,53 @@ public class Tablet implements TabletCommitter {
     boolean success = false;
     long start = System.currentTimeMillis();
 
+    timer.incrementStatusMajor();
+
+    synchronized (this) {
+      // check that compaction is still needed - defer to splitting
+      majorCompactionQueued.remove(reason);
+
+      if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning() || needsSplit()) {
+        return null;
+      }
+
+      majorCompactionState = CompactionState.WAITING_TO_START;
+    }
+
     // Always trace majC
     Span span = Trace.on("majorCompaction");
 
     try {
-      timer.incrementStatusMajor();
-
-      synchronized (this) {
-        // check that compaction is still needed - defer to splitting
-        majorCompactionQueued.remove(reason);
-
-        if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning() || needsSplit()) {
-          return null;
-        }
-
-        majorCompactionState = CompactionState.WAITING_TO_START;
+      majCStats = _majorCompact(reason);
+      if (reason == MajorCompactionReason.CHOP) {
+        MetadataTableUtil.chopped(getTabletServer(), getExtent(), this.getTabletServer().getLock());
+        getTabletServer().enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
-
-      try {
-        majCStats = _majorCompact(reason);
-        if (reason == MajorCompactionReason.CHOP) {
-          MetadataTableUtil.chopped(getTabletServer(), getExtent(), this.getTabletServer().getLock());
-          getTabletServer().enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
-        }
-        success = true;
-      } catch (CompactionCanceledException mcce) {
-        log.debug("Major compaction canceled, extent = " + getExtent());
-      } catch (Throwable t) {
-        log.error("MajC Failed, extent = " + getExtent());
-        log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-      } finally {
-        // ensure we always reset boolean, even
-        // when an exception is thrown
-        synchronized (this) {
-          majorCompactionState = null;
-          this.notifyAll();
-        }
-
-        span.data("extent", "" + getExtent());
-        if (majCStats != null) {
-          span.data("read", "" + majCStats.getEntriesRead());
-          span.data("written", "" + majCStats.getEntriesWritten());
-        }
-      }
+      success = true;
+    } catch (CompactionCanceledException mcce) {
+      log.debug("Major compaction canceled, extent = " + getExtent());
+    } catch (Throwable t) {
+      log.error("MajC Failed, extent = " + getExtent());
+      log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
     } finally {
-      span.stop();
-      long count = 0;
-      if (majCStats != null)
-        count = majCStats.getEntriesRead();
-      timer.updateTime(Operation.MAJOR, queued, start, count, !success);
+      // ensure we always reset boolean, even
+      // when an exception is thrown
+      synchronized (this) {
+        majorCompactionState = null;
+        this.notifyAll();
+      }
+
+      span.data("extent", "" + getExtent());
+      if (majCStats != null) {
+        span.data("read", "" + majCStats.getEntriesRead());
+        span.data("written", "" + majCStats.getEntriesWritten());
+      }
     }
+    span.stop();
+    long count = 0;
+    if (majCStats != null)
+      count = majCStats.getEntriesRead();
+    timer.updateTime(Operation.MAJOR, queued, start, count, !success);
 
     return majCStats;
   }
