@@ -3320,56 +3320,51 @@ public class Tablet {
    */
 
   private CompactionStats majorCompact(MajorCompactionReason reason) {
-
     CompactionStats majCStats = null;
+
+    synchronized (this) {
+      // check that compaction is still needed - defer to splitting
+      majorCompactionQueued.remove(reason);
+
+      if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || needsSplit()) {
+        return null;
+      }
+
+      majorCompactionInProgress = true;
+    }
 
     // Always trace majC
     Span span = Trace.on("majorCompaction");
 
     try {
-      synchronized (this) {
-        // check that compaction is still needed - defer to splitting
-        majorCompactionQueued.remove(reason);
-
-        if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || needsSplit()) {
-          return null;
-        }
-
-        majorCompactionInProgress = true;
+      majCStats = _majorCompact(reason);
+      if (reason == MajorCompactionReason.CHOP) {
+        MetadataTableUtil.chopped(getExtent(), this.tabletServer.getLock());
+        tabletServer.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
-
-      try {
-        majCStats = _majorCompact(reason);
-        if (reason == MajorCompactionReason.CHOP) {
-          MetadataTableUtil.chopped(getExtent(), this.tabletServer.getLock());
-          tabletServer.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
-        }
-      } catch (CompactionCanceledException mcce) {
-        log.debug("Major compaction canceled, extent = " + getExtent());
-        throw new RuntimeException(mcce);
-      } catch (Throwable t) {
-        log.error("MajC Failed, extent = " + getExtent());
-        log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-        throw new RuntimeException(t);
-      } finally {
-        // ensure we always reset boolean, even
-        // when an exception is thrown
-        synchronized (this) {
-          majorCompactionInProgress = false;
-          this.notifyAll();
-        }
-
-        Span curr = Trace.currentTrace();
-        curr.data("extent", "" + getExtent());
-        if (majCStats != null) {
-          curr.data("read", "" + majCStats.getEntriesRead());
-          curr.data("written", "" + majCStats.getEntriesWritten());
-        }
-      }
+    } catch (CompactionCanceledException mcce) {
+      log.debug("Major compaction canceled, extent = " + getExtent());
+      throw new RuntimeException(mcce);
+    } catch (Throwable t) {
+      log.error("MajC Failed, extent = " + getExtent());
+      log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
+      throw new RuntimeException(t);
     } finally {
+      // ensure we always reset boolean, even
+      // when an exception is thrown
+      synchronized (this) {
+        majorCompactionInProgress = false;
+        this.notifyAll();
+      }
+
+      Span curr = Trace.currentTrace();
+      curr.data("extent", "" + getExtent());
+      if (majCStats != null) {
+        curr.data("read", "" + majCStats.getEntriesRead());
+        curr.data("written", "" + majCStats.getEntriesWritten());
+      }
       span.stop();
     }
-
     return majCStats;
   }
 
