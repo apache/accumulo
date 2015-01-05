@@ -2811,7 +2811,8 @@ public class Tablet {
             initiateMajorCompaction(reason);
         }
 
-      } catch (RuntimeException E) {
+      } catch (RuntimeException e) {
+        log.error(e.toString(), e);
         failed = true;
       } finally {
         long count = 0;
@@ -3365,6 +3366,7 @@ public class Tablet {
       }
       span.stop();
     }
+
     return majCStats;
   }
 
