@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -209,5 +210,10 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public void close() {
     // Nothing needs to be closed
+  }
+
+  @Override
+  public Authorizations getAuthorizations() {
+    throw new UnsupportedOperationException("No authorizations to return");
   }
 }

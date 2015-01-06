@@ -62,6 +62,13 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   }
 
   static class MockIteratorEnvironment implements IteratorEnvironment {
+
+    private final Authorizations auths;
+
+    MockIteratorEnvironment(Authorizations auths) {
+        this.auths = auths;
+    }
+
     @Override
     public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
       throw new NotImplementedException();
@@ -89,6 +96,11 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
       topLevelIterators.add(iter);
     }
 
+    @Override
+    public Authorizations getAuthorizations() {
+        return auths;
+    }
+
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
       if (topLevelIterators.isEmpty())
         return iter;
@@ -104,7 +116,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<Column>(fetchedColumns));
     VisibilityFilter vf = new VisibilityFilter(cqf, auths, defaultLabels);
     AccumuloConfiguration conf = new MockConfiguration(table.settings);
-    MockIteratorEnvironment iterEnv = new MockIteratorEnvironment();
+    MockIteratorEnvironment iterEnv = new MockIteratorEnvironment(auths);
     SortedKeyValueIterator<Key,Value> result = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
         serverSideIteratorList, serverSideIteratorOptions, iterEnv, false));
     return result;
@@ -113,5 +125,9 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override public Authorizations getAuthorizations() {
+    return auths;
   }
 }

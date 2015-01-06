@@ -100,6 +100,10 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     return new ScannerIterator(context, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
 
+  @Override public Authorizations getAuthorizations() {
+    return authorizations;
+  }
+
   @Override
   public synchronized void enableIsolation() {
     this.isolated = true;

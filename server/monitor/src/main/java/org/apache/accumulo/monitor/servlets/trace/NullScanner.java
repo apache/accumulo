@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class NullScanner implements Scanner {
@@ -103,6 +104,10 @@ public class NullScanner implements Scanner {
 
   @Override
   public void close() {}
+
+  @Override public Authorizations getAuthorizations() {
+    return null;
+  }
 
   @Override
   public long getReadaheadThreshold() {

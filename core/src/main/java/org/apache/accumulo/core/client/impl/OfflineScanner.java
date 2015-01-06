@@ -74,6 +74,13 @@ import org.apache.hadoop.io.Text;
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   static class OfflineIteratorEnvironment implements IteratorEnvironment {
+
+    private final Authorizations authorizations;
+
+    public OfflineIteratorEnvironment(Authorizations auths) {
+      this.authorizations = auths;
+    }
+
     @Override
     public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
       throw new NotImplementedException();
@@ -99,6 +106,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       topLevelIterators.add(iter);
+    }
+
+    @Override
+    public Authorizations getAuthorizations() {
+      return authorizations;
     }
 
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
@@ -304,7 +316,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment();
+    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations);
 
     DeletingIterator delIter = new DeletingIterator(multiIter, false);
 
@@ -405,6 +417,11 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     return new OfflineIterator(this, instance, credentials, authorizations, tableId, range);
+  }
+
+  @Override
+  public Authorizations getAuthorizations() {
+    return authorizations;
   }
 
   @Override

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,6 +76,11 @@ public class StatusCombinerTest {
       @Override
       public void registerSideChannel(SortedKeyValueIterator<Key,Value> arg0) {
 
+      }
+
+      @Override
+      public Authorizations getAuthorizations() {
+        return null;
       }
 
       @Override

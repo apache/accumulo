@@ -32,6 +32,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
@@ -112,6 +113,11 @@ public class MetadataBulkLoadFilterTest {
 
       @Override
       public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
+
+      @Override
+      public Authorizations getAuthorizations() {
+          return null;
+      }
 
       @Override
       public boolean isFullMajorCompaction() {

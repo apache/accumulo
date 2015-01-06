@@ -14,27 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
+import java.util.Map;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
 
-public interface IteratorEnvironment {
+public class AuthsIterator extends WrappingIterator {
 
-  SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
+  public static final Authorizations AUTHS = new Authorizations("A,B".getBytes());
+  public static final String SUCCESS = "SUCCESS";
+  public static final String FAIL = "FAIL";
 
-  AccumuloConfiguration getConfig();
+  private IteratorEnvironment env;
 
-  IteratorScope getIteratorScope();
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    this.env = env;
+  }
 
-  boolean isFullMajorCompaction();
-
-  void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
-
-  Authorizations getAuthorizations();
+  @Override
+  public Key getTopKey() {
+    if(env.getAuthorizations().equals(AUTHS))
+      return new Key(new Text(SUCCESS));
+    else
+      return new Key(new Text(FAIL));
+  }
 }

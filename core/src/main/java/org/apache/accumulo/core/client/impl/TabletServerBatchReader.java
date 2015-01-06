@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -71,6 +70,11 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   @Override
   public void close() {
     queryThreadPool.shutdownNow();
+  }
+
+  @Override
+  public Authorizations getAuthorizations() {
+    return authorizations;
   }
 
   /**

@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -723,6 +722,11 @@ public class TransformingIteratorTest {
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       delegate.registerSideChannel(iter);
+    }
+
+    @Override
+    public Authorizations getAuthorizations() {
+      return null;
     }
   }
 }

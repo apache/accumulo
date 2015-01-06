@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
@@ -40,23 +41,34 @@ public class FirstEntryInRowIteratorTest {
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
     IteratorEnvironment env = new IteratorEnvironment() {
 
+      @Override
       public AccumuloConfiguration getConfig() {
         return null;
       }
 
+      @Override
       public IteratorScope getIteratorScope() {
         return null;
       }
 
+      @Override
       public boolean isFullMajorCompaction() {
         return false;
       }
 
+      @Override
       public void registerSideChannel(SortedKeyValueIterator<Key,Value> arg0) {
 
       }
 
-      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String arg0) throws IOException {
+      @Override
+      public Authorizations getAuthorizations() {
+        return null;
+      }
+
+      @Override
+      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(
+          String arg0) throws IOException {
         return null;
       }
     };

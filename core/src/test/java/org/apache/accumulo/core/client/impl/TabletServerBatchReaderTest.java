@@ -16,22 +16,18 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static org.junit.Assert.assertEquals;
-
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-/**
- *
- */
-public class ScannerImplTest {
+import static org.junit.Assert.assertEquals;
+
+public class TabletServerBatchReaderTest {
 
   MockInstance instance;
   ClientContext context;
@@ -43,31 +39,14 @@ public class ScannerImplTest {
   }
 
   @Test
-  public void testValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
-    s.setReadaheadThreshold(0);
-    s.setReadaheadThreshold(10);
-    s.setReadaheadThreshold(Long.MAX_VALUE);
-
-    Assert.assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testInValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
-    s.setReadaheadThreshold(-1);
-  }
-
-  @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    Scanner s = new ScannerImpl(context, "foo", expected);
+    BatchScanner s = new TabletServerBatchReader(context, "foo", expected, 1);
     assertEquals(expected, s.getAuthorizations());
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testNullAuthorizationsFails() {
-    new ScannerImpl(context, "foo", null);
+    new TabletServerBatchReader(context, "foo", null, 1);
   }
-
 }

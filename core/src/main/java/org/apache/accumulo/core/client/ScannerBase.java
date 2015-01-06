@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -127,4 +128,12 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @since 1.5.0
    */
   void close();
+
+  /**
+   * Returns the authorizations that have been set on the scanner
+   * @since 1.7.0
+   * @return
+   *       The authorizations set on the scanner instance
+   */
+  Authorizations getAuthorizations();
 }

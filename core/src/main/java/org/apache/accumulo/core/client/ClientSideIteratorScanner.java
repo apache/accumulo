@@ -41,6 +41,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -190,6 +191,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
         @Override
         public void registerSideChannel(final SortedKeyValueIterator<Key,Value> iter) {}
+
+        @Override
+        public Authorizations getAuthorizations() {
+            return smi.scanner.getAuthorizations();
+        }
       }, false, null);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -207,6 +213,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     return new IteratorAdapter(skvi);
+  }
+
+  @Override
+  public Authorizations getAuthorizations() {
+    return smi.scanner.getAuthorizations();
   }
 
   @Deprecated

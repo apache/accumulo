@@ -34,6 +34,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class RowDeletingIteratorTest extends TestCase {
@@ -71,6 +72,10 @@ public class RowDeletingIteratorTest extends TestCase {
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
 
+    @Override
+    public Authorizations getAuthorizations() {
+        return null;
+    }
   }
 
   Key nk(String row, String cf, String cq, long time) {
