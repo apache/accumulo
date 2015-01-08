@@ -34,16 +34,16 @@ public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
     }
     return new InetSocketAddress(address, defaultPort);
   }
-  
+
   static public InetSocketAddress parseAddress(Text address, int defaultPort) {
     return parseAddress(address.toString(), defaultPort);
   }
-  
+
   static public TSocket createTSocket(String address, int defaultPort) {
     InetSocketAddress addr = parseAddress(address, defaultPort);
     return new TSocket(addr.getHostName(), addr.getPort());
   }
-  
+
   static public String getHostAddress(InetSocketAddress addr) {
     return addr.getAddress().getHostAddress();
   }
@@ -51,5 +51,5 @@ public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
   static public String toString(InetSocketAddress addr) {
     return addr.getAddress().getHostAddress() + ":" + addr.getPort();
   }
-  
+
 }

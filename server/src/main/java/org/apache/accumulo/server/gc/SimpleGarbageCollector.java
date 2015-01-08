@@ -108,25 +108,25 @@ import com.beust.jcommander.Parameter;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
-  
+
   static class Opts extends Help {
-    @Parameter(names={"-v", "--verbose"}, description="extra information will get printed to stdout also")
+    @Parameter(names = {"-v", "--verbose"}, description = "extra information will get printed to stdout also")
     boolean verbose = false;
-    @Parameter(names={"-s", "--safemode"}, description="safe mode will not delete files")
+    @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
     boolean safeMode = false;
-    @Parameter(names={"-o", "--offline"}, description=
-      "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly")
+    @Parameter(names = {"-o", "--offline"},
+        description = "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly")
     boolean offline = false;
-    @Parameter(names={"-a", "--address"}, description="specify our local address")
+    @Parameter(names = {"-a", "--address"}, description = "specify our local address")
     String address = null;
   }
 
   // how much of the JVM's available memory should it use gathering candidates
   private static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
   private boolean candidateMemExceeded;
-  
+
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
-    
+
   private static final Pattern dirPattern = Pattern.compile("/[\\p{Punct}\\p{Alnum}&&[^/]]+/[\\p{Punct}\\p{Alnum}&&[^/]]+");
   private static final Pattern filePattern = Pattern.compile("/[\\p{Punct}\\p{Alnum}&&[^/]]+/[\\p{Punct}\\p{Alnum}&&[^/]]+/[\\p{Punct}\\p{Alnum}&&[^/]]+");
 
@@ -138,16 +138,16 @@ public class SimpleGarbageCollector implements Iface {
   private boolean safemode = false, offline = false, verbose = false;
   private ZooLock lock;
   private Key continueKey = null;
-  
+
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
-  
+
   private int numDeleteThreads;
-  
+
   private Instance instance;
-  
+
   public static void main(String[] args) throws UnknownHostException, IOException {
     SecurityUtil.serverLogin();
-    
+
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration serverConf = new ServerConfiguration(instance);
     final FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), serverConf.getConfiguration());
@@ -156,7 +156,7 @@ public class SimpleGarbageCollector implements Iface {
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
     Opts opts = new Opts();
     opts.parseArgs(SimpleGarbageCollector.class.getName(), args);
-    
+
     if (opts.safeMode)
       gc.setSafeMode();
     if (opts.offline)
@@ -173,31 +173,31 @@ public class SimpleGarbageCollector implements Iface {
       // Get a better hostname for this system
       hostname = InetAddress.getLocalHost().getHostName();
     }
-    
+
     gc.init(fs, instance, SecurityConstants.getSystemCredentials(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
     Accumulo.enableTracing(hostname, "gc");
     gc.run(hostname);
   }
-  
+
   public SimpleGarbageCollector() {}
-  
+
   public void setSafeMode() {
     this.safemode = true;
   }
-  
+
   public void setOffline() {
     this.offline = true;
   }
-  
+
   public void setVerbose() {
     this.verbose = true;
   }
-  
+
   public void init(FileSystem fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
     this.instance = instance;
-    
+
     gcStartDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
     long gcDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
     numDeleteThreads = instance.getConfiguration().getCount(Property.GC_DELETE_THREADS);
@@ -212,10 +212,10 @@ public class SimpleGarbageCollector implements Iface {
       this.trash = new Trash(fs, fs.getConf());
     }
   }
-  
+
   private void run(String hostname) {
     long tStart, tStop;
-    
+
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
     if (!offline) {
@@ -225,7 +225,7 @@ public class SimpleGarbageCollector implements Iface {
         log.error(ex, ex);
         System.exit(1);
       }
-      
+
       try {
         log.debug("Sleeping for " + gcStartDelay + " milliseconds before beginning garbage collection cycles");
         Thread.sleep(gcStartDelay);
@@ -234,13 +234,13 @@ public class SimpleGarbageCollector implements Iface {
         return;
       }
     }
-    
+
     Sampler sampler = new CountSampler(100);
-    
+
     while (true) {
       if (sampler.next())
         Trace.on("gc");
-      
+
       Span gcSpan = Trace.start("loop");
       tStart = System.currentTimeMillis();
       try {
@@ -248,13 +248,13 @@ public class SimpleGarbageCollector implements Iface {
         System.gc(); // make room
         candidateMemExceeded = false;
         checkForBulkProcessingFiles = false;
-        
+
         Span candidatesSpan = Trace.start("getCandidates");
         status.current.started = System.currentTimeMillis();
         SortedSet<String> candidates = getCandidates();
         status.current.candidates = candidates.size();
         candidatesSpan.stop();
-        
+
         // STEP 2: confirm deletes
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST confirm candidates are okay to delete
@@ -262,7 +262,7 @@ public class SimpleGarbageCollector implements Iface {
         confirmDeletes(candidates);
         status.current.inUse = status.current.candidates - candidates.size();
         confirmDeletesSpan.stop();
-        
+
         // STEP 3: delete files
         if (safemode) {
           if (verbose)
@@ -283,30 +283,30 @@ public class SimpleGarbageCollector implements Iface {
           log.info("Number of successfully deleted data files: " + status.current.deleted);
           log.info("Number of data files delete failures: " + status.current.errors);
           deleteSpan.stop();
-          
+
           // delete empty dirs of deleted tables
           // this can occur as a result of cloning
           cleanUpDeletedTableDirs(candidates);
         }
-        
+
         status.current.finished = System.currentTimeMillis();
         status.last = status.current;
         status.current = new GcCycleStats();
-        
+
       } catch (Exception e) {
         log.error(e, e);
       }
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
-      
+
       if (offline)
         break;
-      
+
       if (candidateMemExceeded) {
         log.info("Gathering of candidates was interrupted due to memory shortage. Bypassing cycle delay to collect the remaining candidates.");
         continue;
       }
-      
+
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
@@ -318,7 +318,7 @@ public class SimpleGarbageCollector implements Iface {
       }
       waLogs.stop();
       gcSpan.stop();
-      
+
       // we just made a lot of changes to the !METADATA table: flush them out
       try {
         Connector connector = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
@@ -326,7 +326,7 @@ public class SimpleGarbageCollector implements Iface {
       } catch (Exception e) {
         log.warn(e, e);
       }
-      
+
       Trace.offNoFlush();
       try {
         long gcDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
@@ -338,7 +338,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
   }
-  
+
   private boolean moveToTrash(Path path) throws IOException {
     if (trash == null)
       return false;
@@ -348,14 +348,14 @@ public class SimpleGarbageCollector implements Iface {
       return false;
     }
   }
-  
+
   /*
    * this method removes deleted table dirs that are empty
    */
   private void cleanUpDeletedTableDirs(SortedSet<String> candidates) throws Exception {
-    
+
     HashSet<String> tableIdsWithDeletes = new HashSet<String>();
-    
+
     // find the table ids that had dirs deleted
     for (String delete : candidates) {
       if (isDir(delete)) {
@@ -363,14 +363,14 @@ public class SimpleGarbageCollector implements Iface {
         tableIdsWithDeletes.add(tableId);
       }
     }
-    
+
     Tables.clearCache(instance);
     Set<String> tableIdsInZookeeper = Tables.getIdToNameMap(instance).keySet();
-    
+
     tableIdsWithDeletes.removeAll(tableIdsInZookeeper);
-    
+
     // tableIdsWithDeletes should now contain the set of deleted tables that had dirs deleted
-    
+
     for (String delTableId : tableIdsWithDeletes) {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 1.0 will return null if the file doesn't exist
@@ -379,42 +379,42 @@ public class SimpleGarbageCollector implements Iface {
       try {
         tabletDirs = fs.listStatus(new Path(ServerConstants.getTablesDir() + "/" + delTableId));
       } catch (FileNotFoundException ex) {
-        // ignored 
+        // ignored
       }
-      
+
       if (tabletDirs == null)
         continue;
-      
+
       if (tabletDirs.length == 0) {
         Path p = new Path(ServerConstants.getTablesDir() + "/" + delTableId);
-        if (!moveToTrash(p)) 
+        if (!moveToTrash(p))
           fs.delete(p, false);
       }
     }
   }
-  
+
   private void getZooLock(InetSocketAddress addr) throws KeeperException, InterruptedException {
     String address = AddressUtil.toString(addr);
     String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
-    
+
     LockWatcher lockWatcher = new LockWatcher() {
       public void lostLock(LockLossReason reason) {
         Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!");
       }
-      
+
       @Override
       public void unableToMonitorLockNode(final Throwable e) {
         Halt.halt(-1, new Runnable() {
-          
+
           @Override
           public void run() {
             log.fatal("No longer able to monitor lock node ", e);
           }
         });
-        
+
       }
     };
-    
+
     while (true) {
       lock = new ZooLock(path);
       if (lock.tryLock(lockWatcher, new ServerServices(address, Service.GC_CLIENT).toString().getBytes(UTF_8))) {
@@ -423,7 +423,7 @@ public class SimpleGarbageCollector implements Iface {
       UtilWaitThread.sleep(1000);
     }
   }
-  
+
   private InetSocketAddress startStatsService(String hostname) throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     int port = instance.getConfiguration().getPort(Property.GC_PORT);
@@ -436,7 +436,7 @@ public class SimpleGarbageCollector implements Iface {
     }
     return new InetSocketAddress(hostname, port);
   }
-  
+
   // visible for testing
   static boolean isValidFileDelete(String path) {
     return filePattern.matcher(path).matches();
@@ -479,7 +479,7 @@ public class SimpleGarbageCollector implements Iface {
    */
   SortedSet<String> getCandidates() throws Exception {
     TreeSet<String> candidates = new TreeSet<String>();
-    
+
     if (offline) {
       checkForBulkProcessingFiles = true;
       try {
@@ -506,14 +506,14 @@ public class SimpleGarbageCollector implements Iface {
     candidates.addAll(getBatch(Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX, range));
     if (candidateMemExceeded)
       return candidates;
-    
+
     range = Constants.METADATA_DELETES_KEYSPACE;
     candidates.addAll(getBatch(Constants.METADATA_DELETE_FLAG_PREFIX, range));
     return candidates;
   }
 
   private Collection<String> getBatch(String prefix, Range range) throws Exception {
-    // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, 
+    // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them,
     // then will never inspect deletes after N
     if (continueKey != null) {
       if (!range.contains(continueKey)) {
@@ -523,8 +523,9 @@ public class SimpleGarbageCollector implements Iface {
       range = new Range(continueKey, true, range.getEndKey(), range.isEndKeyInclusive());
       continueKey = null;
     }
-    
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
+        Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.setRange(range);
     List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
@@ -539,22 +540,22 @@ public class SimpleGarbageCollector implements Iface {
         break;
       }
     }
-    
+
     removeInvalidCandidates(result);
     return result;
   }
-  
+
   static public boolean almostOutOfMemory() {
     Runtime runtime = Runtime.getRuntime();
     return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
-  
+
   /**
    * This method removes candidates from the candidate list under two conditions: 1. They are in the same folder as a bulk processing file, if that option is
    * selected 2. They are still in use in the file column family in the METADATA table
    */
   public void confirmDeletes(SortedSet<String> candidates) throws AccumuloException {
-    
+
     Scanner scanner;
     if (offline) {
       try {
@@ -564,25 +565,26 @@ public class SimpleGarbageCollector implements Iface {
       }
     } else {
       try {
-        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
+            Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {
         throw new AccumuloException(ex);
       }
     }
-    
+
     // skip candidates that are in a bulk processing folder
     if (checkForBulkProcessingFiles) {
-      
+
       log.debug("Checking for bulk processing flags");
-      
+
       scanner.setRange(Constants.METADATA_BLIP_KEYSPACE);
-      
+
       // WARNING: This block is IMPORTANT
       // You MUST REMOVE candidates that are in the same folder as a bulk
       // processing flag!
-      
+
       for (Entry<Key,Value> entry : scanner) {
         String blipPath = entry.getKey().getRow().toString().substring(Constants.METADATA_BLIP_FLAG_PREFIX.length());
         validateDir(blipPath);
@@ -596,29 +598,29 @@ public class SimpleGarbageCollector implements Iface {
             break;
           }
         }
-        
+
         if (count > 0)
           log.debug("Folder has bulk processing flag: " + blipPath);
-        
+
       }
     }
-    
+
     // skip candidates that are still in use in the file column family in
     // the metadata table
     scanner.clearColumns();
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_SCANFILE_COLUMN_FAMILY);
     Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
-    
+
     TabletIterator tabletIterator = new TabletIterator(scanner, Constants.METADATA_KEYSPACE, false, true);
-    
+
     while (tabletIterator.hasNext()) {
       Map<Key,Value> tabletKeyValues = tabletIterator.next();
-      
+
       for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
         if (entry.getKey().getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)
             || entry.getKey().getColumnFamily().equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
-          
+
           String cf = entry.getKey().getColumnQualifier().toString();
           String delete;
           if (cf.startsWith("../")) {
@@ -632,7 +634,7 @@ public class SimpleGarbageCollector implements Iface {
           validateFile(delete);
           if (candidates.remove(delete))
             log.debug("Candidate was still in use in the METADATA table: " + delete);
-          
+
           String path = delete.substring(0, delete.lastIndexOf('/'));
           validateDir(path);
           if (candidates.remove(path))
@@ -650,6 +652,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   final static String METADATA_TABLE_DIR = "/" + Constants.METADATA_TABLE_ID;
+
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer, final BatchWriter rootWriter) throws MutationsRejectedException {
     if (delete.startsWith(METADATA_TABLE_DIR)) {
       Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX + delete));
@@ -701,28 +704,28 @@ public class SimpleGarbageCollector implements Iface {
         } else {
           lastDir = null;
         }
-        
+
       }
     }
-    
+
     final BatchWriter finalWriter = writer;
     final BatchWriter finalRootWriter = rootWriter;
-    
+
     ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads, new NamingThreadFactory("deleting"));
-    
+
     for (final String delete : confirmedDeletes) {
-      
+
       Runnable deleteTask = new Runnable() {
         @Override
         public void run() {
           boolean removeFlag;
-          
+
           String fullPath = ServerConstants.getTablesDir() + delete;
           log.debug("Deleting " + fullPath);
           try {
-            
+
             Path p = new Path(fullPath);
-            
+
             if (moveToTrash(p) || fs.delete(p, true)) {
               // delete succeeded, still want to delete
               removeFlag = true;
@@ -759,7 +762,7 @@ public class SimpleGarbageCollector implements Iface {
                 log.warn("Very strange path name: " + delete);
               }
             }
-            
+
             // proceed to clearing out the flags for successful deletes and
             // non-existent files
             if (removeFlag && finalWriter != null) {
@@ -768,22 +771,22 @@ public class SimpleGarbageCollector implements Iface {
           } catch (Exception e) {
             log.error(e, e);
           }
-          
+
         }
 
       };
-      
+
       deleteThreadPool.execute(deleteTask);
     }
-    
+
     deleteThreadPool.shutdown();
-    
+
     try {
       while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
     } catch (InterruptedException e1) {
       log.error(e1, e1);
     }
-    
+
     if (writer != null) {
       try {
         writer.close();
@@ -799,7 +802,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
   }
-  
+
   private boolean isDir(String delete) {
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++)
@@ -807,7 +810,7 @@ public class SimpleGarbageCollector implements Iface {
         slashCount++;
     return slashCount == 2;
   }
-  
+
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;

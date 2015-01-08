@@ -18,22 +18,22 @@ package org.apache.accumulo.trace.instrument;
 
 /**
  * Wrap a Runnable with a Span that survives a change in threads.
- * 
+ *
  */
 public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
-  
+
   private final Span parent;
   private final Runnable runnable;
-  
+
   public TraceRunnable(Runnable runnable) {
     this(Trace.currentTrace(), runnable);
   }
-  
+
   public TraceRunnable(Span parent, Runnable runnable) {
     this.parent = parent;
     this.runnable = runnable;
   }
-  
+
   @Override
   public void run() {
     if (parent != null) {
@@ -47,16 +47,16 @@ public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
       runnable.run();
     }
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof TraceRunnable) {
       return 0 == this.compareTo((TraceRunnable) o);
     }
-    
+
     return false;
   }
-  
+
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public int compareTo(TraceRunnable o) {

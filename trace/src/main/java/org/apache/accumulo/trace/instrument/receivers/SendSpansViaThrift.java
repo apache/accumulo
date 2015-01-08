@@ -27,20 +27,19 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
-
 /**
  * Send Span data to a destination using thrift.
  */
 public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
-  
+
   private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(SendSpansViaThrift.class);
-  
+
   private static final String THRIFT = "thrift://";
-  
+
   public SendSpansViaThrift(String host, String service, long millis) {
     super(host, service, millis);
   }
-  
+
   @Override
   protected Client createDestination(String destination) throws Exception {
     if (destination == null)
@@ -59,7 +58,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       return null;
     }
   }
-  
+
   @Override
   protected void send(Client client, RemoteSpan s) throws Exception {
     if (client != null) {
@@ -71,7 +70,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       }
     }
   }
-  
+
   protected String getSpanKey(Map<String,String> data) {
     String dest = data.get("dest");
     if (dest != null && dest.startsWith(THRIFT)) {
@@ -83,5 +82,5 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
     }
     return null;
   }
-  
+
 }

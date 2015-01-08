@@ -51,22 +51,22 @@ import org.apache.thrift.transport.TTransportException;
 
 public class TServerUtils {
   private static final Logger log = Logger.getLogger(TServerUtils.class);
-  
+
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
-  
+
   public static class ServerPort {
     public final TServer server;
     public final int port;
-    
+
     public ServerPort(TServer server, int port) {
       this.server = server;
       this.port = port;
     }
   }
-  
+
   /**
    * Start a server, at the given port, or higher, if that port is not available.
-   * 
+   *
    * @param portHintProperty
    *          the port to attempt to open, can be zero, meaning "any available port"
    * @param processor
@@ -80,10 +80,8 @@ public class TServerUtils {
    *           when we don't know our own address
    */
   public static ServerPort startServer(AccumuloConfiguration conf, Property portHintProperty, TProcessor processor, String serverName, String threadName,
-      Property portSearchProperty,
-      Property minThreadProperty, 
-      Property timeBetweenThreadChecksProperty, 
-      Property maxMessageSizeProperty) throws UnknownHostException {
+      Property portSearchProperty, Property minThreadProperty, Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
+      throws UnknownHostException {
     int portHint = conf.getPort(portHintProperty);
     int minThreads = 2;
     if (minThreadProperty != null)
@@ -99,12 +97,12 @@ public class TServerUtils {
       portSearch = conf.getBoolean(portSearchProperty);
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
-      
+
       // Are we going to slide around, looking for an open port?
       int portsToSearch = 1;
       if (portSearch)
         portsToSearch = 1000;
-      
+
       for (int i = 0; i < portsToSearch; i++) {
         int port = portHint + i;
         if (portHint != 0 && i > 0)
@@ -121,13 +119,13 @@ public class TServerUtils {
     }
     throw new UnknownHostException("Unable to find a listen port");
   }
-  
+
   public static class TimedProcessor implements TProcessor {
-    
+
     final TProcessor other;
     ThriftMetrics metrics = null;
     long idleStart = 0;
-    
+
     TimedProcessor(TProcessor next, String serverName, String threadName) {
       this.other = next;
       // Register the metrics MBean
@@ -139,7 +137,7 @@ public class TServerUtils {
       }
       idleStart = System.currentTimeMillis();
     }
-    
+
     @Override
     public boolean process(TProtocol in, TProtocol out) throws TException {
       long now = 0;
@@ -157,13 +155,13 @@ public class TServerUtils {
       }
     }
   }
-  
+
   public static class ClientInfoProcessorFactory extends TProcessorFactory {
-    
+
     public ClientInfoProcessorFactory(TProcessor processor) {
       super(processor);
     }
-    
+
     @Override
     public TProcessor getProcessor(TTransport trans) {
       if (trans instanceof TBufferedSocket) {
@@ -173,25 +171,25 @@ public class TServerUtils {
       return super.getProcessor(trans);
     }
   }
-  
+
   public static class THsHaServer extends org.apache.thrift.server.THsHaServer {
     public THsHaServer(Args args) {
       super(args);
     }
-    
+
     @Override
     protected Runnable getRunnable(FrameBuffer frameBuffer) {
       return new Invocation(frameBuffer);
     }
-    
+
     private class Invocation implements Runnable {
-      
+
       private final FrameBuffer frameBuffer;
-      
+
       public Invocation(final FrameBuffer frameBuffer) {
         this.frameBuffer = frameBuffer;
       }
-      
+
       @Override
       public void run() {
         if (frameBuffer.trans_ instanceof TNonblockingSocket) {
@@ -203,7 +201,7 @@ public class TServerUtils {
       }
     }
   }
-  
+
   public static ServerPort startHsHaServer(int port, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(port);
@@ -248,10 +246,10 @@ public class TServerUtils {
     options.processorFactory(new TProcessorFactory(processor));
     return new ServerPort(new THsHaServer(options), port);
   }
-  
+
   public static ServerPort startThreadPoolServer(int port, TProcessor processor, String serverName, String threadName, int numThreads)
       throws TTransportException {
-    
+
     // if port is zero, then we must bind to get the port number
     ServerSocket sock;
     try {
@@ -270,9 +268,9 @@ public class TServerUtils {
     options.processorFactory(new ClientInfoProcessorFactory(processor));
     return new ServerPort(new TThreadPoolServer(options), port);
   }
-  
-  public static ServerPort startTServer(int port, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
-      throws TTransportException {
+
+  public static ServerPort startTServer(int port, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks,
+      long maxMessageSize) throws TTransportException {
     ServerPort result = startHsHaServer(port, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
     // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);
     final TServer finalServer = result.server;
@@ -291,7 +289,7 @@ public class TServerUtils {
     thread.start();
     return result;
   }
-  
+
   // Existing connections will keep our thread running: reach in with reflection and insist that they shutdown.
   public static void stopTServer(TServer s) {
     if (s == null)

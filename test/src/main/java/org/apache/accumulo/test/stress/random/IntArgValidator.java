@@ -22,11 +22,11 @@ import com.beust.jcommander.ParameterException;
 import com.google.common.base.Preconditions;
 
 public class IntArgValidator implements IValueValidator<Integer> {
-  
+
   @Override
   public void validate(String name, Integer value) throws ParameterException {
     Preconditions.checkNotNull(value);
     Preconditions.checkArgument(value > 0);
   }
-  
+
 }

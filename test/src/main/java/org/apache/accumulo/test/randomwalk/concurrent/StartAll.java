@@ -31,12 +31,12 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class StartAll extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     log.info("Starting all servers");
-    SetGoalState.main(new String[]{MasterGoalState.NORMAL.name()});
-    Process exec = Runtime.getRuntime().exec(new String[]{System.getenv().get("ACCUMULO_HOME") + "/bin/start-all.sh"});
+    SetGoalState.main(new String[] {MasterGoalState.NORMAL.name()});
+    Process exec = Runtime.getRuntime().exec(new String[] {System.getenv().get("ACCUMULO_HOME") + "/bin/start-all.sh"});
     exec.waitFor();
     while (true) {
       try {
@@ -49,5 +49,5 @@ public class StartAll extends Test {
       }
     }
   }
-  
+
 }

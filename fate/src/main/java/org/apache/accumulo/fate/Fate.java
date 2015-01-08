@@ -25,26 +25,26 @@ import org.apache.log4j.Logger;
 
 /**
  * Fault tolerant executor
- * 
- * 
+ *
+ *
  */
 
 public class Fate<T> {
-  
+
   private static final String DEBUG_PROP = "debug";
   private static final String AUTO_CLEAN_PROP = "autoClean";
   private static final String EXCEPTION_PROP = "exception";
   private static final String RETURN_PROP = "return";
-  
+
   final private static Logger log = Logger.getLogger(Fate.class);
-  
+
   private TStore<T> store;
   private T environment;
-  
+
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
-  
+
   private class TransactionRunner implements Runnable {
-    
+
     @Override
     public void run() {
       while (true) {
@@ -64,12 +64,12 @@ public class Fate<T> {
                 op = op.call(tid, environment);
               } else
                 continue;
-              
+
             } catch (Exception e) {
               transitionToFailed(tid, op, e);
               continue;
             }
-            
+
             if (op == null) {
               // transaction is finished
               String ret = prevOp.getReturn();
@@ -91,10 +91,10 @@ public class Fate<T> {
         } finally {
           store.unreserve(tid, deferTime);
         }
-        
+
       }
     }
-    
+
     private void transitionToFailed(long tid, Repo<T> op, Exception e) {
       String tidStr = String.format("%016x", tid);
       log.warn("Failed to execute Repo, tid=" + tidStr, e);
@@ -102,19 +102,19 @@ public class Fate<T> {
       store.setStatus(tid, TStatus.FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with tid=" + tidStr + " to FAILED_IN_PROGRESS");
     }
-    
+
     private void processFailed(long tid, Repo<T> op) {
       while (op != null) {
         undo(tid, op);
-        
+
         store.pop(tid);
         op = store.top(tid);
       }
-      
+
       store.setStatus(tid, TStatus.FAILED);
       doCleanUp(tid);
     }
-    
+
     private void doCleanUp(long tid) {
       Boolean autoClean = (Boolean) store.getProperty(tid, AUTO_CLEAN_PROP);
       if (autoClean != null && autoClean) {
@@ -126,7 +126,7 @@ public class Fate<T> {
           store.pop(tid);
       }
     }
-    
+
     private void undo(long tid, Repo<T> op) {
       try {
         op.undo(tid, environment);
@@ -134,26 +134,26 @@ public class Fate<T> {
         log.warn("Failed to undo Repo, tid=" + String.format("%016x", tid), e);
       }
     }
-    
+
   }
-  
+
   public Fate(T environment, TStore<T> store, int numTreads) {
     this.store = store;
     this.environment = environment;
-    
+
     for (int i = 0; i < numTreads; i++) {
       // TODO: use an ExecutorService, maybe a utility to do these steps throughout the server packages - ACCUMULO-1311
       Thread thread = new Daemon(new LoggingRunnable(log, new TransactionRunner()), "Repo runner " + i);
       thread.start();
     }
   }
-  
+
   // get a transaction id back to the requester before doing any work
   public long startTransaction() {
     long dir = store.create();
     return dir;
   }
-  
+
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp) {
@@ -168,25 +168,25 @@ public class Fate<T> {
             throw new RuntimeException(e);
           }
         }
-        
+
         if (autoCleanUp)
           store.setProperty(tid, AUTO_CLEAN_PROP, Boolean.valueOf(autoCleanUp));
-        
+
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
-        
+
         store.setStatus(tid, TStatus.IN_PROGRESS);
       }
     } finally {
       store.unreserve(tid, 0);
     }
-    
+
   }
-  
+
   // check on the transaction
   public TStatus waitForCompletion(long tid) {
     return store.waitForStatusChange(tid, FINISHED_STATES);
   }
-  
+
   // resource cleanup
   public void delete(long tid) {
     store.reserve(tid);
@@ -208,7 +208,7 @@ public class Fate<T> {
       store.unreserve(tid, 0);
     }
   }
-  
+
   public String getReturn(long tid) {
     store.reserve(tid);
     try {
@@ -219,7 +219,7 @@ public class Fate<T> {
       store.unreserve(tid, 0);
     }
   }
-  
+
   // get reportable failures
   public Exception getException(long tid) {
     store.reserve(tid);
@@ -231,5 +231,5 @@ public class Fate<T> {
       store.unreserve(tid, 0);
     }
   }
-  
+
 }

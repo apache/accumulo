@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to constructor and all other configurations are optional.
- * 
+ *
  * @since 1.5.0
  */
 
@@ -60,7 +60,7 @@ public class MiniAccumuloConfig {
 
   /**
    * Calling this method is optional. If not set, it defaults to two.
-   * 
+   *
    * @param numTservers
    *          the number of tablet servers that mini accumulo cluster should start
    */
@@ -78,7 +78,7 @@ public class MiniAccumuloConfig {
 
   /**
    * Calling this method is optional. If not set, it defautls to an empty map.
-   * 
+   *
    * @param siteConfig
    *          key/values that you normally put in accumulo-site.xml can be put here
    */

@@ -26,18 +26,18 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DeleteTable extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     try {
       conn.tableOperations().delete(tableName);
       log.debug("Deleted table " + tableName);

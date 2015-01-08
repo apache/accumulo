@@ -48,28 +48,28 @@ import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.log4j.Level;
 
 public class MasterServlet extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   // private TableManager tableManager = TableManager.getInstance();
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     List<String> masters = Monitor.getInstance().getMasterLocations();
     return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), Property.MASTER_CLIENTPORT).getHostName());
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
-    
+
     doLogEventBanner(sb);
     TablesServlet.doProblemsBanner(sb);
     doMasterStatus(req, sb);
     doRecoveryList(req, sb);
     TablesServlet.doTableList(req, sb, tidToNameMap);
   }
-  
+
   private void doLogEventBanner(StringBuilder sb) {
     if (LogService.getInstance().getEvents().size() > 0) {
       int error = 0, warning = 0, total = 0;
@@ -89,9 +89,9 @@ public class MasterServlet extends BasicServlet {
           : "s", warning, warning == 1 ? "" : "s", total));
     }
   }
-  
+
   private void doMasterStatus(HttpServletRequest req, StringBuilder sb) throws IOException {
-    
+
     if (Monitor.getMmi() != null) {
       String gcStatus = "Waiting";
       if (Monitor.getGcStatus() != null) {
@@ -120,7 +120,7 @@ public class MasterServlet extends BasicServlet {
       if (Monitor.getMmi().serversShuttingDown != null && Monitor.getMmi().serversShuttingDown.size() > 0 && Monitor.getMmi().state == MasterState.NORMAL) {
         sb.append("<span class='warning'>Servers being stopped: " + StringUtil.join(Monitor.getMmi().serversShuttingDown, ", ") + "</span>\n");
       }
-      
+
       int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
       List<String> slaves = new ArrayList<String>();
       for (TabletServerStatus up : Monitor.getMmi().tServerInfo) {
@@ -130,7 +130,7 @@ public class MasterServlet extends BasicServlet {
         slaves.add(down.server);
       }
       List<String> masters = Monitor.getInstance().getMasterLocations();
-      
+
       Table masterStatus = new Table("masterStatus", "Master&nbsp;Status");
       masterStatus.addSortableColumn("Master");
       masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new PreciseNumberType((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
@@ -164,12 +164,12 @@ public class MasterServlet extends BasicServlet {
       row.add(ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage());
       masterStatus.addRow(row);
       masterStatus.generate(req, sb);
-      
+
     } else
       banner(sb, "error", "Master Server Not Running");
-    
+
   }
-  
+
   private void doRecoveryList(HttpServletRequest req, StringBuilder sb) {
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (mmi != null) {
@@ -197,5 +197,5 @@ public class MasterServlet extends BasicServlet {
         recoveryTable.generate(req, sb);
     }
   }
-  
+
 }

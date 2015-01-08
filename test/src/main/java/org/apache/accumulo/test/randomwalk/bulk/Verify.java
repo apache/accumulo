@@ -36,9 +36,9 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Verify extends Test {
-  
+
   static byte[] zero = new byte[] {'0'};
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     ThreadPoolExecutor threadPool = Setup.getThreadPool(state);
@@ -56,7 +56,7 @@ public class Verify extends Test {
       log.info("Not verifying bulk import test due to import failures");
       return;
     }
-    
+
     String user = state.getConnector().whoami();
     Authorizations auths = state.getConnector().securityOperations().getUserAuthorizations(user);
     Scanner scanner = state.getConnector().createScanner(Setup.getTableName(), auths);
@@ -67,18 +67,18 @@ public class Verify extends Test {
         throw new Exception("Bad key at " + entry);
       }
     }
-    
+
     scanner.clearColumns();
     scanner.fetchColumnFamily(BulkPlusOne.MARKER_CF);
     RowIterator rowIter = new RowIterator(scanner);
-    
+
     while (rowIter.hasNext()) {
       Iterator<Entry<Key,Value>> row = rowIter.next();
       long prev = 0;
       Text rowText = null;
       while (row.hasNext()) {
         Entry<Key,Value> entry = row.next();
-        
+
         if (rowText == null)
           rowText = entry.getKey().getRow();
 
@@ -86,13 +86,13 @@ public class Verify extends Test {
 
         if (curr - 1 != prev)
           throw new Exception("Bad marker count " + entry.getKey() + " " + entry.getValue() + " " + prev);
-        
+
         if (!entry.getValue().toString().equals("1"))
           throw new Exception("Bad marker value " + entry.getKey() + " " + entry.getValue());
-        
+
         prev = curr;
       }
-      
+
       if (BulkPlusOne.counter.get() != prev) {
         throw new Exception("Row " + rowText + " does not have all markers " + BulkPlusOne.counter.get() + " " + prev);
       }
@@ -101,7 +101,7 @@ public class Verify extends Test {
     log.info("Test successful on table " + Setup.getTableName());
     state.getConnector().tableOperations().delete(Setup.getTableName());
   }
-    
+
   public static void main(String args[]) throws Exception {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(Verify.class.getName(), args);
@@ -138,10 +138,10 @@ public class Verify extends Test {
       report(startBadRow, lastBadRow, currentBadValue);
     }
   }
-  
+
   private static void report(Text startBadRow, Text lastBadRow, Value value) {
     System.out.println("Bad value " + new String(value.get(), UTF_8));
     System.out.println(" Range [" + startBadRow + " -> " + lastBadRow + "]");
   }
-  
+
 }

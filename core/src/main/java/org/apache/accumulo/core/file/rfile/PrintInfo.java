@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path;
 import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
-  
+
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
@@ -44,34 +44,34 @@ public class PrintInfo {
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
   }
-  
+
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
     FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
-    FileSystem localFs  = FileSystem.getLocal(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
     if (opts.files.isEmpty()) {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    
+
     long countBuckets[] = new long[11];
     long sizeBuckets[] = new long[countBuckets.length];
     long totalSize = 0;
-    
+
     for (String arg : opts.files) {
-      
+
       Path path = new Path(arg);
       FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
       Reader iter = new RFile.Reader(_rdr);
-      
+
       iter.printInfo();
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
-      
+
       if (opts.histogram || opts.dump) {
         iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
         while (iter.hasTop()) {

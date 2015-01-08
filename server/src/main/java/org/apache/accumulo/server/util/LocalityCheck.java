@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -33,28 +32,29 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class LocalityCheck {
-  
+
   public int run(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(LocalityCheck.class.getName(), args);
-    
+
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     scanner.setRange(Constants.METADATA_KEYSPACE);
-    
+
     Map<String,Long> totalBlocks = new HashMap<String,Long>();
     Map<String,Long> localBlocks = new HashMap<String,Long>();
     ArrayList<String> files = new ArrayList<String>();
-    
+
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
       if (key.compareColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
@@ -75,7 +75,7 @@ public class LocalityCheck {
     }
     return 0;
   }
-  
+
   private static String slash(String path) {
     if (path.startsWith("/"))
       return path;
@@ -107,7 +107,7 @@ public class LocalityCheck {
     totalBlocks.put(host, allBlocks + totalBlocks.get(host));
     localBlocks.put(host, matchingBlocks + localBlocks.get(host));
   }
-  
+
   public static void main(String[] args) throws Exception {
     LocalityCheck check = new LocalityCheck();
     System.exit(check.run(args));

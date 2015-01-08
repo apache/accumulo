@@ -27,8 +27,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -46,7 +46,7 @@ import org.apache.thrift.transport.TTransportException;
 public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
   private static final Map<String,ZooCache> zooCaches = new HashMap<String,ZooCache>();
-  
+
   private synchronized static ZooCache getZooCache(Instance instance) {
     ZooCache result = zooCaches.get(instance.getZooKeepers());
     if (result == null) {
@@ -55,7 +55,7 @@ public class ServerClient {
     }
     return result;
   }
-  
+
   public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       return executeRaw(instance, exec);
@@ -67,7 +67,7 @@ public class ServerClient {
       throw new AccumuloException(e);
     }
   }
-  
+
   public static void execute(Instance instance, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       executeRaw(instance, exec);
@@ -79,7 +79,7 @@ public class ServerClient {
       throw new AccumuloException(e);
     }
   }
-  
+
   public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
@@ -98,7 +98,7 @@ public class ServerClient {
       }
     }
   }
-  
+
   public static void executeRaw(Instance instance, ClientExec<ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
@@ -118,25 +118,25 @@ public class ServerClient {
       }
     }
   }
-  
+
   static volatile boolean warnedAboutTServersBeingDown = false;
 
   public static Pair<String,ClientService.Client> getConnection(Instance instance) throws TTransportException {
     return getConnection(instance, true);
   }
-  
+
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
     AccumuloConfiguration conf = instance.getConfiguration();
     return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
-  
+
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
     ArgumentChecker.notNull(instance);
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
-    
+
     // add tservers
-    
+
     ZooCache zc = getZooCache(instance);
     AccumuloConfiguration conf = instance.getConfiguration();
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
@@ -150,7 +150,7 @@ public class ServerClient {
         }
       }
     }
-    
+
     boolean opened = false;
     try {
       Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
@@ -171,7 +171,7 @@ public class ServerClient {
       }
     }
   }
-  
+
   public static void close(ClientService.Client client) {
     if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());

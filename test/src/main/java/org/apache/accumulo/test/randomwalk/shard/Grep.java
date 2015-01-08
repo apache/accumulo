@@ -36,61 +36,61 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Grep extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     // pick a few randoms words... grep for those words and search the index
     // ensure both return the same set of documents
-    
+
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
     Random rand = (Random) state.get("rand");
-    
+
     Text words[] = new Text[rand.nextInt(4) + 2];
-    
+
     for (int i = 0; i < words.length; i++) {
       words[i] = new Text(Insert.generateRandomWord(rand));
     }
-    
+
     BatchScanner bs = state.getConnector().createBatchScanner(indexTableName, Constants.NO_AUTHS, 16);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(ii, words);
     bs.addScanIterator(ii);
     bs.setRanges(Collections.singleton(new Range()));
-    
+
     HashSet<Text> documentsFoundInIndex = new HashSet<Text>();
-    
+
     for (Entry<Key,Value> entry2 : bs) {
       documentsFoundInIndex.add(entry2.getKey().getColumnQualifier());
     }
-    
+
     bs.close();
-    
+
     bs = state.getConnector().createBatchScanner(dataTableName, Constants.NO_AUTHS, 16);
-    
+
     for (int i = 0; i < words.length; i++) {
       IteratorSetting more = new IteratorSetting(20 + i, "ii" + i, RegExFilter.class);
       RegExFilter.setRegexs(more, null, null, null, "(^|(.*\\s))" + words[i] + "($|(\\s.*))", false);
       bs.addScanIterator(more);
     }
-    
+
     bs.setRanges(Collections.singleton(new Range()));
-    
+
     HashSet<Text> documentsFoundByGrep = new HashSet<Text>();
-    
+
     for (Entry<Key,Value> entry2 : bs) {
       documentsFoundByGrep.add(entry2.getKey().getRow());
     }
-    
+
     bs.close();
-    
+
     if (!documentsFoundInIndex.equals(documentsFoundByGrep)) {
       throw new Exception("Set of documents found not equal for words " + Arrays.asList(words).toString() + " " + documentsFoundInIndex + " "
           + documentsFoundByGrep);
     }
-    
+
     log.debug("Grep and index agree " + Arrays.asList(words).toString() + " " + documentsFoundInIndex.size());
-    
+
   }
-  
+
 }

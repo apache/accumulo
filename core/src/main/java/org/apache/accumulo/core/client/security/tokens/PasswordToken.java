@@ -39,26 +39,26 @@ import org.apache.hadoop.io.WritableUtils;
 
 public class PasswordToken implements AuthenticationToken {
   private byte[] password = null;
-  
+
   public byte[] getPassword() {
     return Arrays.copyOf(password, password.length);
   }
-  
+
   /**
    * Constructor for use with {@link Writable}. Call {@link #readFields(DataInput)}.
    */
   public PasswordToken() {}
-  
+
   /**
    * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
    * token will only destroy the copy held inside this token, not the argument.
-   * 
+   *
    * Password tokens created with this constructor will store the password as UTF-8 bytes.
    */
   public PasswordToken(CharSequence password) {
     setPassword(CharBuffer.wrap(password));
   }
-  
+
   /**
    * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
    * token will only destroy the copy held inside this token, not the argument.
@@ -66,7 +66,7 @@ public class PasswordToken implements AuthenticationToken {
   public PasswordToken(byte[] password) {
     this.password = Arrays.copyOf(password, password.length);
   }
-  
+
   /**
    * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
    * token will only destroy the copy held inside this token, not the argument.
@@ -74,33 +74,33 @@ public class PasswordToken implements AuthenticationToken {
   public PasswordToken(ByteBuffer password) {
     this.password = ByteBufferUtil.toBytes(password);
   }
-  
+
   @Override
   public void readFields(DataInput arg0) throws IOException {
     password = WritableUtils.readCompressedByteArray(arg0);
   }
-  
+
   @Override
   public void write(DataOutput arg0) throws IOException {
     WritableUtils.writeCompressedByteArray(arg0, password);
   }
-  
+
   @Override
   public void destroy() throws DestroyFailedException {
     Arrays.fill(password, (byte) 0x00);
     password = null;
   }
-  
+
   @Override
   public boolean isDestroyed() {
     return password == null;
   }
-  
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(password);
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj)
@@ -112,7 +112,7 @@ public class PasswordToken implements AuthenticationToken {
     PasswordToken other = (PasswordToken) obj;
     return Arrays.equals(password, other.password);
   }
-  
+
   @Override
   public PasswordToken clone() {
     try {
@@ -123,7 +123,7 @@ public class PasswordToken implements AuthenticationToken {
       throw new RuntimeException(e);
     }
   }
-  
+
   private void setPassword(CharBuffer charBuffer) {
     // encode() kicks back a C-string, which is not compatible with the old passwording system
     ByteBuffer bb = UTF_8.encode(charBuffer);
@@ -141,13 +141,12 @@ public class PasswordToken implements AuthenticationToken {
 
   @Override
   public void init(Properties properties) {
-    if (properties.containsKey("password")){
+    if (properties.containsKey("password")) {
       setPassword(CharBuffer.wrap(properties.get("password")));
-    }else
+    } else
       throw new IllegalArgumentException("Missing 'password' property");
   }
 
-  
   @Override
   public Set<TokenProperty> getProperties() {
     Set<TokenProperty> internal = new LinkedHashSet<TokenProperty>();

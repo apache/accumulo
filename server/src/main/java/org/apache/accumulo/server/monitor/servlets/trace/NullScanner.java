@@ -28,79 +28,79 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class NullScanner implements Scanner {
-  
+
   @Override
   public void addScanIterator(IteratorSetting cfg) {}
-  
+
   @Override
   public void updateScanIteratorOption(String iteratorName, String key, String value) {}
-  
+
   @Override
   public void fetchColumnFamily(Text col) {}
-  
+
   @Override
   public void fetchColumn(Text colFam, Text colQual) {}
-  
+
   @Override
   public void clearColumns() {}
-  
+
   @Override
   public void clearScanIterators() {}
-  
+
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {}
-  
+
   @Deprecated
   @Override
   public int getTimeOut() {
     return 0;
   }
-  
+
   @Override
   public void setRange(Range range) {}
-  
+
   @Override
   public Range getRange() {
     return null;
   }
-  
+
   @Override
   public void setBatchSize(int size) {
-    
+
   }
-  
+
   @Override
   public int getBatchSize() {
     return 0;
   }
-  
+
   @Override
   public void enableIsolation() {
-    
+
   }
-  
+
   @Override
   public void disableIsolation() {
-    
+
   }
-  
+
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     return new NullKeyValueIterator();
   }
-  
+
   @Override
   public void removeScanIterator(String iteratorName) {}
-  
+
   @Override
   public void setTimeout(long timeOut, TimeUnit timeUnit) {}
-  
+
   @Override
   public long getTimeout(TimeUnit timeUnit) {
     return 0;
   }
-  
+
   @Override
   public void close() {}
 }

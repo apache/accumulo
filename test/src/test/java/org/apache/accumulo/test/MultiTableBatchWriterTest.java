@@ -69,7 +69,7 @@ public class MultiTableBatchWriterTest {
     cluster.stop();
     folder.delete();
   }
-  
+
   @Test
   public void testTableRenameDataValidation() throws Exception {
     ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
@@ -97,7 +97,7 @@ public class MultiTableBatchWriterTest {
       tops.create(table1);
 
       BatchWriter bw2 = mtbw.getBatchWriter(table1);
-      
+
       Mutation m2 = new Mutation("bar");
       m2.put("col1", "", "val1");
 
@@ -130,7 +130,7 @@ public class MultiTableBatchWriterTest {
       }
 
       Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
-      
+
     } finally {
       if (null != mtbw) {
         mtbw.close();
@@ -239,14 +239,14 @@ public class MultiTableBatchWriterTest {
       }
 
       tops.rename(table2, newTable2);
-      
+
       try {
         bw2 = mtbw.getBatchWriter(table2);
         Assert.fail("Should not be able to find this table");
       } catch (TableNotFoundException e) {
-        //pass
+        // pass
       }
-      
+
       bw1 = mtbw.getBatchWriter(newTable1);
       bw2 = mtbw.getBatchWriter(newTable2);
 
@@ -288,7 +288,7 @@ public class MultiTableBatchWriterTest {
     Connector connector = instance.getConnector("root", password);
 
     BatchWriterConfig config = new BatchWriterConfig();
-    
+
     TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
 
@@ -341,7 +341,7 @@ public class MultiTableBatchWriterTest {
     TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
     boolean mutationsRejected = false;
-    
+
     try {
       final String table1 = "testTableDelete_table1", table2 = "testTableDelete_table2";
 
@@ -384,7 +384,7 @@ public class MultiTableBatchWriterTest {
         }
       }
     }
-    
+
     Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
@@ -441,7 +441,7 @@ public class MultiTableBatchWriterTest {
         }
       }
     }
-    
+
     Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
@@ -452,7 +452,7 @@ public class MultiTableBatchWriterTest {
     Connector connector = instance.getConnector("root", password);
 
     BatchWriterConfig config = new BatchWriterConfig();
-    
+
     TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
     boolean mutationsRejected = false;

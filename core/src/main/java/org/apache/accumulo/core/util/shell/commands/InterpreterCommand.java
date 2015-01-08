@@ -21,19 +21,19 @@ import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 
 /**
- * 
+ *
  */
 public class InterpreterCommand extends ShellPluginConfigurationCommand {
-  
+
   public InterpreterCommand() {
     super("interpreter", Property.TABLE_INTERPRETER_CLASS, "i");
   }
-  
+
   @Override
   public String description() {
     return "specifies a scan interpreter to interpret scan range and column arguments";
   }
-  
+
   public static Class<? extends ScanInterpreter> getCurrentInterpreter(final String tableName, final Shell shellState) {
     return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState, ScanInterpreter.class, Property.TABLE_INTERPRETER_CLASS);
   }

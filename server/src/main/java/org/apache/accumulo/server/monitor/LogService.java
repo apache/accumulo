@@ -40,7 +40,7 @@ import org.apache.zookeeper.KeeperException;
 
 /**
  * Hijack log4j and capture log events for display.
- * 
+ *
  */
 public class LogService extends org.apache.log4j.AppenderSkeleton {
 
@@ -48,7 +48,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
 
   /**
    * Read logging events forward to us over the net.
-   * 
+   *
    */
   static class SocketServer implements Runnable {
     private ServerSocket server = null;
@@ -82,7 +82,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
 
   /**
    * Place the host:port advertisement for the Monitor's Log4j listener in ZooKeeper
-   * 
+   *
    * @param conf
    *          configuration for the instance
    * @param instanceId

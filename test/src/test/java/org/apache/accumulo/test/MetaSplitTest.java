@@ -36,26 +36,26 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MetaSplitTest {
-  
+
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
-    
+
   }
-  
+
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     folder.delete();
   }
-  
+
   private void addSplits(TableOperations opts, String... points) throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String point : points) {
@@ -63,7 +63,7 @@ public class MetaSplitTest {
     }
     opts.addSplits(Constants.METADATA_TABLE_NAME, splits);
   }
-  
+
   @Test(timeout = 120000)
   public void testMetaSplit() throws Exception {
     Instance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
@@ -85,5 +85,5 @@ public class MetaSplitTest {
     opts.merge(Constants.METADATA_TABLE_NAME, null, null);
     assertEquals(1, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
   }
-  
+
 }

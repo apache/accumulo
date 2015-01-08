@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.client.security;
 
 /**
- * 
+ *
  */
 public enum SecurityErrorCode {
   DEFAULT_SECURITY_ERROR,

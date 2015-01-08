@@ -21,11 +21,18 @@ import java.util.Map;
 
 public interface SecretKeyEncryptionStrategyContext {
   public String getOpaqueKeyEncryptionKeyID();
+
   public void setOpaqueKeyEncryptionKeyID(String id);
+
   public byte[] getPlaintextSecretKey();
+
   public void setPlaintextSecretKey(byte[] key);
+
   public byte[] getEncryptedSecretKey();
+
   public void setEncryptedSecretKey(byte[] key);
-  public Map<String, String> getContext();
-  public void setContext(Map<String, String> context);
+
+  public Map<String,String> getContext();
+
+  public void setContext(Map<String,String> context);
 }

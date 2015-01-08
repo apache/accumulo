@@ -22,7 +22,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class SecurityErrorCodeTest {
 
@@ -32,16 +32,16 @@ public class SecurityErrorCodeTest {
     HashSet<String> secNames1 = new HashSet<String>();
     HashSet<String> secNames2 = new HashSet<String>();
     HashSet<String> secNames3 = new HashSet<String>();
-    
+
     for (SecurityErrorCode sec : SecurityErrorCode.values())
       secNames1.add(sec.name());
-    
+
     for (org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode sec : org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.values())
       secNames2.add(sec.name());
-    
+
     for (org.apache.accumulo.core.security.thrift.SecurityErrorCode sec : org.apache.accumulo.core.security.thrift.SecurityErrorCode.values())
       secNames3.add(sec.name());
-    
+
     Assert.assertEquals(secNames1, secNames2);
     Assert.assertEquals(secNames1, secNames3);
   }

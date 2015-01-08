@@ -40,238 +40,237 @@ import org.junit.Test;
 
 public class ColumnSliceFilterTest {
 
-    private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
 
-    private static final SortedMap<Key,Value> TEST_DATA = new TreeMap<Key,Value>();
-    private static final Key KEY_1 = nkv(TEST_DATA, "boo1", "yup", "20080201", "dog");
-    private static final Key KEY_2 = nkv(TEST_DATA, "boo1", "yap", "20080202", "cat");
-    private static final Key KEY_3 = nkv(TEST_DATA, "boo2", "yap", "20080203", "hamster");
-    private static final Key KEY_4 = nkv(TEST_DATA, "boo2", "yop", "20080204", "lion");
-    private static final Key KEY_5 = nkv(TEST_DATA, "boo2", "yup", "20080206", "tiger");
-    private static final Key KEY_6 = nkv(TEST_DATA, "boo2", "yip", "20080203", "tiger");
+  private static final SortedMap<Key,Value> TEST_DATA = new TreeMap<Key,Value>();
+  private static final Key KEY_1 = nkv(TEST_DATA, "boo1", "yup", "20080201", "dog");
+  private static final Key KEY_2 = nkv(TEST_DATA, "boo1", "yap", "20080202", "cat");
+  private static final Key KEY_3 = nkv(TEST_DATA, "boo2", "yap", "20080203", "hamster");
+  private static final Key KEY_4 = nkv(TEST_DATA, "boo2", "yop", "20080204", "lion");
+  private static final Key KEY_5 = nkv(TEST_DATA, "boo2", "yup", "20080206", "tiger");
+  private static final Key KEY_6 = nkv(TEST_DATA, "boo2", "yip", "20080203", "tiger");
 
-    private static IteratorEnvironment iteratorEnvironment;
+  private static IteratorEnvironment iteratorEnvironment;
 
-    private ColumnSliceFilter columnSliceFilter = new ColumnSliceFilter();
-    private IteratorSetting is;
+  private ColumnSliceFilter columnSliceFilter = new ColumnSliceFilter();
+  private IteratorSetting is;
 
-    private static Key nkv(SortedMap<Key,Value> tm, String row, String cf, String cq, String val) {
-        Key k = nk(row, cf, cq);
-        tm.put(k, new Value(val.getBytes()));
-        return k;
+  private static Key nkv(SortedMap<Key,Value> tm, String row, String cf, String cq, String val) {
+    Key k = nk(row, cf, cq);
+    tm.put(k, new Value(val.getBytes()));
+    return k;
+  }
+
+  private static Key nk(String row, String cf, String cq) {
+    return new Key(new Text(row), new Text(cf), new Text(cq));
+  }
+
+  @Before
+  public void setUp() throws Exception {
+    columnSliceFilter.describeOptions();
+    iteratorEnvironment = new DefaultIteratorEnvironment();
+    is = new IteratorSetting(1, ColumnSliceFilter.class);
+  }
+
+  @Test
+  public void testBasic() throws IOException {
+    ColumnSliceFilter.setSlice(is, "20080202", "20080204");
+
+    assertTrue(columnSliceFilter.validateOptions(is.getOptions()));
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, true);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testBothInclusive() throws IOException {
+    ColumnSliceFilter.setSlice(is, "20080202", true, "20080204", true);
+
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testBothExclusive() throws IOException {
+    ColumnSliceFilter.setSlice(is, "20080202", false, "20080204", false);
+
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testStartExclusiveEndInclusive() throws IOException {
+    ColumnSliceFilter.setSlice(is, "20080202", false, "20080204", true);
+
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testNullStart() throws IOException {
+    ColumnSliceFilter.setSlice(is, null, "20080204");
+
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testNullEnd() throws IOException {
+    ColumnSliceFilter.setSlice(is, "20080202", null);
+
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testBothNull() throws IOException {
+    ColumnSliceFilter.setSlice(is, null, null);
+
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    columnSliceFilter.next();
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
+
+  @Test
+  public void testStartAfterEnd() throws IOException {
+    try {
+      ColumnSliceFilter.setSlice(is, "20080204", "20080202");
+      fail("IllegalArgumentException expected but not thrown");
+    } catch (IllegalArgumentException expectedException) {
+      // Exception successfully thrown
     }
+  }
 
-    private static Key nk(String row, String cf, String cq) {
-        return new Key(new Text(row), new Text(cf), new Text(cq));
+  @Test
+  public void testStartEqualToEndStartInclusiveEndExclusive() throws IOException {
+    try {
+      ColumnSliceFilter.setSlice(is, "20080202", "20080202");
+      fail("IllegalArgumentException expected but not thrown");
+    } catch (IllegalArgumentException expectedException) {
+      // Exception successfully thrown
     }
+  }
 
-    @Before
-    public void setUp() throws Exception {
-        columnSliceFilter.describeOptions();
-        iteratorEnvironment = new DefaultIteratorEnvironment();
-        is = new IteratorSetting(1, ColumnSliceFilter.class);
+  @Test
+  public void testStartEqualToEndStartExclusiveEndInclusive() throws IOException {
+    try {
+      ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true);
+      fail("IllegalArgumentException expected but not thrown");
+    } catch (IllegalArgumentException expectedException) {
+      // Exception successfully thrown
     }
+  }
 
-    @Test
-    public void testBasic() throws IOException {
-        ColumnSliceFilter.setSlice(is, "20080202", "20080204");
+  @Test
+  public void testStartEqualToEndBothInclusive() throws IOException {
+    ColumnSliceFilter.setSlice(is, "20080202", true, "20080202", true);
 
-        assertTrue(columnSliceFilter.validateOptions(is.getOptions()));
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, true);
+    columnSliceFilter.validateOptions(is.getOptions());
+    columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
+    columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-
-    @Test
-    public void testBothInclusive() throws IOException {
-        ColumnSliceFilter.setSlice(is, "20080202", true, "20080204", true);
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-
-    @Test
-    public void testBothExclusive() throws IOException {
-        ColumnSliceFilter.setSlice(is, "20080202", false, "20080204", false);
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-
-    @Test
-    public void testStartExclusiveEndInclusive() throws IOException {
-        ColumnSliceFilter.setSlice(is, "20080202", false, "20080204", true);
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-
-    @Test
-    public void testNullStart() throws IOException {
-        ColumnSliceFilter.setSlice(is, null, "20080204");
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-    
-    @Test
-    public void testNullEnd() throws IOException {
-        ColumnSliceFilter.setSlice(is, "20080202", null);
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-
-    @Test
-    public void testBothNull() throws IOException {
-        ColumnSliceFilter.setSlice(is, null, null);
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
-        columnSliceFilter.next();
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
-
-    @Test
-    public void testStartAfterEnd() throws IOException {
-        try {
-            ColumnSliceFilter.setSlice(is, "20080204", "20080202");
-            fail("IllegalArgumentException expected but not thrown");
-        } catch(IllegalArgumentException expectedException) {
-            // Exception successfully thrown
-        }
-    }
-
-    @Test
-    public void testStartEqualToEndStartInclusiveEndExclusive() throws IOException {
-        try {
-            ColumnSliceFilter.setSlice(is, "20080202", "20080202");
-            fail("IllegalArgumentException expected but not thrown");
-        } catch(IllegalArgumentException expectedException) {
-            // Exception successfully thrown
-        }
-    }
-
-    @Test
-    public void testStartEqualToEndStartExclusiveEndInclusive() throws IOException {
-        try {
-            ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true);
-            fail("IllegalArgumentException expected but not thrown");
-        } catch(IllegalArgumentException expectedException) {
-            // Exception successfully thrown
-        }
-    }
-
-    @Test
-    public void testStartEqualToEndBothInclusive() throws IOException {
-        ColumnSliceFilter.setSlice(is, "20080202", true, "20080202", true);
-
-        columnSliceFilter.validateOptions(is.getOptions());
-        columnSliceFilter.init(new SortedMapIterator(TEST_DATA), is.getOptions(), iteratorEnvironment);
-        columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
-
-        assertTrue(columnSliceFilter.hasTop());
-        assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
-        columnSliceFilter.next();
-        assertFalse(columnSliceFilter.hasTop());
-    }
+    assertTrue(columnSliceFilter.hasTop());
+    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    columnSliceFilter.next();
+    assertFalse(columnSliceFilter.hasTop());
+  }
 }
-

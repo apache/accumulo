@@ -29,18 +29,18 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class ListSplits extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     try {
       Collection<Text> splits = conn.tableOperations().listSplits(tableName);
       log.debug("Table " + tableName + " had " + splits.size() + " splits");

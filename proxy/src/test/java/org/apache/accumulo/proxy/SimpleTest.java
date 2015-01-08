@@ -107,9 +107,9 @@ import org.junit.rules.TemporaryFolder;
 public class SimpleTest {
 
   public static TemporaryFolder folder = new TemporaryFolder();
-  
+
   public static final String TABLE_TEST = "test";
-  
+
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static Random random = new Random();
@@ -125,40 +125,40 @@ public class SimpleTest {
     }
   };
   private static ByteBuffer creds = null;
-  
+
   private static Class<? extends TProtocolFactory> protocolClass;
-  
+
   static Class<? extends TProtocolFactory> getRandomProtocol() {
     List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
     protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
-    
+
     return protocolFactories.get(random.nextInt(protocolFactories.size()));
   }
-  
+
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
-    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), secret)
-            .setNumTservers (1);
+    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), secret).setNumTservers(1);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
     // wait for accumulo to be up and functional
     ZooKeeperInstance zoo = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = zoo.getConnector("root", new PasswordToken(secret.getBytes()));
-    for (@SuppressWarnings("unused") Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS))
-        ;
-    
+    for (@SuppressWarnings("unused")
+    Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS))
+      ;
+
     Properties props = new Properties();
     props.put("instance", accumulo.getInstanceName());
     props.put("zookeepers", accumulo.getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
-    
+
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());
-    
+
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
         protocolClass, props);
@@ -174,7 +174,7 @@ public class SimpleTest {
     client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
     creds = client.login(principal, properties);
   }
-  
+
   @Test(timeout = 10000)
   public void security() throws Exception {
     client.createLocalUser(creds, "user", s2bb(secret));
@@ -182,9 +182,9 @@ public class SimpleTest {
     client.dropLocalUser(creds, "user");
     String table = "test1";
     client.createTable(creds, table, false, TimeType.MILLIS);
-    
+
     final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
-    
+
     try {
       client.addConstraint(badLogin, table, NumericValueConstraint.class.getName());
       fail("exception not thrown");
@@ -443,7 +443,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
   }
-  
+
   @Test(timeout = 10000)
   public void tableNotFound() throws Exception {
     final String doesNotExist = "doesNotExists";
@@ -594,7 +594,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
   }
-  
+
   @Test(timeout = 10 * 1000)
   public void testExists() throws Exception {
     client.createTable(creds, "ett1", false, TimeType.MILLIS);
@@ -612,28 +612,28 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (TableExistsException tee) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testUnknownScanner() throws Exception {
     if (client.tableExists(creds, TABLE_TEST))
       client.deleteTable(creds, TABLE_TEST);
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-    
+
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     assertFalse(client.hasNext(scanner));
     client.closeScanner(scanner);
-    
+
     try {
       client.hasNext(scanner);
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
-    
+
     try {
       client.closeScanner(scanner);
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
-    
+
     try {
       client.nextEntry("99999999");
       fail("exception not thrown");
@@ -651,24 +651,24 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testUnknownWriter() throws Exception {
-    
+
     if (client.tableExists(creds, TABLE_TEST))
       client.deleteTable(creds, TABLE_TEST);
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-    
+
     String writer = client.createWriter(creds, TABLE_TEST, null);
     client.update(writer, mutation("row0", "cf", "cq", "value"));
     client.flush(writer);
     client.update(writer, mutation("row2", "cf", "cq", "value2"));
     client.closeWriter(writer);
-    
+
     // this is a oneway call, so it does not throw exceptions
     client.update(writer, mutation("row2", "cf", "cq", "value2"));
-    
+
     try {
       client.flush(writer);
       fail("exception not thrown");
@@ -686,7 +686,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (UnknownWriter uw) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testDelete() throws Exception {
     if (client.tableExists(creds, TABLE_TEST))
@@ -699,13 +699,13 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertFalse(entries.more);
     assertEquals(1, entries.results.size());
-    
+
     ColumnUpdate upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
     upd.setDeleteCell(true);
     Map<ByteBuffer,List<ColumnUpdate>> delete = Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
-    
+
     client.updateAndFlush(creds, TABLE_TEST, delete);
-    
+
     scanner = client.createScanner(creds, TABLE_TEST, null);
     entries = client.nextK(scanner, 10);
     client.closeScanner(scanner);
@@ -720,14 +720,14 @@ public class SimpleTest {
       tservers++;
     }
     assertTrue(tservers > 0);
-    
+
     // get something we know is in the site config
     Map<String,String> cfg = client.getSiteConfiguration(creds);
     assertTrue(cfg.get("instance.dfs.dir").startsWith(folder.getRoot().toString()));
-    
+
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
-    
+
     // check that we can read it
     for (int i = 0; i < 5; i++) {
       cfg = client.getSystemConfiguration(creds);
@@ -736,7 +736,7 @@ public class SimpleTest {
       UtilWaitThread.sleep(200);
     }
     assertEquals("500M", cfg.get("table.split.threshold"));
-    
+
     // unset the setting, check that it's not what it was
     client.removeProperty(creds, "table.split.threshold");
     for (int i = 0; i < 5; i++) {
@@ -746,11 +746,11 @@ public class SimpleTest {
       UtilWaitThread.sleep(200);
     }
     assertNotEquals("500M", cfg.get("table.split.threshold"));
-    
+
     // try to load some classes via the proxy
     assertTrue(client.testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
     assertFalse(client.testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
-    
+
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
 
@@ -761,7 +761,7 @@ public class SimpleTest {
 
     IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "250"));
     client.attachIterator(creds, "slow", setting, EnumSet.allOf(IteratorScope.class));
-    
+
     // scan
     Thread t = new Thread() {
       @Override
@@ -796,7 +796,7 @@ public class SimpleTest {
       }
     }
     t.join();
-    
+
     assertFalse(scans.isEmpty());
     boolean found = false;
     Map<String,String> map = null;
@@ -871,13 +871,13 @@ public class SimpleTest {
     }
     fail("Expection to find running compaction for table 'slow' but did not find one");
   }
-  
+
   @Test
   public void testSecurityOperations() throws Exception {
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
     assertFalse(client.authenticateUser(creds, "root", s2pp("")));
-    
+
     // create a user
     client.createLocalUser(creds, "stooge", s2bb("password"));
     // change auths
@@ -887,11 +887,11 @@ public class SimpleTest {
     client.changeUserAuthorizations(creds, "stooge", auths);
     List<ByteBuffer> update = client.getUserAuthorizations(creds, "stooge");
     assertEquals(auths, new HashSet<ByteBuffer>(update));
-    
+
     // change password
     client.changeLocalUserPassword(creds, "stooge", s2bb(""));
     assertTrue(client.authenticateUser(creds, "stooge", s2pp("")));
-    
+
     // check permission failure
     @SuppressWarnings("serial")
     ByteBuffer stooge = client.login("stooge", new TreeMap<String,String>() {
@@ -899,7 +899,7 @@ public class SimpleTest {
         put("password", "");
       }
     });
-    
+
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
@@ -912,7 +912,7 @@ public class SimpleTest {
     assertTrue(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
     client.createTable(stooge, "success", true, TimeType.MILLIS);
     client.listTables(creds).contains("succcess");
-    
+
     // revoke permissions
     client.revokeSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE);
     assertFalse(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
@@ -945,28 +945,28 @@ public class SimpleTest {
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
     } catch (AccumuloSecurityException ex) {}
-    
+
     // delete user
     client.dropLocalUser(creds, "stooge");
     users = client.listLocalUsers(creds);
     assertEquals(1, users.size());
-    
+
   }
-  
+
   @Test
   public void testBatchWriter() throws Exception {
     if (client.tableExists(creds, TABLE_TEST))
       client.deleteTable(creds, TABLE_TEST);
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
-    
+
     WriterOptions writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(2);
     writerOptions.setThreads(1);
     writerOptions.setTimeoutMs(100000);
-    
+
     String batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
@@ -978,31 +978,31 @@ public class SimpleTest {
       client.closeWriter(batchWriter);
       fail("constraint did not fire");
     } catch (MutationsRejectedException e) {}
-    
+
     client.removeConstraint(creds, TABLE_TEST, 1);
 
     UtilWaitThread.sleep(2000);
-    
+
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(3000);
     writerOptions.setThreads(1);
     writerOptions.setTimeoutMs(100000);
-    
+
     batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
-    
+
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
     client.flush(batchWriter);
     client.closeWriter(batchWriter);
-    
+
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     ScanResult more = client.nextK(scanner, 2);
     assertEquals(1, more.getResults().size());
     client.closeScanner(scanner);
-    
+
     client.deleteTable(creds, TABLE_TEST);
   }
-  
+
   @Test
   public void testTableOperations() throws Exception {
     if (client.tableExists(creds, TABLE_TEST))
@@ -1014,12 +1014,12 @@ public class SimpleTest {
     UtilWaitThread.sleep(2000);
 
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
-    
+
     try {
       client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
       fail("constraint did not fire");
     } catch (MutationsRejectedException ex) {}
-    
+
     client.removeConstraint(creds, TABLE_TEST, 1);
 
     UtilWaitThread.sleep(2000);
@@ -1079,14 +1079,14 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     client.deleteTable(creds, "test2");
-    
+
     // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, TABLE_TEST);
-    
+
     // compact
     client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
     assertEquals(1, countFiles(TABLE_TEST));
-    
+
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";
@@ -1109,7 +1109,7 @@ public class SimpleTest {
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(10, more.results.size());
-    
+
     try {
       // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the files
       client.importTable(creds, "testify2", destDir);
@@ -1155,11 +1155,11 @@ public class SimpleTest {
     assertEquals(1, more.results.size());
     ByteBuffer maxRow = client.getMaxRow(creds, "bar", null, null, false, null, false);
     assertEquals(s2bb("a"), maxRow);
-    
+
     assertFalse(client.testTableClassLoad(creds, "bar", "abc123", SortedKeyValueIterator.class.getName()));
     assertTrue(client.testTableClassLoad(creds, "bar", VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
   }
-  
+
   // scan !METADATA table for file entries for the given table
   private int countFiles(String table) throws Exception {
     Map<String,String> tableIdMap = client.tableIdMap(creds);
@@ -1182,31 +1182,31 @@ public class SimpleTest {
     }
     return result;
   }
-  
+
   private Map<ByteBuffer,List<ColumnUpdate>> mutation(String row, String cf, String cq, String value) {
     ColumnUpdate upd = new ColumnUpdate(s2bb(cf), s2bb(cq));
     upd.setValue(value.getBytes());
     return Collections.singletonMap(s2bb(row), Collections.singletonList(upd));
   }
-  
+
   private ByteBuffer s2bb(String cf) {
     return ByteBuffer.wrap(cf.getBytes());
   }
-  
+
   private Map<String,String> s2pp(String cf) {
     Map<String,String> toRet = new TreeMap<String,String>();
     toRet.put("password", cf);
     return toRet;
   }
-  
+
   static private ByteBuffer t2bb(Text t) {
     return ByteBuffer.wrap(t.getBytes());
   }
-  
+
   @Test
   public void testGetRowRange() throws Exception {
     Range range = client.getRowRange(s2bb("xyzzy"));
-    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy")); 
+    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy"));
     assertEquals(0, range.start.row.compareTo(t2bb(range2.getStartKey().getRow())));
     assertEquals(0, range.stop.row.compareTo(t2bb(range2.getEndKey().getRow())));
     assertEquals(range.startInclusive, range2.isStartKeyInclusive());
@@ -1218,7 +1218,7 @@ public class SimpleTest {
     assertEquals(range.start.timestamp, range.start.timestamp);
     assertEquals(range.stop.timestamp, range.stop.timestamp);
   }
-  
+
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

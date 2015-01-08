@@ -36,22 +36,22 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
 
 public class ShutdownTServer extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
   private static final Logger log = Logger.getLogger(ShutdownTServer.class);
   private TServerInstance server;
   private boolean force;
-  
+
   public ShutdownTServer(TServerInstance server, boolean force) {
     this.server = server;
     this.force = force;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     // suppress assignment of tablets to the server
@@ -64,7 +64,7 @@ public class ShutdownTServer extends MasterRepo {
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
       return null;
     }
-    
+
     // TODO move this to isReady() and drop while loop? - ACCUMULO-1259
     Listener listener = master.getEventCoordinator().getListener();
     master.shutdownTServer(server);
@@ -87,10 +87,10 @@ public class ShutdownTServer extends MasterRepo {
       }
       listener.waitForEvents(1000);
     }
-    
+
     return null;
   }
-  
+
   @Override
   public void undo(long tid, Master m) throws Exception {}
 }

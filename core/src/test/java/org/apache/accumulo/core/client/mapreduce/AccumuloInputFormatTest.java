@@ -65,7 +65,7 @@ public class AccumuloInputFormatTest {
 
   /**
    * Test basic setting & getting of max versions.
-   * 
+   *
    * @throws IOException
    *           Signals that an I/O exception has occurred.
    */
@@ -80,7 +80,7 @@ public class AccumuloInputFormatTest {
 
   /**
    * Test max versions with an invalid value.
-   * 
+   *
    * @throws IOException
    *           Signals that an I/O exception has occurred.
    */
@@ -158,7 +158,7 @@ public class AccumuloInputFormatTest {
   /**
    * Test adding iterator options where the keys and values contain both the FIELD_SEPARATOR character (':') and ITERATOR_SEPARATOR (',') characters. There
    * should be no exceptions thrown when trying to parse these types of option entries.
-   * 
+   *
    * This test makes sure that the expected raw values, as appears in the Job, are equal to what's expected.
    */
   @Test

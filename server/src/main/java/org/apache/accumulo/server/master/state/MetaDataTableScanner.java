@@ -45,10 +45,10 @@ import org.apache.log4j.Logger;
 
 public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
-  
+
   BatchScanner mdScanner;
   Iterator<Entry<Key,Value>> iter;
-  
+
   public MetaDataTableScanner(Instance instance, TCredentials auths, Range range, CurrentState state) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
@@ -79,22 +79,22 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
     scanner.addScanIterator(tabletChange);
   }
-  
+
   public MetaDataTableScanner(Instance instance, TCredentials auths, Range range) {
     this(instance, auths, range, null);
   }
-  
+
   public void close() {
     if (iter != null) {
       mdScanner.close();
       iter = null;
     }
   }
-  
+
   protected void finalize() {
     close();
   }
-  
+
   @Override
   public boolean hasNext() {
     if (iter == null)
@@ -105,12 +105,12 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
     return result;
   }
-  
+
   @Override
   public TabletLocationState next() {
-      return fetch();
+    return fetch();
   }
-  
+
   public static TabletLocationState createTabletLocationState(Key k, Value v) throws IOException, BadLocationStateException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
     KeyExtent extent = null;
@@ -120,23 +120,25 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     long lastTimestamp = 0;
     List<Collection<String>> walogs = new ArrayList<Collection<String>>();
     boolean chopped = false;
-    
+
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
       Key key = entry.getKey();
       Text row = key.getRow();
       Text cf = key.getColumnFamily();
       Text cq = key.getColumnQualifier();
-      
+
       if (cf.compareTo(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
-          throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location, entry.getKey().getRow());
+          throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location, entry.getKey()
+              .getRow());
         }
         future = location;
       } else if (cf.compareTo(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
-          throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location, entry.getKey().getRow());
+          throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location, entry.getKey()
+              .getRow());
         }
         current = location;
       } else if (cf.compareTo(Constants.METADATA_LOG_COLUMN_FAMILY) == 0) {
@@ -157,7 +159,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
     return new TabletLocationState(extent, future, current, last, walogs, chopped);
   }
-  
+
   private TabletLocationState fetch() {
     try {
       Entry<Key,Value> e = iter.next();
@@ -166,9 +168,9 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       throw new RuntimeException(ex);
     } catch (BadLocationStateException ex) {
       throw new RuntimeException(ex);
-    } 
+    }
   }
-  
+
   @Override
   public void remove() {
     throw new RuntimeException("Unimplemented");

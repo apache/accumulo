@@ -33,7 +33,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
 
 /**
- * 
+ *
  */
 public class CleanUpTest extends FunctionalTest {
 
@@ -130,7 +130,7 @@ public class CleanUpTest extends FunctionalTest {
 
   /**
    * count threads that should be cleaned up
-   * 
+   *
    */
   private int countThreads() {
     int count = 0;

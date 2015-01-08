@@ -143,7 +143,7 @@ public class Accumulo {
     }
 
     monitorSwappiness();
-    
+
     // Encourage users to configure TLS
     final String SSL = "SSL";
     for (Property sslProtocolProperty : Arrays.asList(Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
@@ -228,7 +228,7 @@ public class Accumulo {
           if (unknownHostTries > 0) {
             log.warn("Unable to connect to HDFS, will retry. cause: " + exception.getCause());
             /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
-            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException)(exception.getCause()))+1)*1000);
+            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
           } else {
             log.error("Unable to connect to HDFS and have exceeded max number of retries.", exception);
             throw exception;
@@ -249,7 +249,7 @@ public class Accumulo {
   private static boolean isInSafeMode(FileSystem fs) throws IOException {
     if (!(fs instanceof DistributedFileSystem))
       return false;
-    DistributedFileSystem dfs = (DistributedFileSystem)fs;
+    DistributedFileSystem dfs = (DistributedFileSystem) fs;
     // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
     // Becomes this:
     Class<?> safeModeAction;
@@ -284,10 +284,9 @@ public class Accumulo {
   }
 
   /**
-   * Exit loudly if there are outstanding Fate operations.
-   * Since Fate serializes class names, we need to make sure there are no queued
-   * transactions from a previous version before continuing an upgrade. The status of the operations is
-   * irrelevant; those in SUCCESSFUL status cause the same problem as those just queued.
+   * Exit loudly if there are outstanding Fate operations. Since Fate serializes class names, we need to make sure there are no queued transactions from a
+   * previous version before continuing an upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same problem as those just
+   * queued.
    *
    * Note that the Master should not allow write access to Fate until after all upgrade steps are complete.
    *
@@ -297,10 +296,11 @@ public class Accumulo {
    */
   public static void abortIfFateTransactions() {
     try {
-      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<Accumulo>(new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()));
+      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<Accumulo>(new ZooStore<Accumulo>(
+          ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE, ZooReaderWriter.getRetryingInstance()));
       if (!(fate.list().isEmpty())) {
-        throw new AccumuloException("Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. Please see the README document for instructions on what to do under your previous version.");
+        throw new AccumuloException(
+            "Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. Please see the README document for instructions on what to do under your previous version.");
       }
     } catch (Exception exception) {
       log.fatal("Problem verifying Fate readiness", exception);

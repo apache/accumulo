@@ -38,38 +38,38 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. It does so by encapsulating an entire row of key/value
  * pairs into a single key/value pair, which is returned through the client as an atomic operation.
- * 
+ *
  * <p>
  * One caveat is that when seeking in the WholeRowIterator using a range that starts at a non-inclusive first key in a row, (e.g. seek(new Range(new Key(new
  * Text("row")),false,...),...)) this iterator will skip to the next row. This is done in order to prevent repeated scanning of the same row when system
  * automatically creates ranges of that form, which happens in the case of the client calling continueScan, or in the case of the tablet server continuing a
  * scan after swapping out sources.
- * 
+ *
  * <p>
  * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
- * 
+ *
  * @see RowFilter
  */
 public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
-  
+
   private SortedKeyValueIterator<Key,Value> sourceIter;
   private Key topKey = null;
   private Value topValue = null;
-  
+
   public WholeRowIterator() {
-    
+
   }
-  
+
   WholeRowIterator(SortedKeyValueIterator<Key,Value> source) {
     this.sourceIter = source;
   }
 
   /**
-   * Returns the byte array containing the field of row key from the given DataInputStream din.
-   * Assumes that din first has the length of the field, followed by the field itself.
+   * Returns the byte array containing the field of row key from the given DataInputStream din. Assumes that din first has the length of the field, followed by
+   * the field itself.
    */
   private static byte[] readField(DataInputStream din) throws IOException {
     int len = din.readInt();
@@ -79,8 +79,7 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
     // We ignore the zero length case because DataInputStream.read can return -1
     // if zero length was expected and end of stream has been reached.
     if (len > 0 && len != readLen) {
-      throw new IOException(String.format("Expected to read %d bytes but read %d",
-          len, readLen));
+      throw new IOException(String.format("Expected to read %d bytes but read %d", len, readLen));
     }
     return b;
   }
@@ -101,7 +100,7 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
     }
     return map;
   }
-  
+
   // take a stream of keys and values and output a value that encodes everything but their row
   // keys and values must be paired one for one
   public static final Value encodeRow(List<Key> keys, List<Value> values) throws IOException {
@@ -136,13 +135,13 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
       dout.writeInt(valBytes.length);
       dout.write(valBytes);
     }
-    
+
     return new Value(out.toByteArray());
   }
-  
+
   List<Key> keys = new ArrayList<Key>();
   List<Value> values = new ArrayList<Value>();
-  
+
   private void prepKeys() throws IOException {
     if (topKey != null)
       return;
@@ -159,14 +158,14 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
         sourceIter.next();
       }
     } while (!filter(currentRow, keys, values));
-    
+
     topKey = new Key(currentRow);
     topValue = encodeRow(keys, values);
-    
+
   }
-  
+
   /**
-   * 
+   *
    * @param currentRow
    *          All keys have this in their row portion (do not modify!).
    * @param keys
@@ -178,48 +177,48 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
   protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
     return true;
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     if (sourceIter != null)
       return new WholeRowIterator(sourceIter.deepCopy(env));
     return new WholeRowIterator();
   }
-  
+
   @Override
   public Key getTopKey() {
     return topKey;
   }
-  
+
   @Override
   public Value getTopValue() {
     return topValue;
   }
-  
+
   @Override
   public boolean hasTop() {
     return topKey != null;
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     sourceIter = source;
   }
-  
+
   @Override
   public void next() throws IOException {
     topKey = null;
     topValue = null;
     prepKeys();
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     topKey = null;
     topValue = null;
-    
+
     Key sk = range.getStartKey();
-    
+
     if (sk != null && sk.getColumnFamilyData().length() == 0 && sk.getColumnQualifierData().length() == 0 && sk.getColumnVisibilityData().length() == 0
         && sk.getTimestamp() == Long.MAX_VALUE && !range.isStartKeyInclusive()) {
       // assuming that we are seeking using a key previously returned by this iterator
@@ -227,12 +226,12 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
       Key followingRowKey = sk.followingKey(PartialKey.ROW);
       if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
         return;
-      
+
       range = new Range(sk.followingKey(PartialKey.ROW), true, range.getEndKey(), range.isEndKeyInclusive());
     }
-    
+
     sourceIter.seek(range, columnFamilies, inclusive);
     prepKeys();
   }
-  
+
 }

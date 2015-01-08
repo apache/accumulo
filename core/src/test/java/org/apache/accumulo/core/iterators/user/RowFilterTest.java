@@ -50,7 +50,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 
 public class RowFilterTest {

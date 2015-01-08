@@ -21,11 +21,11 @@ package org.apache.accumulo.test.stress.random;
  */
 public class RandomByteArrays extends Stream<byte[]> {
   private final RandomWithinRange random_arrays;
-  
+
   public RandomByteArrays(RandomWithinRange random_arrays) {
     this.random_arrays = random_arrays;
   }
-  
+
   public byte[] next() {
     return random_arrays.next_bytes();
   }

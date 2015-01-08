@@ -24,10 +24,9 @@ public class RandomMutations extends Stream<Mutation> {
   private final int max_cells_per_mutation;
   private byte[] current_row;
   private int cells_remaining_in_row;
-  
-  public RandomMutations(RandomByteArrays rows, RandomByteArrays column_families,
-      RandomByteArrays column_qualifiers, RandomByteArrays values, RandomWithinRange row_widths,
-      int max_cells_per_mutation) {
+
+  public RandomMutations(RandomByteArrays rows, RandomByteArrays column_families, RandomByteArrays column_qualifiers, RandomByteArrays values,
+      RandomWithinRange row_widths, int max_cells_per_mutation) {
     this.rows = rows;
     this.column_families = column_families;
     this.column_qualifiers = column_qualifiers;
@@ -48,7 +47,7 @@ public class RandomMutations extends Stream<Mutation> {
     }
     Mutation m = new Mutation(current_row);
     final int cells = Math.min(cells_remaining_in_row, max_cells_per_mutation);
-    for(int i = 1; i <= cells; i++) {
+    for (int i = 1; i <= cells; i++) {
       m.put(column_families.next(), column_qualifiers.next(), values.next());
     }
     cells_remaining_in_row -= cells;

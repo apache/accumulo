@@ -47,53 +47,54 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Runs the functional tests via map-reduce.
- * 
+ *
  * First, be sure everything is compiled.
- * 
+ *
  * Second, get a list of the tests you want to run:
- * 
+ *
  * <pre>
  *  $ python test/system/auto/run.py -l > tests
  * </pre>
- * 
+ *
  * Put the list of tests into HDFS:
- * 
+ *
  * <pre>
  *  $ hadoop fs -put tests /user/hadoop/tests
  * </pre>
- * 
+ *
  * Run the map-reduce job:
- * 
+ *
  * <pre>
  *  $ ./bin/accumulo accumulo.test.functional.RunTests --tests /user/hadoop/tests --output /user/hadoop/results
  * </pre>
- * 
+ *
  * Note that you will need to have some configuration in conf/accumulo-site.xml (to locate zookeeper). The map-reduce jobs will not use your local accumulo
  * instance.
- * 
+ *
  */
 public class RunTests extends Configured implements Tool {
-  
+
   static final public String JOB_NAME = "Functional Test Runner";
   private static final Logger log = Logger.getLogger(RunTests.class);
-  
+
   private Job job = null;
 
   private static final int DEFAULT_TIMEOUT_FACTOR = 1;
 
   static class Opts extends Help {
-    @Parameter(names="--tests", description="newline separated list of tests to run", required=true)
+    @Parameter(names = "--tests", description = "newline separated list of tests to run", required = true)
     String testFile;
-    @Parameter(names="--output", description="destination for the results of tests in HDFS", required=true)
+    @Parameter(names = "--output", description = "destination for the results of tests in HDFS", required = true)
     String outputPath;
-    @Parameter(names="--timeoutFactor", description="Optional scaling factor for timeout for both mapred.task.timeout and -f flag on run.py", required=false)
+    @Parameter(names = "--timeoutFactor", description = "Optional scaling factor for timeout for both mapred.task.timeout and -f flag on run.py",
+        required = false)
     Integer intTimeoutFactor = DEFAULT_TIMEOUT_FACTOR;
   }
-  
+
   static final String TIMEOUT_FACTOR = RunTests.class.getName() + ".timeoutFactor";
 
   static public class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
-    
+
     private static final String REDUCER_RESULT_START = "::::: ";
     private static final int RRS_LEN = REDUCER_RESULT_START.length();
     private Text result = new Text();
@@ -102,9 +103,10 @@ public class RunTests extends Configured implements Tool {
     private static enum Outcome {
       SUCCESS, FAILURE, ERROR, UNEXPECTED_SUCCESS, EXPECTED_FAILURE
     }
-    private static final Map<Character, Outcome> OUTCOME_COUNTERS;
+
+    private static final Map<Character,Outcome> OUTCOME_COUNTERS;
     static {
-      OUTCOME_COUNTERS = new java.util.HashMap<Character, Outcome>();
+      OUTCOME_COUNTERS = new java.util.HashMap<Character,Outcome>();
       OUTCOME_COUNTERS.put('S', Outcome.SUCCESS);
       OUTCOME_COUNTERS.put('F', Outcome.FAILURE);
       OUTCOME_COUNTERS.put('E', Outcome.ERROR);
@@ -148,20 +150,20 @@ public class RunTests extends Configured implements Tool {
 
       p.waitFor();
     }
-    
+
     @Override
     protected void setup(Mapper<LongWritable,Text,Text,Text>.Context context) throws IOException, InterruptedException {
       mapperTimeoutFactor = Integer.toString(context.getConfiguration().getInt(TIMEOUT_FACTOR, DEFAULT_TIMEOUT_FACTOR));
     }
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     job = new Job(getConf(), JOB_NAME);
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RunTests.class.getName(), args);
-    
+
     // this is like 1-2 tests per mapper
     Configuration conf = job.getConfiguration();
     conf.setInt("mapred.max.split.size", 40);
@@ -172,11 +174,11 @@ public class RunTests extends Configured implements Tool {
     conf.setInt("mapred.task.timeout", opts.intTimeoutFactor * 8 * 60 * 1000);
     conf.setInt(TIMEOUT_FACTOR, opts.intTimeoutFactor);
     conf.setBoolean("mapred.map.tasks.speculative.execution", false);
-    
+
     // set input
     job.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.setInputPaths(job, new Path(opts.testFile));
-    
+
     // set output
     job.setOutputFormatClass(TextOutputFormat.class);
     FileSystem fs = FileSystem.get(conf);
@@ -186,23 +188,23 @@ public class RunTests extends Configured implements Tool {
       fs.delete(destination, true);
     }
     TextOutputFormat.setOutputPath(job, destination);
-    
+
     // configure default reducer: put the results into one file
     job.setNumReduceTasks(1);
-    
+
     // set mapper
     job.setMapperClass(TestMapper.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
-    
+
     // don't do anything with the results (yet) a summary would be nice
     job.setNumReduceTasks(0);
-    
+
     // submit the job
     log.info("Starting tests");
     return 0;
   }
-  
+
   public static void main(String[] args) throws Exception {
     RunTests tests = new RunTests();
     ToolRunner.run(new Configuration(), tests, args);
@@ -210,5 +212,5 @@ public class RunTests extends Configured implements Tool {
     if (!tests.job.isSuccessful())
       System.exit(1);
   }
-  
+
 }

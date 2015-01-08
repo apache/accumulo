@@ -52,15 +52,15 @@ import org.apache.log4j.Logger;
 /**
  * <p>
  * An implementation of instance that looks in zookeeper to find information needed to connect to an instance of accumulo.
- * 
+ *
  * <p>
  * The advantage of using zookeeper to obtain information about accumulo is that zookeeper is highly available, very responsive, and supports caching.
- * 
+ *
  * <p>
  * Because it is possible for multiple instances of accumulo to share a single set of zookeeper servers, all constructors require an accumulo instance name.
- * 
+ *
  * If you do not know the instance names then run accumulo org.apache.accumulo.server.util.ListInstances on an accumulo server.
- * 
+ *
  */
 
 public class ZooKeeperInstance implements Instance {
@@ -77,7 +77,7 @@ public class ZooKeeperInstance implements Instance {
   private final int zooKeepersSessionTimeOut;
 
   /**
-   * 
+   *
    * @param instanceName
    *          The name of specific accumulo instance. This is set at initialization time.
    * @param zooKeepers
@@ -89,7 +89,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * 
+   *
    * @param instanceName
    *          The name of specific accumulo instance. This is set at initialization time.
    * @param zooKeepers
@@ -108,7 +108,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * 
+   *
    * @param instanceId
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
@@ -120,7 +120,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * 
+   *
    * @param instanceId
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
@@ -260,7 +260,7 @@ public class ZooKeeperInstance implements Instance {
 
   /**
    * Given a zooCache and instanceId, look up the instance name.
-   * 
+   *
    * @return the instance name
    */
   public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {

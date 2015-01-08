@@ -17,8 +17,6 @@
 package org.apache.accumulo.server.master.state;
 
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.server.master.state.MergeInfo;
-import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -26,7 +24,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class MergeInfoTest {
-  
+
   MergeInfo readWrite(MergeInfo info) throws Exception {
     DataOutputBuffer buffer = new DataOutputBuffer();
     info.write(buffer);
@@ -39,11 +37,11 @@ public class MergeInfoTest {
     Assert.assertEquals(info.operation, info2.operation);
     return info2;
   }
-  
+
   KeyExtent ke(String tableId, String endRow, String prevEndRow) {
     return new KeyExtent(new Text(tableId), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
   }
-  
+
   @Test
   public void testWritable() throws Exception {
     MergeInfo info;
@@ -54,7 +52,7 @@ public class MergeInfoTest {
     Assert.assertTrue(info.isDelete());
     info.setState(MergeState.COMPLETE);
   }
-  
+
   @Test
   public void testNeedsToBeChopped() throws Exception {
     MergeInfo info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE);
@@ -72,5 +70,5 @@ public class MergeInfoTest {
     Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
     Assert.assertTrue(info.needsToBeChopped(ke("x", "b", "a")));
   }
-  
+
 }

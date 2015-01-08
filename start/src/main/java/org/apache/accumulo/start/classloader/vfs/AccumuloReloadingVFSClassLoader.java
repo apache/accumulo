@@ -28,18 +28,17 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.log4j.Logger;
 
 /**
- * Classloader that delegates operations to a VFSClassLoader object. This class also listens
- * for changes in any of the files/directories that are in the classpath and will recreate
- * the delegate object if there is any change in the classpath.
+ * Classloader that delegates operations to a VFSClassLoader object. This class also listens for changes in any of the files/directories that are in the
+ * classpath and will recreate the delegate object if there is any change in the classpath.
  *
  */
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
-  
+
   private static final Logger log = Logger.getLogger(AccumuloReloadingVFSClassLoader.class);
 
   // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking the name node for info too frequently.
   private static final int DEFAULT_TIMEOUT = 300000;
-  
+
   private String uris;
   private FileObject[] files;
   private FileSystemManager vfs = null;
@@ -47,6 +46,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private DefaultFileMonitor monitor = null;
   private VFSClassLoader cl = null;
   private boolean preDelegate;
+
   public String stringify(FileObject[] files) {
     StringBuilder sb = new StringBuilder();
     sb.append('[');
@@ -78,13 +78,13 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
         throw new RuntimeException(fse);
       }
     }
-    
+
     return cl;
   }
-  
+
   private synchronized void setClassloader(VFSClassLoader cl) {
     this.cl = cl;
-    
+
   }
 
   public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ReloadingClassLoader parent, long monitorDelay, boolean preDelegate)
@@ -94,7 +94,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this.vfs = vfs;
     this.parent = parent;
     this.preDelegate = preDelegate;
-    
+
     ArrayList<FileObject> pathsToMonitor = new ArrayList<FileObject>();
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
@@ -102,7 +102,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
       cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
     else
       cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
-    
+
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
     monitor.setRecursive(false);
@@ -112,16 +112,15 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     }
     monitor.start();
   }
-  
-  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, final ReloadingClassLoader parent, boolean preDelegate)
-      throws FileSystemException {
+
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, final ReloadingClassLoader parent, boolean preDelegate) throws FileSystemException {
     this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
   public FileObject[] getFiles() {
     return this.files;
   }
-  
+
   /**
    * Should be ok if this is not called because the thread started by DefaultFileMonitor is a daemon thread
    */
@@ -147,12 +146,10 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     setClassloader(null);
   }
 
-  
-  
   @Override
   public String toString() {
     StringBuilder buf = new StringBuilder();
-    
+
     for (FileObject f : files) {
       try {
         buf.append("\t").append(f.getURL().toString()).append("\n");
@@ -160,11 +157,8 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
         log.error("Error getting URL for file", e);
       }
     }
-    
+
     return buf.toString();
   }
 
-
-
-  
 }

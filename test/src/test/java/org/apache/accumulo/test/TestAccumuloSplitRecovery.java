@@ -43,31 +43,31 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class TestAccumuloSplitRecovery {
-  
+
   private static final String TABLE = "simple";
   public static TemporaryFolder folder = new TemporaryFolder();
   private MiniAccumuloCluster accumulo;
   private String secret = "secret";
-  
+
   @Before
   public void setUp() throws Exception {
     folder.create();
     accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
     accumulo.start();
   }
-  
+
   @After
   public void tearDown() throws Exception {
     accumulo.stop();
     folder.delete();
   }
-  
+
   private Mutation m(String row) {
     Mutation result = new Mutation(row);
     result.put("cf", "cq", new Value("value".getBytes()));
     return result;
   }
-  
+
   boolean isOffline(String tablename, Connector connector) throws TableNotFoundException {
     String tableId = connector.tableOperations().tableIdMap().get(tablename);
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
@@ -79,12 +79,12 @@ public class TestAccumuloSplitRecovery {
     }
     return true;
   }
-  
+
   @Test(timeout = 60000)
   public void test() throws Exception {
-    
+
     for (int tn = 0; tn < 2; tn++) {
-      
+
       ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
       Connector connector = instance.getConnector("root", new PasswordToken(secret));
       // create a table and put some data in it
@@ -98,43 +98,43 @@ public class TestAccumuloSplitRecovery {
       connector.tableOperations().offline(TABLE);
       while (!isOffline(TABLE, connector))
         UtilWaitThread.sleep(200);
-      
+
       // poke a partial split into the !METADATA table
       connector.securityOperations().grantTablePermission("root", Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
       String tableId = connector.tableOperations().tableIdMap().get(TABLE);
-      
+
       KeyExtent extent = new KeyExtent(new Text(tableId), null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();
-      
+
       Constants.METADATA_SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
       Constants.METADATA_OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(null));
       bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       bw.addMutation(m);
-      
+
       if (tn == 1) {
-        
+
         bw.flush();
-        
+
         Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(extent.toMetadataRange());
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-        
+
         KeyExtent extent2 = new KeyExtent(new Text(tableId), new Text("b"), null);
         m = extent2.getPrevRowUpdateMutation();
         Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
         Constants.METADATA_TIME_COLUMN.put(m, new Value("M0".getBytes()));
-        
+
         for (Entry<Key,Value> entry : scanner) {
           m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, entry.getKey().getColumnQualifier(), entry.getValue());
         }
-        
+
         bw.addMutation(m);
       }
-      
+
       bw.close();
       // bring the table online
       connector.tableOperations().online(TABLE);
-      
+
       // verify the tablets went online
       Scanner scanner = connector.createScanner(TABLE, Constants.NO_AUTHS);
       int i = 0;
@@ -144,10 +144,10 @@ public class TestAccumuloSplitRecovery {
         i++;
       }
       assertEquals(3, i);
-      
+
       connector.tableOperations().delete(TABLE);
-      
+
     }
   }
-  
+
 }

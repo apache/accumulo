@@ -32,7 +32,7 @@ import org.apache.zookeeper.data.Stat;
 public class DeadServerList {
   private static final Logger log = Logger.getLogger(DeadServerList.class);
   private final String path;
-  
+
   public DeadServerList(String path) {
     this.path = path;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -42,7 +42,7 @@ public class DeadServerList {
       log.error("Unable to make parent directories of " + path, ex);
     }
   }
-  
+
   public List<DeadServer> getList() {
     List<DeadServer> result = new ArrayList<DeadServer>();
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -61,7 +61,7 @@ public class DeadServerList {
     }
     return result;
   }
-  
+
   public void delete(String server) {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
@@ -70,7 +70,7 @@ public class DeadServerList {
       log.error(ex, ex);
     }
   }
-  
+
   public void post(String server, String cause) {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {

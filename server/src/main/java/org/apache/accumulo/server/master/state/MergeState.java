@@ -45,5 +45,5 @@ public enum MergeState {
    * merge is complete, the resulting tablet can be brought online, remove the marker in zookeeper
    */
   COMPLETE;
-  
+
 }

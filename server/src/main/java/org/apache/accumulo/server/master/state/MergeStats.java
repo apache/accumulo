@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -32,6 +30,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
@@ -48,7 +48,7 @@ public class MergeStats {
   int total = 0;
   boolean lowerSplit = false;
   boolean upperSplit = false;
-  
+
   public MergeStats(MergeInfo info) {
     this.info = info;
     if (info.getState().equals(MergeState.NONE))
@@ -58,7 +58,7 @@ public class MergeStats {
     if (info.getRange().getPrevEndRow() == null)
       lowerSplit = true;
   }
-  
+
   public MergeInfo getMergeInfo() {
     return info;
   }
@@ -94,7 +94,7 @@ public class MergeStats {
     if (state.equals(TabletState.UNASSIGNED))
       this.unassigned++;
   }
-  
+
   public MergeState nextMergeState(Connector connector, CurrentState master) throws Exception {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
@@ -167,7 +167,7 @@ public class MergeStats {
     }
     return state;
   }
-  
+
   private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
@@ -212,17 +212,17 @@ public class MergeStats {
           log.debug("failing consistency: prev row is too high " + start);
           return false;
         }
-        
+
         if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED) {
           log.debug("failing consistency: assigned or hosted " + tls);
           return false;
         }
-        
+
       } else if (!tls.extent.isPreviousExtent(prevExtent)) {
         log.debug("hole in !METADATA");
         return false;
       }
-      
+
       prevExtent = tls.extent;
 
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped, !tls.walogs.isEmpty());
@@ -231,16 +231,15 @@ public class MergeStats {
         break;
       }
     }
-    log.debug("chopped " + chopped + " v.chopped " + verify.chopped + 
-        " unassigned " + unassigned + " v.unassigned " + verify.unassigned +
-        " verify.total " + verify.total);
+    log.debug("chopped " + chopped + " v.chopped " + verify.chopped + " unassigned " + unassigned + " v.unassigned " + verify.unassigned + " verify.total "
+        + verify.total);
     return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
   }
-  
+
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
-    
+
     Connector conn = opts.getConnector();
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     for (Entry<String,String> entry : tableIdMap.entrySet()) {

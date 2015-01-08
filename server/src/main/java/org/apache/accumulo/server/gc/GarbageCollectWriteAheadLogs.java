@@ -55,15 +55,14 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
-
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
-  
+
   private final Instance instance;
   private final FileSystem fs;
 
   private Trash trash;
-  
+
   GarbageCollectWriteAheadLogs(Instance instance, FileSystem fs, boolean noTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
@@ -72,14 +71,14 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   public void collect(GCStatus status) {
-    
+
     Span span = Trace.start("scanServers");
     try {
-      
+
       Set<String> sortedWALogs = getSortedWALogs();
 
       status.currentLog.started = System.currentTimeMillis();
-      
+
       Map<String,String> fileToServerMap = new HashMap<String,String>();
       int count = scanServers(fileToServerMap);
       long fileScanStop = System.currentTimeMillis();
@@ -87,7 +86,7 @@ public class GarbageCollectWriteAheadLogs {
           (fileScanStop - status.currentLog.started) / 1000.));
       status.currentLog.candidates = fileToServerMap.size();
       span.stop();
-      
+
       span = Trace.start("removeMetadataEntries");
       try {
         count = removeMetadataEntries(fileToServerMap, sortedWALogs, status);
@@ -97,28 +96,28 @@ public class GarbageCollectWriteAheadLogs {
       } finally {
         span.stop();
       }
-      
+
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
-      
+
       span = Trace.start("removeFiles");
       Map<String,ArrayList<String>> serverToFileMap = mapServersToFiles(fileToServerMap);
-      
+
       count = removeFiles(serverToFileMap, sortedWALogs, status);
-      
+
       long removeStop = System.currentTimeMillis();
       log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(), (removeStop - logEntryScanStop) / 1000.));
       status.currentLog.finished = removeStop;
       status.lastLog = status.currentLog;
       status.currentLog = new GcCycleStats();
       span.stop();
-      
+
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);
       span.stop();
     }
   }
-  
+
   boolean holdsLock(InetSocketAddress addr) {
     try {
       String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + org.apache.accumulo.core.util.AddressUtil.toString(addr);
@@ -184,9 +183,9 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    
+
     Path recoveryDir = new Path(Constants.getRecoveryDir(conf));
-    
+
     for (String sortedWALog : sortedWALogs) {
       log.debug("Removing sorted WAL " + sortedWALog);
       Path swalog = new Path(recoveryDir, sortedWALog);
@@ -209,7 +208,7 @@ public class GarbageCollectWriteAheadLogs {
 
     return 0;
   }
-  
+
   private static Map<String,ArrayList<String>> mapServersToFiles(Map<String,String> fileToServerMap) {
     Map<String,ArrayList<String>> serverToFileMap = new HashMap<String,ArrayList<String>>();
     for (Entry<String,String> fileServer : fileToServerMap.entrySet()) {
@@ -222,7 +221,7 @@ public class GarbageCollectWriteAheadLogs {
     }
     return serverToFileMap;
   }
-  
+
   private static int removeMetadataEntries(Map<String,String> fileToServerMap, Set<String> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
@@ -232,7 +231,7 @@ public class GarbageCollectWriteAheadLogs {
         filename = filename.split("/", 2)[1];
         if (fileToServerMap.remove(filename) != null)
           status.currentLog.inUse++;
-        
+
         sortedWALogs.remove(filename);
 
         count++;
@@ -240,7 +239,7 @@ public class GarbageCollectWriteAheadLogs {
     }
     return count;
   }
-  
+
   private int scanServers(Map<String,String> fileToServerMap) throws Exception {
     AccumuloConfiguration conf = instance.getConfiguration();
     Path walRoot = new Path(Constants.getWalDirectory(conf));
@@ -265,11 +264,11 @@ public class GarbageCollectWriteAheadLogs {
     int count = 0;
     return count;
   }
-  
+
   private Set<String> getSortedWALogs() throws IOException {
     AccumuloConfiguration conf = instance.getConfiguration();
     Path recoveryDir = new Path(Constants.getRecoveryDir(conf));
-    
+
     Set<String> sortedWALogs = new HashSet<String>();
 
     if (fs.exists(recoveryDir)) {
@@ -281,7 +280,7 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    
+
     return sortedWALogs;
   }
 
@@ -293,5 +292,5 @@ public class GarbageCollectWriteAheadLogs {
       return false;
     }
   }
-  
+
 }

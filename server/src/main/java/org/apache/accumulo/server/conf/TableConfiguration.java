@@ -170,7 +170,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     // to see if it happened to be created so we could invalidate it
     // but I don't see much benefit coming from that extra check.
   }
-  
+
   @Override
   public String toString() {
     return this.getClass().getSimpleName();

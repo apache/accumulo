@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 
 /**
  * Communicate the failed mutations of a BatchWriter back to the client.
- * 
+ *
  */
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
@@ -84,16 +84,16 @@ public class MutationsRejectedException extends AccumuloException {
   }
 
   /**
-   * 
+   *
    * @return A list of servers that had internal errors when mutations were written
-   * 
+   *
    */
   public Collection<String> getErrorServers() {
     return es;
   }
 
   /**
-   * 
+   *
    * @return a count of unknown exceptions that occurred during processing
    */
   public int getUnknownExceptions() {

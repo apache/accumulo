@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.junit.Test;
 
 public class TestBatchScanner821 {
-  
+
   @Test
   public void test() throws Exception {
     MockInstance inst = new MockInstance();
@@ -54,12 +54,12 @@ public class TestBatchScanner821 {
     bs.setRanges(Collections.singletonList(new Range("A", "Z")));
     StringBuilder sb = new StringBuilder();
     String comma = "";
-    for (Entry<Key,Value>  entry : bs) {
+    for (Entry<Key,Value> entry : bs) {
       sb.append(comma);
       sb.append(entry.getKey().getRow());
       comma = ",";
     }
     assertEquals("a,b,c,d", sb.toString());
   }
-  
+
 }

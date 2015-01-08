@@ -27,19 +27,19 @@ import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class MultiTableFixture extends Fixture {
-  
+
   @Override
   public void setUp(State state) throws Exception {
-    
+
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    
+
     state.set("tableNamePrefix", String.format("multi_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis()));
     state.set("nextId", Integer.valueOf(0));
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));
     state.set("tableList", new ArrayList<String>());
   }
-  
+
   @Override
   public void tearDown(State state) throws Exception {
     // We have resources we need to clean up
@@ -54,12 +54,12 @@ public class MultiTableFixture extends Fixture {
       // Reset the MTBW on the state to null
       state.resetMultiTableBatchWriter();
     }
-    
+
     Connector conn = state.getConnector();
-    
+
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
-    
+
     for (String tableName : tables) {
       try {
         conn.tableOperations().delete(tableName);

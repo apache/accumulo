@@ -77,7 +77,7 @@ public class TableConfigurationUpdateTest {
     // Number of iterations per thread
     int iterations = 100000;
     AccumuloConfiguration tableConf = new TableConfiguration(inst.getInstanceID(), inst, table, defaultConf);
-    
+
     long start = System.currentTimeMillis();
     ExecutorService svc = Executors.newFixedThreadPool(numThreads);
     CountDownLatch countDown = new CountDownLatch(numThreads);
@@ -98,8 +98,8 @@ public class TableConfigurationUpdateTest {
     }
 
     long end = System.currentTimeMillis();
-    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads + " threads and cache invalidates "
-        + ((1. / randomMax) * 100.) + "% took " + (end - start) / 1000 + " second(s)");
+    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads + " threads and cache invalidates " + ((1. / randomMax) * 100.) + "% took "
+        + (end - start) / 1000 + " second(s)");
   }
 
   public static class TableConfRunner implements Callable<Exception> {

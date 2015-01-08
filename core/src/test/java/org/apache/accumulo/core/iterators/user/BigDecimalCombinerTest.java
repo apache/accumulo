@@ -41,33 +41,33 @@ public class BigDecimalCombinerTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   private static double delta = 0.00001;
-  
+
   @Test
   public void testSums() throws IOException {
 
     Encoder<BigDecimal> encoder = new BigDecimalCombiner.BigDecimalEncoder();
-    
+
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
-    
+
     // keys that do not aggregate
     CombinerTest.nkv(tm1, 1, 1, 1, 1, false, new BigDecimal(2), encoder);
     CombinerTest.nkv(tm1, 1, 1, 1, 2, false, new BigDecimal(2.3), encoder);
     CombinerTest.nkv(tm1, 1, 1, 1, 3, false, new BigDecimal(-1.4E1), encoder);
-    
+
     Combiner ai = new BigDecimalCombiner.BigDecimalSummingCombiner();
     IteratorSetting is = new IteratorSetting(1, BigDecimalCombiner.BigDecimalSummingCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
     ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
-    
+
     assertTrue(ai.hasTop());
     assertEquals(CombinerTest.nk(1, 1, 1, 3), ai.getTopKey());
-    assertEquals(-9.7, encoder.decode(ai.getTopValue().get()).doubleValue(),delta);
-    
+    assertEquals(-9.7, encoder.decode(ai.getTopValue().get()).doubleValue(), delta);
+
     ai.next();
-    
+
     assertFalse(ai.hasTop());
   }
-  
+
 }

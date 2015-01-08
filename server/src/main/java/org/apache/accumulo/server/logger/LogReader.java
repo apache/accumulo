@@ -48,7 +48,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 public class LogReader {
-  
+
   static class Opts extends Help {
     @Parameter(names = "-r", description = "print only mutations associated with the given row")
     String row;
@@ -61,10 +61,10 @@ public class LogReader {
     @Parameter(description = "<logfile> { <logfile> ... }")
     List<String> files = new ArrayList<String>();
   }
-  
+
   /**
    * Dump a Log File (Map or Sequence) to stdout. Will read from HDFS or local file system.
-   * 
+   *
    * @param args
    *          - first argument is the file to print
    */
@@ -74,7 +74,7 @@ public class LogReader {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
     FileSystem local = TraceFileSystem.wrap(FileSystem.getLocal(conf));
-    
+
     Matcher rowMatcher = null;
     KeyExtent ke = null;
     Text row = null;
@@ -92,16 +92,16 @@ public class LogReader {
       Pattern pattern = Pattern.compile(opts.regexp);
       rowMatcher = pattern.matcher("");
     }
-    
+
     Set<Integer> tabletIds = new HashSet<Integer>();
-    
+
     for (String file : opts.files) {
-      
-      Map<String, String> meta = new HashMap<String, String>();
+
+      Map<String,String> meta = new HashMap<String,String>();
       Path path = new Path(file);
       LogFileKey key = new LogFileKey();
       LogFileValue value = new LogFileValue();
-      
+
       if (fs.isFile(path)) {
         // read log entries from a simple hdfs file
         FSDataInputStream f = DfsLogger.readHeader(fs, path, meta);
@@ -143,9 +143,9 @@ public class LogReader {
       }
     }
   }
-  
+
   public static void printLogEvent(LogFileKey key, LogFileValue value, Text row, Matcher rowMatcher, KeyExtent ke, Set<Integer> tabletIds, int maxMutations) {
-    
+
     if (ke != null) {
       if (key.event == LogEvents.DEFINE_TABLET) {
         if (key.tablet.equals(ke)) {
@@ -157,7 +157,7 @@ public class LogReader {
         return;
       }
     }
-    
+
     if (row != null || rowMatcher != null) {
       if (key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) {
         boolean found = false;
@@ -166,7 +166,7 @@ public class LogReader {
             found = true;
             break;
           }
-          
+
           if (rowMatcher != null) {
             rowMatcher.reset(new String(m.getRow(), UTF_8));
             if (rowMatcher.matches()) {
@@ -175,17 +175,17 @@ public class LogReader {
             }
           }
         }
-        
+
         if (!found)
           return;
       } else {
         return;
       }
-      
+
     }
-    
+
     System.out.println(key);
     System.out.println(LogFileValue.format(value, maxMutations));
   }
-  
+
 }

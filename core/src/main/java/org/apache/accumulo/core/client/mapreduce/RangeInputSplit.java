@@ -348,7 +348,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (null == zooKeepers) {
       return null;
     }
-    
+
     return new ZooKeeperInstance(getInstanceName(), getZooKeepers());
   }
 

@@ -21,7 +21,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 
 /**
  * An Accumulo Exception for security violations, authentication failures, authorization failures, etc.
- * 
+ *
  */
 public class AccumuloSecurityException extends Exception {
   private static final long serialVersionUID = 1L;
@@ -120,7 +120,7 @@ public class AccumuloSecurityException extends Exception {
 
   /**
    * @return the specific reason for this exception
-   * 
+   *
    * @deprecated since 1.5.0; Use {@link #getSecurityErrorCode()} instead.
    */
   @Deprecated

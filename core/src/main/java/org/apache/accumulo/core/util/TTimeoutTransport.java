@@ -31,16 +31,16 @@ import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 
 public class TTimeoutTransport {
-  
+
   private static InputStream getInputStream(Socket socket, long timeout) {
     try {
       Method m = NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
-      return (InputStream)m.invoke(null, socket, timeout);
+      return (InputStream) m.invoke(null, socket, timeout);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
-  
+
   public static TTransport create(SocketAddress addr, long timeoutMillis) throws IOException {
     Socket socket = SelectorProvider.provider().openSocketChannel().socket();
     socket.setSoLinger(false, 0);

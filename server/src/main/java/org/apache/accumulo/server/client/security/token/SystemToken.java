@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
  */
 
 public class SystemToken extends PasswordToken {
-  
+
   public SystemToken(byte[] systemPassword) {
     super(systemPassword);
   }

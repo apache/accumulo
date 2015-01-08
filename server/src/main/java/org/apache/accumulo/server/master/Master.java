@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.master;
 
 import static com.google.common.base.Charsets.UTF_8;
-
 import static java.lang.Math.min;
 
 import java.io.IOException;
@@ -287,7 +286,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
-        throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
+        throw new IllegalStateException(
+            "Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
       }
       Accumulo.abortIfFateTransactions();
       try {
@@ -325,10 +325,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
-          throw new IllegalStateException("We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+          throw new IllegalStateException(
+              "We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
         }
         if (null != fate) {
-          throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
+          throw new IllegalStateException(
+              "Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
         }
         Runnable upgradeTask = new Runnable() {
           @Override
@@ -700,7 +702,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           throw new Exception("Invalid table property.");
         }
       } catch (KeeperException.NoNodeException e) {
-        // race condition... table no longer exists?  This call will throw an exception if the table was deleted:
+        // race condition... table no longer exists? This call will throw an exception if the table was deleted:
         checkTableId(tableName, op);
         log.info("Error altering table property", e);
         throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
@@ -1605,54 +1607,54 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
 
-  private void repairMetadata(Text row) {
-    Master.log.debug("Attempting repair on " + row);
-    // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it may cause duplicate assignment.
-    // Attempt to find the dead server entry and remove it.
-    try {
-      Map<Key, Value> future = new HashMap<Key, Value>();
-      Map<Key, Value> assigned = new HashMap<Key, Value>();
-      Scanner scanner = getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-      scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-      scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
-      scanner.setRange(new Range(row));
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
-          assigned.put(entry.getKey(), entry.getValue());
-        } else if (entry.getKey().getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
-          future.put(entry.getKey(), entry.getValue());
+    private void repairMetadata(Text row) {
+      Master.log.debug("Attempting repair on " + row);
+      // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it may cause duplicate assignment.
+      // Attempt to find the dead server entry and remove it.
+      try {
+        Map<Key,Value> future = new HashMap<Key,Value>();
+        Map<Key,Value> assigned = new HashMap<Key,Value>();
+        Scanner scanner = getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+        scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
+        scanner.setRange(new Range(row));
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
+            assigned.put(entry.getKey(), entry.getValue());
+          } else if (entry.getKey().getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+            future.put(entry.getKey(), entry.getValue());
+          }
         }
-      }
-      if (future.size() > 0 && assigned.size() > 0) {
-        Master.log.warn("Found a tablet assigned and hosted, attempting to repair");
-      } else if (future.size() > 1 && assigned.size() == 0) {
-        Master.log.warn("Found a tablet assigned to multiple servers, attempting to repair");
-      } else if (future.size() == 0 && assigned.size() > 1) {
-        Master.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
-      } else {
-        Master.log.info("Attempted a repair, but nothing seems to be obviously wrong. " + assigned + " " + future);
-        return;
-      }
-      Map<Key, Value> all = new HashMap<Key, Value>();
-      all.putAll(future);
-      all.putAll(assigned);
-      for (Entry<Key, Value> entry : all.entrySet()) {
-        TServerInstance alive = tserverSet.find(entry.getValue().toString());
-        if (alive == null) {
-          Master.log.info("Removing entry " + entry);
-          BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-          Mutation m = new Mutation(entry.getKey().getRow());
-          m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-          bw.addMutation(m);
-          bw.close();
+        if (future.size() > 0 && assigned.size() > 0) {
+          Master.log.warn("Found a tablet assigned and hosted, attempting to repair");
+        } else if (future.size() > 1 && assigned.size() == 0) {
+          Master.log.warn("Found a tablet assigned to multiple servers, attempting to repair");
+        } else if (future.size() == 0 && assigned.size() > 1) {
+          Master.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
+        } else {
+          Master.log.info("Attempted a repair, but nothing seems to be obviously wrong. " + assigned + " " + future);
           return;
         }
+        Map<Key,Value> all = new HashMap<Key,Value>();
+        all.putAll(future);
+        all.putAll(assigned);
+        for (Entry<Key,Value> entry : all.entrySet()) {
+          TServerInstance alive = tserverSet.find(entry.getValue().toString());
+          if (alive == null) {
+            Master.log.info("Removing entry " + entry);
+            BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+            Mutation m = new Mutation(entry.getKey().getRow());
+            m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+            bw.addMutation(m);
+            bw.close();
+            return;
+          }
+        }
+        Master.log.error("Metadata table is inconsistent at " + row + " and all assigned/future tservers are still online.");
+      } catch (Throwable e) {
+        Master.log.error("Error attempting repair of metadata " + row + ": " + e, e);
       }
-      Master.log.error("Metadata table is inconsistent at " + row + " and all assigned/future tservers are still online.");
-    } catch (Throwable e) {
-      Master.log.error("Error attempting repair of metadata " + row + ": " + e, e);
     }
-  }
 
     private int assignedOrHosted() {
       int result = 0;
@@ -2054,10 +2056,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
 
     /**
-     * If a migrating tablet splits, and the tablet dies before sending the
-     * master a message, the migration will refer to a non-existing tablet,
-     * so it can never complete. Periodically scan the metadata table and
-     * remove any migrating tablets that no longer exist.
+     * If a migrating tablet splits, and the tablet dies before sending the master a message, the migration will refer to a non-existing tablet, so it can never
+     * complete. Periodically scan the metadata table and remove any migrating tablets that no longer exist.
      */
     private void cleanupNonexistentMigrations(final Connector connector) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
@@ -2073,9 +2073,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
 
     /**
-     * If migrating a tablet for a table that is offline, the migration
-     * can never succeed because no tablet server will load the tablet.
-     * check for offline tables and remove their migrations.
+     * If migrating a tablet for a table that is offline, the migration can never succeed because no tablet server will load the tablet. check for offline
+     * tables and remove their migrations.
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = TableManager.getInstance();
@@ -2309,11 +2308,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
 
     TCredentials systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {
-        new ZooTabletStateStore(new ZooStore(zroot)),
-        new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)
-    };
+    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)};
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
@@ -2321,7 +2317,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       watcher.start();
     }
 
-    // Once we are sure tablet servers are no longer checking for an empty Fate transaction queue before doing WAL upgrades, we can safely start using Fate ourselves.
+    // Once we are sure tablet servers are no longer checking for an empty Fate transaction queue before doing WAL upgrades, we can safely start using Fate
+    // ourselves.
     waitForMetadataUpgrade.await();
 
     // TODO: add shutdown for fate object - ACCUMULO-1307
@@ -2549,7 +2546,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
 
   @Override
   public void stateChanged(String tableId, TableState state) {

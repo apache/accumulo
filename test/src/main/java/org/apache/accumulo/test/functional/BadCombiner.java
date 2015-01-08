@@ -23,10 +23,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 
 public class BadCombiner extends Combiner {
-  
+
   @Override
   public Value reduce(Key key, Iterator<Value> iter) {
     throw new IllegalStateException();
   }
-  
+
 }

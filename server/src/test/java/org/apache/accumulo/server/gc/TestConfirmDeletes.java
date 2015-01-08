@@ -41,10 +41,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class TestConfirmDeletes {
-  
+
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
     return result;
@@ -52,9 +52,9 @@ public class TestConfirmDeletes {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidBlip() throws Exception {
-    String metadata[] = new String[] {"1636< file:/b-0001/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
-        "1636< srv:dir /default_tablet", "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb",
-        "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
+    String metadata[] = new String[] {"1636< file:/b-0001/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
+        "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
+        "1636< ~tab:~pr \0"};
     String deletes[] = {"~blip/", "~del/1636/b-0001/someFile"};
 
     test1(metadata, deletes, 1, 0);
@@ -83,39 +83,39 @@ public class TestConfirmDeletes {
 
   @Test
   public void test() throws Exception {
-    
+
     // have a directory reference
     String metadata[] = {"1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet", "1636< srv:flush 2",
         "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
     String deletes[] = {"~del/1636/default_tablet"};
-    
+
     test1(metadata, deletes, 1, 0);
-    
+
     // have no file reference
     deletes = new String[] {"~del/1636/default_tablet/someFile"};
     test1(metadata, deletes, 1, 1);
-    
+
     // have a file reference
     metadata = new String[] {"1636< file:/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
         "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
         "1636< ~tab:~pr \0"};
     test1(metadata, deletes, 1, 0);
-    
+
     // have an indirect file reference
     deletes = new String[] {"~del/9/default_tablet/someFile"};
     metadata = new String[] {"1636< file:../9/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
         "1636< srv:dir /default_tablet", "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb",
         "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
-    
+
     test1(metadata, deletes, 1, 0);
-    
+
     // have an indirect file reference and a directory candidate
     deletes = new String[] {"~del/9/default_tablet"};
     test1(metadata, deletes, 1, 0);
-    
+
     deletes = new String[] {"~del/9/default_tablet", "~del/9/default_tablet/someFile"};
     test1(metadata, deletes, 2, 0);
-    
+
     metadata = new String[] {"1636< file:/b-0001/I0000 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
         "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
         "1636< ~tab:~pr \0"};
@@ -123,15 +123,15 @@ public class TestConfirmDeletes {
     deletes = new String[] {"~blip/1636/b-0001", "~del/1636/b-0001/I0000"};
     test1(metadata, deletes, 1, 0);
   }
-  
+
   private void test1(String[] metadata, String[] deletes, int expectedInitial, int expected) throws Exception {
     TCredentials auth = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
-    
+
     Instance instance = new MockInstance();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    
+
     load(instance, metadata, deletes);
-    
+
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
     gc.init(fs, instance, auth, false);
     SortedSet<String> candidates = gc.getCandidates();
@@ -139,10 +139,10 @@ public class TestConfirmDeletes {
     gc.confirmDeletes(candidates);
     Assert.assertEquals(expected, candidates.size());
   }
-  
+
   private void load(Instance instance, String[] metadata, String[] deletes) throws Exception {
     TCredentials credential = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
-    
+
     Scanner scanner = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential)).createScanner(Constants.METADATA_TABLE_NAME,
         Constants.NO_AUTHS);
     int count = 0;
@@ -150,10 +150,10 @@ public class TestConfirmDeletes {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    
+
     // ensure there is no data from previous test
     Assert.assertEquals(0, count);
-    
+
     Connector conn = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential));
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     for (String line : metadata) {
@@ -163,7 +163,7 @@ public class TestConfirmDeletes {
       m.put(new Text(columnParts[0]), new Text(columnParts[1]), new Value(parts[2].getBytes()));
       bw.addMutation(m);
     }
-    
+
     for (String line : deletes) {
       Mutation m = new Mutation(line);
       m.put("", "", "");

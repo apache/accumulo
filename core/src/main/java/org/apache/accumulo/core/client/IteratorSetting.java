@@ -36,11 +36,11 @@ import org.apache.hadoop.io.WritableUtils;
 
 /**
  * Configure an iterator for minc, majc, and/or scan. By default, IteratorSetting will be configured for scan.
- * 
+ *
  * Every iterator has a priority, a name, a class, a set of scopes, and configuration parameters.
- * 
+ *
  * A typical use case configured for scan:
- * 
+ *
  * <pre>
  * IteratorSetting cfg = new IteratorSetting(priority, &quot;myIter&quot;, MyIterator.class);
  * MyIterator.addOption(cfg, 42);
@@ -55,7 +55,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Get layer at which this iterator applies. See {@link #setPriority(int)} for how the priority is used.
-   * 
+   *
    * @return the priority of this Iterator
    */
   public int getPriority() {
@@ -64,7 +64,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Set layer at which this iterator applies.
-   * 
+   *
    * @param priority
    *          determines the order in which iterators are applied (system iterators are always applied first, then user-configured iterators, lowest priority
    *          first)
@@ -76,7 +76,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Get the iterator's name.
-   * 
+   *
    * @return the name of the iterator
    */
   public String getName() {
@@ -93,7 +93,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Get the name of the class that implements the iterator.
-   * 
+   *
    * @return the iterator's class name
    */
   public String getIteratorClass() {
@@ -111,7 +111,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Constructs an iterator setting configured for the scan scope with no parameters. (Parameters can be added later.)
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
@@ -125,7 +125,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Constructs an iterator setting configured for the specified scopes with the specified parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
@@ -146,7 +146,7 @@ public class IteratorSetting implements Writable {
   /**
    * Constructs an iterator setting using the given class's SimpleName for the iterator name. The iterator setting will be configured for the scan scope with no
    * parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param iteratorClass
@@ -157,10 +157,10 @@ public class IteratorSetting implements Writable {
   }
 
   /**
-   * 
+   *
    * Constructs an iterator setting using the given class's SimpleName for the iterator name and configured for the specified scopes with the specified
    * parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param iteratorClass
@@ -174,7 +174,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Constructs an iterator setting configured for the scan scope with no parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
@@ -196,7 +196,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Add another option to the iterator.
-   * 
+   *
    * @param option
    *          the name of the option
    * @param value
@@ -209,7 +209,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Remove an option from the iterator.
-   * 
+   *
    * @param option
    *          the name of the option
    * @return the value previously associated with the option, or null if no such option existed
@@ -221,7 +221,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Add many options to the iterator.
-   * 
+   *
    * @param propertyEntries
    *          a set of entries to add to the options
    */
@@ -234,7 +234,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Add many options to the iterator.
-   * 
+   *
    * @param properties
    *          a map of entries to add to the options
    */
@@ -245,7 +245,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * Get the configuration parameters for this iterator.
-   * 
+   *
    * @return the properties
    */
   public Map<String,String> getOptions() {

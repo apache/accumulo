@@ -30,29 +30,29 @@ import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 /**
- * 
+ *
  */
 public class LoginProperties {
-  
+
   public static void main(String[] args) throws Exception {
     AccumuloConfiguration config = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
     Authenticator authenticator = AccumuloClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
         .asSubclass(Authenticator.class).newInstance();
-    
+
     List<Set<TokenProperty>> tokenProps = new ArrayList<Set<TokenProperty>>();
-    
+
     for (Class<? extends AuthenticationToken> tokenType : authenticator.getSupportedTokenTypes()) {
       tokenProps.add(tokenType.newInstance().getProperties());
     }
-    
+
     System.out.println("Supported token types for " + authenticator.getClass().getName() + " are : ");
     for (Class<? extends AuthenticationToken> tokenType : authenticator.getSupportedTokenTypes()) {
       System.out.println("\t" + tokenType.getName() + ", which accepts the following properties : ");
-      
+
       for (TokenProperty tokenProperty : tokenType.newInstance().getProperties()) {
         System.out.println("\t\t" + tokenProperty);
       }
-      
+
       System.out.println();
     }
   }

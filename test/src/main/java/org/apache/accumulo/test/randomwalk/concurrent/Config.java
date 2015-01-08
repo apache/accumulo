@@ -29,7 +29,7 @@ import org.apache.commons.math.random.RandomData;
 import org.apache.commons.math.random.RandomDataImpl;
 
 public class Config extends Test {
-  
+
   private static final String LAST_SETTING = "lastSetting";
 
   private static final String LAST_TABLE_SETTING = "lastTableSetting";
@@ -38,66 +38,39 @@ public class Config extends Test {
     public Property property;
     public long min;
     public long max;
+
     public Setting(Property property, long min, long max) {
       this.property = property;
       this.min = min;
       this.max = max;
     }
   }
+
   static Setting s(Property property, long min, long max) {
     return new Setting(property, min, max);
   }
-  Setting[] settings = {
-      s(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT, 1, 10),
-      s(Property.TSERV_BULK_PROCESS_THREADS, 1, 10),
-      s(Property.TSERV_BULK_RETRY, 1, 10),
-      s(Property.TSERV_BULK_TIMEOUT, 10, 600),
-      s(Property.TSERV_BULK_ASSIGNMENT_THREADS, 1, 10),
-      s(Property.TSERV_DATACACHE_SIZE, 0, 1000000000L),
-      s(Property.TSERV_INDEXCACHE_SIZE, 0, 1000000000L),
-      s(Property.TSERV_CLIENT_TIMEOUT, 100, 10000),
-      s(Property.TSERV_MAJC_MAXCONCURRENT, 1, 10),
-      s(Property.TSERV_MAJC_DELAY, 100, 10000),
-      s(Property.TSERV_MAJC_THREAD_MAXOPEN, 3, 100),
-      s(Property.TSERV_MINC_MAXCONCURRENT, 1, 10),
-      s(Property.TSERV_DEFAULT_BLOCKSIZE, 100000, 10000000L),
-      s(Property.TSERV_MAX_IDLE, 10000, 500*1000),
-      s(Property.TSERV_MAXMEM, 1000000, 3*1024*1024*1024L),
-      s(Property.TSERV_READ_AHEAD_MAXCONCURRENT, 1, 25),
-      s(Property.TSERV_MIGRATE_MAXCONCURRENT, 1, 10),
-      s(Property.TSERV_MUTATION_QUEUE_MAX, 10000, 1024*1024),
-      s(Property.TSERV_RECOVERY_MAX_CONCURRENT, 1, 100),
-      s(Property.TSERV_SCAN_MAX_OPENFILES, 10, 1000),
-      s(Property.TSERV_THREADCHECK, 100, 10000),
-      s(Property.TSERV_MINTHREADS, 1, 100),
-      s(Property.TSERV_SESSION_MAXIDLE, 100, 5*60*1000),
-      s(Property.TSERV_SORT_BUFFER_SIZE, 1024*1024, 1024*1024*1024L),
-      s(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN, 5, 100),
-      s(Property.TSERV_WAL_BLOCKSIZE, 1024*1024, 1024*1024*1024*10L),
-      s(Property.TSERV_WORKQ_THREADS, 1, 10),
-      s(Property.MASTER_BULK_THREADPOOL_SIZE, 1, 10),
-      s(Property.MASTER_BULK_RETRIES, 1, 10),
-      s(Property.MASTER_BULK_TIMEOUT, 10, 600),
-      s(Property.MASTER_FATE_THREADPOOL_SIZE, 1, 100),
-      s(Property.MASTER_RECOVERY_DELAY, 0, 100),
-      s(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD, 0, 10),
-      s(Property.MASTER_RECOVERY_MAXTIME, 10, 1000),
-      s(Property.MASTER_THREADCHECK, 100, 10000),
-      s(Property.MASTER_MINTHREADS, 1, 200),
-  };
-  
-  Setting[] tableSettings = {
-      s(Property.TABLE_MAJC_RATIO, 1, 10),
-      s(Property.TABLE_MAJC_COMPACTALL_IDLETIME, 100, 10*60*60*1000L),
-      s(Property.TABLE_SPLIT_THRESHOLD, 10*1024, 10L*1024*1024*1024),
-      s(Property.TABLE_MINC_COMPACT_IDLETIME, 100, 100*60*60*1000L),
-      s(Property.TABLE_SCAN_MAXMEM, 10*1024, 10*1024*1024),
-      s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, 10*1024, 10*1024*1024L), 
-      s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, 10*1024, 10*1024*1024L),
-      s(Property.TABLE_FILE_REPLICATION, 0, 5),
-      s(Property.TABLE_FILE_MAX, 2, 50),
-  };
-  
+
+  Setting[] settings = {s(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT, 1, 10), s(Property.TSERV_BULK_PROCESS_THREADS, 1, 10), s(Property.TSERV_BULK_RETRY, 1, 10),
+      s(Property.TSERV_BULK_TIMEOUT, 10, 600), s(Property.TSERV_BULK_ASSIGNMENT_THREADS, 1, 10), s(Property.TSERV_DATACACHE_SIZE, 0, 1000000000L),
+      s(Property.TSERV_INDEXCACHE_SIZE, 0, 1000000000L), s(Property.TSERV_CLIENT_TIMEOUT, 100, 10000), s(Property.TSERV_MAJC_MAXCONCURRENT, 1, 10),
+      s(Property.TSERV_MAJC_DELAY, 100, 10000), s(Property.TSERV_MAJC_THREAD_MAXOPEN, 3, 100), s(Property.TSERV_MINC_MAXCONCURRENT, 1, 10),
+      s(Property.TSERV_DEFAULT_BLOCKSIZE, 100000, 10000000L), s(Property.TSERV_MAX_IDLE, 10000, 500 * 1000),
+      s(Property.TSERV_MAXMEM, 1000000, 3 * 1024 * 1024 * 1024L), s(Property.TSERV_READ_AHEAD_MAXCONCURRENT, 1, 25),
+      s(Property.TSERV_MIGRATE_MAXCONCURRENT, 1, 10), s(Property.TSERV_MUTATION_QUEUE_MAX, 10000, 1024 * 1024),
+      s(Property.TSERV_RECOVERY_MAX_CONCURRENT, 1, 100), s(Property.TSERV_SCAN_MAX_OPENFILES, 10, 1000), s(Property.TSERV_THREADCHECK, 100, 10000),
+      s(Property.TSERV_MINTHREADS, 1, 100), s(Property.TSERV_SESSION_MAXIDLE, 100, 5 * 60 * 1000),
+      s(Property.TSERV_SORT_BUFFER_SIZE, 1024 * 1024, 1024 * 1024 * 1024L), s(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN, 5, 100),
+      s(Property.TSERV_WAL_BLOCKSIZE, 1024 * 1024, 1024 * 1024 * 1024 * 10L), s(Property.TSERV_WORKQ_THREADS, 1, 10),
+      s(Property.MASTER_BULK_THREADPOOL_SIZE, 1, 10), s(Property.MASTER_BULK_RETRIES, 1, 10), s(Property.MASTER_BULK_TIMEOUT, 10, 600),
+      s(Property.MASTER_FATE_THREADPOOL_SIZE, 1, 100), s(Property.MASTER_RECOVERY_DELAY, 0, 100), s(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD, 0, 10),
+      s(Property.MASTER_RECOVERY_MAXTIME, 10, 1000), s(Property.MASTER_THREADCHECK, 100, 10000), s(Property.MASTER_MINTHREADS, 1, 200),};
+
+  Setting[] tableSettings = {s(Property.TABLE_MAJC_RATIO, 1, 10), s(Property.TABLE_MAJC_COMPACTALL_IDLETIME, 100, 10 * 60 * 60 * 1000L),
+      s(Property.TABLE_SPLIT_THRESHOLD, 10 * 1024, 10L * 1024 * 1024 * 1024), s(Property.TABLE_MINC_COMPACT_IDLETIME, 100, 100 * 60 * 60 * 1000L),
+      s(Property.TABLE_SCAN_MAXMEM, 10 * 1024, 10 * 1024 * 1024), s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, 10 * 1024, 10 * 1024 * 1024L),
+      s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, 10 * 1024, 10 * 1024 * 1024L), s(Property.TABLE_FILE_REPLICATION, 0, 5),
+      s(Property.TABLE_FILE_MAX, 2, 50),};
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     // reset any previous setting
@@ -120,7 +93,7 @@ public class Config extends Test {
           state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
           if (ex.getCause() instanceof ThriftTableOperationException) {
-            ThriftTableOperationException ttoe = (ThriftTableOperationException)ex.getCause();
+            ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
             if (ttoe.type == TableOperationExceptionType.NOTFOUND)
               return;
           }
@@ -142,13 +115,13 @@ public class Config extends Test {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
-    
+
     // pick a random table
     SortedSet<String> tables = state.getConnector().tableOperations().list().tailSet("ctt").headSet("ctu");
     if (tables.isEmpty())
       return;
     String table = random.nextSample(tables, 1)[0].toString();
-    
+
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
     state.getMap().put(LAST_TABLE_SETTING, table + "," + choice);
@@ -157,14 +130,14 @@ public class Config extends Test {
       state.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
     } catch (AccumuloException ex) {
       if (ex.getCause() instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException)ex.getCause();
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
         if (ttoe.type == TableOperationExceptionType.NOTFOUND)
           return;
       }
       throw ex;
     }
   }
-  
+
   private void changeSetting(RandomData random, State state, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, settings.length - 1);
@@ -173,7 +146,7 @@ public class Config extends Test {
     long newValue = random.nextLong(setting.min, setting.max);
     state.getMap().put(LAST_SETTING, "" + choice);
     log.debug("Setting " + setting.property.getKey() + " to " + newValue);
-    state.getConnector().instanceOperations().setProperty(setting.property.getKey(), ""+newValue);
+    state.getConnector().instanceOperations().setProperty(setting.property.getKey(), "" + newValue);
   }
-  
+
 }

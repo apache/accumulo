@@ -43,28 +43,28 @@ public class RangeInputSplitTest {
 
   @Test
   public void testSimpleWritable() throws IOException {
-    RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
-    
+    RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[] {"localhost"});
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     split.write(dos);
-    
+
     RangeInputSplit newSplit = new RangeInputSplit();
-    
+
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
     newSplit.readFields(dis);
-    
+
     Assert.assertEquals(split.getRange(), newSplit.getRange());
     Assert.assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
   }
 
   @Test
   public void testAllFieldsWritable() throws IOException {
-    RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
-    
+    RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[] {"localhost"});
+
     Set<Pair<Text,Text>> fetchedColumns = new HashSet<Pair<Text,Text>>();
-    
+
     fetchedColumns.add(new Pair<Text,Text>(new Text("colf1"), new Text("colq1")));
     fetchedColumns.add(new Pair<Text,Text>(new Text("colf2"), new Text("colq2")));
 
@@ -77,7 +77,7 @@ public class RangeInputSplitTest {
     setting = new IteratorSetting(100, WholeRowIterator.class);
     setting.addOption("bar", "foo");
     iterators.add(setting);
-    
+
     split.setAuths(new Authorizations("foo"));
     split.setOffline(true);
     split.setIsolatedScan(true);
@@ -90,20 +90,20 @@ public class RangeInputSplitTest {
     split.setZooKeepers("localhost");
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
-    
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     split.write(dos);
-    
+
     RangeInputSplit newSplit = new RangeInputSplit();
-    
+
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
     newSplit.readFields(dis);
-    
+
     Assert.assertEquals(split.getRange(), newSplit.getRange());
     Assert.assertArrayEquals(split.getLocations(), newSplit.getLocations());
-    
+
     Assert.assertEquals(split.getAuths(), newSplit.getAuths());
     Assert.assertEquals(split.isOffline(), newSplit.isOffline());
     Assert.assertEquals(split.isIsolatedScan(), newSplit.isOffline());
@@ -117,5 +117,5 @@ public class RangeInputSplitTest {
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());
   }
-  
+
 }

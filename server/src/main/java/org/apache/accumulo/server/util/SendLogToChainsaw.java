@@ -55,33 +55,33 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 public class SendLogToChainsaw extends XMLLayout {
-  
+
   private static Pattern logPattern = Pattern.compile(
       "^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$", Pattern.UNIX_LINES);
-  
+
   private File[] logFiles = null;
-  
+
   private SocketFactory factory = SocketFactory.getDefault();
-  
+
   private WildcardFileFilter fileFilter = null;
-  
+
   private Socket socket = null;
-  
+
   private Pattern lineFilter = null;
-  
+
   private LongRange dateFilter = null;
-  
+
   private LevelRangeFilter levelFilter = null;
-  
+
   public SendLogToChainsaw(String directory, String fileNameFilter, String host, int port, Date start, Date end, String regex, String level) throws Exception {
-    
+
     // Set up the file name filter
     if (null != fileNameFilter) {
       fileFilter = new WildcardFileFilter(fileNameFilter);
     } else {
       fileFilter = new WildcardFileFilter("*");
     }
-    
+
     // Get the list of files that match
     File dir = new File(directory);
     if (dir.isDirectory()) {
@@ -89,22 +89,22 @@ public class SendLogToChainsaw extends XMLLayout {
     } else {
       throw new IllegalArgumentException(directory + " is not a directory or is not readable.");
     }
-    
+
     if (logFiles.length == 0) {
       throw new IllegalArgumentException("No files match the supplied filter.");
     }
-    
+
     socket = factory.createSocket(host, port);
-    
+
     lineFilter = Pattern.compile(regex);
-    
+
     // Create Date Filter
     if (null != start) {
       if (end == null)
         end = new Date(System.currentTimeMillis());
       dateFilter = new LongRange(start.getTime(), end.getTime());
     }
-    
+
     if (null != level) {
       Level base = Level.toLevel(level.toUpperCase());
       levelFilter = new LevelRangeFilter();
@@ -113,7 +113,7 @@ public class SendLogToChainsaw extends XMLLayout {
       levelFilter.setLevelMax(Level.FATAL);
     }
   }
-  
+
   public void processLogFiles() throws IOException {
     String line = null;
     String out = null;
@@ -128,24 +128,24 @@ public class SendLogToChainsaw extends XMLLayout {
         } catch (FileNotFoundException e) {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
-	    }
+        }
         reader = new BufferedReader(isReader);
-        
+
         try {
           line = reader.readLine();
           while (null != line) {
-                out = convertLine(line, threadName);
-                if (null != out) {
-                  if (socket != null && socket.isConnected())
-                    socket.getOutputStream().write(out.getBytes(UTF_8));
-                  else
-                    System.err.println("Unable to send data to transport");
-                }
-              line = reader.readLine();
+            out = convertLine(line, threadName);
+            if (null != out) {
+              if (socket != null && socket.isConnected())
+                socket.getOutputStream().write(out.getBytes(UTF_8));
+              else
+                System.err.println("Unable to send data to transport");
             }
+            line = reader.readLine();
+          }
         } catch (IOException e) {
-            System.out.println("Error processing line: " + line + ". Output was " + out);
-            throw e;
+          System.out.println("Error processing line: " + line + ". Output was " + out);
+          throw e;
         } finally {
           if (reader != null) {
             reader.close();
@@ -161,12 +161,12 @@ public class SendLogToChainsaw extends XMLLayout {
       }
     }
   }
-  
+
   private String convertLine(String line, String threadName) throws UnsupportedEncodingException {
     String result = null;
     Matcher m = logPattern.matcher(line);
     if (m.matches()) {
-      
+
       Calendar cal = Calendar.getInstance();
       cal.setTime(new Date(System.currentTimeMillis()));
       Integer date = Integer.parseInt(m.group(1));
@@ -212,7 +212,7 @@ public class SendLogToChainsaw extends XMLLayout {
     }
     return result;
   }
-  
+
   private static class DateConverter implements IStringConverter<Date> {
     @Override
     public Date convert(String value) {
@@ -223,57 +223,49 @@ public class SendLogToChainsaw extends XMLLayout {
         throw new RuntimeException(e);
       }
     }
-    
+
   }
-  
+
   private static class Opts extends Help {
-    
-    @Parameter(names={"-d", "--logDirectory"}, description="ACCUMULO log directory path", required=true)
+
+    @Parameter(names = {"-d", "--logDirectory"}, description = "ACCUMULO log directory path", required = true)
     String dir;
-    
-    @Parameter(names={"-f", "--fileFilter"}, description="filter to apply to names of logs")
+
+    @Parameter(names = {"-f", "--fileFilter"}, description = "filter to apply to names of logs")
     String filter;
-    
-    @Parameter(names={"-h", "--host"}, description="host where chainsaw is running", required=true)
+
+    @Parameter(names = {"-h", "--host"}, description = "host where chainsaw is running", required = true)
     String hostname;
-    
-    @Parameter(names={"-p", "--port"}, description="port where XMLSocketReceiver is listening", required=true)
+
+    @Parameter(names = {"-p", "--port"}, description = "port where XMLSocketReceiver is listening", required = true)
     int portnum;
-    
-    @Parameter(names={"-s", "--start"}, description="start date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+
+    @Parameter(names = {"-s", "--start"}, description = "start date filter (yyyyMMddHHmmss)", required = true, converter = DateConverter.class)
     Date startDate;
-    
-    @Parameter(names={"-e", "--end"}, description="end date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+
+    @Parameter(names = {"-e", "--end"}, description = "end date filter (yyyyMMddHHmmss)", required = true, converter = DateConverter.class)
     Date endDate;
-    
-    @Parameter(names={"-l", "--level"}, description="filter log level")
+
+    @Parameter(names = {"-l", "--level"}, description = "filter log level")
     String level;
-    
-    @Parameter(names={"-m", "--messageFilter"}, description="regex filter for log messages")
+
+    @Parameter(names = {"-m", "--messageFilter"}, description = "regex filter for log messages")
     String regex;
   }
-  
-  
-  
-  
+
   /**
-   * 
+   *
    * @param args
-   *   0: path to log directory parameter 
-   *   1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
-   *   2: chainsaw host parameter 
-   *   3: chainsaw port parameter 
-   *   4: start date filter parameter 
-   *   5: end date filter parameter 
-   *   6: optional regex filter to match on each log4j message parameter 
-   *   7: optional level filter
+   *          0: path to log directory parameter 1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter 2:
+   *          chainsaw host parameter 3: chainsaw port parameter 4: start date filter parameter 5: end date filter parameter 6: optional regex filter to match
+   *          on each log4j message parameter 7: optional level filter
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(SendLogToChainsaw.class.getName(), args);
-    
+
     SendLogToChainsaw c = new SendLogToChainsaw(opts.dir, opts.filter, opts.hostname, opts.portnum, opts.startDate, opts.endDate, opts.regex, opts.level);
     c.processLogFiles();
   }
-  
+
 }

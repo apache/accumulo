@@ -33,19 +33,19 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class MetadataConstraintsTest {
-  
+
   static class TestMetadataConstraints extends MetadataConstraints {
     @Override
     protected Arbitrator getArbitrator() {
       return new Arbitrator() {
-        
+
         @Override
         public boolean transactionAlive(String type, long tid) throws Exception {
           if (tid == 9)
             throw new RuntimeException("txid 9 reserved for future use");
           return tid == 5 || tid == 7;
         }
-        
+
         @Override
         public boolean transactionComplete(String type, long tid) throws Exception {
           return tid != 5 && tid != 7;
@@ -59,77 +59,77 @@ public class MetadataConstraintsTest {
     Logger.getLogger(AccumuloConfiguration.class).setLevel(Level.ERROR);
     Mutation m = new Mutation(new Text("0;foo"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("1foo".getBytes()));
-    
+
     MetadataConstraints mc = new MetadataConstraints();
-    
+
     List<Short> violations = mc.check(null, m);
-    
+
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 3), violations.get(0));
-    
+
     m = new Mutation(new Text("0:foo"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("1poo".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
-    
+
     m = new Mutation(new Text("0;foo"));
     m.put(new Text("bad_column_name"), new Text(""), new Value("e".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 2), violations.get(0));
-    
+
     m = new Mutation(new Text("!!<"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("1poo".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertNotNull(violations);
     assertEquals(2, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
     assertEquals(Short.valueOf((short) 5), violations.get(1));
-    
+
     m = new Mutation(new Text("0;foo"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 6), violations.get(0));
-    
+
     m = new Mutation(new Text("0;foo"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertEquals(null, violations);
-    
+
     m = new Mutation(new Text("!0<"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertEquals(null, violations);
-    
+
     m = new Mutation(new Text("!1<"));
     Constants.METADATA_PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
-    
+
     violations = mc.check(null, m);
-    
+
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
   }
-  
+
   @Test
   public void testBulkFileCheck() {
     MetadataConstraints mc = new TestMetadataConstraints();
@@ -143,8 +143,8 @@ public class MetadataConstraintsTest {
     violations = mc.check(null, m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
-    assertEquals(Short.valueOf((short)8), violations.get(0));
-    
+    assertEquals(Short.valueOf((short) 8), violations.get(0));
+
     // txid that throws exception
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("9".getBytes()));
@@ -153,14 +153,14 @@ public class MetadataConstraintsTest {
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
-    
+
     // active txid w/ file
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
     m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
     violations = mc.check(null, m);
     assertNull(violations);
-    
+
     // active txid w/o file
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
@@ -168,7 +168,7 @@ public class MetadataConstraintsTest {
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
-    
+
     // two active txids w/ files
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
@@ -205,35 +205,34 @@ public class MetadataConstraintsTest {
     Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value("/t1".getBytes()));
     violations = mc.check(null, m);
     assertNull(violations);
-    
+
     // inactive txid, mutation that looks like split
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("12345".getBytes()));
     Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value("/t1".getBytes()));
     violations = mc.check(null, m);
     assertNull(violations);
-    
+
     // active txid, mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
     m.put(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text("789"), new Value("127.0.0.1:9997".getBytes()));
     violations = mc.check(null, m);
     assertNull(violations);
-    
+
     // inactive txid, mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("12345".getBytes()));
     m.put(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text("789"), new Value("127.0.0.1:9997".getBytes()));
     violations = mc.check(null, m);
     assertNull(violations);
-    
+
     // deleting a load flag
     m = new Mutation(new Text("0;foo"));
     m.putDelete(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"));
     violations = mc.check(null, m);
     assertNull(violations);
 
-
   }
-  
+
 }

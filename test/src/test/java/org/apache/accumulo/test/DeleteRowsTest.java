@@ -43,7 +43,7 @@ public class DeleteRowsTest {
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
@@ -51,9 +51,9 @@ public class DeleteRowsTest {
     cfg.setNumTservers(1);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
-    
+
   }
-  
+
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();

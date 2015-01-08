@@ -43,11 +43,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TableLoadBalancerTest {
-  
+
   static private TServerInstance mkts(String address, String session) throws Exception {
     return new TServerInstance(AddressUtil.parseAddress(address, 1234), session);
   }
-  
+
   static private TabletServerStatus status(Object... config) {
     TabletServerStatus result = new TabletServerStatus();
     result.tableMap = new HashMap<String,TableInfo>();
@@ -65,11 +65,11 @@ public class TableLoadBalancerTest {
     }
     return result;
   }
-  
+
   static MockInstance instance = new MockInstance("mockamatic");
-  
+
   static SortedMap<TServerInstance,TabletServerStatus> state;
-  
+
   static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
     List<TabletStats> result = new ArrayList<TabletStats>();
     TabletServerStatus tableInfo = state.get(tserver);
@@ -82,26 +82,26 @@ public class TableLoadBalancerTest {
     }
     return result;
   }
-  
+
   static class DefaultLoadBalancer extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
-    
+
     public DefaultLoadBalancer(String table) {
       super(table);
     }
-    
+
     @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
   }
-  
+
   // ugh... so wish I had provided mock objects to the LoadBalancer in the master
   static class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
-    
+
     TableLoadBalancer() {
       super();
     }
-    
+
     // need to use our mock instance
     @Override
     protected TableOperations getTableOperations() {
@@ -111,20 +111,20 @@ public class TableLoadBalancerTest {
         throw new RuntimeException(e);
       }
     }
-    
+
     // use our new classname to test class loading
     @Override
     protected String getLoadBalancerClassNameForTable(String table) {
       return DefaultLoadBalancer.class.getName();
     }
-    
+
     // we don't have real tablet servers to ask: invent some online tablets
     @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
   }
-  
+
   @Test
   public void test() throws Exception {
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
@@ -136,13 +136,13 @@ public class TableLoadBalancerTest {
     state = new TreeMap<TServerInstance,TabletServerStatus>();
     TServerInstance svr = mkts("10.0.0.1:1234", "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));
-    
+
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.balance(state, migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
-    
+
     state.put(mkts("10.0.0.2:1234", "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.balance(state, migrations, migrationsOut);
@@ -162,5 +162,5 @@ public class TableLoadBalancerTest {
       Assert.assertEquals(5, moved.intValue());
     }
   }
-  
+
 }

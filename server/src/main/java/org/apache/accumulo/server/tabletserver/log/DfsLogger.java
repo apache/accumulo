@@ -63,7 +63,7 @@ import org.apache.log4j.Logger;
 
 /**
  * Wrap a connection to a logger.
- * 
+ *
  */
 public class DfsLogger {
   // Package private so that LogSorter can find this
@@ -377,7 +377,7 @@ public class DfsLogger {
     }
 
     // wait for background thread to finish before closing log file
-    if(syncThread != null){
+    if (syncThread != null) {
       try {
         syncThread.join();
       } catch (InterruptedException e) {
@@ -385,12 +385,12 @@ public class DfsLogger {
       }
     }
 
-    //expect workq should be empty at this point
-    if(workQueue.size() != 0){
+    // expect workq should be empty at this point
+    if (workQueue.size() != 0) {
       log.error("WAL work queue not empty after sync thread exited");
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }
-    
+
     if (logFile != null)
       try {
         logFile.close();

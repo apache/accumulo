@@ -86,7 +86,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
 
   /**
    * A convenience constructor that accepts a collection of string authorizations that have each already been encoded as UTF-8 bytes.
-   * 
+   *
    * @see #Authorizations(String...)
    */
   public Authorizations(Collection<byte[]> authorizations) {
@@ -98,7 +98,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
 
   /**
    * A convenience constructor that accepts a collection of string authorizations that have each already been encoded as UTF-8 bytes.
-   * 
+   *
    * @see #Authorizations(String...)
    */
   public Authorizations(List<ByteBuffer> authorizations) {
@@ -111,7 +111,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
 
   /**
    * Constructs an authorizations object a serialized form. This is NOT a constructor for a set of authorizations of size one.
-   * 
+   *
    * @param authorizations
    *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()} (converted to UTF-8 bytes)
    */
@@ -139,14 +139,14 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
 
   /**
    * Constructs an empty set of authorizations.
-   * 
+   *
    * @see #Authorizations(String...)
    */
   public Authorizations() {}
 
   /**
    * Constructs an authorizations object from a set of human-readable authorizations.
-   * 
+   *
    * @param authorizations
    *          array of authorizations
    */
@@ -167,7 +167,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
 
   /**
    * Retrieve a serialized form of the underlying set of authorizations.
-   * 
+   *
    * @see #Authorizations(byte[])
    */
   public byte[] getAuthorizationsArray() {
@@ -176,7 +176,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
 
   /**
    * Retrieve authorizations as a list of strings that have been encoded as UTF-8 bytes.
-   * 
+   *
    * @see #Authorizations(Collection)
    */
   public List<byte[]> getAuthorizations() {

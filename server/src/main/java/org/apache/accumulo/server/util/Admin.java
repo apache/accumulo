@@ -47,25 +47,23 @@ import com.beust.jcommander.Parameters;
 
 public class Admin {
   private static final Logger log = Logger.getLogger(Admin.class);
-  
+
   static class AdminOpts extends ClientOpts {
-    @Parameter(names={"-f", "--force"}, description="force the given server to stop by removing its lock")
+    @Parameter(names = {"-f", "--force"}, description = "force the given server to stop by removing its lock")
     boolean force = false;
   }
 
-  @Parameters(commandDescription="stop the tablet server on the given hosts")
+  @Parameters(commandDescription = "stop the tablet server on the given hosts")
   static class StopCommand {
-    @Parameter(description="<host> {<host> ... }")
+    @Parameter(description = "<host> {<host> ... }")
     List<String> args = new ArrayList<String>();
   }
-  
-  @Parameters(commandDescription="stop the master")
-  static class StopMasterCommand {
-  }
 
-  @Parameters(commandDescription="stop all the servers")
-  static class StopAllCommand {
-  }
+  @Parameters(commandDescription = "stop the master")
+  static class StopMasterCommand {}
+
+  @Parameters(commandDescription = "stop all the servers")
+  static class StopAllCommand {}
 
   public static void main(String[] args) {
     boolean everything;
@@ -80,13 +78,13 @@ public class Admin {
     StopAllCommand stopAllOpts = new StopAllCommand();
     cl.addCommand("stopAll", stopAllOpts);
     cl.parse(args);
-    
+
     if (opts.help || cl.getParsedCommand() == null) {
       cl.usage();
       return;
     }
     Instance instance = opts.getInstance();
-      
+
     try {
       String principal;
       AuthenticationToken token;
@@ -109,10 +107,10 @@ public class Admin {
         stopServer(instance, CredentialHelper.create(principal, token, instance.getInstanceID()), everything);
       }
     } catch (AccumuloException e) {
-      log.error(e,e);
+      log.error(e, e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
-      log.error(e,e);
+      log.error(e, e);
       System.exit(2);
     }
   }
@@ -120,15 +118,15 @@ public class Admin {
   /**
    * flushing during shutdown is a perfomance optimization, its not required. The method will make an attempt to initiate flushes of all tables and give up if
    * it takes too long.
-   * 
+   *
    */
   private static void flushAll(final Instance instance, final String principal, final AuthenticationToken token) throws AccumuloException,
       AccumuloSecurityException {
-    
+
     final AtomicInteger flushesStarted = new AtomicInteger(0);
 
     Runnable flushTask = new Runnable() {
-      
+
       @Override
       public void run() {
         try {
@@ -147,22 +145,22 @@ public class Admin {
         }
       }
     };
-    
+
     Thread flusher = new Thread(flushTask);
     flusher.setDaemon(true);
     flusher.start();
-    
+
     long start = System.currentTimeMillis();
     try {
       flusher.join(3000);
     } catch (InterruptedException e) {}
-    
+
     while (flusher.isAlive() && System.currentTimeMillis() - start < 15000) {
       int flushCount = flushesStarted.get();
       try {
         flusher.join(1000);
       } catch (InterruptedException e) {}
-      
+
       if (flushCount == flushesStarted.get()) {
         // no progress was made while waiting for join... maybe its stuck, stop waiting on it
         break;
@@ -170,7 +168,8 @@ public class Admin {
     }
   }
 
-  private static void stopServer(Instance instance, final TCredentials credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
+  private static void stopServer(Instance instance, final TCredentials credentials, final boolean tabletServersToo) throws AccumuloException,
+      AccumuloSecurityException {
     MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
@@ -178,8 +177,9 @@ public class Admin {
       }
     });
   }
-  
-  private static void stopTabletServer(Instance instance, final TCredentials creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
+
+  private static void stopTabletServer(Instance instance, final TCredentials creds, List<String> servers, final boolean force) throws AccumuloException,
+      AccumuloSecurityException {
     for (String server : servers) {
       InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
       final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);

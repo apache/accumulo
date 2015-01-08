@@ -18,7 +18,6 @@ package org.apache.accumulo.test;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -28,6 +27,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.trace.instrument.Tracer;
 
 public class GetMasterStats {
   public static void main(String[] args) throws Exception {
@@ -51,7 +51,7 @@ public class GetMasterStats {
     out(0, "Unassigned tablets: %d", stats.unassignedTablets);
     if (stats.badTServers != null && stats.badTServers.size() > 0) {
       out(0, "Bad servers");
-      
+
       for (Entry<String,Byte> entry : stats.badTServers.entrySet()) {
         out(1, "%s: %d", entry.getKey(), (int) entry.getValue());
       }
@@ -109,12 +109,12 @@ public class GetMasterStats {
       }
     }
   }
-  
+
   private static void out(int indent, String string, Object... args) {
     for (int i = 0; i < indent; i++) {
       System.out.print(" ");
     }
     System.out.println(String.format(string, args));
   }
-  
+
 }

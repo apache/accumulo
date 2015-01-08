@@ -29,12 +29,12 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class ChangePass extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
-    
+
     String principal;
     AuthenticationToken token;
     if (source.equals("system")) {
@@ -45,24 +45,24 @@ public class ChangePass extends Test {
       token = WalkingSecurity.get(state).getTabToken();
     }
     Connector conn = state.getInstance().getConnector(principal, token);
-    
+
     boolean hasPerm;
     boolean targetExists;
     if (target.equals("table")) {
       target = WalkingSecurity.get(state).getTabUserName();
     } else
       target = WalkingSecurity.get(state).getSysUserName();
-    
+
     targetExists = WalkingSecurity.get(state).userExists(target);
-    
+
     hasPerm = WalkingSecurity.get(state).canChangePassword(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), target);
-    
+
     Random r = new Random();
-    
+
     byte[] newPassw = new byte[r.nextInt(50) + 1];
     for (int i = 0; i < newPassw.length; i++)
       newPassw[i] = (byte) ((r.nextInt(26) + 65) & 0xFF);
-    
+
     PasswordToken newPass = new PasswordToken(newPassw);
     try {
       conn.securityOperations().changeLocalUserPassword(target, newPass);

@@ -34,13 +34,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ContextManagerTest {
-  
+
   private TemporaryFolder folder1 = new TemporaryFolder();
   private TemporaryFolder folder2 = new TemporaryFolder();
   private FileSystemManager vfs;
   private URI uri1;
   private URI uri2;
-  
+
   static FileSystemManager getVFS() {
     try {
       return AccumuloVFSClassLoader.generateVfs();
@@ -51,15 +51,15 @@ public class ContextManagerTest {
 
   @Before
   public void setup() throws Exception {
-    
+
     vfs = getVFS();
 
     folder1.create();
     folder2.create();
-    
+
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder2.newFile("HelloWorld.jar"));
-    
+
     uri1 = new File(folder1.getRoot(), "HelloWorld.jar").toURI();
     uri2 = folder2.getRoot().toURI();
 
@@ -73,13 +73,13 @@ public class ContextManagerTest {
       else
         rfos[i] = fos[i];
     }
-    
+
     return rfos;
   }
 
   @Test
   public void differentContexts() throws Exception {
-    
+
     ContextManager cm = new ContextManager(vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
@@ -110,7 +110,7 @@ public class ContextManagerTest {
     ClassLoader cl2 = cm.getClassLoader("CX2");
     FileObject[] files2 = ((VFSClassLoader) cl2).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents2), files2);
-    
+
     Class<?> defaultContextClass = cl1.loadClass("test.HelloWorld");
     Object o1 = defaultContextClass.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
@@ -118,25 +118,25 @@ public class ContextManagerTest {
     Class<?> myContextClass = cl2.loadClass("test.HelloWorld");
     Object o2 = myContextClass.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());
-    
+
     Assert.assertFalse(defaultContextClass.equals(myContextClass));
 
     cm.removeUnusedContexts(new HashSet<String>());
   }
-  
+
   @Test
   public void testPostDelegation() throws Exception {
     final VFSClassLoader parent = new VFSClassLoader(new FileObject[] {vfs.resolveFile(uri1.toString())}, vfs);
-    
+
     Class<?> pclass = parent.loadClass("test.HelloWorld");
-    
+
     ContextManager cm = new ContextManager(vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return parent;
       }
     });
-    
+
     cm.setContextConfig(new ContextsConfig() {
       @Override
       public ContextConfig getContextConfig(String context) {
@@ -148,7 +148,7 @@ public class ContextManagerTest {
         return null;
       }
     });
-    
+
     Assert.assertTrue(cm.getClassLoader("CX1").loadClass("test.HelloWorld") == pclass);
     Assert.assertFalse(cm.getClassLoader("CX2").loadClass("test.HelloWorld") == pclass);
   }

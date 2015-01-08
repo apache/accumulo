@@ -78,7 +78,7 @@ public class AllowScansToBeInterruptedIT {
     // make the world's slowest scanner
     final Scanner scanner = conn.createScanner(tableName, Constants.NO_AUTHS);
     final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
-    SlowIterator.setSeekSleepTime(cfg, 99999*1000);
+    SlowIterator.setSeekSleepTime(cfg, 99999 * 1000);
     scanner.addScanIterator(cfg);
     // create a thread to interrupt the slow scan
     final Thread scanThread = Thread.currentThread();
@@ -111,11 +111,10 @@ public class AllowScansToBeInterruptedIT {
     thread.start();
     try {
       // Use the scanner, expect problems
-      for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner) {
-      }
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> entry : scanner) {}
       Assert.fail("Scan should not succeed");
-    } catch (Exception ex) {
-    } finally {
+    } catch (Exception ex) {} finally {
       thread.join();
     }
   }

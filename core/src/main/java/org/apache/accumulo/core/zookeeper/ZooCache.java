@@ -21,7 +21,7 @@ import org.apache.zookeeper.Watcher;
 
 /**
  * This class remains here for backwards compatibility.
- * 
+ *
  * @deprecated since 1.5, replaced by {@link org.apache.accumulo.fate.zookeeper.ZooCache}
  */
 @Deprecated
@@ -29,11 +29,11 @@ public class ZooCache extends org.apache.accumulo.fate.zookeeper.ZooCache {
   public ZooCache(String zooKeepers, int sessionTimeout) {
     super(zooKeepers, sessionTimeout);
   }
-  
+
   public ZooCache(String zooKeepers, int sessionTimeout, Watcher watcher) {
     super(zooKeepers, sessionTimeout, watcher);
   }
-  
+
   public ZooCache(ZooReader reader, Watcher watcher) {
     super(reader, watcher);
   }

@@ -28,7 +28,7 @@ import org.junit.Test;
 import com.google.common.io.Files;
 
 /**
- * 
+ *
  */
 public class CleanShutdownMacTest {
 

@@ -44,12 +44,12 @@ public class DeleteTableDuringSplitIT {
   public static TemporaryFolder folder = new TemporaryFolder();
   private MiniAccumuloCluster accumulo;
   private String secret = "secret";
-  
+
   Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     ZooKeeperInstance zki = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     return zki.getConnector("root", new PasswordToken(secret));
   }
-  
+
   String[] getTableNames(int n) {
     String[] result = new String[n];
     for (int i = 0; i < n; i++) {
@@ -57,22 +57,21 @@ public class DeleteTableDuringSplitIT {
     }
     return result;
   }
-  
+
   @Before
   public void setUp() throws Exception {
     folder.create();
     accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
     accumulo.start();
   }
-  
+
   @After
   public void tearDown() throws Exception {
     accumulo.stop();
     folder.delete();
   }
-  
 
-  @Test(timeout= 10 * 60 * 1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     String[] tableNames = getTableNames(100);
     // make a bunch of tables
@@ -81,7 +80,7 @@ public class DeleteTableDuringSplitIT {
     }
     final SortedSet<Text> splits = new TreeSet<Text>();
     for (byte i = 0; i < 100; i++) {
-      splits.add(new Text(new byte[]{0, 0, i}));
+      splits.add(new Text(new byte[] {0, 0, i}));
     }
 
     List<Future<?>> results = new ArrayList<Future<?>>();
@@ -94,8 +93,7 @@ public class DeleteTableDuringSplitIT {
         public void run() {
           try {
             getConnector().tableOperations().addSplits(finalName, splits);
-          } catch (TableNotFoundException ex) {
-          } catch (Exception ex) {
+          } catch (TableNotFoundException ex) {} catch (Exception ex) {
             throw new RuntimeException(finalName, ex);
           }
         }

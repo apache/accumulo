@@ -108,7 +108,7 @@ import org.apache.thrift.transport.TTransportException;
 
 /**
  * Provides a class for administering tables
- * 
+ *
  */
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
@@ -132,7 +132,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Retrieve a list of tables in Accumulo.
-   * 
+   *
    * @return List of tables in accumulo
    */
   @Override
@@ -145,7 +145,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * A method to check if a table exists in Accumulo.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return true if the table exists
@@ -164,7 +164,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Create a table with no special configuration
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -501,8 +501,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
-        : TextUtil.getByteBuffer(end));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+        end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableOperation(TableOperation.MERGE, args, opts);
@@ -517,8 +517,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
-        : TextUtil.getByteBuffer(end));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+        end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableOperation(TableOperation.DELETE_RANGE, args, opts);
@@ -629,7 +629,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Delete a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -692,7 +692,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Rename a table
-   * 
+   *
    * @param oldTableName
    *          the old table name
    * @param newTableName
@@ -730,7 +730,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Flush a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -850,7 +850,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Sets a property on a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -875,7 +875,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Removes a property from a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -898,7 +898,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Gets properties of a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return all properties visible by this table (system and per-table properties)
@@ -933,7 +933,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Sets a tables locality groups. A tables locality groups can be changed at any time.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param groups
@@ -984,9 +984,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   /**
-   * 
+   *
    * Gets the locality groups currently set for a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return mapping of locality group names to column families in the locality group
@@ -1124,7 +1124,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   /**
-   * 
+   *
    * @param tableName
    *          the table to take offline
    * @throws AccumuloException
@@ -1148,7 +1148,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   /**
-   * 
+   *
    * @param tableName
    *          the table to take online
    * @throws AccumuloException
@@ -1172,7 +1172,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Clears the tablet locator cache for a specified table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws TableNotFoundException
@@ -1187,7 +1187,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Get a mapping of table name to internal table id.
-   * 
+   *
    * @return the map from table name to internal table id
    */
   @Override

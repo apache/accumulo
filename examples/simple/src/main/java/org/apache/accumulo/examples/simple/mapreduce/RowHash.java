@@ -50,16 +50,16 @@ public class RowHash extends Configured implements Tool {
       context.write(null, m);
       context.progress();
     }
-    
+
     @Override
     public void setup(Context job) {}
   }
-  
+
   private static class Opts extends ClientOnRequiredTable {
     @Parameter(names = "--column", required = true)
     String column = null;
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getName());
@@ -68,26 +68,26 @@ public class RowHash extends Configured implements Tool {
     opts.parseArgs(RowHash.class.getName(), args);
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
-    
+
     String col = opts.column;
     int idx = col.indexOf(":");
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
     if (cf.getLength() > 0)
       AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
-    
+
     job.setMapperClass(HashDataMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new RowHash(), args);
     if (res != 0)

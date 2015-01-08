@@ -95,7 +95,7 @@ public class SecurityOperation {
   }
 
   /**
-   * 
+   *
    * @deprecated not for client use
    */
   @Deprecated
@@ -213,7 +213,7 @@ public class SecurityOperation {
 
   /**
    * Checks if a user has a system permission
-   * 
+   *
    * @return true if a user exists and has permission; false otherwise
    */
   private boolean hasSystemPermission(String user, SystemPermission permission, boolean useCached) throws ThriftSecurityException {
@@ -233,7 +233,7 @@ public class SecurityOperation {
 
   /**
    * Checks if a user has a table permission
-   * 
+   *
    * @return true if a user exists and has permission; false otherwise
    */
   private boolean hasTablePermission(String user, String table, TablePermission permission, boolean useCached) throws ThriftSecurityException {

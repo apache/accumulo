@@ -59,7 +59,9 @@ public class CreateEmpty {
   static class Opts extends Help {
     @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.", validateWith = IsSupportedCompressionAlgorithm.class)
     String codec = TFile.COMPRESSION_NONE;
-    @Parameter(description = " <path> { <path> ... } Each path given is a URL. Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.", required = true, validateWith = NamedLikeRFile.class)
+    @Parameter(
+        description = " <path> { <path> ... } Each path given is a URL. Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.",
+        required = true, validateWith = NamedLikeRFile.class)
     List<String> files = new ArrayList<String>();
   }
 
@@ -71,7 +73,8 @@ public class CreateEmpty {
 
     for (String arg : opts.files) {
       Path path = new Path(arg);
-      FileSKVWriter writer = (new RFileOperations()).openWriter(arg, path.getFileSystem(conf), conf, DefaultConfiguration.getDefaultConfiguration(), opts.codec);
+      FileSKVWriter writer = (new RFileOperations())
+          .openWriter(arg, path.getFileSystem(conf), conf, DefaultConfiguration.getDefaultConfiguration(), opts.codec);
       writer.close();
     }
   }

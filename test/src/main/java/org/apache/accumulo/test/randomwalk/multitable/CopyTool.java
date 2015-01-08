@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 
 public class CopyTool extends Configured implements Tool {
   protected final Logger log = Logger.getLogger(this.getClass());
-  
+
   public static class SeqMapClass extends Mapper<Key,Value,Text,Mutation> {
     @Override
     public void map(Key key, Value val, Context output) throws IOException, InterruptedException {
@@ -43,35 +43,35 @@ public class CopyTool extends Configured implements Tool {
       output.write(null, m);
     }
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
-    
+
     if (job.getJar() == null) {
       log.error("M/R requires a jar file!  Run mvn package.");
       return 1;
     }
-    
+
     job.setInputFormatClass(AccumuloInputFormat.class);
     AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloInputFormat.setInputTableName(job, args[2]);
     AccumuloInputFormat.setScanAuthorizations(job, Constants.NO_AUTHS);
     AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
-    
+
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, args[5]);
     AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }

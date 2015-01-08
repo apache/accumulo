@@ -59,67 +59,67 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
   private Instance instance;
-  
+
   MetadataLocationObtainer(Instance instance) {
-    
+
     this.instance = instance;
-    
+
     locCols = new TreeSet<Column>();
     locCols.add(new Column(TextUtil.getBytes(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY), null, null));
     locCols.add(Constants.METADATA_PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<Column>(locCols);
   }
-  
+
   @Override
   public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials)
       throws AccumuloSecurityException, AccumuloException {
-    
+
     try {
       ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-      
+
       OpTimer opTimer = null;
       if (log.isTraceEnabled())
         opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
             + src.tablet_extent + " tserver=" + src.tablet_location);
-      
+
       Range range = new Range(row, true, stopRow, true);
-      
+
       TreeMap<Key,Value> encodedResults = new TreeMap<Key,Value>();
       TreeMap<Key,Value> results = new TreeMap<Key,Value>();
-      
+
       // Use the whole row iterator so that a partial mutations is not read. The code that extracts locations for tablets does a sanity check to ensure there is
       // only one location. Reading a partial mutation could make it appear there are multiple locations when there are not.
       List<IterInfo> serverSideIteratorList = new ArrayList<IterInfo>();
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-      
+
       boolean more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
           serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Constants.NO_AUTHS, false, instance.getConfiguration());
-      
+
       decodeRows(encodedResults, results);
-      
+
       if (more && results.size() == 1) {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
         more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
             serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Constants.NO_AUTHS, false, instance.getConfiguration());
-        
+
         decodeRows(encodedResults, results);
       }
-      
+
       if (opTimer != null)
         opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
-      
+
       // System.out.println("results "+results.keySet());
-      
+
       Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataTable.getMetadataLocationEntries(results);
-      
+
       for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
       }
-      
+
       return new TabletLocations(list, metadata.getSecond());
-      
+
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
         log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
@@ -133,10 +133,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
       parent.invalidateCache(src.tablet_location);
     }
-    
+
     return null;
   }
-  
+
   private void decodeRows(TreeMap<Key,Value> encodedResults, TreeMap<Key,Value> results) throws AccumuloException {
     for (Entry<Key,Value> entry : encodedResults.entrySet()) {
       try {
@@ -146,17 +146,17 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     }
   }
-  
+
   @Override
   public List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent, TCredentials credentials)
       throws AccumuloSecurityException, AccumuloException {
-    
+
     final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
-    
+
     ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-    
+
     ResultReceiver rr = new ResultReceiver() {
-      
+
       @Override
       public void receive(List<Entry<Key,Value>> entries) {
         for (Entry<Key,Value> entry : entries) {
@@ -168,13 +168,13 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         }
       }
     };
-    
+
     ScannerOptions opts = new ScannerOptions();
     opts.fetchedColumns = locCols;
     opts.serverSideIteratorList = new ArrayList<IterInfo>();
     opts.serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI")); // see comment in lookupTablet about why iterator is
                                                                                                    // used
-    
+
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
     try {
@@ -193,13 +193,13 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       log.trace("lookupTablets failed server=" + tserver, e);
       throw e;
     }
-    
+
     SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
-    
+
     for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
       list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
     }
-    
+
     return list;
   }
 }

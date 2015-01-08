@@ -37,16 +37,16 @@ import org.apache.thrift.TSerializer;
 
 public class CredentialHelper {
   static Logger log = Logger.getLogger(CredentialHelper.class);
-  
+
   public static TCredentials create(String principal, AuthenticationToken token, String instanceID) throws AccumuloSecurityException {
     String className = token.getClass().getName();
     return new TCredentials(principal, className, ByteBuffer.wrap(toBytes(token)), instanceID);
   }
-  
+
   public static String asBase64String(TCredentials cred) throws AccumuloSecurityException {
     return new String(Base64.encodeBase64(asByteArray(cred)), UTF_8);
   }
-  
+
   public static byte[] asByteArray(TCredentials cred) throws AccumuloSecurityException {
     TSerializer ts = new TSerializer();
     try {
@@ -57,11 +57,11 @@ public class CredentialHelper {
       throw new AccumuloSecurityException(cred.getPrincipal(), SecurityErrorCode.SERIALIZATION_ERROR);
     }
   }
-  
+
   public static TCredentials fromBase64String(String string) throws AccumuloSecurityException {
     return fromByteArray(Base64.decodeBase64(string.getBytes(UTF_8)));
   }
-  
+
   public static TCredentials fromByteArray(byte[] serializedCredential) throws AccumuloSecurityException {
     if (serializedCredential == null)
       return null;
@@ -76,11 +76,11 @@ public class CredentialHelper {
       throw new AccumuloSecurityException("unknown", SecurityErrorCode.SERIALIZATION_ERROR);
     }
   }
-  
+
   public static AuthenticationToken extractToken(TCredentials toAuth) throws AccumuloSecurityException {
     return extractToken(toAuth.tokenClassName, toAuth.getToken());
   }
-  
+
   public static TCredentials createSquelchError(String principal, AuthenticationToken token, String instanceID) {
     try {
       return create(principal, token, instanceID);
@@ -89,11 +89,11 @@ public class CredentialHelper {
       return null;
     }
   }
-  
+
   public static String tokenAsBase64(AuthenticationToken token) throws AccumuloSecurityException {
     return new String(Base64.encodeBase64(toBytes(token)), UTF_8);
   }
-  
+
   public static byte[] toBytes(AuthenticationToken token) throws AccumuloSecurityException {
     try {
       ByteArrayOutputStream bais = new ByteArrayOutputStream();
@@ -105,9 +105,9 @@ public class CredentialHelper {
       log.error(e, e);
       throw new AccumuloSecurityException("unknown", SecurityErrorCode.SERIALIZATION_ERROR);
     }
-    
+
   }
-  
+
   public static AuthenticationToken extractToken(String tokenClass, byte[] token) throws AccumuloSecurityException {
     try {
       Object obj = Class.forName(tokenClass).newInstance();
@@ -128,5 +128,5 @@ public class CredentialHelper {
     }
     throw new AccumuloSecurityException("unknown", SecurityErrorCode.INVALID_TOKEN);
   }
-  
+
 }

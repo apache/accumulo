@@ -19,11 +19,6 @@
 
 package org.apache.accumulo.server.util;
 
-import org.apache.log4j.Logger;
-import org.apache.thrift.transport.TNonblockingServerTransport;
-import org.apache.thrift.transport.TNonblockingSocket;
-import org.apache.thrift.transport.TTransportException;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -34,11 +29,16 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
+import org.apache.log4j.Logger;
+import org.apache.thrift.transport.TNonblockingServerTransport;
+import org.apache.thrift.transport.TNonblockingSocket;
+import org.apache.thrift.transport.TTransportException;
+
 /**
  * Wrapper around ServerSocketChannel.
- * 
- * This class is copied from org.apache.thrift.transport.TNonblockingServerSocket version 0.9.
- * The only change (apart from the logging statements) is the addition of the {@link #getPort()} method to retrieve the port used by the ServerSocket.
+ *
+ * This class is copied from org.apache.thrift.transport.TNonblockingServerSocket version 0.9. The only change (apart from the logging statements) is the
+ * addition of the {@link #getPort()} method to retrieve the port used by the ServerSocket.
  */
 public class TNonblockingServerSocket extends TNonblockingServerTransport {
   private static final Logger log = Logger.getLogger(TNonblockingServerTransport.class.getName());

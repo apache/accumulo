@@ -31,14 +31,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 public class StopTabletServer extends Test {
-  
+
   Set<TServerInstance> getTServers(Instance instance) throws KeeperException, InterruptedException {
     Set<TServerInstance> result = new HashSet<TServerInstance>();
     ZooReader rdr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
@@ -60,12 +60,12 @@ public class StopTabletServer extends Test {
     }
     return result;
   }
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
-    
+
     Instance instance = state.getInstance();
-    
+
     List<TServerInstance> currentServers = new ArrayList<TServerInstance>(getTServers(instance));
     Collections.shuffle(currentServers);
     Runtime runtime = Runtime.getRuntime();
@@ -80,5 +80,5 @@ public class StopTabletServer extends Test {
         throw new RuntimeException("Failed to stop " + victim);
     }
   }
-  
+
 }

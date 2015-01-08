@@ -23,49 +23,49 @@ import org.junit.Test;
 
 public class TabletServerSyncCheckTest {
   private static final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
-  
+
   @Test(expected = RuntimeException.class)
   public void testFailureOnExplicitSyncFalseConf() {
     Configuration conf = new Configuration();
     conf.set(DFS_DURABLE_SYNC, "false");
-    
+
     FileSystem fs = new TestFileSystem(conf);
-    
+
     TabletServer.ensureHdfsSyncIsEnabled(fs);
   }
-  
+
   @Test(expected = RuntimeException.class)
   public void testFailureOnExplicitAppendFalseConf() {
     Configuration conf = new Configuration();
     conf.set(DFS_SUPPORT_APPEND, "false");
-    
+
     FileSystem fs = new TestFileSystem(conf);
-    
+
     TabletServer.ensureHdfsSyncIsEnabled(fs);
   }
-  
+
   @Test(expected = RuntimeException.class)
   public void testFailureOnExplicitSyncAndAppendFalseConf() {
     Configuration conf = new Configuration();
     conf.set(DFS_SUPPORT_APPEND, "false");
     conf.set(DFS_DURABLE_SYNC, "false");
-    
+
     FileSystem fs = new TestFileSystem(conf);
-    
+
     TabletServer.ensureHdfsSyncIsEnabled(fs);
   }
-  
+
   private class TestFileSystem extends DistributedFileSystem {
     protected final Configuration conf;
-    
+
     public TestFileSystem(Configuration conf) {
       this.conf = conf;
     }
-    
+
     @Override
     public Configuration getConf() {
       return conf;
     }
-    
+
   }
 }

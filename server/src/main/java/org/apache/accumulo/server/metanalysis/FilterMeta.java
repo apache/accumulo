@@ -36,15 +36,15 @@ import org.apache.hadoop.util.ToolRunner;
  * A map reduce job that takes a set of walogs and filters out all non metadata table events.
  */
 public class FilterMeta extends Configured implements Tool {
-  
+
   public static class FilterMapper extends Mapper<LogFileKey,LogFileValue,LogFileKey,LogFileValue> {
     private Set<Integer> tabletIds;
-    
+
     @Override
     protected void setup(Context context) throws java.io.IOException, java.lang.InterruptedException {
       tabletIds = new HashSet<Integer>();
     }
-    
+
     @Override
     public void map(LogFileKey key, LogFileValue value, Context context) throws IOException, InterruptedException {
       if (key.event == LogEvents.OPEN) {
@@ -60,12 +60,12 @@ public class FilterMeta extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
-    
+
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
-    
+
     Job job = new Job(getConf(), jobName);
     job.setJarByClass(this.getClass());
-    
+
     Path paths[] = new Path[args.length - 1];
     for (int i = 0; i < paths.length; i++) {
       paths[i] = new Path(args[i]);
@@ -73,18 +73,18 @@ public class FilterMeta extends Configured implements Tool {
 
     job.setInputFormatClass(LogFileInputFormat.class);
     LogFileInputFormat.setInputPaths(job, paths);
-    
+
     job.setOutputFormatClass(LogFileOutputFormat.class);
     LogFileOutputFormat.setOutputPath(job, new Path(args[args.length - 1]));
 
     job.setMapperClass(FilterMapper.class);
-    
+
     job.setNumReduceTasks(0);
 
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new FilterMeta(), args);
     System.exit(res);

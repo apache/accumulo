@@ -19,21 +19,21 @@ package org.apache.accumulo.server.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
 import com.beust.jcommander.Parameter;
 
 public class TableDiskUsage {
-  
+
   static class Opts extends ClientOpts {
-    @Parameter(description=" <table> { <table> ... } ")
+    @Parameter(description = " <table> { <table> ... } ")
     List<String> tables = new ArrayList<String>();
   }
-  
+
   public static void main(String[] args) throws Exception {
     FileSystem fs = FileSystem.get(new Configuration());
     Opts opts = new Opts();
@@ -41,5 +41,5 @@ public class TableDiskUsage {
     Connector conn = opts.getConnector();
     org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn, false);
   }
-  
+
 }

@@ -134,7 +134,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
-
 /*
  * We need to be able to have the master tell a tabletServer to
  * close this file, and the tablet server to handle all pending client reads
@@ -454,7 +453,6 @@ public class Tablet {
 
   private volatile long numEntries;
   private volatile long numEntriesInMemory;
-
 
   // a count of the amount of data read by the iterators
   private AtomicLong scannedCount = new AtomicLong(0);
@@ -1511,7 +1509,7 @@ public class Tablet {
   private void removeOldTemporaryFiles() {
     // remove any temporary files created by a previous tablet server
     try {
-      for (FileStatus tmp : fs.globStatus(new Path(location, "*_tmp"))){
+      for (FileStatus tmp : fs.globStatus(new Path(location, "*_tmp"))) {
         try {
           fs.delete(tmp.getPath(), true);
         } catch (IOException ex) {
@@ -2484,7 +2482,6 @@ public class Tablet {
         }
       }
 
-
       return new Pair<Long,List<IteratorSetting>>(compactID, iters.getIterators());
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
@@ -3056,7 +3053,7 @@ public class Tablet {
         Key first = pair.getFirst();
         Key last = pair.getSecond();
         // If first and last are null, it's an empty file. Add it to the compact set so it goes away.
-        if ( (first == null && last == null) || !this.extent.contains(first.getRow()) || !this.extent.contains(last.getRow())) {
+        if ((first == null && last == null) || !this.extent.contains(first.getRow()) || !this.extent.contains(last.getRow())) {
           result.put(file, entry.getValue().getSize());
         }
       }
@@ -3608,8 +3605,8 @@ public class Tablet {
         splitPoint = findSplitRow(datafileManager.getFiles());
       else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(),
-            extent.getEndRow(), datafileManager.getFiles(), tsp), tsp);
+        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
+            datafileManager.getFiles(), tsp), tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
@@ -3945,8 +3942,8 @@ public class Tablet {
 
     if (updateMetadata) {
       try {
-      // if multiple threads were allowed to update this outside of a sync block, then it would be
-      // a race condition
+        // if multiple threads were allowed to update this outside of a sync block, then it would be
+        // a race condition
         MetadataTable.updateTabletCompactID(extent, compactionId, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       } finally {
         synchronized (this) {

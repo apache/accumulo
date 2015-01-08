@@ -40,17 +40,17 @@ import org.xml.sax.helpers.DefaultHandler;
 import com.beust.jcommander.Parameter;
 
 public class RestoreZookeeper {
-  
+
   private static class Restore extends DefaultHandler {
     IZooReaderWriter zk = null;
     Stack<String> cwd = new Stack<String>();
     boolean overwrite = false;
-    
+
     Restore(IZooReaderWriter zk, boolean overwrite) {
       this.zk = zk;
       this.overwrite = overwrite;
     }
-    
+
     @Override
     public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException {
       if ("node".equals(name)) {
@@ -73,12 +73,12 @@ public class RestoreZookeeper {
         create(root, "", UTF_8.name().toLowerCase());
       }
     }
-    
+
     @Override
     public void endElement(String uri, String localName, String name) throws SAXException {
       cwd.pop();
     }
-    
+
     private void create(String path, String value, String encoding) {
       byte[] data = value.getBytes(UTF_8);
       if ("base64".equals(encoding))
@@ -96,26 +96,26 @@ public class RestoreZookeeper {
       }
     }
   }
-  
+
   static class Opts extends Help {
-    @Parameter(names={"-z", "--keepers"})
+    @Parameter(names = {"-z", "--keepers"})
     String keepers = "localhost:2181";
-    @Parameter(names="--overwrite")
+    @Parameter(names = "--overwrite")
     boolean overwrite = false;
-    @Parameter(names="--file")
+    @Parameter(names = "--file")
     String file;
   }
-  
+
   public static void main(String[] args) throws Exception {
     Logger.getRootLogger().setLevel(Level.WARN);
     Opts opts = new Opts();
     opts.parseArgs(RestoreZookeeper.class.getName(), args);
-    
+
     InputStream in = System.in;
     if (opts.file != null) {
       in = new FileInputStream(opts.file);
     }
-    
+
     SAXParserFactory factory = SAXParserFactory.newInstance();
     SAXParser parser = factory.newSAXParser();
     parser.parse(in, new Restore(ZooReaderWriter.getInstance(), opts.overwrite));

@@ -36,40 +36,40 @@ import org.apache.accumulo.server.monitor.util.celltypes.TServerLinkType;
 
 public class XMLServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "XML Report";
   }
-  
+
   @Override
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     resp.setContentType("text/xml;charset=UTF-8");
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     sb.append("<stats>\n");
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     double totalIngest = 0.;
     double totalQuery = 0.;
     double disk = 0.0;
     long totalEntries = 0L;
-    
+
     sb.append("\n<servers>\n");
     if (Monitor.getMmi() == null || Monitor.getMmi().tableMap == null) {
       sb.append("</servers>\n");
       return;
     }
     SortedMap<String,TableInfo> tableStats = new TreeMap<String,TableInfo>(Monitor.getMmi().tableMap);
-    
+
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
-      
+
       sb.append("\n<server id='").append(status.name).append("'>\n");
       sb.append("<hostname>").append(TServerLinkType.displayName(status.name)).append("</hostname>");
       sb.append("<lastContact>").append(System.currentTimeMillis() - status.lastContact).append("</lastContact>\n");
       sb.append("<osload>").append(status.osLoad).append("</osload>\n");
-      
+
       TableInfo summary = Monitor.summarizeTableStats(status);
       sb.append("<compactions>\n");
       sb.append("<major>").append("<running>").append(summary.majors.running).append("</running>").append("<queued>").append(summary.majors.queued)
@@ -77,9 +77,9 @@ public class XMLServlet extends BasicServlet {
       sb.append("<minor>").append("<running>").append(summary.minors.running).append("</running>").append("<queued>").append(summary.minors.queued)
           .append("</queued>").append("</minor>\n");
       sb.append("</compactions>\n");
-      
+
       sb.append("<tablets>").append(summary.tablets).append("</tablets>\n");
-      
+
       sb.append("<ingest>").append(summary.ingestRate).append("</ingest>\n");
       sb.append("<query>").append(summary.queryRate).append("</query>\n");
       sb.append("<ingestMB>").append(summary.ingestByteRate / 1000000.0).append("</ingestMB>\n");
@@ -93,41 +93,41 @@ public class XMLServlet extends BasicServlet {
       sb.append("</server>\n");
     }
     sb.append("\n</servers>\n");
-    
+
     sb.append("\n<masterGoalState>" + Monitor.getMmi().goalState + "</masterGoalState>\n");
     sb.append("\n<masterState>" + Monitor.getMmi().state + "</masterState>\n");
-    
+
     sb.append("\n<badTabletServers>\n");
     for (Entry<String,Byte> entry : Monitor.getMmi().badTServers.entrySet()) {
       sb.append(String.format("<badTabletServer id='%s' status='%s'/>\n", entry.getKey(), TabletServerState.getStateById(entry.getValue())));
     }
     sb.append("\n</badTabletServers>\n");
-    
+
     sb.append("\n<tabletServersShuttingDown>\n");
     for (String server : Monitor.getMmi().serversShuttingDown) {
       sb.append(String.format("<server id='%s'/>\n", server));
     }
     sb.append("\n</tabletServersShuttingDown>\n");
-    
+
     sb.append(String.format("\n<unassignedTablets>%d</unassignedTablets>\n", Monitor.getMmi().unassignedTablets));
-    
+
     sb.append("\n<deadTabletServers>\n");
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
       sb.append(String.format("<deadTabletServer id='%s' lastChange='%d' status='%s'/>\n", dead.server, dead.lastStatus, dead.status));
     }
     sb.append("\n</deadTabletServers>\n");
-    
+
     sb.append("\n<deadLoggers>\n");
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
       sb.append(String.format("<deadLogger id='%s' lastChange='%d' status='%s'/>\n", dead.server, dead.lastStatus, dead.status));
     }
     sb.append("\n</deadLoggers>\n");
-    
+
     sb.append("\n<tables>\n");
     Instance instance = HdfsZooInstance.getInstance();
     for (Entry<String,TableInfo> entry : tableStats.entrySet()) {
       TableInfo tableInfo = entry.getValue();
-      
+
       sb.append("\n<table>\n");
       String tableId = entry.getKey();
       String tableName = "unknown";
@@ -161,7 +161,7 @@ public class XMLServlet extends BasicServlet {
       sb.append("</table>\n");
     }
     sb.append("\n</tables>\n");
-    
+
     sb.append("\n<totals>\n");
     sb.append("<ingestrate>").append(totalIngest).append("</ingestrate>\n");
     sb.append("<queryrate>").append(totalQuery).append("</queryrate>\n");
@@ -169,7 +169,7 @@ public class XMLServlet extends BasicServlet {
     sb.append("<numentries>").append(totalEntries).append("</numentries>\n");
     sb.append("</totals>\n");
   }
-  
+
   @Override
   protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     sb.append("\n</stats>\n");

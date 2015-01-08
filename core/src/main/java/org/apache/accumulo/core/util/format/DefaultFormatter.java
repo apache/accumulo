@@ -27,75 +27,75 @@ import org.apache.hadoop.io.Text;
 public class DefaultFormatter implements Formatter {
   private Iterator<Entry<Key,Value>> si;
   private boolean doTimestamps;
-  
+
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     checkState(si, false);
     si = scanner.iterator();
     doTimestamps = printTimestamps;
   }
-  
+
   public boolean hasNext() {
     checkState(si, true);
     return si.hasNext();
   }
-  
+
   public String next() {
     checkState(si, true);
     return formatEntry(si.next(), doTimestamps);
   }
-  
+
   public void remove() {
     checkState(si, true);
     si.remove();
   }
-  
+
   static void checkState(Iterator<Entry<Key,Value>> si, boolean expectInitialized) {
     if (expectInitialized && si == null)
       throw new IllegalStateException("Not initialized");
     if (!expectInitialized && si != null)
       throw new IllegalStateException("Already initialized");
   }
-  
+
   // this should be replaced with something like Record.toString();
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
     StringBuilder sb = new StringBuilder();
     Key key = entry.getKey();
     Text buffer = new Text();
-    
+
     // append row
     appendText(sb, key.getRow(buffer)).append(" ");
-    
+
     // append column family
     appendText(sb, key.getColumnFamily(buffer)).append(":");
-    
+
     // append column qualifier
     appendText(sb, key.getColumnQualifier(buffer)).append(" ");
-    
+
     // append visibility expression
     sb.append(new ColumnVisibility(key.getColumnVisibility(buffer)));
-    
+
     // append timestamp
     if (showTimestamps)
       sb.append(" ").append(key.getTimestamp());
-    
+
     // append value
     if (entry.getValue() != null && entry.getValue().getSize() > 0) {
       sb.append("\t");
       appendValue(sb, entry.getValue());
     }
-    
+
     return sb.toString();
   }
-  
+
   static StringBuilder appendText(StringBuilder sb, Text t) {
     return appendBytes(sb, t.getBytes(), 0, t.getLength());
   }
-  
+
   static StringBuilder appendValue(StringBuilder sb, Value value) {
     return appendBytes(sb, value.get(), 0, value.get().length);
   }
-  
+
   static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[offset + i];
@@ -108,7 +108,7 @@ public class DefaultFormatter implements Formatter {
     }
     return sb;
   }
-  
+
   public Iterator<Entry<Key,Value>> getScannerIterator() {
     return si;
   }

@@ -21,7 +21,6 @@ import static com.google.common.base.Charsets.UTF_8;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
@@ -41,16 +41,16 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Remove file entries for map files that don't exist.
- * 
+ *
  */
 public class RemoveEntriesForMissingFiles {
   private static Logger log = Logger.getLogger(RemoveEntriesForMissingFiles.class);
-  
+
   static class Opts extends ClientOpts {
-    @Parameter(names="--fix")
+    @Parameter(names = "--fix")
     boolean fix = false;
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -64,7 +64,7 @@ public class RemoveEntriesForMissingFiles {
     metadata.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     int count = 0;
     int missing = 0;
-    BatchWriter writer = null; 
+    BatchWriter writer = null;
     if (opts.fix)
       writer = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
     for (Entry<Key,Value> entry : metadata) {

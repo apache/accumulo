@@ -33,26 +33,24 @@ import org.apache.hadoop.io.Text;
 import com.google.common.collect.Lists;
 
 public class Scan {
-  
+
   public static void main(String[] args) throws Exception {
     ScanOpts opts = new ScanOpts();
     opts.parseArgs(Scan.class.getName(), args);
-    
+
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(opts.getTableName(), new Authorizations());
-    
+
     if (opts.isolate) {
       scanner.enableIsolation();
     }
-    
+
     Random tablet_index_generator = new Random(opts.scan_seed);
-    
-    LoopControl scanning_condition = opts.continuous ? new ContinuousLoopControl() :
-                                                       new IterativeLoopControl(opts.scan_iterations);
-    
-    while(scanning_condition.keepScanning()) {
-      Range range = pickRange(connector.tableOperations(), opts.getTableName(),
-          tablet_index_generator);
+
+    LoopControl scanning_condition = opts.continuous ? new ContinuousLoopControl() : new IterativeLoopControl(opts.scan_iterations);
+
+    while (scanning_condition.keepScanning()) {
+      Range range = pickRange(connector.tableOperations(), opts.getTableName(), tablet_index_generator);
       scanner.setRange(range);
       if (opts.batch_size > 0) {
         scanner.setBatchSize(opts.batch_size);
@@ -60,24 +58,20 @@ public class Scan {
       try {
         consume(scanner);
       } catch (Exception e) {
-        System.err.println(
-            String.format(
-                "Exception while scanning range %s. Check the state of Accumulo for errors.",
-                range));
+        System.err.println(String.format("Exception while scanning range %s. Check the state of Accumulo for errors.", range));
         throw e;
       }
     }
   }
-  
+
   public static void consume(Iterable<?> iterable) {
     Iterator<?> itr = iterable.iterator();
     while (itr.hasNext()) {
       itr.next();
     }
   }
-  
-  public static Range pickRange(TableOperations tops, String table, Random r)
-      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+
+  public static Range pickRange(TableOperations tops, String table, Random r) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     ArrayList<Text> splits = Lists.newArrayList(tops.listSplits(table));
     if (splits.isEmpty()) {
       return new Range();
@@ -88,28 +82,26 @@ public class Scan {
       return new Range(startRow, false, endRow, true);
     }
   }
-  
+
   /*
-   * These interfaces + implementations are used to determine
-   * how many times the scanner should look up a random tablet
-   * and scan it.
+   * These interfaces + implementations are used to determine how many times the scanner should look up a random tablet and scan it.
    */
   static interface LoopControl {
     public boolean keepScanning();
   }
-  
+
   // Does a finite number of iterations
   static class IterativeLoopControl implements LoopControl {
     private final int max;
     private int current;
-    
+
     public IterativeLoopControl(int max) {
       this.max = max;
       this.current = 0;
     }
-    
+
     public boolean keepScanning() {
-      if(current < max) {
+      if (current < max) {
         ++current;
         return true;
       } else {
@@ -117,7 +109,7 @@ public class Scan {
       }
     }
   }
-  
+
   // Does an infinite number of iterations
   static class ContinuousLoopControl implements LoopControl {
     public boolean keepScanning() {

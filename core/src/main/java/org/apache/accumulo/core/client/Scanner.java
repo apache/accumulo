@@ -20,67 +20,67 @@ import org.apache.accumulo.core.data.Range;
 
 /**
  * Scans a table over a given range.
- * 
+ *
  * "Clients can iterate over multiple column families, and there are several mechanisms for limiting the rows, columns, and timestamps traversed by a scan. For
  * example, we could restrict [a] scan ... to only produce anchors whose columns match [a] regular expression ..., or to only produce anchors whose timestamps
  * fall within ten days of the current time."
  */
 public interface Scanner extends ScannerBase {
-  
+
   /**
    * This setting determines how long a scanner will automatically retry when a failure occurs. By default a scanner will retry forever.
-   * 
+   *
    * @param timeOut
    *          in seconds
    * @deprecated Since 1.5. See {@link ScannerBase#setTimeout(long, java.util.concurrent.TimeUnit)}
    */
   @Deprecated
   public void setTimeOut(int timeOut);
-  
+
   /**
    * Returns the setting for how long a scanner will automatically retry when a failure occurs.
-   * 
+   *
    * @return the timeout configured for this scanner
    * @deprecated Since 1.5. See {@link ScannerBase#getTimeout(java.util.concurrent.TimeUnit)}
    */
   @Deprecated
   public int getTimeOut();
-  
+
   /**
    * Sets the range of keys to scan over.
-   * 
+   *
    * @param range
    *          key range to begin and end scan
    */
   public void setRange(Range range);
-  
+
   /**
    * Returns the range of keys to scan over.
-   * 
+   *
    * @return the range configured for this scanner
    */
   public Range getRange();
-  
+
   /**
    * Sets the number of Key/Value pairs that will be fetched at a time from a tablet server.
-   * 
+   *
    * @param size
    *          the number of Key/Value pairs to fetch per call to Accumulo
    */
   public void setBatchSize(int size);
-  
+
   /**
    * Returns the batch size (number of Key/Value pairs) that will be fetched at a time from a tablet server.
-   * 
+   *
    * @return the batch size configured for this scanner
    */
   public int getBatchSize();
-  
+
   /**
    * Enables row isolation. Writes that occur to a row after a scan of that row has begun will not be seen if this option is enabled.
    */
   public void enableIsolation();
-  
+
   /**
    * Disables row isolation. Writes that occur to a row after a scan of that row has begun may be seen if this option is enabled.
    */

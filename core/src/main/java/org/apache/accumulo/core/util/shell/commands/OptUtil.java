@@ -28,10 +28,10 @@ import org.apache.hadoop.io.Text;
 public abstract class OptUtil {
   public static final String START_ROW_OPT = "b";
   public static final String END_ROW_OPT = "e";
-  
+
   public static String getTableOpt(final CommandLine cl, final Shell shellState) throws TableNotFoundException {
     String tableName;
-    
+
     if (cl.hasOption(Shell.tableOption)) {
       tableName = cl.getOptionValue(Shell.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
@@ -41,31 +41,31 @@ public abstract class OptUtil {
       shellState.checkTableState();
       tableName = shellState.getTableName();
     }
-    
+
     return tableName;
   }
-  
+
   public static Option tableOpt() {
     return tableOpt("tableName");
   }
-  
+
   public static Option tableOpt(final String description) {
     final Option tableOpt = new Option(Shell.tableOption, "table", true, description);
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
   }
-  
+
   public static enum AdlOpt {
     ADD("a"), DELETE("d"), LIST("l");
-    
+
     public final String opt;
-    
+
     private AdlOpt(String opt) {
       this.opt = opt;
     }
   }
-  
+
   public static AdlOpt getAldOpt(final CommandLine cl) {
     if (cl.hasOption(AdlOpt.ADD.opt)) {
       return AdlOpt.ADD;
@@ -75,7 +75,7 @@ public abstract class OptUtil {
       return AdlOpt.LIST;
     }
   }
-  
+
   public static OptionGroup addListDeleteGroup(final String name) {
     final Option addOpt = new Option(AdlOpt.ADD.opt, "add", false, "add " + name);
     final Option deleteOpt = new Option(AdlOpt.DELETE.opt, "delete", false, "delete " + name);
@@ -87,19 +87,19 @@ public abstract class OptUtil {
     og.setRequired(true);
     return og;
   }
-  
+
   public static Option startRowOpt() {
     final Option o = new Option(START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     o.setArgName("begin-row");
     return o;
   }
-  
+
   public static Option endRowOpt() {
     final Option o = new Option(END_ROW_OPT, "end-row", true, "end row (inclusive)");
     o.setArgName("end-row");
     return o;
   }
-  
+
   public static Text getStartRow(final CommandLine cl) throws UnsupportedEncodingException {
     if (cl.hasOption(START_ROW_OPT)) {
       return new Text(cl.getOptionValue(START_ROW_OPT).getBytes(Shell.CHARSET));
@@ -107,7 +107,7 @@ public abstract class OptUtil {
       return null;
     }
   }
-  
+
   public static Text getEndRow(final CommandLine cl) throws UnsupportedEncodingException {
     if (cl.hasOption(END_ROW_OPT)) {
       return new Text(cl.getOptionValue(END_ROW_OPT).getBytes(Shell.CHARSET));

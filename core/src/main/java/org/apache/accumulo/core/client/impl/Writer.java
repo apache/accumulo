@@ -41,28 +41,28 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
 public class Writer {
-  
+
   private static final Logger log = Logger.getLogger(Writer.class);
-  
+
   private Instance instance;
   private TCredentials credentials;
   private Text table;
-  
+
   public Writer(Instance instance, TCredentials credentials, Text table) {
     ArgumentChecker.notNull(instance, credentials, table);
     this.instance = instance;
     this.credentials = credentials;
     this.table = table;
   }
-  
+
   public Writer(Instance instance, TCredentials credentials, String table) {
     this(instance, credentials, new Text(table));
   }
-  
+
   private static void updateServer(Mutation m, KeyExtent extent, String server, TCredentials ai, AccumuloConfiguration configuration) throws TException,
       NotServingTabletException, ConstraintViolationException, AccumuloSecurityException {
     ArgumentChecker.notNull(m, extent, server, ai);
-    
+
     TabletClientService.Iface client = null;
     try {
       client = ThriftUtil.getTServerClient(server, configuration);
@@ -74,22 +74,22 @@ public class Writer {
       ThriftUtil.returnClient((TServiceClient) client);
     }
   }
-  
+
   public void update(Mutation m) throws AccumuloException, AccumuloSecurityException, ConstraintViolationException, TableNotFoundException {
     ArgumentChecker.notNull(m);
-    
+
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");
-    
+
     while (true) {
       TabletLocation tabLoc = TabletLocator.getInstance(instance, table).locateTablet(new Text(m.getRow()), false, true, credentials);
-      
+
       if (tabLoc == null) {
         log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
         UtilWaitThread.sleep(500);
         continue;
       }
-      
+
       try {
         updateServer(m, tabLoc.tablet_extent, tabLoc.tablet_location, credentials, instance.getConfiguration());
         return;
@@ -104,10 +104,10 @@ public class Writer {
       } catch (TException e) {
         log.error("error sending update to " + tabLoc.tablet_location + ": " + e);
         TabletLocator.getInstance(instance, table).invalidateCache(tabLoc.tablet_extent);
-      } 
-      
+      }
+
       UtilWaitThread.sleep(500);
     }
-    
+
   }
 }

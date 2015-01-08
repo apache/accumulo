@@ -35,34 +35,34 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class HistoryCommand extends Command {
-  
+
   private Option clearHist;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    
+
     String home = System.getProperty("HOME");
     if (home == null)
       home = System.getenv("HOME");
     final String histDir = home + "/.accumulo";
     int counter = 0;
-    
+
     if (cl.hasOption(clearHist.getOpt())) {
       PrintWriter out = null;
       try {
         FileOutputStream file = new FileOutputStream(histDir + "/shell_history.txt");
         final BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(file, UTF_8));
         out = new PrintWriter(fileWriter);
-      } catch (FileNotFoundException e) { 
+      } catch (FileNotFoundException e) {
         e.printStackTrace();
       } finally {
-        // If the file existed, closing the 
+        // If the file existed, closing the
         if (null != out) {
           out.close();
         }
       }
     }
-    
+
     else {
       BufferedReader in = null;
       try {
@@ -76,11 +76,11 @@ public class HistoryCommand extends Command {
             Line = in.readLine();
           }
         } catch (IOException e) {
-          
+
           e.printStackTrace();
         }
       } catch (FileNotFoundException e) {
-        
+
         e.printStackTrace();
       } finally {
         if (null != in) {
@@ -88,29 +88,29 @@ public class HistoryCommand extends Command {
         }
       }
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return ("generates a list of commands previously executed");
   }
-  
+
   @Override
   public int numArgs() {
     return 0;
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     clearHist = new Option("c", "clear", false, "clear history file");
     clearHist.setRequired(false);
-    
+
     o.addOption(clearHist);
-    
+
     return o;
   }
 }

@@ -34,19 +34,19 @@ import org.apache.commons.cli.CommandLine;
  */
 public class MockShell extends Shell {
   private static final String NEWLINE = "\n";
-  
+
   protected InputStream in;
   protected Writer writer;
-  
+
   public MockShell(InputStream in, Writer writer) throws IOException {
     super();
     this.in = in;
     this.writer = writer;
   }
-  
+
   public boolean config(String... args) {
     configError = super.config(args);
-    
+
     // Update the ConsoleReader with the input and output "redirected"
     try {
       this.reader = new ConsoleReader(in, writer);
@@ -54,30 +54,30 @@ public class MockShell extends Shell {
       printException(e);
       configError = true;
     }
-    
+
     // Don't need this for testing purposes
     this.reader.setUseHistory(false);
     this.reader.setUsePagination(false);
-    
+
     // Make the parsing from the client easier;
     this.verbose = false;
     return configError;
   }
-  
+
   @Override
   protected void setInstance(CommandLine cl) {
     // We always want a MockInstance for this test
     instance = new MockInstance();
   }
-  
+
   public int start() throws IOException {
     if (configError)
       return 1;
-    
+
     String input;
     if (isVerbose())
       printInfo();
-    
+
     if (execFile != null) {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile), UTF_8.name());
       try {
@@ -93,22 +93,22 @@ public class MockShell extends Shell {
       }
       return exitCode;
     }
-    
+
     while (true) {
       if (hasExited())
         return exitCode;
-      
+
       reader.setDefaultPrompt(getDefaultPrompt());
       input = reader.readLine();
       if (input == null) {
         reader.printNewline();
         return exitCode;
       } // user canceled
-      
+
       execCommand(input, false, false);
     }
   }
-  
+
   /**
    * @param in
    *          the in to set
@@ -116,7 +116,7 @@ public class MockShell extends Shell {
   public void setConsoleInputStream(InputStream in) {
     this.in = in;
   }
-  
+
   /**
    * @param writer
    *          the writer to set
@@ -124,21 +124,21 @@ public class MockShell extends Shell {
   public void setConsoleWriter(Writer writer) {
     this.writer = writer;
   }
-  
+
   /**
    * Convenience method to create the byte-array to hand to the console
-   * 
+   *
    * @param commands
    *          An array of commands to run
    * @return A byte[] input stream which can be handed to the console.
    */
   public static ByteArrayInputStream makeCommands(String... commands) {
     StringBuilder sb = new StringBuilder(commands.length * 8);
-    
+
     for (String command : commands) {
       sb.append(command).append(NEWLINE);
     }
-    
+
     return new ByteArrayInputStream(sb.toString().getBytes(UTF_8));
   }
 }

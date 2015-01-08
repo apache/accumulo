@@ -33,7 +33,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
 public class ZooSession {
-  
+
   public static class ZooSessionShutdownException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
@@ -41,37 +41,42 @@ public class ZooSession {
   }
 
   private static final Logger log = Logger.getLogger(ZooSession.class);
-  
+
   private static class ZooSessionInfo {
     public ZooSessionInfo(ZooKeeper zooKeeper, ZooWatcher watcher) {
       this.zooKeeper = zooKeeper;
     }
-    
+
     ZooKeeper zooKeeper;
   }
-  
+
   private static Map<String,ZooSessionInfo> sessions = new HashMap<String,ZooSessionInfo>();
-  
+
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
     return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth, UTF_8));
   }
-  
+
   private static class ZooWatcher implements Watcher {
-    
+
     public void process(WatchedEvent event) {
       if (event.getState() == KeeperState.Expired) {
         log.debug("Session expired, state of current session : " + event.getState());
       }
     }
-    
+
   }
-  
+
   /**
-   * @param host comma separated list of zk servers
-   * @param timeout in milliseconds
-   * @param scheme authentication type, e.g. 'digest', may be null
-   * @param auth authentication-scheme-specific token, may be null
-   * @param watcher ZK notifications, may be null
+   * @param host
+   *          comma separated list of zk servers
+   * @param timeout
+   *          in milliseconds
+   * @param scheme
+   *          authentication type, e.g. 'digest', may be null
+   * @param auth
+   *          authentication-scheme-specific token, may be null
+   * @param watcher
+   *          ZK notifications, may be null
    */
   public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
@@ -79,7 +84,7 @@ public class ZooSession {
     boolean tryAgain = true;
     int sleepTime = 100;
     ZooKeeper zooKeeper = null;
-    
+
     long startTime = System.currentTimeMillis();
 
     while (tryAgain) {
@@ -94,11 +99,11 @@ public class ZooSession {
           } else
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
-        
+
       } catch (IOException e) {
         if (e instanceof UnknownHostException) {
           /*
-             Make sure we wait atleast as long as the JVM TTL for negative DNS responses
+           * Make sure we wait atleast as long as the JVM TTL for negative DNS responses
            */
           sleepTime = Math.max(sleepTime, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
         }
@@ -116,28 +121,28 @@ public class ZooSession {
       if (System.currentTimeMillis() - startTime > 2 * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
       }
-      
+
       if (tryAgain) {
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
           sleepTime = (int) (sleepTime + sleepTime * Math.random());
       }
     }
-    
+
     return zooKeeper;
   }
-  
+
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout) {
     return getSession(zooKeepers, timeout, null, null);
   }
-  
+
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme, byte[] auth) {
-    
+
     if (sessions == null)
       throw new ZooSessionShutdownException();
 
     String sessionKey = sessionKey(zooKeepers, timeout, scheme, auth);
-    
+
     // a read-only session can use a session with authorizations, so cache a copy for it w/out auths
     String readOnlySessionKey = sessionKey(zooKeepers, timeout, null, null);
     ZooSessionInfo zsi = sessions.get(sessionKey);
@@ -147,7 +152,7 @@ public class ZooSession {
       zsi = null;
       sessions.remove(sessionKey);
     }
-    
+
     if (zsi == null) {
       ZooWatcher watcher = new ZooWatcher();
       log.debug("Connecting to " + zooKeepers + " with timeout " + timeout + " with auth");

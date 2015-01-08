@@ -29,11 +29,11 @@ import org.apache.log4j.Logger;
 
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
   private static final Logger log = Logger.getLogger(AccumuloConfiguration.class);
-  
+
   public abstract String get(Property property);
-  
+
   public abstract Iterator<Entry<String,String>> iterator();
-  
+
   private void checkType(Property property, PropertyType type) {
     if (!property.getType().equals(type)) {
       String msg = "Configuration method intended for type " + type + " called with a " + property.getType() + " argument (" + property.getKey() + ")";
@@ -42,41 +42,41 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       throw err;
     }
   }
-  
+
   /**
    * This method returns all properties in a map of string->string under the given prefix property.
-   * @param property the prefix property, and must be of type PropertyType.PREFIX
+   *
+   * @param property
+   *          the prefix property, and must be of type PropertyType.PREFIX
    * @return a map of strings to strings of the resulting properties
    */
-  public Map<String, String> getAllPropertiesWithPrefix(Property property) {
+  public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
-    
-    Map<String, String> propMap = new HashMap<String, String>(); 
-    
-    for (Entry<String, String> entry : this) {
+
+    Map<String,String> propMap = new HashMap<String,String>();
+
+    for (Entry<String,String> entry : this) {
       if (entry.getKey().startsWith(property.getKey())) {
         propMap.put(entry.getKey(), entry.getValue());
       }
     }
-    
+
     return propMap;
   }
-  
+
   public long getMemoryInBytes(Property property) {
     checkType(property, PropertyType.MEMORY);
-    
+
     String memString = get(property);
     return getMemoryInBytes(memString);
   }
-  
+
   static public long getMemoryInBytes(String str) {
     int multiplier = 0;
     char lastChar = str.charAt(str.length() - 1);
-    
+
     if (lastChar == 'b') {
-      log.warn("The 'b' in " + str + 
-          " is being considered as bytes. " + 
-          "Setting memory by bits is not supported");
+      log.warn("The 'b' in " + str + " is being considered as bytes. " + "Setting memory by bits is not supported");
     }
     try {
       switch (Character.toUpperCase(lastChar)) {
@@ -92,18 +92,17 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           return Long.parseLong(str);
       }
     } catch (Exception ex) {
-      throw new IllegalArgumentException("The value '" + str + 
-          "' is not a valid memory setting. A valid value would a number " +
-          "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
+      throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting. A valid value would a number "
+          + "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
     }
   }
-  
+
   public long getTimeInMillis(Property property) {
     checkType(property, PropertyType.TIMEDURATION);
-    
+
     return getTimeInMillis(get(property));
   }
-  
+
   static public long getTimeInMillis(String str) {
     int multiplier = 1;
     switch (str.charAt(str.length() - 1)) {
@@ -123,27 +122,27 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         return Long.parseLong(str) * 1000;
     }
   }
-  
+
   public boolean getBoolean(Property property) {
     checkType(property, PropertyType.BOOLEAN);
     return Boolean.parseBoolean(get(property));
   }
-  
+
   public double getFraction(Property property) {
     checkType(property, PropertyType.FRACTION);
-    
+
     return getFraction(get(property));
   }
-  
+
   public double getFraction(String str) {
     if (str.charAt(str.length() - 1) == '%')
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }
-  
+
   public int getPort(Property property) {
     checkType(property, PropertyType.PORT);
-    
+
     String portString = get(property);
     int port = Integer.parseInt(portString);
     if (port != 0) {
@@ -154,43 +153,43 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
     return port;
   }
-  
+
   public int getCount(Property property) {
     checkType(property, PropertyType.COUNT);
-    
+
     String countString = get(property);
     return Integer.parseInt(countString);
   }
-  
+
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
     return DefaultConfiguration.getInstance();
   }
-  
+
   // Only here for Shell option-free start-up
   /**
-   * 
+   *
    * @deprecated not for client use
    */
   @Deprecated
   public static synchronized AccumuloConfiguration getSiteConfiguration() {
     return SiteConfiguration.getInstance(getDefaultConfiguration());
   }
-  
+
   public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId) throws TableNotFoundException, AccumuloException {
     String tableName = Tables.getTableName(conn.getInstance(), tableId);
     return new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
   }
-  
+
   public int getMaxFilesPerTablet() {
     int maxFilesPerTablet = getCount(Property.TABLE_FILE_MAX);
     if (maxFilesPerTablet <= 0) {
       maxFilesPerTablet = getCount(Property.TSERV_SCAN_MAX_OPENFILES) - 1;
       log.debug("Max files per tablet " + maxFilesPerTablet);
     }
-    
+
     return maxFilesPerTablet;
   }
-  
+
   public void invalidateCache() {
     // overridden in ZooConfiguration
   }

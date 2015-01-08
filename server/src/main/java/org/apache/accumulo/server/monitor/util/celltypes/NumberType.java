@@ -17,24 +17,24 @@
 package org.apache.accumulo.server.monitor.util.celltypes;
 
 public class NumberType<T extends Number> extends CellType<T> {
-  
+
   private T warnMin, warnMax, errMin, errMax;
-  
+
   public NumberType(T warnMin, T warnMax, T errMin, T errMax) {
     this.warnMin = warnMin;
     this.warnMax = warnMax;
     this.errMin = errMin;
     this.errMax = errMax;
   }
-  
+
   public NumberType(T errMin, T errMax) {
     this(null, null, errMin, errMax);
   }
-  
+
   public NumberType() {
     this(null, null);
   }
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public String format(Object obj) {
@@ -60,7 +60,7 @@ public class NumberType<T extends Number> extends CellType<T> {
     }
     return s;
   }
-  
+
   @Override
   public int compare(T o1, T o2) {
     if (o1 == null && o2 == null)
@@ -72,27 +72,27 @@ public class NumberType<T extends Number> extends CellType<T> {
     else
       return Double.valueOf(o1.doubleValue()).compareTo(o2.doubleValue());
   }
-  
+
   public static String commas(long i) {
     return bigNumber(i);
   }
-  
+
   public static String commas(long i, long errMin, long errMax) {
     if (i < errMin || i > errMax)
       return String.format("<span class='error'>%s</span>", bigNumber(i));
     return bigNumber(i);
   }
-  
+
   public static String commas(double i) {
     return bigNumber((long) i);
   }
-  
+
   public static String commas(double d, double errMin, double errMax) {
     if (d < errMin || d > errMax)
       return String.format("<span class='error'>%s</span>", bigNumber(d));
     return bigNumber(d);
   }
-  
+
   public static String commas(long i, long warnMin, long warnMax, long errMin, long errMax) {
     if (i < errMin || i > errMax)
       return String.format("<span class='error'>%s</span>", bigNumber(i));
@@ -100,7 +100,7 @@ public class NumberType<T extends Number> extends CellType<T> {
       return String.format("<span class='warning'>%s</span>", bigNumber(i));
     return bigNumber(i);
   }
-  
+
   public static String commas(double d, double warnMin, double warnMax, double errMin, double errMax) {
     if (d < errMin || d > errMax)
       return String.format("<span class='error'>%s</span>", bigNumber(d));
@@ -108,17 +108,17 @@ public class NumberType<T extends Number> extends CellType<T> {
       return String.format("<span class='warning'>%s</span>", bigNumber(d));
     return bigNumber(d);
   }
-  
+
   private static final String COUNTS[] = {"", "K", "M", "B", "T", "e15", "e18", "e21"};
-  
+
   public static String bigNumber(long big) {
     return bigNumber(big, COUNTS, 1000);
   }
-  
+
   public static String bigNumber(double big) {
     return bigNumber(big, COUNTS, 1000);
   }
-  
+
   public static String bigNumber(long big, String[] SUFFIXES, long base) {
     float divisor = 1;
     for (int i = 0; i < SUFFIXES.length; i++) {
@@ -131,7 +131,7 @@ public class NumberType<T extends Number> extends CellType<T> {
     }
     return String.format("%,.2f%s", big / divisor, SUFFIXES[SUFFIXES.length - 1]);
   }
-  
+
   public static String bigNumber(double big, String[] SUFFIXES, long base) {
     float divisor = 1;
     for (int i = 0; i < SUFFIXES.length; i++) {
@@ -141,10 +141,10 @@ public class NumberType<T extends Number> extends CellType<T> {
     }
     return String.format("%,.2f%s", big / divisor, SUFFIXES[SUFFIXES.length - 1]);
   }
-  
+
   @Override
   public String alignment() {
     return "right";
   }
-  
+
 }

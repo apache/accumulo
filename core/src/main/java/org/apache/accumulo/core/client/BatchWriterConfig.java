@@ -31,7 +31,7 @@ import org.apache.hadoop.util.StringUtils;
 
 /**
  * This object holds configuration settings used to instantiate a {@link BatchWriter}
- * 
+ *
  * @since 1.5.0
  */
 public class BatchWriterConfig implements Writable {
@@ -51,10 +51,10 @@ public class BatchWriterConfig implements Writable {
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br />
    * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()} after each added mutation. Must be non-negative.
-   * 
+   *
    * <p>
    * <b>Default:</b> 50M
-   * 
+   *
    * @param maxMemory
    *          max size in bytes
    * @throws IllegalArgumentException
@@ -71,15 +71,15 @@ public class BatchWriterConfig implements Writable {
   /**
    * Sets the maximum amount of time to hold the data in memory before flushing it to servers.<br />
    * For no maximum, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
-   * 
+   *
    * <p>
    * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
-   * 
+   *
    * <p>
    * <b>Default:</b> 120 seconds
-   * 
+   *
    * @param maxLatency
    *          the maximum latency, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
@@ -103,15 +103,15 @@ public class BatchWriterConfig implements Writable {
   /**
    * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br />
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
-   * 
+   *
    * <p>
    * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
-   * 
+   *
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
-   * 
+   *
    * @param timeout
    *          the timeout, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
@@ -134,10 +134,10 @@ public class BatchWriterConfig implements Writable {
 
   /**
    * Sets the maximum number of threads to use for writing data to the tablet servers.
-   * 
+   *
    * <p>
    * <b>Default:</b> 3
-   * 
+   *
    * @param maxWriteThreads
    *          the maximum threads to use
    * @throws IllegalArgumentException

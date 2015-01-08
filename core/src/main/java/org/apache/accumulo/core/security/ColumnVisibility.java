@@ -38,20 +38,19 @@ import org.apache.hadoop.io.WritableComparator;
  * definition of an expression.
  *
  * <P>
- * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the
- * binary operators "&" and "|" indicating that both operands are necessary, or the either
- * is necessary. The following are valid expressions for visibility:
- * 
+ * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the binary operators "&" and "|" indicating that both operands are
+ * necessary, or the either is necessary. The following are valid expressions for visibility:
+ *
  * <pre>
  * A
  * A|B
  * (A|B)&(C|D)
  * orange|(red&yellow)
  * </pre>
- * 
+ *
  * <P>
  * The following are not valid expressions for visibility:
- * 
+ *
  * <pre>
  * A|B&C
  * A=B
@@ -61,28 +60,30 @@ import org.apache.hadoop.io.WritableComparator;
  * )
  * dog|!cat
  * </pre>
- * 
+ *
  * <P>
- * In addition to the base set of visibilities, any character can be used in the expression if it is quoted. If the quoted term contains '&quot;' or '\', then escape
- * the character with '\'. The {@link #quote(String)} method can be used to properly quote and escape terms automatically. The following is an example of a quoted term:
+ * In addition to the base set of visibilities, any character can be used in the expression if it is quoted. If the quoted term contains '&quot;' or '\', then
+ * escape the character with '\'. The {@link #quote(String)} method can be used to properly quote and escape terms automatically. The following is an example of
+ * a quoted term:
+ *
  * <pre>
  * &quot;A#C&quot;<span />&amp;<span />B
  * </pre>
  */
 public class ColumnVisibility {
-  
+
   Node node = null;
   private byte[] expression;
-  
+
   /**
    * Accessor for the underlying byte string.
-   * 
+   *
    * @return byte array representation of a visibility expression
    */
   public byte[] getExpression() {
     return expression;
   }
-  
+
   public static enum NodeType {
     EMPTY, TERM, OR, AND,
   }
@@ -91,71 +92,71 @@ public class ColumnVisibility {
    * All empty nodes are equal and represent the same value.
    */
   private static final Node EMPTY_NODE = new Node(NodeType.EMPTY);
-  
+
   public static class Node {
     public final static List<Node> EMPTY = Collections.emptyList();
     NodeType type;
     int start = 0;
     int end = 0;
     List<Node> children = EMPTY;
-    
+
     public Node(NodeType type) {
       this.type = type;
     }
-    
+
     public Node(int start, int end) {
       this.type = NodeType.TERM;
       this.start = start;
       this.end = end;
     }
-    
+
     public void add(Node child) {
       if (children == EMPTY)
         children = new ArrayList<Node>();
-      
+
       children.add(child);
     }
-    
+
     public NodeType getType() {
       return type;
     }
-    
+
     public List<Node> getChildren() {
       return children;
     }
-    
+
     public int getTermStart() {
       return start;
     }
-    
+
     public int getTermEnd() {
       return end;
     }
-    
+
     public ByteSequence getTerm(byte expression[]) {
       if (type != NodeType.TERM)
         throw new RuntimeException();
-      
+
       if (expression[start] == '"') {
         // its a quoted term
         int qStart = start + 1;
         int qEnd = end - 1;
-        
+
         return new ArrayByteSequence(expression, qStart, qEnd - qStart);
       }
       return new ArrayByteSequence(expression, start, end - start);
     }
   }
-  
+
   public static class NodeComparator implements Comparator<Node>, Serializable {
-    
+
     private static final long serialVersionUID = 1L;
     byte[] text;
-    
+
     public NodeComparator(byte[] text) {
       this.text = text;
     }
-    
+
     @Override
     public int compare(Node a, Node b) {
       int diff = a.type.ordinal() - b.type.ordinal();
@@ -180,14 +181,14 @@ public class ColumnVisibility {
       return 0;
     }
   }
-  
+
   /*
    * Convience method that delegates to normalize with a new NodeComparator constructed using the supplied expression.
    */
   private static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
   }
-  
+
   // @formatter:off
   /*
    * Walks an expression's AST in order to:
@@ -210,16 +211,16 @@ public class ColumnVisibility {
       rolledUp.addAll(root.children);
       root.children.clear();
       root.children.addAll(rolledUp);
-      
+
       // need to promote a child if it's an only child
       if (root.children.size() == 1) {
         return root.children.get(0);
       }
     }
-    
+
     return root;
   }
-  
+
   /*
    * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This method adds parens where necessary.
    */
@@ -240,10 +241,10 @@ public class ColumnVisibility {
       }
     }
   }
-  
+
   /**
    * Generates a byte[] that represents a normalized, but logically equivalent, form of the supplied expression.
-   * 
+   *
    * @return normalized expression in byte[] form
    */
   public byte[] flatten() {
@@ -252,13 +253,13 @@ public class ColumnVisibility {
     stringify(normRoot, expression, builder);
     return builder.toString().getBytes(UTF_8);
   }
-  
+
   private static class ColumnVisibilityParser {
     private int index = 0;
     private int parens = 0;
-    
+
     public ColumnVisibilityParser() {}
-    
+
     Node parse(byte[] expression) {
       if (expression.length > 0) {
         Node node = parse_(expression);
@@ -272,7 +273,7 @@ public class ColumnVisibility {
       }
       return null;
     }
-    
+
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
         if (expr != null)
@@ -283,13 +284,13 @@ public class ColumnVisibility {
         throw new BadArgumentException("empty term", new String(expression, UTF_8), start);
       return expr;
     }
-    
+
     Node parse_(byte[] expression) {
       Node result = null;
       Node expr = null;
       int termStart = index;
       boolean termComplete = false;
-      
+
       while (index < expression.length) {
         switch (expression[index++]) {
           case '&': {
@@ -347,7 +348,7 @@ public class ColumnVisibility {
           case '"': {
             if (termStart != index - 1)
               throw new BadArgumentException("expression needs & or |", new String(expression, UTF_8), index - 1);
-            
+
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
@@ -356,23 +357,23 @@ public class ColumnVisibility {
               }
               index++;
             }
-            
+
             if (index == expression.length)
               throw new BadArgumentException("unclosed quote", new String(expression, UTF_8), termStart);
-            
+
             if (termStart + 1 == index)
               throw new BadArgumentException("empty term", new String(expression, UTF_8), termStart);
-            
+
             index++;
-            
+
             termComplete = true;
-            
+
             break;
           }
           default: {
             if (termComplete)
               throw new BadArgumentException("expression needs & or |", new String(expression, UTF_8), index - 1);
-            
+
             byte c = expression[index - 1];
             if (!Authorizations.isValidAuthChar(c))
               throw new BadArgumentException("bad character (" + c + ")", new String(expression, UTF_8), index - 1);
@@ -390,7 +391,7 @@ public class ColumnVisibility {
       return result;
     }
   }
-  
+
   private void validate(byte[] expression) {
     if (expression != null && expression.length > 0) {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
@@ -400,49 +401,49 @@ public class ColumnVisibility {
     }
     this.expression = expression;
   }
-  
+
   /**
    * Empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
-   * 
+   *
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility() {
     this(new byte[] {});
   }
-  
+
   /**
    * Set the column visibility for a Mutation.
-   * 
+   *
    * @param expression
    *          An expression of the rights needed to see this mutation. The expression syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
     this(expression.getBytes(UTF_8));
   }
-  
+
   /**
    * A convenience method for constructing from a string already encoded in UTF-8 bytes and contained in a {@link Text} object.
-   * 
+   *
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(Text expression) {
     this(TextUtil.getBytes(expression));
   }
-  
+
   /**
    * A convenience method for constructing from a string already encoded in UTF-8 bytes.
-   * 
+   *
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
     validate(expression);
   }
-  
+
   @Override
   public String toString() {
     return "[" + new String(expression, UTF_8) + "]";
   }
-  
+
   /**
    * See {@link #equals(ColumnVisibility)}
    */
@@ -452,29 +453,29 @@ public class ColumnVisibility {
       return equals((ColumnVisibility) obj);
     return false;
   }
-  
+
   /**
    * Compares two ColumnVisibilities for string equivalence, not as a meaningful comparison of terms and conditions.
    */
   public boolean equals(ColumnVisibility otherLe) {
     return Arrays.equals(expression, otherLe.expression);
   }
-  
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(expression);
   }
-  
+
   public Node getParseTree() {
     return node;
   }
-  
+
   /**
    * Use to properly quote terms in a column visibility expression. If no quoting is needed, then nothing is done.
-   * 
+   *
    * <p>
    * Examples of using quote :
-   * 
+   *
    * <pre>
    * import static org.apache.accumulo.core.security.ColumnVisibility.quote;
    *   .
@@ -482,30 +483,30 @@ public class ColumnVisibility {
    *   .
    * ColumnVisibility cv = new ColumnVisibility(quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;));
    * </pre>
-   * 
+   *
    */
   public static String quote(String term) {
     return new String(quote(term.getBytes(UTF_8)), UTF_8);
   }
-  
+
   /**
    * A convenience method to quote terms which are already encoded as UTF-8 bytes.
-   * 
+   *
    * @see #quote(String)
    */
   public static byte[] quote(byte[] term) {
     boolean needsQuote = false;
-    
+
     for (int i = 0; i < term.length; i++) {
       if (!Authorizations.isValidAuthChar(term[i])) {
         needsQuote = true;
         break;
       }
     }
-    
+
     if (!needsQuote)
       return term;
-    
+
     return VisibilityEvaluator.escape(term, true);
   }
 }

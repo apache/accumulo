@@ -21,21 +21,20 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryInputTransport;
 
-
 /**
  * A formatter than can be used in the shell to display trace information.
- * 
+ *
  */
 public class TraceFormatter implements Formatter {
   public static final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
@@ -46,16 +45,16 @@ public class TraceFormatter implements Formatter {
       return new SimpleDateFormat(DATE_FORMAT);
     }
   };
-  
+
   public static String formatDate(final Date date) {
     return formatter.get().format(date);
   }
-  
+
   private final static Text SPAN_CF = new Text("span");
-  
+
   private Iterator<Entry<Key,Value>> scanner;
   private boolean printTimeStamps;
-  
+
   public static RemoteSpan getRemoteSpan(Entry<Key,Value> entry) {
     TMemoryInputTransport transport = new TMemoryInputTransport(entry.getValue().get());
     TCompactProtocol protocol = new TCompactProtocol(transport);
@@ -67,12 +66,12 @@ public class TraceFormatter implements Formatter {
     }
     return span;
   }
-  
+
   @Override
   public boolean hasNext() {
     return scanner.hasNext();
   }
-  
+
   @Override
   public String next() {
     Entry<Key,Value> next = scanner.next();
@@ -91,7 +90,7 @@ public class TraceFormatter implements Formatter {
       for (Entry<String,String> entry : span.data.entrySet()) {
         result.append(String.format(" %12s:%s%n", entry.getKey(), entry.getValue()));
       }
-      
+
       if (printTimeStamps) {
         result.append(String.format(" %-12s:%d%n", "timestamp", next.getKey().getTimestamp()));
       }
@@ -99,12 +98,12 @@ public class TraceFormatter implements Formatter {
     }
     return DefaultFormatter.formatEntry(next, printTimeStamps);
   }
-  
+
   @Override
   public void remove() {
     throw new NotImplementedException();
   }
-  
+
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     this.scanner = scanner.iterator();

@@ -17,7 +17,6 @@
 package org.apache.accumulo.test;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -28,6 +27,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
 public class GCLotsOfCandidatesTest {
@@ -35,11 +35,11 @@ public class GCLotsOfCandidatesTest {
     ClientOpts opts = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(GCLotsOfCandidatesTest.class.getName(), args, bwOpts);
-    
+
     Connector conn = opts.getConnector();
     conn.securityOperations().grantTablePermission(conn.whoami(), Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
-    
+
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
       Text row = new Text(String.format("%s/%020d/%s", Constants.METADATA_DELETE_FLAG_PREFIX, i,

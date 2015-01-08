@@ -23,12 +23,12 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
 public class BadIterator extends WrappingIterator {
-  
+
   @Override
   public Key getTopKey() {
     throw new NullPointerException();
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();

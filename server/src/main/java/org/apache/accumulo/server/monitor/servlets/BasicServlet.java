@@ -42,16 +42,16 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
 
 abstract public class BasicServlet extends HttpServlet {
-  
+
   private static final long serialVersionUID = 1L;
   protected static final Logger log = Logger.getLogger(BasicServlet.class);
   static String cachedInstanceName = null;
   private static String bannerText;
   private static String bannerColor;
   private static String bannerBackground;
-  
+
   abstract protected String getTitle(HttpServletRequest req);
-  
+
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     StringBuilder sb = new StringBuilder();
     try {
@@ -74,13 +74,13 @@ abstract public class BasicServlet extends HttpServlet {
       resp.getWriter().flush();
     }
   }
-  
+
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     doGet(req, resp);
   }
-  
+
   private static final String DEFAULT_CONTENT_TYPE = "text/html";
-  
+
   public static final Cookie getCookie(HttpServletRequest req, String name) {
     if (req.getCookies() != null)
       for (Cookie c : req.getCookies())
@@ -88,7 +88,7 @@ abstract public class BasicServlet extends HttpServlet {
           return c;
     return null;
   }
-  
+
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     resp.setContentType(DEFAULT_CONTENT_TYPE);
     int refresh = -1;
@@ -115,7 +115,7 @@ abstract public class BasicServlet extends HttpServlet {
         }, 1000);
       }
     }
-    
+
     // BEGIN PAGE
     sb.append("<!--\n");
     sb.append("  Licensed to the Apache Software Foundation (ASF) under one or more\n");
@@ -134,7 +134,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("  limitations under the License.\n");
     sb.append("-->\n");
     sb.append("<html>\n");
-    
+
     // BEGIN HEADER
     sb.append("<head>\n");
     sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION).append("</title>\n");
@@ -147,13 +147,13 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />\n");
     sb.append("<link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
     sb.append("<script src='/web/functions.js' type='text/javascript'></script>\n");
-    
+
     sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/excanvas.min.js\"></script><![endif]-->\n");
     sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.js\"></script>\n");
     sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.flot.js\"></script>\n");
-    
+
     sb.append("</head>\n");
-    
+
     // BEGIN BODY OPENING
     sb.append("\n<body ").append(getBodyAttributes()).append(">\n");
     sb.append("<div id='content-wrapper'>\n");
@@ -171,7 +171,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span>");
     sb.append("</div>\n"); // end <div id='subheader'>
     sb.append("</div>\n"); // end <div id='header'>
-    
+
     // BEGIN LEFT SIDE
     sb.append("<div id='nav'>\n");
     sb.append("<span id='nav-title'><a href='/'>Overview</a></span><br />\n");
@@ -198,22 +198,22 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("&redir=").append(currentPage(req)).append("'>");
     sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div>\n");
     sb.append("</div>\n"); // end <div id='nav'>
-    
+
     sb.append("<div id='main'");
     if (bannerText.isEmpty())
       sb.append(" style='bottom:0'");
     sb.append(">\n");
     sb.append("<!-- BEGIN MAIN BODY CONTENT -->\n\n");
   }
-  
+
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     sb.append("This page intentionally left blank.");
   }
-  
+
   protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     sb.append("\n<!-- END MAIN BODY CONTENT -->\n");
     sb.append("</div>\n"); // end <div id='main'>
-    
+
     // BEGIN FOOTER
     sb.append("</div>\n"); // end <div id='content'>
     sb.append("</div>\n"); // end <div id='content-wrapper'>
@@ -226,14 +226,13 @@ abstract public class BasicServlet extends HttpServlet {
   }
 
   /**
-   * Allow the concrete servlet implementation to provide attributes on the body HTML tag,
-   * such as 'onload', which can be used to call Javascript methods on page load.
-   * By default, nothing is specified.
+   * Allow the concrete servlet implementation to provide attributes on the body HTML tag, such as 'onload', which can be used to call Javascript methods on
+   * page load. By default, nothing is specified.
    */
   protected String getBodyAttributes() {
     return "";
   }
-  
+
   public static String encode(String s) {
     try {
       return URLEncoder.encode(s, UTF_8.name());
@@ -241,7 +240,7 @@ abstract public class BasicServlet extends HttpServlet {
       throw new AssertionError(UTF_8 + " is not a recognized encoding");
     }
   }
-  
+
   public static String decode(String s) {
     try {
       return URLDecoder.decode(s, UTF_8.name());
@@ -249,20 +248,20 @@ abstract public class BasicServlet extends HttpServlet {
       throw new AssertionError(UTF_8 + " is not a recognized encoding");
     }
   }
-  
+
   public static String sanitize(String xml) {
     return xml.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   }
-  
+
   public static String currentPage(HttpServletRequest req) {
     String redir = req.getRequestURI();
     if (req.getQueryString() != null)
       redir += "?" + req.getQueryString();
     return encode(redir);
   }
-  
+
   protected static void banner(StringBuilder sb, String klass, String text) {
     sb.append("<br />\n<h2 class='").append(klass).append("'>").append(text).append("</h2>\n");
   }
-  
+
 }

@@ -46,16 +46,16 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 public class RecoveryManager {
-  
+
   private static Logger log = Logger.getLogger(RecoveryManager.class);
-  
+
   private Map<String,Long> recoveryDelay = new HashMap<String,Long>();
   private Set<String> closeTasksQueued = new HashSet<String>();
   private Set<String> sortsQueued = new HashSet<String>();
   private ScheduledExecutorService executor;
   private Master master;
   private ZooCache zooCache;
-  
+
   public RecoveryManager(Master master) {
     this.master = master;
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
@@ -72,7 +72,7 @@ public class RecoveryManager {
     private String filename;
     private String host;
     private LogCloser closer;
-    
+
     public LogSortTask(LogCloser closer, String host, String filename) {
       this.closer = closer;
       this.host = host;
@@ -86,9 +86,9 @@ public class RecoveryManager {
         FileSystem localFs = master.getFileSystem();
         if (localFs instanceof TraceFileSystem)
           localFs = ((TraceFileSystem) localFs).getImplementation();
-      
+
         long time = closer.close(master, localFs, getSource(host, filename));
-      
+
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
           rescheduled = true;
@@ -107,13 +107,13 @@ public class RecoveryManager {
         }
       }
     }
-    
+
   }
-  
+
   private void initiateSort(String host, final String file) throws KeeperException, InterruptedException {
     String source = getSource(host, file).toString();
     new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes(UTF_8));
-    
+
     synchronized (this) {
       sortsQueued.add(file);
     }
@@ -121,7 +121,7 @@ public class RecoveryManager {
     final String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + file;
     log.info("Created zookeeper entry " + path + " with data " + source);
   }
-  
+
   private Path getSource(String server, String file) {
     String source = Constants.getWalDirectory(master.getSystemConfiguration()) + "/" + server + "/" + file;
     if (server.contains(":")) {
@@ -138,12 +138,12 @@ public class RecoveryManager {
         String parts[] = walog.split("/");
         String host = parts[0];
         String filename = parts[1];
-        
+
         boolean sortQueued;
         synchronized (this) {
           sortQueued = sortsQueued.contains(filename);
         }
-        
+
         if (sortQueued && zooCache.get(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + filename) == null) {
           synchronized (this) {
             sortsQueued.remove(filename);
@@ -158,13 +158,12 @@ public class RecoveryManager {
           }
           continue;
         }
-        
+
         recoveryNeeded = true;
         synchronized (this) {
           if (!closeTasksQueued.contains(filename) && !sortsQueued.contains(filename)) {
             AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
-            LogCloser closer = Master.createInstanceFromPropertyName(aconf, Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class,
-                new HadoopLogCloser());
+            LogCloser closer = Master.createInstanceFromPropertyName(aconf, Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
             Long delay = recoveryDelay.get(filename);
             if (delay == null) {
               delay = master.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_DELAY);

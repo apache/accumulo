@@ -37,30 +37,30 @@ import org.apache.hadoop.io.Text;
 
 /**
  * Provides a class for administering tables
- * 
+ *
  */
 
 public interface TableOperations {
-  
+
   /**
    * Retrieve a list of tables in Accumulo.
-   * 
+   *
    * @return List of tables in accumulo
    */
   public SortedSet<String> list();
-  
+
   /**
    * A method to check if a table exists in Accumulo.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return true if the table exists
    */
   public boolean exists(String tableName);
-  
+
   /**
    * Create a table with no special configuration
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -71,7 +71,7 @@ public interface TableOperations {
    *           if the table already exists
    */
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -85,7 +85,7 @@ public interface TableOperations {
    *           if the table already exists
    */
   public void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -101,10 +101,10 @@ public interface TableOperations {
    *           if the table already exists
    */
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
-  
+
   /**
    * Imports a table exported via exportTable and copied via hadoop distcp.
-   * 
+   *
    * @param tableName
    *          Name of a table to create and import into.
    * @param importDir
@@ -112,14 +112,14 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Exports a table. The tables data is not exported, just table metadata and a list of files to distcp. The table being exported must be offline and stay
    * offline for the duration of distcp. To avoid losing access to a table it can be cloned and the clone taken offline for export.
-   * 
+   *
    * <p>
    * See docs/examples/README.export
-   * 
+   *
    * @param tableName
    *          Name of the table to export.
    * @param exportDir
@@ -131,7 +131,8 @@ public interface TableOperations {
   /**
    * Ensures that tablets are split along a set of keys.
    * <p>
-   * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the encoding is not enforced by operations that work with byte arrays.
+   * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the encoding is not enforced by operations that work with byte
+   * arrays.
    * <p>
    * For example, you can create 256 evenly-sliced splits via the following code sample even though the given byte sequences are not valid UTF-8.
    *
@@ -157,7 +158,7 @@ public interface TableOperations {
    *           if the table does not exist
    */
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -168,7 +169,7 @@ public interface TableOperations {
    */
   @Deprecated
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -182,7 +183,7 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -193,7 +194,7 @@ public interface TableOperations {
    */
   @Deprecated
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -207,10 +208,10 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
-  
+
   /**
    * Finds the max row within a given range. To find the max row in a table, pass null for start and end row.
-   * 
+   *
    * @param auths
    *          find the max row that can seen with these auths
    * @param startRow
@@ -221,15 +222,15 @@ public interface TableOperations {
    *          row to stop looking at, null means Infinity
    * @param endInclusive
    *          determines if the end row is included
-   * 
+   *
    * @return The max row in the range, or null if there is no visible data in the range.
    */
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Merge tablets between (start, end]
-   * 
+   *
    * @param tableName
    *          the table to merge
    * @param start
@@ -238,10 +239,10 @@ public interface TableOperations {
    *          last tablet to be merged contains this row, null means the last tablet
    */
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   /**
    * Delete rows between (start, end]
-   * 
+   *
    * @param tableName
    *          the table to merge
    * @param start
@@ -250,10 +251,10 @@ public interface TableOperations {
    *          last row to be deleted, inclusive, null means the last row of the table
    */
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. The compaction is preformed even for tablets that have only one file.
-   * 
+   *
    * @param tableName
    *          the table to compact
    * @param start
@@ -267,10 +268,10 @@ public interface TableOperations {
    */
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException;
-  
+
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. The compaction is preformed even for tablets that have only one file.
-   * 
+   *
    * @param tableName
    *          the table to compact
    * @param start
@@ -287,12 +288,12 @@ public interface TableOperations {
    */
   public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException;
-  
+
   /**
    * Cancels a user initiated major compaction of a table initiated with {@link #compact(String, Text, Text, boolean, boolean)} or
    * {@link #compact(String, Text, Text, List, boolean, boolean)}. Compactions of tablets that are currently running may finish, but new compactions of tablets
    * will not start.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -304,10 +305,10 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
-  
+
   /**
    * Delete a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -318,14 +319,14 @@ public interface TableOperations {
    *           if the table does not exist
    */
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   /**
    * Clone a table from an existing table. The cloned table will have the same data as the source table it was created from. After cloning, the two tables can
    * mutate independently. Initially the cloned table should not use any extra space, however as the source table and cloned table major compact extra space
    * will be used by the clone.
-   * 
+   *
    * Initially the cloned table is only readable and writable by the user who created it.
-   * 
+   *
    * @param srcTableName
    *          the table to clone
    * @param newTableName
@@ -337,13 +338,13 @@ public interface TableOperations {
    * @param propertiesToExclude
    *          do not copy these properties from the source table, just revert to system defaults
    */
-  
+
   public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException;
-  
+
   /**
    * Rename a table
-   * 
+   *
    * @param oldTableName
    *          the old table name
    * @param newTableName
@@ -359,25 +360,25 @@ public interface TableOperations {
    */
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException;
-  
+
   /**
    * Initiate a flush of a table's data that is in memory
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   * 
+   *
    * @deprecated As of release 1.4, replaced by {@link #flush(String, Text, Text, boolean)}
    */
   @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Flush a table's data that is currently in memory.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param wait
@@ -389,10 +390,10 @@ public interface TableOperations {
    *           if the user does not have permission
    */
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   /**
    * Sets a property on a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -405,10 +406,10 @@ public interface TableOperations {
    *           if the user does not have permission
    */
   public void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
-   * Removes a property from a table.  Note that it may take a short period of time (a second) to propagate the change everywhere.
-   * 
+   * Removes a property from a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -419,22 +420,21 @@ public interface TableOperations {
    *           if the user does not have permission
    */
   public void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
-   * Gets properties of a table.  Note that recently changed properties may not be available immediately.
-   * 
+   * Gets properties of a table. Note that recently changed properties may not be available immediately.
+   *
    * @param tableName
    *          the name of the table
-   * @return all properties visible by this table (system and per-table properties).  Note that recently changed 
-   *         properties may not be visible immediately. 
+   * @return all properties visible by this table (system and per-table properties). Note that recently changed properties may not be visible immediately.
    * @throws TableNotFoundException
    *           if the table does not exist
    */
   public Iterable<Entry<String,String>> getProperties(String tableName) throws AccumuloException, TableNotFoundException;
-  
+
   /**
    * Sets a table's locality groups. A table's locality groups can be changed at any time.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param groups
@@ -447,11 +447,11 @@ public interface TableOperations {
    *           if the table does not exist
    */
   public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   /**
-   * 
+   *
    * Gets the locality groups currently set for a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return mapping of locality group names to column families in the locality group
@@ -461,7 +461,7 @@ public interface TableOperations {
    *           if the table does not exist
    */
   public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException;
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -479,10 +479,10 @@ public interface TableOperations {
    */
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException;
-  
+
   /**
    * Bulk import all the files in a directory into a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param dir
@@ -490,7 +490,7 @@ public interface TableOperations {
    * @param failureDir
    *          the HDFS directory to place files that failed to be imported, must exist and be empty
    * @param setTime
-   *          override the time values in the input files, and use the current time for all mutations 
+   *          override the time values in the input files, and use the current time for all mutations
    * @throws IOException
    *           when there is an error reading/writing to HDFS
    * @throws AccumuloException
@@ -499,13 +499,13 @@ public interface TableOperations {
    *           when the user does not have the proper permissions
    * @throws TableNotFoundException
    *           when the table no longer exists
-   * 
+   *
    */
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws TableNotFoundException, IOException, AccumuloException,
       AccumuloSecurityException;
-  
+
   /**
-   * 
+   *
    * @param tableName
    *          the table to take offline
    * @throws AccumuloException
@@ -514,9 +514,9 @@ public interface TableOperations {
    *           when the user does not have the proper permissions
    */
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
-  
+
   /**
-   * 
+   *
    * @param tableName
    *          the table to take online
    * @throws AccumuloException
@@ -525,27 +525,27 @@ public interface TableOperations {
    *           when the user does not have the proper permissions
    */
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
-  
+
   /**
    * Clears the tablet locator cache for a specified table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws TableNotFoundException
    *           if table does not exist
    */
   public void clearLocatorCache(String tableName) throws TableNotFoundException;
-  
+
   /**
    * Get a mapping of table name to internal table id.
-   * 
+   *
    * @return the map from table name to internal table id
    */
   public Map<String,String> tableIdMap();
-  
+
   /**
    * Add an iterator to a table on all scopes.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param setting
@@ -558,10 +558,10 @@ public interface TableOperations {
    *           if the setting conflicts with any existing iterators
    */
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
-  
+
   /**
    * Add an iterator to a table on the given scopes.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param setting
@@ -575,10 +575,10 @@ public interface TableOperations {
    */
   public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException;
-  
+
   /**
    * Remove an iterator from a table by name.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param name
@@ -592,10 +592,10 @@ public interface TableOperations {
    */
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException;
-  
+
   /**
    * Get the settings for an iterator.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param name
@@ -610,20 +610,20 @@ public interface TableOperations {
    */
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException;
-  
+
   /**
    * Get a list of iterators for this table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return a set of iterator names
    */
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
-  
+
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
    * the specified scopes.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param setting
@@ -632,10 +632,10 @@ public interface TableOperations {
    *           if the setting conflicts with any existing iterators
    */
   public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
-  
+
   /**
    * Add a new constraint to a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param constraintClassName
@@ -648,10 +648,10 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   /**
    * Remove a constraint from a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param number
@@ -661,10 +661,10 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * List constraints on a table with their assigned numbers.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return a map from constraint class name to assigned number
@@ -673,12 +673,12 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
-  
+
   /**
    * Test to see if the instance can load the given class as the given type. This check uses the table classpath if it is set.
-   * 
+   *
    * @return true if the instance can load the given class as the given type, false otherwise
-   * 
+   *
    * @since 1.5.0
    */
   public boolean testClassLoad(String tableName, final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException,

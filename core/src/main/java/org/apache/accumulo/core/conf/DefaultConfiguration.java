@@ -24,8 +24,8 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -65,7 +65,6 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   public Iterator<Entry<String,String>> iterator() {
     return resolvedProps.entrySet().iterator();
   }
-  
 
   private static void generateDocumentation(PrintStream doc) {
     // read static content from resources and output
@@ -88,39 +87,39 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       }
     }
     doc.println();
-    
+
     ArrayList<Property> prefixes = new ArrayList<Property>();
     TreeMap<String,Property> sortedProps = new TreeMap<String,Property>();
     for (Property prop : Property.values()) {
       if (prop.isExperimental())
         continue;
-      
+
       if (prop.getType().equals(PropertyType.PREFIX))
         prefixes.add(prop);
       else
         sortedProps.put(prop.getKey(), prop);
     }
-    
+
     int indentDepth = 2;
     doc.println(indent(indentDepth++) + "<p>Jump to: ");
     String delimiter = "";
     for (Property prefix : prefixes) {
       if (prefix.isExperimental())
         continue;
-      
+
       doc.print(delimiter + "<a href='#" + prefix.name() + "'>" + prefix.getKey() + "*</a>");
       delimiter = "&nbsp;|&nbsp;";
     }
     doc.println(indent(--indentDepth) + "</p>");
-    
+
     doc.println(indent(indentDepth++) + "<table>");
     for (Property prefix : prefixes) {
-      
+
       if (prefix.isExperimental())
         continue;
-      
+
       boolean isDeprecated = prefix.isDeprecated();
-      
+
       doc.println(indent(indentDepth) + "<tr><td colspan='5'" + (isDeprecated ? " class='deprecated'" : "") + "><a id='" + prefix.name() + "' class='large'>"
           + prefix.getKey() + "*</a></td></tr>");
       doc.println(indent(indentDepth) + "<tr><td colspan='5'" + (isDeprecated ? " class='deprecated'" : "") + "><i>"
@@ -128,14 +127,14 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       if (!prefix.equals(Property.TABLE_CONSTRAINT_PREFIX) && !prefix.equals(Property.TABLE_ITERATOR_PREFIX)
           && !prefix.equals(Property.TABLE_LOCALITY_GROUP_PREFIX))
         doc.println(indent(indentDepth) + "<tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>");
-      
+
       boolean highlight = true;
       for (Property prop : sortedProps.values()) {
         if (prop.isExperimental())
           continue;
-        
+
         isDeprecated = prefix.isDeprecated() || prop.isDeprecated();
-        
+
         if (prop.getKey().startsWith(prefix.getKey())) {
           doc.println(indent(indentDepth++) + "<tr" + (highlight ? " class='highlight'" : "") + ">");
           highlight = !highlight;
@@ -159,7 +158,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       }
     }
     doc.println(indent(--indentDepth) + "</table>");
-    
+
     doc.println(indent(indentDepth) + "<h1>Property Type Descriptions</h1>");
     doc.println(indent(indentDepth++) + "<table>");
     doc.println(indent(indentDepth) + "<tr><th>Property Type</th><th>Description</th></tr>");
@@ -178,14 +177,14 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println(indent(--indentDepth) + "</html>");
     doc.close();
   }
-  
+
   private static String indent(int depth) {
     StringBuilder sb = new StringBuilder();
     for (int d = 0; d < depth; d++)
       sb.append(" ");
     return sb.toString();
   }
-  
+
   /*
    * Generate documentation for conf/accumulo-site.xml file usage
    */

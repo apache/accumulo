@@ -51,7 +51,7 @@ import org.apache.log4j.Logger;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
- * 
+ *
  */
 public class HdfsZooInstance implements Instance {
 
@@ -189,7 +189,7 @@ public class HdfsZooInstance implements Instance {
     System.out.println("ZooKeepers: " + instance.getZooKeepers());
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
-  
+
   @Deprecated
   @Override
   public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {

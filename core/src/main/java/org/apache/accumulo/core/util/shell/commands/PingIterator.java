@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 
 class PingIterator implements Iterator<String> {
-  
+
   private Iterator<String> iter;
   private InstanceOperations instanceOps;
 
@@ -31,28 +31,28 @@ class PingIterator implements Iterator<String> {
     iter = tservers.iterator();
     this.instanceOps = instanceOps;
   }
-  
+
   @Override
   public boolean hasNext() {
     return iter.hasNext();
   }
-  
+
   @Override
   public String next() {
     String tserver = iter.next();
-    
+
     try {
       instanceOps.ping(tserver);
     } catch (AccumuloException e) {
       return tserver + " ERROR " + e.getMessage();
     }
-    
+
     return tserver + " OK";
   }
-  
+
   @Override
   public void remove() {
     throw new UnsupportedOperationException();
   }
-  
+
 }

@@ -40,7 +40,7 @@ import org.apache.zookeeper.data.Stat;
 
 /**
  * Caches values stored in zookeeper and keeps them up to date as they change in zookeeper.
- * 
+ *
  */
 public class ZooCache {
   private static final Logger log = Logger.getLogger(ZooCache.class);
@@ -202,7 +202,7 @@ public class ZooCache {
         /*
          * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existance, it will be added to
          * the cache. But this notification of a node coming into existance will only be given if exists() was previously called.
-         * 
+         *
          * If the call to exists() is bypassed and only getData() is called with a special case that looks for Code.NONODE in the KeeperException, then
          * non-existance can not be cached.
          */

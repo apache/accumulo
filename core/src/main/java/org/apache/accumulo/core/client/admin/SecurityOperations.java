@@ -30,10 +30,10 @@ import org.apache.accumulo.core.security.TablePermission;
  * Provides a class for managing users and permissions
  */
 public interface SecurityOperations {
-  
+
   /**
    * Create a user
-   * 
+   *
    * @param user
    *          the name of the user to create
    * @param password
@@ -48,10 +48,10 @@ public interface SecurityOperations {
    */
   @Deprecated
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Create a user
-   * 
+   *
    * @param principal
    *          the name of the user to create
    * @param password
@@ -63,10 +63,10 @@ public interface SecurityOperations {
    * @since 1.5.0
    */
   public void createLocalUser(String principal, PasswordToken password) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Delete a user
-   * 
+   *
    * @param user
    *          the user name to delete
    * @throws AccumuloException
@@ -77,10 +77,10 @@ public interface SecurityOperations {
    */
   @Deprecated
   public void dropUser(String user) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Delete a user
-   * 
+   *
    * @param principal
    *          the user name to delete
    * @throws AccumuloException
@@ -90,10 +90,10 @@ public interface SecurityOperations {
    * @since 1.5.0
    */
   public void dropLocalUser(String principal) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Verify a username/password combination is valid
-   * 
+   *
    * @param user
    *          the name of the user to authenticate
    * @param password
@@ -107,10 +107,10 @@ public interface SecurityOperations {
    */
   @Deprecated
   public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Verify a username/password combination is valid
-   * 
+   *
    * @param principal
    *          the name of the user to authenticate
    * @param token
@@ -123,10 +123,10 @@ public interface SecurityOperations {
    * @since 1.5.0
    */
   public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Set the user's password
-   * 
+   *
    * @param user
    *          the name of the user to modify
    * @param password
@@ -140,10 +140,10 @@ public interface SecurityOperations {
    */
   @Deprecated
   public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Set the user's password
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param token
@@ -155,10 +155,10 @@ public interface SecurityOperations {
    * @since 1.5.0
    */
   public void changeLocalUserPassword(String principal, PasswordToken token) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Set the user's record-level authorizations
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param authorizations
@@ -169,10 +169,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to modify a user
    */
   public void changeUserAuthorizations(String principal, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Retrieves the user's authorizations for scanning
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @return the set of authorizations the user has available for scanning
@@ -182,10 +182,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to query a user
    */
   public Authorizations getUserAuthorizations(String principal) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Verify the user has a particular system permission
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @param perm
@@ -197,10 +197,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to query a user
    */
   public boolean hasSystemPermission(String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Verify the user has a particular table permission
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @param table
@@ -214,10 +214,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to query a user
    */
   public boolean hasTablePermission(String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Grant a user a system permission
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param permission
@@ -228,10 +228,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to grant a user permissions
    */
   public void grantSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Grant a user a specific permission for a specific table
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param table
@@ -244,10 +244,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to grant a user permissions
    */
   public void grantTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Revoke a system permission from a user
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param permission
@@ -258,10 +258,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to revoke a user's permissions
    */
   public void revokeSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Revoke a table permission for a specific user on a specific table
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param table
@@ -274,10 +274,10 @@ public interface SecurityOperations {
    *           if the user does not have permission to revoke a user's permissions
    */
   public void revokeTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Return a list of users in accumulo
-   * 
+   *
    * @return a set of user names
    * @throws AccumuloException
    *           if a general error occurs
@@ -287,10 +287,10 @@ public interface SecurityOperations {
    */
   @Deprecated
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Return a list of users in accumulo
-   * 
+   *
    * @return a set of user names
    * @throws AccumuloException
    *           if a general error occurs
@@ -299,5 +299,5 @@ public interface SecurityOperations {
    * @since 1.5.0
    */
   public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException;
-  
+
 }

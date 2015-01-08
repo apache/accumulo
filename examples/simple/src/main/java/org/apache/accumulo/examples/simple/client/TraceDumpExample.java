@@ -34,39 +34,39 @@ import com.beust.jcommander.Parameter;
  *
  */
 public class TraceDumpExample {
-	
-	static class Opts extends ClientOnDefaultTable {
-		public Opts() {
-			super("trace");
-		}
 
-		@Parameter(names = {"--traceid"}, description = "The hex string id of a given trace, for example 16cfbbd7beec4ae3")
-		public String traceId = "";
-	}
-	
-	public void dump(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-	
-		if (opts.traceId.isEmpty()) {
-			throw new IllegalArgumentException("--traceid option is required");
-		}
-		
-		Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
-		scanner.setRange(new Range(new Text(opts.traceId)));
-		TraceDump.printTrace(scanner, new Printer() {
-			@Override
+  static class Opts extends ClientOnDefaultTable {
+    public Opts() {
+      super("trace");
+    }
+
+    @Parameter(names = {"--traceid"}, description = "The hex string id of a given trace, for example 16cfbbd7beec4ae3")
+    public String traceId = "";
+  }
+
+  public void dump(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+
+    if (opts.traceId.isEmpty()) {
+      throw new IllegalArgumentException("--traceid option is required");
+    }
+
+    Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
+    scanner.setRange(new Range(new Text(opts.traceId)));
+    TraceDump.printTrace(scanner, new Printer() {
+      @Override
       public void print(String line) {
-				System.out.println(line);
-			}
-		});
-	}
-	
-	public static void main(String[] args) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-		TraceDumpExample traceDumpExample = new TraceDumpExample();
-		Opts opts = new Opts();
-		ScannerOpts scannerOpts = new ScannerOpts();
-		opts.parseArgs(TraceDumpExample.class.getName(), args, scannerOpts);
+        System.out.println(line);
+      }
+    });
+  }
 
-		traceDumpExample.dump(opts);
-	}
+  public static void main(String[] args) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    TraceDumpExample traceDumpExample = new TraceDumpExample();
+    Opts opts = new Opts();
+    ScannerOpts scannerOpts = new ScannerOpts();
+    opts.parseArgs(TraceDumpExample.class.getName(), args, scannerOpts);
+
+    traceDumpExample.dump(opts);
+  }
 
 }

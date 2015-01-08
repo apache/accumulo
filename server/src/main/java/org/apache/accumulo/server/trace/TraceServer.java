@@ -32,10 +32,10 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -77,51 +77,51 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 public class TraceServer implements Watcher {
-  
+
   final private static Logger log = Logger.getLogger(TraceServer.class);
   final private ServerConfiguration serverConfiguration;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
   final String table;
-  
+
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
   }
-  
+
   static class ByteArrayTransport extends TTransport {
     TByteArrayOutputStream out = new TByteArrayOutputStream();
-    
+
     @Override
     public boolean isOpen() {
       return true;
     }
-    
+
     @Override
     public void open() throws TTransportException {}
-    
+
     @Override
     public void close() {}
-    
+
     @Override
     public int read(byte[] buf, int off, int len) {
       return 0;
     }
-    
+
     @Override
     public void write(byte[] buf, int off, int len) throws TTransportException {
       out.write(buf, off, len);
     }
-    
+
     public byte[] get() {
       return out.get();
     }
-    
+
     public int len() {
       return out.len();
     }
   }
-  
+
   class Receiver implements Iface {
     @Override
     public void span(RemoteSpan s) throws TException {
@@ -146,8 +146,8 @@ public class TraceServer implements Watcher {
       }
       try {
         final BatchWriter writer = TraceServer.this.writer.get();
-        /* Check for null, because we expect spans to come in much faster than flush calls.
-           In the case of failure, we'd rather avoid logging tons of NPEs.
+        /*
+         * Check for null, because we expect spans to come in much faster than flush calls. In the case of failure, we'd rather avoid logging tons of NPEs.
          */
         if (null == writer) {
           log.warn("writer is not ready; discarding span.");
@@ -162,15 +162,15 @@ public class TraceServer implements Watcher {
         if (log.isDebugEnabled()) {
           log.debug("discarded span due to rejection of mutation: " + spanMutation, exception);
         }
-      /* XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this mutation to a writer that has been closed since we retrieved it */
+        /* XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this mutation to a writer that has been closed since we retrieved it */
       } catch (RuntimeException exception) {
         log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause: " + exception);
         log.debug("unable to write mutation to table due to exception.", exception);
       }
     }
-    
+
   }
-  
+
   public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
@@ -195,10 +195,10 @@ public class TraceServer implements Watcher {
           }
 
           token.init(props);
-          
+
           at = token;
         }
-        
+
         connector = serverConfiguration.getInstance().getConnector(principal, at);
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
@@ -216,7 +216,7 @@ public class TraceServer implements Watcher {
     this.connector = connector;
     // make sure we refer to the final variable from now on.
     connector = null;
-    
+
     int port = conf.getPort(Property.TRACE_PORT);
     final ServerSocket sock = ServerSocketChannel.open().socket();
     sock.setReuseAddress(true);
@@ -227,10 +227,10 @@ public class TraceServer implements Watcher {
     server = new TThreadPoolServer(options);
     final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
     registerInZooKeeper(AddressUtil.toString(address));
-    
+
     writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS)));
   }
-  
+
   public void run() throws Exception {
     SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
@@ -240,7 +240,7 @@ public class TraceServer implements Watcher {
     }, 1000, 1000);
     server.serve();
   }
-  
+
   private void flush() {
     try {
       final BatchWriter writer = this.writer.get();
@@ -251,14 +251,14 @@ public class TraceServer implements Watcher {
       log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: " + exception);
       log.debug("flushing traces failed due to exception", exception);
       resetWriter();
-    /* XXX e.g. if the writer was closed between when we grabbed it and when we called flush. */
+      /* XXX e.g. if the writer was closed between when we grabbed it and when we called flush. */
     } catch (RuntimeException exception) {
       log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: " + exception);
       log.debug("flushing traces failed due to exception", exception);
       resetWriter();
     }
   }
-  
+
   private void resetWriter() {
     BatchWriter writer = null;
     try {
@@ -279,14 +279,14 @@ public class TraceServer implements Watcher {
       }
     }
   }
-  
+
   private void registerInZooKeeper(String name) throws Exception {
     String root = ZooUtil.getRoot(serverConfiguration.getInstance()) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
     zoo.exists(path, this);
   }
-  
+
   public static void main(String[] args) throws Exception {
     SecurityUtil.serverLogin();
     Instance instance = HdfsZooInstance.getInstance();
@@ -299,7 +299,7 @@ public class TraceServer implements Watcher {
     server.run();
     log.info("tracer stopping");
   }
-  
+
   @Override
   public void process(WatchedEvent event) {
     log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
@@ -321,5 +321,5 @@ public class TraceServer implements Watcher {
       server.stop();
     }
   }
-  
+
 }

@@ -18,13 +18,13 @@ package org.apache.accumulo.server.metanalysis;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -33,19 +33,19 @@ import com.beust.jcommander.Parameter;
  * Finds tablet creation events.
  */
 public class FindTablet {
-  
+
   static public class Opts extends ClientOpts {
-    @Parameter(names={"-r", "--row"}, required=true, description="find tablets that contain this row")
+    @Parameter(names = {"-r", "--row"}, required = true, description = "find tablets that contain this row")
     String row = null;
-    
-    @Parameter(names="--tableId", required=true, description="table id")
+
+    @Parameter(names = "--tableId", required = true, description = "table id")
     String tableId = null;
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(FindTablet.class.getName(), args);
-    
+
     findContainingTablets(opts);
   }
 

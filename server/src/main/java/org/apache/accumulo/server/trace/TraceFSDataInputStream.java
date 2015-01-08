@@ -22,7 +22,6 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.fs.FSDataInputStream;
 
-
 public class TraceFSDataInputStream extends FSDataInputStream {
   @Override
   public synchronized void seek(long desired) throws IOException {
@@ -33,7 +32,7 @@ public class TraceFSDataInputStream extends FSDataInputStream {
       span.stop();
     }
   }
-  
+
   @Override
   public int read(long position, byte[] buffer, int offset, int length) throws IOException {
     Span span = Trace.start("FSDataInputStream.read");
@@ -45,7 +44,7 @@ public class TraceFSDataInputStream extends FSDataInputStream {
       span.stop();
     }
   }
-  
+
   @Override
   public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
     Span span = Trace.start("FSDataInputStream.readFully");
@@ -57,7 +56,7 @@ public class TraceFSDataInputStream extends FSDataInputStream {
       span.stop();
     }
   }
-  
+
   @Override
   public void readFully(long position, byte[] buffer) throws IOException {
     Span span = Trace.start("FSDataInputStream.readFully");
@@ -69,7 +68,7 @@ public class TraceFSDataInputStream extends FSDataInputStream {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean seekToNewSource(long targetPos) throws IOException {
     Span span = Trace.start("FSDataInputStream.seekToNewSource");
@@ -79,12 +78,12 @@ public class TraceFSDataInputStream extends FSDataInputStream {
       span.stop();
     }
   }
-  
+
   private final FSDataInputStream impl;
-  
+
   public TraceFSDataInputStream(FSDataInputStream in) throws IOException {
     super(in);
     impl = in;
   }
-  
+
 }

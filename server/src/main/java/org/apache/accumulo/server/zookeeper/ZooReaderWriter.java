@@ -36,11 +36,11 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   private static final String USER = "accumulo";
   private static ZooReaderWriter instance = null;
   private static IZooReaderWriter retryingInstance = null;
-  
+
   public ZooReaderWriter(String string, int timeInMillis, String secret) {
     super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8));
   }
-  
+
   public static synchronized ZooReaderWriter getInstance() {
     if (instance == null) {
       AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
@@ -49,17 +49,17 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
     }
     return instance;
   }
-  
+
   /**
    * get an instance that retries when zookeeper connection errors occur
-   * 
+   *
    * @return an instance that retries when Zookeeper connection errors occur.
    */
   public static synchronized IZooReaderWriter getRetryingInstance() {
-    
+
     if (retryingInstance == null) {
       final IZooReaderWriter inst = getInstance();
-      
+
       InvocationHandler ih = new InvocationHandler() {
         @Override
         public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
@@ -79,10 +79,10 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
           }
         }
       };
-      
+
       retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(ZooReaderWriter.class.getClassLoader(), new Class[] {IZooReaderWriter.class}, ih);
     }
-    
+
     return retryingInstance;
   }
 }

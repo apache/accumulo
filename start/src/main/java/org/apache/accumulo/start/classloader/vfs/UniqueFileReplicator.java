@@ -33,13 +33,13 @@ import org.apache.commons.vfs2.provider.VfsComponentContext;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  */
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   private static final char[] TMP_RESERVED_CHARS = new char[] {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
   private static final Logger log = Logger.getLogger(UniqueFileReplicator.class);
-  
+
   private File tempDir;
   private VfsComponentContext context;
   private List<File> tmpFiles = Collections.synchronizedList(new ArrayList<File>());

@@ -28,17 +28,17 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 /**
- * 
+ *
  */
 public class ListShellIterCommand extends Command {
-  
+
   private Option nameOpt, profileOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     if (shellState.iteratorProfiles.size() == 0)
       return 0;
-    
+
     final StringBuilder sb = new StringBuilder();
 
     String profile = null;
@@ -68,7 +68,7 @@ public class ListShellIterCommand extends Command {
         }
       }
     }
-    
+
     if (sb.length() > 0) {
       sb.append("-\n");
     }
@@ -77,26 +77,26 @@ public class ListShellIterCommand extends Command {
 
     return 0;
   }
-  
+
   public String description() {
     return "lists iterators profiles configured in shell";
   }
-  
+
   @Override
   public int numArgs() {
     return 0;
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
 
     nameOpt = new Option("n", "name", true, "iterator to list");
     nameOpt.setArgName("itername");
-    
+
     o.addOption(profileOpt);
     o.addOption(nameOpt);
 

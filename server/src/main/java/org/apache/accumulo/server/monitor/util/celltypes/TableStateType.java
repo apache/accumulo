@@ -19,12 +19,12 @@ package org.apache.accumulo.server.monitor.util.celltypes;
 import org.apache.accumulo.core.master.state.tables.TableState;
 
 public class TableStateType extends CellType<TableState> {
-  
+
   @Override
   public String alignment() {
     return "center";
   }
-  
+
   @Override
   public String format(Object obj) {
     TableState state = obj == null ? TableState.UNKNOWN : (TableState) obj;
@@ -44,7 +44,7 @@ public class TableStateType extends CellType<TableState> {
     style = style != null ? " class='" + style + "'" : "";
     return String.format("<span%s>%s</span>", style, state);
   }
-  
+
   @Override
   public int compare(TableState o1, TableState o2) {
     if (o1 == null && o2 == null)
@@ -53,5 +53,5 @@ public class TableStateType extends CellType<TableState> {
       return -1;
     return o1.compareTo(o2);
   }
-  
+
 }

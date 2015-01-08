@@ -44,10 +44,10 @@ import org.apache.commons.cli.Options;
 
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt;
-  
+
   private int COL1 = 8, COL2 = 7;
   private ConsoleReader reader;
-  
+
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     final Token cmd = new Token(getName());
@@ -60,11 +60,11 @@ public class ConfigCommand extends Command {
     cmd.addSubcommand(sub);
     root.addSubcommand(cmd);
   }
-  
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, IOException, ClassNotFoundException {
     reader = shellState.getReader();
-    
+
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
@@ -97,7 +97,7 @@ public class ConfigCommand extends Command {
       final String pair[] = property.split("=", 2);
       property = pair[0];
       value = pair[1];
-      
+
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
           throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
@@ -118,13 +118,13 @@ public class ConfigCommand extends Command {
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<String,String>();
       systemConfig.putAll(shellState.getConnector().instanceOperations().getSystemConfiguration());
-      
+
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
       final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
-      
+
       final TreeMap<String,String> siteConfig = new TreeMap<String,String>();
       siteConfig.putAll(shellState.getConnector().instanceOperations().getSiteConfiguration());
-      
+
       final TreeMap<String,String> defaults = new TreeMap<String,String>();
       for (Entry<String,String> defaultEntry : AccumuloConfiguration.getDefaultConfiguration()) {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
@@ -137,7 +137,7 @@ public class ConfigCommand extends Command {
       for (Entry<String,String> propEntry : acuconf) {
         sortedConf.put(propEntry.getKey(), propEntry.getValue());
       }
-      
+
       for (Entry<String,String> propEntry : acuconf) {
         final String key = propEntry.getKey();
         // only show properties with similar names to that
@@ -150,13 +150,13 @@ public class ConfigCommand extends Command {
         }
         COL2 = Math.max(COL2, propEntry.getKey().length() + 3);
       }
-      
+
       final ArrayList<String> output = new ArrayList<String>();
       printConfHeader(output);
-      
+
       for (Entry<String,String> propEntry : sortedConf.entrySet()) {
         final String key = propEntry.getKey();
-        
+
         // only show properties with similar names to that
         // specified, or all of them if none specified
         if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
@@ -170,7 +170,7 @@ public class ConfigCommand extends Command {
         String curVal = propEntry.getValue();
         String dfault = defaults.get(key);
         boolean printed = false;
-        
+
         if (dfault != null && key.toLowerCase().contains("password")) {
           siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
         }
@@ -188,7 +188,7 @@ public class ConfigCommand extends Command {
             printed = true;
           }
         }
-        
+
         // show per-table value only if it is different (overridden)
         if (tableName != null && !curVal.equals(sysVal)) {
           printConfLine(output, "table", printed ? "   @override" : key, curVal);
@@ -202,13 +202,13 @@ public class ConfigCommand extends Command {
     }
     return 0;
   }
-  
+
   private void printConfHeader(List<String> output) {
     printConfFooter(output);
     output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", "SCOPE", "NAME", "VALUE"));
     printConfFooter(output);
   }
-  
+
   private void printConfLine(List<String> output, String s1, String s2, String s3) {
     if (s2.length() < COL2) {
       s2 += " " + Shell.repeat(".", COL2 - s2.length() - 1);
@@ -216,22 +216,22 @@ public class ConfigCommand extends Command {
     output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2,
         s3.replace("\n", "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "|" + " ")));
   }
-  
+
   private void printConfFooter(List<String> output) {
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTermwidth() - COL1 - COL2 - 6));
     output.add(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%-" + col3 + "s", Shell.repeat("-", COL1), Shell.repeat("-", COL2), Shell.repeat("-", col3)));
   }
-  
+
   @Override
   public String description() {
     return "prints system properties and table specific properties";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
     final OptionGroup og = new OptionGroup();
-    
+
     tableOpt = new Option(Shell.tableOption, "table", true, "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
@@ -244,19 +244,19 @@ public class ConfigCommand extends Command {
     setOpt.setArgName("property=value");
     filterOpt.setArgName("string");
     outputFileOpt.setArgName("file");
-    
+
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
-    
+
     o.addOption(tableOpt);
     o.addOptionGroup(og);
     o.addOption(disablePaginationOpt);
     o.addOption(outputFileOpt);
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

@@ -19,14 +19,14 @@ package org.apache.accumulo.start;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
- 
+
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 public class Main {
-  
+
   public static void main(String[] args) {
     Runnable r = null;
-    
+
     try {
       if (args.length == 0) {
         printUsage();
@@ -34,18 +34,18 @@ public class Main {
       }
       final String argsToPass[] = new String[args.length - 1];
       System.arraycopy(args, 1, argsToPass, 0, args.length - 1);
-      
+
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      
+
       Class<?> vfsClassLoader = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-      
+
       ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class[] {}).invoke(null, new Object[] {});
-      
+
       Class<?> runTMP = null;
-      
+
       Thread.currentThread().setContextClassLoader(cl);
-      
-      if (args[0].equals("help")){
+
+      if (args[0].equals("help")) {
         printUsage();
         System.exit(0);
       } else if (args[0].equals("master")) {
@@ -117,7 +117,7 @@ public class Main {
           }
         }
       };
-      
+
       Thread t = new Thread(r, args[0]);
       t.setContextClassLoader(cl);
       t.start();
@@ -141,6 +141,7 @@ public class Main {
   }
 
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | proxy | zookeeper | info | version | help | <accumulo class> args");
+    System.out
+        .println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | proxy | zookeeper | info | version | help | <accumulo class> args");
   }
 }

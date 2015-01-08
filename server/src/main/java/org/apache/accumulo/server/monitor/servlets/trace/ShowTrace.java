@@ -37,17 +37,16 @@ import org.apache.accumulo.server.monitor.servlets.BasicServlet;
 import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 
-
 public class ShowTrace extends Basic {
-  
+
   private static final long serialVersionUID = 1L;
   private static final String checkboxIdSuffix = "_checkbox";
   private static final String pageLoadFunctionName = "pageload";
-  
+
   String getTraceId(HttpServletRequest req) {
     return getStringParameter(req, "id", null);
   }
-  
+
   @Override
   public String getTitle(HttpServletRequest req) {
     String id = getTraceId(req);
@@ -55,7 +54,7 @@ public class ShowTrace extends Basic {
       return "No trace id specified";
     return "Trace ID " + id;
   }
-  
+
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb) throws Exception {
     String id = getTraceId(req);
@@ -106,7 +105,7 @@ public class ShowTrace extends Basic {
     sb.append("<table><caption>");
     sb.append(String.format("<span class='table-caption'>Trace %s started at<br>%s</span></caption>", id, dateString(start)));
     sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th><th>Name</th><th>Addl Data</th></tr>");
-    
+
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override
@@ -152,7 +151,7 @@ public class ShowTrace extends Basic {
     sb.append("</table>\n");
     sb.append("</div>\n");
   }
-  
+
   @Override
   protected String getBodyAttributes() {
     return " onload=\"" + pageLoadFunctionName + "()\" ";

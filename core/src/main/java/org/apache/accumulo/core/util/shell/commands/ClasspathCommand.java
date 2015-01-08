@@ -42,12 +42,12 @@ public class ClasspathCommand extends Command {
     });
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "lists the current files on the classpath";
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

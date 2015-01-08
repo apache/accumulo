@@ -40,7 +40,7 @@ public class VersioningIteratorTest {
   // add test for seek function
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   private static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
-  
+
   void createTestData(TreeMap<Key,Value> tm, Text colf, Text colq) {
     for (int i = 0; i < 2; i++) {
       for (long j = 0; j < 20; j++) {
@@ -48,38 +48,38 @@ public class VersioningIteratorTest {
         tm.put(k, new Value(encoder.encode(j)));
       }
     }
-    
+
     assertTrue("Initial size was " + tm.size(), tm.size() == 40);
   }
-  
+
   TreeMap<Key,Value> iteratorOverTestData(VersioningIterator it) throws IOException {
     TreeMap<Key,Value> tmOut = new TreeMap<Key,Value>();
     while (it.hasTop()) {
       tmOut.put(it.getTopKey(), it.getTopValue());
       it.next();
     }
-    
+
     return tmOut;
   }
-  
+
   @Test
   public void test1() {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    
+
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    
+
     createTestData(tm, colf, colq);
-    
+
     try {
       VersioningIterator it = new VersioningIterator();
       IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
       VersioningIterator.setMaxVersions(is, 3);
       it.init(new SortedMapIterator(tm), is.getOptions(), null);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
-      
+
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
-      
+
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
         assertTrue(16 < encoder.decode(e.getValue().get()));
@@ -92,30 +92,30 @@ public class VersioningIteratorTest {
       assertFalse(true);
     }
   }
-  
+
   @Test
   public void test2() {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    
+
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    
+
     createTestData(tm, colf, colq);
-    
+
     try {
       VersioningIterator it = new VersioningIterator();
       IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
       VersioningIterator.setMaxVersions(is, 3);
       it.init(new SortedMapIterator(tm), is.getOptions(), null);
-      
+
       // after doing this seek, should only get two keys for row 1
       // since we are seeking to the middle of the most recent
       // three keys
       Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 18);
       it.seek(new Range(seekKey, null), EMPTY_COL_FAMS, false);
-      
+
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
-      
+
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
         assertTrue(16 < encoder.decode(e.getValue().get()));
@@ -128,48 +128,48 @@ public class VersioningIteratorTest {
       assertFalse(true);
     }
   }
-  
+
   @Test
   public void test3() {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    
+
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    
+
     createTestData(tm, colf, colq);
-    
+
     try {
       VersioningIterator it = new VersioningIterator();
       IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
       VersioningIterator.setMaxVersions(is, 3);
       it.init(new SortedMapIterator(tm), is.getOptions(), null);
-      
+
       // after doing this seek, should get zero keys for row 1
       Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 15);
       it.seek(new Range(seekKey, null), EMPTY_COL_FAMS, false);
-      
+
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
-      
+
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
-      
+
       assertTrue("size after seeking past versions was " + tmOut.size(), tmOut.size() == 0);
-      
+
       // after doing this seek, should get zero keys for row 0 and 3 keys for row 1
       seekKey = new Key(new Text(String.format("%03d", 0)), colf, colq, 15);
       it.seek(new Range(seekKey, null), EMPTY_COL_FAMS, false);
-      
+
       tmOut = iteratorOverTestData(it);
-      
+
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
-      
+
       assertTrue("size after seeking past versions was " + tmOut.size(), tmOut.size() == 3);
-      
+
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
@@ -177,16 +177,16 @@ public class VersioningIteratorTest {
       assertFalse(true);
     }
   }
-  
+
   @Test
   public void test4() {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    
+
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    
+
     createTestData(tm, colf, colq);
-    
+
     for (int i = 1; i <= 30; i++) {
       try {
         VersioningIterator it = new VersioningIterator();
@@ -194,9 +194,9 @@ public class VersioningIteratorTest {
         VersioningIterator.setMaxVersions(is, i);
         it.init(new SortedMapIterator(tm), is.getOptions(), null);
         it.seek(new Range(), EMPTY_COL_FAMS, false);
-        
+
         TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
-        
+
         assertTrue("size after keeping " + i + " versions was " + tmOut.size(), tmOut.size() == Math.min(40, 2 * i));
       } catch (IOException e) {
         assertFalse(true);
@@ -206,51 +206,51 @@ public class VersioningIteratorTest {
       }
     }
   }
-  
+
   @Test
   public void test5() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    
+
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    
+
     createTestData(tm, colf, colq);
-    
+
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
     VersioningIterator.setMaxVersions(is, 3);
     it.init(new SortedMapIterator(tm), is.getOptions(), null);
-    
+
     Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 19);
     it.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
-    
+
     assertTrue(it.hasTop());
     assertTrue(it.getTopKey().getTimestamp() == 18);
-    
+
   }
-  
+
   @Test
   public void test6() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
-    
+
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    
+
     createTestData(tm, colf, colq);
-    
+
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
     VersioningIterator.setMaxVersions(is, 3);
     it.init(new SortedMapIterator(tm), is.getOptions(), null);
     VersioningIterator it2 = it.deepCopy(null);
-    
+
     Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 19);
     it.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
     it2.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
-    
+
     assertTrue(it.hasTop());
     assertTrue(it.getTopKey().getTimestamp() == 18);
-    
+
     assertTrue(it2.hasTop());
     assertTrue(it2.getTopKey().getTimestamp() == 18);
   }

@@ -37,24 +37,24 @@ import org.junit.Test;
 public class ShellTest {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
-    
+
     @Override
     public void write(int b) throws IOException {
       sb.append((char) (0xff & b));
     }
-    
+
     public String get() {
       return sb.toString();
     }
-    
+
     public void clear() {
       sb.setLength(0);
     }
   }
-  
+
   private TestOutputStream output;
   private Shell shell;
-  
+
   void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings) throws IOException {
     exec(cmd);
     if (expecteGoodExit) {
@@ -72,7 +72,7 @@ public class ShellTest {
     output.clear();
     shell.execCommand(cmd, true, true);
   }
-  
+
   void exec(String cmd, boolean expectGoodExit) throws IOException {
     exec(cmd);
     if (expectGoodExit)
@@ -80,11 +80,11 @@ public class ShellTest {
     else
       assertBadExit("", true);
   }
-  
+
   void exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
     exec(cmd, expectGoodExit, expectString, true);
   }
-  
+
   void exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
     exec(cmd);
     if (expectGoodExit)
@@ -92,24 +92,24 @@ public class ShellTest {
     else
       assertBadExit(expectString, stringPresent);
   }
-  
+
   @Before
   public void setup() throws IOException {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
-    PrintWriter pw = new PrintWriter( new OutputStreamWriter(output));
+    PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)), pw);
     shell.setLogErrorsToConsole();
     shell.config("--fake", "-u", "test", "-p", "secret");
   }
-  
+
   void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertEquals(shell.getExitCode(), 0);
     if (s.length() > 0)
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
   }
-  
+
   void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
@@ -117,7 +117,7 @@ public class ShellTest {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
   }
-  
+
   @Test
   public void aboutTest() throws IOException {
     Shell.log.debug("Starting about test -----------------------------------");
@@ -125,7 +125,7 @@ public class ShellTest {
     exec("about -v", true, "Current user:");
     exec("about arg", false, "java.lang.IllegalArgumentException: Expected 0 arguments");
   }
-  
+
   @Test
   public void addGetSplitsTest() throws IOException {
     Shell.log.debug("Starting addGetSplits test ----------------------------");
@@ -135,7 +135,7 @@ public class ShellTest {
     exec("getsplits", true, "1\n\\x80");
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
-  
+
   @Test
   public void insertDeleteScanTest() throws IOException {
     Shell.log.debug("Starting insertDeleteScan test ------------------------");
@@ -160,7 +160,7 @@ public class ShellTest {
     exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
-  
+
   @Test
   public void authsTest() throws Exception {
     Shell.log.debug("Starting auths test --------------------------");
@@ -175,14 +175,14 @@ public class ShellTest {
     execExpectList("getauths", true, Arrays.asList("x", "y", "z", "a"));
     exec("setauths -c", true);
   }
-  
+
   @Test
   public void userTest() throws Exception {
     Shell.log.debug("Starting user test --------------------------");
     // Test cannot be done via junit because createuser only prompts for password
     // exec("createuser root", false, "user exists");
   }
-  
+
   @Test
   public void duContextTest() throws Exception {
     Shell.log.debug("Starting du context test --------------------------");
@@ -190,7 +190,7 @@ public class ShellTest {
     exec("du", true, "0 [t]");
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
-  
+
   @Test
   public void duTest() throws IOException {
     Shell.log.debug("Starting DU test --------------------------");
@@ -198,7 +198,7 @@ public class ShellTest {
     exec("du t", true, "0 [t]");
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
-  
+
   @Test
   public void duPatternTest() throws IOException {
     Shell.log.debug("Starting DU with pattern test --------------------------");
@@ -208,7 +208,7 @@ public class ShellTest {
     exec("deletetable t -f", true, "Table: [t] has been deleted");
     exec("deletetable tt -f", true, "Table: [tt] has been deleted");
   }
-  
+
   @Test
   public void execFileTest() throws IOException {
     Shell.log.debug("Starting exec file test --------------------------");
@@ -216,23 +216,23 @@ public class ShellTest {
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }
-  
+
   @Test
   public void setIterTest() throws IOException {
     Shell.log.debug("Starting setiter test --------------------------");
     exec("createtable t", true);
-    
+
     String cmdJustClass = "setiter -class VersioningIterator -p 1";
     exec(cmdJustClass, false, "java.lang.IllegalArgumentException", false);
     exec(cmdJustClass, false, "fully qualified package name", true);
-    
+
     String cmdFullPackage = "setiter -class o.a.a.foo -p 1";
     exec(cmdFullPackage, false, "java.lang.IllegalArgumentException", false);
     exec(cmdFullPackage, false, "class not found", true);
-    
+
     String cmdNoOption = "setiter -class java.lang.String -p 1";
     exec(cmdNoOption, false, "Loaded", true);
-    
+
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 }
