@@ -37,7 +37,7 @@ import org.apache.accumulo.core.security.Authorizations;
  */
 public class ActiveScanImpl extends ActiveScan {
 
-  private long scanid;
+  private long scanId;
   private String client;
   private String table;
   private long age;
@@ -52,6 +52,7 @@ public class ActiveScanImpl extends ActiveScan {
   private Authorizations authorizations;
 
   ActiveScanImpl(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan) throws TableNotFoundException {
+    this.scanId = activeScan.scanId;
     this.client = activeScan.client;
     this.user = activeScan.user;
     this.age = activeScan.age;
@@ -76,7 +77,7 @@ public class ActiveScanImpl extends ActiveScan {
 
   @Override
   public long getScanid() {
-    return scanid;
+    return scanId;
   }
 
   @Override
