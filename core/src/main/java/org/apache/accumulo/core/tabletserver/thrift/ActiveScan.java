@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField SSI_LIST_FIELD_DESC = new org.apache.thrift.protocol.TField("ssiList", org.apache.thrift.protocol.TType.LIST, (short)11);
   private static final org.apache.thrift.protocol.TField SSIO_FIELD_DESC = new org.apache.thrift.protocol.TField("ssio", org.apache.thrift.protocol.TType.MAP, (short)12);
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)13);
+  private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanId", org.apache.thrift.protocol.TType.I64, (short)14);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -90,6 +91,7 @@ import org.slf4j.LoggerFactory;
   public List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList; // required
   public Map<String,Map<String,String>> ssio; // required
   public List<ByteBuffer> authorizations; // required
+  public long scanId; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -112,7 +114,8 @@ import org.slf4j.LoggerFactory;
     COLUMNS((short)10, "columns"),
     SSI_LIST((short)11, "ssiList"),
     SSIO((short)12, "ssio"),
-    AUTHORIZATIONS((short)13, "authorizations");
+    AUTHORIZATIONS((short)13, "authorizations"),
+    SCAN_ID((short)14, "scanId");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -151,6 +154,8 @@ import org.slf4j.LoggerFactory;
           return SSIO;
         case 13: // AUTHORIZATIONS
           return AUTHORIZATIONS;
+        case 14: // SCAN_ID
+          return SCAN_ID;
         default:
           return null;
       }
@@ -193,7 +198,9 @@ import org.slf4j.LoggerFactory;
   // isset id assignments
   private static final int __AGE_ISSET_ID = 0;
   private static final int __IDLETIME_ISSET_ID = 1;
+  private static final int __SCANID_ISSET_ID = 2;
   private byte __isset_bitfield = 0;
+  private _Fields optionals[] = {_Fields.SCAN_ID};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -228,6 +235,8 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
+    tmpMap.put(_Fields.SCAN_ID, new org.apache.thrift.meta_data.FieldMetaData("scanId", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveScan.class, metaDataMap);
   }
@@ -324,6 +333,7 @@ import org.slf4j.LoggerFactory;
       List<ByteBuffer> __this__authorizations = new ArrayList<ByteBuffer>(other.authorizations);
       this.authorizations = __this__authorizations;
     }
+    this.scanId = other.scanId;
   }
 
   public ActiveScan deepCopy() {
@@ -346,6 +356,8 @@ import org.slf4j.LoggerFactory;
     this.ssiList = null;
     this.ssio = null;
     this.authorizations = null;
+    setScanIdIsSet(false);
+    this.scanId = 0;
   }
 
   public String getClient() {
@@ -706,6 +718,29 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  public long getScanId() {
+    return this.scanId;
+  }
+
+  public ActiveScan setScanId(long scanId) {
+    this.scanId = scanId;
+    setScanIdIsSet(true);
+    return this;
+  }
+
+  public void unsetScanId() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SCANID_ISSET_ID);
+  }
+
+  /** Returns true if field scanId is set (has been assigned a value) and false otherwise */
+  public boolean isSetScanId() {
+    return EncodingUtils.testBit(__isset_bitfield, __SCANID_ISSET_ID);
+  }
+
+  public void setScanIdIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SCANID_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case CLIENT:
@@ -804,6 +839,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case SCAN_ID:
+      if (value == null) {
+        unsetScanId();
+      } else {
+        setScanId((Long)value);
+      }
+      break;
+
     }
   }
 
@@ -845,6 +888,9 @@ import org.slf4j.LoggerFactory;
     case AUTHORIZATIONS:
       return getAuthorizations();
 
+    case SCAN_ID:
+      return Long.valueOf(getScanId());
+
     }
     throw new IllegalStateException();
   }
@@ -880,6 +926,8 @@ import org.slf4j.LoggerFactory;
       return isSetSsio();
     case AUTHORIZATIONS:
       return isSetAuthorizations();
+    case SCAN_ID:
+      return isSetScanId();
     }
     throw new IllegalStateException();
   }
@@ -1002,6 +1050,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_authorizations && that_present_authorizations))
         return false;
       if (!this.authorizations.equals(that.authorizations))
+        return false;
+    }
+
+    boolean this_present_scanId = true && this.isSetScanId();
+    boolean that_present_scanId = true && that.isSetScanId();
+    if (this_present_scanId || that_present_scanId) {
+      if (!(this_present_scanId && that_present_scanId))
+        return false;
+      if (this.scanId != that.scanId)
         return false;
     }
 
@@ -1141,6 +1198,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetScanId()).compareTo(other.isSetScanId());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetScanId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.scanId, other.scanId);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1248,6 +1315,12 @@ import org.slf4j.LoggerFactory;
       sb.append(this.authorizations);
     }
     first = false;
+    if (isSetScanId()) {
+      if (!first) sb.append(", ");
+      sb.append("scanId:");
+      sb.append(this.scanId);
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -1449,6 +1522,14 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 14: // SCAN_ID
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.scanId = iprot.readI64();
+              struct.setScanIdIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1557,6 +1638,11 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeFieldEnd();
       }
+      if (struct.isSetScanId()) {
+        oprot.writeFieldBegin(SCAN_ID_FIELD_DESC);
+        oprot.writeI64(struct.scanId);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1611,7 +1697,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetAuthorizations()) {
         optionals.set(11);
       }
-      oprot.writeBitSet(optionals, 12);
+      if (struct.isSetScanId()) {
+        optionals.set(12);
+      }
+      oprot.writeBitSet(optionals, 13);
       if (struct.isSetClient()) {
         oprot.writeString(struct.client);
       }
@@ -1680,12 +1769,15 @@ import org.slf4j.LoggerFactory;
           }
         }
       }
+      if (struct.isSetScanId()) {
+        oprot.writeI64(struct.scanId);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ActiveScan struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(12);
+      BitSet incoming = iprot.readBitSet(13);
       if (incoming.get(0)) {
         struct.client = iprot.readString();
         struct.setClientIsSet(true);
@@ -1785,6 +1877,10 @@ import org.slf4j.LoggerFactory;
           }
         }
         struct.setAuthorizationsIsSet(true);
+      }
+      if (incoming.get(12)) {
+        struct.scanId = iprot.readI64();
+        struct.setScanIdIsSet(true);
       }
     }
   }
