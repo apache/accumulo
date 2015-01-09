@@ -175,8 +175,8 @@ public class Main {
   }
 
   private static void printUsage() {
-    System.out
-        .println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | minicluster | proxy | zookeeper | create-token | info | version | help | jar <jar> [<main class>] args | <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info "
+        + "| tracer | minicluster | proxy | zookeeper | create-token | info | version | help | jar <jar> [<main class>] args | <accumulo class> args");
   }
 
   // feature: will work even if main class isn't in the JAR

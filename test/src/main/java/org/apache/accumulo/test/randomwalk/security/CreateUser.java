@@ -43,9 +43,8 @@ public class CreateUser extends Test {
         case PERMISSION_DENIED:
           if (hasPermission)
             throw new AccumuloException("Got a security exception when I should have had permission.", ae);
-          else
-          // create user anyway for sake of state
-          {
+          else {
+            // create user anyway for sake of state
             if (!exists) {
               state.getConnector().securityOperations().createLocalUser(tableUserName, tabUserPass);
               WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);

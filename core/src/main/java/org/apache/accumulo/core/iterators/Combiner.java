@@ -70,7 +70,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
      * Constructs an iterator over Values whose Keys are versions of the current topKey of the source SortedKeyValueIterator.
      *
      * @param source
-     *          The SortedKeyValueIterator<Key,Value> from which to read data.
+     *          The {@code SortedKeyValueIterator<Key,Value>} from which to read data.
      */
     public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;

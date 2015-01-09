@@ -164,6 +164,7 @@ public final class Utils {
    * <li>if (FB in [-104, -73]), return (FB+88)<<16 + (NB[0]&0xff)<<8 + NB[1]&0xff;
    * <li>if (FB in [-120, -105]), return (FB+112)<<24 + (NB[0]&0xff)<<16 + (NB[1]&0xff)<<8 + NB[2]&0xff;
    * <li>if (FB in [-128, -121]), return interpret NB[FB+129] as a signed big-endian integer.
+   * </ul>
    *
    * @param in
    *          input stream

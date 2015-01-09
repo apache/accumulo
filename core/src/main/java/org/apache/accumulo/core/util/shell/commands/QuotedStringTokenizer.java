@@ -73,9 +73,8 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else {
           throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
         }
-      }
-      // in a hex escape sequence
-      else if (hexChars != null) {
+      } else if (hexChars != null) {
+        // in a hex escape sequence
         final int digit = Character.digit(ch, 16);
         if (digit < 0) {
           throw new BadArgumentException("expected hex character", input, i);
@@ -93,9 +92,8 @@ public class QuotedStringTokenizer implements Iterable<String> {
           token[tokenLength++] = b;
           hexChars = null;
         }
-      }
-      // in a quote, either end the quote, start escape, or continue a token
-      else if (inQuote) {
+      } else if (inQuote) {
+        // in a quote, either end the quote, start escape, or continue a token
         if (ch == inQuoteChar) {
           inQuote = false;
           tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
@@ -105,9 +103,8 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else {
           token[tokenLength++] = inputBytes[i];
         }
-      }
-      // not in a quote, either enter a quote, end a token, start escape, or continue a token
-      else {
+      } else {
+        // not in a quote, either enter a quote, end a token, start escape, or continue a token
         if (ch == '\'' || ch == '"') {
           if (tokenLength > 0) {
             tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
