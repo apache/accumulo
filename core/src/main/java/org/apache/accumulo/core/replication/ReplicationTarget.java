@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -36,7 +37,7 @@ public class ReplicationTarget implements Writable {
   private String remoteIdentifier;
   private String sourceTableId;
 
-  public ReplicationTarget() { }
+  public ReplicationTarget() {}
 
   public ReplicationTarget(String peerName, String remoteIdentifier, String sourceTableId) {
     this.peerName = peerName;
@@ -130,7 +131,9 @@ public class ReplicationTarget implements Writable {
 
   /**
    * Deserialize a ReplicationTarget
-   * @param t Serialized copy
+   *
+   * @param t
+   *          Serialized copy
    * @return the deserialized version
    */
   public static ReplicationTarget from(Text t) {
@@ -149,7 +152,9 @@ public class ReplicationTarget implements Writable {
 
   /**
    * Deserialize a ReplicationTarget
-   * @param s Serialized copy
+   *
+   * @param s
+   *          Serialized copy
    * @return the deserialized version
    */
   public static ReplicationTarget from(String s) {
@@ -167,8 +172,9 @@ public class ReplicationTarget implements Writable {
   }
 
   /**
-   * Convenience method to serialize a ReplicationTarget to {@link Text} using the {@link Writable} methods without caring about
-   * performance penalties due to excessive object creation
+   * Convenience method to serialize a ReplicationTarget to {@link Text} using the {@link Writable} methods without caring about performance penalties due to
+   * excessive object creation
+   *
    * @return The serialized representation of the object
    */
   public Text toText() {

@@ -41,19 +41,19 @@ import org.apache.thrift.TServiceClient;
 import com.google.common.net.HostAndPort;
 
 public class Writer {
-  
+
   private static final Logger log = Logger.getLogger(Writer.class);
-  
+
   private ClientContext context;
   private Text table;
-  
+
   public Writer(ClientContext context, Text table) {
     checkArgument(context != null, "context is null");
     checkArgument(table != null, "table is null");
     this.context = context;
     this.table = table;
   }
-  
+
   public Writer(ClientContext context, String table) {
     this(context, new Text(table));
   }
@@ -64,7 +64,7 @@ public class Writer {
     checkArgument(extent != null, "extent is null");
     checkArgument(server != null, "server is null");
     checkArgument(context != null, "context is null");
-    
+
     TabletClientService.Iface client = null;
     try {
       client = ThriftUtil.getTServerClient(server, context);
@@ -76,16 +76,16 @@ public class Writer {
       ThriftUtil.returnClient((TServiceClient) client);
     }
   }
-  
+
   public void update(Mutation m) throws AccumuloException, AccumuloSecurityException, ConstraintViolationException, TableNotFoundException {
     checkArgument(m != null, "m is null");
-    
+
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");
-    
+
     while (true) {
       TabletLocation tabLoc = TabletLocator.getLocator(context, table).locateTablet(context, new Text(m.getRow()), false, true);
-      
+
       if (tabLoc == null) {
         log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
         UtilWaitThread.sleep(500);
@@ -108,9 +108,9 @@ public class Writer {
         log.error("error sending update to " + parsedLocation + ": " + e);
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
       }
-      
+
       UtilWaitThread.sleep(500);
     }
-    
+
   }
 }

@@ -39,11 +39,10 @@ import org.apache.log4j.Logger;
  * A {@link SecretKeyEncryptionStrategy} that gets its key from HDFS and caches it for IO.
  */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
-  
+
   private static final Logger log = Logger.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
-  
-  
+
   @Override
   public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context) {
     try {
@@ -55,7 +54,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     }
     return context;
   }
-  
+
   @Override
   public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters context) {
     try {
@@ -67,7 +66,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     }
     return context;
   }
-  
+
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params) throws IOException {
     Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
 
@@ -76,8 +75,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     } catch (InvalidKeyException e) {
       log.error(e);
       throw new RuntimeException(e);
-    }      
-    
+    }
+
     if (Cipher.UNWRAP_MODE == encryptionMode) {
       try {
         Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
@@ -102,43 +101,41 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         log.error(e);
         throw new RuntimeException(e);
       }
-      
-    } 
+
+    }
   }
-  
+
   private static class SecretKeyCache {
 
     private boolean initialized = false;
     private byte[] keyEncryptionKey;
     private String pathToKeyName;
-    
-    
-    public SecretKeyCache() {
-    };
-    
+
+    public SecretKeyCache() {};
+
     public synchronized void ensureSecretKeyCacheInitialized(CryptoModuleParameters context) throws IOException {
-      
+
       if (initialized) {
         return;
       }
-      
+
       // First identify if the KEK already exists
       pathToKeyName = getFullPathToKey(context);
-      
+
       if (pathToKeyName == null || pathToKeyName.equals("")) {
         pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
       }
 
       // TODO ACCUMULO-2530 Ensure volumes a properly supported
-      Path pathToKey = new Path(pathToKeyName);  
-      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());   
+      Path pathToKey = new Path(pathToKeyName);
+      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
 
       DataInputStream in = null;
       try {
         if (!fs.exists(pathToKey)) {
           initializeKeyEncryptionKey(fs, pathToKey, context);
         }
-        
+
         in = fs.open(pathToKey);
 
         int keyEncryptionKeyLength = in.readInt();
@@ -146,14 +143,14 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         in.read(keyEncryptionKey);
 
         initialized = true;
-        
+
       } catch (IOException e) {
         log.error("Could not initialize key encryption cache", e);
       } finally {
         IOUtils.closeQuietly(in);
       }
     }
-    
+
     private void initializeKeyEncryptionKey(FileSystem fs, Path pathToKey, CryptoModuleParameters params) throws IOException {
       DataOutputStream out = null;
       try {
@@ -169,30 +166,29 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         out.flush();
       } finally {
         if (out != null) {
-          out.close();        
+          out.close();
         }
       }
-      
+
     }
 
     @SuppressWarnings("deprecation")
     private String getFullPathToKey(CryptoModuleParameters params) {
       String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
       String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
-      
-      
+
       if (pathToKeyName == null) {
         pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
       }
-      
+
       if (instanceDirectory == null) {
         instanceDirectory = Property.INSTANCE_DFS_DIR.getDefaultValue();
       }
-      
+
       if (!pathToKeyName.startsWith("/")) {
         pathToKeyName = "/" + pathToKeyName;
       }
-      
+
       String fullPath = instanceDirectory + pathToKeyName;
       return fullPath;
     }
@@ -205,6 +201,5 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       return pathToKeyName;
     }
   }
-  
 
 }

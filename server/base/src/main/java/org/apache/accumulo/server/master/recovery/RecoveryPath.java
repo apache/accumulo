@@ -23,7 +23,7 @@ import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 
 /**
- * 
+ *
  */
 public class RecoveryPath {
 
@@ -39,21 +39,21 @@ public class RecoveryPath {
         // drop server
         walPath = walPath.getParent();
       }
-  
+
       if (!walPath.getName().equals(FileType.WAL.getDirectory()))
         throw new IllegalArgumentException("Bad path " + walPath);
-  
+
       // drop wal
       walPath = walPath.getParent();
-  
+
       walPath = new Path(walPath, FileType.RECOVERY.getDirectory());
       walPath = new Path(walPath, uuid);
 
       return walPath;
     }
-  
+
     throw new IllegalArgumentException("Bad path " + walPath);
-  
+
   }
 
 }

@@ -38,40 +38,40 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 public class PasswordConverterTest {
-  
+
   private class Password {
     @Parameter(names = "--password", converter = PasswordConverter.class)
     String password;
   }
-  
+
   private String[] argv;
   private Password password;
   private static InputStream realIn;
-  
+
   @BeforeClass
   public static void saveIn() {
     realIn = System.in;
   }
-  
+
   @Before
   public void setup() throws IOException {
     argv = new String[] {"--password", ""};
     password = new Password();
-    
+
     PipedInputStream in = new PipedInputStream();
     PipedOutputStream out = new PipedOutputStream(in);
     OutputStreamWriter osw = new OutputStreamWriter(out);
     osw.write("secret");
     osw.close();
-    
+
     System.setIn(in);
   }
-  
+
   @After
   public void teardown() {
     System.setIn(realIn);
   }
-  
+
   @Test
   public void testPass() {
     String expected = String.valueOf(Math.random());
@@ -79,7 +79,7 @@ public class PasswordConverterTest {
     new JCommander(password, argv);
     assertEquals(expected, password.password);
   }
-  
+
   @Test
   public void testEnv() {
     String name = System.getenv().keySet().iterator().next();
@@ -87,7 +87,7 @@ public class PasswordConverterTest {
     new JCommander(password, argv);
     assertEquals(System.getenv(name), password.password);
   }
-  
+
   @Test
   public void testFile() throws FileNotFoundException {
     argv[1] = "file:pom.xml";
@@ -97,8 +97,8 @@ public class PasswordConverterTest {
     new JCommander(password, argv);
     assertEquals(expected, password.password);
   }
-  
-  @Test(expected=ParameterException.class)
+
+  @Test(expected = ParameterException.class)
   public void testNoFile() throws FileNotFoundException {
     argv[1] = "file:doesnotexist";
     new JCommander(password, argv);

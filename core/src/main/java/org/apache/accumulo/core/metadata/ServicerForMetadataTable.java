@@ -23,9 +23,9 @@ import org.apache.accumulo.core.client.impl.ClientContext;
  * The metadata table's metadata is serviced in the root table.
  */
 class ServicerForMetadataTable extends TableMetadataServicer {
-  
+
   public ServicerForMetadataTable(ClientContext context) {
     super(context, RootTable.NAME, MetadataTable.ID);
   }
-  
+
 }

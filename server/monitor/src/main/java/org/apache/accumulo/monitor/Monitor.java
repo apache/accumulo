@@ -523,6 +523,7 @@ public class Monitor {
     public final long scanCount;
     public final Long oldestScan;
     public final long fetched;
+
     ScanStats(List<ActiveScan> active) {
       this.scanCount = active.size();
       long oldest = -1;
@@ -535,9 +536,10 @@ public class Monitor {
   }
 
   static final Map<HostAndPort,ScanStats> allScans = new HashMap<HostAndPort,ScanStats>();
-  public static Map<HostAndPort, ScanStats> getScans() {
+
+  public static Map<HostAndPort,ScanStats> getScans() {
     synchronized (allScans) {
-      return new TreeMap<HostAndPort, ScanStats>(allScans);
+      return new TreeMap<HostAndPort,ScanStats>(allScans);
     }
   }
 

@@ -25,7 +25,7 @@ import org.apache.accumulo.core.security.Authorizations;
 
 /**
  * A class that contains information about an ActiveScan
- * 
+ *
  */
 public abstract class ActiveScan {
 
@@ -33,62 +33,62 @@ public abstract class ActiveScan {
    * @return an id that uniquely identifies that scan on the server
    */
   public abstract long getScanid();
-  
+
   /**
    * @return the address of the client that initiated the scan
    */
   public abstract String getClient();
-  
+
   /**
    * @return the user that initiated the scan
    */
   public abstract String getUser();
-  
+
   /**
    * @return the table the scan is running against
    */
   public abstract String getTable();
-  
+
   /**
    * @return the age of the scan in milliseconds
    */
   public abstract long getAge();
-  
+
   /**
    * @return milliseconds since last time client read data from the scan
    */
   public abstract long getLastContactTime();
-  
+
   public abstract ScanType getType();
-  
+
   public abstract ScanState getState();
-  
+
   /**
    * @return tablet the scan is running against, if a batch scan may be one of many or null
    */
   public abstract KeyExtent getExtent();
-  
+
   /**
    * @return columns requested by the scan
    */
   public abstract List<Column> getColumns();
-  
+
   /**
    * @return server side iterators used by the scan
    */
   public abstract List<String> getSsiList();
-  
+
   /**
    * @return server side iterator options
    */
   public abstract Map<String,Map<String,String>> getSsio();
-  
+
   /**
    * @return the authorizations being used for this scan
    * @since 1.5.0
    */
   public abstract Authorizations getAuthorizations();
-  
+
   /**
    * @return the time this scan has been idle in the tablet server
    * @since 1.5.0

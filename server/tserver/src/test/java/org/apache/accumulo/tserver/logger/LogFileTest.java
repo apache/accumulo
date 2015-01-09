@@ -33,16 +33,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.tserver.logger.LogEvents;
-import org.apache.accumulo.tserver.logger.LogFileKey;
-import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class LogFileTest {
-  
+
   static private void readWrite(LogEvents event, long seq, int tid, String filename, KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult,
       LogFileValue valueResult) throws IOException {
     LogFileKey key = new LogFileKey();
@@ -66,7 +63,7 @@ public class LogFileTest {
     assertEquals(value.mutations, valueResult.mutations);
     assertTrue(in.read() == -1);
   }
-  
+
   @Test
   public void testReadFields() throws IOException {
     LogFileKey key = new LogFileKey();
@@ -111,14 +108,14 @@ public class LogFileTest {
     assertEquals(key.tid, 10);
     assertEquals(value.mutations, Arrays.asList(m, m));
   }
-  
+
   @Test
   public void testEventType() {
     assertEquals(LogFileKey.eventType(MUTATION), LogFileKey.eventType(MANY_MUTATIONS));
     assertEquals(LogFileKey.eventType(COMPACTION_START), LogFileKey.eventType(COMPACTION_FINISH));
     assertTrue(LogFileKey.eventType(DEFINE_TABLET) < LogFileKey.eventType(COMPACTION_FINISH));
     assertTrue(LogFileKey.eventType(COMPACTION_FINISH) < LogFileKey.eventType(MUTATION));
-    
+
   }
-  
+
 }

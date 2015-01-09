@@ -30,36 +30,36 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Authenticate extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    authenticate(WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getSysToken(), state, env, props);
+    authenticate(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken(), state, env, props);
   }
-  
+
   public static void authenticate(String principal, AuthenticationToken token, State state, Environment env, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
-    
+
     Connector conn = env.getInstance().getConnector(principal, token);
-    
+
     String target;
-    
+
     if (targetProp.equals("table")) {
-      target = WalkingSecurity.get(state,env).getTabUserName();
+      target = WalkingSecurity.get(state, env).getTabUserName();
     } else {
-      target = WalkingSecurity.get(state,env).getSysUserName();
+      target = WalkingSecurity.get(state, env).getSysUserName();
     }
-    boolean exists = WalkingSecurity.get(state,env).userExists(target);
+    boolean exists = WalkingSecurity.get(state, env).userExists(target);
     // Copy so if failed it doesn't mess with the password stored in state
-    byte[] password = Arrays.copyOf(WalkingSecurity.get(state,env).getUserPassword(target), WalkingSecurity.get(state,env).getUserPassword(target).length);
-    boolean hasPermission = WalkingSecurity.get(state,env).canAskAboutUser(new Credentials(principal, token).toThrift(env.getInstance()), target);
-    
+    byte[] password = Arrays.copyOf(WalkingSecurity.get(state, env).getUserPassword(target), WalkingSecurity.get(state, env).getUserPassword(target).length);
+    boolean hasPermission = WalkingSecurity.get(state, env).canAskAboutUser(new Credentials(principal, token).toThrift(env.getInstance()), target);
+
     if (!success)
       for (int i = 0; i < password.length; i++)
         password[i]++;
-    
+
     boolean result;
-    
+
     try {
       result = conn.securityOperations().authenticateUser(target, new PasswordToken(password));
     } catch (AccumuloSecurityException ae) {

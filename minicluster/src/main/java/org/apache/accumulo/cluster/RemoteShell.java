@@ -28,8 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 /**
- * Execute a command, leveraging Hadoop's {@link ShellCommandExecutor}, on a remote host. SSH configuration provided
- * by {@link RemoteShellOptions}.
+ * Execute a command, leveraging Hadoop's {@link ShellCommandExecutor}, on a remote host. SSH configuration provided by {@link RemoteShellOptions}.
  */
 public class RemoteShell extends ShellCommandExecutor {
   private static final Logger log = LoggerFactory.getLogger(RemoteShell.class);

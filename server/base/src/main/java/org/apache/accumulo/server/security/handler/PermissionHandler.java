@@ -70,8 +70,7 @@ public interface PermissionHandler {
   /**
    * Used to get the namespace permission of a user for a namespace
    */
-  boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
-      NamespaceNotFoundException;
+  boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Used to get the namespace permission of a user for a namespace, with caching. This method is for high frequency operations
@@ -102,14 +101,12 @@ public interface PermissionHandler {
   /**
    * Gives the user the given namespace permission
    */
-  void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
-      NamespaceNotFoundException;
+  void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Denies the user the given namespace permission.
    */
-  void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
-      NamespaceNotFoundException;
+  void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Cleans up the permissions for a table. Used when a table gets deleted.

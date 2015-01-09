@@ -34,7 +34,6 @@ import java.util.TimeZone;
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.format.DateStringFormatter;
-import org.apache.accumulo.shell.Shell;
 import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
@@ -286,12 +285,12 @@ public class ShellTest {
 
     input.set("\n\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo", true);
-    
+
     input.set("bar\nname value\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 31", true);
-    
-    //TODO can't verify this as config -t fails, functionality verified in ShellServerIT
-    
+
+    // TODO can't verify this as config -t fails, functionality verified in ShellServerIT
+
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 }

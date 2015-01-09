@@ -93,11 +93,10 @@ public class InterruptibleScannersIT extends AccumuloClusterIT {
     thread.start();
     try {
       // Use the scanner, expect problems
-      for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner) {
-      }
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> entry : scanner) {}
       Assert.fail("Scan should not succeed");
-    } catch (Exception ex) {
-    } finally {
+    } catch (Exception ex) {} finally {
       thread.join();
     }
   }

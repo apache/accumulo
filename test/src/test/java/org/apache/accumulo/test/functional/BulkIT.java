@@ -74,7 +74,7 @@ public class BulkIT extends AccumuloIT {
     cluster = harness.create(getToken());
     cluster.start();
   }
-  
+
   @After
   public void stopMiniCluster() throws Exception {
     cluster.stop();
@@ -85,8 +85,8 @@ public class BulkIT extends AccumuloIT {
     runTest(getConnector(), getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }
 
-  static void runTest(Connector c, String tableName, String filePrefix, String dirSuffix) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,
-      MutationsRejectedException {
+  static void runTest(Connector c, String tableName, String filePrefix, String dirSuffix) throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, IOException, TableNotFoundException, MutationsRejectedException {
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     String base = "target/accumulo-maven-plugin";
@@ -101,7 +101,7 @@ public class BulkIT extends AccumuloIT {
     opts.instance = c.getInstance().getInstanceName();
     opts.cols = 1;
     opts.setTableName(tableName);
-    String fileFormat = "/testrf/"+filePrefix+"rf%02d";
+    String fileFormat = "/testrf/" + filePrefix + "rf%02d";
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = base + String.format(fileFormat, i);
       opts.startRow = N * i;

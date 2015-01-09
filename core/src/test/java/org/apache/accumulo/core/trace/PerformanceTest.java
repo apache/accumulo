@@ -19,14 +19,14 @@ package org.apache.accumulo.core.trace;
 import org.junit.Test;
 
 public class PerformanceTest {
-  
+
   @Test
   public void test() {
-    
+
   }
-  
+
   public static void main(String[] args) {
-    
+
     long now = System.currentTimeMillis();
     for (long i = 0; i < 1000 * 1000; i++) {
       @SuppressWarnings("unused")

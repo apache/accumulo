@@ -44,20 +44,20 @@ public class FileDataQuery {
   List<Entry<Key,Value>> lastRefs;
   private ChunkInputStream cis;
   Scanner scanner;
-  
-  public FileDataQuery(String instanceName, String zooKeepers, String user, AuthenticationToken token, String tableName, Authorizations auths) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+
+  public FileDataQuery(String instanceName, String zooKeepers, String user, AuthenticationToken token, String tableName, Authorizations auths)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ZooKeeperInstance instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
     conn = instance.getConnector(user, token);
     lastRefs = new ArrayList<Entry<Key,Value>>();
     cis = new ChunkInputStream();
     scanner = conn.createScanner(tableName, auths);
   }
-  
+
   public List<Entry<Key,Value>> getLastRefs() {
     return lastRefs;
   }
-  
+
   public ChunkInputStream getData(String hash) throws IOException {
     scanner.setRange(new Range(hash));
     scanner.setBatchSize(1);
@@ -73,7 +73,7 @@ public class FileDataQuery {
     cis.setSource(pi);
     return cis;
   }
-  
+
   public String getSomeData(String hash, int numBytes) throws IOException {
     ChunkInputStream is = getData(hash);
     byte[] buf = new byte[numBytes];

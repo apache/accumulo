@@ -102,9 +102,9 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
   public void testTimeout() throws Exception {
     String results = test(20, true);
     if (results != null) {
-    	if (!results.contains("Session expired")) {
+      if (!results.contains("Session expired")) {
         log.info("Failed to find 'Session expired' in output, but TServer did die which is expected");
-    	}
+      }
     }
   }
 

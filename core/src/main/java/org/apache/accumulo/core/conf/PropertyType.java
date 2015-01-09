@@ -22,8 +22,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.fs.Path;
 
 /**
- * Types of {@link Property} values. Each type has a short name, a description,
- * and a regex which valid values match. All of these fields are optional.
+ * Types of {@link Property} values. Each type has a short name, a description, and a regex which valid values match. All of these fields are optional.
  */
 public enum PropertyType {
   PREFIX(null, null, null),
@@ -99,7 +98,7 @@ public enum PropertyType {
   String getFormatDescription() {
     return format;
   }
-  
+
   /**
    * Checks if the given value is valid for this type.
    *

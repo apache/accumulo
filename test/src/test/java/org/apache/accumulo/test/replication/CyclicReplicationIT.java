@@ -151,7 +151,7 @@ public class CyclicReplicationIT {
     MiniAccumuloConfigImpl master1Cfg;
     MiniAccumuloClusterImpl master1Cluster;
     while (true) {
-      master1Cfg= new MiniAccumuloConfigImpl(master1Dir, password);
+      master1Cfg = new MiniAccumuloConfigImpl(master1Dir, password);
       master1Cfg.setNumTservers(1);
       master1Cfg.setInstanceName("master1");
 
@@ -238,13 +238,11 @@ public class CyclicReplicationIT {
 
       // Replicate master1 in the master1 cluster to master2 in the master2 cluster
       connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster1.tableOperations().setProperty(master1Table,
-          Property.TABLE_REPLICATION_TARGET.getKey() + master2Cluster.getInstanceName(), master2TableId);
+      connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION_TARGET.getKey() + master2Cluster.getInstanceName(), master2TableId);
 
       // Replicate master2 in the master2 cluster to master1 in the master2 cluster
       connMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster2.tableOperations().setProperty(master2Table,
-          Property.TABLE_REPLICATION_TARGET.getKey() + master1Cluster.getInstanceName(), master1TableId);
+      connMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION_TARGET.getKey() + master1Cluster.getInstanceName(), master1TableId);
 
       // Give our replication user the ability to write to the respective table
       connMaster1.securityOperations().grantTablePermission(master1UserName, master1Table, TablePermission.WRITE);

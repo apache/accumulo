@@ -21,68 +21,69 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
-
-import com.beust.jcommander.Parameter;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.Parameter;
+
 public class CreateRFiles {
-  
+
   private static final Logger log = Logger.getLogger(CreateRFiles.class);
-  
+
   static class Opts extends Help {
-    
-    @Parameter(names="--output", description="the destiation directory")
+
+    @Parameter(names = "--output", description = "the destiation directory")
     String outputDirectory;
-    
-    @Parameter(names="--numThreads", description="number of threads to use when generating files")
+
+    @Parameter(names = "--numThreads", description = "number of threads to use when generating files")
     int numThreads = 4;
-    
-    @Parameter(names="--start", description="the start number for test data")
+
+    @Parameter(names = "--start", description = "the start number for test data")
     long start = 0;
-    
-    @Parameter(names="--end", description="the maximum number for test data")
-    long end = 10*1000*1000;
-    
-    @Parameter(names="--splits", description="the number of splits in the data")
+
+    @Parameter(names = "--end", description = "the maximum number for test data")
+    long end = 10 * 1000 * 1000;
+
+    @Parameter(names = "--splits", description = "the number of splits in the data")
     long numsplits = 4;
   }
-  
+
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(CreateRFiles.class.getName(), args);
-    
+
     long splitSize = Math.round((opts.end - opts.start) / (double) opts.numsplits);
-    
+
     long currStart = opts.start;
     long currEnd = opts.start + splitSize;
-    
+
     ExecutorService threadPool = Executors.newFixedThreadPool(opts.numThreads);
-    
+
     int count = 0;
     while (currEnd <= opts.end && currStart < currEnd) {
-      
-      final String tia = String.format("--rfile %s/mf%05d --timestamp 1 --size 50 --random 56 --rows %d --start %d --user root", opts.outputDirectory, count, currEnd - currStart, currStart);
-      
+
+      final String tia = String.format("--rfile %s/mf%05d --timestamp 1 --size 50 --random 56 --rows %d --start %d --user root", opts.outputDirectory, count,
+          currEnd - currStart, currStart);
+
       Runnable r = new Runnable() {
-        
+
         @Override
         public void run() {
           try {
             TestIngest.main(tia.split(" "));
           } catch (Exception e) {
-            log.error("Could not run "+TestIngest.class.getName()+".main using the input '"+tia+"'", e);
+            log.error("Could not run " + TestIngest.class.getName() + ".main using the input '" + tia + "'", e);
           }
         }
-        
+
       };
-      
+
       threadPool.execute(r);
-      
+
       count++;
       currStart = currEnd;
       currEnd = Math.min(opts.end, currStart + splitSize);
     }
-    
+
     threadPool.shutdown();
     while (!threadPool.isTerminated())
       try {

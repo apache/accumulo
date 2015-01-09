@@ -54,7 +54,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * A special header string used when serializing instances of this class.
-   * 
+   *
    * @see #serialize()
    */
   public static final String HEADER = "!AUTH1:";
@@ -102,7 +102,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Constructs an authorization object from a collection of string authorizations that have each already been encoded as UTF-8 bytes. Warning: This method does
    * not verify that each encoded string is valid UTF-8.
-   * 
+   *
    * @param authorizations
    *          collection of authorizations, as strings encoded in UTF-8
    * @throws IllegalArgumentException
@@ -119,7 +119,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Constructs an authorization object from a list of string authorizations that have each already been encoded as UTF-8 bytes. Warning: This method does not
    * verify that each encoded string is valid UTF-8.
-   * 
+   *
    * @param authorizations
    *          list of authorizations, as strings encoded in UTF-8 and placed in buffers
    * @throws IllegalArgumentException
@@ -137,7 +137,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Constructs an authorizations object from a serialized form. This is NOT a constructor for a set of authorizations of size one. Warning: This method does
    * not verify that the encoded serialized form is valid UTF-8.
-   * 
+   *
    * @param authorizations
    *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()}, converted to UTF-8 bytes
    * @throws IllegalArgumentException
@@ -167,14 +167,14 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Constructs an empty set of authorizations.
-   * 
+   *
    * @see #Authorizations(String...)
    */
   public Authorizations() {}
 
   /**
    * Constructs an authorizations object from a set of human-readable authorizations.
-   * 
+   *
    * @param authorizations
    *          array of authorizations
    * @throws IllegalArgumentException
@@ -197,7 +197,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Returns a serialized form of these authorizations.
-   * 
+   *
    * @return serialized form of these authorizations, as a string encoded in UTF-8
    * @see #serialize()
    */
@@ -207,7 +207,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Gets the authorizations in sorted order. The returned list is not modifiable.
-   * 
+   *
    * @return authorizations, each as a string encoded in UTF-8
    * @see #Authorizations(Collection)
    */
@@ -223,7 +223,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Gets the authorizations in sorted order. The returned list is not modifiable.
-   * 
+   *
    * @return authorizations, each as a string encoded in UTF-8 and within a buffer
    */
   public List<ByteBuffer> getAuthorizationsBB() {
@@ -251,7 +251,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Checks whether this object contains the given authorization.
-   * 
+   *
    * @param auth
    *          authorization, as a string encoded in UTF-8
    * @return true if authorization is in this collection
@@ -262,7 +262,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Checks whether this object contains the given authorization. Warning: This method does not verify that the encoded string is valid UTF-8.
-   * 
+   *
    * @param auth
    *          authorization, as a string encoded in UTF-8
    * @return true if authorization is in this collection
@@ -274,7 +274,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Checks whether this object contains the given authorization.
-   * 
+   *
    * @param auth
    *          authorization
    * @return true if authorization is in this collection
@@ -308,7 +308,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Gets the size of this collection of authorizations.
-   * 
+   *
    * @return collection size
    */
   public int size() {
@@ -317,7 +317,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Checks if this collection of authorizations is empty.
-   * 
+   *
    * @return true if this collection contains no authorizations
    */
   public boolean isEmpty() {
@@ -331,7 +331,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   /**
    * Returns a serialized form of these authorizations. Convert the returned string to UTF-8 bytes to deserialize with {@link #Authorizations(byte[])}.
-   * 
+   *
    * @return serialized form of authorizations
    */
   public String serialize() {

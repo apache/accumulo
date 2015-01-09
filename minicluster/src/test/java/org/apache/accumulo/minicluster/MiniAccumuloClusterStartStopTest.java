@@ -29,14 +29,14 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 public class MiniAccumuloClusterStartStopTest {
-  
+
   private static final Logger log = Logger.getLogger(MiniAccumuloClusterStartStopTest.class);
   private File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
   private MiniAccumuloCluster accumulo;
 
   @Rule
   public TestName testName = new TestName();
-  
+
   @Before
   public void setupTestCluster() throws IOException {
     baseDir.mkdirs();

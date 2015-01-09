@@ -186,8 +186,9 @@ public class SimpleProxyIT {
     // wait for accumulo to be up and functional
     ZooKeeperInstance zoo = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = zoo.getConnector("root", new PasswordToken(secret.getBytes()));
-    for (@SuppressWarnings("unused") Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-        ;
+    for (@SuppressWarnings("unused")
+    Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
+      ;
 
     Properties props = new Properties();
     props.put("instance", accumulo.getConfig().getInstanceName());
@@ -1599,8 +1600,8 @@ public class SimpleProxyIT {
 
     client.createTable(creds, tableName, true, TimeType.MILLIS);
 
-    client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
-        System.getProperty("user.dir") + "/src/test/resources/TestCompactionStrat.jar");
+    client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", System.getProperty("user.dir")
+        + "/src/test/resources/TestCompactionStrat.jar");
     client.setTableProperty(creds, tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
 
     client.addSplits(creds, tableName, Collections.singleton(s2bb("efg")));

@@ -25,16 +25,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
- * 
+ *
  */
 public class DistributedWorkQueueWorkAssignerHelper {
-
 
   public static final String KEY_SEPARATOR = "|";
 
   /**
    * Serialize a filename and a {@link ReplicationTarget} into the expected key format for use with the {@link DistributedWorkQueue}
-   * 
+   *
    * @param filename
    *          Filename for data to be replicated
    * @param replTarget

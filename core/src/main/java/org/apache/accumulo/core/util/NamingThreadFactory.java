@@ -28,13 +28,13 @@ public class NamingThreadFactory implements ThreadFactory {
 
   private AtomicInteger threadNum = new AtomicInteger(1);
   private String name;
-  
+
   public NamingThreadFactory(String name) {
     this.name = name;
   }
-  
+
   public Thread newThread(Runnable r) {
     return new Daemon(new LoggingRunnable(log, new TraceRunnable(r)), name + " " + threadNum.getAndIncrement());
   }
-  
+
 }

@@ -129,10 +129,10 @@ public class Admin {
     @Parameter(names = {"-u", "--users"}, description = "print users and their authorizations and permissions")
     boolean users = false;
   }
-  
+
   @Parameters(commandDescription = "redistribute tablet directories across the current volume list")
   static class RandomizeVolumesCommand {
-    @Parameter(names={"-t"}, description = "table to update", required=true)
+    @Parameter(names = {"-t"}, description = "table to update", required = true)
     String table = null;
   }
 
@@ -164,10 +164,10 @@ public class Admin {
     cl.addCommand("stopAll", stopAllOpts);
     StopMasterCommand stopMasterOpts = new StopMasterCommand();
     cl.addCommand("stopMaster", stopMasterOpts);
-    
+
     RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
     cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
-    
+
     cl.parse(args);
 
     if (opts.help || cl.getParsedCommand() == null) {
@@ -269,7 +269,7 @@ public class Admin {
   /**
    * flushing during shutdown is a performance optimization, its not required. The method will make an attempt to initiate flushes of all tables and give up if
    * it takes too long.
-   * 
+   *
    */
   private static void flushAll(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
 
@@ -385,21 +385,21 @@ public class Admin {
     }
 
     if (opts.allConfiguration) {
-      //print accumulo site
+      // print accumulo site
       printSystemConfiguration(connector, outputDirectory);
-      //print namespaces
+      // print namespaces
       for (String namespace : connector.namespaceOperations().list()) {
         printNameSpaceConfiguration(connector, namespace, outputDirectory);
       }
-      //print tables
+      // print tables
       SortedSet<String> tableNames = connector.tableOperations().list();
       for (String tableName : tableNames) {
         printTableConfiguration(connector, tableName, outputDirectory);
       }
-      //print users
+      // print users
       for (String user : localUsers) {
-		printUserConfiguration(connector, user, outputDirectory);
-	  }
+        printUserConfiguration(connector, user, outputDirectory);
+      }
     } else {
       if (opts.systemConfiguration) {
         printSystemConfiguration(connector, outputDirectory);
@@ -436,56 +436,57 @@ public class Admin {
     return defaultValue;
   }
 
-  private static void printNameSpaceConfiguration(Connector connector, String namespace, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-	  File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
-	  FileWriter nsWriter = new FileWriter(namespaceScript);
-	  nsWriter.write(createNsFormat.format(new String[] {namespace}));
-	  TreeMap<String,String> props = new TreeMap<String,String>();
-	  for (Entry<String,String> p : connector.namespaceOperations().getProperties(namespace)) {
-		  props.put(p.getKey(), p.getValue());
-	  }
-	  for (Entry<String,String> entry : props.entrySet()) {
-        String defaultValue = getDefaultConfigValue(entry.getKey());
-        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
-          if (!entry.getValue().equals(siteConfig.get(entry.getKey())) && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
-            nsWriter.write(nsConfigFormat.format(new String[] {namespace, entry.getKey()+"="+entry.getValue()}));
-          }
+  private static void printNameSpaceConfiguration(Connector connector, String namespace, File outputDirectory) throws IOException, AccumuloException,
+      AccumuloSecurityException, NamespaceNotFoundException {
+    File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
+    FileWriter nsWriter = new FileWriter(namespaceScript);
+    nsWriter.write(createNsFormat.format(new String[] {namespace}));
+    TreeMap<String,String> props = new TreeMap<String,String>();
+    for (Entry<String,String> p : connector.namespaceOperations().getProperties(namespace)) {
+      props.put(p.getKey(), p.getValue());
+    }
+    for (Entry<String,String> entry : props.entrySet()) {
+      String defaultValue = getDefaultConfigValue(entry.getKey());
+      if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
+        if (!entry.getValue().equals(siteConfig.get(entry.getKey())) && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+          nsWriter.write(nsConfigFormat.format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
         }
-	  }
-	  nsWriter.close();
+      }
+    }
+    nsWriter.close();
   }
 
-  private static void printUserConfiguration(Connector connector, String user, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
-      File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
-      FileWriter userWriter = new FileWriter(userScript);
-      userWriter.write(createUserFormat.format(new String[] {user}));
-      Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
-      userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
-      for (SystemPermission sp : SystemPermission.values()) {
-        if (connector.securityOperations().hasSystemPermission(user, sp)) {
-          userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
-        }
-      }
-      for (String namespace : connector.namespaceOperations().list()) {
-        for (NamespacePermission np : NamespacePermission.values()) {
-          if (connector.securityOperations().hasNamespacePermission(user, namespace, np)) {
-            userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
-          }
-        }
-      }
-      for (String tableName : connector.tableOperations().list()) {
-        for (TablePermission perm : TablePermission.values()) {
-          if (connector.securityOperations().hasTablePermission(user, tableName, perm)) {
-            userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
-          }
-        }
-      }
-
-      userWriter.close();
-  }
-
-  private static void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException,
+  private static void printUserConfiguration(Connector connector, String user, File outputDirectory) throws IOException, AccumuloException,
       AccumuloSecurityException {
+    File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
+    FileWriter userWriter = new FileWriter(userScript);
+    userWriter.write(createUserFormat.format(new String[] {user}));
+    Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
+    userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
+    for (SystemPermission sp : SystemPermission.values()) {
+      if (connector.securityOperations().hasSystemPermission(user, sp)) {
+        userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
+      }
+    }
+    for (String namespace : connector.namespaceOperations().list()) {
+      for (NamespacePermission np : NamespacePermission.values()) {
+        if (connector.securityOperations().hasNamespacePermission(user, namespace, np)) {
+          userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
+        }
+      }
+    }
+    for (String tableName : connector.tableOperations().list()) {
+      for (TablePermission perm : TablePermission.values()) {
+        if (connector.securityOperations().hasTablePermission(user, tableName, perm)) {
+          userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
+        }
+      }
+    }
+
+    userWriter.close();
+  }
+
+  private static void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     Configuration conf = new Configuration(false);
     TreeMap<String,String> site = new TreeMap<String,String>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
@@ -510,8 +511,8 @@ public class Admin {
     }
   }
 
-  private static void printTableConfiguration(Connector connector, String tableName, File outputDirectory) throws AccumuloException,
-      TableNotFoundException, IOException, AccumuloSecurityException {
+  private static void printTableConfiguration(Connector connector, String tableName, File outputDirectory) throws AccumuloException, TableNotFoundException,
+      IOException, AccumuloSecurityException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);
     writer.write(createTableFormat.format(new String[] {tableName}));

@@ -24,20 +24,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 
 public class TransactionWatcher {
-  
+
   public interface Arbitrator {
     boolean transactionAlive(String type, long tid) throws Exception;
+
     boolean transactionComplete(String type, long tid) throws Exception;
   }
-  
+
   private static final Logger log = Logger.getLogger(TransactionWatcher.class);
   final private Map<Long,AtomicInteger> counts = new HashMap<Long,AtomicInteger>();
   final private Arbitrator arbitrator;
-  
+
   public TransactionWatcher(Arbitrator arbitrator) {
     this.arbitrator = arbitrator;
   }
-  
+
   public <T> T run(String ztxBulk, long tid, Callable<T> callable) throws Exception {
     synchronized (counts) {
       if (!arbitrator.transactionAlive(ztxBulk, tid)) {
@@ -62,7 +63,7 @@ public class TransactionWatcher {
       }
     }
   }
-  
+
   public boolean isActive(long tid) {
     synchronized (counts) {
       log.debug("Transactions in progress " + counts);
@@ -70,5 +71,5 @@ public class TransactionWatcher {
       return count != null && count.get() > 0;
     }
   }
-  
+
 }

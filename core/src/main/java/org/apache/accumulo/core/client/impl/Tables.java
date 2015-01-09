@@ -43,7 +43,7 @@ public class Tables {
   private static final Logger log = Logger.getLogger(Tables.class);
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
-  
+
   private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
   private static final AtomicLong cacheResetCount = new AtomicLong(0);
 
@@ -222,7 +222,7 @@ public class Tables {
 
   /**
    * Returns the namespace id for a given table ID.
-   * 
+   *
    * @param instance
    *          The Accumulo Instance
    * @param tableId

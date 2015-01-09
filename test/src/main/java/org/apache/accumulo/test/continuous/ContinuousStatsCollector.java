@@ -58,15 +58,15 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.log4j.Logger;
 
 public class ContinuousStatsCollector {
-  
+
   private static final Logger log = Logger.getLogger(ContinuousStatsCollector.class);
-  
+
   static class StatsCollectionTask extends TimerTask {
-    
+
     private final String tableId;
     private final Opts opts;
     private final int scanBatchSize;
-    
+
     public StatsCollectionTask(Opts opts, int scanBatchSize) {
       this.opts = opts;
       this.scanBatchSize = scanBatchSize;
@@ -76,7 +76,7 @@ public class ContinuousStatsCollector {
               + " ACCUMULO_DU ACCUMULO_DIRS ACCUMULO_FILES TABLE_DU TABLE_DIRS TABLE_FILES"
               + " MAP_TASK MAX_MAP_TASK REDUCE_TASK MAX_REDUCE_TASK TASK_TRACKERS BLACK_LISTED MIN_FILES/TABLET MAX_FILES/TABLET AVG_FILES/TABLET STDDEV_FILES/TABLET");
     }
-    
+
     @Override
     public void run() {
       try {
@@ -84,37 +84,37 @@ public class ContinuousStatsCollector {
         String fsStats = getFSStats();
         String mrStats = getMRStats();
         String tabletStats = getTabletStats();
-        
+
         System.out.println(System.currentTimeMillis() + " " + acuStats + " " + fsStats + " " + mrStats + " " + tabletStats);
       } catch (Exception e) {
-        log.error(System.currentTimeMillis()+" - Failed to collect stats", e);
+        log.error(System.currentTimeMillis() + " - Failed to collect stats", e);
       }
     }
-    
+
     private String getTabletStats() throws Exception {
-      
+
       Connector conn = opts.getConnector();
       Scanner scanner = conn.createScanner(MetadataTable.NAME, opts.auths);
       scanner.setBatchSize(scanBatchSize);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
-      
+
       Stat s = new Stat();
-      
+
       int count = 0;
       for (Entry<Key,Value> entry : scanner) {
         count++;
         s.addStat(Long.parseLong(entry.getValue().toString()));
       }
-      
+
       if (count > 0)
         return String.format("%d %d %.3f %.3f", s.getMin(), s.getMax(), s.getAverage(), s.getStdDev());
       else
         return "0 0 0 0";
-      
+
     }
-    
+
     private String getFSStats() throws Exception {
       VolumeManager fs = VolumeManagerImpl.get();
       long length1 = 0, dcount1 = 0, fcount1 = 0;
@@ -129,22 +129,22 @@ public class ContinuousStatsCollector {
         dcount2 += contentSummary.getDirectoryCount();
         fcount2 += contentSummary.getFileCount();
       }
-      
+
       return "" + length1 + " " + dcount1 + " " + fcount1 + " " + length2 + " " + dcount2 + " " + fcount2;
     }
-    
+
     private String getACUStats() throws Exception {
-      
+
       MasterClientService.Iface client = null;
       try {
         ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), new ServerConfigurationFactory(
             opts.getInstance()).getConfiguration());
         client = MasterClient.getConnectionWithRetry(context);
         MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
-        
+
         TableInfo all = new TableInfo();
         Map<String,TableInfo> tableSummaries = new HashMap<String,TableInfo>();
-        
+
         for (TabletServerStatus server : stats.tServerInfo) {
           for (Entry<String,TableInfo> info : server.tableMap.entrySet()) {
             TableInfo tableSummary = tableSummaries.get(info.getKey());
@@ -156,42 +156,42 @@ public class ContinuousStatsCollector {
             TableInfoUtil.add(all, info.getValue());
           }
         }
-        
+
         TableInfo ti = tableSummaries.get(tableId);
-        
+
         return "" + stats.tServerInfo.size() + " " + all.recs + " " + (long) all.ingestRate + " " + (long) all.queryRate + " " + ti.recs + " "
             + ti.recsInMemory + " " + (long) ti.ingestRate + " " + (long) ti.queryRate + " " + ti.tablets + " " + ti.onlineTablets;
-        
+
       } finally {
         if (client != null)
           MasterClient.close(client);
       }
-      
+
     }
-    
+
   }
-  
+
   private static String getMRStats() throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
     // No alternatives for hadoop 20
     JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
-    
+
     ClusterStatus cs = jc.getClusterStatus(false);
-    
+
     return "" + cs.getMapTasks() + " " + cs.getMaxMapTasks() + " " + cs.getReduceTasks() + " " + cs.getMaxReduceTasks() + " " + cs.getTaskTrackers() + " "
         + cs.getBlacklistedTrackers();
-    
+
   }
-  
+
   static class Opts extends ClientOnRequiredTable {}
-  
+
   public static void main(String[] args) {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(ContinuousStatsCollector.class.getName(), args, scanOpts);
     Timer jtimer = new Timer();
-    
+
     jtimer.schedule(new StatsCollectionTask(opts, scanOpts.scanBatchSize), 0, 30000);
   }
-  
+
 }

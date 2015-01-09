@@ -17,7 +17,7 @@
 package org.apache.accumulo.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.accumulo.core.util.Base64;
-import org.apache.accumulo.shell.ShellUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;
@@ -55,9 +54,7 @@ public class ShellUtilTest {
     File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
     FileUtils.writeStringToFile(testFile, FILEDATA);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
-    assertEquals(
-        ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(UTF_8)))),
-        output);
+    assertEquals(ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(UTF_8)))), output);
   }
 
   @Test(expected = FileNotFoundException.class)

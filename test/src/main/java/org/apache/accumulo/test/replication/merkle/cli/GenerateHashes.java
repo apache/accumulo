@@ -120,7 +120,8 @@ public class GenerateHashes {
     }
   }
 
-  public Collection<Range> getRanges(Connector conn, String tableName, String splitsFile) throws TableNotFoundException, AccumuloSecurityException, AccumuloException, FileNotFoundException {
+  public Collection<Range> getRanges(Connector conn, String tableName, String splitsFile) throws TableNotFoundException, AccumuloSecurityException,
+      AccumuloException, FileNotFoundException {
     if (null == splitsFile) {
       log.info("Using table split points");
       Collection<Text> endRows = conn.tableOperations().listSplits(tableName);

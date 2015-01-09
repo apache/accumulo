@@ -22,13 +22,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 /**
  * This class exist to pass parameters to {@link TableOperations#compact(String, CompactionConfig)}
- * 
+ *
  * @since 1.7.0
  */
 
@@ -64,7 +65,7 @@ public class CompactionConfig {
   }
 
   /**
-   * 
+   *
    * @param end
    *          Last tablet to be compacted contains this row, null means the last tablet in table. The default is null.
    * @return this
@@ -110,7 +111,7 @@ public class CompactionConfig {
   }
 
   /**
-   * 
+   *
    * @return The previously set wait. The default is true.
    */
   public boolean getWait() {

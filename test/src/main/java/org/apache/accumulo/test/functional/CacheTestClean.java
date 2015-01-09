@@ -24,17 +24,17 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.io.FileUtils;
 
 public class CacheTestClean {
-  
+
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
     File reportDir = new File(args[1]);
-    
+
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    
+
     if (zoo.exists(rootDir)) {
       zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
     }
-    
+
     if (reportDir.exists()) {
       FileUtils.deleteDirectory(reportDir);
     }

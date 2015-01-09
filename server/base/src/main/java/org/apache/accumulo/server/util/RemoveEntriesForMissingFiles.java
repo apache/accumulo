@@ -57,7 +57,7 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Remove file entries for map files that don't exist.
- * 
+ *
  */
 public class RemoveEntriesForMissingFiles {
 

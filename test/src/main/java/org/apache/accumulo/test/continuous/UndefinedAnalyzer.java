@@ -51,7 +51,7 @@ import com.beust.jcommander.Parameter;
 /**
  * BUGS This code does not handle the fact that these files could include log events from previous months. It therefore it assumes all dates are in the current
  * month. One solution might be to skip log files that haven't been touched in the last month, but that doesn't prevent newer files that have old dates in them.
- * 
+ *
  */
 public class UndefinedAnalyzer {
 

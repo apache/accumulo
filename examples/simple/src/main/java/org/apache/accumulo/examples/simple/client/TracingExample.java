@@ -18,6 +18,7 @@
 package org.apache.accumulo.examples.simple.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
@@ -43,7 +44,7 @@ import com.beust.jcommander.Parameter;
 
 /**
  * A simple example showing how to use the distributed tracing API in client code
- * 
+ *
  */
 public class TracingExample {
   private static final Logger log = Logger.getLogger(TracingExample.class);
@@ -124,8 +125,7 @@ public class TracingExample {
       ++numberOfEntriesRead;
     }
     // You can add additional metadata (key, values) to Spans which will be able to be viewed in the Monitor
-    readScope.getSpan().addKVAnnotation("Number of Entries Read".getBytes(UTF_8),
-        String.valueOf(numberOfEntriesRead).getBytes(UTF_8));
+    readScope.getSpan().addKVAnnotation("Number of Entries Read".getBytes(UTF_8), String.valueOf(numberOfEntriesRead).getBytes(UTF_8));
 
     readScope.close();
   }

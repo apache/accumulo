@@ -23,7 +23,7 @@ import org.apache.accumulo.core.replication.PrintReplicationRecords;
 import org.apache.accumulo.core.util.Daemon;
 
 /**
- * 
+ *
  */
 public class ReplicationTablesPrinterThread extends Daemon {
 

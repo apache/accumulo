@@ -50,7 +50,7 @@ import com.beust.jcommander.validators.PositiveInteger;
 /**
  * A map only job that reads a table created by continuous ingest and creates doubly linked list. This map reduce job tests the ability of a map only job to
  * read and write to accumulo at the same time. This map reduce job mutates the table in such a way that it should not create any undefined nodes.
- * 
+ *
  */
 public class ContinuousMoru extends Configured implements Tool {
   private static final String PREFIX = ContinuousMoru.class.getSimpleName() + ".";
@@ -59,49 +59,49 @@ public class ContinuousMoru extends Configured implements Tool {
   private static final String MAX = PREFIX + "MAX";
   private static final String MIN = PREFIX + "MIN";
   private static final String CI_ID = PREFIX + "CI_ID";
-  
+
   static enum Counts {
     SELF_READ;
   }
-  
+
   public static class CMapper extends Mapper<Key,Value,Text,Mutation> {
-    
+
     private short max_cf;
     private short max_cq;
     private Random random;
     private String ingestInstanceId;
     private byte[] iiId;
     private long count;
-    
+
     private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
-    
+
     @Override
     public void setup(Context context) throws IOException, InterruptedException {
       int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
       int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
-      
+
       if (max_cf > Short.MAX_VALUE || max_cq > Short.MAX_VALUE)
         throw new IllegalArgumentException();
-      
+
       this.max_cf = (short) max_cf;
       this.max_cq = (short) max_cq;
-      
+
       random = new Random();
       ingestInstanceId = context.getConfiguration().get(CI_ID);
       iiId = ingestInstanceId.getBytes(UTF_8);
-      
+
       count = 0;
     }
-    
+
     @Override
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
-      
+
       ContinuousWalk.validate(key, data);
-      
+
       if (WritableComparator.compareBytes(iiId, 0, iiId.length, data.get(), 0, iiId.length) != 0) {
         // only rewrite data not written by this M/R job
         byte[] val = data.get();
-        
+
         int offset = ContinuousWalk.getPrevRowOffset(val);
         if (offset > 0) {
           long rowLong = Long.parseLong(new String(val, offset, 16, UTF_8), 16);
@@ -109,24 +109,24 @@ public class ContinuousMoru extends Configured implements Tool {
               .toArray(), random, true);
           context.write(null, m);
         }
-        
+
       } else {
         ContinuousVerify.increment(context.getCounter(Counts.SELF_READ));
       }
     }
   }
-  
+
   static class Opts extends BaseOpts {
-    @Parameter(names = "--maxColF", description = "maximum column family value to use", converter=ShortConverter.class)
+    @Parameter(names = "--maxColF", description = "maximum column family value to use", converter = ShortConverter.class)
     short maxColF = Short.MAX_VALUE;
-    
-    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use", converter=ShortConverter.class)
+
+    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use", converter = ShortConverter.class)
     short maxColQ = Short.MAX_VALUE;
-    
+
     @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
     int maxMaps = 0;
   }
-  
+
   @Override
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
     Opts opts = new Opts();
@@ -136,10 +136,10 @@ public class ContinuousMoru extends Configured implements Tool {
     @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
-    
+
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
-    
+
     // set up ranges
     try {
       Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
@@ -148,28 +148,28 @@ public class ContinuousMoru extends Configured implements Tool {
     } catch (Exception e) {
       throw new IOException(e);
     }
-    
+
     job.setMapperClass(CMapper.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     AccumuloOutputFormat.setBatchWriterOptions(job, bwOpts.getBatchWriterConfig());
-    
+
     Configuration conf = job.getConfiguration();
     conf.setLong(MIN, opts.min);
     conf.setLong(MAX, opts.max);
     conf.setInt(MAX_CF, opts.maxColF);
     conf.setInt(MAX_CQ, opts.maxColQ);
     conf.set(CI_ID, UUID.randomUUID().toString());
-    
+
     job.waitForCompletion(true);
     opts.stopTracing();
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   /**
-   * 
+   *
    * @param args
    *          instanceName zookeepers username password table columns outputpath
    */

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -36,11 +37,11 @@ import org.apache.hadoop.io.WritableUtils;
 
 /**
  * Configure an iterator for minc, majc, and/or scan. By default, IteratorSetting will be configured for scan.
- * 
+ *
  * Every iterator has a priority, a name, a class, a set of scopes, and configuration parameters.
- * 
+ *
  * A typical use case configured for scan:
- * 
+ *
  * <pre>
  * IteratorSetting cfg = new IteratorSetting(priority, &quot;myIter&quot;, MyIterator.class);
  * MyIterator.addOption(cfg, 42);
@@ -52,19 +53,19 @@ public class IteratorSetting implements Writable {
   private String name;
   private String iteratorClass;
   private Map<String,String> properties;
-  
+
   /**
    * Get layer at which this iterator applies. See {@link #setPriority(int)} for how the priority is used.
-   * 
+   *
    * @return the priority of this Iterator
    */
   public int getPriority() {
     return priority;
   }
-  
+
   /**
    * Set layer at which this iterator applies.
-   * 
+   *
    * @param priority
    *          determines the order in which iterators are applied (system iterators are always applied first, then user-configured iterators, lowest priority
    *          first)
@@ -73,16 +74,16 @@ public class IteratorSetting implements Writable {
     checkArgument(priority > 0, "property must be strictly positive");
     this.priority = priority;
   }
-  
+
   /**
    * Get the iterator's name.
-   * 
+   *
    * @return the name of the iterator
    */
   public String getName() {
     return name;
   }
-  
+
   /**
    * Set the iterator's name. Must be a simple alphanumeric identifier.
    */
@@ -90,16 +91,16 @@ public class IteratorSetting implements Writable {
     checkArgument(name != null, "name is null");
     this.name = name;
   }
-  
+
   /**
    * Get the name of the class that implements the iterator.
-   * 
+   *
    * @return the iterator's class name
    */
   public String getIteratorClass() {
     return iteratorClass;
   }
-  
+
   /**
    * Set the name of the class that implements the iterator. The class does not have to be present on the client, but it must be available to all tablet
    * servers.
@@ -108,10 +109,10 @@ public class IteratorSetting implements Writable {
     checkArgument(iteratorClass != null, "iteratorClass is null");
     this.iteratorClass = iteratorClass;
   }
-  
+
   /**
    * Constructs an iterator setting configured for the scan scope with no parameters. (Parameters can be added later.)
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
@@ -122,10 +123,10 @@ public class IteratorSetting implements Writable {
   public IteratorSetting(int priority, String name, String iteratorClass) {
     this(priority, name, iteratorClass, new HashMap<String,String>());
   }
-  
+
   /**
    * Constructs an iterator setting configured for the specified scopes with the specified parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
@@ -142,11 +143,11 @@ public class IteratorSetting implements Writable {
     this.properties = new HashMap<String,String>();
     addOptions(properties);
   }
-  
+
   /**
    * Constructs an iterator setting using the given class's SimpleName for the iterator name. The iterator setting will be configured for the scan scope with no
    * parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param iteratorClass
@@ -155,12 +156,12 @@ public class IteratorSetting implements Writable {
   public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
     this(priority, iteratorClass.getSimpleName(), iteratorClass.getName());
   }
-  
+
   /**
-   * 
+   *
    * Constructs an iterator setting using the given class's SimpleName for the iterator name and configured for the specified scopes with the specified
    * parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param iteratorClass
@@ -171,10 +172,10 @@ public class IteratorSetting implements Writable {
   public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> properties) {
     this(priority, iteratorClass.getSimpleName(), iteratorClass.getName(), properties);
   }
-  
+
   /**
    * Constructs an iterator setting configured for the scan scope with no parameters.
-   * 
+   *
    * @param priority
    *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
@@ -185,21 +186,25 @@ public class IteratorSetting implements Writable {
   public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
     this(priority, name, iteratorClass.getName());
   }
-  
+
   /**
    * Constructs an iterator setting using the provided name and the provided class's name for the scan scope with the provided parameters.
-   * 
-   * @param priority The priority for the iterator (see {@link #setPriority(int)})
-   * @param name The distinguishing name for the iterator
-   * @param iteratorClass The class for the iterator
-   * @param properties Any properties for the iterator
-   * 
+   *
+   * @param priority
+   *          The priority for the iterator (see {@link #setPriority(int)})
+   * @param name
+   *          The distinguishing name for the iterator
+   * @param iteratorClass
+   *          The class for the iterator
+   * @param properties
+   *          Any properties for the iterator
+   *
    * @since 1.6.0
    */
   public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> properties) {
     this(priority, name, iteratorClass.getName(), properties);
   }
-  
+
   /**
    * @since 1.5.0
    */
@@ -207,10 +212,10 @@ public class IteratorSetting implements Writable {
     this.properties = new HashMap<String,String>();
     this.readFields(din);
   }
-  
+
   /**
    * Add another option to the iterator.
-   * 
+   *
    * @param option
    *          the name of the option
    * @param value
@@ -221,10 +226,10 @@ public class IteratorSetting implements Writable {
     checkArgument(value != null, "value is null");
     properties.put(option, value);
   }
-  
+
   /**
    * Remove an option from the iterator.
-   * 
+   *
    * @param option
    *          the name of the option
    * @return the value previously associated with the option, or null if no such option existed
@@ -233,10 +238,10 @@ public class IteratorSetting implements Writable {
     checkArgument(option != null, "option is null");
     return properties.remove(option);
   }
-  
+
   /**
    * Add many options to the iterator.
-   * 
+   *
    * @param propertyEntries
    *          a set of entries to add to the options
    */
@@ -246,10 +251,10 @@ public class IteratorSetting implements Writable {
       addOption(keyValue.getKey(), keyValue.getValue());
     }
   }
-  
+
   /**
    * Add many options to the iterator.
-   * 
+   *
    * @param properties
    *          a map of entries to add to the options
    */
@@ -257,23 +262,23 @@ public class IteratorSetting implements Writable {
     checkArgument(properties != null, "properties is null");
     addOptions(properties.entrySet());
   }
-  
+
   /**
    * Get the configuration parameters for this iterator.
-   * 
+   *
    * @return the properties
    */
   public Map<String,String> getOptions() {
     return Collections.unmodifiableMap(properties);
   }
-  
+
   /**
    * Remove all options from the iterator.
    */
   public void clearOptions() {
     properties.clear();
   }
-  
+
   /**
    * @see java.lang.Object#hashCode()
    */
@@ -287,7 +292,7 @@ public class IteratorSetting implements Writable {
     result = prime * result + ((properties == null) ? 0 : properties.hashCode());
     return result;
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj)
@@ -316,7 +321,7 @@ public class IteratorSetting implements Writable {
       return false;
     return true;
   }
-  
+
   /**
    * @see java.lang.Object#toString()
    */
@@ -333,38 +338,38 @@ public class IteratorSetting implements Writable {
     sb.append(properties);
     return sb.toString();
   }
-  
+
   /**
    * A convenience class for passing column family and column qualifiers to iterator configuration methods.
    */
   public static class Column extends Pair<Text,Text> {
-    
+
     public Column(Text columnFamily, Text columnQualifier) {
       super(columnFamily, columnQualifier);
     }
-    
+
     public Column(Text columnFamily) {
       super(columnFamily, null);
     }
-    
+
     public Column(String columnFamily, String columnQualifier) {
       super(new Text(columnFamily), new Text(columnQualifier));
     }
-    
+
     public Column(String columnFamily) {
       super(new Text(columnFamily), null);
     }
-    
+
     public Text getColumnFamily() {
       return getFirst();
     }
-    
+
     public Text getColumnQualifier() {
       return getSecond();
     }
-    
+
   }
-  
+
   /**
    * @since 1.5.0
    */
@@ -380,7 +385,7 @@ public class IteratorSetting implements Writable {
       size--;
     }
   }
-  
+
   /**
    * @since 1.5.0
    */

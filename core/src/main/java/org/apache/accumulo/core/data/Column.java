@@ -23,6 +23,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -31,7 +32,7 @@ import org.apache.hadoop.io.WritableComparator;
  * A column, specified by family, qualifier, and visibility.
  */
 public class Column implements WritableComparable<Column> {
-  
+
   static private int compareBytes(byte[] a, byte[] b) {
     if (a == null && b == null)
       return 0;
@@ -41,12 +42,12 @@ public class Column implements WritableComparable<Column> {
       return 1;
     return WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length);
   }
-  
+
   /**
-   * Compares this column to another. Column families are compared first, then
-   * qualifiers, then visibilities.
+   * Compares this column to another. Column families are compared first, then qualifiers, then visibilities.
    *
-   * @param that column to compare
+   * @param that
+   *          column to compare
    * @return comparison result
    */
   public int compareTo(Column that) {
@@ -59,7 +60,7 @@ public class Column implements WritableComparable<Column> {
       return result;
     return compareBytes(this.columnVisibility, that.columnVisibility);
   }
-  
+
   public void readFields(DataInput in) throws IOException {
     if (in.readBoolean()) {
       int len = in.readInt();
@@ -68,7 +69,7 @@ public class Column implements WritableComparable<Column> {
     } else {
       columnFamily = null;
     }
-    
+
     if (in.readBoolean()) {
       int len = in.readInt();
       columnQualifier = new byte[len];
@@ -76,7 +77,7 @@ public class Column implements WritableComparable<Column> {
     } else {
       columnQualifier = null;
     }
-    
+
     if (in.readBoolean()) {
       int len = in.readInt();
       columnVisibility = new byte[len];
@@ -85,7 +86,7 @@ public class Column implements WritableComparable<Column> {
       columnVisibility = null;
     }
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     if (columnFamily == null) {
@@ -95,7 +96,7 @@ public class Column implements WritableComparable<Column> {
       out.writeInt(columnFamily.length);
       out.write(columnFamily);
     }
-    
+
     if (columnQualifier == null) {
       out.writeBoolean(false);
     } else {
@@ -103,7 +104,7 @@ public class Column implements WritableComparable<Column> {
       out.writeInt(columnQualifier.length);
       out.write(columnQualifier);
     }
-    
+
     if (columnVisibility == null) {
       out.writeBoolean(false);
     } else {
@@ -112,39 +113,43 @@ public class Column implements WritableComparable<Column> {
       out.write(columnVisibility);
     }
   }
-  
+
   public byte[] columnFamily;
   public byte[] columnQualifier;
   public byte[] columnVisibility;
-  
+
   /**
    * Creates a new blank column.
    */
   public Column() {}
-  
+
   /**
-  * Creates a new column.
-  *
-  * @param columnFamily family
-  * @param columnQualifier qualifier
-  * @param columnVisibility visibility
-  */
+   * Creates a new column.
+   *
+   * @param columnFamily
+   *          family
+   * @param columnQualifier
+   *          qualifier
+   * @param columnVisibility
+   *          visibility
+   */
   public Column(byte[] columnFamily, byte[] columnQualifier, byte[] columnVisibility) {
     this();
     this.columnFamily = columnFamily;
     this.columnQualifier = columnQualifier;
     this.columnVisibility = columnVisibility;
   }
-  
+
   /**
    * Creates a new column.
    *
-   * @param tcol Thrift column
+   * @param tcol
+   *          Thrift column
    */
   public Column(TColumn tcol) {
     this(toBytes(tcol.columnFamily), toBytes(tcol.columnQualifier), toBytes(tcol.columnVisibility));
   }
-  
+
   @Override
   public boolean equals(Object that) {
     if (that == null)
@@ -153,29 +158,30 @@ public class Column implements WritableComparable<Column> {
       return this.equals((Column) that);
     return false;
   }
-  
+
   /**
    * Checks if this column equals another.
    *
-   * @param that column to compare
+   * @param that
+   *          column to compare
    * @return true if this column equals that, false otherwise
    */
   public boolean equals(Column that) {
     return this.compareTo(that) == 0;
   }
-  
+
   private static int hash(byte[] b) {
     if (b == null)
       return 0;
-    
+
     return WritableComparator.hashBytes(b, b.length);
   }
-  
+
   @Override
   public int hashCode() {
     return hash(columnFamily) + hash(columnQualifier) + hash(columnVisibility);
   }
-  
+
   /**
    * Gets the column family. Not a defensive copy.
    *
@@ -184,7 +190,7 @@ public class Column implements WritableComparable<Column> {
   public byte[] getColumnFamily() {
     return columnFamily;
   }
-  
+
   /**
    * Gets the column qualifier. Not a defensive copy.
    *
@@ -193,7 +199,7 @@ public class Column implements WritableComparable<Column> {
   public byte[] getColumnQualifier() {
     return columnQualifier;
   }
-  
+
   /**
    * Gets the column visibility. Not a defensive copy.
    *
@@ -202,19 +208,19 @@ public class Column implements WritableComparable<Column> {
   public byte[] getColumnVisibility() {
     return columnVisibility;
   }
-  
+
   /**
-   * Gets a string representation of this column. The family, qualifier, and
-   * visibility are interpreted as strings using the platform default encoding;
-   * nulls are interpreted as empty strings.
+   * Gets a string representation of this column. The family, qualifier, and visibility are interpreted as strings using the platform default encoding; nulls
+   * are interpreted as empty strings.
    *
    * @return string form of column
    */
   public String toString() {
-    return new String(columnFamily == null ? new byte[0] : columnFamily, UTF_8) + ":" + new String(columnQualifier == null ? new byte[0] : columnQualifier, UTF_8) + ":"
+    return new String(columnFamily == null ? new byte[0] : columnFamily, UTF_8) + ":"
+        + new String(columnQualifier == null ? new byte[0] : columnQualifier, UTF_8) + ":"
         + new String(columnVisibility == null ? new byte[0] : columnVisibility, UTF_8);
   }
-  
+
   /**
    * Converts this column to Thrift.
    *
@@ -224,5 +230,5 @@ public class Column implements WritableComparable<Column> {
     return new TColumn(columnFamily == null ? null : ByteBuffer.wrap(columnFamily), columnQualifier == null ? null : ByteBuffer.wrap(columnQualifier),
         columnVisibility == null ? null : ByteBuffer.wrap(columnVisibility));
   }
-  
+
 }

@@ -21,7 +21,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 
 public abstract class ServerConfiguration {
-  
+
   abstract public TableConfiguration getTableConfiguration(String tableId);
 
   abstract public TableConfiguration getTableConfiguration(KeyExtent extent);
@@ -31,5 +31,5 @@ public abstract class ServerConfiguration {
   abstract public AccumuloConfiguration getConfiguration();
 
   abstract public Instance getInstance();
-  
+
 }

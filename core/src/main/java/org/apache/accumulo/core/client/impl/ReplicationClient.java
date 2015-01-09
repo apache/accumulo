@@ -115,7 +115,7 @@ public class ReplicationClient {
 
   /**
    * Attempt a single time to create a ReplicationServicer client to the given host
-   * 
+   *
    * @param context
    *          The client session for the peer replicant
    * @param server
@@ -152,8 +152,8 @@ public class ReplicationClient {
     }
   }
 
-  public static <T> T executeCoordinatorWithReturn(ClientContext context, ClientExecReturn<T,ReplicationCoordinator.Client> exec)
-      throws AccumuloException, AccumuloSecurityException {
+  public static <T> T executeCoordinatorWithReturn(ClientContext context, ClientExecReturn<T,ReplicationCoordinator.Client> exec) throws AccumuloException,
+      AccumuloSecurityException {
     ReplicationCoordinator.Client client = null;
     for (int i = 0; i < 10; i++) {
       try {

@@ -36,8 +36,8 @@ final class ScanOptions {
   private final int num;
   private final boolean isolated;
 
-  ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, boolean isolated) {
+  ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      AtomicBoolean interruptFlag, boolean isolated) {
     this.num = num;
     this.authorizations = authorizations;
     this.defaultLabels = defaultLabels;

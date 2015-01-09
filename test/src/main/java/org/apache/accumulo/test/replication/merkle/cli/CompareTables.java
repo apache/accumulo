@@ -41,14 +41,14 @@ import com.beust.jcommander.Parameter;
 /**
  * Accepts a set of tables, computes the hashes for each, and prints the top-level hash for each table.
  * <p>
- * Will automatically create output tables for intermediate hashes instead of requiring their existence.
- * This will raise an exception when the table we want to use already exists.
+ * Will automatically create output tables for intermediate hashes instead of requiring their existence. This will raise an exception when the table we want to
+ * use already exists.
  */
 public class CompareTables {
   private static final Logger log = LoggerFactory.getLogger(CompareTables.class);
 
   public static class CompareTablesOpts extends ClientOpts {
-    @Parameter(names={"--tables"}, description = "Tables to compare", variableArity=true)
+    @Parameter(names = {"--tables"}, description = "Tables to compare", variableArity = true)
     public List<String> tables;
 
     @Parameter(names = {"-nt", "--numThreads"}, required = false, description = "number of concurrent threads calculating digests")

@@ -64,7 +64,7 @@ public class ReadWriteExample {
     boolean readEntries = false;
     @Parameter(names = {"-d", "--delete"}, description = "delete entries after any creates")
     boolean deleteEntries = false;
-    @Parameter(names = {"--durability"}, description = "durability used for writes (none, log, flush or sync)", converter=DurabilityConverter.class)
+    @Parameter(names = {"--durability"}, description = "durability used for writes (none, log, flush or sync)", converter = DurabilityConverter.class)
     Durability durability = Durability.DEFAULT;
 
     public Opts() {

@@ -23,8 +23,8 @@ import java.util.List;
 /**
  * Read only access to a Transaction Store.
  *
- * A transaction consists of a number of operations. Instances of this class may check on the queue of outstanding
- * transactions but may neither modify them nor create new ones.
+ * A transaction consists of a number of operations. Instances of this class may check on the queue of outstanding transactions but may neither modify them nor
+ * create new ones.
  */
 public interface ReadOnlyTStore<T> {
 
@@ -49,8 +49,7 @@ public interface ReadOnlyTStore<T> {
   /**
    * Reserve a transaction that is IN_PROGRESS or FAILED_IN_PROGRESS.
    *
-   * Reserving a transaction id ensures that nothing else in-process interacting via the same instance
-   * will be operating on that transaction id.
+   * Reserving a transaction id ensures that nothing else in-process interacting via the same instance will be operating on that transaction id.
    *
    * @return a transaction id that is safe to interact with, chosen by the store.
    */
@@ -59,8 +58,7 @@ public interface ReadOnlyTStore<T> {
   /**
    * Reserve the specific tid.
    *
-   * Reserving a transaction id ensures that nothing else in-process interacting via the same instance
-   * will be operating on that transaction id.
+   * Reserving a transaction id ensures that nothing else in-process interacting via the same instance will be operating on that transaction id.
    *
    */
   void reserve(long tid);
@@ -70,18 +68,20 @@ public interface ReadOnlyTStore<T> {
    *
    * upon successful return the store now controls the referenced transaction id. caller should no longer interact with it.
    *
-   * @param tid transaction id, previously reserved.
-   * @param deferTime time in millis to keep this transaction out of the pool used in the {@link #reserve() reserve} method. must be non-negative.
+   * @param tid
+   *          transaction id, previously reserved.
+   * @param deferTime
+   *          time in millis to keep this transaction out of the pool used in the {@link #reserve() reserve} method. must be non-negative.
    */
   void unreserve(long tid, long deferTime);
-
 
   /**
    * Get the current operation for the given transaction id.
    *
    * Caller must have already reserved tid.
    *
-   * @param tid transaction id, previously reserved.
+   * @param tid
+   *          transaction id, previously reserved.
    * @return a read-only view of the operation
    */
   ReadOnlyRepo<T> top(long tid);
@@ -91,7 +91,8 @@ public interface ReadOnlyTStore<T> {
    *
    * Caller must have already reserved tid.
    *
-   * @param tid transaction id, previously reserved.
+   * @param tid
+   *          transaction id, previously reserved.
    * @return execution status
    */
   TStatus getStatus(long tid);
@@ -99,8 +100,10 @@ public interface ReadOnlyTStore<T> {
   /**
    * Wait for the satus of a transaction to change
    *
-   * @param tid transaction id, need not have been reserved.
-   * @param expected a set of possible statuses we are interested in being notified about. may not be null.
+   * @param tid
+   *          transaction id, need not have been reserved.
+   * @param expected
+   *          a set of possible statuses we are interested in being notified about. may not be null.
    * @return execution status.
    */
   TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
@@ -110,8 +113,10 @@ public interface ReadOnlyTStore<T> {
    *
    * Caller must have already reserved tid.
    *
-   * @param tid transaction id, previously reserved.
-   * @param prop name of property to retrieve.
+   * @param tid
+   *          transaction id, previously reserved.
+   * @param prop
+   *          name of property to retrieve.
    */
   Serializable getProperty(long tid, String prop);
 

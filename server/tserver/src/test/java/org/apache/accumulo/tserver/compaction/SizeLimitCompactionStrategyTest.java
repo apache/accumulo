@@ -30,7 +30,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class SizeLimitCompactionStrategyTest {
   private Map<FileRef,DataFileValue> nfl(String... sa) {

@@ -59,7 +59,7 @@ public class StatusUtil {
 
   /**
    * Creates a {@link Status} for newly-created data that must be replicated
-   * 
+   *
    * @param recordsIngested
    *          Offset of records which need to be replicated
    * @return A {@link Status} tracking data that must be replicated
@@ -94,7 +94,7 @@ public class StatusUtil {
 
   /**
    * Creates a @{link Status} for a file which has new data and data which has been replicated
-   * 
+   *
    * @param recordsReplicated
    *          Offset of records which have been replicated
    * @param recordsIngested
@@ -107,7 +107,7 @@ public class StatusUtil {
 
   /**
    * Same as {@link #replicatedAndIngested(long, long)} but uses the provided {@link Builder}
-   * 
+   *
    * @param builder
    *          An existing builder
    * @param recordsReplicated
@@ -165,7 +165,8 @@ public class StatusUtil {
   }
 
   /**
-   * @param v Value with serialized Status
+   * @param v
+   *          Value with serialized Status
    * @return A Status created from the Value
    */
   public static Status fromValue(Value v) throws InvalidProtocolBufferException {
@@ -174,7 +175,9 @@ public class StatusUtil {
 
   /**
    * Is the given Status fully replicated and is its file ready for deletion on the source
-   * @param status a Status protobuf
+   *
+   * @param status
+   *          a Status protobuf
    * @return True if the file this Status references can be deleted.
    */
   public static boolean isSafeForRemoval(Status status) {
@@ -183,7 +186,9 @@ public class StatusUtil {
 
   /**
    * Is the given Status fully replicated but potentially not yet safe for deletion
-   * @param status a Status protobuf
+   *
+   * @param status
+   *          a Status protobuf
    * @return True if the file this Status references is fully replicated so far
    */
   public static boolean isFullyReplicated(Status status) {
@@ -196,7 +201,9 @@ public class StatusUtil {
 
   /**
    * Given the {@link Status}, is there replication work to be done
-   * @param status Status for a file
+   *
+   * @param status
+   *          Status for a file
    * @return true if replication work is required
    */
   public static boolean isWorkRequired(Status status) {

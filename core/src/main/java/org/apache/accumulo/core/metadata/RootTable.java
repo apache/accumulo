@@ -21,7 +21,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class RootTable {
 

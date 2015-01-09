@@ -27,31 +27,31 @@ import org.apache.log4j.xml.DOMConfigurator;
 import com.beust.jcommander.Parameter;
 
 public class Framework {
-  
+
   private static final Logger log = Logger.getLogger(Framework.class);
   private HashMap<String,Node> nodes = new HashMap<String,Node>();
   private String configDir = null;
   private static final Framework INSTANCE = new Framework();
-  
+
   /**
    * @return Singleton instance of Framework
    */
   public static Framework getInstance() {
     return INSTANCE;
   }
-  
+
   public void setConfigDir(String confDir) {
     configDir = confDir;
   }
-  
+
   /**
    * Run random walk framework
-   * 
+   *
    * @param startName
    *          Full name of starting graph or test
    */
   public int run(String startName, State state, Environment env, String confDir) {
-    
+
     try {
       System.out.println("confDir " + confDir);
       setConfigDir(confDir);
@@ -63,21 +63,21 @@ public class Framework {
     }
     return 0;
   }
-  
+
   /**
    * Creates node (if it does not already exist) and inserts into map
-   * 
+   *
    * @param id
    *          Name of node
    * @return Node specified by id
    */
   public Node getNode(String id) throws Exception {
-    
+
     // check for node in nodes
     if (nodes.containsKey(id)) {
       return nodes.get(id);
     }
-    
+
     // otherwise create and put in nodes
     Node node = null;
     if (id.endsWith(".xml")) {
@@ -88,18 +88,18 @@ public class Framework {
     nodes.put(id, node);
     return node;
   }
-  
+
   static class Opts extends org.apache.accumulo.core.cli.Help {
-    @Parameter(names="--configDir", required=true, description="directory containing the test configuration")
+    @Parameter(names = "--configDir", required = true, description = "directory containing the test configuration")
     String configDir;
-    @Parameter(names="--logDir", required=true, description="location of the local logging directory")
+    @Parameter(names = "--logDir", required = true, description = "location of the local logging directory")
     String localLogPath;
-    @Parameter(names="--logId", required=true, description="a unique log identifier (like a hostname, or pid)")
+    @Parameter(names = "--logId", required = true, description = "a unique log identifier (like a hostname, or pid)")
     String logId;
-    @Parameter(names="--module", required=true, description="the name of the module to run")
+    @Parameter(names = "--module", required = true, description = "the name of the module to run")
     String module;
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(Framework.class.getName(), args);
@@ -108,16 +108,16 @@ public class Framework {
     FileInputStream fis = new FileInputStream(opts.configDir + "/randomwalk.conf");
     props.load(fis);
     fis.close();
-    
+
     System.setProperty("localLog", opts.localLogPath + "/" + opts.logId);
     System.setProperty("nfsLog", props.getProperty("NFS_LOGPATH") + "/" + opts.logId);
-    
+
     DOMConfigurator.configure(opts.configDir + "logger.xml");
-    
+
     State state = new State();
     Environment env = new Environment(props);
     int retval = getInstance().run(opts.module, state, env, opts.configDir);
-    
+
     System.exit(retval);
   }
 }

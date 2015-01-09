@@ -25,16 +25,16 @@ public class Session {
   public long startTime;
   public boolean reserved;
   private final TCredentials credentials;
-  
+
   public Session(TCredentials credentials) {
     this.credentials = credentials;
     this.client = TServerUtils.clientAddress.get();
   }
-  
+
   public String getUser() {
     return credentials.getPrincipal();
   }
-  
+
   public TCredentials getCredentials() {
     return credentials;
   }

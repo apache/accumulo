@@ -29,16 +29,16 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateTable extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getSysToken());
-    
-    String tableName = WalkingSecurity.get(state,env).getTableName();
-    
-    boolean exists = WalkingSecurity.get(state,env).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state,env).canCreateTable(WalkingSecurity.get(state,env).getSysCredentials(), null, null);
-    
+    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken());
+
+    String tableName = WalkingSecurity.get(state, env).getTableName();
+
+    boolean exists = WalkingSecurity.get(state, env).getTableExists();
+    boolean hasPermission = WalkingSecurity.get(state, env).canCreateTable(WalkingSecurity.get(state, env).getSysCredentials(), null, null);
+
     try {
       conn.tableOperations().create(tableName);
     } catch (AccumuloSecurityException ae) {
@@ -50,7 +50,7 @@ public class CreateTable extends Test {
         {
           try {
             env.getConnector().tableOperations().create(tableName);
-            WalkingSecurity.get(state,env).initTable(tableName);
+            WalkingSecurity.get(state, env).initTable(tableName);
           } catch (TableExistsException tee) {
             if (exists)
               return;
@@ -67,9 +67,9 @@ public class CreateTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state,env).initTable(tableName);
+    WalkingSecurity.get(state, env).initTable(tableName);
     for (TablePermission tp : TablePermission.values())
-      WalkingSecurity.get(state,env).grantTablePermission(conn.whoami(), tableName, tp);
+      WalkingSecurity.get(state, env).grantTablePermission(conn.whoami(), tableName, tp);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

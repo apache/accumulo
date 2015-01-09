@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 public class LoggingRunnable implements Runnable {
   private Runnable runnable;
   private Logger log;
-  
+
   public LoggingRunnable(Logger log, Runnable r) {
     this.runnable = r;
     this.log = log;
@@ -40,7 +40,7 @@ public class LoggingRunnable implements Runnable {
         // maybe the logging system is screwed up OR there is a bug in the exception, like t.getMessage() throws a NPE
         System.err.println("ERROR " + new Date() + " Failed to log message about thread death " + t2.getMessage());
         t2.printStackTrace();
-        
+
         // try to print original exception
         System.err.println("ERROR " + new Date() + " Exception that failed to log : " + t.getMessage());
         t.printStackTrace();

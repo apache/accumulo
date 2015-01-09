@@ -23,42 +23,42 @@ import org.apache.accumulo.server.AccumuloServerContext;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
- * 
+ *
  * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore: information about the other tablets are stored in the
  * metadata table
- * 
+ *
  */
 public abstract class TabletStateStore implements Iterable<TabletLocationState> {
-  
+
   /**
    * Identifying name for this tablet state store.
    */
   abstract public String name();
-  
+
   /**
    * Scan the information about the tablets covered by this store
    */
   @Override
   abstract public ClosableIterator<TabletLocationState> iterator();
-  
+
   /**
    * Store the assigned locations in the data store.
    */
   abstract public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
-  
+
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
   abstract public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
-  
+
   /**
    * Mark the tablets as having no known or future location.
-   * 
+   *
    * @param tablets
    *          the tablets' current information
    */
   abstract public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException;
-  
+
   public static void unassign(AccumuloServerContext context, TabletLocationState tls) throws DistributedStoreException {
     TabletStateStore store;
     if (tls.extent.isRootTablet()) {
@@ -70,7 +70,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     }
     store.unassign(Collections.singletonList(tls));
   }
-  
+
   public static void setLocation(AccumuloServerContext context, Assignment assignment) throws DistributedStoreException {
     TabletStateStore store;
     if (assignment.tablet.isRootTablet()) {
@@ -82,5 +82,5 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     }
     store.setLocations(Collections.singletonList(assignment));
   }
-  
+
 }

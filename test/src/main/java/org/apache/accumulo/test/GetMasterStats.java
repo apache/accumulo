@@ -56,7 +56,7 @@ public class GetMasterStats {
     out(0, "Unassigned tablets: %d", stats.unassignedTablets);
     if (stats.badTServers != null && stats.badTServers.size() > 0) {
       out(0, "Bad servers");
-      
+
       for (Entry<String,Byte> entry : stats.badTServers.entrySet()) {
         out(1, "%s: %d", entry.getKey(), (int) entry.getValue());
       }
@@ -120,12 +120,12 @@ public class GetMasterStats {
       }
     }
   }
-  
+
   private static void out(int indent, String string, Object... args) {
     for (int i = 0; i < indent; i++) {
       System.out.print(" ");
     }
     System.out.println(String.format(string, args));
   }
-  
+
 }

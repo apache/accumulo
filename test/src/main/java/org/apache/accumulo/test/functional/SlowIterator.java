@@ -37,9 +37,9 @@ public class SlowIterator extends WrappingIterator {
 
   private long sleepTime = 0;
   private long seekSleepTime = 0;
-  
+
   public static void setSleepTime(IteratorSetting is, long millis) {
-    is.addOption(SLEEP_TIME, Long.toString(millis));  
+    is.addOption(SLEEP_TIME, Long.toString(millis));
   }
 
   public static void setSeekSleepTime(IteratorSetting is, long t) {

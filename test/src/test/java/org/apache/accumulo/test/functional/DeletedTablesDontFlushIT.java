@@ -45,7 +45,7 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterIT {
 
     Mutation m = new Mutation("xyzzy");
     for (int i = 0; i < 100; i++) {
-      m.put("cf", "" + i, new Value(new byte[]{}));
+      m.put("cf", "" + i, new Value(new byte[] {}));
     }
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(m);

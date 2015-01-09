@@ -40,6 +40,7 @@ public class RpcWrapper {
   public static <T> T service(final T instance) {
     InvocationHandler handler = new RpcServerInvocationHandler<T>(instance) {
       private final Logger log = LoggerFactory.getLogger(instance.getClass());
+
       @Override
       public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
         try {

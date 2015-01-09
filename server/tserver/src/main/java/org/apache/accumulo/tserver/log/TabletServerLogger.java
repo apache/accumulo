@@ -90,7 +90,7 @@ public class TabletServerLogger {
 
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
-  
+
   private final static int HALT_AFTER_ERROR_COUNT = 5;
   // Die if we get 5 WAL creation errors in 10 seconds
   private final Cache<Long,Object> walErrors = CacheBuilder.newBuilder().maximumSize(HALT_AFTER_ERROR_COUNT).expireAfterWrite(10, TimeUnit.SECONDS).build();

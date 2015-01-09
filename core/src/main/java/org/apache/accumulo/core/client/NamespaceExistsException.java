@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 public class NamespaceExistsException extends Exception {
   /**
    * Exception to throw if an operation is attempted on a namespace that already exists.
-   * 
+   *
    */
   private static final long serialVersionUID = 1L;
 

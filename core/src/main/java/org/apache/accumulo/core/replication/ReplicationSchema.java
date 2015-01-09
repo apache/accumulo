@@ -19,6 +19,7 @@ package org.apache.accumulo.core.replication;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.charset.CharacterCodingException;
+
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class ReplicationSchema {
   private static final Logger log = LoggerFactory.getLogger(ReplicationSchema.class);
@@ -90,7 +91,7 @@ public class ReplicationSchema {
 
     /**
      * Extract the table ID from the key (inefficiently if called repeatedly)
-     * 
+     *
      * @param k
      *          Key to extract from
      * @return The table ID
@@ -104,7 +105,7 @@ public class ReplicationSchema {
 
     /**
      * Extract the table ID from the key into the given {@link Text}
-     * 
+     *
      * @param k
      *          Key to extract from
      * @param buff
@@ -119,7 +120,7 @@ public class ReplicationSchema {
 
     /**
      * Extract the file name from the row suffix into the given {@link Text}
-     * 
+     *
      * @param k
      *          Key to extract from
      * @param buff
@@ -154,12 +155,12 @@ public class ReplicationSchema {
    */
   public static class OrderSection {
     public static final Text NAME = new Text("order");
-    public static final Text ROW_SEPARATOR = new Text(new byte[]{0});
+    public static final Text ROW_SEPARATOR = new Text(new byte[] {0});
     private static final ULongLexicoder longEncoder = new ULongLexicoder();
 
     /**
      * Extract the table ID from the given key (inefficiently if called repeatedly)
-     * 
+     *
      * @param k
      *          OrderSection Key
      * @return source table id
@@ -172,7 +173,7 @@ public class ReplicationSchema {
 
     /**
      * Extract the table ID from the given key
-     * 
+     *
      * @param k
      *          OrderSection key
      * @param buff
@@ -194,7 +195,7 @@ public class ReplicationSchema {
 
     /**
      * Creates the Mutation for the Order section for the given file and time
-     * 
+     *
      * @param file
      *          Filename
      * @param timeInMillis
@@ -224,7 +225,7 @@ public class ReplicationSchema {
 
     /**
      * Add a column update to the given mutation with the provided tableId and value
-     * 
+     *
      * @param m
      *          Mutation for OrderSection
      * @param tableId

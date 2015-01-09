@@ -16,8 +16,13 @@
  */
 package org.apache.accumulo.tserver.constraints;
 
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.*;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createMockBuilder;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,9 +52,7 @@ public class ConstraintCheckerTest {
 
   @Before
   public void setup() throws NoSuchMethodException, SecurityException {
-    cc = createMockBuilder(ConstraintChecker.class)
-           .addMockedMethod("getConstraints")
-           .createMock();
+    cc = createMockBuilder(ConstraintChecker.class).addMockedMethod("getConstraints").createMock();
     constraints = new ArrayList<Constraint>();
     expect(cc.getConstraints()).andReturn(constraints);
 

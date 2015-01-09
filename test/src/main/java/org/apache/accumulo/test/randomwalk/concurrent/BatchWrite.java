@@ -36,18 +36,18 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class BatchWrite extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     try {
       BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
       try {
@@ -58,13 +58,13 @@ public class BatchWrite extends Test {
           for (int j = 0; j < 10; j++) {
             m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes(UTF_8)));
           }
-          
+
           bw.addMutation(m);
         }
       } finally {
         bw.close();
       }
-      
+
       log.debug("Wrote to " + tableName);
     } catch (TableNotFoundException e) {
       log.debug("BatchWrite " + tableName + " failed, doesnt exist");

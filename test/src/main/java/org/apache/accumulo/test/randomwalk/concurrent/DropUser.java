@@ -30,14 +30,14 @@ public class DropUser extends Test {
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> userNames = (List<String>) state.get("users");
-    
+
     String userName = userNames.get(rand.nextInt(userNames.size()));
-    
+
     try {
       log.debug("Dropping user " + userName);
       conn.securityOperations().dropLocalUser(userName);

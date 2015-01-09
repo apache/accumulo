@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.conf;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration.AllFilter;
+import static org.junit.Assert.assertEquals;
+
 import java.util.Map;
+
+import org.apache.accumulo.core.conf.AccumuloConfiguration.AllFilter;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
 
 public class DefaultConfigurationTest {
   private DefaultConfiguration c;

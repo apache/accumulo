@@ -27,58 +27,59 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * A lexicoder to encode/decode a BigInteger to/from bytes that maintain its native Java sort order.
+ *
  * @since 1.6.0
  */
 public class BigIntegerLexicoder implements Lexicoder<BigInteger> {
-  
+
   @Override
   public byte[] encode(BigInteger v) {
-    
+
     try {
       byte[] bytes = v.toByteArray();
-      
+
       byte[] ret = new byte[4 + bytes.length];
-      
+
       DataOutputStream dos = new DataOutputStream(new FixedByteArrayOutputStream(ret));
-      
+
       // flip the sign bit
       bytes[0] = (byte) (0x80 ^ bytes[0]);
-      
+
       int len = bytes.length;
       if (v.signum() < 0)
         len = -len;
-      
+
       len = len ^ 0x80000000;
-      
+
       dos.writeInt(len);
       dos.write(bytes);
       dos.close();
-      
+
       return ret;
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
-    
+
   }
-  
+
   @Override
   public BigInteger decode(byte[] b) throws ValueFormatException {
-    
+
     try {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
       int len = dis.readInt();
       len = len ^ 0x80000000;
       len = Math.abs(len);
-      
+
       byte[] bytes = new byte[len];
       dis.readFully(bytes);
-      
+
       bytes[0] = (byte) (0x80 ^ bytes[0]);
-      
+
       return new BigInteger(bytes);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
   }
-  
+
 }

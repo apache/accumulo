@@ -42,14 +42,14 @@ import com.google.common.net.HostAndPort;
 
 // see ACCUMULO-1950
 public class TotalQueuedIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
     cfg.useMiniDFS();
   }
-  
+
   int SMALL_QUEUE_SIZE = 100000;
   int LARGE_QUEUE_SIZE = SMALL_QUEUE_SIZE * 10;
   static final long N = 1000000;
@@ -69,7 +69,7 @@ public class TotalQueuedIT extends ConfigurableMacIT {
     BatchWriterConfig cfg = new BatchWriterConfig();
     cfg.setMaxWriteThreads(10);
     cfg.setMaxLatency(1, TimeUnit.SECONDS);
-    cfg.setMaxMemory(1024*1024);
+    cfg.setMaxMemory(1024 * 1024);
     long realSyncs = getSyncs();
     BatchWriter bw = c.createBatchWriter(tableName, cfg);
     long now = System.currentTimeMillis();
@@ -86,11 +86,11 @@ public class TotalQueuedIT extends ConfigurableMacIT {
     double secs = diff / 1000.;
     double syncs = bytesSent / SMALL_QUEUE_SIZE;
     double syncsPerSec = syncs / secs;
-    System.out.println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)", bytesSent, secs, ((long)syncs), syncsPerSec));
+    System.out.println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)", bytesSent, secs, ((long) syncs), syncsPerSec));
     long update = getSyncs();
     System.out.println("Syncs " + (update - realSyncs));
     realSyncs = update;
-    
+
     // Now with a much bigger total queue
     c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "" + LARGE_QUEUE_SIZE);
     c.tableOperations().flush(tableName, null, null, true);
@@ -110,7 +110,7 @@ public class TotalQueuedIT extends ConfigurableMacIT {
     secs = diff / 1000.;
     syncs = bytesSent / LARGE_QUEUE_SIZE;
     syncsPerSec = syncs / secs;
-    System.out.println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)", bytesSent, secs, ((long)syncs), syncsPerSec));
+    System.out.println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)", bytesSent, secs, ((long) syncs), syncsPerSec));
     update = getSyncs();
     System.out.println("Syncs " + (update - realSyncs));
     assertTrue(update - realSyncs < realSyncs);
@@ -127,5 +127,5 @@ public class TotalQueuedIT extends ConfigurableMacIT {
     }
     return 0;
   }
-  
+
 }

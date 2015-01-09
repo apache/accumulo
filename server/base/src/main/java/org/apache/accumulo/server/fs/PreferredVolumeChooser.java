@@ -37,10 +37,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 /**
- * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset of those options preferred for a
- * particular table. Defaults to selecting from all of the options presented. Can be customized via the table property
- * {@value #PREFERRED_VOLUMES_CUSTOM_KEY}, which should contain a comma separated list of {@link Volume} URIs. Note that both the property
- * name and the format of its value are specific to this particular implementation.
+ * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset of those options preferred for a particular table. Defaults
+ * to selecting from all of the options presented. Can be customized via the table property {@value #PREFERRED_VOLUMES_CUSTOM_KEY}, which should contain a comma
+ * separated list of {@link Volume} URIs. Note that both the property name and the format of its value are specific to this particular implementation.
  */
 public class PreferredVolumeChooser extends RandomVolumeChooser implements VolumeChooser {
   private static final Logger log = Logger.getLogger(PreferredVolumeChooser.class);
@@ -55,7 +54,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
   };
 
   @SuppressWarnings("unchecked")
-  private final Map<String, Set<String>> parsedPreferredVolumes = Collections.synchronizedMap(new LRUMap(1000));
+  private final Map<String,Set<String>> parsedPreferredVolumes = Collections.synchronizedMap(new LRUMap(1000));
   // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see ACCUMULO-3411
   private volatile ServerConfigurationFactory serverConfs;
 
@@ -73,7 +72,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
       serverConfs = localConf;
     }
     TableConfiguration tableConf = localConf.getTableConfiguration(env.getTableId());
-    final Map<String,String> props = new HashMap<String, String>();
+    final Map<String,String> props = new HashMap<String,String>();
     tableConf.getProperties(props, PREFERRED_VOLUMES_FILTER);
     if (props.isEmpty()) {
       log.warn("No preferred volumes specified. Defaulting to randomly choosing from instance volumes");

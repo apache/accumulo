@@ -36,10 +36,10 @@ import org.apache.log4j.Logger;
 import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
-  
+
   private ArrayList<Constraint> constrains;
   private static final Logger log = Logger.getLogger(ConstraintChecker.class);
-  
+
   private ClassLoader loader;
   private TableConfiguration conf;
 
@@ -47,7 +47,7 @@ public class ConstraintChecker {
 
   public ConstraintChecker(TableConfiguration conf) {
     constrains = new ArrayList<Constraint>();
-    
+
     this.conf = conf;
 
     try {
@@ -58,7 +58,7 @@ public class ConstraintChecker {
       } else {
         loader = AccumuloVFSClassLoader.getClassLoader();
       }
-      
+
       for (Entry<String,String> entry : conf) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
           String className = entry.getValue();
@@ -67,7 +67,7 @@ public class ConstraintChecker {
           constrains.add(clazz.newInstance());
         }
       }
-      
+
       lastCheck.set(System.currentTimeMillis());
 
     } catch (Throwable e) {
@@ -84,21 +84,21 @@ public class ConstraintChecker {
   }
 
   public boolean classLoaderChanged() {
-    
+
     if (constrains.size() == 0)
       return false;
 
     try {
       String context = conf.get(Property.TABLE_CLASSPATH);
-      
+
       ClassLoader currentLoader;
-      
+
       if (context != null && !context.equals("")) {
         currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
       } else {
         currentLoader = AccumuloVFSClassLoader.getClassLoader();
       }
-      
+
       return currentLoader != loader;
     } catch (Exception e) {
       log.debug("Failed to check " + e.getMessage());
@@ -117,10 +117,10 @@ public class ConstraintChecker {
   public Violations check(Environment env, Mutation m) {
     if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
       Violations violations = new Violations();
-      
+
       ConstraintViolationSummary cvs = new ConstraintViolationSummary(SystemConstraint.class.getName(), (short) -1, "Mutation outside of tablet extent", 1);
       violations.add(cvs);
-      
+
       // do not bother with further checks since this mutation does not go with this tablet
       return violations;
     }
@@ -133,8 +133,7 @@ public class ConstraintChecker {
         if (violationCodes != null) {
           String className = constraint.getClass().getName();
           for (Short vcode : violationCodes) {
-            violations = addViolation(violations, new ConstraintViolationSummary(
-                className, vcode, constraint.getViolationDescription(vcode), 1));
+            violations = addViolation(violations, new ConstraintViolationSummary(className, vcode, constraint.getViolationDescription(vcode), 1));
           }
         }
       } catch (Throwable throwable) {
@@ -161,8 +160,7 @@ public class ConstraintChecker {
           msg = "threw some Exception";
         }
 
-        violations = addViolation(violations, new ConstraintViolationSummary(
-            constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1));
+        violations = addViolation(violations, new ConstraintViolationSummary(constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1));
       }
     }
 

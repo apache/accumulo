@@ -29,18 +29,18 @@ import org.apache.accumulo.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 
 public class GcStatusServlet extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Garbage Collector Status";
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     GCStatus status = Monitor.getGcStatus();
-    
+
     if (status != null) {
       Table gcActivity = new Table("gcActivity", "Collection&nbsp;Activity");
       gcActivity.addSortableColumn("Activity");
@@ -50,7 +50,7 @@ public class GcStatusServlet extends BasicServlet {
       gcActivity.addSortableColumn("In&nbsp;Use", new NumberType<Long>(), null);
       gcActivity.addSortableColumn("Errors", new NumberType<Long>(0l, 1l), null);
       gcActivity.addSortableColumn("Duration", new DurationType(), null);
-      
+
       if (status.last.finished > 0)
         gcActivity.addRow("File&nbsp;Collection,&nbsp;Last&nbsp;Cycle", status.last.finished, status.last.candidates, status.last.deleted, status.last.inUse,
             status.last.errors, status.last.finished - status.last.started);
@@ -68,5 +68,5 @@ public class GcStatusServlet extends BasicServlet {
       banner(sb, "error", "Collector is Unavailable");
     }
   }
-  
+
 }

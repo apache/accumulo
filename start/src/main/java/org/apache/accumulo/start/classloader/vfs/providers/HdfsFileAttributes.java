@@ -18,43 +18,42 @@ package org.apache.accumulo.start.classloader.vfs.providers;
 
 /**
  * HDFS file content attributes.
- * 
+ *
  * @since 2.1
  */
-public enum HdfsFileAttributes
-{
-    /**
-     * Last access time.
-     */
-    LAST_ACCESS_TIME,
+public enum HdfsFileAttributes {
+  /**
+   * Last access time.
+   */
+  LAST_ACCESS_TIME,
 
-    /**
-     * Block size.
-     */
-    BLOCK_SIZE,
+  /**
+   * Block size.
+   */
+  BLOCK_SIZE,
 
-    /**
-     * Group.
-     */
-    GROUP,
+  /**
+   * Group.
+   */
+  GROUP,
 
-    /**
-     * Owner.
-     */
-    OWNER,
+  /**
+   * Owner.
+   */
+  OWNER,
 
-    /**
-     * Permissions.
-     */
-    PERMISSIONS,
+  /**
+   * Permissions.
+   */
+  PERMISSIONS,
 
-    /**
-     * Length.
-     */
-    LENGTH,
+  /**
+   * Length.
+   */
+  LENGTH,
 
-    /**
-     * Modification time.
-     */
-    MODIFICATION_TIME;
+  /**
+   * Modification time.
+   */
+  MODIFICATION_TIME;
 }

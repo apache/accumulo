@@ -29,7 +29,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.tserver.tablet.RootFiles;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -37,7 +36,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * 
+ *
  */
 public class RootFilesTest {
 

@@ -40,9 +40,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class CountTest extends TestCase {
-  
+
   private static final Logger log = Logger.getLogger(CountTest.class);
-  
+
   {
     try {
       Connector conn = new MockInstance("counttest").getConnector("root", new PasswordToken(""));
@@ -64,12 +64,12 @@ public class CountTest extends TestCase {
       log.error("Could not add mutations in initializer.", e);
     }
   }
-  
+
   public void test() throws Exception {
     Scanner scanner = new MockInstance("counttest").getConnector("root", new PasswordToken("")).createScanner("dirlisttable", new Authorizations());
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());
-    
+
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
@@ -80,13 +80,13 @@ public class CountTest extends TestCase {
     opts.password = new Opts.Password("");
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
-    
+
     ArrayList<Pair<String,String>> expected = new ArrayList<Pair<String,String>>();
     expected.add(new Pair<String,String>(QueryUtil.getRow("").toString(), "1,0,3,3"));
     expected.add(new Pair<String,String>(QueryUtil.getRow("/local").toString(), "2,1,2,3"));
     expected.add(new Pair<String,String>(QueryUtil.getRow("/local/user1").toString(), "0,2,0,2"));
     expected.add(new Pair<String,String>(QueryUtil.getRow("/local/user2").toString(), "0,0,0,0"));
-    
+
     int i = 0;
     for (Entry<Key,Value> e : scanner) {
       assertEquals(e.getKey().getRow().toString(), expected.get(i).getFirst());

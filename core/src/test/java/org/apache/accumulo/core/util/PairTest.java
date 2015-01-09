@@ -102,15 +102,15 @@ public class PairTest {
   public void testFromEntry() {
     Entry<Integer,String> entry = new SimpleImmutableEntry<Integer,String>(10, "IO");
 
-    Pair<Integer, String> pair0 = Pair.fromEntry(entry);
+    Pair<Integer,String> pair0 = Pair.fromEntry(entry);
     assertEquals(entry.getKey(), pair0.getFirst());
     assertEquals(entry.getValue(), pair0.getSecond());
 
-    Pair<Object,Object> pair = Pair.<Object, Object, Integer, String>fromEntry(entry);
+    Pair<Object,Object> pair = Pair.<Object,Object,Integer,String> fromEntry(entry);
     assertEquals(entry.getKey(), pair.getFirst());
     assertEquals(entry.getValue(), pair.getSecond());
 
-    Pair<Number,CharSequence> pair2 = Pair.<Number, CharSequence, Integer, String>fromEntry(entry);
+    Pair<Number,CharSequence> pair2 = Pair.<Number,CharSequence,Integer,String> fromEntry(entry);
     assertEquals(entry.getKey(), pair2.getFirst());
     assertEquals(entry.getValue(), pair2.getSecond());
   }

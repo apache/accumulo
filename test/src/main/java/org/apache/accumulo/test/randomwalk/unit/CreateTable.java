@@ -24,7 +24,7 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateTable extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {}
 }

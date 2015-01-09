@@ -16,25 +16,25 @@
  */
 package org.apache.accumulo.core.trace.wrappers;
 
+import java.util.concurrent.Callable;
+
 import org.htrace.Span;
 import org.htrace.Trace;
 import org.htrace.TraceScope;
 
-import java.util.concurrent.Callable;
-
 /**
  * Wrap a Callable with a Span that survives a change in threads.
- * 
+ *
  */
 public class TraceCallable<V> implements Callable<V> {
   private final Callable<V> impl;
   private final Span parent;
   private final String description;
-  
+
   TraceCallable(Callable<V> impl) {
     this(Trace.currentSpan(), impl);
   }
-  
+
   TraceCallable(Span parent, Callable<V> impl) {
     this(parent, impl, null);
   }
@@ -44,7 +44,7 @@ public class TraceCallable<V> implements Callable<V> {
     this.parent = parent;
     this.description = description;
   }
-  
+
   @Override
   public V call() throws Exception {
     if (parent != null) {

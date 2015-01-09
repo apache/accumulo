@@ -33,7 +33,7 @@ public class CompressedIterators {
   private Map<String,Integer> symbolMap;
   private List<String> symbolTable;
   private Map<ByteSequence,IterConfig> cache;
-  
+
   public static class IterConfig {
     public List<IterInfo> ssiList = new ArrayList<IterInfo>();
     public Map<String,Map<String,String>> ssio = new HashMap<String,Map<String,String>>();
@@ -43,7 +43,7 @@ public class CompressedIterators {
     symbolMap = new HashMap<String,Integer>();
     symbolTable = new ArrayList<String>();
   }
-  
+
   public CompressedIterators(List<String> symbols) {
     this.symbolTable = symbols;
     this.cache = new HashMap<ByteSequence,IterConfig>();
@@ -56,36 +56,36 @@ public class CompressedIterators {
       symbolTable.add(symbol);
       symbolMap.put(symbol, id);
     }
-    
+
     return id;
   }
-  
+
   public ByteBuffer compress(IteratorSetting[] iterators) {
-    
+
     UnsynchronizedBuffer.Writer out = new UnsynchronizedBuffer.Writer(iterators.length * 8);
-    
+
     out.writeVInt(iterators.length);
 
     for (IteratorSetting is : iterators) {
       out.writeVInt(getSymbolID(is.getName()));
       out.writeVInt(getSymbolID(is.getIteratorClass()));
       out.writeVInt(is.getPriority());
-      
+
       Map<String,String> opts = is.getOptions();
       out.writeVInt(opts.size());
-      
+
       for (Entry<String,String> entry : opts.entrySet()) {
         out.writeVInt(getSymbolID(entry.getKey()));
         out.writeVInt(getSymbolID(entry.getValue()));
       }
     }
-    
+
     return out.toByteBuffer();
-    
+
   }
-  
+
   public IterConfig decompress(ByteBuffer iterators) {
-    
+
     ByteSequence iterKey = new ArrayByteSequence(iterators);
     IterConfig config = cache.get(iterKey);
     if (config != null) {
@@ -97,27 +97,27 @@ public class CompressedIterators {
     UnsynchronizedBuffer.Reader in = new UnsynchronizedBuffer.Reader(iterators);
 
     int num = in.readVInt();
-    
+
     for (int i = 0; i < num; i++) {
       String name = symbolTable.get(in.readVInt());
       String iterClass = symbolTable.get(in.readVInt());
       int prio = in.readVInt();
-      
+
       config.ssiList.add(new IterInfo(prio, iterClass, name));
-      
+
       int numOpts = in.readVInt();
-      
+
       HashMap<String,String> opts = new HashMap<String,String>();
-      
+
       for (int j = 0; j < numOpts; j++) {
         String key = symbolTable.get(in.readVInt());
         String val = symbolTable.get(in.readVInt());
-        
+
         opts.put(key, val);
       }
-      
+
       config.ssio.put(name, opts);
-      
+
     }
 
     cache.put(iterKey, config);

@@ -25,10 +25,10 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
 /**
- * 
+ *
  */
 public class TableInfoUtil {
-  
+
   public static void add(TableInfo total, TableInfo more) {
     if (total.minors == null)
       total.minors = new Compacting();
@@ -58,7 +58,7 @@ public class TableInfoUtil {
     total.queryByteRate += more.queryByteRate;
     total.scanRate += more.scanRate;
   }
-  
+
   public static TableInfo summarizeTableStats(TabletServerStatus status) {
     TableInfo summary = new TableInfo();
     summary.majors = new Compacting();
@@ -69,7 +69,7 @@ public class TableInfoUtil {
     }
     return summary;
   }
-  
+
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<String,Double>();
     if (mmi != null && mmi.tServerInfo != null) {
@@ -84,5 +84,5 @@ public class TableInfoUtil {
     }
     return compactingByTable;
   }
-  
+
 }

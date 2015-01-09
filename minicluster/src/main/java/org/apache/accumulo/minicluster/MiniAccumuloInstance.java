@@ -29,7 +29,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 
 /**
- * 
+ *
  * @since 1.6.0
  */
 public class MiniAccumuloInstance extends ZooKeeperInstance {

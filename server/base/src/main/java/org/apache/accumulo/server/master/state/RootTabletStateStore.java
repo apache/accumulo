@@ -22,20 +22,20 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.AccumuloServerContext;
 
 public class RootTabletStateStore extends MetaDataStateStore {
-  
+
   public RootTabletStateStore(ClientContext context, CurrentState state) {
     super(context, state, RootTable.NAME);
   }
-  
+
   public RootTabletStateStore(AccumuloServerContext context) {
     super(context, RootTable.NAME);
   }
-  
+
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
     return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state, RootTable.NAME);
   }
-  
+
   @Override
   public String name() {
     return "Metadata Tablets";

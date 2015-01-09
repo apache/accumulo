@@ -102,7 +102,7 @@ public class TableToFile extends Configured implements Tool {
   }
 
   /**
-   * 
+   *
    * @param args
    *          instanceName zookeepers username password table columns outputpath
    */

@@ -44,7 +44,6 @@ public class ColumnTest {
     col[4] = new Column("colfam".getBytes(), "cq".getBytes(), "cv".getBytes());
   }
 
-
   @Test
   public void testEquals() {
     for (int i = 0; i < col.length; i++) {
@@ -56,7 +55,7 @@ public class ColumnTest {
       }
     }
   }
-  
+
   @Test
   public void testCompare() {
     for (int i = 0; i < col.length; i++) {
@@ -75,7 +74,7 @@ public class ColumnTest {
       for (int j = 0; j < col.length; j++)
         assertEquals(col[i].equals(col[j]), col[i].compareTo(col[j]) == 0);
   }
-  
+
   @Test
   public void testWriteReadFields() throws IOException {
     for (Column c : col) {

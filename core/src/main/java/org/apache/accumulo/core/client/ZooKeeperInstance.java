@@ -129,8 +129,8 @@ public class ZooKeeperInstance implements Instance {
 
   /**
    * @param config
-   *          Client configuration for specifying connection options.
-   *          See {@link ClientConfiguration} which extends Configuration with convenience methods specific to Accumulo.
+   *          Client configuration for specifying connection options. See {@link ClientConfiguration} which extends Configuration with convenience methods
+   *          specific to Accumulo.
    * @since 1.6.0
    */
   public ZooKeeperInstance(Configuration config) {
@@ -140,7 +140,7 @@ public class ZooKeeperInstance implements Instance {
   ZooKeeperInstance(Configuration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
     if (config instanceof ClientConfiguration) {
-      this.clientConf = (ClientConfiguration)config;
+      this.clientConf = (ClientConfiguration) config;
     } else {
       this.clientConf = new ClientConfiguration(config);
     }

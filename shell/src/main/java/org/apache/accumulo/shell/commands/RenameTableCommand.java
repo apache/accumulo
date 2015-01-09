@@ -25,8 +25,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.Token;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class RenameTableCommand extends Command {

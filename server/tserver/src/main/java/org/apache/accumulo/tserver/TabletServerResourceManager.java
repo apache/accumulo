@@ -420,7 +420,7 @@ public class TabletServerResourceManager {
               if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
                 if (tablet.isClosed()) {
                   // attempt to remove it from the current reports if still there
-                  synchronized(tabletReports) {
+                  synchronized (tabletReports) {
                     TabletStateImpl latestReport = tabletReports.remove(keyExtent);
                     if (latestReport != null) {
                       if (latestReport.getTablet() != tablet) {
@@ -643,8 +643,6 @@ public class TabletServerResourceManager {
         throw new RuntimeException(e);
       }
     }
-
-
 
     // END methods that Tablets call to make decisions about major compaction
 

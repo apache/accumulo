@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -47,7 +48,7 @@ public class ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum ConnectorInfo {
@@ -70,7 +71,7 @@ public class ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum InstanceOpts {
@@ -79,17 +80,16 @@ public class ConfiguratorBase {
 
   /**
    * Configuration keys for general configuration options.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum GeneralOpts {
-    LOG_LEVEL,
-    VISIBILITY_CACHE_SIZE
+    LOG_LEVEL, VISIBILITY_CACHE_SIZE
   }
 
   /**
    * Provides a configuration key for a given feature enum, prefixed by the implementingClass
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param e
@@ -102,23 +102,23 @@ public class ConfiguratorBase {
   }
 
   /**
-  * Provides a configuration key for a given feature enum.
-  * 
-  * @param e
-  *          the enum used to provide the unique part of the configuration key
-  * @return the configuration key
-  */
+   * Provides a configuration key for a given feature enum.
+   *
+   * @param e
+   *          the enum used to provide the unique part of the configuration key
+   * @return the configuration key
+   */
   protected static String enumToConfKey(Enum<?> e) {
-	  return  e.getDeclaringClass().getSimpleName() + "." +  StringUtils.camelize(e.name().toLowerCase());
+    return e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
   }
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-   * 
+   *
    * <p>
    * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
    * conversion to a string, and is not intended to be secure.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -144,11 +144,11 @@ public class ConfiguratorBase {
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-   * 
+   *
    * <p>
    * Pulls a token file into the Distributed Cache that contains the authentication token in an attempt to be more secure than storing the password in the
    * Configuration. Token file created with "bin/accumulo create-token".
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -179,7 +179,7 @@ public class ConfiguratorBase {
 
   /**
    * Determines if the connector info has already been set for this instance.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -194,7 +194,7 @@ public class ConfiguratorBase {
 
   /**
    * Gets the user name from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -209,7 +209,7 @@ public class ConfiguratorBase {
 
   /**
    * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -237,7 +237,7 @@ public class ConfiguratorBase {
 
   /**
    * Reads from the token file in distributed cache. Currently, the token file stores data separated by colons e.g. principal:token_class:token
-   * 
+   *
    * @param conf
    *          the Hadoop context for the configured job
    * @return path to the token file as a String
@@ -275,7 +275,7 @@ public class ConfiguratorBase {
 
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -296,7 +296,7 @@ public class ConfiguratorBase {
 
   /**
    * Configures a {@link MockInstance} for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -317,7 +317,7 @@ public class ConfiguratorBase {
 
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -348,7 +348,7 @@ public class ConfiguratorBase {
 
   /**
    * Sets the log level for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -365,7 +365,7 @@ public class ConfiguratorBase {
 
   /**
    * Gets the log level from this configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -380,7 +380,7 @@ public class ConfiguratorBase {
 
   /**
    * Sets the valid visibility count for this job.
-   * 
+   *
    * @param conf
    *          the Hadoop configuration object to configure
    * @param visibilityCacheSize
@@ -392,13 +392,13 @@ public class ConfiguratorBase {
 
   /**
    * Gets the valid visibility count for this job.
-   * 
+   *
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the valid visibility count
    */
   public static int getVisibilityCacheSize(Configuration conf) {
-    return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE),Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
+    return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
   }
 
 }

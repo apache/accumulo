@@ -22,8 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.accumulo.server.fs.FileRef;
+
+import com.google.common.collect.Sets;
 
 /**
  * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that should simply be deleted, and the optional parameters used to
@@ -59,7 +60,7 @@ public class CompactionPlan {
 
   /**
    * Validate compaction plan.
-   * 
+   *
    * @param allFiles
    *          All possible files
    * @throws IllegalStateException

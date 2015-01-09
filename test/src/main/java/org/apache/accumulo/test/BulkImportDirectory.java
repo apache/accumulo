@@ -36,15 +36,14 @@ import com.beust.jcommander.Parameter;
 
 public class BulkImportDirectory {
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names={"-s","--source"}, description="directory to import from")
+    @Parameter(names = {"-s", "--source"}, description = "directory to import from")
     String source = null;
-    @Parameter(names={"-f","--failures"}, description="directory to copy failures into: will be deleted before the bulk import")
+    @Parameter(names = {"-f", "--failures"}, description = "directory to copy failures into: will be deleted before the bulk import")
     String failures = null;
-    @Parameter(description="<username> <password> <tablename> <sourcedir> <failuredir>")
+    @Parameter(description = "<username> <password> <tablename> <sourcedir> <failuredir>")
     List<String> args = new ArrayList<String>();
   }
-  
-  
+
   public static void main(String[] args) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Opts opts = new Opts();

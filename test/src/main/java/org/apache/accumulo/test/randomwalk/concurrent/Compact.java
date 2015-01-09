@@ -29,20 +29,20 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Compact extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     List<Text> range = ConcurrentFixture.generateRange(rand);
-    
+
     try {
       boolean wait = rand.nextBoolean();
       conn.tableOperations().compact(tableName, range.get(0), range.get(1), false, wait);
@@ -52,6 +52,6 @@ public class Compact extends Test {
     } catch (TableOfflineException toe) {
       log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, offline");
     }
-    
+
   }
 }

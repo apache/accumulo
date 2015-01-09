@@ -19,7 +19,6 @@ package org.apache.accumulo.server.replication;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
-
 /**
  * Interface to allow for multiple implementations that assign replication work
  */

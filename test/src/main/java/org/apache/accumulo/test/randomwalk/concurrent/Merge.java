@@ -31,21 +31,21 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Merge extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
     tableNames = new ArrayList<String>(tableNames);
     tableNames.add(MetadataTable.NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     List<Text> range = ConcurrentFixture.generateRange(rand);
-    
+
     try {
       conn.tableOperations().merge(tableName, range.get(0), range.get(1));
       log.debug("merged " + tableName + " from " + range.get(0) + " to " + range.get(1));
@@ -54,6 +54,6 @@ public class Merge extends Test {
     } catch (TableNotFoundException tne) {
       log.debug("merge " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, doesnt exist");
     }
-    
+
   }
 }

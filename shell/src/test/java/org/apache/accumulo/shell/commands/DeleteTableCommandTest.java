@@ -35,7 +35,7 @@ public class DeleteTableCommandTest {
     Set<String> tables = new HashSet<String>(Arrays.asList(MetadataTable.NAME, RootTable.NAME, "a1", "a2"));
     DeleteTableCommand cmd = new DeleteTableCommand();
     cmd.pruneTables("a.*", tables);
-    
+
     Assert.assertEquals(new HashSet<String>(Arrays.asList("a1", "a2")), tables);
   }
 

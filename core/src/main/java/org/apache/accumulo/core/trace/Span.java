@@ -18,16 +18,15 @@ package org.apache.accumulo.core.trace;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.List;
+import java.util.Map;
+
 import org.htrace.NullScope;
 import org.htrace.TimelineAnnotation;
 import org.htrace.TraceScope;
 
-import java.util.List;
-import java.util.Map;
-
 /**
- * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent.
- * Not recommended for client use.
+ * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent. Not recommended for client use.
  */
 public class Span implements org.htrace.Span {
   public static final Span NULL_SPAN = new Span(NullScope.INSTANCE);
@@ -127,7 +126,7 @@ public class Span implements org.htrace.Span {
   }
 
   @Override
-  public Map<byte[], byte[]> getKVAnnotations() {
+  public Map<byte[],byte[]> getKVAnnotations() {
     return span.getKVAnnotations();
   }
 

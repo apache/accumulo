@@ -23,7 +23,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class RangeSerialization {
   private static final Text EMPTY = new Text(new byte[0]);
@@ -37,7 +37,7 @@ public class RangeSerialization {
     } else {
       startKey = new Key(holder);
     }
-    
+
     key.getColumnQualifier(holder);
     Key endKey;
     if (0 == holder.getLength()) {

@@ -26,21 +26,22 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.zookeeper.KeeperException;
 
 /**
- * 
+ *
  */
 public class ZookeeperLockChecker implements TabletServerLockChecker {
-  
+
   private final ZooCache zc;
   private final String root;
 
   ZookeeperLockChecker(Instance instance) {
     this(instance, new ZooCacheFactory());
   }
+
   ZookeeperLockChecker(Instance instance, ZooCacheFactory zcf) {
     zc = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     this.root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
   }
-  
+
   @Override
   public boolean isLockHeld(String tserver, String session) {
     try {
@@ -51,10 +52,10 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void invalidateCache(String tserver) {
     zc.clear(root + "/" + tserver);
   }
-  
+
 }

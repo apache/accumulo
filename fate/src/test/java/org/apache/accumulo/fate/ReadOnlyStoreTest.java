@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class ReadOnlyStoreTest {
 
     EasyMock.expect(mock.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class))).andReturn(TStatus.UNKNOWN);
     EasyMock.expect(mock.getProperty(0xdeadbeefl, "com.example.anyproperty")).andReturn("property");
-    EasyMock.expect(mock.list()).andReturn(Collections.<Long>emptyList());
+    EasyMock.expect(mock.list()).andReturn(Collections.<Long> emptyList());
 
     EasyMock.replay(repo);
     EasyMock.replay(mock);
@@ -64,7 +63,7 @@ public class ReadOnlyStoreTest {
 
     Assert.assertEquals(TStatus.UNKNOWN, store.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class)));
     Assert.assertEquals("property", store.getProperty(0xdeadbeefl, "com.example.anyproperty"));
-    Assert.assertEquals(Collections.<Long>emptyList(), store.list());
+    Assert.assertEquals(Collections.<Long> emptyList(), store.list());
 
     EasyMock.verify(repo);
     EasyMock.verify(mock);

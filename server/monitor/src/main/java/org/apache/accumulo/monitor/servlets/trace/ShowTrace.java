@@ -41,15 +41,15 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 
 public class ShowTrace extends Basic {
-  
+
   private static final long serialVersionUID = 1L;
   private static final String checkboxIdSuffix = "_checkbox";
   private static final String pageLoadFunctionName = "pageload";
-  
+
   String getTraceId(HttpServletRequest req) {
     return getStringParameter(req, "id", null);
   }
-  
+
   @Override
   public String getTitle(HttpServletRequest req) {
     String id = getTraceId(req);
@@ -57,7 +57,7 @@ public class ShowTrace extends Basic {
       return "No trace id specified";
     return "Trace ID " + id;
   }
-  
+
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb) throws Exception {
     String id = getTraceId(req);
@@ -91,7 +91,7 @@ public class ShowTrace extends Basic {
     sb.append("    elt.style.display='none';\n ");
     sb.append(" }\n");
     sb.append("}\n");
-    
+
     sb.append("function ").append(pageLoadFunctionName).append("() {\n");
     sb.append("  var checkboxes = document.getElementsByTagName('input');\n");
     sb.append("  for (var i = 0; i < checkboxes.length; i++) {\n");
@@ -102,13 +102,13 @@ public class ShowTrace extends Basic {
     sb.append("    }\n");
     sb.append("  }\n");
     sb.append("}\n");
-    
+
     sb.append("</script>\n");
     sb.append("<div>");
     sb.append("<table><caption>");
     sb.append(String.format("<span class='table-caption'>Trace %s started at<br>%s</span></caption>", id, dateString(start)));
     sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th><th>Name</th><th>Addl Data</th></tr>");
-    
+
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override
@@ -135,7 +135,7 @@ public class ShowTrace extends Basic {
           sb.append("  <table class='indent,noborder'>\n");
           if (hasData) {
             sb.append("  <tr><th>Key</th><th>Value</th></tr>\n");
-            for (Entry<ByteBuffer, ByteBuffer> entry : node.data.entrySet()) {
+            for (Entry<ByteBuffer,ByteBuffer> entry : node.data.entrySet()) {
               String key = new String(entry.getKey().array(), entry.getKey().arrayOffset(), entry.getKey().limit(), UTF_8);
               String value = new String(entry.getValue().array(), entry.getValue().arrayOffset(), entry.getValue().limit(), UTF_8);
               sb.append("  <tr><td>" + BasicServlet.sanitize(key) + "</td>");
@@ -167,7 +167,7 @@ public class ShowTrace extends Basic {
     sb.append("</table>\n");
     sb.append("</div>\n");
   }
-  
+
   @Override
   protected String getBodyAttributes() {
     return " onload=\"" + pageLoadFunctionName + "()\" ";

@@ -314,10 +314,10 @@ public class CredentialProviderFactoryShim {
     Preconditions.checkNotNull(credentialProviders);
     return getConfiguration(new Configuration(CachedConfiguration.getInstance()), credentialProviders);
   }
-  
+
   /**
    * Adds the Credential Provider configuration elements to the provided {@link Configuration}.
-   * 
+   *
    * @param conf
    *          Existing Hadoop Configuration
    * @param credentialProviders

@@ -38,10 +38,10 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class CredentialsTest {
-  
+
   @Test
   public void testToThrift() throws DestroyFailedException {
     // verify thrift serialization
@@ -50,7 +50,7 @@ public class CredentialsTest {
     assertEquals("test", tCreds.getPrincipal());
     assertEquals(PasswordToken.class.getName(), tCreds.getTokenClassName());
     assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")), tCreds.getToken());
-    
+
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
     try {
@@ -70,14 +70,14 @@ public class CredentialsTest {
     Credentials roundtrip = Credentials.fromThrift(tCreds);
     assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
   }
-  
+
   @Test
   public void testMockConnector() throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
     Instance inst = new MockInstance();
     Connector rootConnector = inst.getConnector("root", new PasswordToken());
     PasswordToken testToken = new PasswordToken("testPass");
     rootConnector.securityOperations().createLocalUser("testUser", testToken);
-    
+
     assertFalse(testToken.isDestroyed());
     testToken.destroy();
     assertTrue(testToken.isDestroyed());
@@ -88,20 +88,20 @@ public class CredentialsTest {
       assertTrue(e.getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
     }
   }
-  
+
   @Test
   public void testEqualsAndHashCode() {
     Credentials nullNullCreds = new Credentials(null, null);
     Credentials abcNullCreds = new Credentials("abc", new NullToken());
     Credentials cbaNullCreds = new Credentials("cba", new NullToken());
     Credentials abcBlahCreds = new Credentials("abc", new PasswordToken("blah"));
-    
+
     // check hash codes
     assertEquals(0, nullNullCreds.hashCode());
     assertEquals("abc".hashCode(), abcNullCreds.hashCode());
     assertEquals(abcNullCreds.hashCode(), abcBlahCreds.hashCode());
     assertFalse(abcNullCreds.hashCode() == cbaNullCreds.hashCode());
-    
+
     // identity
     assertEquals(abcNullCreds, abcNullCreds);
     assertEquals(new Credentials("abc", new NullToken()), abcNullCreds);
@@ -112,7 +112,7 @@ public class CredentialsTest {
     assertFalse(nullNullCreds.equals(abcNullCreds));
     assertFalse(abcNullCreds.equals(abcBlahCreds));
   }
-  
+
   @Test
   public void testCredentialsSerialization() throws AccumuloSecurityException {
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
@@ -121,14 +121,14 @@ public class CredentialsTest {
     assertEquals(creds, result);
     assertEquals("a:b-c", result.getPrincipal());
     assertEquals(new PasswordToken("d-e-f"), result.getToken());
-    
+
     Credentials nullNullCreds = new Credentials(null, null);
     serialized = nullNullCreds.serialize();
     result = Credentials.deserialize(serialized);
     assertEquals(null, result.getPrincipal());
     assertEquals(null, result.getToken());
   }
-  
+
   @Test
   public void testToString() {
     Credentials creds = new Credentials(null, null);

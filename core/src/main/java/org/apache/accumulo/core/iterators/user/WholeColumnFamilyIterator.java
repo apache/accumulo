@@ -39,31 +39,31 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  * The WholeColumnFamilyIterator is designed to provide row/cf-isolation so that queries see mutations as atomic. It does so by grouping row/Column family (as
  * key) and rest of data as Value into a single key/value pair, which is returned through the client as an atomic operation.
- * 
+ *
  * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
- * 
+ *
  * @since 1.6.0
  */
 public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
-  
+
   private SortedKeyValueIterator<Key,Value> sourceIter;
   private Key topKey = null;
   private Value topValue = null;
-  
+
   public WholeColumnFamilyIterator() {
 
   }
-  
+
   WholeColumnFamilyIterator(SortedKeyValueIterator<Key,Value> source) {
     this.sourceIter = source;
   }
-  
+
   /**
    * Decode whole row/cf out of value. decode key value pairs that have been encoded into a single // value
-   * 
+   *
    * @param rowKey
    *          the row key to decode
    * @param rowValue
@@ -105,11 +105,11 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
     }
     return map;
   }
-  
+
   /**
    * Encode row/cf. Take a stream of keys and values and output a value that encodes everything but their row and column families keys and values must be paired
    * one for one
-   * 
+   *
    * @param keys
    *          the row keys to encode into value
    * @param values
@@ -144,25 +144,25 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
       dout.writeInt(valBytes.length);
       dout.write(valBytes);
     }
-    
+
     return new Value(out.toByteArray());
   }
-  
+
   List<Key> keys = new ArrayList<Key>();
   List<Value> values = new ArrayList<Value>();
-  
+
   private void prepKeys() throws IOException {
     if (topKey != null)
       return;
     Text currentRow;
     Text currentCf;
-    
+
     do {
       if (sourceIter.hasTop() == false)
         return;
       currentRow = new Text(sourceIter.getTopKey().getRow());
       currentCf = new Text(sourceIter.getTopKey().getColumnFamily());
-      
+
       keys.clear();
       values.clear();
       while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow) && sourceIter.getTopKey().getColumnFamily().equals(currentCf)) {
@@ -171,14 +171,14 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
         sourceIter.next();
       }
     } while (!filter(currentRow, keys, values));
-    
+
     topKey = new Key(currentRow, currentCf);
     topValue = encodeColumnFamily(keys, values);
-    
+
   }
-  
+
   /**
-   * 
+   *
    * @param currentRow
    *          All keys & cf have this in their row portion (do not modify!).
    * @param keys
@@ -190,48 +190,48 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
   protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
     return true;
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     if (sourceIter != null)
       return new WholeColumnFamilyIterator(sourceIter.deepCopy(env));
     return new WholeColumnFamilyIterator();
   }
-  
+
   @Override
   public Key getTopKey() {
     return topKey;
   }
-  
+
   @Override
   public Value getTopValue() {
     return topValue;
   }
-  
+
   @Override
   public boolean hasTop() {
     return topKey != null || sourceIter.hasTop();
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     sourceIter = source;
   }
-  
+
   @Override
   public void next() throws IOException {
     topKey = null;
     topValue = null;
     prepKeys();
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     topKey = null;
     topValue = null;
-    
+
     Key sk = range.getStartKey();
-    
+
     if (sk != null && sk.getColumnQualifierData().length() == 0 && sk.getColumnVisibilityData().length() == 0 && sk.getTimestamp() == Long.MAX_VALUE
         && !range.isStartKeyInclusive()) {
       // assuming that we are seeking using a key previously returned by
@@ -240,22 +240,22 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
       Key followingRowKey = sk.followingKey(PartialKey.ROW_COLFAM);
       if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
         return;
-      
+
       range = new Range(sk.followingKey(PartialKey.ROW_COLFAM), true, range.getEndKey(), range.isEndKeyInclusive());
     }
-    
+
     sourceIter.seek(range, columnFamilies, inclusive);
     prepKeys();
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     return new IteratorOptions("wholecolumnfamilyiterator", "WholeColumnFamilyIterator. Group equal row & column family into single row entry.", null, null);
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     return true;
   }
-  
+
 }

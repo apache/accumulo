@@ -1786,7 +1786,7 @@ public class Tablet implements TabletCommitter {
     CompactionStrategy strategy = null;
     Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
 
-    if(reason == MajorCompactionReason.USER){
+    if (reason == MajorCompactionReason.USER) {
       try {
         compactionId = getCompactionID();
         strategy = createCompactionStrategy(compactionId.getSecond().getCompactionStrategy());
@@ -1887,7 +1887,7 @@ public class Tablet implements TabletCommitter {
       log.debug(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0, (t2 - t1) / 1000.0));
 
       if (updateCompactionID) {
-        MetadataTableUtil.updateTabletCompactID(extent, compactionId.getFirst(),tabletServer, getTabletServer().getLock());
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId.getFirst(), tabletServer, getTabletServer().getLock());
         return majCStats;
       }
 

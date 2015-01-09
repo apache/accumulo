@@ -24,25 +24,25 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.Environment;
+import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class SequentialFixture extends Fixture {
-  
+
   String seqTableName;
-  
+
   @Override
   public void setUp(State state, Environment env) throws Exception {
-    
+
     Connector conn = env.getConnector();
     Instance instance = env.getInstance();
-    
+
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    
+
     seqTableName = String.format("sequential_%s_%s_%d", hostname, env.getPid(), System.currentTimeMillis());
     state.set("seqTableName", seqTableName);
-    
+
     try {
       conn.tableOperations().create(seqTableName);
       log.debug("Created table " + seqTableName + " (id:" + Tables.getNameToIdMap(instance).get(seqTableName) + ")");
@@ -51,11 +51,11 @@ public class SequentialFixture extends Fixture {
       throw e;
     }
     conn.tableOperations().setProperty(seqTableName, "table.scan.max.memory", "1K");
-    
+
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));
   }
-  
+
   @Override
   public void tearDown(State state, Environment env) throws Exception {
     // We have resources we need to clean up
@@ -66,15 +66,15 @@ public class SequentialFixture extends Fixture {
       } catch (MutationsRejectedException e) {
         log.error("Ignoring mutations that weren't flushed", e);
       }
-      
+
       // Reset the MTBW on the state to null
       env.resetMultiTableBatchWriter();
     }
-    
+
     log.debug("Dropping tables: " + seqTableName);
-    
+
     Connector conn = env.getConnector();
-    
+
     conn.tableOperations().delete(seqTableName);
   }
 }

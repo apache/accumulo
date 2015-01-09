@@ -26,7 +26,7 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.log4j.Logger;
 
 public class CommitSession {
-  
+
   private static final Logger log = Logger.getLogger(CommitSession.class);
 
   private final int seq;

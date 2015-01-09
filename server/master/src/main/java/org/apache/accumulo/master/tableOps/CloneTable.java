@@ -195,8 +195,8 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user,
-            cloneInfo.tableId, permission, cloneInfo.namespaceId);
+        AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
+            cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;

@@ -36,7 +36,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterators;
 
 /**
- * 
+ *
  */
 public class TabletTest {
 
@@ -55,7 +55,7 @@ public class TabletTest {
     ConfigurationObserver obs = EasyMock.createMock(ConfigurationObserver.class);
 
     Tablet tablet = new Tablet(time, "", 0, new Path("/foo"), dfm, tserver, tserverResourceManager, tabletMemory, tableConf, extent, obs);
-    
+
     long hdfsBlockSize = 10000l, blockSize = 5000l, indexBlockSize = 500l;
     int replication = 5;
     String compressType = "snappy";

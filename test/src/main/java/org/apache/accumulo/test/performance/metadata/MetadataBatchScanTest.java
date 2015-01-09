@@ -52,96 +52,96 @@ import org.apache.log4j.Logger;
 import com.google.common.net.HostAndPort;
 
 /**
- * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata
- * lookups using the batch scanner.
- * 
- * 
+ * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata lookups using the
+ * batch scanner.
+ *
+ *
  */
 
 public class MetadataBatchScanTest {
-  
+
   private static final Logger log = Logger.getLogger(MetadataBatchScanTest.class);
-  
+
   public static void main(String[] args) throws Exception {
-    
+
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScanTest.class.getName(), args);
     Instance inst = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost"));
     final Connector connector = inst.getConnector(opts.principal, opts.getToken());
-    
+
     TreeSet<Long> splits = new TreeSet<Long>();
     Random r = new Random(42);
-    
+
     while (splits.size() < 99999) {
       splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
     }
-    
+
     Text tid = new Text("8");
     Text per = null;
-    
+
     ArrayList<KeyExtent> extents = new ArrayList<KeyExtent>();
-    
+
     for (Long split : splits) {
       Text er = new Text(String.format("%012d", split));
       KeyExtent ke = new KeyExtent(tid, er, per);
       per = er;
-      
+
       extents.add(ke);
     }
-    
+
     extents.add(new KeyExtent(tid, null, per));
-    
+
     if (args[0].equals("write")) {
-      
+
       BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      
+
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();
         new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF").putLocation(mut);
         bw.addMutation(mut);
       }
-      
+
       bw.close();
     } else if (args[0].equals("writeFiles")) {
       BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      
+
       for (KeyExtent extent : extents) {
-        
+
         Mutation mut = new Mutation(extent.getMetadataEntry());
-        
+
         String dir = "/t-" + UUID.randomUUID();
-        
+
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
-        
+
         for (int i = 0; i < 5; i++) {
           mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(UTF_8)));
         }
-        
+
         bw.addMutation(mut);
       }
-      
+
       bw.close();
     } else if (args[0].equals("scan")) {
-      
+
       int numThreads = Integer.parseInt(args[1]);
       final int numLoop = Integer.parseInt(args[2]);
       int numLookups = Integer.parseInt(args[3]);
-      
+
       HashSet<Integer> indexes = new HashSet<Integer>();
       while (indexes.size() < numLookups) {
         indexes.add(r.nextInt(extents.size()));
       }
-      
+
       final List<Range> ranges = new ArrayList<Range>();
       for (Integer i : indexes) {
         ranges.add(extents.get(i).toMetadataRange());
       }
-      
+
       Thread threads[] = new Thread[numThreads];
-      
+
       for (int i = 0; i < threads.length; i++) {
         threads[i] = new Thread(new Runnable() {
-          
+
           @Override
           public void run() {
             try {
@@ -152,79 +152,79 @@ public class MetadataBatchScanTest {
           }
         });
       }
-      
+
       long t1 = System.currentTimeMillis();
-      
+
       for (int i = 0; i < threads.length; i++) {
         threads[i].start();
       }
-      
+
       for (int i = 0; i < threads.length; i++) {
         threads[i].join();
       }
-      
+
       long t2 = System.currentTimeMillis();
-      
+
       System.out.printf("tt : %6.2f%n", (t2 - t1) / 1000.0);
-      
+
     } else {
       throw new IllegalArgumentException();
     }
-    
+
   }
-  
+
   private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges) throws Exception {
     Scanner scanner = null;
-    
+
     BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
     bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
-    
+
     bs.setRanges(ranges);
-    
+
     // System.out.println(ranges);
-    
+
     ScanStats stats = new ScanStats();
     for (int i = 0; i < numLoop; i++) {
       ScanStat ss = scan(bs, ranges, scanner);
       stats.merge(ss);
     }
-    
+
     return stats;
   }
-  
+
   private static class ScanStat {
     long delta1;
     long delta2;
     int count1;
     int count2;
   }
-  
+
   private static class ScanStats {
     Stat delta1 = new Stat();
     Stat delta2 = new Stat();
     Stat count1 = new Stat();
     Stat count2 = new Stat();
-    
+
     void merge(ScanStat ss) {
       delta1.addStat(ss.delta1);
       delta2.addStat(ss.delta2);
       count1.addStat(ss.count1);
       count2.addStat(ss.count2);
     }
-    
+
     @Override
     public String toString() {
       return "[" + delta1 + "] [" + delta2 + "]";
     }
   }
-  
+
   private static ScanStat scan(BatchScanner bs, List<Range> ranges, Scanner scanner) {
-    
+
     // System.out.println("ranges : "+ranges);
-    
+
     ScanStat ss = new ScanStat();
-    
+
     long t1 = System.currentTimeMillis();
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -233,22 +233,22 @@ public class MetadataBatchScanTest {
     }
     bs.close();
     long t2 = System.currentTimeMillis();
-    
+
     ss.delta1 = t2 - t1;
     ss.count1 = count;
-    
+
     count = 0;
     t1 = System.currentTimeMillis();
     /*
      * for (Range range : ranges) { scanner.setRange(range); for (Entry<Key, Value> entry : scanner) { count++; } }
      */
-    
+
     t2 = System.currentTimeMillis();
-    
+
     ss.delta2 = t2 - t1;
     ss.count2 = count;
-    
+
     return ss;
   }
-  
+
 }

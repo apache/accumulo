@@ -16,33 +16,27 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 
 import org.apache.accumulo.core.util.Base64;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class TraceRepoDeserializationTest {
-  
+
   // Zookeeper data for a merge request
-  static private final String oldValue = 
-      "rO0ABXNyAC1vcmcuYXBhY2hlLmFjY3VtdWxvLm1hc3Rlci50YWJsZU9wcy5UcmFjZVJlc" +
-      "G8AAAAAAAAAAQIAAkwABHJlcG90AB9Mb3JnL2FwYWNoZS9hY2N1bXVsby9mYXRlL1Jl" +
-      "cG87TAAFdGluZm90AChMb3JnL2FwYWNoZS9hY2N1bXVsby90cmFjZS90aHJpZnQvVEl" +
-      "uZm87eHBzcgAwb3JnLmFwYWNoZS5hY2N1bXVsby5tYXN0ZXIudGFibGVPcHMuVGFibG" +
-      "VSYW5nZU9wAAAAAAAAAAECAAVbAAZlbmRSb3d0AAJbQkwAC25hbWVzcGFjZUlkdAAST" +
-      "GphdmEvbGFuZy9TdHJpbmc7TAACb3B0AD1Mb3JnL2FwYWNoZS9hY2N1bXVsby9zZXJ2" +
-      "ZXIvbWFzdGVyL3N0YXRlL01lcmdlSW5mbyRPcGVyYXRpb247WwAIc3RhcnRSb3dxAH4A" +
-      "BUwAB3RhYmxlSWRxAH4ABnhyAC5vcmcuYXBhY2hlLmFjY3VtdWxvLm1hc3Rlci50YWJs" +
-      "ZU9wcy5NYXN0ZXJSZXBvAAAAAAAAAAECAAB4cHVyAAJbQqzzF/gGCFTgAgAAeHAAAAAA" +
-      "dAAIK2RlZmF1bHR+cgA7b3JnLmFwYWNoZS5hY2N1bXVsby5zZXJ2ZXIubWFzdGVyLnN0" +
-      "YXRlLk1lcmdlSW5mbyRPcGVyYXRpb24AAAAAAAAAABIAAHhyAA5qYXZhLmxhbmcuRW51" +
-      "bQAAAAAAAAAAEgAAeHB0AAVNRVJHRXEAfgALdAABMnNyACZvcmcuYXBhY2hlLmFjY3Vt" +
-      "dWxvLnRyYWNlLnRocmlmdC5USW5mb79UcL31bhZ9AwADQgAQX19pc3NldF9iaXRmaWVs" +
-      "ZEoACHBhcmVudElkSgAHdHJhY2VJZHhwdwUWABYAAHg=";
-  
+  static private final String oldValue = "rO0ABXNyAC1vcmcuYXBhY2hlLmFjY3VtdWxvLm1hc3Rlci50YWJsZU9wcy5UcmFjZVJlc"
+      + "G8AAAAAAAAAAQIAAkwABHJlcG90AB9Mb3JnL2FwYWNoZS9hY2N1bXVsby9mYXRlL1Jl" + "cG87TAAFdGluZm90AChMb3JnL2FwYWNoZS9hY2N1bXVsby90cmFjZS90aHJpZnQvVEl"
+      + "uZm87eHBzcgAwb3JnLmFwYWNoZS5hY2N1bXVsby5tYXN0ZXIudGFibGVPcHMuVGFibG" + "VSYW5nZU9wAAAAAAAAAAECAAVbAAZlbmRSb3d0AAJbQkwAC25hbWVzcGFjZUlkdAAST"
+      + "GphdmEvbGFuZy9TdHJpbmc7TAACb3B0AD1Mb3JnL2FwYWNoZS9hY2N1bXVsby9zZXJ2" + "ZXIvbWFzdGVyL3N0YXRlL01lcmdlSW5mbyRPcGVyYXRpb247WwAIc3RhcnRSb3dxAH4A"
+      + "BUwAB3RhYmxlSWRxAH4ABnhyAC5vcmcuYXBhY2hlLmFjY3VtdWxvLm1hc3Rlci50YWJs" + "ZU9wcy5NYXN0ZXJSZXBvAAAAAAAAAAECAAB4cHVyAAJbQqzzF/gGCFTgAgAAeHAAAAAA"
+      + "dAAIK2RlZmF1bHR+cgA7b3JnLmFwYWNoZS5hY2N1bXVsby5zZXJ2ZXIubWFzdGVyLnN0" + "YXRlLk1lcmdlSW5mbyRPcGVyYXRpb24AAAAAAAAAABIAAHhyAA5qYXZhLmxhbmcuRW51"
+      + "bQAAAAAAAAAAEgAAeHB0AAVNRVJHRXEAfgALdAABMnNyACZvcmcuYXBhY2hlLmFjY3Vt" + "dWxvLnRyYWNlLnRocmlmdC5USW5mb79UcL31bhZ9AwADQgAQX19pc3NldF9iaXRmaWVs"
+      + "ZEoACHBhcmVudElkSgAHdHJhY2VJZHhwdwUWABYAAHg=";
+
   @Test(expected = InvalidClassException.class)
   public void test() throws Exception {
     byte bytes[] = Base64.decodeBase64(oldValue);
@@ -51,5 +45,5 @@ public class TraceRepoDeserializationTest {
     ois.readObject();
     fail("did not throw exception");
   }
-  
+
 }

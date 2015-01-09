@@ -16,10 +16,14 @@
  */
 package org.apache.accumulo.server.util.time;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class SimpleTimerTest {
   private static final long DELAY = 1000L;
@@ -55,6 +59,7 @@ public class SimpleTimerTest {
 
   private static class Thrower implements Runnable {
     boolean wasRun = false;
+
     public void run() {
       wasRun = true;
       throw new IllegalStateException("You shall not pass");
@@ -94,6 +99,6 @@ public class SimpleTimerTest {
     assertEquals(1, SimpleTimer.getInstanceThreadPoolSize());
     SimpleTimer t2 = SimpleTimer.getInstance(2);
     assertSame(t, t2);
-    assertEquals(1, SimpleTimer.getInstanceThreadPoolSize());  // unchanged
+    assertEquals(1, SimpleTimer.getInstanceThreadPoolSize()); // unchanged
   }
 }

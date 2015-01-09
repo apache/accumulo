@@ -41,10 +41,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class ZookeeperRestartIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "3s");
     cfg.setSiteConfig(siteConfig);
   }
@@ -63,17 +63,17 @@ public class ZookeeperRestartIT extends ConfigurableMacIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    
+
     // kill zookeeper
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.ZOOKEEPER))
       cluster.killProcess(ServerType.ZOOKEEPER, proc);
-    
+
     // give the servers time to react
     UtilWaitThread.sleep(1000);
-    
+
     // start zookeeper back up
     cluster.start();
-    
+
     // use the tservers
     Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> i = s.iterator();
@@ -83,5 +83,5 @@ public class ZookeeperRestartIT extends ConfigurableMacIT {
     // use the master
     c.tableOperations().delete("test_ingest");
   }
-  
+
 }

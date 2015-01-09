@@ -34,10 +34,10 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.fs.FileSystem;
 
 public class Setup extends Test {
-  
+
   private static final int MAX_POOL_SIZE = 8;
   static String tableName = null;
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Random rand = new Random();
@@ -45,7 +45,7 @@ public class Setup extends Test {
     String pid = env.getPid();
     tableName = String.format("bulk_%s_%s_%d", hostname, pid, System.currentTimeMillis());
     log.info("Starting bulk test on " + tableName);
-    
+
     TableOperations tableOps = env.getConnector().tableOperations();
     try {
       if (!tableOps.exists(getTableName())) {
@@ -62,21 +62,21 @@ public class Setup extends Test {
     state.set("fs", FileSystem.get(CachedConfiguration.getInstance()));
     state.set("bulkImportSuccess", "true");
     BulkPlusOne.counter.set(0l);
-    
+
     ThreadPoolExecutor e = new SimpleThreadPool(MAX_POOL_SIZE, "bulkImportPool");
     state.set("pool", e);
   }
-  
+
   public static String getTableName() {
     return tableName;
   }
-  
+
   public static ThreadPoolExecutor getThreadPool(State state) {
     return (ThreadPoolExecutor) state.get("pool");
   }
-  
+
   public static void run(State state, Runnable r) {
     getThreadPool(state).submit(r);
   }
-  
+
 }

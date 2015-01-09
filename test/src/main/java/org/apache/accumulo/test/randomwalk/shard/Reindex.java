@@ -31,36 +31,36 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Reindex extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String tmpIndexTableName = indexTableName + "_tmp";
     String docTableName = (String) state.get("docTableName");
     int numPartitions = (Integer) state.get("numPartitions");
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     ShardFixture.createIndexTable(this.log, state, env, "_tmp", rand);
-    
+
     Scanner scanner = env.getConnector().createScanner(docTableName, Authorizations.EMPTY);
     BatchWriter tbw = env.getConnector().createBatchWriter(tmpIndexTableName, new BatchWriterConfig());
-    
+
     int count = 0;
-    
+
     for (Entry<Key,Value> entry : scanner) {
       String docID = entry.getKey().getRow().toString();
       String doc = entry.getValue().toString();
-      
+
       Insert.indexDocument(tbw, doc, docID, numPartitions);
-      
+
       count++;
     }
-    
+
     tbw.close();
-    
+
     log.debug("Reindexed " + count + " documents into " + tmpIndexTableName);
-    
+
   }
-  
+
 }

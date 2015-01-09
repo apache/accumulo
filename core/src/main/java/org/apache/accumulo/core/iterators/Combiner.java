@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -36,18 +34,21 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
+
 /**
  * A SortedKeyValueIterator that combines the Values for different versions (timestamp) of a Key within a row into a single Value. Combiner will replace one or
- * more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method. An {@link Column}
- * which only specifies a column family will combine all Keys in that column family individually. Similarly, a {@link Column} which specifies a
- * column family and column qualifier will combine all Keys in column family and qualifier individually. Combination is only ever performed on multiple versions
- * and not across column qualifiers or column visibilities.
- * 
+ * more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method. An {@link Column} which only specifies
+ * a column family will combine all Keys in that column family individually. Similarly, a {@link Column} which specifies a column family and column qualifier
+ * will combine all Keys in column family and qualifier individually. Combination is only ever performed on multiple versions and not across column qualifiers
+ * or column visibilities.
+ *
  * Implementations must provide a reduce method: {@code public Value reduce(Key key, Iterator<Value> iter)}.
- * 
+ *
  * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key. A combiner will not combine
  * keys that differ by more than the timestamp.
- * 
+ *
  * This class and its implementations do not automatically filter out unwanted columns from those being combined, thus it is generally recommended to use a
  * {@link Combiner} implementation with the {@link ScannerBase#fetchColumnFamily(Text)} or {@link ScannerBase#fetchColumn(Text, Text)} methods.
  */
@@ -65,7 +66,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
     /**
      * Constructs an iterator over Values whose Keys are versions of the current topKey of the source SortedKeyValueIterator.
-     * 
+     *
      * @param source
      *          The SortedKeyValueIterator<Key,Value> from which to read data.
      */
@@ -100,7 +101,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
     /**
      * This method is unsupported in this iterator.
-     * 
+     *
      * @throws UnsupportedOperationException
      *           when called
      */
@@ -192,13 +193,13 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   /**
    * Reduces a list of Values into a single Value.
-   * 
+   *
    * @param key
    *          The most recent version of the Key being reduced.
-   * 
+   *
    * @param iter
    *          An iterator over the Values for different versions of the key.
-   * 
+   *
    * @return The combined Value.
    */
   public abstract Value reduce(Key key, Iterator<Value> iter);
@@ -279,7 +280,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * A convenience method to set which columns a combiner should be applied to. For each column specified, all versions of a Key which match that @{link
    * IteratorSetting.Column} will be combined individually in each row. This method is likely to be used in conjunction with
    * {@link ScannerBase#fetchColumnFamily(Text)} or {@link ScannerBase#fetchColumn(Text,Text)}.
-   * 
+   *
    * @param is
    *          iterator settings object to configure
    * @param columns
@@ -301,7 +302,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   /**
    * A convenience method to set the "all columns" option on a Combiner. This will combine all columns individually within each row.
-   * 
+   *
    * @param is
    *          iterator settings object to configure
    * @param combineAllColumns

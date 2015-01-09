@@ -47,7 +47,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 /**
- * 
+ *
  */
 public class BatchWriterReplicationReplayerTest {
 
@@ -79,7 +79,6 @@ public class BatchWriterReplicationReplayerTest {
     final long systemTimestamp = 1000;
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
     bwCfg.setMaxMemory(1l);
-
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
@@ -133,7 +132,7 @@ public class BatchWriterReplicationReplayerTest {
     expectLastCall().once();
 
     replay(conn, conf, bw);
-    
+
     replayer.replicateLog(context, tableName, edits);
   }
 

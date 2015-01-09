@@ -77,7 +77,7 @@ public class Environment {
 
   /**
    * Creates a new test environment.
-   * 
+   *
    * @param p
    *          configuration properties
    * @throws NullPointerException
@@ -90,7 +90,7 @@ public class Environment {
 
   /**
    * Gets a copy of the configuration properties.
-   * 
+   *
    * @return a copy of the configuration properties
    */
   Properties copyConfigProperties() {
@@ -99,7 +99,7 @@ public class Environment {
 
   /**
    * Gets a configuration property.
-   * 
+   *
    * @param key
    *          key
    * @return property value
@@ -110,7 +110,7 @@ public class Environment {
 
   /**
    * Gets the configured username.
-   * 
+   *
    * @return username
    */
   public String getUserName() {
@@ -119,7 +119,7 @@ public class Environment {
 
   /**
    * Gets the configured password.
-   * 
+   *
    * @return password
    */
   public String getPassword() {
@@ -137,7 +137,7 @@ public class Environment {
 
   /**
    * Gets an authentication token based on the configured password.
-   * 
+   *
    * @return authentication token
    */
   public AuthenticationToken getToken() {
@@ -146,7 +146,7 @@ public class Environment {
 
   /**
    * Gets an Accumulo instance object. The same instance is reused after the first call.
-   * 
+   *
    * @return instance
    */
   public Instance getInstance() {
@@ -160,7 +160,7 @@ public class Environment {
 
   /**
    * Gets an Accumulo connector. The same connector is reused after the first call.
-   * 
+   *
    * @return connector
    */
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
@@ -172,7 +172,7 @@ public class Environment {
 
   /**
    * Gets a multitable batch writer. The same object is reused after the first call unless it is reset.
-   * 
+   *
    * @return multitable batch writer
    * @throws NumberFormatException
    *           if any of the numeric batch writer configuration properties cannot be parsed
@@ -192,7 +192,7 @@ public class Environment {
 
   /**
    * Checks if a multitable batch writer has been created by this wrapper.
-   * 
+   *
    * @return true if multitable batch writer is already created
    */
   public boolean isMultiTableBatchWriterInitialized() {

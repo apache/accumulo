@@ -16,24 +16,26 @@
  */
 package org.apache.accumulo.server.util.time;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.log4j.Logger;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 /**
  * Generic singleton timer. Don't use this if you are going to do anything that will take very long. Please use it to reduce the number of threads dedicated to
  * simple events.
- * 
+ *
  */
 public class SimpleTimer {
   private static final Logger log = Logger.getLogger(SimpleTimer.class);
-  
+
   private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
     public void uncaughtException(Thread t, Throwable e) {
       log.warn("SimpleTimer task failed", e);
@@ -43,24 +45,25 @@ public class SimpleTimer {
   private static int instanceThreadPoolSize = -1;
   private static SimpleTimer instance;
   private ScheduledExecutorService executor;
-  
+
   private static final int DEFAULT_THREAD_POOL_SIZE = 1;
+
   /**
    * Gets the timer instance.
    *
-   * @deprecated Use {@link #getInstance(AccumuloConfiguration)} instead to
-   * get the configured number of threads.
+   * @deprecated Use {@link #getInstance(AccumuloConfiguration)} instead to get the configured number of threads.
    */
   @Deprecated
   public static synchronized SimpleTimer getInstance() {
     return getInstance(null);
   }
+
   /**
-   * Gets the timer instance. If an instance has already been created, it will
-   * have the number of threads supplied when it was constructed, and the size
+   * Gets the timer instance. If an instance has already been created, it will have the number of threads supplied when it was constructed, and the size
    * provided here is ignored.
    *
-   * @param threadPoolSize number of threads
+   * @param threadPoolSize
+   *          number of threads
    */
   public static synchronized SimpleTimer getInstance(int threadPoolSize) {
     if (instance == null) {
@@ -68,20 +71,18 @@ public class SimpleTimer {
       SimpleTimer.instanceThreadPoolSize = threadPoolSize;
     } else {
       if (SimpleTimer.instanceThreadPoolSize != threadPoolSize) {
-        log.warn("Asked to create SimpleTimer with thread pool size " +
-                 threadPoolSize + ", existing instance has " +
-                 instanceThreadPoolSize);
+        log.warn("Asked to create SimpleTimer with thread pool size " + threadPoolSize + ", existing instance has " + instanceThreadPoolSize);
       }
     }
     return instance;
   }
+
   /**
-   * Gets the timer instance. If an instance has already been created, it will
-   * have the number of threads supplied when it was constructed, and the size
-   * provided by the configuration here is ignored. If a null configuration is
-   * supplied, the number of threads defaults to 1.
+   * Gets the timer instance. If an instance has already been created, it will have the number of threads supplied when it was constructed, and the size
+   * provided by the configuration here is ignored. If a null configuration is supplied, the number of threads defaults to 1.
    *
-   * @param conf configuration from which to get the number of threads
+   * @param conf
+   *          configuration from which to get the number of threads
    * @see Property#GENERAL_SIMPLETIMER_THREADPOOL_SIZE
    */
   public static synchronized SimpleTimer getInstance(AccumuloConfiguration conf) {
@@ -103,30 +104,34 @@ public class SimpleTimer {
   static int getInstanceThreadPoolSize() {
     return instanceThreadPoolSize;
   }
-  
+
   private SimpleTimer(int threadPoolSize) {
     executor = Executors.newScheduledThreadPool(threadPoolSize, new ThreadFactoryBuilder().setNameFormat("SimpleTimer-%d").setDaemon(true)
-      .setUncaughtExceptionHandler(new ExceptionHandler()).build());
+        .setUncaughtExceptionHandler(new ExceptionHandler()).build());
   }
-  
+
   /**
    * Schedules a task to run in the future.
    *
-   * @param task task to run
-   * @param delay number of milliseconds to wait before execution
+   * @param task
+   *          task to run
+   * @param delay
+   *          number of milliseconds to wait before execution
    * @return future for scheduled task
    */
   public ScheduledFuture<?> schedule(Runnable task, long delay) {
     return executor.schedule(task, delay, TimeUnit.MILLISECONDS);
   }
-  
+
   /**
-   * Schedules a task to run in the future with a fixed delay between repeated
-   * executions.
+   * Schedules a task to run in the future with a fixed delay between repeated executions.
    *
-   * @param task task to run
-   * @param delay number of milliseconds to wait before first execution
-   * @param period number of milliseconds to wait between executions
+   * @param task
+   *          task to run
+   * @param delay
+   *          number of milliseconds to wait before first execution
+   * @param period
+   *          number of milliseconds to wait between executions
    * @return future for scheduled task
    */
   public ScheduledFuture<?> schedule(Runnable task, long delay, long period) {

@@ -180,11 +180,11 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
-   * Change the durability for the BatchWriter session. The default durability is "default" which
-   * is the table's durability setting.  If the durability is set to something other than the default,
-   * it will override the durability setting of the table.
+   * Change the durability for the BatchWriter session. The default durability is "default" which is the table's durability setting. If the durability is set to
+   * something other than the default, it will override the durability setting of the table.
    *
-   * @param durability the Durability to be used by the BatchWriter
+   * @param durability
+   *          the Durability to be used by the BatchWriter
    * @since 1.7.0
    *
    */
@@ -320,8 +320,7 @@ public class BatchWriterConfig implements Writable {
   public String toString() {
     StringBuilder sb = new StringBuilder(32);
     sb.append("[maxMemory=").append(getMaxMemory()).append(", maxLatency=").append(getMaxLatency(TimeUnit.MILLISECONDS)).append(", maxWriteThreads=")
-        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS))
-        .append(", durability=").append(durability).append("]");
+        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS)).append(", durability=").append(durability).append("]");
     return sb.toString();
   }
 }

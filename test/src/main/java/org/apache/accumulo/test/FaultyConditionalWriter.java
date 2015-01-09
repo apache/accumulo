@@ -24,17 +24,16 @@ import java.util.Random;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.data.ConditionalMutation;
 
-
 /**
  * A writer that will sometimes return unknown. When it returns unknown the condition may or may not have been written.
  */
 public class FaultyConditionalWriter implements ConditionalWriter {
-  
+
   private ConditionalWriter cw;
   private double up;
   private Random rand;
   private double wp;
-  
+
   public FaultyConditionalWriter(ConditionalWriter cw, double unknownProbability, double writeProbability) {
     this.cw = cw;
     this.up = unknownProbability;
@@ -46,7 +45,7 @@ public class FaultyConditionalWriter implements ConditionalWriter {
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
     ArrayList<Result> resultList = new ArrayList<Result>();
     ArrayList<ConditionalMutation> writes = new ArrayList<ConditionalMutation>();
-    
+
     while (mutations.hasNext()) {
       ConditionalMutation cm = mutations.next();
       if (rand.nextDouble() <= up && rand.nextDouble() > wp)
@@ -54,13 +53,13 @@ public class FaultyConditionalWriter implements ConditionalWriter {
       else
         writes.add(cm);
     }
-    
+
     if (writes.size() > 0) {
       Iterator<Result> results = cw.write(writes.iterator());
-      
+
       while (results.hasNext()) {
         Result result = results.next();
-        
+
         if (rand.nextDouble() <= up && rand.nextDouble() <= wp)
           result = new Result(Status.UNKNOWN, result.getMutation(), result.getTabletServer());
         resultList.add(result);
@@ -68,14 +67,14 @@ public class FaultyConditionalWriter implements ConditionalWriter {
     }
     return resultList.iterator();
   }
-  
+
   public Result write(ConditionalMutation mutation) {
     return write(Collections.singleton(mutation).iterator()).next();
   }
-  
+
   @Override
   public void close() {
     cw.close();
   }
-  
+
 }

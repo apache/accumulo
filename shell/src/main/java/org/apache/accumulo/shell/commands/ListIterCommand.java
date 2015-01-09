@@ -119,7 +119,7 @@ public class ListIterCommand extends Command {
 
     allScopesOpt = new Option("all", "all-scopes", false, "list from all scopes");
     o.addOption(allScopesOpt);
-    
+
     scopeOpts = new EnumMap<IteratorScope,Option>(IteratorScope.class);
     scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "list iterator for minor compaction scope"));
     scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));

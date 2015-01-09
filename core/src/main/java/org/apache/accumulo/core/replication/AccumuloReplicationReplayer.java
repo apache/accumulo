@@ -24,7 +24,7 @@ import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 
 /**
- * 
+ *
  */
 public interface AccumuloReplicationReplayer {
 

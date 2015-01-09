@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.util.celltypes;
 
-
 public class PreciseNumberType extends NumberType<Integer> {
 
   public PreciseNumberType(int warnMin, int warnMax, int errMin, int errMax) {
@@ -27,7 +26,7 @@ public class PreciseNumberType extends NumberType<Integer> {
   public String format(Object obj) {
     if (obj == null)
       return "-";
-    int i = ((Number)obj).intValue();
+    int i = ((Number) obj).intValue();
     String display = String.format("%,d", obj);
     if ((errMin != null && i < errMin) || (errMax != null && i > errMax)) {
       return String.format("<span class='error'>%s</span>", display);

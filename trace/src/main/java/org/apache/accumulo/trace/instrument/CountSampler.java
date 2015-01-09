@@ -24,7 +24,7 @@ public class CountSampler extends org.htrace.impl.CountSampler implements Sample
   public CountSampler(long frequency) {
     super(frequency);
   }
-  
+
   @Override
   public boolean next() {
     return super.next(null);

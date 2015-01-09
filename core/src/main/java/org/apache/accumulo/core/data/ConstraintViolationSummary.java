@@ -22,20 +22,23 @@ import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
  * A summary of constraint violations across some number of mutations.
  */
 public class ConstraintViolationSummary {
-  
+
   public String constrainClass;
   public short violationCode;
   public String violationDescription;
   public long numberOfViolatingMutations;
-  
+
   /**
    * Creates a new summary.
    *
-   * @param constrainClass class of constraint that was violated
-   * @param violationCode violation code
-   * @param violationDescription description of violation
-   * @param numberOfViolatingMutations number of mutations that produced this
-   * particular violation
+   * @param constrainClass
+   *          class of constraint that was violated
+   * @param violationCode
+   *          violation code
+   * @param violationDescription
+   *          description of violation
+   * @param numberOfViolatingMutations
+   *          number of mutations that produced this particular violation
    */
   public ConstraintViolationSummary(String constrainClass, short violationCode, String violationDescription, long numberOfViolatingMutations) {
     this.constrainClass = constrainClass;
@@ -43,39 +46,39 @@ public class ConstraintViolationSummary {
     this.violationDescription = violationDescription;
     this.numberOfViolatingMutations = numberOfViolatingMutations;
   }
-  
+
   /**
    * Creates a new summary from Thrift.
    *
-   * @param tcvs Thrift summary
+   * @param tcvs
+   *          Thrift summary
    */
   public ConstraintViolationSummary(TConstraintViolationSummary tcvs) {
     this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription, tcvs.numberOfViolatingMutations);
   }
-  
+
   public String getConstrainClass() {
     return this.constrainClass;
   }
-  
+
   public short getViolationCode() {
     return this.violationCode;
   }
-  
+
   public String getViolationDescription() {
     return this.violationDescription;
   }
-  
+
   public long getNumberOfViolatingMutations() {
     return this.numberOfViolatingMutations;
   }
-  
+
   @Override
   public String toString() {
-    return String.format(
-        "ConstraintViolationSummary(constrainClass:%s, violationCode:%d, violationDescription:%s, numberOfViolatingMutations:%d)",
+    return String.format("ConstraintViolationSummary(constrainClass:%s, violationCode:%d, violationDescription:%s, numberOfViolatingMutations:%d)",
         constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
   }
-  
+
   /**
    * Converts this summary to Thrift.
    *
@@ -84,5 +87,5 @@ public class ConstraintViolationSummary {
   public TConstraintViolationSummary toThrift() {
     return new TConstraintViolationSummary(this.constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
   }
-  
+
 }

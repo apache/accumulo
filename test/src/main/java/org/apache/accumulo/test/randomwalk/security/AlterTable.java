@@ -30,22 +30,22 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class AlterTable extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getSysToken());
-    
-    String tableName = WalkingSecurity.get(state,env).getTableName();
-    String namespaceName = WalkingSecurity.get(state,env).getNamespaceName();
-    
-    boolean exists = WalkingSecurity.get(state,env).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state,env).canAlterTable(WalkingSecurity.get(state,env).getSysCredentials(), tableName, namespaceName);
+    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken());
+
+    String tableName = WalkingSecurity.get(state, env).getTableName();
+    String namespaceName = WalkingSecurity.get(state, env).getNamespaceName();
+
+    boolean exists = WalkingSecurity.get(state, env).getTableExists();
+    boolean hasPermission = WalkingSecurity.get(state, env).canAlterTable(WalkingSecurity.get(state, env).getSysCredentials(), tableName, namespaceName);
     String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), env.getPid(),
         System.currentTimeMillis());
-    
+
     renameTable(conn, state, env, tableName, newTableName, hasPermission, exists);
   }
-  
+
   public static void renameTable(Connector conn, State state, Environment env, String oldName, String newName, boolean hasPermission, boolean tableExists)
       throws AccumuloSecurityException, AccumuloException, TableExistsException {
     try {
@@ -57,7 +57,7 @@ public class AlterTable extends Test {
         else
           return;
       } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (WalkingSecurity.get(state,env).userPassTransient(conn.whoami()))
+        if (WalkingSecurity.get(state, env).userPassTransient(conn.whoami()))
           return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
@@ -67,7 +67,7 @@ public class AlterTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state,env).setTableName(newName);
+    WalkingSecurity.get(state, env).setTableName(newName);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

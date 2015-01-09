@@ -69,7 +69,8 @@ public class LogicalTimeIT extends AccumuloClusterIT {
 
   }
 
-  private void runMergeTest(Connector conn, String table, String[] splits, String[] inserts, String start, String end, String last, long expected) throws Exception {
+  private void runMergeTest(Connector conn, String table, String[] splits, String[] inserts, String start, String end, String last, long expected)
+      throws Exception {
     log.info("table " + table);
     conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
     TreeSet<Text> splitSet = new TreeSet<Text>();

@@ -46,7 +46,7 @@ import org.apache.log4j.Logger;
 
 /**
  * This class builds a hierarchy of Classloaders in the form of:
- * 
+ *
  * <pre>
  * SystemClassLoader that loads JVM classes
  *       ^
@@ -58,10 +58,10 @@ import org.apache.log4j.Logger;
  *       ^
  *       |
  * AccumuloReloadingVFSClassLoader That loads jars from locations in general.dynamic.classpaths.  Used to load jar dynamically.
- * 
+ *
  * </pre>
- * 
- * 
+ *
+ *
  */
 public class AccumuloVFSClassLoader {
 
@@ -90,7 +90,7 @@ public class AccumuloVFSClassLoader {
   public static final String VFS_CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
 
   public static final String VFS_CACHE_DIR = "general.vfs.cache.dir";
-  
+
   private static ClassLoader parent = null;
   private static volatile ReloadingClassLoader loader = null;
   private static final Object lock = new Object();
@@ -219,11 +219,11 @@ public class AccumuloVFSClassLoader {
           localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, vfs, parent));
           loader = localLoader;
 
-          //An HDFS FileSystem and Configuration object were created for each unique HDFS namespace in the call to resolve above.
-          //The HDFS Client did us a favor and cached these objects so that the next time someone calls FileSystem.get(uri), they
-          //get the cached object. However, these objects were created not with the system VFS classloader, but the classloader above
-          //it. We need to override the classloader on the Configuration objects. Ran into an issue were log recovery was being attempted
-          //and SequenceFile$Reader was trying to instantiate the key class via WritableName.getClass(String, Configuration)
+          // An HDFS FileSystem and Configuration object were created for each unique HDFS namespace in the call to resolve above.
+          // The HDFS Client did us a favor and cached these objects so that the next time someone calls FileSystem.get(uri), they
+          // get the cached object. However, these objects were created not with the system VFS classloader, but the classloader above
+          // it. We need to override the classloader on the Configuration objects. Ran into an issue were log recovery was being attempted
+          // and SequenceFile$Reader was trying to instantiate the key class via WritableName.getClass(String, Configuration)
           for (FileObject fo : vfsCP) {
             if (fo instanceof HdfsFileObject) {
               String uri = fo.getName().getRootURI();
@@ -276,7 +276,7 @@ public class AccumuloVFSClassLoader {
     vfs.addMimeTypeMap("application/zip", "zip");
     vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
     vfs.setFilesCache(new SoftRefFilesCache());
-    File cacheDir = computeTopCacheDir(); 
+    File cacheDir = computeTopCacheDir();
     vfs.setReplicator(new UniqueFileReplicator(cacheDir));
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
     vfs.init();

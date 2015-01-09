@@ -75,7 +75,7 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   public interface CompactionEnv {
-    
+
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
@@ -113,7 +113,7 @@ public class Compactor implements Callable<CompactionStats> {
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
   }
-  
+
   public synchronized String getCurrentLocalityGroup() {
     return currentLocalityGroup;
   }
@@ -411,7 +411,7 @@ public class Compactor implements Callable<CompactionStats> {
   long getEntriesRead() {
     return entriesRead.get();
   }
-  
+
   long getEntriesWritten() {
     return entriesWritten.get();
   }

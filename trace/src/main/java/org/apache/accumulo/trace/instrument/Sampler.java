@@ -21,7 +21,7 @@ package org.apache.accumulo.trace.instrument;
  */
 @Deprecated
 public interface Sampler extends org.htrace.Sampler<Object> {
-  
+
   boolean next();
-  
+
 }

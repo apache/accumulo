@@ -51,7 +51,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a Value using a byte array as the initial value. The given byte array is used directly as the backing array, so later changes made to the array
    * reflect into the new Value.
-   * 
+   *
    * @param bytes
    *          May not be null
    */
@@ -61,7 +61,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Creates a Value using the bytes in a buffer as the initial value. Makes a defensive copy.
-   * 
+   *
    * @param bytes
    *          May not be null
    */
@@ -72,7 +72,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
-   * 
+   *
    * @param bytes
    *          bytes of value (may not be null)
    * @param copy
@@ -86,7 +86,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Creates a Value using a byte array as the initial value.
-   * 
+   *
    * @param bytes
    *          may not be null
    * @param copy
@@ -105,7 +105,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Creates a new Value based on another.
-   * 
+   *
    * @param ibw
    *          may not be null.
    */
@@ -115,7 +115,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Creates a Value based on a range in a byte array. A copy of the bytes is always made.
-   * 
+   *
    * @param newData
    *          source of copy, may not be null
    * @param offset
@@ -133,7 +133,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Gets the byte data of this value.
-   * 
+   *
    * @return the underlying byte array directly.
    */
   public byte[] get() {
@@ -143,7 +143,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Sets the byte data of this value. The given byte array is used directly as the backing array, so later changes made to the array reflect into this Value.
-   * 
+   *
    * @param b
    *          may not be null
    */
@@ -154,7 +154,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Sets the byte data of this value. The given byte array is copied.
-   * 
+   *
    * @param b
    *          may not be null
    */
@@ -166,7 +166,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Gets the size of this value.
-   * 
+   *
    * @return size in bytes
    */
   public int getSize() {
@@ -195,7 +195,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Define the sort order of the BytesWritable.
-   * 
+   *
    * @param right_obj
    *          The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
@@ -207,7 +207,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Compares the bytes in this object to the specified byte array
-   * 
+   *
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
    */
   public int compareTo(final byte[] that) {
@@ -254,7 +254,7 @@ public class Value implements WritableComparable<Object> {
 
   /**
    * Converts a list of byte arrays to a two-dimensional array.
-   * 
+   *
    * @param array
    *          list of byte arrays
    * @return two-dimensional byte array containing one given byte array per row

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,13 +41,13 @@ import org.junit.Test;
 
 // ACCUMULO-2952
 public class BalanceFasterIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(3);
   }
 
-  @Test(timeout=90*1000)
+  @Test(timeout = 90 * 1000)
   public void test() throws Exception {
     // create a table, add a bunch of splits
     String tableName = getUniqueNames(1)[0];
@@ -59,12 +59,12 @@ public class BalanceFasterIT extends ConfigurableMacIT {
     }
     conn.tableOperations().addSplits(tableName, splits);
     // give a short wait for balancing
-    UtilWaitThread.sleep(10*1000);
+    UtilWaitThread.sleep(10 * 1000);
     // find out where the tabets are
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     s.setRange(MetadataSchema.TabletsSection.getRange());
-    Map<String, Integer> counts = new HashMap<String, Integer>();
+    Map<String,Integer> counts = new HashMap<String,Integer>();
     while (true) {
       int total = 0;
       counts.clear();
@@ -90,5 +90,5 @@ public class BalanceFasterIT extends ConfigurableMacIT {
     assertTrue(Math.abs(a - c) < 3);
     assertTrue(a > 330);
   }
-  
+
 }

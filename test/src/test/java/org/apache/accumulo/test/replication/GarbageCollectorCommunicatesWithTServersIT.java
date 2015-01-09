@@ -378,7 +378,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     bw = conn.createBatchWriter(otherTable, null);
     // 500k
     byte[] bigValue = new byte[1024 * 500];
-    Arrays.fill(bigValue, (byte)1);
+    Arrays.fill(bigValue, (byte) 1);
     // 500k * 50
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(Integer.toString(i));

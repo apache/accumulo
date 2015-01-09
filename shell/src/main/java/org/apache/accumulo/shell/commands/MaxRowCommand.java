@@ -25,19 +25,19 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class MaxRowCommand extends ScanCommand {
-  
+
   private static final Logger log = Logger.getLogger(MaxRowCommand.class);
-  
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
-    
+
     final Range range = getRange(cl, interpeter);
     final Authorizations auths = getAuths(cl, shellState);
     final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
-    
+
     try {
       final Text max = shellState.getConnector().tableOperations()
           .getMaxRow(tableName, auths, startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
@@ -47,10 +47,10 @@ public class MaxRowCommand extends ScanCommand {
     } catch (Exception e) {
       log.debug("Could not get shell state.", e);
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "finds the max row in a table within a given range";

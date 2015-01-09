@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.conf;
 
 import java.util.Map;
+
 import org.apache.accumulo.core.conf.ConfigSanityCheck.SanityCheckException;
 import org.junit.Before;
 import org.junit.Test;

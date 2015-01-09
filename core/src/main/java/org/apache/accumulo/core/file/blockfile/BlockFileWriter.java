@@ -19,20 +19,20 @@ package org.apache.accumulo.core.file.blockfile;
 import java.io.IOException;
 
 /**
- * 
+ *
  * Provides a generic interface for a Writer for a BlockBaseFile format. Supports the minimal interface required.
- * 
+ *
  * Write a metaBlock and a dataBlock.
- * 
+ *
  */
 
 public interface BlockFileWriter {
-  
+
   ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException;
-  
+
   ABlockWriter prepareMetaBlock(String name) throws IOException;
-  
+
   ABlockWriter prepareDataBlock() throws IOException;
-  
+
   void close() throws IOException;
 }

@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.junit.Assert.assertFalse;
+
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertFalse;
 
 public class SimpleGarbageCollectorOptsTest {
   private Opts opts;

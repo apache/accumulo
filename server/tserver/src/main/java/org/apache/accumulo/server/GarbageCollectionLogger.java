@@ -28,14 +28,13 @@ import org.apache.log4j.Logger;
 
 public class GarbageCollectionLogger {
   private static final Logger log = Logger.getLogger(GarbageCollectionLogger.class);
-  
+
   private final HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
   private static long lastMemoryCheckTime = 0;
-  
-  public GarbageCollectionLogger() {
-  }
+
+  public GarbageCollectionLogger() {}
 
   public synchronized void logGCInfo(AccumuloConfiguration conf) {
     final long now = System.currentTimeMillis();
@@ -99,7 +98,7 @@ public class GarbageCollectionLogger {
       final long diff = now - lastMemoryCheckTime;
       if (diff > keepAliveTimeout) {
         log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
-                    keepAliveTimeout / 1000., diff / 1000.));
+            keepAliveTimeout / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;
       return;
@@ -112,6 +111,5 @@ public class GarbageCollectionLogger {
     lastMemorySize = mem;
     lastMemoryCheckTime = now;
   }
-
 
 }

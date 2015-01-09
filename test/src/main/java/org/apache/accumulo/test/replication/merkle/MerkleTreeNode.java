@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Encapsulates the level (height) within the tree, the ranges that it covers, and the new hash 
+ * Encapsulates the level (height) within the tree, the ranges that it covers, and the new hash
  */
 public class MerkleTreeNode {
   private static final Logger log = LoggerFactory.getLogger(MerkleTreeNode.class);

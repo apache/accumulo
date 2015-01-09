@@ -30,13 +30,13 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.log4j.Logger;
 
 /**
- * This little class keeps track of writes in progress and allows readers to wait for writes that started before the read. It assumes that the operation ids
- * are monotonically increasing.
+ * This little class keeps track of writes in progress and allows readers to wait for writes that started before the read. It assumes that the operation ids are
+ * monotonically increasing.
  *
  */
 class WriteTracker {
   private static final Logger log = Logger.getLogger(WriteTracker.class);
-  
+
   private static final AtomicLong operationCounter = new AtomicLong(1);
   private final Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<TabletType,TreeSet<Long>>(TabletType.class);
 

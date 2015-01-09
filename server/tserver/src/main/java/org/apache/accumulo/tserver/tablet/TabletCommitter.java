@@ -48,5 +48,5 @@ public interface TabletCommitter {
   Durability getDurability();
 
   void updateMemoryUsageStats(long estimatedSizeInBytes, long estimatedSizeInBytes2);
-  
+
 }

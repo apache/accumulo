@@ -27,7 +27,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class ZooKeeperInitializationTest {
 

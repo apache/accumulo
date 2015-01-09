@@ -39,7 +39,7 @@ public class BackupMasterIT extends ConfigurableMacIT {
     // create a backup
     Process backup = exec(Master.class);
     try {
-      ZooReaderWriter writer = new ZooReaderWriter(cluster.getZooKeepers(), 30*1000, "digest", "accumulo:DONTTELL".getBytes());
+      ZooReaderWriter writer = new ZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, "digest", "accumulo:DONTTELL".getBytes());
       String root = "/accumulo/" + getConnector().getInstance().getInstanceID();
       List<String> children = Collections.emptyList();
       // wait for 2 lock entries

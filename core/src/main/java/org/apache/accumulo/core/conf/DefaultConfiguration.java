@@ -22,8 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * An {@link AccumuloConfiguration} that contains only default values for
- * properties. This class is a singleton.
+ * An {@link AccumuloConfiguration} that contains only default values for properties. This class is a singleton.
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
   private final static Map<String,String> resolvedProps;

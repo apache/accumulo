@@ -17,8 +17,8 @@
 package org.apache.accumulo.test.randomwalk.shard;
 
 import java.util.ArrayList;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.BatchScanner;
@@ -36,62 +36,62 @@ import org.apache.hadoop.io.Text;
 
 /**
  * Delete all documents containing a particular word.
- * 
+ *
  */
 
 public class DeleteWord extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String docTableName = (String) state.get("docTableName");
     int numPartitions = (Integer) state.get("numPartitions");
     Random rand = (Random) state.get("rand");
-    
+
     String wordToDelete = Insert.generateRandomWord(rand);
-    
+
     // use index to find all documents containing word
     Scanner scanner = env.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text(wordToDelete));
-    
+
     ArrayList<Range> documentsToDelete = new ArrayList<Range>();
-    
+
     for (Entry<Key,Value> entry : scanner)
       documentsToDelete.add(new Range(entry.getKey().getColumnQualifier()));
-    
+
     if (documentsToDelete.size() > 0) {
       // use a batch scanner to fetch all documents
       BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName, Authorizations.EMPTY, 8);
       bscanner.setRanges(documentsToDelete);
-      
+
       BatchWriter ibw = env.getMultiTableBatchWriter().getBatchWriter(indexTableName);
       BatchWriter dbw = env.getMultiTableBatchWriter().getBatchWriter(docTableName);
-      
+
       int count = 0;
-      
+
       for (Entry<Key,Value> entry : bscanner) {
         String docID = entry.getKey().getRow().toString();
         String doc = entry.getValue().toString();
-        
+
         Insert.unindexDocument(ibw, doc, docID, numPartitions);
-        
+
         Mutation m = new Mutation(docID);
         m.putDelete("doc", "");
-        
+
         dbw.addMutation(m);
         count++;
       }
-      
+
       bscanner.close();
-      
+
       env.getMultiTableBatchWriter().flush();
-      
+
       if (count != documentsToDelete.size()) {
         throw new Exception("Batch scanner did not return expected number of docs " + count + " " + documentsToDelete.size());
       }
     }
-    
+
     log.debug("Deleted " + documentsToDelete.size() + " documents containing " + wordToDelete);
   }
-  
+
 }

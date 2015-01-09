@@ -39,66 +39,66 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
-  
+
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException;
-  
+
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
       List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   public abstract List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
   public abstract void invalidateCache(KeyExtent failedExtent);
-  
+
   public abstract void invalidateCache(Collection<KeyExtent> keySet);
-  
+
   /**
    * Invalidate entire cache
    */
   public abstract void invalidateCache();
-  
+
   /**
    * Invalidate all metadata entries that point to server
    */
   public abstract void invalidateCache(Instance instance, String server);
-  
+
   private static class LocatorKey {
     String instanceId;
     Text tableName;
-    
+
     LocatorKey(String instanceId, Text table) {
       this.instanceId = instanceId;
       this.tableName = table;
     }
-    
+
     @Override
     public int hashCode() {
       return instanceId.hashCode() + tableName.hashCode();
     }
-    
+
     @Override
     public boolean equals(Object o) {
       if (o instanceof LocatorKey)
         return equals((LocatorKey) o);
       return false;
     }
-    
+
     public boolean equals(LocatorKey lk) {
       return instanceId.equals(lk.instanceId) && tableName.equals(lk.tableName);
     }
-    
+
   }
-  
+
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
-  
+
   public static synchronized TabletLocator getLocator(ClientContext context, Text tableId) {
     Instance instance = context.getInstance();
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();
-      
+
       if (tableId.toString().equals(RootTable.ID)) {
         tl = new RootTabletLocator(new ZookeeperLockChecker(instance));
       } else if (tableId.toString().equals(MetadataTable.ID)) {
@@ -108,32 +108,32 @@ public abstract class TabletLocator {
       }
       locators.put(key, tl);
     }
-    
+
     return tl;
   }
-  
+
   public static class TabletLocations {
-    
+
     private final List<TabletLocation> locations;
     private final List<KeyExtent> locationless;
-    
+
     public TabletLocations(List<TabletLocation> locations, List<KeyExtent> locationless) {
       this.locations = locations;
       this.locationless = locationless;
     }
-    
+
     public List<TabletLocation> getLocations() {
       return locations;
     }
-    
+
     public List<KeyExtent> getLocationless() {
       return locationless;
     }
   }
-  
+
   public static class TabletLocation implements Comparable<TabletLocation> {
     private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
-    
+
     private static String dedupeLocation(String tabletLoc) {
       synchronized (tabletLocs) {
         WeakReference<String> lref = tabletLocs.get(tabletLoc);
@@ -143,17 +143,17 @@ public abstract class TabletLocator {
             return loc;
           }
         }
-        
+
         tabletLoc = new String(tabletLoc);
         tabletLocs.put(tabletLoc, new WeakReference<String>(tabletLoc));
         return tabletLoc;
       }
     }
-    
+
     public final KeyExtent tablet_extent;
     public final String tablet_location;
     public final String tablet_session;
-    
+
     public TabletLocation(KeyExtent tablet_extent, String tablet_location, String session) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       checkArgument(tablet_location != null, "tablet_location is null");
@@ -162,7 +162,7 @@ public abstract class TabletLocator {
       this.tablet_location = dedupeLocation(tablet_location);
       this.tablet_session = dedupeLocation(session);
     }
-    
+
     @Override
     public boolean equals(Object o) {
       if (o instanceof TabletLocation) {
@@ -171,17 +171,17 @@ public abstract class TabletLocator {
       }
       return false;
     }
-    
+
     @Override
     public int hashCode() {
       throw new UnsupportedOperationException("hashcode is not implemented for class " + this.getClass().toString());
     }
-    
+
     @Override
     public String toString() {
       return "(" + tablet_extent + "," + tablet_location + "," + tablet_session + ")";
     }
-    
+
     @Override
     public int compareTo(TabletLocation o) {
       int result = tablet_extent.compareTo(o.tablet_extent);
@@ -193,7 +193,7 @@ public abstract class TabletLocator {
       return result;
     }
   }
-  
+
   public static class TabletServerMutations<T extends Mutation> {
     private Map<KeyExtent,List<T>> mutations;
     private String tserverSession;
@@ -209,14 +209,14 @@ public abstract class TabletLocator {
         mutList = new ArrayList<T>();
         mutations.put(ke, mutList);
       }
-      
+
       mutList.add(m);
     }
-    
+
     public Map<KeyExtent,List<T>> getMutations() {
       return mutations;
     }
-    
+
     final String getSession() {
       return tserverSession;
     }

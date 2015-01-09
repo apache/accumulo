@@ -53,11 +53,11 @@ import org.junit.Test;
 
 public class MockConnectorTest {
   Random random = new Random();
-  
+
   static Text asText(int i) {
     return new Text(Integer.toHexString(i));
   }
-  
+
   @Test
   public void testSunnyDay() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
@@ -83,7 +83,7 @@ public class MockConnectorTest {
     }
     assertEquals(100, count);
   }
-  
+
   @Test
   public void testChangeAuths() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
@@ -95,14 +95,14 @@ public class MockConnectorTest {
     assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("X".getBytes()));
     assertFalse(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
   }
-  
+
   @Test
   public void testBadMutations() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c
         .createBatchWriter("test", new BatchWriterConfig().setMaxMemory(10000L).setMaxLatency(1000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(4));
-    
+
     try {
       bw.addMutation(null);
       Assert.fail("addMutation should throw IAE for null mutation");
@@ -111,15 +111,15 @@ public class MockConnectorTest {
       bw.addMutations(null);
       Assert.fail("addMutations should throw IAE for null iterable");
     } catch (IllegalArgumentException iae) {}
-    
+
     bw.addMutations(Collections.<Mutation> emptyList());
-    
+
     Mutation bad = new Mutation("bad");
     try {
       bw.addMutation(bad);
       Assert.fail("addMutation should throw IAE for empty mutation");
     } catch (IllegalArgumentException iae) {}
-    
+
     Mutation good = new Mutation("good");
     good.put(asText(random.nextInt()), asText(random.nextInt()), new Value("good".getBytes()));
     List<Mutation> mutations = new ArrayList<Mutation>();
@@ -129,10 +129,10 @@ public class MockConnectorTest {
       bw.addMutations(mutations);
       Assert.fail("addMutations should throw IAE if it contains empty mutation");
     } catch (IllegalArgumentException iae) {}
-    
+
     bw.close();
   }
-  
+
   @Test
   public void testAggregation() throws Exception {
     MockInstance mockInstance = new MockInstance();
@@ -152,7 +152,7 @@ public class MockConnectorTest {
       bw.addMutation(m);
     }
     bw.close();
-    
+
     Scanner s = c.createScanner("perDayCounts", Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> iterator = s.iterator();
     assertTrue(iterator.hasNext());
@@ -163,75 +163,75 @@ public class MockConnectorTest {
     checkEntry(iterator.next(), "foo", "day", "20080103", "1");
     assertFalse(iterator.hasNext());
   }
-  
+
   @Test
   public void testDelete() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
-    
+
     Mutation m1 = new Mutation("r1");
-    
+
     m1.put("cf1", "cq1", 1, "v1");
-    
+
     bw.addMutation(m1);
     bw.flush();
-    
+
     Mutation m2 = new Mutation("r1");
-    
+
     m2.putDelete("cf1", "cq1", 2);
-    
+
     bw.addMutation(m2);
     bw.flush();
-    
+
     Scanner scanner = c.createScanner("test", Authorizations.EMPTY);
-    
+
     int count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    
+
     assertEquals(0, count);
-    
+
     try {
       c.tableOperations().create("test_this_$tableName");
       assertTrue(false);
-      
+
     } catch (IllegalArgumentException iae) {
-      
+
     }
   }
-  
+
   @Test
   public void testDeletewithBatchDeleter() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
-    
+
     // make sure we are using a clean table
     if (c.tableOperations().exists("test"))
       c.tableOperations().delete("test");
     c.tableOperations().create("test");
-    
+
     BatchDeleter deleter = c.createBatchDeleter("test", Authorizations.EMPTY, 2, new BatchWriterConfig());
     // first make sure it deletes fine when its empty
     deleter.setRanges(Collections.singletonList(new Range(("r1"))));
     deleter.delete();
     this.checkRemaining(c, "test", 0);
-    
+
     // test deleting just one row
     BatchWriter writer = c.createBatchWriter("test", new BatchWriterConfig());
     Mutation m = new Mutation("r1");
     m.put("fam", "qual", "value");
     writer.addMutation(m);
-    
+
     // make sure the write goes through
     writer.flush();
     writer.close();
-    
+
     deleter.setRanges(Collections.singletonList(new Range(("r1"))));
     deleter.delete();
     this.checkRemaining(c, "test", 0);
-    
+
     // test multi row deletes
     writer = c.createBatchWriter("test", new BatchWriterConfig());
     m = new Mutation("r1");
@@ -240,19 +240,19 @@ public class MockConnectorTest {
     Mutation m2 = new Mutation("r2");
     m2.put("fam", "qual", "value");
     writer.addMutation(m2);
-    
+
     // make sure the write goes through
     writer.flush();
     writer.close();
-    
+
     deleter.setRanges(Collections.singletonList(new Range(("r1"))));
     deleter.delete();
     checkRemaining(c, "test", 1);
   }
-  
+
   /**
    * Test to make sure that a certain number of rows remain
-   * 
+   *
    * @param c
    *          connector to the {@link MockInstance}
    * @param tableName
@@ -262,7 +262,7 @@ public class MockConnectorTest {
    */
   private void checkRemaining(Connector c, String tableName, int count) throws Exception {
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    
+
     int total = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
@@ -270,24 +270,24 @@ public class MockConnectorTest {
     }
     assertEquals(count, total);
   }
-  
+
   @Test
   public void testCMod() throws Exception {
     // test writing to a table that the is being scanned
     Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
-    
+
     for (int i = 0; i < 10; i++) {
       Mutation m1 = new Mutation("r" + i);
       m1.put("cf1", "cq1", 1, "v" + i);
       bw.addMutation(m1);
     }
-    
+
     bw.flush();
-    
+
     int count = 10;
-    
+
     Scanner scanner = c.createScanner("test", Authorizations.EMPTY);
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
@@ -296,33 +296,33 @@ public class MockConnectorTest {
       count++;
       bw.addMutation(m);
     }
-    
+
     bw.flush();
-    
+
     count = 10;
-    
+
     for (Entry<Key,Value> entry : scanner) {
       assertEquals(entry.getValue().toString(), "v" + (count++));
     }
-    
+
     assertEquals(count, 20);
-    
+
     try {
       c.tableOperations().create("test_this_$tableName");
       assertTrue(false);
-      
+
     } catch (IllegalArgumentException iae) {
-      
+
     }
   }
-  
+
   private void checkEntry(Entry<Key,Value> next, String row, String cf, String cq, String value) {
     assertEquals(row, next.getKey().getRow().toString());
     assertEquals(cf, next.getKey().getColumnFamily().toString());
     assertEquals(cq, next.getKey().getColumnQualifier().toString());
     assertEquals(value, next.getValue().toString());
   }
-  
+
   @Test
   public void testMockMultiTableBatchWriter() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
@@ -337,7 +337,7 @@ public class MockConnectorTest {
     b = bw.getBatchWriter("b");
     b.addMutation(m1);
     b.flush();
-    
+
     Scanner scanner = c.createScanner("a", Authorizations.EMPTY);
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -352,31 +352,31 @@ public class MockConnectorTest {
       count++;
     }
     assertEquals(1, count);
-    
+
   }
-  
+
   @Test
   public void testUpdate() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
-    
+
     for (int i = 0; i < 10; i++) {
       Mutation m = new Mutation("r1");
       m.put("cf1", "cq1", "" + i);
       bw.addMutation(m);
     }
-    
+
     bw.close();
-    
+
     Scanner scanner = c.createScanner("test", Authorizations.EMPTY);
-    
+
     Entry<Key,Value> entry = scanner.iterator().next();
-    
+
     assertEquals("9", entry.getValue().toString());
-    
+
   }
-  
+
   @Test
   public void testMockConnectorReturnsCorrectInstance() throws AccumuloException, AccumuloSecurityException {
     String name = "an-interesting-instance-name";
@@ -384,5 +384,5 @@ public class MockConnectorTest {
     assertEquals(mockInstance, mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance());
     assertEquals(name, mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance().getInstanceName());
   }
-  
+
 }

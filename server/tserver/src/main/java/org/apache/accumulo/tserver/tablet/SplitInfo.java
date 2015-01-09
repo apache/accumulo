@@ -24,12 +24,12 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 
 /**
  * operations are disallowed while we split which is ok since splitting is fast
- * 
+ *
  * a minor compaction should have taken place before calling this so there should be relatively little left to compact
- * 
+ *
  * we just need to make sure major compactions aren't occurring if we have the major compactor thread decide who needs splitting we can avoid synchronization
  * issues with major compactions
- * 
+ *
  */
 
 final public class SplitInfo {

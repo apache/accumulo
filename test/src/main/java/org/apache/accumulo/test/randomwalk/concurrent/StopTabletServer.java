@@ -38,7 +38,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 public class StopTabletServer extends Test {
-  
+
   Set<TServerInstance> getTServers(Instance instance) throws KeeperException, InterruptedException {
     Set<TServerInstance> result = new HashSet<TServerInstance>();
     ZooReader rdr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
@@ -60,12 +60,12 @@ public class StopTabletServer extends Test {
     }
     return result;
   }
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    
+
     Instance instance = env.getInstance();
-    
+
     List<TServerInstance> currentServers = new ArrayList<TServerInstance>(getTServers(instance));
     Collections.shuffle(currentServers);
     Runtime runtime = Runtime.getRuntime();
@@ -80,5 +80,5 @@ public class StopTabletServer extends Test {
         throw new RuntimeException("Failed to stop " + victim);
     }
   }
-  
+
 }

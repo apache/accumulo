@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.start;
 
-/** This program tests that the proper exit code is propagated to the shell.
+/**
+ * This program tests that the proper exit code is propagated to the shell.
  *
- * $ ./bin/accumulo org.apache.accumulo.start.TestMain
- * $ ./bin/accumulo org.apache.accumulo.start.TestMain badExit
- * $ ./bin/accumulo org.apache.accumulo.start.TestMain throw
+ * $ ./bin/accumulo org.apache.accumulo.start.TestMain $ ./bin/accumulo org.apache.accumulo.start.TestMain badExit $ ./bin/accumulo
+ * org.apache.accumulo.start.TestMain throw
  *
  * The last case tests the proper logging of an exception.
  */

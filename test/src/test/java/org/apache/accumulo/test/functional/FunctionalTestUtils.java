@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertFalse;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,8 +48,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-
-import static org.junit.Assert.assertFalse;
 
 public class FunctionalTestUtils {
 
@@ -182,7 +182,8 @@ public class FunctionalTestUtils {
 
   public static int count(Iterable<?> i) {
     int count = 0;
-    for (@SuppressWarnings("unused") Object entry : i)
+    for (@SuppressWarnings("unused")
+    Object entry : i)
       count++;
     return count;
   }

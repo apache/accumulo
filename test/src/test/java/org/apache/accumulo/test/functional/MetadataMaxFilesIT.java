@@ -46,7 +46,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MetadataMaxFilesIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
@@ -55,7 +55,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
@@ -85,9 +85,9 @@ public class MetadataMaxFilesIT extends ConfigurableMacIT {
     cluster.stop();
     log.info("starting up");
     cluster.start();
-    
+
     UtilWaitThread.sleep(30 * 1000);
-    
+
     while (true) {
       MasterMonitorInfo stats = null;
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));

@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.sequential;
 
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -32,10 +32,10 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.util.ToolRunner;
 
 public class MapRedVerify extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    
+
     String[] args = new String[8];
     args[0] = "-libjars";
     args[1] = getMapReduceJars();
@@ -45,15 +45,15 @@ public class MapRedVerify extends Test {
     args[5] = env.getInstance().getInstanceName();
     args[6] = env.getConfigProperty("ZOOKEEPERS");
     args[7] = args[4] + "_MR";
-    
+
     if (ToolRunner.run(CachedConfiguration.getInstance(), new MapRedVerifyTool(), args) != 0) {
       log.error("Failed to run map/red verify");
       return;
     }
-    
+
     Scanner outputScanner = env.getConnector().createScanner(args[7], Authorizations.EMPTY);
     outputScanner.setRange(new Range());
-    
+
     int count = 0;
     Key lastKey = null;
     for (Entry<Key,Value> entry : outputScanner) {
@@ -64,11 +64,11 @@ public class MapRedVerify extends Test {
       }
       lastKey = current;
     }
-    
+
     if (count > 1) {
       log.error("Gaps in output");
     }
-    
+
     log.debug("Dropping table: " + args[7]);
     Connector conn = env.getConnector();
     conn.tableOperations().delete(args[7]);

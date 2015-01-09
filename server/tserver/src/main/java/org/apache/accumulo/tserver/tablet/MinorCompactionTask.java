@@ -76,8 +76,8 @@ class MinorCompactionTask implements Runnable {
       }
       span.stop();
       span = Trace.start("compact");
-      this.stats = tablet.minorCompact(tablet.getTabletServer().getFileSystem(), tablet.getTabletMemory().getMinCMemTable(), tmpFileRef, newMapfileLocation, mergeFile, true, queued, commitSession, flushId,
-          mincReason);
+      this.stats = tablet.minorCompact(tablet.getTabletServer().getFileSystem(), tablet.getTabletMemory().getMinCMemTable(), tmpFileRef, newMapfileLocation,
+          mergeFile, true, queued, commitSession, flushId, mincReason);
       span.stop();
 
       if (tablet.needsSplit()) {

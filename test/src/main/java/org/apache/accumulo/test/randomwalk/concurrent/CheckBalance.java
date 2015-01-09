@@ -33,10 +33,10 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 /**
- * 
+ *
  */
 public class CheckBalance extends Test {
-  
+
   static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
   static final String UNBALANCED_COUNT = "unbalancedCount";
 
@@ -75,7 +75,7 @@ public class CheckBalance extends Test {
         lastCount = thisCount;
       }
     }
-    
+
     // It is expected that the number of tablets will be uneven for short
     // periods of time. Don't complain unless we've seen it only unbalanced
     // over a 15 minute period and it's been at least three checks.
@@ -97,7 +97,7 @@ public class CheckBalance extends Test {
       state.remove(UNBALANCED_COUNT);
     }
   }
-  
+
   private static double stddev(Collection<Long> samples, double avg) {
     int num = samples.size();
     double sqrtotal = 0.0;

@@ -25,8 +25,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.Environment;
+import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -58,7 +58,7 @@ public class ShardFixture extends Fixture {
 
     String tableId = conn.tableOperations().tableIdMap().get(name);
     log.info("Created index table " + name + "(id:" + tableId + ")");
-    
+
     SortedSet<Text> splits = genSplits(numPartitions, rand.nextInt(numPartitions) + 1, "%06x");
     conn.tableOperations().addSplits(name, splits);
 

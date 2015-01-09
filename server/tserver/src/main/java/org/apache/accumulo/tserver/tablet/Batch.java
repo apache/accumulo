@@ -25,7 +25,7 @@ final class Batch {
   private final List<KVEntry> results;
   private final Key continueKey;
   private final long numBytes;
-  
+
   Batch(boolean skipContinueKey, List<KVEntry> results, Key continueKey, long numBytes) {
     this.skipContinueKey = skipContinueKey;
     this.results = results;

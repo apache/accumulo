@@ -63,7 +63,8 @@ public class KeyValueEqualityIT extends AccumuloClusterIT {
     bw1.close();
     bw2.close();
 
-    Iterator<Entry<Key,Value>> t1 = conn.createScanner(table1, Authorizations.EMPTY).iterator(), t2 = conn.createScanner(table2, Authorizations.EMPTY).iterator();
+    Iterator<Entry<Key,Value>> t1 = conn.createScanner(table1, Authorizations.EMPTY).iterator(), t2 = conn.createScanner(table2, Authorizations.EMPTY)
+        .iterator();
     while (t1.hasNext() && t2.hasNext()) {
       // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode properly
       Entry<Key,Value> e1 = t1.next(), e2 = t2.next();

@@ -34,13 +34,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
-import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class MetadataBulkLoadFilterTest {
   static class TestArbitrator implements Arbitrator {
@@ -48,7 +47,7 @@ public class MetadataBulkLoadFilterTest {
     public boolean transactionAlive(String type, long tid) throws Exception {
       return tid == 5;
     }
-    
+
     @Override
     public boolean transactionComplete(String type, long tid) throws Exception {
       if (tid == 9)
@@ -56,19 +55,19 @@ public class MetadataBulkLoadFilterTest {
       return tid != 5 && tid != 7;
     }
   }
-  
+
   static class TestMetadataBulkLoadFilter extends MetadataBulkLoadFilter {
     @Override
     protected Arbitrator getArbitrator() {
       return new TestArbitrator();
     }
   }
-  
+
   private static void put(TreeMap<Key,Value> tm, String row, ColumnFQ cfq, String val) {
     Key k = new Key(new Text(row), cfq.getColumnFamily(), cfq.getColumnQualifier());
     tm.put(k, new Value(val.getBytes()));
   }
-  
+
   private static void put(TreeMap<Key,Value> tm, String row, Text cf, String cq, String val) {
     Key k = new Key(new Text(row), cf, new Text(cq));
     if (val == null) {
@@ -77,12 +76,12 @@ public class MetadataBulkLoadFilterTest {
     } else
       tm.put(k, new Value(val.getBytes()));
   }
-  
+
   @Test
   public void testBasic() throws IOException {
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
-    
+
     // following should not be deleted by filter
     put(tm1, "2;m", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1");
     put(tm1, "2;m", DataFileColumnFamily.NAME, "/t1/file1", "1,1");
@@ -95,50 +94,50 @@ public class MetadataBulkLoadFilterTest {
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file7", "7");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file8", "9");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileC", null);
-    
+
     expected.putAll(tm1);
-    
+
     // the following should be deleted by filter
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file5", "8");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file9", "8");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileA", "2");
-    
+
     TestMetadataBulkLoadFilter iter = new TestMetadataBulkLoadFilter();
     iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(), new IteratorEnvironment() {
-      
+
       @Override
       public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
         return null;
       }
-      
+
       @Override
       public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
-      
+
       @Override
       public boolean isFullMajorCompaction() {
         return false;
       }
-      
+
       @Override
       public IteratorScope getIteratorScope() {
         return IteratorScope.majc;
       }
-      
+
       @Override
       public AccumuloConfiguration getConfig() {
         return null;
       }
     });
-    
+
     iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
-    
+
     TreeMap<Key,Value> actual = new TreeMap<Key,Value>();
-    
+
     while (iter.hasTop()) {
       actual.put(iter.getTopKey(), iter.getTopValue());
       iter.next();
     }
-    
+
     Assert.assertEquals(expected, actual);
   }
 }

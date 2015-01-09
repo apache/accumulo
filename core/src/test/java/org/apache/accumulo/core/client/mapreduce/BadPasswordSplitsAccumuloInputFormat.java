@@ -27,16 +27,16 @@ import org.apache.hadoop.mapreduce.JobContext;
  * AccumuloInputFormat which returns an "empty" RangeInputSplit
  */
 public class BadPasswordSplitsAccumuloInputFormat extends AccumuloInputFormat {
-  
+
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
     List<InputSplit> splits = super.getSplits(context);
-    
+
     for (InputSplit split : splits) {
       org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
       rangeSplit.setToken(new PasswordToken("anythingelse"));
     }
-    
+
     return splits;
   }
 }

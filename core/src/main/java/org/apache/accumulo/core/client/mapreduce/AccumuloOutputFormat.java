@@ -428,7 +428,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         try {
           addTable(table);
         } catch (Exception e) {
-          log.error("Could not add table '"+table+"'", e);
+          log.error("Could not add table '" + table + "'", e);
           throw new IOException(e);
         }
 

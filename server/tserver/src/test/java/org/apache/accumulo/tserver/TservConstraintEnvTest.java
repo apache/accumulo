@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.junit.Assert.*;
-import static org.powermock.api.easymock.PowerMock.*;
 import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.powermock.api.easymock.PowerMock.createMock;
+import static org.powermock.api.easymock.PowerMock.replay;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -29,7 +31,6 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.tserver.TservConstraintEnv;
 import org.junit.Test;
 
 public class TservConstraintEnvTest {
@@ -41,8 +42,7 @@ public class TservConstraintEnvTest {
     TCredentials badCred = createMock(TCredentials.class);
 
     ByteSequence bs = new ArrayByteSequence("foo".getBytes());
-    List<ByteBuffer> bbList = Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(
-        bs.getBackingArray(), bs.offset(), bs.length()));
+    List<ByteBuffer> bbList = Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length()));
 
     expect(security.userHasAuthorizations(goodCred, bbList)).andReturn(true);
     expect(security.userHasAuthorizations(badCred, bbList)).andReturn(false);

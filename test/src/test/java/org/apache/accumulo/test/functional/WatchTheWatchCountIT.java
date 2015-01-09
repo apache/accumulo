@@ -34,7 +34,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(3);
   }
-  
+
   @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
@@ -57,6 +57,5 @@ public class WatchTheWatchCountIT extends ConfigurableMacIT {
       socket.close();
     }
   }
-  
-  
+
 }

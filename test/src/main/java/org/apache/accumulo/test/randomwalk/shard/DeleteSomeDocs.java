@@ -33,48 +33,48 @@ import org.apache.accumulo.test.randomwalk.Test;
 
 //a test created to test the batch deleter
 public class DeleteSomeDocs extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     // delete documents that where the document id matches a given pattern from doc and index table
     // using the batch deleter
-    
+
     Random rand = (Random) state.get("rand");
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
-    
+
     ArrayList<String> patterns = new ArrayList<String>();
-    
+
     for (Object key : props.keySet())
       if (key instanceof String && ((String) key).startsWith("pattern"))
         patterns.add(props.getProperty((String) key));
-    
+
     String pattern = patterns.get(rand.nextInt(patterns.size()));
     BatchWriterConfig bwc = new BatchWriterConfig();
     BatchDeleter ibd = env.getConnector().createBatchDeleter(indexTableName, Authorizations.EMPTY, 8, bwc);
     ibd.setRanges(Collections.singletonList(new Range()));
-    
+
     IteratorSetting iterSettings = new IteratorSetting(100, RegExFilter.class);
     RegExFilter.setRegexs(iterSettings, null, null, pattern, null, false);
-    
+
     ibd.addScanIterator(iterSettings);
-    
+
     ibd.delete();
-    
+
     ibd.close();
-    
+
     BatchDeleter dbd = env.getConnector().createBatchDeleter(dataTableName, Authorizations.EMPTY, 8, bwc);
     dbd.setRanges(Collections.singletonList(new Range()));
-    
+
     iterSettings = new IteratorSetting(100, RegExFilter.class);
     RegExFilter.setRegexs(iterSettings, pattern, null, null, null, false);
-    
+
     dbd.addScanIterator(iterSettings);
-    
+
     dbd.delete();
-    
+
     dbd.close();
-    
+
     log.debug("Deleted documents w/ id matching '" + pattern + "'");
   }
 }

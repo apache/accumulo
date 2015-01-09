@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client;
 
 /**
  * The value for the durability of a BatchWriter or ConditionalWriter.
+ *
  * @since 1.7.0
  */
 public enum Durability {

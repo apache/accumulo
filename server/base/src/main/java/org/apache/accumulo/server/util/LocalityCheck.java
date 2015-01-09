@@ -41,22 +41,22 @@ import org.apache.hadoop.fs.Path;
 import com.google.common.net.HostAndPort;
 
 public class LocalityCheck {
-  
+
   public int run(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(LocalityCheck.class.getName(), args);
-    
+
     VolumeManager fs = VolumeManagerImpl.get();
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
-    
+
     Map<String,Long> totalBlocks = new HashMap<String,Long>();
     Map<String,Long> localBlocks = new HashMap<String,Long>();
     ArrayList<String> files = new ArrayList<String>();
-    
+
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
       if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
@@ -66,7 +66,7 @@ public class LocalityCheck {
         addBlocks(fs, host, files, totalBlocks, localBlocks);
         files.clear();
       } else if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-        
+
         files.add(fs.getFullPath(key).toString());
       }
     }
@@ -78,7 +78,7 @@ public class LocalityCheck {
     }
     return 0;
   }
-  
+
   private void addBlocks(VolumeManager fs, String host, ArrayList<String> files, Map<String,Long> totalBlocks, Map<String,Long> localBlocks) throws Exception {
     long allBlocks = 0;
     long matchingBlocks = 0;
@@ -105,7 +105,7 @@ public class LocalityCheck {
     totalBlocks.put(host, allBlocks + totalBlocks.get(host));
     localBlocks.put(host, matchingBlocks + localBlocks.get(host));
   }
-  
+
   public static void main(String[] args) throws Exception {
     LocalityCheck check = new LocalityCheck();
     System.exit(check.run(args));

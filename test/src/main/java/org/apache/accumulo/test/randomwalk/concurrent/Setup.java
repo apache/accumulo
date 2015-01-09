@@ -26,29 +26,29 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Setup extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Random rand = new Random();
     state.set("rand", rand);
-    
+
     int numTables = Integer.parseInt(props.getProperty("numTables", "9"));
     int numNamespaces = Integer.parseInt(props.getProperty("numNamespaces", "2"));
     log.debug("numTables = " + numTables);
     log.debug("numNamespaces = " + numNamespaces);
     List<String> tables = new ArrayList<String>();
     List<String> namespaces = new ArrayList<String>();
-    
+
     for (int i = 0; i < numNamespaces; i++) {
       namespaces.add(String.format("nspc_%03d", i));
     }
-    
+
     // Make tables in the default namespace
-    double tableCeil = Math.ceil((double)numTables / (numNamespaces + 1));
+    double tableCeil = Math.ceil((double) numTables / (numNamespaces + 1));
     for (int i = 0; i < tableCeil; i++) {
       tables.add(String.format("ctt_%03d", i));
     }
-    
+
     // Make tables in each namespace
     double tableFloor = Math.floor(numTables / (numNamespaces + 1));
     for (String n : namespaces) {
@@ -56,10 +56,10 @@ public class Setup extends Test {
         tables.add(String.format(n + ".ctt_%03d", i));
       }
     }
-    
+
     state.set("tables", tables);
     state.set("namespaces", namespaces);
-    
+
     int numUsers = Integer.parseInt(props.getProperty("numUsers", "5"));
     log.debug("numUsers = " + numUsers);
     List<String> users = new ArrayList<String>();
@@ -67,5 +67,5 @@ public class Setup extends Test {
       users.add(String.format("user%03d", i));
     state.set("users", users);
   }
-  
+
 }

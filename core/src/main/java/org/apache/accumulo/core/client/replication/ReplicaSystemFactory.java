@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class ReplicaSystemFactory {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemFactory.class);
@@ -64,7 +64,7 @@ public class ReplicaSystemFactory {
 
   /**
    * Generate the configuration value for a {@link ReplicaSystem} in the instance properties
-   * 
+   *
    * @param system
    *          The desired ReplicaSystem to use
    * @param configuration

@@ -16,15 +16,17 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.util.Collection;
-import java.util.Map;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collection;
+import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class ObservableConfigurationTest {
   private static class TestObservableConfig extends ObservableConfiguration {

@@ -104,7 +104,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
   }
 
   public static long abs(long l) {
-    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE...
+    l = Math.abs(l); // abs(Long.MIN_VALUE) == Long.MIN_VALUE...
     if (l < 0)
       return 0;
     return l;
@@ -1264,8 +1264,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
-    loop:
-    while (true) {
+    loop: while (true) {
       final StringBuffer finalBuffer = new StringBuffer();
       int traceCount = TraceDump.printTrace(scanner, new Printer() {
         @Override
@@ -1281,8 +1280,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
       log.info("Trace output:" + traceOutput);
       if (traceCount > 0) {
         int lastPos = 0;
-        for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations".split(","))
-        {
+        for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations".split(",")) {
           log.info("Looking in trace output for '" + part + "'");
           int pos = traceOutput.indexOf(part);
           if (-1 == pos) {

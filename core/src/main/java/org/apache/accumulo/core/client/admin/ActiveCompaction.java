@@ -22,9 +22,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 
-
 /**
- * 
+ *
  * @since 1.5.0
  */
 public abstract class ActiveCompaction {
@@ -47,7 +46,7 @@ public abstract class ActiveCompaction {
      */
     FULL
   };
-  
+
   public static enum CompactionReason {
     /**
      * compaction initiated by user
@@ -70,48 +69,48 @@ public abstract class ActiveCompaction {
      */
     CLOSE
   };
-  
+
   /**
-   * 
+   *
    * @return name of the table the compaction is running against
    */
   public abstract String getTable() throws TableNotFoundException;
-  
+
   /**
    * @return tablet thats is compacting
    */
   public abstract KeyExtent getExtent();
-  
+
   /**
    * @return how long the compaction has been running in milliseconds
    */
   public abstract long getAge();
-  
+
   /**
    * @return the files the compaction is reading from
    */
   public abstract List<String> getInputFiles();
-  
+
   /**
    * @return file compactions is writing too
    */
   public abstract String getOutputFile();
-  
+
   /**
    * @return the type of compaction
    */
   public abstract CompactionType getType();
-  
+
   /**
    * @return the reason the compaction was started
    */
   public abstract CompactionReason getReason();
-  
+
   /**
    * @return the locality group that is compacting
    */
   public abstract String getLocalityGroup();
-  
+
   /**
    * @return the number of key/values read by the compaction
    */
@@ -121,7 +120,7 @@ public abstract class ActiveCompaction {
    * @return the number of key/values written by the compaction
    */
   public abstract long getEntriesWritten();
-  
+
   /**
    * @return the per compaction iterators configured
    */

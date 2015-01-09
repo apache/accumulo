@@ -36,7 +36,7 @@ import org.apache.log4j.Logger;
 class MockNamespaceOperations extends NamespaceOperationsHelper {
 
   private static final Logger log = Logger.getLogger(MockNamespaceOperations.class);
-  
+
   final private MockAccumulo acu;
   final private String username;
 
@@ -125,7 +125,7 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      log.warn("Could not load class '"+className+"' with type name '"+asTypeName+"' in testClassLoad()", e);
+      log.warn("Could not load class '" + className + "' with type name '" + asTypeName + "' in testClassLoad()", e);
       return false;
     }
     return true;

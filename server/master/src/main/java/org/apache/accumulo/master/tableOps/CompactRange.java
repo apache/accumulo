@@ -81,8 +81,7 @@ class CompactionDriver extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    String zCancelID = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zCancelID = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
@@ -205,7 +204,6 @@ public class CompactRange extends MasterRepo {
   private byte[] startRow;
   private byte[] endRow;
   private byte[] config;
-
 
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
       throws ThriftTableOperationException {

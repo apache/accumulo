@@ -16,16 +16,16 @@
  */
 package org.apache.accumulo.core.trace;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.trace.wrappers.TraceRunnable;
 import org.htrace.Sampler;
 import org.htrace.TraceInfo;
 import org.htrace.wrappers.TraceProxy;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 /**
- * Utility class for tracing within Accumulo.  Not intended for client use!
+ * Utility class for tracing within Accumulo. Not intended for client use!
  *
  */
 public class Trace {
@@ -71,6 +71,7 @@ public class Trace {
 
   /**
    * Return the current span.
+   *
    * @deprecated since 1.7 -- it is better to save the span you create in a local variable and call its methods, rather than retrieving the current span
    */
   @Deprecated
@@ -129,7 +130,7 @@ public class Trace {
   }
 
   // Sample trace all calls to the given object
-  public static <T, V> T wrapAll(T instance, Sampler<V> dist) {
+  public static <T,V> T wrapAll(T instance, Sampler<V> dist) {
     return TraceProxy.trace(instance, dist);
   }
 }

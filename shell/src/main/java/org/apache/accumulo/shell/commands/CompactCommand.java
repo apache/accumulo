@@ -41,9 +41,9 @@ public class CompactCommand extends TableOperation {
       outCompressionOpt, outReplication;
 
   private CompactionConfig compactionConfig = null;
-  
+
   boolean override = false;
-  
+
   private boolean cancel = false;
 
   @Override
@@ -52,10 +52,10 @@ public class CompactCommand extends TableOperation {
         + "all files will be compacted.  Options that configure output settings are only applied to this compaction and not later compactions.  If multiple "
         + "concurrent user initiated compactions specify iterators or a compaction strategy, then all but one will fail to start.";
   }
-  
+
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     // compact the tables
-    
+
     if (cancel) {
       try {
         shellState.getConnector().tableOperations().cancelCompaction(tableName);
@@ -68,9 +68,9 @@ public class CompactCommand extends TableOperation {
         if (compactionConfig.getWait()) {
           Shell.log.info("Compacting table ...");
         }
-        
+
         shellState.getConnector().tableOperations().compact(tableName, compactionConfig);
-        
+
         Shell.log.info("Compaction of table " + tableName + " " + (compactionConfig.getWait() ? "completed" : "started") + " for given range");
       } catch (Exception ex) {
         throw new AccumuloException(ex);
@@ -102,10 +102,10 @@ public class CompactCommand extends TableOperation {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    
+
     if (cl.hasOption(cancelOpt.getLongOpt())) {
       cancel = true;
-      
+
       if (cl.getOptions().length > 2) {
         throw new IllegalArgumentException("Can not specify other options with cancel");
       }
@@ -119,14 +119,14 @@ public class CompactCommand extends TableOperation {
     compactionConfig.setWait(cl.hasOption(waitOpt.getOpt()));
     compactionConfig.setStartRow(OptUtil.getStartRow(cl));
     compactionConfig.setEndRow(OptUtil.getEndRow(cl));
-    
+
     if (cl.hasOption(profileOpt.getOpt())) {
       List<IteratorSetting> iterators = shellState.iteratorProfiles.get(cl.getOptionValue(profileOpt.getOpt()));
       if (iterators == null) {
         Shell.log.error("Profile " + cl.getOptionValue(profileOpt.getOpt()) + " does not exist");
         return -1;
       }
-      
+
       compactionConfig.setIterators(new ArrayList<>(iterators));
     }
 
@@ -159,7 +159,7 @@ public class CompactCommand extends TableOperation {
 
     return super.execute(fullCommand, cl, shellState);
   }
-  
+
   private Option newLAO(String lopt, String desc) {
     return new Option(null, lopt, true, desc);
   }
@@ -167,14 +167,14 @@ public class CompactCommand extends TableOperation {
   @Override
   public Options getOptions() {
     final Options opts = super.getOptions();
-    
+
     opts.addOption(OptUtil.startRowOpt());
     opts.addOption(OptUtil.endRowOpt());
     noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before compacting.");
     opts.addOption(noFlushOption);
     waitOpt = new Option("w", "wait", false, "wait for compact to finish");
     opts.addOption(waitOpt);
-    
+
     profileOpt = new Option("pn", "profile", true, "Iterator profile name.");
     profileOpt.setArgName("profile");
     opts.addOption(profileOpt);

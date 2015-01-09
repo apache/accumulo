@@ -65,10 +65,9 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     this.security = SecurityOperation.getInstance(master, false);
   }
 
-
   @Override
   public String getServicerAddress(String remoteTableId, TCredentials creds) throws ReplicationCoordinatorException, TException {
-    try { 
+    try {
       security.authenticateUser(master.rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
       log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(), remoteTableId);

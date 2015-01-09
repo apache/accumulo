@@ -33,7 +33,7 @@ import org.apache.commons.vfs2.provider.VfsComponentContext;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  */
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 

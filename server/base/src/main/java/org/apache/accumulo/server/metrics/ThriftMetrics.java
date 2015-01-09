@@ -18,7 +18,6 @@ package org.apache.accumulo.server.metrics;
 
 import javax.management.ObjectName;
 
-
 public class ThriftMetrics extends AbstractMetricsImpl implements ThriftMetricsMBean {
 
   static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(ThriftMetrics.class);

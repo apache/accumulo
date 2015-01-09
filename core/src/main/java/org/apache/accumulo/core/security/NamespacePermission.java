@@ -30,8 +30,8 @@ public enum NamespacePermission {
   GRANT((byte) 3),
   ALTER_TABLE((byte) 4),
   CREATE_TABLE((byte) 5),
-  DROP_TABLE((byte) 6), 
-  BULK_IMPORT((byte) 7), 
+  DROP_TABLE((byte) 6),
+  BULK_IMPORT((byte) 7),
   DROP_NAMESPACE((byte) 8);
 
   final private byte permID;
@@ -48,7 +48,7 @@ public enum NamespacePermission {
 
   /**
    * Gets the byte ID of this permission.
-   * 
+   *
    * @return byte ID
    */
   public byte getId() {
@@ -57,7 +57,7 @@ public enum NamespacePermission {
 
   /**
    * Returns a list of printable permission values.
-   * 
+   *
    * @return list of namespace permission values, as "Namespace." + permission name
    */
   public static List<String> printableValues() {
@@ -73,7 +73,7 @@ public enum NamespacePermission {
 
   /**
    * Gets the permission matching the given byte ID.
-   * 
+   *
    * @param id
    *          byte ID
    * @return system permission

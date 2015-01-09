@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -224,9 +225,11 @@ public class ClientConfiguration extends CompositeConfiguration {
   /**
    * Gets all properties under the given prefix in this configuration.
    *
-   * @param property prefix property, must be of type PropertyType.PREFIX
+   * @param property
+   *          prefix property, must be of type PropertyType.PREFIX
    * @return a map of property keys to values
-   * @throws IllegalArgumentException if property is not a prefix
+   * @throws IllegalArgumentException
+   *           if property is not a prefix
    */
   public Map<String,String> getAllPropertiesWithPrefix(ClientProperty property) {
     checkType(property, PropertyType.PREFIX);
@@ -234,7 +237,7 @@ public class ClientConfiguration extends CompositeConfiguration {
     Map<String,String> propMap = new HashMap<String,String>();
     Iterator<?> iter = this.getKeys(property.getKey());
     while (iter.hasNext()) {
-      String p = (String)iter.next();
+      String p = (String) iter.next();
       propMap.put(p, getString(p));
     }
     return propMap;

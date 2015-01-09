@@ -44,7 +44,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.format.DeleterFormatter;
 import org.junit.Before;
 import org.junit.Test;
 

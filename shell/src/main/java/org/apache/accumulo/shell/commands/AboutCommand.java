@@ -26,12 +26,12 @@ import org.apache.commons.cli.Options;
 
 public class AboutCommand extends Command {
   private Option verboseOption;
-  
+
   @Override
   public String description() {
     return "displays information about this program";
   }
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     shellState.printInfo();
@@ -40,12 +40,12 @@ public class AboutCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;
   }
-  
+
   @Override
   public Options getOptions() {
     final Options opts = new Options();

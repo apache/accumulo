@@ -25,7 +25,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  */
 public class SecurityUtil {
   private static final Logger log = Logger.getLogger(SecurityUtil.class);
@@ -39,13 +39,13 @@ public class SecurityUtil {
     String keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     if (keyTab == null || keyTab.length() == 0)
       return;
-    
+
     usingKerberos = true;
-    
+
     String principalConfig = acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
     if (principalConfig == null || principalConfig.length() == 0)
       return;
-    
+
     if (login(principalConfig, keyTab)) {
       try {
         // This spawns a thread to periodically renew the logged in (accumulo) user
@@ -58,10 +58,10 @@ public class SecurityUtil {
 
     throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
   }
-  
+
   /**
    * This will log in the given user in kerberos.
-   * 
+   *
    * @param principalConfig
    *          This is the principals name in the format NAME/HOST@REALM. {@link org.apache.hadoop.security.SecurityUtil#HOSTNAME_PATTERN} will automatically be
    *          replaced by the systems host name.

@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 
 class TabletMemory implements Closeable {
   static private final Logger log = Logger.getLogger(TabletMemory.class);
-  
+
   private final TabletCommitter tablet;
   private InMemoryMap memTable;
   private InMemoryMap otherMemTable;
@@ -93,7 +93,7 @@ class TabletMemory implements Closeable {
     if (deletingMemTable != null) {
       throw new IllegalStateException();
     }
-    
+
     if (commitSession == null) {
       throw new IllegalStateException();
     }

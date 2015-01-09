@@ -33,7 +33,7 @@ public class ByteBufferUtil {
       return null;
     return Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.limit());
   }
-  
+
   public static List<ByteBuffer> toByteBuffers(Collection<byte[]> bytesList) {
     if (bytesList == null)
       return null;
@@ -43,7 +43,7 @@ public class ByteBufferUtil {
     }
     return result;
   }
-  
+
   public static List<byte[]> toBytesList(Collection<ByteBuffer> bytesList) {
     if (bytesList == null)
       return null;
@@ -53,7 +53,7 @@ public class ByteBufferUtil {
     }
     return result;
   }
-  
+
   public static Text toText(ByteBuffer bytes) {
     if (bytes == null)
       return null;
@@ -61,11 +61,11 @@ public class ByteBufferUtil {
     result.set(bytes.array(), bytes.position(), bytes.remaining());
     return result;
   }
-  
+
   public static String toString(ByteBuffer bytes) {
     return new String(bytes.array(), bytes.position(), bytes.remaining(), UTF_8);
   }
-  
+
   public static ByteBuffer toByteBuffers(ByteSequence bs) {
     if (bs == null)
       return null;

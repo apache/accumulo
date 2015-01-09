@@ -54,18 +54,18 @@ import org.apache.thrift.server.TServer;
 import org.junit.Test;
 
 public class ProxyDurabilityIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(1);
   }
-  
+
   private static ByteBuffer bytes(String value) {
     return ByteBuffer.wrap(value.getBytes());
   }
-  
+
   @Test
   public void testDurability() throws Exception {
     Connector c = getConnector();
@@ -77,8 +77,8 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     Class<Factory> protocolClass = org.apache.thrift.protocol.TJSONProtocol.Factory.class;
 
     int proxyPort = PortUtils.getRandomFreePort();
-    final TServer proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
-        protocolClass, props);
+    final TServer proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class,
+        proxyPort, protocolClass, props);
     Thread thread = new Thread() {
       @Override
       public void run() {
@@ -92,15 +92,15 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     Map<String,String> properties = new TreeMap<String,String>();
     properties.put("password", ROOT_PASSWORD);
     ByteBuffer login = client.login("root", properties);
-    
+
     String tableName = getUniqueNames(1)[0];
     client.createTable(login, tableName, true, TimeType.MILLIS);
     assertTrue(c.tableOperations().exists(tableName));
-    
+
     WriterOptions options = new WriterOptions();
     options.setDurability(Durability.NONE);
     String writer = client.createWriter(login, tableName, options);
-    Map<ByteBuffer,List<ColumnUpdate>> cells = new TreeMap<ByteBuffer, List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> cells = new TreeMap<ByteBuffer,List<ColumnUpdate>>();
     ColumnUpdate column = new ColumnUpdate(bytes("cf"), bytes("cq"));
     column.setValue("value".getBytes());
     cells.put(bytes("row"), Collections.singletonList(column));
@@ -109,7 +109,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     assertEquals(1, count(tableName));
     restartTServer();
     assertEquals(0, count(tableName));
-    
+
     ConditionalWriterOptions cfg = new ConditionalWriterOptions();
     cfg.setDurability(Durability.LOG);
     String cwriter = client.createConditionalWriter(login, tableName, cfg);
@@ -121,7 +121,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     assertEquals(1, count(tableName));
     restartTServer();
     assertEquals(0, count(tableName));
-    
+
     proxyServer.stop();
     thread.join();
   }
@@ -137,5 +137,5 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     Connector c = getConnector();
     return FunctionalTestUtils.count(c.createScanner(tableName, Authorizations.EMPTY));
   }
-  
+
 }

@@ -34,7 +34,7 @@ public class SummingCombiner extends LongCombiner {
     }
     return sum;
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();

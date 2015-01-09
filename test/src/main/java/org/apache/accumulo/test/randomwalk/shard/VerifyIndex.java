@@ -30,42 +30,42 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class VerifyIndex extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    
+
     String indexTableName = (String) state.get("indexTableName");
     String tmpIndexTableName = indexTableName + "_tmp";
-    
+
     // scan new and old index and verify identical
     Scanner indexScanner1 = env.getConnector().createScanner(tmpIndexTableName, Authorizations.EMPTY);
     Scanner indexScanner2 = env.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
-    
+
     Iterator<Entry<Key,Value>> iter = indexScanner2.iterator();
-    
+
     int count = 0;
-    
+
     for (Entry<Key,Value> entry : indexScanner1) {
       if (!iter.hasNext())
         throw new Exception("index rebuild mismatch " + entry.getKey() + " " + indexTableName);
-      
+
       Key key1 = entry.getKey();
       Key key2 = iter.next().getKey();
-      
+
       if (!key1.equals(key2, PartialKey.ROW_COLFAM_COLQUAL))
         throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName + " " + tmpIndexTableName);
       count++;
       if (count % 1000 == 0)
         makingProgress();
     }
-    
+
     if (iter.hasNext())
       throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
-    
+
     log.debug("Verified " + count + " index entries ");
-    
+
     env.getConnector().tableOperations().delete(indexTableName);
     env.getConnector().tableOperations().rename(tmpIndexTableName, indexTableName);
   }
-  
+
 }

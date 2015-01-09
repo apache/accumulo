@@ -30,33 +30,34 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class SetAuths extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     String authsString = props.getProperty("auths", "_random");
-    
+
     String targetUser = props.getProperty("system");
     String target;
     String authPrincipal;
     AuthenticationToken authToken;
     if ("table".equals(targetUser)) {
-      target = WalkingSecurity.get(state,env).getTabUserName();
-      authPrincipal = WalkingSecurity.get(state,env).getSysUserName();
-      authToken = WalkingSecurity.get(state,env).getSysToken();
+      target = WalkingSecurity.get(state, env).getTabUserName();
+      authPrincipal = WalkingSecurity.get(state, env).getSysUserName();
+      authToken = WalkingSecurity.get(state, env).getSysToken();
     } else {
-      target = WalkingSecurity.get(state,env).getSysUserName();
+      target = WalkingSecurity.get(state, env).getSysUserName();
       authPrincipal = env.getUserName();
       authToken = env.getToken();
     }
     Connector conn = env.getInstance().getConnector(authPrincipal, authToken);
-    
-    boolean exists = WalkingSecurity.get(state,env).userExists(target);
-    boolean hasPermission = WalkingSecurity.get(state,env).canChangeAuthorizations(new Credentials(authPrincipal, authToken).toThrift(env.getInstance()), target);
-    
+
+    boolean exists = WalkingSecurity.get(state, env).userExists(target);
+    boolean hasPermission = WalkingSecurity.get(state, env).canChangeAuthorizations(new Credentials(authPrincipal, authToken).toThrift(env.getInstance()),
+        target);
+
     Authorizations auths;
     if (authsString.equals("_random")) {
-      String[] possibleAuths = WalkingSecurity.get(state,env).getAuthsArray();
-      
+      String[] possibleAuths = WalkingSecurity.get(state, env).getAuthsArray();
+
       Random r = new Random();
       int i = r.nextInt(possibleAuths.length);
       String[] authSet = new String[i];
@@ -72,7 +73,7 @@ public class SetAuths extends Test {
     } else {
       auths = new Authorizations(authsString.split(","));
     }
-    
+
     try {
       conn.securityOperations().changeUserAuthorizations(target, auths);
     } catch (AccumuloSecurityException ae) {
@@ -91,9 +92,9 @@ public class SetAuths extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state,env).changeAuthorizations(target, auths);
+    WalkingSecurity.get(state, env).changeAuthorizations(target, auths);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }
-  
+
 }

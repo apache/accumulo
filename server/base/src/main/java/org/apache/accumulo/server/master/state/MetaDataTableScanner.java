@@ -47,14 +47,14 @@ import org.apache.log4j.Logger;
 
 public class MetaDataTableScanner implements ClosableIterator<TabletLocationState> {
   private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
-  
+
   BatchScanner mdScanner = null;
   Iterator<Entry<Key,Value>> iter = null;
-  
+
   public MetaDataTableScanner(ClientContext context, Range range, CurrentState state) {
     this(context, range, state, MetadataTable.NAME);
   }
-  
+
   MetaDataTableScanner(ClientContext context, Range range, CurrentState state, String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
@@ -71,7 +71,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       throw new RuntimeException(ex);
     }
   }
-  
+
   static public void configureScanner(ScannerBase scanner, CurrentState state) {
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -88,15 +88,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     }
     scanner.addScanIterator(tabletChange);
   }
-  
+
   public MetaDataTableScanner(ClientContext context, Range range) {
     this(context, range, MetadataTable.NAME);
   }
-  
+
   public MetaDataTableScanner(ClientContext context, Range range, String tableName) {
     this(context, range, null, tableName);
   }
-  
+
   @Override
   public void close() {
     if (iter != null) {
@@ -104,12 +104,12 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       iter = null;
     }
   }
-  
+
   @Override
   protected void finalize() {
     close();
   }
-  
+
   @Override
   public boolean hasNext() {
     if (iter == null)
@@ -120,12 +120,12 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     }
     return result;
   }
-  
+
   @Override
   public TabletLocationState next() {
-      return fetch();
+    return fetch();
   }
-  
+
   public static TabletLocationState createTabletLocationState(Key k, Value v) throws IOException, BadLocationStateException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
     KeyExtent extent = null;
@@ -135,13 +135,13 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     long lastTimestamp = 0;
     List<Collection<String>> walogs = new ArrayList<Collection<String>>();
     boolean chopped = false;
-    
+
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
       Key key = entry.getKey();
       Text row = key.getRow();
       Text cf = key.getColumnFamily();
       Text cq = key.getColumnQualifier();
-      
+
       if (cf.compareTo(TabletsSection.FutureLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
@@ -174,7 +174,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     }
     return new TabletLocationState(extent, future, current, last, walogs, chopped);
   }
-  
+
   private TabletLocationState fetch() {
     try {
       Entry<Key,Value> e = iter.next();
@@ -185,7 +185,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       throw new RuntimeException(ex);
     }
   }
-  
+
   @Override
   public void remove() {
     throw new RuntimeException("Unimplemented");

@@ -356,10 +356,10 @@ class ConfigurationDocGen {
   }
 
   /*
-   * Generates documentation for conf/accumulo-site.xml file usage. Arguments
-   * are: "--generate-doc", file to write to.
+   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-doc", file to write to.
    *
    * @param args command-line arguments
+   *
    * @throws IllegalArgumentException if args is invalid
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {

@@ -38,15 +38,15 @@ import org.apache.zookeeper.Watcher;
 
 /**
  * Provides a way to push work out to tablet servers via zookeeper and wait for that work to be done. Any tablet server can pick up a work item and process it.
- * 
+ *
  * Worker processes watch a zookeeper node for tasks to be performed. After getting an exclusive lock on the node, the worker will perform the task.
  */
 public class DistributedWorkQueue {
-  
+
   private static final String LOCKS_NODE = "locks";
 
   private static final Logger log = Logger.getLogger(DistributedWorkQueue.class);
-  
+
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo = ZooReaderWriter.getInstance();
   private String path;
@@ -58,15 +58,15 @@ public class DistributedWorkQueue {
   private void lookForWork(final Processor processor, List<String> children) {
     if (children.size() == 0)
       return;
-    
+
     if (numTask.get() >= threadPool.getCorePoolSize())
       return;
-    
+
     Random random = new Random();
     Collections.shuffle(children, random);
     try {
       for (final String child : children) {
-        
+
         if (child.equals(LOCKS_NODE))
           continue;
 
@@ -82,7 +82,7 @@ public class DistributedWorkQueue {
         }
 
         final String childPath = path + "/" + child;
-        
+
         // check to see if another node processed it already
         if (!zoo.exists(childPath)) {
           zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
@@ -94,9 +94,9 @@ public class DistributedWorkQueue {
           zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
           break;
         }
-        
+
         log.debug("got lock for " + child);
-        
+
         Runnable task = new Runnable() {
 
           @Override
@@ -104,18 +104,18 @@ public class DistributedWorkQueue {
             try {
               try {
                 processor.newProcessor().process(child, zoo.getData(childPath, null));
-                
+
                 // if the task fails, then its entry in the Q is not deleted... so it will be retried
                 try {
                   zoo.recursiveDelete(childPath, NodeMissingPolicy.SKIP);
                 } catch (Exception e) {
                   log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
                 }
-                
+
               } catch (Exception e) {
                 log.warn("Failed to process work " + child, e);
               }
-              
+
               try {
                 zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
               } catch (Exception e) {
@@ -125,7 +125,7 @@ public class DistributedWorkQueue {
             } finally {
               numTask.decrementAndGet();
             }
-            
+
             try {
               // its important that this is called after numTask is decremented
               lookForWork(processor, zoo.getChildren(path));
@@ -136,7 +136,7 @@ public class DistributedWorkQueue {
             }
           }
         };
-        
+
         numTask.incrementAndGet();
         threadPool.execute(task);
 
@@ -151,10 +151,10 @@ public class DistributedWorkQueue {
 
     void process(String workID, byte[] data);
   }
-  
+
   public DistributedWorkQueue(String path, AccumuloConfiguration config) {
     // Preserve the old delay and period
-    this(path, config, new Random().nextInt(60*1000), 60*1000);
+    this(path, config, new Random().nextInt(60 * 1000), 60 * 1000);
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay, long timerPeriod) {
@@ -163,9 +163,9 @@ public class DistributedWorkQueue {
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
   }
-  
+
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
-    
+
     threadPool = executorService;
 
     zoo.mkdirs(path);
@@ -193,13 +193,13 @@ public class DistributedWorkQueue {
           case None:
             log.info("Got unexpected zookeeper event: " + event.getType() + " for " + path);
             break;
-        
+
         }
       }
     });
-    
+
     lookForWork(processor, children);
-    
+
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
     SimpleTimer.getInstance(config).schedule(new Runnable() {
       @Override
@@ -222,7 +222,7 @@ public class DistributedWorkQueue {
   public void addWork(String workId, String data) throws KeeperException, InterruptedException {
     addWork(workId, data.getBytes(UTF_8));
   }
-  
+
   public void addWork(String workId, byte[] data) throws KeeperException, InterruptedException {
     if (workId.equalsIgnoreCase(LOCKS_NODE))
       throw new IllegalArgumentException("locks is reserved work id");
@@ -230,7 +230,7 @@ public class DistributedWorkQueue {
     zoo.mkdirs(path);
     zoo.putPersistentData(path + "/" + workId, data, NodeExistsPolicy.SKIP);
   }
-  
+
   public List<String> getWorkQueued() throws KeeperException, InterruptedException {
     ArrayList<String> children = new ArrayList<String>(zoo.getChildren(path));
     children.remove(LOCKS_NODE);
@@ -238,9 +238,9 @@ public class DistributedWorkQueue {
   }
 
   public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
-    
+
     final Object condVar = new Object();
-    
+
     Watcher watcher = new Watcher() {
       @Override
       public void process(WatchedEvent event) {
@@ -256,13 +256,13 @@ public class DistributedWorkQueue {
           case None:
             log.info("Got unexpected zookeeper event: " + event.getType() + " for " + path);
             break;
-        
+
         }
       }
     };
-    
+
     List<String> children = zoo.getChildren(path, watcher);
-    
+
     while (!Collections.disjoint(children, workIDs)) {
       synchronized (condVar) {
         condVar.wait(10000);

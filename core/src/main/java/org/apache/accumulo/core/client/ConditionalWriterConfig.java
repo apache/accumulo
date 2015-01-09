@@ -109,6 +109,7 @@ public class ConditionalWriterConfig {
    * Sets the Durability for the mutation, if applied.
    * <p>
    * <b>Default:</b> Durability.DEFAULT: use the table's durability configuration.
+   *
    * @return {@code this} to allow chaining of set methods
    * @since 1.7.0
    */

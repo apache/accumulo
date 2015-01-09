@@ -35,8 +35,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.WritableName;
 import org.apache.hadoop.io.SequenceFile.Reader;
+import org.apache.hadoop.io.WritableName;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.JCommander;
@@ -50,10 +50,10 @@ import com.google.common.annotations.VisibleForTesting;
 @SuppressWarnings("deprecation")
 public class LocalWALRecovery implements Runnable {
   private static final Logger log = Logger.getLogger(LocalWALRecovery.class);
-  
-  static { 
-    WritableName.addName(LogFileKey.class,  org.apache.accumulo.server.logger.LogFileKey.class.getName());
-    WritableName.addName(LogFileValue.class,  org.apache.accumulo.server.logger.LogFileValue.class.getName());
+
+  static {
+    WritableName.addName(LogFileKey.class, org.apache.accumulo.server.logger.LogFileKey.class.getName());
+    WritableName.addName(LogFileValue.class, org.apache.accumulo.server.logger.LogFileValue.class.getName());
   }
 
   public static void main(String[] args) throws IOException {
@@ -150,7 +150,7 @@ public class LocalWALRecovery implements Runnable {
 
         Path localWal = new Path(file.toURI());
         FileSystem localFs = FileSystem.getLocal(fs.getConf());
-        
+
         Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
         // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));
         Path tmp = new Path(options.destination + "/" + name + ".copy");

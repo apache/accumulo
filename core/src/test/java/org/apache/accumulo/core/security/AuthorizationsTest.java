@@ -26,75 +26,75 @@ import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
 
 public class AuthorizationsTest {
-  
+
   @Test
   public void testSetOfByteArrays() {
     assertTrue(ByteArraySet.fromStrings("a", "b", "c").contains("a".getBytes()));
   }
-  
+
   @Test
   public void testEncodeDecode() {
     Authorizations a = new Authorizations("a", "abcdefg", "hijklmno", ",");
     byte[] array = a.getAuthorizationsArray();
     Authorizations b = new Authorizations(array);
     assertEquals(a, b);
-    
+
     // test encoding empty auths
     a = new Authorizations();
     array = a.getAuthorizationsArray();
     b = new Authorizations(array);
     assertEquals(a, b);
-    
+
     // test encoding multi-byte auths
     a = new Authorizations("五", "b", "c", "九");
     array = a.getAuthorizationsArray();
     b = new Authorizations(array);
     assertEquals(a, b);
   }
-  
+
   @Test
   public void testSerialization() {
     Authorizations a1 = new Authorizations("a", "b");
     Authorizations a2 = new Authorizations("b", "a");
-    
+
     assertEquals(a1, a2);
     assertEquals(a1.serialize(), a2.serialize());
   }
-  
+
   @Test
   public void testDefensiveAccess() {
     Authorizations expected = new Authorizations("foo", "a");
     Authorizations actual = new Authorizations("foo", "a");
-    
+
     // foo to goo; test defensive iterator
     for (byte[] bytes : actual) {
       bytes[0]++;
     }
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
-    
+
     // test defensive getter and serializer
     actual.getAuthorizations().get(0)[0]++;
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
     assertEquals(expected.serialize(), actual.serialize());
   }
-  
+
   // This should throw ReadOnlyBufferException, but THRIFT-883 requires that the ByteBuffers themselves not be read-only
   // @Test(expected = ReadOnlyBufferException.class)
   @Test
   public void testReadOnlyByteBuffer() {
     Authorizations expected = new Authorizations("foo");
     Authorizations actual = new Authorizations("foo");
-    
+
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
     actual.getAuthorizationsBB().get(0).array()[0]++;
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
   }
-  
+
   @Test(expected = UnsupportedOperationException.class)
   public void testUnmodifiableList() {
     Authorizations expected = new Authorizations("foo");
     Authorizations actual = new Authorizations("foo");
-    
+
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
     actual.getAuthorizationsBB().add(ByteBuffer.wrap(new byte[] {'a'}));
   }

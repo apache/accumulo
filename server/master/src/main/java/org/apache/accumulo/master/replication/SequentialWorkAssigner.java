@@ -36,11 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Creates work in ZK which is <code>filename.serialized_ReplicationTarget => filename</code>, but replicates
- * files in the order in which they were created.
+ * Creates work in ZK which is <code>filename.serialized_ReplicationTarget => filename</code>, but replicates files in the order in which they were created.
  * <p>
- * The intent is to ensure that WALs are replayed in the same order on the peer in which
- * they were applied on the primary.
+ * The intent is to ensure that WALs are replayed in the same order on the peer in which they were applied on the primary.
  */
 public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(SequentialWorkAssigner.class);
@@ -48,7 +46,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   // @formatter:off
   /*
-   * { 
+   * {
    *    peer1 => {sourceTableId1 => work_queue_key1, sourceTableId2 => work_queue_key2, ...}
    *    peer2 => {sourceTableId1 => work_queue_key1, sourceTableId3 => work_queue_key4, ...}
    *    ...

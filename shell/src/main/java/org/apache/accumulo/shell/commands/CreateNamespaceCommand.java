@@ -55,7 +55,7 @@ public class CreateNamespaceCommand extends Command {
       if (shellState.getConnector().namespaceOperations().exists(namespace)) {
         configuration = shellState.getConnector().namespaceOperations().getProperties(copy);
       }
-    } 
+    }
     if (configuration != null) {
       for (Entry<String,String> entry : configuration) {
         if (Property.isValidTablePropertyKey(entry.getKey())) {

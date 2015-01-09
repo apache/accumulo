@@ -23,8 +23,7 @@ public class ZooKeeperBindException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  public ZooKeeperBindException() {
-  }
+  public ZooKeeperBindException() {}
 
   public ZooKeeperBindException(String message) {
     super(message);

@@ -45,7 +45,8 @@ public class MultiScanSession extends Session {
 
   public volatile ScanTask<MultiScanResult> lookupTask;
 
-  public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent, Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations) {
+  public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent, Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, Authorizations authorizations) {
     super(credentials);
     this.queries = queries;
     this.ssiList = ssiList;

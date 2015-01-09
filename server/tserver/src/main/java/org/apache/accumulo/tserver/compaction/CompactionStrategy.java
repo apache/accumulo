@@ -42,10 +42,10 @@ public abstract class CompactionStrategy {
    * Determine if this tablet is eligible for a major compaction. It's ok if it later determines (through {@link #gatherInformation(MajorCompactionRequest)} and
    * {@link #getCompactionPlan(MajorCompactionRequest)}) that it does not need to. Any state stored during shouldCompact will no longer exist when
    * {@link #gatherInformation(MajorCompactionRequest)} and {@link #getCompactionPlan(MajorCompactionRequest)} are called.
-   * 
+   *
    * <P>
    * Called while holding the tablet lock, so it should not be doing any blocking.
-   * 
+   *
    * <P>
    * Since no blocking should be done in this method, then its unexpected that this method will throw IOException. However since its in the API, it can not be
    * easily removed.
@@ -55,7 +55,7 @@ public abstract class CompactionStrategy {
   /**
    * Called prior to obtaining the tablet lock, useful for examining metadata or indexes. State collected during this method will be available during the call
    * the {@link #getCompactionPlan(MajorCompactionRequest)}.
-   * 
+   *
    * @param request
    *          basic details about the tablet
    */
@@ -63,11 +63,11 @@ public abstract class CompactionStrategy {
 
   /**
    * Get the plan for compacting a tablets files. Called while holding the tablet lock, so it should not be doing any blocking.
-   * 
+   *
    * <P>
    * Since no blocking should be done in this method, then its unexpected that this method will throw IOException. However since its in the API, it can not be
    * easily removed.
-   * 
+   *
    * @param request
    *          basic details about the tablet
    * @return the plan for a major compaction, or null to cancel the compaction.

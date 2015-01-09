@@ -32,11 +32,11 @@ import org.apache.hadoop.io.WritableUtils;
 
 /**
  * A TypedValueCombiner that translates each Value to a Long before reducing, then encodes the reduced Long back to a Value.
- * 
+ *
  * Subclasses must implement a typedReduce method: public Long typedReduce(Key key, Iterator<Long> iter);
- * 
+ *
  * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Longs) for all non-deleted versions of that Key.
- * 
+ *
  * A required option for this Combiner is "type" which indicates which type of Encoder to use to encode and decode Longs into Values. Supported types are
  * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
  */
@@ -44,10 +44,10 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static final Encoder<Long> FIXED_LEN_ENCODER = new FixedLenEncoder();
   public static final Encoder<Long> VAR_LEN_ENCODER = new VarLenEncoder();
   public static final Encoder<Long> STRING_ENCODER = new StringEncoder();
-  
+
   protected static final String TYPE = "type";
   protected static final String CLASS_PREFIX = "class:";
-  
+
   public static enum Type {
     /**
      * indicates a variable-length encoding of a Long using {@link LongCombiner.VarLenEncoder}
@@ -62,13 +62,13 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
      */
     STRING
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setEncoder(options);
   }
-  
+
   private void setEncoder(Map<String,String> options) {
     String type = options.get(TYPE);
     if (type == null)
@@ -92,7 +92,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       }
     }
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
@@ -101,7 +101,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (super.validateOptions(options) == false)
@@ -113,7 +113,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
     return true;
   }
-  
+
   /**
    * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and WritableUtils.readVLong for encoding and decoding.
    */
@@ -122,16 +122,16 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     public byte[] encode(Long v) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       DataOutputStream dos = new DataOutputStream(baos);
-      
+
       try {
         WritableUtils.writeVLong(dos, v);
       } catch (IOException e) {
         throw new NumberFormatException(e.getMessage());
       }
-      
+
       return baos.toByteArray();
     }
-    
+
     @Override
     public Long decode(byte[] b) {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
@@ -142,7 +142,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       }
     }
   }
-  
+
   /**
    * An Encoder that uses an 8-byte encoding for Longs.
    */
@@ -160,12 +160,12 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       b[7] = (byte) (l >>> 0);
       return b;
     }
-    
+
     @Override
     public Long decode(byte[] b) {
       return decode(b, 0);
     }
-    
+
     public static long decode(byte[] b, int offset) {
       if (b.length < offset + 8)
         throw new ValueFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
@@ -173,7 +173,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
           + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
     }
   }
-  
+
   /**
    * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
    */
@@ -182,7 +182,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     public byte[] encode(Long v) {
       return Long.toString(v).getBytes(UTF_8);
     }
-    
+
     @Override
     public Long decode(byte[] b) {
       try {
@@ -192,7 +192,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       }
     }
   }
-  
+
   public static long safeAdd(long a, long b) {
     long aSign = Long.signum(a);
     long bSign = Long.signum(b);
@@ -207,10 +207,10 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
     return a + b;
   }
-  
+
   /**
    * A convenience method for setting the long encoding type.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param type
@@ -219,10 +219,10 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static void setEncodingType(IteratorSetting is, LongCombiner.Type type) {
     is.addOption(TYPE, type.toString());
   }
-  
+
   /**
    * A convenience method for setting the long encoding type.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param encoderClass
@@ -231,10 +231,10 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<Long>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());
   }
-  
+
   /**
    * A convenience method for setting the long encoding type.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param encoderClassName

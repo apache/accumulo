@@ -17,9 +17,9 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.HashMap;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -35,9 +35,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.VisibilityConstraint;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellUtil;
 import org.apache.accumulo.shell.Token;
-import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;

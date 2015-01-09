@@ -38,7 +38,7 @@ import org.apache.commons.math.distribution.ZipfDistributionImpl;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class Transfer extends Test {
 
@@ -108,7 +108,6 @@ public class Transfer extends Test {
         throw new Exception("Unexpected column qual: " + cq);
     }
 
-
     int amt = rand.nextInt(50);
 
     log.debug("transfer req " + bank + " " + amt + " " + acct1 + " " + a1 + " " + acct2 + " " + a2);
@@ -123,13 +122,12 @@ public class Transfer extends Test {
 
       ConditionalWriter cw = (ConditionalWriter) state.get("cw");
       Status status = cw.write(cm).getStatus();
-      while(status == Status.UNKNOWN){
-        log.debug("retrying transfer "+status);
+      while (status == Status.UNKNOWN) {
+        log.debug("retrying transfer " + status);
         status = cw.write(cm).getStatus();
       }
       log.debug("transfer result " + bank + " " + status + " " + a1 + " " + a2);
     }
-
 
   }
 

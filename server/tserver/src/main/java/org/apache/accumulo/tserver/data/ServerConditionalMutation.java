@@ -24,22 +24,22 @@ import org.apache.accumulo.core.data.thrift.TConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
 
 /**
- * 
+ *
  */
 public class ServerConditionalMutation extends ServerMutation {
-  
+
   public static class TCMTranslator extends Translator<TConditionalMutation,ServerConditionalMutation> {
     @Override
     public ServerConditionalMutation translate(TConditionalMutation input) {
       return new ServerConditionalMutation(input);
     }
   }
-  
+
   public static final TCMTranslator TCMT = new TCMTranslator();
 
   private long cmid;
   private List<TCondition> conditions;
-  
+
   public ServerConditionalMutation(TConditionalMutation input) {
     super(input.mutation);
 
@@ -50,10 +50,9 @@ public class ServerConditionalMutation extends ServerMutation {
   public long getID() {
     return cmid;
   }
-  
+
   public List<TCondition> getConditions() {
     return conditions;
   }
-  
 
 }

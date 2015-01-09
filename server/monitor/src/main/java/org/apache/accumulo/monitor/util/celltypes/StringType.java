@@ -21,7 +21,7 @@ public class StringType<T> extends CellType<T> {
   public String format(Object obj) {
     return obj == null ? "-" : obj.toString();
   }
-  
+
   @Override
   public int compare(T o1, T o2) {
     if (o1 == null && o2 == null)
@@ -32,7 +32,7 @@ public class StringType<T> extends CellType<T> {
       return 1;
     return o1.toString().compareTo(o2.toString());
   }
-  
+
   @Override
   public String alignment() {
     return "left";

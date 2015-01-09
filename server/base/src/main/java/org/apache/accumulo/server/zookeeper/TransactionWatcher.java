@@ -27,17 +27,17 @@ import org.apache.zookeeper.KeeperException;
 
 public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.TransactionWatcher {
   public static class ZooArbitrator implements Arbitrator {
-    
+
     Instance instance = HdfsZooInstance.getInstance();
     ZooReader rdr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-    
+
     @Override
     public boolean transactionAlive(String type, long tid) throws Exception {
       String path = ZooUtil.getRoot(instance) + "/" + type + "/" + tid;
       rdr.sync(path);
       return rdr.exists(path);
     }
-    
+
     public static void start(String type, long tid) throws KeeperException, InterruptedException {
       Instance instance = HdfsZooInstance.getInstance();
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
@@ -45,13 +45,13 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
       writer.putPersistentData(ZooUtil.getRoot(instance) + "/" + type + "/" + tid, new byte[] {}, NodeExistsPolicy.OVERWRITE);
       writer.putPersistentData(ZooUtil.getRoot(instance) + "/" + type + "/" + tid + "-running", new byte[] {}, NodeExistsPolicy.OVERWRITE);
     }
-    
+
     public static void stop(String type, long tid) throws KeeperException, InterruptedException {
       Instance instance = HdfsZooInstance.getInstance();
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
       writer.recursiveDelete(ZooUtil.getRoot(instance) + "/" + type + "/" + tid, NodeMissingPolicy.SKIP);
     }
-    
+
     public static void cleanup(String type, long tid) throws KeeperException, InterruptedException {
       Instance instance = HdfsZooInstance.getInstance();
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
@@ -66,7 +66,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
       return !rdr.exists(path);
     }
   }
-  
+
   public TransactionWatcher() {
     super(new ZooArbitrator());
   }

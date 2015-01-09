@@ -121,7 +121,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   private void audit(TCredentials credentials, boolean permitted, String template, Object... args) {
     if (shouldAudit(credentials)) {
       String prefix = permitted ? "permitted" : "denied";
-      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; client: "  + TServerUtils.clientAddress.get() + "; " + String.format(template, args));
+      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; client: " + TServerUtils.clientAddress.get() + "; "
+          + String.format(template, args));
     }
   }
 
@@ -166,8 +167,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String CAN_SCAN_BATCH_AUDIT_TEMPLATE = "action: scan; targetTable: %s; authorizations: %s; range: %s; columns: %s; iterators: %s; iteratorOptions: %s;";
 
   @Override
-  public boolean canScan(TCredentials credentials, String tableId, String namespaceId, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public boolean canScan(TCredentials credentials, String tableId, String namespaceId, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
     if (shouldAudit(credentials, tableId)) {
       @SuppressWarnings({"unchecked", "rawtypes"})
       Map<KeyExtent,List<Range>> convertedBatch = Translator.translate(tbatch, new Translator.TKeyExtentTranslator(), new Translator.ListTranslator(
@@ -278,7 +279,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String CAN_CLONE_TABLE_AUDIT_TEMPLATE = "action: cloneTable; targetTable: %s; newTableName: %s";
 
   @Override
-  public boolean canCloneTable(TCredentials c, String tableId, String tableName, String destinationNamespaceId, String sourceNamespaceId) throws ThriftSecurityException {
+  public boolean canCloneTable(TCredentials c, String tableId, String tableName, String destinationNamespaceId, String sourceNamespaceId)
+      throws ThriftSecurityException {
     String oldTableName = getTableName(tableId);
     try {
       boolean result = super.canCloneTable(c, tableId, tableName, destinationNamespaceId, sourceNamespaceId);
@@ -293,9 +295,10 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String CAN_DELETE_RANGE_AUDIT_TEMPLATE = "action: deleteData; targetTable: %s; startRange: %s; endRange: %s;";
 
   @Override
-  public boolean canDeleteRange(TCredentials c, String tableId, String tableName, Text startRow, Text endRow, String namespaceId) throws ThriftSecurityException {
+  public boolean canDeleteRange(TCredentials c, String tableId, String tableName, Text startRow, Text endRow, String namespaceId)
+      throws ThriftSecurityException {
     try {
-      boolean result = super.canDeleteRange(c, tableId, tableName, startRow, endRow,namespaceId);
+      boolean result = super.canDeleteRange(c, tableId, tableName, startRow, endRow, namespaceId);
       audit(c, result, CAN_DELETE_RANGE_AUDIT_TEMPLATE, tableName, startRow.toString(), endRow.toString());
       return result;
     } catch (ThriftSecurityException ex) {
@@ -377,7 +380,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String GRANT_TABLE_PERMISSION_AUDIT_TEMPLATE = "action: grantTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
 
   @Override
-  public void grantTablePermission(TCredentials credentials, String user, String tableId, TablePermission permission, String namespaceId) throws ThriftSecurityException {
+  public void grantTablePermission(TCredentials credentials, String user, String tableId, TablePermission permission, String namespaceId)
+      throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     try {
       super.grantTablePermission(credentials, user, tableId, permission, namespaceId);
@@ -405,7 +409,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String REVOKE_TABLE_PERMISSION_AUDIT_TEMPLATE = "action: revokeTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
 
   @Override
-  public void revokeTablePermission(TCredentials credentials, String user, String tableId, TablePermission permission, String namespaceId) throws ThriftSecurityException {
+  public void revokeTablePermission(TCredentials credentials, String user, String tableId, TablePermission permission, String namespaceId)
+      throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     try {
       super.revokeTablePermission(credentials, user, tableId, permission, namespaceId);
@@ -437,7 +442,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   // The audit log is already logging the principal, so we don't have anything else to audit
-  public static final String AUTHENICATE_AUDIT_TEMPLATE =  "";
+  public static final String AUTHENICATE_AUDIT_TEMPLATE = "";
 
   @Override
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {

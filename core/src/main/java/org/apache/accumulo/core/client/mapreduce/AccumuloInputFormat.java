@@ -35,15 +35,15 @@ import org.apache.log4j.Level;
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides keys and values of type {@link Key} and
  * {@link Value} to the Map function.
- * 
+ *
  * The user must specify the following via static configurator methods:
- * 
+ *
  * <ul>
  * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(Job, ClientConfiguration)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
  * </ul>
- * 
+ *
  * Other static methods are optional.
  */
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {

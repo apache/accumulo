@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,11 +30,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 // ACCUMULO-2480
 public class TabletServerGivesUpIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
@@ -50,7 +50,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacIT {
     // Kill dfs
     cluster.getMiniDfs().shutdown();
     // ask the tserver to do something
-    final AtomicReference<Exception> ex = new AtomicReference<>(); 
+    final AtomicReference<Exception> ex = new AtomicReference<>();
     Thread splitter = new Thread() {
       public void run() {
         try {
@@ -68,5 +68,5 @@ public class TabletServerGivesUpIT extends ConfigurableMacIT {
       UtilWaitThread.sleep(1000);
     }
   }
-  
+
 }

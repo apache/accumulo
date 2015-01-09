@@ -21,7 +21,7 @@ import java.util.Arrays;
 import org.apache.accumulo.core.util.ComparablePair;
 
 /**
- * 
+ *
  */
 public class PairLexicoderTest extends LexicoderTest {
   public void testSortOrder() {

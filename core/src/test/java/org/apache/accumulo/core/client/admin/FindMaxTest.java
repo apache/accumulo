@@ -34,27 +34,27 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class FindMaxTest extends TestCase {
-  
+
   private static Mutation nm(byte[] row) {
     Mutation m = new Mutation(new Text(row));
     m.put("cf", "cq", "v");
     return m;
   }
-  
+
   private static Mutation nm(String row) {
     Mutation m = new Mutation(row);
     m.put("cf", "cq", "v");
     return m;
   }
-  
+
   public void test1() throws Exception {
     MockInstance mi = new MockInstance();
-    
+
     Connector conn = mi.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");
-    
+
     BatchWriter bw = conn.createBatchWriter("foo", new BatchWriterConfig());
-    
+
     bw.addMutation(nm(new byte[] {0}));
     bw.addMutation(nm(new byte[] {0, 0}));
     bw.addMutation(nm(new byte[] {0, 1}));
@@ -63,48 +63,48 @@ public class FindMaxTest extends TestCase {
     bw.addMutation(nm(new byte[] {'a', 'b', 'c'}));
     bw.addMutation(nm(new byte[] {(byte) 0xff}));
     bw.addMutation(nm(new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff}));
-    
+
     for (int i = 0; i < 1000; i++) {
       bw.addMutation(nm(String.format("r%05d", i)));
     }
-    
+
     bw.close();
-    
+
     Scanner scanner = conn.createScanner("foo", Authorizations.EMPTY);
-    
+
     ArrayList<Text> rows = new ArrayList<Text>();
-    
+
     for (Entry<Key,Value> entry : scanner) {
       rows.add(entry.getKey().getRow());
     }
-    
+
     for (int i = rows.size() - 1; i > 0; i--) {
       Text max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), null, true, rows.get(i), false);
       assertEquals(rows.get(i - 1), max);
-      
+
       max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), rows.get(i - 1), true, rows.get(i), false);
       assertEquals(rows.get(i - 1), max);
-      
+
       max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), rows.get(i - 1), false, rows.get(i), false);
       assertNull(max);
-      
+
       max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), null, true, rows.get(i), true);
       assertEquals(rows.get(i), max);
-      
+
       max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), rows.get(i), true, rows.get(i), true);
       assertEquals(rows.get(i), max);
-      
+
       max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), rows.get(i - 1), false, rows.get(i), true);
       assertEquals(rows.get(i), max);
-      
+
     }
-    
+
     Text max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), null, true, null, true);
     assertEquals(rows.get(rows.size() - 1), max);
-    
+
     max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), null, true, new Text(new byte[] {0}), false);
     assertNull(max);
-    
+
     max = FindMax.findMax(conn.createScanner("foo", Authorizations.EMPTY), null, true, new Text(new byte[] {0}), true);
     assertEquals(rows.get(0), max);
   }

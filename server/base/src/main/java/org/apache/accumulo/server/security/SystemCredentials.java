@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Writable;
 
 /**
  * Credentials for the system services.
- * 
+ *
  * @since 1.6.0
  */
 public final class SystemCredentials extends Credentials {
@@ -77,7 +77,7 @@ public final class SystemCredentials extends Credentials {
 
   /**
    * An {@link AuthenticationToken} type for Accumulo servers for inter-server communication.
-   * 
+   *
    * @since 1.6.0
    */
   public static final class SystemToken extends PasswordToken {

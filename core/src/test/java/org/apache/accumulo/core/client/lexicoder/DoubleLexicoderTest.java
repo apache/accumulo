@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.util.Arrays;
 
 /**
- * 
+ *
  */
 public class DoubleLexicoderTest extends LexicoderTest {
   public void testSortOrder() {

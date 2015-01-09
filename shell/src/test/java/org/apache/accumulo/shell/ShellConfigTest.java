@@ -27,7 +27,6 @@ import java.io.PrintWriter;
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellTest.TestOutputStream;
 import org.apache.log4j.Level;
 import org.junit.After;
@@ -40,11 +39,11 @@ public class ShellConfigTest {
   TestOutputStream output;
   Shell shell;
   PrintStream out;
-  
+
   @Before
   public void setUp() throws Exception {
     Shell.log.setLevel(Level.ERROR);
-    
+
     out = System.out;
     output = new TestOutputStream();
     System.setOut(new PrintStream(output));
@@ -52,37 +51,37 @@ public class ShellConfigTest {
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output), new PrintWriter(output));
     shell.setLogErrorsToConsole();
   }
-  
+
   @After
   public void teardown() throws Exception {
     shell.shutdown();
     output.clear();
     System.setOut(out);
   }
-  
+
   @Test
   public void testHelp() {
     assertTrue(shell.config("--help"));
     assertTrue("Did not print usage", output.get().startsWith("Usage"));
   }
-  
+
   @Test
   public void testBadArg() {
     assertTrue(shell.config("--bogus"));
     assertTrue("Did not print usage", output.get().startsWith("Usage"));
   }
-  
+
   @Test
   public void testTokenWithoutOptions() {
     assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName()));
     assertFalse(output.get().contains(ParameterException.class.getCanonicalName()));
   }
-  
+
   @Test
   public void testTokenAndOption() {
     assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-u", "foo", "-l", "password=foo"));
   }
-  
+
   @Test
   public void testTokenAndOptionAndPassword() {
     assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-l", "password=foo", "-p", "bar"));

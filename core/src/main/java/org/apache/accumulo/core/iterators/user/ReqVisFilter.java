@@ -25,13 +25,13 @@ import org.apache.accumulo.core.security.ColumnVisibility;
  * A Filter that matches entries with a non-empty ColumnVisibility.
  */
 public class ReqVisFilter extends Filter {
-  
+
   @Override
   public boolean accept(Key k, Value v) {
     ColumnVisibility vis = new ColumnVisibility(k.getColumnVisibility());
     return vis.getExpression().length > 0;
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();

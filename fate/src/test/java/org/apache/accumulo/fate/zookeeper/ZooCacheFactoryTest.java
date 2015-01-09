@@ -16,14 +16,15 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import org.apache.zookeeper.Watcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+
+import org.apache.zookeeper.Watcher;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ZooCacheFactoryTest {
   private ZooCacheFactory zcf;
@@ -65,6 +66,7 @@ public class ZooCacheFactoryTest {
     ZooCache zc1 = zcf.getZooCache(zks1, timeout1, watcher);
     assertNotNull(zc1);
   }
+
   @Test
   public void testGetZooCacheWatcher_Null() {
     String zks1 = "zk1";

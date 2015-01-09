@@ -29,7 +29,7 @@ class TableConfWatcher implements Watcher {
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
     Logger.getLogger("org.apache.hadoop.io.compress").setLevel(Level.WARN);
   }
-  
+
   private static final Logger log = Logger.getLogger(TableConfWatcher.class);
   private final Instance instance;
   private final String tablesPrefix;
@@ -46,9 +46,8 @@ class TableConfWatcher implements Watcher {
   }
 
   static String toString(WatchedEvent event) {
-    return new StringBuilder("{path=").append(event.getPath()).append(",state=")
-      .append(event.getState()).append(",type=").append(event.getType())
-      .append("}").toString();
+    return new StringBuilder("{path=").append(event.getPath()).append(",state=").append(event.getState()).append(",type=").append(event.getType()).append("}")
+        .toString();
   }
 
   @Override
@@ -56,10 +55,10 @@ class TableConfWatcher implements Watcher {
     String path = event.getPath();
     if (log.isTraceEnabled())
       log.trace("WatchedEvent : " + toString(event));
-    
+
     String tableId = null;
     String key = null;
-    
+
     if (path != null) {
       if (path.startsWith(tablesPrefix)) {
         tableId = path.substring(tablesPrefix.length());
@@ -69,13 +68,13 @@ class TableConfWatcher implements Watcher {
             key = path.substring((tablesPrefix + tableId + Constants.ZTABLE_CONF + "/").length());
         }
       }
-      
+
       if (tableId == null) {
         log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
         return;
       }
     }
-    
+
     switch (event.getType()) {
       case NodeDataChanged:
         if (log.isTraceEnabled())

@@ -23,21 +23,21 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 
 public class MockBatchWriter implements BatchWriter {
-  
+
   final String tablename;
   final MockAccumulo acu;
-  
+
   MockBatchWriter(MockAccumulo acu, String tablename) {
     this.acu = acu;
     this.tablename = tablename;
   }
-  
+
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
     checkArgument(m != null, "m is null");
     acu.addMutation(tablename, m);
   }
-  
+
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
     checkArgument(iterable != null, "iterable is null");
@@ -45,11 +45,11 @@ public class MockBatchWriter implements BatchWriter {
       acu.addMutation(tablename, m);
     }
   }
-  
+
   @Override
   public void flush() throws MutationsRejectedException {}
-  
+
   @Override
   public void close() throws MutationsRejectedException {}
-  
+
 }

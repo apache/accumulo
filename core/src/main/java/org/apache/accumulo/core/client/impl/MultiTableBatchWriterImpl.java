@@ -155,7 +155,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   /**
    * Returns the table ID for the given table name.
-   * 
+   *
    * @param tableName
    *          The name of the table which to find the ID for
    * @return The table ID, or null if the table name doesn't exist
@@ -203,7 +203,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
       // cacheResetCount could change after this point in time, but I think thats ok because just want to ensure this methods sees changes
       // made before it was called.
-      
+
       long internalResetCount = cacheLastState.get();
 
       if (cacheResetCount > internalResetCount) {

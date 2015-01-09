@@ -22,7 +22,7 @@ import org.apache.hadoop.io.Text;
 
 /**
  * Test the TextUtil class.
- * 
+ *
  */
 public class TextUtilTest extends TestCase {
   /**
@@ -40,5 +40,5 @@ public class TextUtilTest extends TestCase {
     assertTrue(TextUtil.getBytes(someText).length == smallerMessage.length());
     assertTrue((new Text(TextUtil.getBytes(someText))).equals(smallerMessageText));
   }
-  
+
 }

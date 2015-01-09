@@ -54,7 +54,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
- * 
+ *
  */
 public class StatusMakerTest {
 

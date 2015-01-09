@@ -110,7 +110,7 @@ public class MockAccumulo {
 
   public void createTable(String username, String tableName, TimeType timeType, Map<String,String> properties) {
     String namespace = Tables.qualify(tableName).getFirst();
-    HashMap<String, String> props = new HashMap<>(properties);
+    HashMap<String,String> props = new HashMap<>(properties);
 
     if (!namespaceExists(namespace)) {
       return;

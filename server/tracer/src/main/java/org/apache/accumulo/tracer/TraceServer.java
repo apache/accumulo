@@ -54,7 +54,6 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.htrace.Span;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
@@ -73,6 +72,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.htrace.Span;
 
 public class TraceServer implements Watcher {
 
@@ -184,8 +184,8 @@ public class TraceServer implements Watcher {
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
-          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
-              .newInstance();
+          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
+              .asSubclass(AuthenticationToken.class).newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {

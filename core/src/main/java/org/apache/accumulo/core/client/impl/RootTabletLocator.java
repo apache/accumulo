@@ -41,10 +41,10 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class RootTabletLocator extends TabletLocator {
-  
+
   private final TabletServerLockChecker lockChecker;
   private final ZooCacheFactory zcf;
-  
+
   RootTabletLocator(TabletServerLockChecker lockChecker) {
     this(lockChecker, new ZooCacheFactory());
   }
@@ -53,7 +53,7 @@ public class RootTabletLocator extends TabletLocator {
     this.lockChecker = lockChecker;
     this.zcf = zcf;
   }
-  
+
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -68,11 +68,11 @@ public class RootTabletLocator extends TabletLocator {
       failures.addAll(mutations);
     }
   }
-  
+
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    
+
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
@@ -82,38 +82,38 @@ public class RootTabletLocator extends TabletLocator {
     }
     return ranges;
   }
-  
+
   @Override
   public void invalidateCache(KeyExtent failedExtent) {}
-  
+
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {}
-  
+
   @Override
   public void invalidateCache(Instance instance, String server) {
     ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
   }
-  
+
   @Override
   public void invalidateCache() {}
-  
+
   protected TabletLocation getRootTabletLocation(ClientContext context) {
     Instance instance = context.getInstance();
     String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
     ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-    
+
     OpTimer opTimer = new OpTimer(Logger.getLogger(this.getClass()), Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);
     opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
-    
+
     if (loc == null) {
       return null;
     }
-    
+
     String[] tokens = new String(loc).split("\\|");
-    
+
     if (lockChecker.isLockHeld(tokens[0], tokens[1]))
       return new TabletLocation(RootTable.EXTENT, tokens[0], tokens[1]);
     else
@@ -129,8 +129,8 @@ public class RootTabletLocator extends TabletLocator {
       UtilWaitThread.sleep(500);
       location = getRootTabletLocation(context);
     }
-    
+
     return location;
   }
-  
+
 }

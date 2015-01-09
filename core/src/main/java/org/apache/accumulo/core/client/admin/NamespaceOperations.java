@@ -31,17 +31,17 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 /**
  * Provides an API for administering namespaces
- * 
+ *
  * All tables exist in a namespace. The default namespace has no name, and is used if an explicit namespace is not specified. Fully qualified table names look
  * like "namespaceName.tableName". Tables in the default namespace are fully qualified simply as "tableName".
- * 
+ *
  * @since 1.6.0
  */
 public interface NamespaceOperations {
 
   /**
    * Returns the name of the system reserved namespace
-   * 
+   *
    * @return the name of the system namespace
    * @since 1.6.0
    */
@@ -49,7 +49,7 @@ public interface NamespaceOperations {
 
   /**
    * Returns the name of the default namespace
-   * 
+   *
    * @return the name of the default namespace
    * @since 1.6.0
    */
@@ -57,7 +57,7 @@ public interface NamespaceOperations {
 
   /**
    * Retrieve a list of namespaces in Accumulo.
-   * 
+   *
    * @return List of namespaces in accumulo
    * @throws AccumuloException
    *           if a general error occurs
@@ -69,7 +69,7 @@ public interface NamespaceOperations {
 
   /**
    * A method to check if a namespace exists in Accumulo.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @return true if the namespace exists
@@ -83,7 +83,7 @@ public interface NamespaceOperations {
 
   /**
    * Create an empty namespace with no initial configuration. Valid names for a namespace contain letters, numbers, and the underscore character.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @throws AccumuloException
@@ -98,7 +98,7 @@ public interface NamespaceOperations {
 
   /**
    * Delete an empty namespace
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @throws AccumuloException
@@ -115,7 +115,7 @@ public interface NamespaceOperations {
 
   /**
    * Rename a namespace
-   * 
+   *
    * @param oldNamespaceName
    *          the old namespace name
    * @param newNamespaceName
@@ -135,7 +135,7 @@ public interface NamespaceOperations {
 
   /**
    * Sets a property on a namespace which applies to all tables in the namespace. Note that it may take a few seconds to propagate the change everywhere.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param property
@@ -154,7 +154,7 @@ public interface NamespaceOperations {
 
   /**
    * Removes a property from a namespace. Note that it may take a few seconds to propagate the change everywhere.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param property
@@ -171,7 +171,7 @@ public interface NamespaceOperations {
 
   /**
    * Gets properties of a namespace, which are inherited by tables in this namespace. Note that recently changed properties may not be available immediately.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @return all properties visible by this namespace (system and per-table properties). Note that recently changed properties may not be visible immediately.
@@ -187,7 +187,7 @@ public interface NamespaceOperations {
 
   /**
    * Get a mapping of namespace name to internal namespace id.
-   * 
+   *
    * @return the map from namespace name to internal namespace id
    * @throws AccumuloException
    *           if a general error occurs
@@ -199,7 +199,7 @@ public interface NamespaceOperations {
 
   /**
    * Add an iterator to a namespace on all scopes.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param setting
@@ -216,7 +216,7 @@ public interface NamespaceOperations {
 
   /**
    * Add an iterator to a namespace on the given scopes.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param setting
@@ -236,7 +236,7 @@ public interface NamespaceOperations {
 
   /**
    * Remove an iterator from a namespace by name.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param name
@@ -256,7 +256,7 @@ public interface NamespaceOperations {
 
   /**
    * Get the settings for an iterator.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param name
@@ -277,7 +277,7 @@ public interface NamespaceOperations {
 
   /**
    * Get a list of iterators for this namespace.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @return a set of iterator names
@@ -294,7 +294,7 @@ public interface NamespaceOperations {
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
    * the specified scopes. If so, an IllegalArgumentException is thrown, wrapped in an AccumuloException.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param setting
@@ -314,7 +314,7 @@ public interface NamespaceOperations {
 
   /**
    * Add a new constraint to a namespace.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param constraintClassName
@@ -332,7 +332,7 @@ public interface NamespaceOperations {
 
   /**
    * Remove a constraint from a namespace.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param id
@@ -349,7 +349,7 @@ public interface NamespaceOperations {
 
   /**
    * List constraints on a namespace with their assigned numbers.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @return a map from constraint class name to assigned number
@@ -365,7 +365,7 @@ public interface NamespaceOperations {
 
   /**
    * Test to see if the instance can load the given class as the given type. This check uses the table classpath property if it is set.
-   * 
+   *
    * @param namespace
    *          the name of the namespace
    * @param className

@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.lexicoder;
 public class UIntegerLexicoderTest extends LexicoderTest {
   public void testEncoding() {
     UIntegerLexicoder uil = new UIntegerLexicoder();
-    
+
     assertEqualsB(uil.encode(0), new byte[] {0x00});
     assertEqualsB(uil.encode(0x01), new byte[] {0x01, 0x01});
     assertEqualsB(uil.encode(0x0102), new byte[] {0x02, 0x01, 0x02});

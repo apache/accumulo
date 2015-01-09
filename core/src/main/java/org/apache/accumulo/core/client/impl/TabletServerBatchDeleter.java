@@ -33,11 +33,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
 public class TabletServerBatchDeleter extends TabletServerBatchReader implements BatchDeleter {
-  
+
   private final ClientContext context;
   private String tableId;
   private BatchWriterConfig bwConfig;
-  
+
   public TabletServerBatchDeleter(ClientContext context, String tableId, Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig)
       throws TableNotFoundException {
     super(context, tableId, authorizations, numQueryThreads);
@@ -46,7 +46,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
     this.bwConfig = bwConfig;
     super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
   }
-  
+
   @Override
   public void delete() throws MutationsRejectedException, TableNotFoundException {
     BatchWriter bw = null;
@@ -65,5 +65,5 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
         bw.close();
     }
   }
-  
+
 }

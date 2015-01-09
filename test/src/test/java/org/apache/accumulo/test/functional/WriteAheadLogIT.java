@@ -35,7 +35,7 @@ public class WriteAheadLogIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String, String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
     siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");
     siteConfig.put(Property.GC_CYCLE_START.getKey(), "1");

@@ -27,16 +27,16 @@ import org.apache.hadoop.fs.Path;
 import com.beust.jcommander.Parameter;
 
 public class ZooKeeperMain {
-  
+
   static class Opts extends Help {
-    
+
     @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
     String servers = null;
-    
+
     @Parameter(names = {"-t", "--timeout"}, description = "timeout, in seconds to timeout the zookeeper connection")
     long timeout = 30;
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);

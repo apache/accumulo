@@ -81,13 +81,17 @@ public class DurabilityIT extends ConfigurableMacIT {
     TableOperations tableOps = getConnector().tableOperations();
     String tableNames[] = init();
     // write some gunk, delete the table to keep that table from messing with the performance numbers of successive calls
-    long t0 = writeSome(tableNames[0], N); tableOps.delete(tableNames[0]);
-    long t1 = writeSome(tableNames[1], N); tableOps.delete(tableNames[1]);
-    long t2 = writeSome(tableNames[2], N); tableOps.delete(tableNames[2]);
-    long t3 = writeSome(tableNames[3], N); tableOps.delete(tableNames[3]);
+    long t0 = writeSome(tableNames[0], N);
+    tableOps.delete(tableNames[0]);
+    long t1 = writeSome(tableNames[1], N);
+    tableOps.delete(tableNames[1]);
+    long t2 = writeSome(tableNames[2], N);
+    tableOps.delete(tableNames[2]);
+    long t3 = writeSome(tableNames[3], N);
+    tableOps.delete(tableNames[3]);
     System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
-    assertTrue("flush-only should be faster than sync",   t0 > t1);
-    assertTrue("sync should be faster than log",          t1 > t2);
+    assertTrue("flush-only should be faster than sync", t0 > t1);
+    assertTrue("sync should be faster than log", t1 > t2);
     assertTrue("no durability should be faster than log", t2 > t3);
   }
 
@@ -147,8 +151,8 @@ public class DurabilityIT extends ConfigurableMacIT {
     assertTrue(N == readSome(tableName));
   }
 
-  private static Map<String, String> map(Iterable<Entry<String, String>> entries) {
-    Map<String, String> result = new HashMap<String,String>();
+  private static Map<String,String> map(Iterable<Entry<String,String>> entries) {
+    Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : entries) {
       result.put(entry.getKey(), entry.getValue());
     }
@@ -160,7 +164,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
-    Map<String, String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
+    Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
     assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
     c.tableOperations().create(tableName);
     props = map(c.tableOperations().getProperties(tableName));
@@ -188,13 +192,13 @@ public class DurabilityIT extends ConfigurableMacIT {
       Mutation m = new Mutation("" + i);
       m.put("", "", "");
       bw.addMutation(m);
-      if (i % (Math.max(1, count/100)) == 0) {
+      if (i % (Math.max(1, count / 100)) == 0) {
         bw.flush();
       }
     }
     bw.close();
     long result = System.currentTimeMillis() - now;
-    //c.tableOperations().flush(table, null, null, true);
+    // c.tableOperations().flush(table, null, null, true);
     return result;
   }
 

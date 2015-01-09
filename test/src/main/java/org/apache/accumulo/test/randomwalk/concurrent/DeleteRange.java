@@ -31,18 +31,18 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class DeleteRange extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     List<Text> range = new ArrayList<Text>();
     do {
       range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
@@ -53,7 +53,7 @@ public class DeleteRange extends Test {
       range.set(0, null);
     if (rand.nextInt(20) == 0)
       range.set(1, null);
-    
+
     try {
       conn.tableOperations().deleteRows(tableName, range.get(0), range.get(1));
       log.debug("deleted rows (" + range.get(0) + " -> " + range.get(1) + "] in " + tableName);

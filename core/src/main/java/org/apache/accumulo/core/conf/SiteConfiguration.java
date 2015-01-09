@@ -25,18 +25,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
 /**
- * An {@link AccumuloConfiguration} which loads properties from an XML file,
- * usually accumulo-site.xml. This implementation supports defaulting undefined
+ * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
  * property values to a parent configuration's definitions.
  * <p>
- * The system property "org.apache.accumulo.config.file" can be used to specify
- * the location of the XML configuration file on the classpath. If the system
+ * The system property "org.apache.accumulo.config.file" can be used to specify the location of the XML configuration file on the classpath. If the system
  * property is not defined, it defaults to "accumulo-site.xml".
  * <p>
  * This class is a singleton.
  * <p>
- * <b>Note</b>: Client code should not use this class, and it may be deprecated
- * in the future.
+ * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
@@ -52,13 +49,14 @@ public class SiteConfiguration extends AccumuloConfiguration {
   SiteConfiguration(AccumuloConfiguration parent) {
     SiteConfiguration.parent = parent;
   }
-  
+
   /**
-   * Gets an instance of this class. A new instance is only created on the first
-   * call, and so the parent configuration cannot be changed later.
+   * Gets an instance of this class. A new instance is only created on the first call, and so the parent configuration cannot be changed later.
    *
-   * @param parent parent (default) configuration
-   * @throws RuntimeException if the configuration is invalid
+   * @param parent
+   *          parent (default) configuration
+   * @throws RuntimeException
+   *           if the configuration is invalid
    */
   synchronized public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
     if (instance == null) {
@@ -67,7 +65,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
     return instance;
   }
-  
+
   synchronized public static SiteConfiguration getInstance() {
     return getInstance(DefaultConfiguration.getInstance());
   }
@@ -161,8 +159,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * Clears the configuration properties in this configuration (but not the
-   * parent). This method supports testing and should not be called.
+   * Clears the configuration properties in this configuration (but not the parent). This method supports testing and should not be called.
    */
   synchronized public static void clearInstance() {
     instance = null;
@@ -175,11 +172,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
     getXmlConfig().clear();
   }
 
-
   /**
-   * Clears the configuration properties in this configuration (but not the
-   * parent) and nulls it. This method supports testing and should not be
-   * called.
+   * Clears the configuration properties in this configuration (but not the parent) and nulls it. This method supports testing and should not be called.
    */
   public synchronized void clearAndNull() {
     if (xmlConfig != null) {
@@ -191,8 +185,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
   /**
    * Sets a property. This method supports testing and should not be called.
    *
-   * @param property property to set
-   * @param value property value
+   * @param property
+   *          property to set
+   * @param value
+   *          property value
    */
   public void set(Property property, String value) {
     set(property.getKey(), value);
@@ -201,8 +197,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
   /**
    * Sets a property. This method supports testing and should not be called.
    *
-   * @param key key of property to set
-   * @param value property value
+   * @param key
+   *          key of property to set
+   * @param value
+   *          property value
    */
   public void set(String key, String value) {
     getXmlConfig().set(key, value);

@@ -35,7 +35,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Defines the rules for combining multiple {@link Status} messages
- * 
+ *
  * Messages that are "closed", stay closed. "Begin" and "end" always choose the maximum of the two.
  */
 public class StatusCombiner extends TypedValueCombiner<Status> {
@@ -113,7 +113,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
 
   /**
    * Update a {@link Builder} with another {@link Status}
-   * 
+   *
    * @param combined
    *          The Builder to combine into
    * @param status

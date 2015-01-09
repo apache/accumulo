@@ -28,17 +28,17 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class AlterSystemPerm extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    WalkingSecurity ws = new WalkingSecurity(state,env);
-    
+    WalkingSecurity ws = new WalkingSecurity(state, env);
+
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
-    
-    String targetUser = WalkingSecurity.get(state,env).getSysUserName();
-    
+
+    String targetUser = WalkingSecurity.get(state, env).getSysUserName();
+
     SystemPermission sysPerm;
     if (perm.equals("random")) {
       Random r = new Random();
@@ -46,9 +46,9 @@ public class AlterSystemPerm extends Test {
       sysPerm = SystemPermission.values()[i];
     } else
       sysPerm = SystemPermission.valueOf(perm);
-    
+
     boolean hasPerm = ws.hasSystemPermission(targetUser, sysPerm);
-    
+
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
       if (hasPerm != conn.securityOperations().hasSystemPermission(targetUser, sysPerm))
@@ -58,7 +58,7 @@ public class AlterSystemPerm extends Test {
       else
         action = "give";
     }
-    
+
     if ("take".equals(action)) {
       try {
         conn.securityOperations().revokeSystemPermission(targetUser, sysPerm);
@@ -96,5 +96,5 @@ public class AlterSystemPerm extends Test {
       ws.grantSystemPermission(targetUser, sysPerm);
     }
   }
-  
+
 }

@@ -32,10 +32,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class SystemCredentialsTest {
-  
+
   private static MockInstance inst;
 
   @BeforeClass
@@ -54,7 +54,7 @@ public class SystemCredentialsTest {
       testInstanceVersion.createNewFile();
     }
   }
-  
+
   /**
    * This is a test to ensure the string literal in {@link ConnectorImpl#ConnectorImpl(org.apache.accumulo.core.client.impl.ClientContext)} is kept up-to-date
    * if we move the {@link SystemToken}<br/>
@@ -65,7 +65,7 @@ public class SystemCredentialsTest {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken", SystemToken.class.getName());
     assertEquals(SystemCredentials.get(inst).getToken().getClass(), SystemToken.class);
   }
-  
+
   @Test
   public void testSystemCredentials() {
     Credentials a = SystemCredentials.get(inst);

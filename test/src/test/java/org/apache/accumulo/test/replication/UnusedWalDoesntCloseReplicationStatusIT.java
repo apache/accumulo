@@ -175,8 +175,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacIT {
     KeyExtent extent = new KeyExtent(new Text(tableId), null, null);
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(extent.getMetadataEntry());
-    m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME, new Text("localhost:12345/" + walUri),
-        new Value((walUri + "|1").getBytes(UTF_8)));
+    m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME, new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
     bw.addMutation(m);
 
     // Add a replication entry for our fake WAL

@@ -234,9 +234,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target,
-      final Path p, final Status status, final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper)
-      throws TTransportException, AccumuloException, AccumuloSecurityException {
+  protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      AccumuloException, AccumuloSecurityException {
     DataInputStream input;
     try {
       input = getRFileInputStream(p);
@@ -280,9 +280,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target,
-      final Path p, final Status status, final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper)
-      throws TTransportException, AccumuloException, AccumuloSecurityException {
+  protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      AccumuloException, AccumuloSecurityException {
 
     final Set<Integer> tids;
     final DataInputStream input;

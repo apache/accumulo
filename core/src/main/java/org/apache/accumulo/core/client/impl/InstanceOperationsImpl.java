@@ -219,6 +219,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);
     }
-    
+
   }
 }

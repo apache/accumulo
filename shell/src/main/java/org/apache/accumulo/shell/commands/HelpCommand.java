@@ -23,9 +23,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.accumulo.shell.Token;
-import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -33,7 +33,7 @@ import org.apache.commons.cli.Options;
 public class HelpCommand extends Command {
   private Option disablePaginationOpt;
   private Option noWrapOpt;
-  
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ShellCommandException, IOException {
     int numColumns = shellState.getReader().getTerminal().getWidth();
     if (cl.hasOption(noWrapOpt.getOpt())) {
@@ -86,7 +86,7 @@ public class HelpCommand extends Command {
       }
       shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
     }
-    
+
     // print help for every command on command line
     for (String cmd : cl.getArgs()) {
       final Command c = shellState.commandFactory.get(cmd);
@@ -98,15 +98,15 @@ public class HelpCommand extends Command {
     }
     return 0;
   }
-  
+
   public String description() {
     return "provides information about the available commands";
   }
-  
+
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForCommands(root, special);
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -116,12 +116,12 @@ public class HelpCommand extends Command {
     o.addOption(noWrapOpt);
     return o;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " [ <command>{ <command>} ]";
   }
-  
+
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;

@@ -115,8 +115,8 @@ public class RecoveryManager {
 
   }
 
-  private void initiateSort(String sortId, String source, final String destination, AccumuloConfiguration aconf)
-    throws KeeperException, InterruptedException, IOException {
+  private void initiateSort(String sortId, String source, final String destination, AccumuloConfiguration aconf) throws KeeperException, InterruptedException,
+      IOException {
     String work = source + "|" + destination;
     new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).addWork(sortId, work.getBytes(UTF_8));
 

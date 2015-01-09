@@ -44,21 +44,21 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestProxyTableOperations {
-  
+
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
   protected static ByteBuffer userpass;
   protected static final int port = 10195;
   protected static final String testtable = "testtable";
-  
+
   @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
     prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
-    
+
     proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
         port, TCompactProtocol.Factory.class, prop);
     thread = new Thread() {
@@ -75,23 +75,23 @@ public class TestProxyTableOperations {
       }
     });
   }
-  
+
   @AfterClass
   public static void tearDown() throws InterruptedException {
     proxy.stop();
     thread.join();
   }
-  
+
   @Before
   public void makeTestTable() throws Exception {
     tpc.proxy().createTable(userpass, testtable, true, TimeType.MILLIS);
   }
-  
+
   @After
   public void deleteTestTable() throws Exception {
     tpc.proxy().deleteTable(userpass, testtable);
   }
-  
+
   @Test
   public void createExistsDelete() throws TException {
     assertFalse(tpc.proxy().tableExists(userpass, "testtable2"));
@@ -100,7 +100,7 @@ public class TestProxyTableOperations {
     tpc.proxy().deleteTable(userpass, "testtable2");
     assertFalse(tpc.proxy().tableExists(userpass, "testtable2"));
   }
-  
+
   @Test
   public void listRename() throws TException {
     assertFalse(tpc.proxy().tableExists(userpass, "testtable2"));
@@ -108,9 +108,9 @@ public class TestProxyTableOperations {
     assertTrue(tpc.proxy().tableExists(userpass, "testtable2"));
     tpc.proxy().renameTable(userpass, "testtable2", testtable);
     assertTrue(tpc.proxy().listTables(userpass).contains("testtable"));
-    
+
   }
-  
+
   // This test does not yet function because the backing Mock instance does not yet support merging
   @Test
   public void merge() throws TException {
@@ -119,19 +119,19 @@ public class TestProxyTableOperations {
     splits.add(ByteBuffer.wrap("c".getBytes()));
     splits.add(ByteBuffer.wrap("z".getBytes()));
     tpc.proxy().addSplits(userpass, testtable, splits);
-    
+
     tpc.proxy().mergeTablets(userpass, testtable, ByteBuffer.wrap("b".getBytes()), ByteBuffer.wrap("d".getBytes()));
-    
+
     splits.remove(ByteBuffer.wrap("c".getBytes()));
-    
+
     List<ByteBuffer> tableSplits = tpc.proxy().listSplits(userpass, testtable, 10);
-    
+
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
     assertTrue(tableSplits.size() == splits.size());
-    
+
   }
-  
+
   @Test
   public void splits() throws TException {
     Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
@@ -139,14 +139,14 @@ public class TestProxyTableOperations {
     splits.add(ByteBuffer.wrap("b".getBytes()));
     splits.add(ByteBuffer.wrap("z".getBytes()));
     tpc.proxy().addSplits(userpass, testtable, splits);
-    
+
     List<ByteBuffer> tableSplits = tpc.proxy().listSplits(userpass, testtable, 10);
-    
+
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
     assertTrue(tableSplits.size() == splits.size());
   }
-  
+
   @Test
   public void constraints() throws TException {
     int cid = tpc.proxy().addConstraint(userpass, testtable, "org.apache.accumulo.TestConstraint");
@@ -156,7 +156,7 @@ public class TestProxyTableOperations {
     constraints = tpc.proxy().listConstraints(userpass, testtable);
     assertNull(constraints.get("org.apache.accumulo.TestConstraint"));
   }
-  
+
   @Test
   public void localityGroups() throws TException {
     Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
@@ -168,9 +168,9 @@ public class TestProxyTableOperations {
     group2.add("cf3");
     groups.put("group2", group2);
     tpc.proxy().setLocalityGroups(userpass, testtable, groups);
-    
+
     Map<String,Set<String>> actualGroups = tpc.proxy().getLocalityGroups(userpass, testtable);
-    
+
     assertEquals(groups.size(), actualGroups.size());
     for (String groupName : groups.keySet()) {
       assertTrue(actualGroups.containsKey(groupName));
@@ -180,7 +180,7 @@ public class TestProxyTableOperations {
       }
     }
   }
-  
+
   @Test
   public void tableProperties() throws TException {
     tpc.proxy().setTableProperty(userpass, testtable, "test.property1", "wharrrgarbl");
@@ -188,13 +188,13 @@ public class TestProxyTableOperations {
     tpc.proxy().removeTableProperty(userpass, testtable, "test.property1");
     assertNull(tpc.proxy().getTableProperties(userpass, testtable).get("test.property1"));
   }
-  
+
   private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String value) {
     ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
-  
+
   @Test
   public void tableOperationsRowMethods() throws TException {
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
@@ -202,11 +202,11 @@ public class TestProxyTableOperations {
       addMutation(mutations, "" + i, "cf", "cq", "");
     }
     tpc.proxy().updateAndFlush(userpass, testtable, mutations);
-    
+
     assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
-    
+
     tpc.proxy().deleteRows(userpass, testtable, ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
     assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
   }
-  
+
 }

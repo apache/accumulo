@@ -724,7 +724,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
 
       if (entry.getKey().equals("table.custom.testProp"))
         Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("testProp"));
-      
+
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
         Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
 

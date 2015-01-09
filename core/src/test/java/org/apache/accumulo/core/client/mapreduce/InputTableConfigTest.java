@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -33,22 +35,20 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 public class InputTableConfigTest {
-  
+
   private InputTableConfig tableQueryConfig;
-  
+
   @Before
   public void setUp() {
     tableQueryConfig = new InputTableConfig();
   }
-  
+
   @Test
   public void testSerialization_OnlyTable() throws IOException {
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
-    
+
     assertEquals(tableQueryConfig, actualConfig);
   }
 
@@ -64,33 +64,32 @@ public class InputTableConfigTest {
     assertEquals(tableQueryConfig, actualConfig);
   }
 
-
   @Test
   public void testSerialization_ranges() throws IOException {
     List<Range> ranges = new ArrayList<Range>();
     ranges.add(new Range("a", "b"));
     ranges.add(new Range("c", "d"));
     tableQueryConfig.setRanges(ranges);
-    
+
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
-    
+
     assertEquals(ranges, actualConfig.getRanges());
   }
-  
+
   @Test
   public void testSerialization_columns() throws IOException {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
     columns.add(new Pair<Text,Text>(new Text("cf1"), new Text("cq1")));
     columns.add(new Pair<Text,Text>(new Text("cf2"), null));
     tableQueryConfig.fetchColumns(columns);
-    
+
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
-    
+
     assertEquals(actualConfig.getFetchedColumns(), columns);
   }
-  
+
   @Test
   public void testSerialization_iterators() throws IOException {
     List<IteratorSetting> settings = new ArrayList<IteratorSetting>();
@@ -100,16 +99,16 @@ public class InputTableConfigTest {
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
     assertEquals(actualConfig.getIterators(), settings);
-    
+
   }
-  
+
   private byte[] serialize(InputTableConfig tableQueryConfig) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     tableQueryConfig.write(new DataOutputStream(baos));
     baos.close();
     return baos.toByteArray();
   }
-  
+
   private InputTableConfig deserialize(byte[] bytes) throws IOException {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     InputTableConfig actualConfig = new InputTableConfig(new DataInputStream(bais));

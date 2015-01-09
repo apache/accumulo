@@ -85,7 +85,8 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
     @Override
     public String toString() {
-      return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("count", count).append("average", avg).append("minimum", min).append("maximum", max).toString();
+      return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("count", count).append("average", avg).append("minimum", min)
+          .append("maximum", max).toString();
     }
 
   }

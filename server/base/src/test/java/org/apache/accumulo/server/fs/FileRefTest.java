@@ -23,9 +23,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
-public class FileRefTest{
+public class FileRefTest {
 
   private void testBadTableSuffix(String badPath) {
     try {

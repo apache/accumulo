@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.test.scalability;
 
-import com.beust.jcommander.Parameter;
 import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.util.Properties;
+
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -27,33 +27,35 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.Parameter;
+
 public class Run {
-  
+
   private static final Logger log = Logger.getLogger(Run.class);
-  
+
   static class Opts extends Help {
-    @Parameter(names="--testId", required=true)
+    @Parameter(names = "--testId", required = true)
     String testId;
-    @Parameter(names="--action", required=true, description="one of 'setup', 'teardown' or 'client'")
+    @Parameter(names = "--action", required = true, description = "one of 'setup', 'teardown' or 'client'")
     String action;
-    @Parameter(names="--count", description="number of tablet servers", required=true)
-    int numTabletServers; 
+    @Parameter(names = "--count", description = "number of tablet servers", required = true)
+    int numTabletServers;
   }
-  
+
   public static void main(String[] args) throws Exception {
-    
+
     final String sitePath = "/tmp/scale-site.conf";
     final String testPath = "/tmp/scale-test.conf";
     Opts opts = new Opts();
     opts.parseArgs(Run.class.getName(), args);
-    
+
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs;
     fs = FileSystem.get(conf);
-    
+
     fs.copyToLocalFile(new Path("/accumulo-scale/conf/site.conf"), new Path(sitePath));
     fs.copyToLocalFile(new Path(String.format("/accumulo-scale/conf/%s.conf", opts.testId)), new Path(testPath));
-    
+
     // load configuration file properties
     Properties scaleProps = new Properties();
     Properties testProps = new Properties();
@@ -69,11 +71,11 @@ public class Run {
     } catch (Exception e) {
       log.error("Error loading config file.", e);
     }
-    
+
     ScaleTest test = (ScaleTest) Class.forName(String.format("org.apache.accumulo.test.scalability.%s", opts.testId)).newInstance();
-    
+
     test.init(scaleProps, testProps, opts.numTabletServers);
-    
+
     if (opts.action.equalsIgnoreCase("setup")) {
       test.setup();
     } else if (opts.action.equalsIgnoreCase("client")) {
@@ -86,5 +88,5 @@ public class Run {
       test.teardown();
     }
   }
-  
+
 }

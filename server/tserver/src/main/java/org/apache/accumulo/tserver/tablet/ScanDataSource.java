@@ -64,8 +64,8 @@ class ScanDataSource implements DataSource {
 
   private final ScanOptions options;
 
-  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      AtomicBoolean interruptFlag) {
+  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag) {
     this.tablet = tablet;
     expectedDeletionCount = tablet.getDataSourceDeletions();
     this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false);
@@ -171,8 +171,8 @@ class ScanDataSource implements DataSource {
 
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
 
-    return iterEnv.getTopLevelIterator(IteratorUtil
-        .loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(), options.getSsiList(), options.getSsio(), iterEnv));
+    return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
+        options.getSsiList(), options.getSsio(), iterEnv));
   }
 
   void close(boolean sawErrors) {
@@ -213,7 +213,7 @@ class ScanDataSource implements DataSource {
     if (fileManager != null)
       fileManager.reattach();
   }
-  
+
   public void detachFileManager() {
     if (fileManager != null)
       fileManager.detach();

@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.TservConstraintEnv;
-import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 public class UpdateSession extends Session {
@@ -42,13 +42,13 @@ public class UpdateSession extends Session {
   public final Stat authTimes = new Stat();
   public final Map<Tablet,List<Mutation>> queuedMutations = new HashMap<Tablet,List<Mutation>>();
   public final Violations violations;
-  
+
   public Tablet currentTablet = null;
   public long totalUpdates = 0;
   public long flushTime = 0;
   public long queuedMutationSize = 0;
   public final Durability durability;
-  
+
   public UpdateSession(TservConstraintEnv env, TCredentials credentials, Durability durability) {
     super(credentials);
     this.cenv = env;

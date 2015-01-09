@@ -23,13 +23,13 @@ import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class TableLinkType extends CellType<String> {
-  
+
   private Map<String,String> tidToNameMap;
-  
+
   public TableLinkType() {
     tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
   }
-  
+
   @Override
   public String format(Object obj) {
     if (obj == null)
@@ -39,21 +39,21 @@ public class TableLinkType extends CellType<String> {
     // e.g. the root table's id of "+r" would not be interpreted properly
     return String.format("<a href='/tables?t=%s'>%s</a>", BasicServlet.encode(tableId), displayName(tableId));
   }
-  
+
   private String displayName(String tableId) {
     if (tableId == null)
       return "-";
     return Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
   }
-  
+
   @Override
   public int compare(String o1, String o2) {
     return displayName(o1).compareTo(displayName(o2));
   }
-  
+
   @Override
   public String alignment() {
     return "left";
   }
-  
+
 }

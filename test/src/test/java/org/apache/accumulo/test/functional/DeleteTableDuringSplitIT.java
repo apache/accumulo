@@ -52,7 +52,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterIT {
     }
     final SortedSet<Text> splits = new TreeSet<Text>();
     for (byte i = 0; i < 100; i++) {
-      splits.add(new Text(new byte[]{0, 0, i}));
+      splits.add(new Text(new byte[] {0, 0, i}));
     }
 
     List<Future<?>> results = new ArrayList<Future<?>>();
@@ -65,8 +65,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterIT {
         public void run() {
           try {
             getConnector().tableOperations().addSplits(finalName, splits);
-          } catch (TableNotFoundException ex) {
-          } catch (Exception ex) {
+          } catch (TableNotFoundException ex) {} catch (Exception ex) {
             throw new RuntimeException(finalName, ex);
           }
         }

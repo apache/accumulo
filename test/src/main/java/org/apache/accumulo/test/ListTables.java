@@ -18,8 +18,8 @@ package org.apache.accumulo.test;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.server.cli.ClientOpts;
 
 /**
  * This little program is used by the functional test to get a list of table ids.

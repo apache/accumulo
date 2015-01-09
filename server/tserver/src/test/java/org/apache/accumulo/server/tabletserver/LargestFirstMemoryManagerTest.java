@@ -34,12 +34,12 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class LargestFirstMemoryManagerTest {
-  
+
   private static final long ZERO = System.currentTimeMillis();
   private static final long LATER = ZERO + 20 * 60 * 1000;
-  private static final long ONE_GIG = 1024*1024*1024;
-  private static final long HALF_GIG = ONE_GIG/2;
-  private static final long QGIG = ONE_GIG/4;
+  private static final long ONE_GIG = 1024 * 1024 * 1024;
+  private static final long HALF_GIG = ONE_GIG / 2;
+  private static final long QGIG = ONE_GIG / 4;
   private static final long ONE_MINUTE = 60 * 1000;
 
   @Test
@@ -94,138 +94,72 @@ public class LargestFirstMemoryManagerTest {
     // lots of work to do
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(config);
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, HALF_GIG+1, 0),
-        t(k("c"), ZERO, HALF_GIG+2, 0),
-        t(k("d"), ZERO, HALF_GIG+3, 0),
-        t(k("e"), ZERO, HALF_GIG+4, 0),
-        t(k("f"), ZERO, HALF_GIG+5, 0),
-        t(k("g"), ZERO, HALF_GIG+6, 0),
-        t(k("h"), ZERO, HALF_GIG+7, 0),
-        t(k("i"), ZERO, HALF_GIG+8, 0))
-        );
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
+        t(k("d"), ZERO, HALF_GIG + 3, 0), t(k("e"), ZERO, HALF_GIG + 4, 0), t(k("f"), ZERO, HALF_GIG + 5, 0), t(k("g"), ZERO, HALF_GIG + 6, 0),
+        t(k("h"), ZERO, HALF_GIG + 7, 0), t(k("i"), ZERO, HALF_GIG + 8, 0)));
     assertEquals(2, result.tabletsToMinorCompact.size());
     assertEquals(k("i"), result.tabletsToMinorCompact.get(0));
     assertEquals(k("h"), result.tabletsToMinorCompact.get(1));
     // one finished, one in progress, one filled up
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(config);
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, HALF_GIG+1, 0),
-        t(k("c"), ZERO, HALF_GIG+2, 0),
-        t(k("d"), ZERO, HALF_GIG+3, 0),
-        t(k("e"), ZERO, HALF_GIG+4, 0),
-        t(k("f"), ZERO, HALF_GIG+5, 0),
-        t(k("g"), ZERO, ONE_GIG, 0),
-        t(k("h"), ZERO, 0, HALF_GIG+7),
-        t(k("i"), ZERO, 0, 0))
-        );
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
+        t(k("d"), ZERO, HALF_GIG + 3, 0), t(k("e"), ZERO, HALF_GIG + 4, 0), t(k("f"), ZERO, HALF_GIG + 5, 0), t(k("g"), ZERO, ONE_GIG, 0),
+        t(k("h"), ZERO, 0, HALF_GIG + 7), t(k("i"), ZERO, 0, 0)));
     assertEquals(1, result.tabletsToMinorCompact.size());
     assertEquals(k("g"), result.tabletsToMinorCompact.get(0));
     // memory is very full, lots of candidates
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, ONE_GIG+1, 0),
-        t(k("c"), ZERO, ONE_GIG+2, 0),
-        t(k("d"), ZERO, ONE_GIG+3, 0),
-        t(k("e"), ZERO, ONE_GIG+4, 0),
-        t(k("f"), ZERO, ONE_GIG+5, 0),
-        t(k("g"), ZERO, ONE_GIG+6, 0),
-        t(k("h"), ZERO, 0, 0),
-        t(k("i"), ZERO, 0, 0))
-        );
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, ONE_GIG + 1, 0), t(k("c"), ZERO, ONE_GIG + 2, 0),
+        t(k("d"), ZERO, ONE_GIG + 3, 0), t(k("e"), ZERO, ONE_GIG + 4, 0), t(k("f"), ZERO, ONE_GIG + 5, 0), t(k("g"), ZERO, ONE_GIG + 6, 0),
+        t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
     assertEquals(2, result.tabletsToMinorCompact.size());
     assertEquals(k("g"), result.tabletsToMinorCompact.get(0));
     assertEquals(k("f"), result.tabletsToMinorCompact.get(1));
     // only have two compactors, still busy
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, ONE_GIG+1, 0),
-        t(k("c"), ZERO, ONE_GIG+2, 0),
-        t(k("d"), ZERO, ONE_GIG+3, 0),
-        t(k("e"), ZERO, ONE_GIG+4, 0),
-        t(k("f"), ZERO, ONE_GIG, ONE_GIG+5),
-        t(k("g"), ZERO, ONE_GIG, ONE_GIG+6),
-        t(k("h"), ZERO, 0, 0),
-        t(k("i"), ZERO, 0, 0))
-        );
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, ONE_GIG + 1, 0), t(k("c"), ZERO, ONE_GIG + 2, 0),
+        t(k("d"), ZERO, ONE_GIG + 3, 0), t(k("e"), ZERO, ONE_GIG + 4, 0), t(k("f"), ZERO, ONE_GIG, ONE_GIG + 5), t(k("g"), ZERO, ONE_GIG, ONE_GIG + 6),
+        t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
     assertEquals(0, result.tabletsToMinorCompact.size());
-    // finished one 
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, ONE_GIG+1, 0),
-        t(k("c"), ZERO, ONE_GIG+2, 0),
-        t(k("d"), ZERO, ONE_GIG+3, 0),
-        t(k("e"), ZERO, ONE_GIG+4, 0),
-        t(k("f"), ZERO, ONE_GIG, ONE_GIG+5),
-        t(k("g"), ZERO, ONE_GIG, 0),
-        t(k("h"), ZERO, 0, 0),
-        t(k("i"), ZERO, 0, 0))
-        );
+    // finished one
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, ONE_GIG + 1, 0), t(k("c"), ZERO, ONE_GIG + 2, 0),
+        t(k("d"), ZERO, ONE_GIG + 3, 0), t(k("e"), ZERO, ONE_GIG + 4, 0), t(k("f"), ZERO, ONE_GIG, ONE_GIG + 5), t(k("g"), ZERO, ONE_GIG, 0),
+        t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
     assertEquals(1, result.tabletsToMinorCompact.size());
     assertEquals(k("e"), result.tabletsToMinorCompact.get(0));
 
     // many are running: do nothing
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(config);
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, HALF_GIG+1, 0),
-        t(k("c"), ZERO, HALF_GIG+2, 0),
-        t(k("d"), ZERO, 0, HALF_GIG),
-        t(k("e"), ZERO, 0, HALF_GIG),
-        t(k("f"), ZERO, 0, HALF_GIG),
-        t(k("g"), ZERO, 0, HALF_GIG),
-        t(k("i"), ZERO, 0, HALF_GIG),
-        t(k("j"), ZERO, 0, HALF_GIG),
-        t(k("k"), ZERO, 0, HALF_GIG),
-        t(k("l"), ZERO, 0, HALF_GIG),
-        t(k("m"), ZERO, 0, HALF_GIG)
-        ));
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
+        t(k("d"), ZERO, 0, HALF_GIG), t(k("e"), ZERO, 0, HALF_GIG), t(k("f"), ZERO, 0, HALF_GIG), t(k("g"), ZERO, 0, HALF_GIG), t(k("i"), ZERO, 0, HALF_GIG),
+        t(k("j"), ZERO, 0, HALF_GIG), t(k("k"), ZERO, 0, HALF_GIG), t(k("l"), ZERO, 0, HALF_GIG), t(k("m"), ZERO, 0, HALF_GIG)));
     assertEquals(0, result.tabletsToMinorCompact.size());
-    
+
     // observe adjustment:
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(config);
     // compact the largest
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, QGIG, 0),
-        t(k("b"), ZERO, QGIG+1, 0),
-        t(k("c"), ZERO, QGIG+2, 0)));
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, QGIG + 2, 0)));
     assertEquals(1, result.tabletsToMinorCompact.size());
     assertEquals(k("c"), result.tabletsToMinorCompact.get(0));
     // show that it is compacting... do nothing
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, QGIG, 0),
-        t(k("b"), ZERO, QGIG+1, 0),
-        t(k("c"), ZERO, 0, QGIG+2)));
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, QGIG + 2)));
     assertEquals(0, result.tabletsToMinorCompact.size());
     // not going to bother compacting any more
     mgr.currentTime += ONE_MINUTE;
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, QGIG, 0),
-        t(k("b"), ZERO, QGIG+1, 0),
-        t(k("c"), ZERO, 0, QGIG+2)));
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, QGIG + 2)));
     assertEquals(0, result.tabletsToMinorCompact.size());
     // now do nothing
     mgr.currentTime += ONE_MINUTE;
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, QGIG, 0),
-        t(k("b"), ZERO, 0, 0),
-        t(k("c"), ZERO, 0, 0)));
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, 0, 0), t(k("c"), ZERO, 0, 0)));
     assertEquals(0, result.tabletsToMinorCompact.size());
     // on no! more data, this time we compact because we've adjusted
     mgr.currentTime += ONE_MINUTE;
-    result = mgr.getMemoryManagementActions(tablets(
-        t(k("a"), ZERO, QGIG, 0),
-        t(k("b"), ZERO, QGIG+1, 0),
-        t(k("c"), ZERO, 0, 0)));
+    result = mgr.getMemoryManagementActions(tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, 0)));
     assertEquals(1, result.tabletsToMinorCompact.size());
     assertEquals(k("b"), result.tabletsToMinorCompact.get(0));
   }
-  
+
   private static class LargestFirstMemoryManagerUnderTest extends LargestFirstMemoryManager {
 
     public long currentTime = ZERO;
@@ -239,20 +173,20 @@ public class LargestFirstMemoryManagerTest {
     protected long getMinCIdleThreshold(KeyExtent extent) {
       return 15 * 60 * 1000;
     }
-    
+
   }
-  
+
   private static KeyExtent k(String endRow) {
     return new KeyExtent(new Text("1"), new Text(endRow), null);
   }
-  
+
   private static class TestTabletState implements TabletState {
-    
+
     private final KeyExtent extent;
     private final long lastCommit;
     private final long memSize;
     private final long compactingSize;
-    
+
     TestTabletState(KeyExtent extent, long commit, long memsize, long compactingTableSize) {
       this.extent = extent;
       this.lastCommit = commit;
@@ -279,14 +213,14 @@ public class LargestFirstMemoryManagerTest {
     public long getMinorCompactingMemTableSize() {
       return compactingSize;
     }
-    
+
   }
 
   private TabletState t(KeyExtent ke, long lastCommit, long memSize, long compactingSize) {
     return new TestTabletState(ke, lastCommit, memSize, compactingSize);
   }
-  
-  private static List<TabletState> tablets(TabletState ... states) {
+
+  private static List<TabletState> tablets(TabletState... states) {
     return Arrays.asList(states);
   }
 

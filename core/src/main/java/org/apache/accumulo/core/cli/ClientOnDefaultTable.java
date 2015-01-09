@@ -25,7 +25,7 @@ public class ClientOnDefaultTable extends ClientOpts {
   public ClientOnDefaultTable(String table) {
     this.tableName = table;
   }
-  
+
   public String getTableName() {
     return tableName;
   }
@@ -33,5 +33,5 @@ public class ClientOnDefaultTable extends ClientOpts {
   public void setTableName(String tableName) {
     this.tableName = tableName;
   }
-  
+
 }

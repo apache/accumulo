@@ -43,11 +43,11 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Joiner;
 
 public class LocalityGroupUtil {
-  
+
   // private static final Logger log = Logger.getLogger(ColumnFamilySet.class);
-  
+
   public static final Set<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
-  
+
   public static Set<ByteSequence> families(Collection<Column> columns) {
     Set<ByteSequence> result = new HashSet<ByteSequence>(columns.size());
     for (Column col : columns) {
@@ -55,14 +55,14 @@ public class LocalityGroupUtil {
     }
     return result;
   }
-  
+
   @SuppressWarnings("serial")
   static public class LocalityGroupConfigurationError extends AccumuloException {
     LocalityGroupConfigurationError(String why) {
       super(why);
     }
   }
-  
+
   public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf) throws LocalityGroupConfigurationError {
     Map<String,Set<ByteSequence>> result = new HashMap<String,Set<ByteSequence>>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
@@ -87,7 +87,7 @@ public class LocalityGroupUtil {
               colFamsSet.retainAll(all);
               throw new LocalityGroupConfigurationError("Column families " + colFamsSet + " in group " + group + " is already used by another locality group");
             }
-            
+
             all.addAll(colFamsSet);
             result.put(group, colFamsSet);
           }
@@ -97,35 +97,35 @@ public class LocalityGroupUtil {
     // result.put("", all);
     return result;
   }
-  
+
   public static Set<ByteSequence> decodeColumnFamilies(String colFams) throws LocalityGroupConfigurationError {
     HashSet<ByteSequence> colFamsSet = new HashSet<ByteSequence>();
-    
+
     for (String family : colFams.split(",")) {
       ByteSequence cfbs = decodeColumnFamily(family);
       colFamsSet.add(cfbs);
     }
-    
+
     return colFamsSet;
   }
-  
+
   public static ByteSequence decodeColumnFamily(String colFam) throws LocalityGroupConfigurationError {
     byte output[] = new byte[colFam.length()];
     int pos = 0;
-    
+
     for (int i = 0; i < colFam.length(); i++) {
       char c = colFam.charAt(i);
-      
+
       if (c == '\\') {
         // next char must be 'x' or '\'
         i++;
-        
+
         if (i >= colFam.length()) {
           throw new LocalityGroupConfigurationError("Expected 'x' or '\' after '\'  in " + colFam);
         }
-        
+
         char nc = colFam.charAt(i);
-        
+
         switch (nc) {
           case '\\':
             output[pos++] = '\\';
@@ -142,36 +142,36 @@ public class LocalityGroupUtil {
       } else {
         output[pos++] = (byte) (0xff & c);
       }
-      
+
     }
-    
+
     return new ArrayByteSequence(output, 0, pos);
-    
+
   }
-  
+
   public static String encodeColumnFamilies(Set<Text> colFams) {
     SortedSet<String> ecfs = new TreeSet<String>();
-    
+
     StringBuilder sb = new StringBuilder();
-    
+
     for (Text text : colFams) {
       String ecf = encodeColumnFamily(sb, text.getBytes(), text.getLength());
       ecfs.add(ecf);
     }
-    
+
     return Joiner.on(",").join(ecfs);
   }
-  
+
   public static String encodeColumnFamily(ByteSequence bs) {
     if (bs.offset() != 0) {
       throw new IllegalArgumentException("The offset cannot be non-zero.");
     }
     return encodeColumnFamily(new StringBuilder(), bs.getBackingArray(), bs.length());
   }
-  
+
   private static String encodeColumnFamily(StringBuilder sb, byte[] ba, int len) {
     sb.setLength(0);
-    
+
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[i];
       if (c == '\\')
@@ -181,45 +181,45 @@ public class LocalityGroupUtil {
       else
         sb.append("\\x").append(String.format("%02X", c));
     }
-    
+
     String ecf = sb.toString();
     return ecf;
   }
-  
+
   private static class PartitionedMutation extends Mutation {
     private byte[] row;
     private List<ColumnUpdate> updates;
-    
+
     PartitionedMutation(byte[] row, List<ColumnUpdate> updates) {
       this.row = row;
       this.updates = updates;
     }
-    
+
     @Override
     public byte[] getRow() {
       return row;
     }
-    
+
     @Override
     public List<ColumnUpdate> getUpdates() {
       return updates;
     }
-    
+
     @Override
     public TMutation toThrift() {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public int hashCode() {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public boolean equals(Object o) {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public boolean equals(Mutation m) {
       throw new UnsupportedOperationException();
@@ -227,28 +227,28 @@ public class LocalityGroupUtil {
   }
 
   public static class Partitioner {
-    
+
     private Map<ByteSequence,Integer> colfamToLgidMap;
     private Map<ByteSequence,MutableLong>[] groups;
-    
+
     public Partitioner(Map<ByteSequence,MutableLong> groups[]) {
       this.groups = groups;
       this.colfamToLgidMap = new HashMap<ByteSequence,Integer>();
-      
+
       for (int i = 0; i < groups.length; i++) {
         for (ByteSequence cf : groups[i].keySet()) {
           colfamToLgidMap.put(cf, i);
         }
       }
     }
-    
+
     public void partition(List<Mutation> mutations, List<Mutation> partitionedMutations[]) {
 
       MutableByteSequence mbs = new MutableByteSequence(new byte[0], 0, 0);
-      
+
       @SuppressWarnings("unchecked")
       List<ColumnUpdate> parts[] = new List[groups.length + 1];
-      
+
       for (Mutation mutation : mutations) {
         if (mutation.getUpdates().size() == 1) {
           int lgid = getLgid(mbs, mutation.getUpdates().get(0));
@@ -257,7 +257,7 @@ public class LocalityGroupUtil {
           for (int i = 0; i < parts.length; i++) {
             parts[i] = null;
           }
-          
+
           int lgcount = 0;
 
           for (ColumnUpdate cu : mutation.getUpdates()) {
@@ -267,10 +267,10 @@ public class LocalityGroupUtil {
               parts[lgid] = new ArrayList<ColumnUpdate>();
               lgcount++;
             }
-            
+
             parts[lgid].add(cu);
           }
-          
+
           if (lgcount == 1) {
             for (int i = 0; i < parts.length; i++)
               if (parts[i] != null) {
@@ -285,7 +285,7 @@ public class LocalityGroupUtil {
         }
       }
     }
-    
+
     private Integer getLgid(MutableByteSequence mbs, ColumnUpdate cu) {
       mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);

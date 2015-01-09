@@ -177,8 +177,8 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithMultipleUpdates() {
-    Status newFile = StatusUtil.fileCreated(100), update1 = StatusUtil.ingestedUntil(100), update2 = StatusUtil.ingestedUntil(200), repl1 = StatusUtil.replicated(50), repl2 = StatusUtil
-        .replicated(150);
+    Status newFile = StatusUtil.fileCreated(100), update1 = StatusUtil.ingestedUntil(100), update2 = StatusUtil.ingestedUntil(200), repl1 = StatusUtil
+        .replicated(50), repl2 = StatusUtil.replicated(150);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, update1, repl1, update2, repl2).iterator());
 

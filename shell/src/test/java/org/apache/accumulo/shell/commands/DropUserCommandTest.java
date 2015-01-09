@@ -21,14 +21,13 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.commands.DropUserCommand;
 import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class DropUserCommandTest {
 
@@ -36,7 +35,7 @@ public class DropUserCommandTest {
 
   @Before
   public void setup() {
-    cmd  = new DropUserCommand();
+    cmd = new DropUserCommand();
 
     // Initialize that internal state
     cmd.getOptions();
@@ -52,7 +51,7 @@ public class DropUserCommandTest {
 
     EasyMock.expect(shellState.getConnector()).andReturn(conn);
 
-    // The user we want to remove 
+    // The user we want to remove
     EasyMock.expect(cli.getArgs()).andReturn(new String[] {"user"});
 
     // We're the root user
@@ -74,7 +73,7 @@ public class DropUserCommandTest {
     EasyMock.expectLastCall();
 
     EasyMock.replay(conn, cli, shellState, reader, secOps);
-    
+
     cmd.execute("dropuser foo -f", cli, shellState);
 
     EasyMock.verify(conn, cli, shellState, reader, secOps);

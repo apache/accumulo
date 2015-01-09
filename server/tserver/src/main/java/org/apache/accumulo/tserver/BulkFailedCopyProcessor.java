@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -54,7 +55,7 @@ public class BulkFailedCopyProcessor implements Processor {
       VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
       FileSystem origFs = vm.getVolumeByPath(orig).getFileSystem();
       FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
-      
+
       FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
       destFs.rename(tmp, dest);
       log.debug("copied " + orig + " to " + dest);

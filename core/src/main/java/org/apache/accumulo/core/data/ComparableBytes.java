@@ -19,24 +19,22 @@ package org.apache.accumulo.core.data;
 import org.apache.hadoop.io.BinaryComparable;
 
 /**
- * An array of bytes wrapped so as to extend Hadoop's
- * <code>BinaryComparable</code> class.
+ * An array of bytes wrapped so as to extend Hadoop's <code>BinaryComparable</code> class.
  */
 public class ComparableBytes extends BinaryComparable {
-  
+
   public byte[] data;
-  
+
   /**
-   * Creates a new byte wrapper. The given byte array is used directly as a
-   * backing array, so later changes made to the array reflect into the new
-   * object.
+   * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later changes made to the array reflect into the new object.
    *
-   * @param b bytes to wrap
+   * @param b
+   *          bytes to wrap
    */
   public ComparableBytes(byte[] b) {
     this.data = b;
   }
-  
+
   /**
    * Gets the wrapped bytes in this object.
    *
@@ -45,10 +43,10 @@ public class ComparableBytes extends BinaryComparable {
   public byte[] getBytes() {
     return data;
   }
-  
+
   @Override
   public int getLength() {
     return data.length;
   }
-  
+
 }

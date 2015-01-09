@@ -154,14 +154,14 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     synchronized (tableConfigs) {
       conf = tableConfigs.get(instanceID).get(tableId);
     }
-    // can't hold the lock during the construction and validation of the config, 
+    // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null && Tables.exists(instance, tableId)) {
-        conf = new TableConfiguration(instance, tableId, getNamespaceConfigurationForTable(tableId));
-        ConfigSanityCheck.validate(conf);
-        synchronized (tableConfigs) {
-          tableConfigs.get(instanceID).put(tableId, conf);
-        }
+      conf = new TableConfiguration(instance, tableId, getNamespaceConfigurationForTable(tableId));
+      ConfigSanityCheck.validate(conf);
+      synchronized (tableConfigs) {
+        tableConfigs.get(instanceID).put(tableId, conf);
+      }
     }
     return conf;
   }
@@ -177,7 +177,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     synchronized (tableParentConfigs) {
       conf = tableParentConfigs.get(instanceID).get(tableId);
     }
-    // can't hold the lock during the construction and validation of the config, 
+    // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null) {
       // changed - include instance in constructor call
@@ -194,7 +194,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
     checkPermissions();
     NamespaceConfiguration conf;
-    // can't hold the lock during the construction and validation of the config, 
+    // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     synchronized (namespaceConfigs) {
       conf = namespaceConfigs.get(instanceID).get(namespaceId);

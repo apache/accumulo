@@ -53,7 +53,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterIT {
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
 
-    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, inst, AccumuloConfiguration.getDefaultConfiguration());
+    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, inst,
+        AccumuloConfiguration.getDefaultConfiguration());
 
     // Cache invalidates 25% of the time
     int randomMax = 4;
@@ -83,8 +84,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterIT {
     }
 
     long end = System.currentTimeMillis();
-    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads + " threads and cache invalidates "
-        + ((1. / randomMax) * 100.) + "% took " + (end - start) / 1000 + " second(s)");
+    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads + " threads and cache invalidates " + ((1. / randomMax) * 100.) + "% took "
+        + (end - start) / 1000 + " second(s)");
   }
 
   public static class TableConfRunner implements Callable<Exception> {

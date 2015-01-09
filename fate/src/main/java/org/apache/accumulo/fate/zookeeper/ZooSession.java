@@ -68,11 +68,16 @@ public class ZooSession {
   }
 
   /**
-   * @param host comma separated list of zk servers
-   * @param timeout in milliseconds
-   * @param scheme authentication type, e.g. 'digest', may be null
-   * @param auth authentication-scheme-specific token, may be null
-   * @param watcher ZK notifications, may be null
+   * @param host
+   *          comma separated list of zk servers
+   * @param timeout
+   *          in milliseconds
+   * @param scheme
+   *          authentication type, e.g. 'digest', may be null
+   * @param auth
+   *          authentication-scheme-specific token, may be null
+   * @param watcher
+   *          ZK notifications, may be null
    */
   public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
@@ -99,7 +104,7 @@ public class ZooSession {
       } catch (IOException e) {
         if (e instanceof UnknownHostException) {
           /*
-             Make sure we wait atleast as long as the JVM TTL for negative DNS responses
+           * Make sure we wait atleast as long as the JVM TTL for negative DNS responses
            */
           sleepTime = Math.max(sleepTime, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
         }
@@ -121,14 +126,13 @@ public class ZooSession {
       if (tryAgain) {
         if (startTime + 2 * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
           sleepTime = startTime + 2 * timeout - System.currentTimeMillis() - connectTimeWait;
-        if (sleepTime < 0)
-        {
+        if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
-          sleepTime = sleepTime + (long)(sleepTime * Math.random());
+          sleepTime = sleepTime + (long) (sleepTime * Math.random());
       }
     }
 

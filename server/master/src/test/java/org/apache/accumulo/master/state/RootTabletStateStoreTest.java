@@ -34,8 +34,8 @@ import org.apache.accumulo.server.master.state.DistributedStore;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,16 +43,16 @@ import org.junit.Test;
 import com.google.common.net.HostAndPort;
 
 public class RootTabletStateStoreTest {
-  
+
   static class Node {
     Node(String name) {
       this.name = name;
     }
-    
+
     List<Node> children = new ArrayList<Node>();
     String name;
     byte[] value = new byte[] {};
-    
+
     Node find(String name) {
       for (Node node : children)
         if (node.name.equals(name))
@@ -60,11 +60,11 @@ public class RootTabletStateStoreTest {
       return null;
     }
   };
-  
+
   static class FakeZooStore implements DistributedStore {
-    
+
     Node root = new Node("/");
-    
+
     private Node recurse(Node root, String[] path, int depth) {
       if (depth == path.length)
         return root;
@@ -73,12 +73,12 @@ public class RootTabletStateStoreTest {
         return null;
       return recurse(child, path, depth + 1);
     }
-    
+
     private Node navigate(String path) {
       path = path.replaceAll("/$", "");
       return recurse(root, path.split("/"), 1);
     }
-    
+
     @Override
     public List<String> getChildren(String path) throws DistributedStoreException {
       Node node = navigate(path);
@@ -89,17 +89,17 @@ public class RootTabletStateStoreTest {
         children.add(child.name);
       return children;
     }
-    
+
     @Override
     public void put(String path, byte[] bs) throws DistributedStoreException {
       create(path).value = bs;
     }
-    
+
     private Node create(String path) {
       String[] parts = path.split("/");
       return recurseCreate(root, parts, 1);
     }
-    
+
     private Node recurseCreate(Node root, String[] path, int index) {
       if (path.length == index)
         return root;
@@ -110,7 +110,7 @@ public class RootTabletStateStoreTest {
       }
       return recurseCreate(node, path, index + 1);
     }
-    
+
     @Override
     public void remove(String path) throws DistributedStoreException {
       String[] parts = path.split("/");
@@ -122,7 +122,7 @@ public class RootTabletStateStoreTest {
       if (child != null)
         parent.children.remove(child);
     }
-    
+
     @Override
     public byte[] get(String path) throws DistributedStoreException {
       Node node = navigate(path);
@@ -131,7 +131,7 @@ public class RootTabletStateStoreTest {
       return null;
     }
   }
-  
+
   @Test
   public void testFakeZoo() throws DistributedStoreException {
     DistributedStore store = new FakeZooStore();
@@ -149,7 +149,7 @@ public class RootTabletStateStoreTest {
     children = store.getChildren("/a/b");
     assertEquals(new HashSet<String>(children), new HashSet<String>(Arrays.asList("b")));
   }
-  
+
   @Test
   public void testRootTabletStateStore() throws DistributedStoreException {
     ZooTabletStateStore tstore = new ZooTabletStateStore(new FakeZooStore());
@@ -190,18 +190,18 @@ public class RootTabletStateStoreTest {
       count++;
     }
     assertEquals(count, 1);
-    
+
     KeyExtent notRoot = new KeyExtent(new Text("0"), null, null);
     try {
       tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
       Assert.fail("should not get here");
     } catch (IllegalArgumentException ex) {}
-    
+
     try {
       tstore.setFutureLocations(Collections.singletonList(new Assignment(notRoot, server)));
       Assert.fail("should not get here");
     } catch (IllegalArgumentException ex) {}
-    
+
     TabletLocationState broken = null;
     try {
       broken = new TabletLocationState(notRoot, server, null, null, null, false);
@@ -213,7 +213,7 @@ public class RootTabletStateStoreTest {
       Assert.fail("should not get here");
     } catch (IllegalArgumentException ex) {}
   }
-  
+
   // @Test
   // public void testMetaDataStore() { } // see functional test
 }

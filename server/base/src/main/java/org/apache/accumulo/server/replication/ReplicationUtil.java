@@ -98,8 +98,7 @@ public class ReplicationUtil {
     for (Entry<String,String> property : context.getConfiguration().getAllPropertiesWithPrefix(Property.REPLICATION_PEERS).entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey())
-          && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
+      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
         String peerName = property.getKey().substring(Property.REPLICATION_PEERS.getKey().length());
         ReplicaSystem replica;
         try {
@@ -135,12 +134,12 @@ public class ReplicationUtil {
       TableConfiguration tableConf = context.getServerConfigurationFactory().getTableConfiguration(localId);
       for (Entry<String,String> prop : tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET).entrySet()) {
         String peerName = prop.getKey().substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
-          String remoteIdentifier = prop.getValue();
-          ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
+        String remoteIdentifier = prop.getValue();
+        ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 
-          allConfiguredTargets.add(target);
-        }
+        allConfiguredTargets.add(target);
       }
+    }
 
     return allConfiguredTargets;
   }

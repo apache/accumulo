@@ -64,5 +64,5 @@ public class DurabilityImpl {
     }
     return durability;
   }
-  
+
 }

@@ -32,15 +32,14 @@ import org.apache.log4j.Logger;
  * The LargestFirstMemoryManager attempts to keep memory between 80% and 90% full. It adapts over time the point at which it should start a compaction based on
  * how full memory gets between successive calls. It will also flush idle tablets based on a per-table configurable idle time. It will only attempt to flush
  * tablets up to 20% of all memory. And, as the name of the class would suggest, it flushes the tablet with the highest memory footprint. However, it actually
- * chooses the tablet as a function of its size doubled for every 15 minutes of idle time. 
+ * chooses the tablet as a function of its size doubled for every 15 minutes of idle time.
  */
 public class LargestFirstMemoryManager implements MemoryManager {
-  
+
   private static final Logger log = Logger.getLogger(LargestFirstMemoryManager.class);
   private static final long ZERO_TIME = System.currentTimeMillis();
   private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   private static final double MAX_FLUSH_AT_ONCE_PERCENT = 0.20;
-
 
   private long maxMemory = -1;
   private int maxConcurrentMincs;
@@ -51,13 +50,13 @@ public class LargestFirstMemoryManager implements MemoryManager {
   private long maxObserved;
   private final HashMap<Text,Long> mincIdleThresholds = new HashMap<Text,Long>();
   private ServerConfiguration config = null;
-  
+
   private static class TabletInfo {
     final KeyExtent extent;
     final long memTableSize;
     final long idleTime;
     final long load;
-    
+
     public TabletInfo(KeyExtent extent, long memTableSize, long idleTime, long load) {
       this.extent = extent;
       this.memTableSize = memTableSize;
@@ -65,16 +64,16 @@ public class LargestFirstMemoryManager implements MemoryManager {
       this.load = load;
     }
   }
-  
+
   // A little map that will hold the "largest" N tablets, where largest is a result of the timeMemoryLoad function
   private static class LargestMap {
     final int max;
-    final TreeMap<Long, List<TabletInfo>> map = new TreeMap<Long, List<TabletInfo>>(); 
-    
+    final TreeMap<Long,List<TabletInfo>> map = new TreeMap<Long,List<TabletInfo>>();
+
     LargestMap(int n) {
       max = n;
     }
-    
+
     public boolean put(Long key, TabletInfo value) {
       if (map.size() == max) {
         if (key.compareTo(map.firstKey()) < 0)
@@ -114,14 +113,14 @@ public class LargestFirstMemoryManager implements MemoryManager {
       map.remove(key);
     }
   }
-  
+
   LargestFirstMemoryManager(long maxMemory, int maxConcurrentMincs, int numWaitingMultiplier) {
     this();
     this.maxMemory = maxMemory;
     this.maxConcurrentMincs = maxConcurrentMincs;
     this.numWaitingMultiplier = numWaitingMultiplier;
   }
-  
+
   @Override
   public void init(ServerConfiguration conf) {
     this.config = conf;
@@ -129,39 +128,39 @@ public class LargestFirstMemoryManager implements MemoryManager {
     maxConcurrentMincs = conf.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
     numWaitingMultiplier = TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
   }
-  
+
   public LargestFirstMemoryManager() {
     prevIngestMemory = 0;
     compactionThreshold = 0.5;
     maxObserved = 0;
   }
-  
+
   protected long getMinCIdleThreshold(KeyExtent extent) {
     Text tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
       mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
-  
+
   @Override
   public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {
     if (maxMemory < 0)
       throw new IllegalStateException("need to initialize " + LargestFirstMemoryManager.class.getName());
-    
+
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
-    
+
     mincIdleThresholds.clear();
     final MemoryManagementActions result = new MemoryManagementActions();
     result.tabletsToMinorCompact = new ArrayList<KeyExtent>();
-    
+
     LargestMap largestMemTablets = new LargestMap(maxMinCs);
     final LargestMap largestIdleMemTablets = new LargestMap(maxConcurrentMincs);
     final long now = currentTimeMillis();
-    
+
     long ingestMemory = 0;
     long compactionMemory = 0;
     int numWaitingMincs = 0;
-    
+
     // find the largest and most idle tablets
     for (TabletState ts : tablets) {
       final long memTabletSize = ts.getMemTableSize();
@@ -176,21 +175,21 @@ public class LargestFirstMemoryManager implements MemoryManager {
           largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
         }
       }
-      
+
       compactionMemory += minorCompactingSize;
       if (minorCompactingSize > 0)
         numWaitingMincs++;
     }
-    
+
     if (ingestMemory + compactionMemory > maxObserved) {
       maxObserved = ingestMemory + compactionMemory;
     }
-    
+
     final long memoryChange = ingestMemory - prevIngestMemory;
     prevIngestMemory = ingestMemory;
-    
+
     boolean startMinC = false;
-    
+
     if (numWaitingMincs < maxMinCs) {
       // based on previous ingest memory increase, if we think that the next increase will
       // take us over the threshold for non-compacting memory, then start a minor compaction
@@ -204,23 +203,22 @@ public class LargestFirstMemoryManager implements MemoryManager {
         log.debug("IDLE minor compaction chosen");
       }
     }
-    
+
     if (startMinC) {
       long toBeCompacted = compactionMemory;
-      outer:
-        for (int i = numWaitingMincs; i < maxMinCs && !largestMemTablets.isEmpty(); /* empty */) {
-          Entry<Long,List<TabletInfo>> lastEntry = largestMemTablets.lastEntry();
-          for (TabletInfo largest : lastEntry.getValue()) {
-            toBeCompacted += largest.memTableSize;
-            result.tabletsToMinorCompact.add(largest.extent);
-            log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d", largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
-            log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize, largest.idleTime / 1000.0, largest.load));
-            if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT)
-              break outer;
-            i++;
-          }
-          largestMemTablets.remove(lastEntry.getKey());
+      outer: for (int i = numWaitingMincs; i < maxMinCs && !largestMemTablets.isEmpty(); /* empty */) {
+        Entry<Long,List<TabletInfo>> lastEntry = largestMemTablets.lastEntry();
+        for (TabletInfo largest : lastEntry.getValue()) {
+          toBeCompacted += largest.memTableSize;
+          result.tabletsToMinorCompact.add(largest.extent);
+          log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d", largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
+          log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize, largest.idleTime / 1000.0, largest.load));
+          if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT)
+            break outer;
+          i++;
         }
+        largestMemTablets.remove(lastEntry.getKey());
+      }
     } else if (memoryChange < 0) {
       // before idle mincs, starting a minor compaction meant that memoryChange >= 0.
       // we thought we might want to remove the "else" if that changed,
@@ -228,12 +226,12 @@ public class LargestFirstMemoryManager implements MemoryManager {
       // change more often, so it is staying for now.
       // also, now we have the case where memoryChange < 0 due to an idle compaction, yet
       // we are still adjusting the threshold. should this be tracked and prevented?
-      
+
       // memory change < 0 means a minor compaction occurred
       // we want to see how full the memory got during the compaction
       // (the goal is for it to have between 80% and 90% memory utilization)
       // and adjust the compactionThreshold accordingly
-      
+
       log.debug(String.format("BEFORE compactionThreshold = %.3f maxObserved = %,d", compactionThreshold, maxObserved));
       if (compactionThreshold < 0.82 && maxObserved < 0.8 * maxMemory) {
         // 0.82 * 1.1 is about 0.9, which is our desired max threshold
@@ -243,24 +241,24 @@ public class LargestFirstMemoryManager implements MemoryManager {
         compactionThreshold *= 0.9;
       }
       maxObserved = 0;
-      
+
       log.debug(String.format("AFTER compactionThreshold = %.3f", compactionThreshold));
     }
-    
+
     return result;
   }
-  
+
   protected long currentTimeMillis() {
     return System.currentTimeMillis();
   }
 
   @Override
   public void tabletClosed(KeyExtent extent) {}
-  
+
   // The load function: memory times the idle time, doubling every 15 mins
   static long timeMemoryLoad(long mem, long time) {
     double minutesIdle = time / 60000.0;
-    
+
     return (long) (mem * Math.pow(2, minutesIdle / 15.0));
   }
 }

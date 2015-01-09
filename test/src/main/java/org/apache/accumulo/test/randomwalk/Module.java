@@ -58,7 +58,6 @@ public class Module extends Node {
 
   private static final Logger log = Logger.getLogger(Module.class);
 
-
   private class Dummy extends Node {
 
     String name;
@@ -406,7 +405,7 @@ public class Module extends Node {
       try {
         timer.join();
       } catch (InterruptedException e) {
-        log.error("Failed to join timer '"+timer.getName()+"'.", e);
+        log.error("Failed to join timer '" + timer.getName() + "'.", e);
       }
     }
     if (runningLong.get())

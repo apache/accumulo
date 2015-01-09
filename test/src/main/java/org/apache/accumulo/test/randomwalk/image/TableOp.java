@@ -30,10 +30,10 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class TableOp extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    
+
     // choose a table
     Random rand = new Random();
     String tableName;
@@ -42,7 +42,7 @@ public class TableOp extends Test {
     } else {
       tableName = state.getString("indexTableName");
     }
-    
+
     // check if chosen table exists
     Connector conn = env.getConnector();
     TableOperations tableOps = conn.tableOperations();
@@ -50,7 +50,7 @@ public class TableOp extends Test {
       log.error("Table " + tableName + " does not exist!");
       return;
     }
-    
+
     // choose a random action
     int num = rand.nextInt(10);
     if (num > 6) {
@@ -63,10 +63,10 @@ public class TableOp extends Test {
       log.debug("Clearing locator cache for " + tableName);
       tableOps.clearLocatorCache(tableName);
     }
-    
+
     if (rand.nextInt(10) < 3) {
       Map<String,Set<Text>> groups = tableOps.getLocalityGroups(state.getString("imageTableName"));
-      
+
       if (groups.size() == 0) {
         log.debug("Adding locality groups to " + state.getString("imageTableName"));
         groups = ImageFixture.getLocalityGroups();
@@ -74,7 +74,7 @@ public class TableOp extends Test {
         log.debug("Removing locality groups from " + state.getString("imageTableName"));
         groups = new HashMap<String,Set<Text>>();
       }
-      
+
       tableOps.setLocalityGroups(state.getString("imageTableName"), groups);
     }
   }

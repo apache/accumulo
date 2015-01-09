@@ -63,7 +63,7 @@ public class WorkDriver extends Daemon {
         log.error("Could not instantiate configured work assigner {}", workAssignerClass, e);
         throw new RuntimeException(e);
       }
-  
+
       this.assigner.configure(conf, conn);
       this.assignerImplName = assigner.getClass().getName();
       this.setName(assigner.getName());

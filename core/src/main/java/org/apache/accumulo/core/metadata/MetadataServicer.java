@@ -30,12 +30,12 @@ import org.apache.accumulo.core.data.KeyExtent;
  * Provides a consolidated API for handling table metadata
  */
 public abstract class MetadataServicer {
-  
+
   public static MetadataServicer forTableName(ClientContext context, String tableName) throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     return forTableId(context, context.getConnector().tableOperations().tableIdMap().get(tableName));
   }
-  
+
   public static MetadataServicer forTableId(ClientContext context, String tableId) {
     checkArgument(tableId != null, "tableId is null");
     if (RootTable.ID.equals(tableId))
@@ -45,19 +45,19 @@ public abstract class MetadataServicer {
     else
       return new ServicerForUserTables(context, tableId);
   }
-  
+
   /**
-   * 
+   *
    * @return the table id of the table currently being serviced
    */
   public abstract String getServicedTableId();
-  
+
   /**
    * Populate the provided data structure with the known tablets for the table being serviced
-   * 
+   *
    * @param tablets
    *          A mapping of all known tablets to their location (if available, null otherwise)
    */
   public abstract void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
 }

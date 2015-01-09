@@ -36,10 +36,10 @@ import org.apache.log4j.Logger;
 /**
  * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this. This version does not use the ClientOpts
  * class to parse arguments as an example of using AccumuloInputFormat and AccumuloOutputFormat directly. See README.mapred for more details.
- * 
+ *
  */
 public class TokenFileWordCount extends Configured implements Tool {
-  
+
   private static final Logger log = Logger.getLogger(TokenFileWordCount.class);
 
   public static class MapClass extends Mapper<LongWritable,Text,Text,Mutation> {

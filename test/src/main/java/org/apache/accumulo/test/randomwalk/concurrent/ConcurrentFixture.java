@@ -20,44 +20,42 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.Environment;
+import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
 /**
  * When multiple instance of this test suite are run, all instances will operate on the same set of table names.
- * 
- * 
+ *
+ *
  */
 
 public class ConcurrentFixture extends Fixture {
-  
+
   @Override
   public void setUp(State state, Environment env) throws Exception {}
-  
+
   @Override
   public void tearDown(State state, Environment env) throws Exception {
     state.remove(CheckBalance.LAST_UNBALANCED_TIME);
     state.remove(CheckBalance.UNBALANCED_COUNT);
   }
-  
+
   /**
-   * 
+   *
    * @param rand
-   *  A Random to use
-   * @return
-   *  A two element list with first being smaller than the second, but either value (or both) can be null
+   *          A Random to use
+   * @return A two element list with first being smaller than the second, but either value (or both) can be null
    */
   public static List<Text> generateRange(Random rand) {
     ArrayList<Text> toRet = new ArrayList<Text>(2);
 
     long firstLong = rand.nextLong();
-    
-    
+
     long secondLong = rand.nextLong();
     Text first = null, second = null;
-    
+
     // Having all negative values = null might be too frequent
     if (firstLong >= 0)
       first = new Text(String.format("%016x", firstLong & 0x7fffffffffffffffl));
@@ -69,10 +67,10 @@ public class ConcurrentFixture extends Fixture {
       first = second;
       second = swap;
     }
-    
+
     toRet.add(first);
     toRet.add(second);
-    
+
     return toRet;
   }
 }

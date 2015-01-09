@@ -26,9 +26,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellOptions;
 import org.apache.accumulo.shell.Token;
-import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -97,7 +97,7 @@ public abstract class TableOperation extends Command {
 
   /**
    * Allows implementation to remove certain tables from the set of tables to be operated on.
-   * 
+   *
    * @param pattern
    *          The pattern which tables were selected using
    * @param tables

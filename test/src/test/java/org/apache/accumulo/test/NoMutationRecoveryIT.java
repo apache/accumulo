@@ -59,7 +59,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     cfg.setNumTservers(1);
   }
 
-  public boolean equals(Entry<Key, Value> a, Entry<Key, Value> b) {
+  public boolean equals(Entry<Key,Value> a, Entry<Key,Value> b) {
     // comparison, without timestamp
     Key akey = a.getKey();
     Key bkey = b.getKey();
@@ -73,7 +73,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     conn.tableOperations().create(table);
     String tableId = conn.tableOperations().tableIdMap().get(table);
     update(conn, table, new Text("row"), new Text("cf"), new Text("cq"), new Value("value".getBytes()));
-    Entry<Key, Value> logRef = getLogRef(conn, MetadataTable.NAME);
+    Entry<Key,Value> logRef = getLogRef(conn, MetadataTable.NAME);
     conn.tableOperations().flush(table, null, null, true);
     assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME, Range.prefix(tableId))));
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
@@ -96,7 +96,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
       count++;
     }
     assertEquals(1, count);
-    for (Entry<Key, Value> ref : getLogRefs(conn, MetadataTable.NAME)) {
+    for (Entry<Key,Value> ref : getLogRefs(conn, MetadataTable.NAME)) {
       assertFalse(equals(ref, logRef));
     }
   }
@@ -106,7 +106,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     update(conn, name, k.getRow(), k.getColumnFamily(), k.getColumnQualifier(), logRef.getValue());
   }
 
-  private Iterable<Entry<Key, Value>> getLogRefs(Connector conn, String table) throws Exception {
+  private Iterable<Entry<Key,Value>> getLogRefs(Connector conn, String table) throws Exception {
     return getLogRefs(conn, table, new Range());
   }
 

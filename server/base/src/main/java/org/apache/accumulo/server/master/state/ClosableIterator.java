@@ -19,5 +19,4 @@ package org.apache.accumulo.server.master.state;
 import java.io.Closeable;
 import java.util.Iterator;
 
-public interface ClosableIterator<T> extends Iterator<T>, Closeable {
-}
+public interface ClosableIterator<T> extends Iterator<T>, Closeable {}

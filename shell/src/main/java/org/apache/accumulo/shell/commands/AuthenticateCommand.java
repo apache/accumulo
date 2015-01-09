@@ -26,8 +26,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.Token;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class AuthenticateCommand extends Command {
@@ -44,22 +44,22 @@ public class AuthenticateCommand extends Command {
     shellState.getReader().println((valid ? "V" : "Not v") + "alid");
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "verifies a user's credentials";
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <username>";
   }
-  
+
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
-  
+
   @Override
   public int numArgs() {
     return 1;

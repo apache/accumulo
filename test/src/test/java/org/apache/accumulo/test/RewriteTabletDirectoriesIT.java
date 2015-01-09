@@ -93,7 +93,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
       splits.add(new Text(split));
       Mutation m = new Mutation(new Text(split));
-      m.put(new byte[]{}, new byte[]{}, new byte[]{});
+      m.put(new byte[] {}, new byte[] {}, new byte[] {});
       bw.addMutation(m);
     }
     bw.close();

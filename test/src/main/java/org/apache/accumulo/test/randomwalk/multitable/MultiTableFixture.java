@@ -23,24 +23,24 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.Environment;
+import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class MultiTableFixture extends Fixture {
-  
+
   @Override
   public void setUp(State state, Environment env) throws Exception {
-    
+
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    
+
     state.set("tableNamePrefix", String.format("multi_%s_%s_%d", hostname, env.getPid(), System.currentTimeMillis()));
     state.set("nextId", Integer.valueOf(0));
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));
     state.set("tableList", new ArrayList<String>());
   }
-  
+
   @Override
   public void tearDown(State state, Environment env) throws Exception {
     // We have resources we need to clean up
@@ -51,16 +51,16 @@ public class MultiTableFixture extends Fixture {
       } catch (MutationsRejectedException e) {
         log.error("Ignoring mutations that weren't flushed", e);
       }
-      
+
       // Reset the MTBW on the state to null
       env.resetMultiTableBatchWriter();
     }
-    
+
     Connector conn = env.getConnector();
-    
+
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
-    
+
     for (String tableName : tables) {
       try {
         conn.tableOperations().delete(tableName);

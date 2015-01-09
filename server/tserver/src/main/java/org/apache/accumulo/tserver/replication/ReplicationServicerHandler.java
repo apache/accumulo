@@ -94,8 +94,7 @@ public class ReplicationServicerHandler implements Iface {
       replayer = clz.newInstance();
     } catch (InstantiationException | IllegalAccessException e1) {
       log.error("Could not instantiate replayer class {}", clz.getName());
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER, "Could not instantiate replayer class"
-          + clz.getName());
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER, "Could not instantiate replayer class" + clz.getName());
     }
 
     long entriesReplicated;

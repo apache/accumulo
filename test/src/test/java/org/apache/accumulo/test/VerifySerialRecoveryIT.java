@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.apache.accumulo.test;
+package org.apache.accumulo.test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -39,19 +43,15 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class VerifySerialRecoveryIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "20");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void testSerializedRecovery() throws Exception {
     // make a table with many splits
@@ -75,9 +75,10 @@ public class VerifySerialRecoveryIT extends ConfigurableMacIT {
     for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
       getCluster().killProcess(ServerType.TABLET_SERVER, ref);
     final Process ts = cluster.exec(TabletServer.class);
-    
+
     // wait for recovery
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY))
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY))
       ;
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     ts.waitFor();
@@ -104,5 +105,5 @@ public class VerifySerialRecoveryIT extends ConfigurableMacIT {
     }
     assertFalse(started);
     assertTrue(recoveries > 0);
-  }  
+  }
 }

@@ -116,7 +116,7 @@ public class NamespacesIT extends AccumuloIT {
     cluster.getConfig().setNumTservers(1);
     cluster.start();
   }
-  
+
   @Before
   public void setupConnectorAndNamespace() throws Exception {
     // prepare a unique namespace and get a new root connector for each test

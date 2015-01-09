@@ -141,7 +141,7 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug(" tid " + tid + " sourceDir " + sourceDir);
@@ -213,7 +213,7 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   private String prepareBulkImport(Master master, final VolumeManager fs, String dir, String tableId) throws Exception {
     final Path bulkDir = createNewBulkDir(fs, tableId);
@@ -288,7 +288,7 @@ public class BulkImport extends MasterRepo {
       }));
     }
     workers.shutdown();
-    while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) { }
+    while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
 
     for (Future<Exception> ex : results) {
       if (ex.get() != null) {
@@ -456,8 +456,8 @@ class CopyFailed extends MasterRepo {
     }
 
     if (loadedFailures.size() > 0) {
-      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + master.getInstance().getInstanceID()
-          + Constants.ZBULK_FAILED_COPYQ, master.getConfiguration());
+      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
+          master.getConfiguration());
 
       HashSet<String> workIds = new HashSet<String>();
 
@@ -575,8 +575,7 @@ class LoadFiles extends MasterRepo {
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt,
-                  errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               } else {

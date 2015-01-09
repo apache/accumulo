@@ -24,19 +24,19 @@ import org.apache.log4j.Logger;
  * A utility class for validating {@link AccumuloConfiguration} instances.
  */
 public class ConfigSanityCheck {
-  
+
   private static final Logger log = Logger.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
-  
+
   /**
-   * Validates the given configuration entries. A valid configuration contains only
-   * valid properties (i.e., defined or otherwise valid) that are not prefixes
-   * and whose values are formatted correctly for their property types. A valid
-   * configuration also contains a value for property
+   * Validates the given configuration entries. A valid configuration contains only valid properties (i.e., defined or otherwise valid) that are not prefixes
+   * and whose values are formatted correctly for their property types. A valid configuration also contains a value for property
    * {@link Property#INSTANCE_ZK_TIMEOUT} within a valid range.
    *
-   * @param entries iterable through configuration keys and values
-   * @throws SanityCheckException if a fatal configuration error is found
+   * @param entries
+   *          iterable through configuration keys and values
+   * @throws SanityCheckException
+   *           if a fatal configuration error is found
    */
   public static void validate(Iterable<Entry<String,String>> entries) {
     String instanceZkTimeoutKey = Property.INSTANCE_ZK_TIMEOUT.getKey();
@@ -60,42 +60,41 @@ public class ConfigSanityCheck {
     }
 
     if (instanceZkTimeoutValue != null) {
-      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue,
-                        new CheckTimeDurationBetween(1000, 300000));
+      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue, new CheckTimeDurationBetween(1000, 300000));
     }
   }
-  
+
   private interface CheckTimeDuration {
     boolean check(long propVal);
-    
+
     String getDescription(Property prop);
   }
-  
+
   private static class CheckTimeDurationBetween implements CheckTimeDuration {
     long min, max;
-    
+
     CheckTimeDurationBetween(long x, long y) {
       min = Math.min(x, y);
       max = Math.max(x, y);
     }
-    
+
     @Override
     public boolean check(long propVal) {
       return propVal >= min && propVal <= max;
     }
-    
+
     @Override
     public String getDescription(Property prop) {
       return "ensure " + min + " <= " + prop + " <= " + max;
     }
   }
-  
+
   private static void checkTimeDuration(Property prop, String value, CheckTimeDuration chk) {
     verifyPropertyTypes(PropertyType.TIMEDURATION, prop);
     if (!chk.check(AccumuloConfiguration.getTimeInMillis(value)))
       fatal(PREFIX + chk.getDescription(prop));
   }
-  
+
   private static void verifyPropertyTypes(PropertyType type, Property... properties) {
     for (Property prop : properties)
       if (prop.getType() != type)
@@ -111,7 +110,9 @@ public class ConfigSanityCheck {
     /**
      * Creates a new exception with the given message.
      */
-    public SanityCheckException(String msg) { super(msg); }
+    public SanityCheckException(String msg) {
+      super(msg);
+    }
   }
 
   private static void fatal(String msg) {

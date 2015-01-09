@@ -75,7 +75,7 @@ public class Span extends org.apache.accumulo.core.trace.Span implements Cloudtr
   }
 
   @Override
-  public Map<String, String> getData() {
+  public Map<String,String> getData() {
     Map<byte[],byte[]> data = span.getKVAnnotations();
     HashMap<String,String> stringData = new HashMap<>();
     for (Entry<byte[],byte[]> d : data.entrySet()) {

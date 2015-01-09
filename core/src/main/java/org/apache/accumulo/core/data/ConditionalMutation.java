@@ -29,39 +29,39 @@ import org.apache.hadoop.io.Text;
 
 /**
  * A Mutation that contains a list of conditions that must all be met before the mutation is applied.
- * 
+ *
  * @since 1.6.0
  */
 public class ConditionalMutation extends Mutation {
-  
+
   private List<Condition> conditions = new ArrayList<Condition>();
 
   public ConditionalMutation(byte[] row, Condition... conditions) {
     super(row);
     init(conditions);
   }
-  
+
   public ConditionalMutation(byte[] row, int start, int length, Condition... conditions) {
     super(row, start, length);
     init(conditions);
   }
-  
+
   public ConditionalMutation(Text row, Condition... conditions) {
     super(row);
     init(conditions);
   }
-  
+
   public ConditionalMutation(CharSequence row, Condition... conditions) {
     super(row);
     init(conditions);
   }
-  
+
   public ConditionalMutation(ByteSequence row, Condition... conditions) {
     // TODO add ByteSequence methods to mutations
     super(row.toArray());
     init(conditions);
   }
-  
+
   public ConditionalMutation(ConditionalMutation cm) {
     super(cm);
     this.conditions = new ArrayList<Condition>(cm.conditions);
@@ -71,12 +71,12 @@ public class ConditionalMutation extends Mutation {
     checkArgument(conditions != null, "conditions is null");
     this.conditions.addAll(Arrays.asList(conditions));
   }
-  
+
   public void addCondition(Condition condition) {
     checkArgument(condition != null, "condition is null");
     this.conditions.add(condition);
   }
-  
+
   public List<Condition> getConditions() {
     return Collections.unmodifiableList(conditions);
   }

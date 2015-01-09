@@ -24,12 +24,12 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 
 public interface FileSKVIterator extends InterruptibleIterator {
   Key getFirstKey() throws IOException;
-  
+
   Key getLastKey() throws IOException;
-  
+
   DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
-  
+
   void closeDeepCopies() throws IOException;
-  
+
   void close() throws IOException;
 }

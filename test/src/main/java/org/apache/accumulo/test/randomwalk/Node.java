@@ -25,41 +25,41 @@ import org.apache.log4j.Logger;
  * Represents a point in graph of RandomFramework
  */
 public abstract class Node {
-  
+
   protected final Logger log = Logger.getLogger(this.getClass());
   long progress = System.currentTimeMillis();
-  
+
   /**
    * Visits node
-   * 
+   *
    * @param state
    *          Random walk state passed between nodes
    * @param env
    *          test environment
    */
   public abstract void visit(State state, Environment env, Properties props) throws Exception;
-  
+
   @Override
   public boolean equals(Object o) {
     if (o == null)
       return false;
     return toString().equals(o.toString());
   }
-  
+
   @Override
   public String toString() {
     return this.getClass().getName();
   }
-  
+
   @Override
   public int hashCode() {
     return toString().hashCode();
   }
-  
+
   synchronized public void makingProgress() {
     progress = System.currentTimeMillis();
   }
-  
+
   synchronized public long lastProgress() {
     return progress;
   }

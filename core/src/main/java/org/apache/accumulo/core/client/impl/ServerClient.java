@@ -42,7 +42,7 @@ import org.apache.thrift.transport.TTransportException;
 
 public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
-  
+
   public static <T> T execute(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       return executeRaw(context, exec);
@@ -54,7 +54,7 @@ public class ServerClient {
       throw new AccumuloException(e);
     }
   }
-  
+
   public static void execute(ClientContext context, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       executeRaw(context, exec);
@@ -66,7 +66,7 @@ public class ServerClient {
       throw new AccumuloException(e);
     }
   }
-  
+
   public static <T> T executeRaw(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
@@ -85,7 +85,7 @@ public class ServerClient {
       }
     }
   }
-  
+
   public static void executeRaw(ClientContext context, ClientExec<ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
@@ -105,23 +105,23 @@ public class ServerClient {
       }
     }
   }
-  
+
   static volatile boolean warnedAboutTServersBeingDown = false;
 
   public static Pair<String,ClientService.Client> getConnection(ClientContext context) throws TTransportException {
     return getConnection(context, true);
   }
-  
+
   public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections) throws TTransportException {
     return getConnection(context, preferCachedConnections, context.getClientTimeoutInMillis());
   }
-  
+
   public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections, long rpcTimeout)
       throws TTransportException {
     checkArgument(context != null, "context is null");
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
-    
+
     // add tservers
     Instance instance = context.getInstance();
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
@@ -134,7 +134,7 @@ public class ServerClient {
           servers.add(new ThriftTransportKey(new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
       }
     }
-    
+
     boolean opened = false;
     try {
       Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
@@ -155,7 +155,7 @@ public class ServerClient {
       }
     }
   }
-  
+
   public static void close(ClientService.Client client) {
     if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());

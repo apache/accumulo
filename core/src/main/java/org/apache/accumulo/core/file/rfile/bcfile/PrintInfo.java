@@ -37,9 +37,9 @@ public class PrintInfo {
     BCFile.Reader bcfr = null;
     try {
       bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
-      
+
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
-      
+
       for (Entry<String,MetaIndexEntry> entry : es) {
         PrintStream out = System.out;
         out.println("Meta block     : " + entry.getKey());
@@ -54,7 +54,7 @@ public class PrintInfo {
       }
     }
   }
-  
+
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     AccumuloConfiguration siteConf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());

@@ -38,14 +38,14 @@ public class SystemPropUtil {
       log.warn("Ignoring property {} it is null, an invalid format, or not capable of being changed in zookeeper", property);
       return false;
     }
-    
+
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
     ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-    
+
     return true;
   }
-  
+
   public static void removeSystemProperty(String property) throws InterruptedException, KeeperException {
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);

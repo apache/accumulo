@@ -16,15 +16,19 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.easymock.EasyMock.*;
 
 public class TServerUtilsTest {
   private static class TServerWithoutES extends TServer {

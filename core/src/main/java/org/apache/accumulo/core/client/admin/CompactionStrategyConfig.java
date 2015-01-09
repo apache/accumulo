@@ -24,7 +24,7 @@ import java.util.Map;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  * @since 1.7.0
  */
 
@@ -33,7 +33,7 @@ public class CompactionStrategyConfig {
   private Map<String,String> options = Collections.emptyMap();
 
   /**
-   * 
+   *
    * @param className
    *          The name of a class that implements org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on tservers.
    */
@@ -64,7 +64,7 @@ public class CompactionStrategyConfig {
   }
 
   /**
-   * 
+   *
    * @return The previously set options. Returns an unmodifiable map. The default is an empty map.
    */
 

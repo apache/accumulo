@@ -32,18 +32,18 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
-import org.apache.log4j.Logger;
 
 /**
  * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this.
- * 
+ *
  */
 public class WordCount extends Configured implements Tool {
 
   private static final Logger log = Logger.getLogger(WordCount.class);
-  
+
   static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--input", description = "input directory")
     String inputDirectory;

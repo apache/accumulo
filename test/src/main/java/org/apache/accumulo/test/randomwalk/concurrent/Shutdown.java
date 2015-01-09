@@ -32,16 +32,16 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Shutdown extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     log.info("shutting down");
     SetGoalState.main(new String[] {MasterGoalState.CLEAN_STOP.name()});
-    
+
     while (!env.getConnector().instanceOperations().getTabletServers().isEmpty()) {
       UtilWaitThread.sleep(1000);
     }
-    
+
     while (true) {
       try {
         AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
@@ -53,9 +53,9 @@ public class Shutdown extends Test {
       }
       UtilWaitThread.sleep(1000);
     }
-    
+
     log.info("servers stopped");
     UtilWaitThread.sleep(10000);
   }
-  
+
 }

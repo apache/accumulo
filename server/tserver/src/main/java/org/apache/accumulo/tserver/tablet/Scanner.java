@@ -113,10 +113,10 @@ public class Scanner {
       // to return mapfiles, even when exception is thrown
       if (!options.isIsolated()) {
         dataSource.close(false);
-      } else { 
+      } else {
         dataSource.detachFileManager();
       }
-      
+
       if (results != null && results.getResults() != null)
         tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
     }

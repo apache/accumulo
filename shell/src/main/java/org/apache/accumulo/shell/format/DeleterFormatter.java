@@ -31,14 +31,14 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.log4j.Logger;
 
 public class DeleterFormatter extends DefaultFormatter {
-  
+
   private static final Logger log = Logger.getLogger(DeleterFormatter.class);
   private BatchWriter writer;
   private Shell shellState;
   private boolean printTimestamps;
   private boolean force;
   private boolean more;
-  
+
   public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, Shell shellState, boolean force) {
     super.initialize(scanner, printTimestamps);
     this.writer = writer;
@@ -47,7 +47,7 @@ public class DeleterFormatter extends DefaultFormatter {
     this.force = force;
     this.more = true;
   }
-  
+
   @Override
   public boolean hasNext() {
     if (!getScannerIterator().hasNext() || !more) {
@@ -63,7 +63,7 @@ public class DeleterFormatter extends DefaultFormatter {
     }
     return true;
   }
-  
+
   /**
    * @return null, because the iteration will provide prompts and handle deletes internally.
    */

@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class ReplicationConfigurationUtilTest {
 
@@ -59,13 +59,15 @@ public class ReplicationConfigurationUtilTest {
   @Test
   public void rootTableExtentEmptyConf() {
     KeyExtent extent = new KeyExtent(new Text(RootTable.ID), null, null);
-    Assert.assertFalse("The root table should never be replicated", ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<String,String>())));
+    Assert.assertFalse("The root table should never be replicated",
+        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<String,String>())));
   }
 
   @Test
   public void metadataTableExtentEmptyConf() {
     KeyExtent extent = new KeyExtent(new Text(MetadataTable.ID), null, null);
-    Assert.assertFalse("The metadata table should never be replicated", ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<String,String>())));
+    Assert.assertFalse("The metadata table should never be replicated",
+        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<String,String>())));
   }
 
   @Test

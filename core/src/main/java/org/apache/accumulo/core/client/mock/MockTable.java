@@ -41,30 +41,30 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 
 public class MockTable {
-  
+
   static class MockMemKey extends Key {
     private int count;
-    
+
     MockMemKey(Key key, int count) {
       super(key);
       this.count = count;
     }
-    
+
     @Override
     public int hashCode() {
       return super.hashCode() + count;
     }
-    
+
     @Override
     public boolean equals(Object other) {
       return (other instanceof MockMemKey) && super.equals((MockMemKey) other) && count == ((MockMemKey) other).count;
     }
-    
+
     @Override
     public String toString() {
       return super.toString() + " count=" + count;
     }
-    
+
     @Override
     public int compareTo(Key o) {
       int compare = super.compareTo(o);
@@ -82,7 +82,7 @@ public class MockTable {
       return 0;
     }
   };
-  
+
   final SortedMap<Key,Value> table = new ConcurrentSkipListMap<Key,Value>();
   int mutationCount = 0;
   final Map<String,String> settings;
@@ -93,7 +93,7 @@ public class MockTable {
   private MockNamespace namespace;
   private String namespaceName;
   private String tableId;
-  
+
   MockTable(boolean limitVersion, TimeType timeType, String tableId) {
     this.timeType = timeType;
     this.tableId = tableId;
@@ -160,27 +160,27 @@ public class MockTable {
           key.setTimestamp(mutationCount);
         else
           key.setTimestamp(now);
-      
+
       table.put(new MockMemKey(key, mutationCount), new Value(u.getValue()));
     }
   }
-  
+
   public void addSplits(SortedSet<Text> partitionKeys) {
     splits.addAll(partitionKeys);
   }
-  
+
   public Collection<Text> getSplits() {
     return splits;
   }
-  
+
   public void setLocalityGroups(Map<String,Set<Text>> groups) {
     localityGroups = groups;
   }
-  
+
   public Map<String,Set<Text>> getLocalityGroups() {
     return localityGroups;
   }
-  
+
   public void merge(Text start, Text end) {
     boolean reAdd = false;
     if (splits.contains(start))
@@ -189,19 +189,19 @@ public class MockTable {
     if (reAdd)
       splits.add(start);
   }
-  
+
   public void setNamespaceName(String n) {
     this.namespaceName = n;
   }
-  
+
   public void setNamespace(MockNamespace n) {
     this.namespace = n;
   }
-  
+
   public String getNamespaceName() {
     return this.namespaceName;
   }
-  
+
   public MockNamespace getNamespace() {
     return this.namespace;
   }

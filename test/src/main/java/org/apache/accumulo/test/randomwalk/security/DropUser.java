@@ -26,16 +26,16 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DropUser extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getSysToken());
-    
-    String tableUserName = WalkingSecurity.get(state,env).getTabUserName();
-    
-    boolean exists = WalkingSecurity.get(state,env).userExists(tableUserName);
-    boolean hasPermission = WalkingSecurity.get(state,env).canDropUser(WalkingSecurity.get(state,env).getSysCredentials(), tableUserName);
-    
+    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken());
+
+    String tableUserName = WalkingSecurity.get(state, env).getTabUserName();
+
+    boolean exists = WalkingSecurity.get(state, env).userExists(tableUserName);
+    boolean hasPermission = WalkingSecurity.get(state, env).canDropUser(WalkingSecurity.get(state, env).getSysCredentials(), tableUserName);
+
     try {
       conn.securityOperations().dropLocalUser(tableUserName);
     } catch (AccumuloSecurityException ae) {
@@ -46,11 +46,11 @@ public class DropUser extends Test {
           else {
             if (exists) {
               env.getConnector().securityOperations().dropLocalUser(tableUserName);
-              WalkingSecurity.get(state,env).dropUser(tableUserName);
+              WalkingSecurity.get(state, env).dropUser(tableUserName);
             }
             return;
           }
-          
+
         case USER_DOESNT_EXIST:
           if (exists)
             throw new AccumuloException("Got user DNE exception when user should exists.", ae);
@@ -60,7 +60,7 @@ public class DropUser extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state,env).dropUser(tableUserName);
+    WalkingSecurity.get(state, env).dropUser(tableUserName);
     Thread.sleep(1000);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");

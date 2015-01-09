@@ -17,14 +17,14 @@
 package org.apache.accumulo.core.util;
 
 /**
- * A class that validates arguments of a particular type. Implementations must
- * implement {@link #isValid(Object)} and should override {@link #invalidMessage(Object)}.
+ * A class that validates arguments of a particular type. Implementations must implement {@link #isValid(Object)} and should override
+ * {@link #invalidMessage(Object)}.
  */
 public abstract class Validator<T> {
 
   /**
    * Validates an argument.
-   * 
+   *
    * @param argument
    *          argument to validate
    * @return the argument, if validation passes
@@ -39,7 +39,7 @@ public abstract class Validator<T> {
 
   /**
    * Checks an argument for validity.
-   * 
+   *
    * @param argument
    *          argument to validate
    * @return true if valid, false if invalid
@@ -48,7 +48,7 @@ public abstract class Validator<T> {
 
   /**
    * Formulates an exception message for invalid values.
-   * 
+   *
    * @param argument
    *          argument that failed validation
    * @return exception message
@@ -60,7 +60,7 @@ public abstract class Validator<T> {
   /**
    * Creates a new validator that is the conjunction of this one and the given one. An argument passed to the returned validator is valid only if it passes both
    * validators.
-   * 
+   *
    * @param other
    *          other validator
    * @return combined validator
@@ -87,7 +87,7 @@ public abstract class Validator<T> {
   /**
    * Creates a new validator that is the disjunction of this one and the given one. An argument passed to the returned validator is valid only if it passes at
    * least one of the validators.
-   * 
+   *
    * @param other
    *          other validator
    * @return combined validator
@@ -113,7 +113,7 @@ public abstract class Validator<T> {
 
   /**
    * Creates a new validator that is the negation of this one. An argument passed to the returned validator is valid only if it fails this one.
-   * 
+   *
    * @return negated validator
    */
   public final Validator<T> not() {

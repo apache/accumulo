@@ -27,7 +27,7 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.log4j.Logger;
 
 public class Main {
-  
+
   private static final Logger log = Logger.getLogger(Main.class);
 
   public static void main(String[] args) {
@@ -136,7 +136,7 @@ public class Main {
       try {
         main = runTMP.getMethod("main", args.getClass());
       } catch (Throwable t) {
-        log.error("Could not run main method on '"+runTMP.getName()+"'.", t);
+        log.error("Could not run main method on '" + runTMP.getName() + "'.", t);
       }
       if (main == null || !Modifier.isPublic(main.getModifiers()) || !Modifier.isStatic(main.getModifiers())) {
         System.out.println(args[0] + " must implement a public static void main(String args[]) method");
@@ -190,7 +190,7 @@ public class Main {
    *          The {@link Throwable} containing a stack trace to print.
    */
   private static void die(Throwable t) {
-    log.error("Thread '"+Thread.currentThread().getName()+"' died.", t);
+    log.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
     System.exit(1);
   }
 

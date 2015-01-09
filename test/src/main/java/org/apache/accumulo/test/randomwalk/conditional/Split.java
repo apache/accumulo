@@ -28,7 +28,7 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class Split extends Test {
   @Override

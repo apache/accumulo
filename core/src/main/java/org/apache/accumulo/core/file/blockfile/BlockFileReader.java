@@ -19,23 +19,23 @@ package org.apache.accumulo.core.file.blockfile;
 import java.io.IOException;
 
 /**
- * 
+ *
  * Provides a generic interface for a Reader for a BlockBaseFile format. Supports the minimal interface required.
- * 
+ *
  * Read a metaBlock and a dataBlock
- * 
+ *
  */
 
 public interface BlockFileReader {
-  
+
   ABlockReader getMetaBlock(String name) throws IOException;
-  
+
   ABlockReader getDataBlock(int blockIndex) throws IOException;
-  
+
   void close() throws IOException;
-  
+
   ABlockReader getMetaBlock(long offset, long compressedSize, long rawSize) throws IOException;
-  
+
   ABlockReader getDataBlock(long offset, long compressedSize, long rawSize) throws IOException;
-  
+
 }

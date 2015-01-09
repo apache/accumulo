@@ -58,9 +58,9 @@ public class RowDeleteIT extends AccumuloClusterIT {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    Map<String,Set<Text>> groups = new HashMap<String, Set<Text>>();
+    Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
     groups.put("lg1", Collections.singleton(new Text("foo")));
-    groups.put("dg", Collections.<Text>emptySet());
+    groups.put("dg", Collections.<Text> emptySet());
     c.tableOperations().setLocalityGroups(tableName, groups);
     IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
     c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));

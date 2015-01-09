@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.apache.accumulo.test;
+package org.apache.accumulo.test;
+
+import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 import java.util.SortedSet;
@@ -29,8 +31,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-
 // ACCUMULO-1177
 public class AssignmentThreadsIT extends ConfigurableMacIT {
 
@@ -41,7 +41,7 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
   }
 
   // [0-9a-f]
-  private final static byte[] HEXCHARS = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66 };
+  private final static byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66};
   private final static Random random = new Random();
 
   public static byte[] randomHex(int n) {
@@ -50,8 +50,8 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     random.nextBytes(binary);
     int count = 0;
     for (byte x : binary) {
-      hex[count++] = HEXCHARS[(x >> 4)&0xf];
-      hex[count++] = HEXCHARS[x&0xf];
+      hex[count++] = HEXCHARS[(x >> 4) & 0xf];
+      hex[count++] = HEXCHARS[x & 0xf];
     }
     return hex;
   }

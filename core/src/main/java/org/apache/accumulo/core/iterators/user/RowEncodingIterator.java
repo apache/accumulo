@@ -33,23 +33,23 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  * The RowEncodingIterator is designed to provide row-isolation so that queries see mutations as atomic. It does so by encapsulating an entire row of key/value
  * pairs into a single key/value pair, which is returned through the client as an atomic operation. This is an abstract class, allowing the user to implement
  * rowEncoder and rowDecoder such that the columns and values of a given row may be encoded in a format best suited to the client.
- * 
+ *
  * <p>
  * For an example implementation, see {@link WholeRowIterator}.
- * 
+ *
  * <p>
  * One caveat is that when seeking in the WholeRowIterator using a range that starts at a non-inclusive first key in a row, (e.g. seek(new Range(new Key(new
  * Text("row")),false,...),...)) this iterator will skip to the next row. This is done in order to prevent repeated scanning of the same row when system
  * automatically creates ranges of that form, which happens in the case of the client calling continueScan, or in the case of the tablet server continuing a
  * scan after swapping out sources.
- * 
+ *
  * <p>
  * To regain the original key/value pairs of the row, call the rowDecoder function on the key/value pair that this iterator returned.
- * 
+ *
  * @see RowFilter
  */
 public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,Value> {
@@ -101,7 +101,7 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   }
 
   /**
-   * 
+   *
    * @param currentRow
    *          All keys have this in their row portion (do not modify!).
    * @param keys

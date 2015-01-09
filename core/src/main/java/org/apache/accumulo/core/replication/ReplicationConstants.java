@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.replication;
 
 /**
- * 
+ *
  */
 public class ReplicationConstants {
 

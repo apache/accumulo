@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  */
 public class RootFiles {
 

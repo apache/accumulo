@@ -20,7 +20,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 /**
- * 
+ *
  */
 public class BigIntegerLexicoderTest extends LexicoderTest {
   public void testSortOrder() {

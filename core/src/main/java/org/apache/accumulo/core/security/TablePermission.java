@@ -24,8 +24,7 @@ import java.util.List;
  */
 public enum TablePermission {
   /*
-   * One may add new permissions, but new permissions must use new numbers.
-   * Current numbers in use must not be changed.
+   * One may add new permissions, but new permissions must use new numbers. Current numbers in use must not be changed.
    */
   // CREATE_LOCALITY_GROUP(0),
   // DROP_LOCALITY_GROUP(1),
@@ -35,19 +34,19 @@ public enum TablePermission {
   ALTER_TABLE((byte) 5),
   GRANT((byte) 6),
   DROP_TABLE((byte) 7);
-  
+
   final private byte permID;
-  
+
   final private static TablePermission mapping[] = new TablePermission[8];
   static {
     for (TablePermission perm : TablePermission.values())
       mapping[perm.permID] = perm;
   }
-  
+
   private TablePermission(byte id) {
     this.permID = id;
   }
-  
+
   /**
    * Gets the byte ID of this permission.
    *
@@ -56,7 +55,7 @@ public enum TablePermission {
   public byte getId() {
     return this.permID;
   }
-  
+
   /**
    * Returns a list of printable permission values.
    *
@@ -64,21 +63,23 @@ public enum TablePermission {
    */
   public static List<String> printableValues() {
     TablePermission[] a = TablePermission.values();
-    
+
     List<String> list = new ArrayList<String>(a.length);
-    
+
     for (TablePermission p : a)
       list.add("Table." + p);
-    
+
     return list;
   }
-  
+
   /**
    * Gets the permission matching the given byte ID.
    *
-   * @param id byte ID
+   * @param id
+   *          byte ID
    * @return table permission
-   * @throws IndexOutOfBoundsException if the byte ID is invalid
+   * @throws IndexOutOfBoundsException
+   *           if the byte ID is invalid
    */
   public static TablePermission getPermissionById(byte id) {
     TablePermission result = mapping[id];
@@ -86,5 +87,5 @@ public enum TablePermission {
       return result;
     throw new IndexOutOfBoundsException("No such permission");
   }
-  
+
 }

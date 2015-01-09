@@ -16,18 +16,18 @@
  */
 package org.apache.accumulo.examples.simple.shell;
 
-import org.apache.accumulo.shell.ShellExtension;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.ShellExtension;
 
 public class MyAppShellExtension extends ShellExtension {
-  
+
   public String getExtensionName() {
     return "MyApp";
   }
-  
+
   @Override
   public Command[] getCommands() {
-    return new Command[] { new DebugCommand() };
+    return new Command[] {new DebugCommand()};
   }
-  
+
 }

@@ -31,31 +31,32 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DropTable extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     dropTable(state, env, props);
   }
-  
+
   public static void dropTable(State state, Environment env, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
     String principal;
     AuthenticationToken token;
     if (sourceUser.equals("table")) {
-      principal = WalkingSecurity.get(state,env).getTabUserName();
-      token = WalkingSecurity.get(state,env).getTabToken();
+      principal = WalkingSecurity.get(state, env).getTabUserName();
+      token = WalkingSecurity.get(state, env).getTabToken();
     } else {
-      principal = WalkingSecurity.get(state,env).getSysUserName();
-      token = WalkingSecurity.get(state,env).getSysToken();
+      principal = WalkingSecurity.get(state, env).getSysUserName();
+      token = WalkingSecurity.get(state, env).getSysToken();
     }
     Connector conn = env.getInstance().getConnector(principal, token);
-    
-    String tableName = WalkingSecurity.get(state,env).getTableName();
-    String namespaceName = WalkingSecurity.get(state,env).getNamespaceName();
-    
-    boolean exists = WalkingSecurity.get(state,env).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state,env).canDeleteTable(new Credentials(principal, token).toThrift(env.getInstance()), tableName, namespaceName);
-    
+
+    String tableName = WalkingSecurity.get(state, env).getTableName();
+    String namespaceName = WalkingSecurity.get(state, env).getNamespaceName();
+
+    boolean exists = WalkingSecurity.get(state, env).getTableExists();
+    boolean hasPermission = WalkingSecurity.get(state, env).canDeleteTable(new Credentials(principal, token).toThrift(env.getInstance()), tableName,
+        namespaceName);
+
     try {
       conn.tableOperations().delete(tableName);
     } catch (AccumuloSecurityException ae) {
@@ -65,11 +66,11 @@ public class DropTable extends Test {
         else {
           // Drop anyway for sake of state
           env.getConnector().tableOperations().delete(tableName);
-          WalkingSecurity.get(state,env).cleanTablePermissions(tableName);
+          WalkingSecurity.get(state, env).cleanTablePermissions(tableName);
           return;
         }
       } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (WalkingSecurity.get(state,env).userPassTransient(conn.whoami()))
+        if (WalkingSecurity.get(state, env).userPassTransient(conn.whoami()))
           return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
@@ -79,7 +80,7 @@ public class DropTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state,env).cleanTablePermissions(tableName);
+    WalkingSecurity.get(state, env).cleanTablePermissions(tableName);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

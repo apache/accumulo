@@ -86,8 +86,8 @@ public class MasterClient {
     }
   }
 
-  public static <T> T execute(ClientContext context, ClientExecReturn<T,MasterClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public static <T> T execute(ClientContext context, ClientExecReturn<T,MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -118,8 +118,8 @@ public class MasterClient {
     }
   }
 
-  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -151,13 +151,13 @@ public class MasterClient {
     }
   }
 
-  public static void executeTable(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public static void executeTable(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     executeGeneric(context, exec);
   }
 
-  public static void executeNamespace(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException, NamespaceNotFoundException {
+  public static void executeNamespace(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
+      NamespaceNotFoundException {
     try {
       executeGeneric(context, exec);
     } catch (TableNotFoundException e) {

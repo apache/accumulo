@@ -35,7 +35,6 @@ import org.apache.zookeeper.KeeperException;
 import org.htrace.HTraceConfiguration;
 import org.htrace.SpanReceiver;
 
-
 /**
  * Utility class to enable tracing for Accumulo server processes.
  *
@@ -70,27 +69,24 @@ public class DistributedTrace {
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process.
-   * If service name is null, the simple name of the class will be used.
+   * Enable tracing by setting up SpanReceivers for the current process. If service name is null, the simple name of the class will be used.
    */
   public static void enable(String service) {
     enable(null, service);
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process.
-   * If host name is null, it will be determined.
-   * If service name is null, the simple name of the class will be used.
+   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it will be determined. If service name is null, the simple name
+   * of the class will be used.
    */
   public static void enable(String hostname, String service) {
     enable(hostname, service, ClientConfiguration.loadDefault());
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process.
-   * If host name is null, it will be determined.
-   * If service name is null, the simple name of the class will be used.
-   * Properties required in the client configuration include {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS} and any properties specific to the span receiver.
+   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it will be determined. If service name is null, the simple name
+   * of the class will be used. Properties required in the client configuration include
+   * {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS} and any properties specific to the span receiver.
    */
   public static void enable(String hostname, String service, ClientConfiguration conf) {
     String spanReceivers = conf.get(ClientProperty.TRACE_SPAN_RECEIVERS);
@@ -102,9 +98,8 @@ public class DistributedTrace {
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process.
-   * If host name is null, it will be determined.
-   * If service name is null, the simple name of the class will be used.
+   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it will be determined. If service name is null, the simple name
+   * of the class will be used.
    */
   public static void enable(String hostname, String service, AccumuloConfiguration conf) {
     String spanReceivers = conf.get(Property.TRACE_SPAN_RECEIVERS);
@@ -180,7 +175,7 @@ public class DistributedTrace {
     SpanReceiver impl;
     try {
       Object o = ReflectionUtils.newInstance(implClass, conf);
-      impl = (SpanReceiver)o;
+      impl = (SpanReceiver) o;
       impl.configure(wrapHadoopConf(conf));
     } catch (SecurityException e) {
       throw new IOException(e);

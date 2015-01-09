@@ -38,13 +38,13 @@ import com.beust.jcommander.Parameter;
  * Reads all data between two rows; all data after a given row; or all data in a table, depending on the number of arguments given.
  */
 public class ReadData {
-  
+
   private static final Logger log = Logger.getLogger(ReadData.class);
-  
+
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names="--startKey")
+    @Parameter(names = "--startKey")
     String startKey;
-    @Parameter(names="--endKey")
+    @Parameter(names = "--endKey")
     String endKey;
   }
 
@@ -52,9 +52,9 @@ public class ReadData {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(ReadData.class.getName(), args, scanOpts);
-    
+
     Connector connector = opts.getConnector();
-    
+
     Scanner scan = connector.createScanner(opts.getTableName(), opts.auths);
     scan.setBatchSize(scanOpts.scanBatchSize);
     Key start = null;
@@ -65,7 +65,7 @@ public class ReadData {
       end = new Key(new Text(opts.endKey));
     scan.setRange(new Range(start, end));
     Iterator<Entry<Key,Value>> iter = scan.iterator();
-    
+
     while (iter.hasNext()) {
       Entry<Key,Value> e = iter.next();
       Text colf = e.getKey().getColumnFamily();

@@ -220,15 +220,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param ntc
    *          specifies the new table's configuration. It determines whether the versioning iterator is enabled or disabled, logical or real-time based time
    *          recording for entries in the table
-   * 
+   *
    */
   @Override
   public void create(String tableName, NewTableConfiguration ntc) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
 
     Map<String,String> opts = ntc.getProperties();
 
@@ -816,9 +815,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (config.getFlush())
       _flush(tableId, start, end, true);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
-        end == null ? EMPTY : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(config.getIterators())),
-        ByteBuffer.wrap(CompactionStrategyConfigUtil.encode(config.getCompactionStrategy())));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
+        : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(config.getIterators())), ByteBuffer
+        .wrap(CompactionStrategyConfigUtil.encode(config.getCompactionStrategy())));
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -1474,11 +1473,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloSecurityException(e.getUser(), e.getCode());
       } catch (TTransportException e) {
         // some sort of communication error occurred, retry
-	if (pair == null) {
+        if (pair == null) {
           log.debug("Disk usage request failed.  Pair is null.  Retrying request...", e);
-	} else {
+        } else {
           log.debug("Disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
-	}
+        }
         UtilWaitThread.sleep(100);
       } catch (TException e) {
         // may be a TApplicationException which indicates error on the server side

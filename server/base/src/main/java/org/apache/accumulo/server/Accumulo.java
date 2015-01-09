@@ -107,12 +107,13 @@ public class Accumulo {
   }
 
   /**
-   * Finds the best log4j configuration file. A generic file is used only if an
-   * application-specific file is not available. An XML file is preferred over
-   * a properties file, if possible.
+   * Finds the best log4j configuration file. A generic file is used only if an application-specific file is not available. An XML file is preferred over a
+   * properties file, if possible.
    *
-   * @param confDir directory where configuration files should reside
-   * @param application application name for configuration file name
+   * @param confDir
+   *          directory where configuration files should reside
+   * @param application
+   *          application name for configuration file name
    * @return configuration file name
    */
   static String locateLogConfig(String confDir, String application) {
@@ -120,13 +121,9 @@ public class Accumulo {
     if (explicitConfigFile != null) {
       return explicitConfigFile;
     }
-    String[] configFiles = {
-      String.format("%s/%s_logger.xml", confDir, application),
-      String.format("%s/%s_logger.properties", confDir, application),
-      String.format("%s/generic_logger.xml", confDir),
-      String.format("%s/generic_logger.properties", confDir)
-    };
-    String defaultConfigFile = configFiles[2];  // generic_logger.xml
+    String[] configFiles = {String.format("%s/%s_logger.xml", confDir, application), String.format("%s/%s_logger.properties", confDir, application),
+        String.format("%s/generic_logger.xml", confDir), String.format("%s/generic_logger.properties", confDir)};
+    String defaultConfigFile = configFiles[2]; // generic_logger.xml
     for (String f : configFiles) {
       if (new File(f).exists()) {
         return f;
@@ -196,7 +193,8 @@ public class Accumulo {
 
     // Encourage users to configure TLS
     final String SSL = "SSL";
-    for (Property sslProtocolProperty : Arrays.asList(Property.RPC_SSL_CLIENT_PROTOCOL, Property.RPC_SSL_ENABLED_PROTOCOLS, Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
+    for (Property sslProtocolProperty : Arrays.asList(Property.RPC_SSL_CLIENT_PROTOCOL, Property.RPC_SSL_ENABLED_PROTOCOLS,
+        Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
       String value = conf.get(sslProtocolProperty);
       if (value.contains(SSL)) {
         log.warn("It is recommended that " + sslProtocolProperty + " only allow TLS");
@@ -206,7 +204,9 @@ public class Accumulo {
 
   /**
    * Sanity check that the current persistent version is allowed to upgrade to the version of Accumulo running.
-   * @param dataVersion the version that is persisted in the backing Volumes
+   *
+   * @param dataVersion
+   *          the version that is persisted in the backing Volumes
    */
   public static boolean canUpgradeFromDataVersion(final int dataVersion) {
     return ServerConstants.CAN_UPGRADE.get(dataVersion);
@@ -280,7 +280,7 @@ public class Accumulo {
           if (unknownHostTries > 0) {
             log.warn("Unable to connect to HDFS, will retry. cause: " + exception.getCause());
             /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
-            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException)(exception.getCause()))+1)*1000);
+            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
           } else {
             log.error("Unable to connect to HDFS and have exceeded max number of retries.", exception);
             throw exception;
@@ -299,10 +299,9 @@ public class Accumulo {
   }
 
   /**
-   * Exit loudly if there are outstanding Fate operations.
-   * Since Fate serializes class names, we need to make sure there are no queued
-   * transactions from a previous version before continuing an upgrade. The status of the operations is
-   * irrelevant; those in SUCCESSFUL status cause the same problem as those just queued.
+   * Exit loudly if there are outstanding Fate operations. Since Fate serializes class names, we need to make sure there are no queued transactions from a
+   * previous version before continuing an upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same problem as those just
+   * queued.
    *
    * Note that the Master should not allow write access to Fate until after all upgrade steps are complete.
    *
@@ -312,10 +311,11 @@ public class Accumulo {
    */
   public static void abortIfFateTransactions() {
     try {
-      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<Accumulo>(new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
-          ZooReaderWriter.getInstance()));
+      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<Accumulo>(new ZooStore<Accumulo>(
+          ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE, ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
-        throw new AccumuloException("Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. Please see the README document for instructions on what to do under your previous version.");
+        throw new AccumuloException(
+            "Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. Please see the README document for instructions on what to do under your previous version.");
       }
     } catch (Exception exception) {
       log.fatal("Problem verifying Fate readiness", exception);

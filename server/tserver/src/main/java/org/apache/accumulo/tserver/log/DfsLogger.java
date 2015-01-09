@@ -152,7 +152,7 @@ public class DfsLogger {
   private static final LogFileValue EMPTY = new LogFileValue();
 
   private boolean closed = false;
-  
+
   private class LogSyncingTask implements Runnable {
 
     @Override
@@ -170,8 +170,7 @@ public class DfsLogger {
         workQueue.drainTo(work);
 
         Method durabilityMethod = null;
-        loop:
-        for (LogWork logWork : work) {
+        loop: for (LogWork logWork : work) {
           switch (logWork.durability) {
             case DEFAULT:
             case NONE:
@@ -287,7 +286,9 @@ public class DfsLogger {
 
   /**
    * Reference a pre-existing log file.
-   * @param meta the cq for the "log" entry in +r/!0
+   *
+   * @param meta
+   *          the cq for the "log" entry in +r/!0
    */
   public DfsLogger(ServerResources conf, String filename, String meta) throws IOException {
     this.conf = conf;
@@ -387,7 +388,8 @@ public class DfsLogger {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    logPath = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    logPath = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.WAL_DIR + Path.SEPARATOR + logger
+        + Path.SEPARATOR + filename;
 
     metaReference = toString();
     try {

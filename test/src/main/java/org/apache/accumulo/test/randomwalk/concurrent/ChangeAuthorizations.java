@@ -31,20 +31,20 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class ChangeAuthorizations extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     Connector conn = env.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> userNames = (List<String>) state.get("users");
-    
+
     String userName = userNames.get(rand.nextInt(userNames.size()));
     try {
       List<byte[]> auths = new ArrayList<byte[]>(conn.securityOperations().getUserAuthorizations(userName).getAuthorizations());
-      
+
       if (rand.nextBoolean()) {
         String authorization = String.format("a%d", rand.nextInt(5000));
         log.debug("adding authorization " + authorization);
@@ -59,5 +59,5 @@ public class ChangeAuthorizations extends Test {
       log.debug("Unable to change user authorizations: " + ex.getCause());
     }
   }
-  
+
 }

@@ -48,11 +48,11 @@ import org.apache.log4j.Logger;
 
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid pauses caused by Java GC.
- * 
+ *
  * The strategy for dealing with native memory allocated for the native map is that java code using the native map should call delete() as soon as it is
  * finished using the native map. When the NativeMap object is garbage collected its native resources will be released if needed. However waiting for java GC
  * would be a mistake for long lived NativeMaps. Long lived objects are not garbage collected quickly, therefore a process could easily use too much memory.
- * 
+ *
  */
 
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
@@ -92,7 +92,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
    * If native libraries are not loaded, the specified search path will be used to attempt to load them. Directories will be searched by using the
    * system-specific library naming conventions. A path directly to a file can also be provided. Loading will continue until the search path is exhausted, or
    * until the native libraries are found and successfully loaded, whichever occurs first.
-   * 
+   *
    * @param searchPath
    *          a list of files and directories to search
    */
@@ -116,7 +116,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   /**
    * Check if native libraries are loaded.
-   * 
+   *
    * @return true if they are loaded; false otherwise
    */
   public static boolean isLoaded() {
@@ -360,10 +360,10 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     /**
      * The strategy for dealing with native memory allocated for iterators is to simply delete that memory when this Java Object is garbage collected.
-     * 
+     *
      * These iterators are likely short lived object and therefore will be quickly garbage collected. Even if the objects are long lived and therefore more
      * slowly garbage collected they only hold a small amount of native memory.
-     * 
+     *
      */
 
     private long nmiPointer;

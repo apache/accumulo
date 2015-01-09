@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.lexicoder;
 /**
  * Signed long lexicoder. The encoding sorts Long.MIN_VALUE first and Long.MAX_VALUE last. The encoding sorts -2l before -1l. It corresponds to the native Java
  * sort order of Long.
- * 
+ *
  * @since 1.6.0
  */
 public class LongLexicoder extends ULongLexicoder {
@@ -27,7 +27,7 @@ public class LongLexicoder extends ULongLexicoder {
   public byte[] encode(Long l) {
     return super.encode(l ^ 0x8000000000000000l);
   }
-  
+
   @Override
   public Long decode(byte[] data) {
     return super.decode(data) ^ 0x8000000000000000l;

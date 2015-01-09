@@ -24,10 +24,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class PasswordTokenTest {
-  
+
   @Test
   public void testMultiByte() throws DestroyFailedException {
     PasswordToken pt = new PasswordToken();
@@ -37,7 +37,7 @@ public class PasswordTokenTest {
     props.destroy();
     String s = new String(pt.getPassword(), UTF_8);
     Assert.assertEquals("五六", s);
-    
+
     pt = new PasswordToken("五六");
     s = new String(pt.getPassword(), UTF_8);
     Assert.assertEquals("五六", s);

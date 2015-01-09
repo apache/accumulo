@@ -33,22 +33,22 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.collections.iterators.IteratorChain;
 
 public class MockBatchScanner extends MockScannerBase implements BatchScanner {
-  
+
   List<Range> ranges = null;
-  
+
   public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
     super(mockTable, authorizations);
   }
-  
+
   @Override
   public void setRanges(Collection<Range> ranges) {
     if (ranges == null || ranges.size() == 0) {
       throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
     }
-    
+
     this.ranges = new ArrayList<Range>(ranges);
   }
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
@@ -69,7 +69,7 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
     }
     return chain;
   }
-  
+
   @Override
   public void close() {}
 }

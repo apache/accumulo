@@ -21,7 +21,7 @@ import java.text.DecimalFormat;
 public class NumUtil {
 
   private static final String QUANTITY_SUFFIX[] = {"", "K", "M", "B", "T", "e15", "e18", "e21"};
-  private static final String SIZE_SUFFIX[]     = {"", "K", "M", "G", "T", "P", "E", "Z"};
+  private static final String SIZE_SUFFIX[] = {"", "K", "M", "G", "T", "P", "E", "Z"};
 
   private static DecimalFormat df = new DecimalFormat("#,###,##0");
   private static DecimalFormat df_mantissa = new DecimalFormat("#,###,##0.00");
@@ -39,14 +39,16 @@ public class NumUtil {
   }
 
   private static String bigNumber(long big, String[] SUFFIXES, long base) {
-    if (big < base) return df.format(big) + SUFFIXES[0];
+    if (big < base)
+      return df.format(big) + SUFFIXES[0];
     int exp = (int) (Math.log(big) / Math.log(base));
     double val = big / Math.pow(base, exp);
-    return df_mantissa.format(val) +  SUFFIXES[exp];
+    return df_mantissa.format(val) + SUFFIXES[exp];
   }
 
   private static String bigNumber(double big, String[] SUFFIXES, long base) {
-    if (big < base) return df_mantissa.format(big) + SUFFIXES[0];
+    if (big < base)
+      return df_mantissa.format(big) + SUFFIXES[0];
     int exp = (int) (Math.log(big) / Math.log(base));
     double val = big / Math.pow(base, exp);
     return df_mantissa.format(val) + SUFFIXES[exp];

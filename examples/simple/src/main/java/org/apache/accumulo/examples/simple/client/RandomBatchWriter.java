@@ -41,7 +41,7 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Simple example for writing random data to Accumulo. See docs/examples/README.batch for instructions.
- * 
+ *
  * The rows of the entries will be randomly generated numbers between a specified min and max (prefixed by "row_"). The column families will be "foo" and column
  * qualifiers will be "1". The values will be random byte arrays of a specified size.
  */
@@ -49,7 +49,7 @@ public class RandomBatchWriter {
 
   /**
    * Creates a random byte array of specified size using the specified seed.
-   * 
+   *
    * @param rowid
    *          the seed to use for the random number generator
    * @param dataSize
@@ -72,7 +72,7 @@ public class RandomBatchWriter {
 
   /**
    * Creates a mutation on a specified row with column family "foo", column qualifier "1", specified visibility, and a random value of specified size.
-   * 
+   *
    * @param rowid
    *          the row of the mutation
    * @param dataSize
@@ -111,7 +111,7 @@ public class RandomBatchWriter {
   }
 
   public static long abs(long l) {
-    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE... 
+    l = Math.abs(l); // abs(Long.MIN_VALUE) == Long.MIN_VALUE...
     if (l < 0)
       return 0;
     return l;

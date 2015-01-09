@@ -38,24 +38,24 @@ import org.apache.hadoop.io.Text;
 public class DeleteCommand extends Command {
   private Option deleteOptAuths, timestampOpt;
   private Option timeoutOption;
-  
+
   protected long getTimeout(final CommandLine cl) {
     if (cl.hasOption(timeoutOption.getLongOpt())) {
       return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
     }
-    
+
     return Long.MAX_VALUE;
   }
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, IOException, ConstraintViolationException {
     shellState.checkTableState();
-    
+
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
     final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
     final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
-    
+
     if (cl.hasOption(deleteOptAuths.getOpt())) {
       final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
       if (cl.hasOption(timestampOpt.getOpt())) {
@@ -74,37 +74,37 @@ public class DeleteCommand extends Command {
     bw.close();
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "deletes a record from a table";
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <row> <colfamily> <colqualifier>";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     deleteOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     deleteOptAuths.setArgName("expression");
     o.addOption(deleteOptAuths);
-    
+
     timestampOpt = new Option("ts", "timestamp", true, "timestamp to use for deletion");
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
-    
+
     timeoutOption = new Option(null, "timeout", true,
         "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 3;

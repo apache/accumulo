@@ -30,16 +30,16 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.common.io.Files;
-import org.apache.log4j.Logger;
 
 /**
  * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
  * like the following:
- * 
+ *
  * <pre>
  * rootPassword=secret
  * instanceName=testInstance
@@ -53,15 +53,15 @@ import org.apache.log4j.Logger;
  * shutdownPort=4446
  * site.instance.secret=HUSH
  * </pre>
- * 
+ *
  * All items in the properties file above are optional and a default value will be provided in their absence. Any site configuration properties (typically found
  * in the accumulo-site.xml file) should be prefixed with "site." in the properties file.
- * 
+ *
  * @since 1.6.0
  */
 public class MiniAccumuloRunner {
   private static final Logger log = Logger.getLogger(MiniAccumuloRunner.class);
-  
+
   private static final String ROOT_PASSWORD_PROP = "rootPassword";
   private static final String SHUTDOWN_PORT_PROP = "shutdownPort";
   private static final String DEFAULT_MEMORY_PROP = "defaultMemory";
@@ -132,7 +132,7 @@ public class MiniAccumuloRunner {
 
   /**
    * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a shutdown port for asynchronous operation.
-   * 
+   *
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
    */
@@ -202,14 +202,14 @@ public class MiniAccumuloRunner {
           log.error("InterruptedException attempting to stop Accumulo.", e);
           return;
         }
-        
+
         try {
           FileUtils.deleteDirectory(miniDir);
         } catch (IOException e) {
           log.error("IOException attempting to clean up miniDir.", e);
           return;
         }
-        
+
         System.out.println("\nShut down gracefully on " + new Date());
       }
     });

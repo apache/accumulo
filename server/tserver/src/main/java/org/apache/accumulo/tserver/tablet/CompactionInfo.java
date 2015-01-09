@@ -123,7 +123,7 @@ public class CompactionInfo {
     List<String> filesToCompact = new ArrayList<String>();
     for (FileRef ref : compactor.getFilesToCompact())
       filesToCompact.add(ref.toString());
-    return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.getStartTime(), filesToCompact,
-        compactor.getOutputFile(), type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
+    return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.getStartTime(), filesToCompact, compactor.getOutputFile(),
+        type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
   }
 }

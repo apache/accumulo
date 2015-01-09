@@ -50,7 +50,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
 /**
- * 
+ *
  */
 public class GarbageCollectionAlgorithm {
 

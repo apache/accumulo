@@ -19,13 +19,13 @@
 
 package org.apache.accumulo.core.replication.proto;
 
-@SuppressWarnings("all") public final class Replication {
+@SuppressWarnings("all")
+public final class Replication {
   private Replication() {}
-  public static void registerAllExtensions(
-      com.google.protobuf.ExtensionRegistry registry) {
-  }
-  public interface StatusOrBuilder
-      extends com.google.protobuf.MessageOrBuilder {
+
+  public static void registerAllExtensions(com.google.protobuf.ExtensionRegistry registry) {}
+
+  public interface StatusOrBuilder extends com.google.protobuf.MessageOrBuilder {
 
     // optional int64 begin = 1 [default = 0];
     /**
@@ -36,6 +36,7 @@ package org.apache.accumulo.core.replication.proto;
      * </pre>
      */
     boolean hasBegin();
+
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
      *
@@ -54,6 +55,7 @@ package org.apache.accumulo.core.replication.proto;
      * </pre>
      */
     boolean hasEnd();
+
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
      *
@@ -72,6 +74,7 @@ package org.apache.accumulo.core.replication.proto;
      * </pre>
      */
     boolean hasInfiniteEnd();
+
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
      *
@@ -90,6 +93,7 @@ package org.apache.accumulo.core.replication.proto;
      * </pre>
      */
     boolean hasClosed();
+
     /**
      * <code>optional bool closed = 4 [default = false];</code>
      *
@@ -108,6 +112,7 @@ package org.apache.accumulo.core.replication.proto;
      * </pre>
      */
     boolean hasCreatedTime();
+
     /**
      * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
@@ -117,20 +122,23 @@ package org.apache.accumulo.core.replication.proto;
      */
     long getCreatedTime();
   }
+
   /**
    * Protobuf type {@code Status}
    */
-  public static final class Status extends
-      com.google.protobuf.GeneratedMessage
-      implements StatusOrBuilder {
+  public static final class Status extends com.google.protobuf.GeneratedMessage implements StatusOrBuilder {
     // Use Status.newBuilder() to construct.
     private Status(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
       this.unknownFields = builder.getUnknownFields();
     }
-    private Status(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private Status(boolean noInit) {
+      this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+    }
 
     private static final Status defaultInstance;
+
     public static Status getDefaultInstance() {
       return defaultInstance;
     }
@@ -140,19 +148,17 @@ package org.apache.accumulo.core.replication.proto;
     }
 
     private final com.google.protobuf.UnknownFieldSet unknownFields;
+
     @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-        getUnknownFields() {
+    public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
       return this.unknownFields;
     }
-    private Status(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+
+    private Status(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields = com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -162,8 +168,7 @@ package org.apache.accumulo.core.replication.proto;
               done = true;
               break;
             default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
+              if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -198,30 +203,24 @@ package org.apache.accumulo.core.replication.proto;
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage()).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
     }
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
+
+    public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
       return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              org.apache.accumulo.core.replication.proto.Replication.Status.class, org.apache.accumulo.core.replication.proto.Replication.Status.Builder.class);
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
+      return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_fieldAccessorTable.ensureFieldAccessorsInitialized(
+          org.apache.accumulo.core.replication.proto.Replication.Status.class, org.apache.accumulo.core.replication.proto.Replication.Status.Builder.class);
     }
 
-    public static com.google.protobuf.Parser<Status> PARSER =
-        new com.google.protobuf.AbstractParser<Status>() {
-      public Status parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+    public static com.google.protobuf.Parser<Status> PARSER = new com.google.protobuf.AbstractParser<Status>() {
+      public Status parsePartialFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
         return new Status(input, extensionRegistry);
       }
@@ -236,6 +235,7 @@ package org.apache.accumulo.core.replication.proto;
     // optional int64 begin = 1 [default = 0];
     public static final int BEGIN_FIELD_NUMBER = 1;
     private long begin_;
+
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
      *
@@ -246,6 +246,7 @@ package org.apache.accumulo.core.replication.proto;
     public boolean hasBegin() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
+
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
      *
@@ -260,6 +261,7 @@ package org.apache.accumulo.core.replication.proto;
     // optional int64 end = 2 [default = 0];
     public static final int END_FIELD_NUMBER = 2;
     private long end_;
+
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
      *
@@ -270,6 +272,7 @@ package org.apache.accumulo.core.replication.proto;
     public boolean hasEnd() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
+
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
      *
@@ -284,6 +287,7 @@ package org.apache.accumulo.core.replication.proto;
     // optional bool infiniteEnd = 3 [default = false];
     public static final int INFINITEEND_FIELD_NUMBER = 3;
     private boolean infiniteEnd_;
+
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
      *
@@ -294,6 +298,7 @@ package org.apache.accumulo.core.replication.proto;
     public boolean hasInfiniteEnd() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
+
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
      *
@@ -308,6 +313,7 @@ package org.apache.accumulo.core.replication.proto;
     // optional bool closed = 4 [default = false];
     public static final int CLOSED_FIELD_NUMBER = 4;
     private boolean closed_;
+
     /**
      * <code>optional bool closed = 4 [default = false];</code>
      *
@@ -318,6 +324,7 @@ package org.apache.accumulo.core.replication.proto;
     public boolean hasClosed() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
+
     /**
      * <code>optional bool closed = 4 [default = false];</code>
      *
@@ -332,6 +339,7 @@ package org.apache.accumulo.core.replication.proto;
     // optional int64 createdTime = 5 [default = 0];
     public static final int CREATEDTIME_FIELD_NUMBER = 5;
     private long createdTime_;
+
     /**
      * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
@@ -342,6 +350,7 @@ package org.apache.accumulo.core.replication.proto;
     public boolean hasCreatedTime() {
       return ((bitField0_ & 0x00000010) == 0x00000010);
     }
+
     /**
      * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
@@ -360,17 +369,19 @@ package org.apache.accumulo.core.replication.proto;
       closed_ = false;
       createdTime_ = 0L;
     }
+
     private byte memoizedIsInitialized = -1;
+
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
-      if (isInitialized != -1) return isInitialized == 1;
+      if (isInitialized != -1)
+        return isInitialized == 1;
 
       memoizedIsInitialized = 1;
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
+    public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeInt64(1, begin_);
@@ -391,30 +402,27 @@ package org.apache.accumulo.core.replication.proto;
     }
 
     private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
       int size = memoizedSerializedSize;
-      if (size != -1) return size;
+      if (size != -1)
+        return size;
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(1, begin_);
+        size += com.google.protobuf.CodedOutputStream.computeInt64Size(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(2, end_);
+        size += com.google.protobuf.CodedOutputStream.computeInt64Size(2, end_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(3, infiniteEnd_);
+        size += com.google.protobuf.CodedOutputStream.computeBoolSize(3, infiniteEnd_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(4, closed_);
+        size += com.google.protobuf.CodedOutputStream.computeBoolSize(4, closed_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(5, createdTime_);
+        size += com.google.protobuf.CodedOutputStream.computeInt64Size(5, createdTime_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -422,94 +430,94 @@ package org.apache.accumulo.core.replication.proto;
     }
 
     private static final long serialVersionUID = 0L;
+
     @java.lang.Override
-    protected java.lang.Object writeReplace()
-        throws java.io.ObjectStreamException {
+    protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
 
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(
-        com.google.protobuf.ByteString data)
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
+
     public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(java.io.InputStream input) throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
-    }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
-    }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
-    }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return PARSER.parseFrom(input);
-    }
-    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return Builder.create(); }
-    public Builder newBuilderForType() { return newBuilder(); }
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseDelimitedFrom(java.io.InputStream input) throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseDelimitedFrom(java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+
+    public static org.apache.accumulo.core.replication.proto.Replication.Status parseFrom(com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return Builder.create();
+    }
+
+    public Builder newBuilderForType() {
+      return newBuilder();
+    }
+
     public static Builder newBuilder(org.apache.accumulo.core.replication.proto.Replication.Status prototype) {
       return newBuilder().mergeFrom(prototype);
     }
-    public Builder toBuilder() { return newBuilder(this); }
+
+    public Builder toBuilder() {
+      return newBuilder(this);
+    }
 
     @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+    protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
+
     /**
      * Protobuf type {@code Status}
      */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements org.apache.accumulo.core.replication.proto.Replication.StatusOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
+    public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        org.apache.accumulo.core.replication.proto.Replication.StatusOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
         return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                org.apache.accumulo.core.replication.proto.Replication.Status.class, org.apache.accumulo.core.replication.proto.Replication.Status.Builder.class);
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
+        return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_fieldAccessorTable.ensureFieldAccessorsInitialized(
+            org.apache.accumulo.core.replication.proto.Replication.Status.class, org.apache.accumulo.core.replication.proto.Replication.Status.Builder.class);
       }
 
       // Construct using org.apache.accumulo.core.replication.proto.Replication.Status.newBuilder()
@@ -517,15 +525,15 @@ package org.apache.accumulo.core.replication.proto;
         maybeForceBuilderInitialization();
       }
 
-      private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
+
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-        }
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {}
       }
+
       private static Builder create() {
         return new Builder();
       }
@@ -549,8 +557,7 @@ package org.apache.accumulo.core.replication.proto;
         return create().mergeFrom(buildPartial());
       }
 
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
+      public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
         return org.apache.accumulo.core.replication.proto.Replication.internal_static_Status_descriptor;
       }
 
@@ -597,7 +604,7 @@ package org.apache.accumulo.core.replication.proto;
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.apache.accumulo.core.replication.proto.Replication.Status) {
-          return mergeFrom((org.apache.accumulo.core.replication.proto.Replication.Status)other);
+          return mergeFrom((org.apache.accumulo.core.replication.proto.Replication.Status) other);
         } else {
           super.mergeFrom(other);
           return this;
@@ -605,7 +612,8 @@ package org.apache.accumulo.core.replication.proto;
       }
 
       public Builder mergeFrom(org.apache.accumulo.core.replication.proto.Replication.Status other) {
-        if (other == org.apache.accumulo.core.replication.proto.Replication.Status.getDefaultInstance()) return this;
+        if (other == org.apache.accumulo.core.replication.proto.Replication.Status.getDefaultInstance())
+          return this;
         if (other.hasBegin()) {
           setBegin(other.getBegin());
         }
@@ -629,9 +637,7 @@ package org.apache.accumulo.core.replication.proto;
         return true;
       }
 
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+      public Builder mergeFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         org.apache.accumulo.core.replication.proto.Replication.Status parsedMessage = null;
         try {
@@ -646,10 +652,12 @@ package org.apache.accumulo.core.replication.proto;
         }
         return this;
       }
+
       private int bitField0_;
 
       // optional int64 begin = 1 [default = 0];
-      private long begin_ ;
+      private long begin_;
+
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
        *
@@ -660,6 +668,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean hasBegin() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
+
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
        *
@@ -670,6 +679,7 @@ package org.apache.accumulo.core.replication.proto;
       public long getBegin() {
         return begin_;
       }
+
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
        *
@@ -683,6 +693,7 @@ package org.apache.accumulo.core.replication.proto;
         onChanged();
         return this;
       }
+
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
        *
@@ -698,7 +709,8 @@ package org.apache.accumulo.core.replication.proto;
       }
 
       // optional int64 end = 2 [default = 0];
-      private long end_ ;
+      private long end_;
+
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
        *
@@ -709,6 +721,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean hasEnd() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
+
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
        *
@@ -719,6 +732,7 @@ package org.apache.accumulo.core.replication.proto;
       public long getEnd() {
         return end_;
       }
+
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
        *
@@ -732,6 +746,7 @@ package org.apache.accumulo.core.replication.proto;
         onChanged();
         return this;
       }
+
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
        *
@@ -747,7 +762,8 @@ package org.apache.accumulo.core.replication.proto;
       }
 
       // optional bool infiniteEnd = 3 [default = false];
-      private boolean infiniteEnd_ ;
+      private boolean infiniteEnd_;
+
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
        *
@@ -758,6 +774,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean hasInfiniteEnd() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
+
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
        *
@@ -768,6 +785,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean getInfiniteEnd() {
         return infiniteEnd_;
       }
+
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
        *
@@ -781,6 +799,7 @@ package org.apache.accumulo.core.replication.proto;
         onChanged();
         return this;
       }
+
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
        *
@@ -796,7 +815,8 @@ package org.apache.accumulo.core.replication.proto;
       }
 
       // optional bool closed = 4 [default = false];
-      private boolean closed_ ;
+      private boolean closed_;
+
       /**
        * <code>optional bool closed = 4 [default = false];</code>
        *
@@ -807,6 +827,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean hasClosed() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
+
       /**
        * <code>optional bool closed = 4 [default = false];</code>
        *
@@ -817,6 +838,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean getClosed() {
         return closed_;
       }
+
       /**
        * <code>optional bool closed = 4 [default = false];</code>
        *
@@ -830,6 +852,7 @@ package org.apache.accumulo.core.replication.proto;
         onChanged();
         return this;
       }
+
       /**
        * <code>optional bool closed = 4 [default = false];</code>
        *
@@ -845,7 +868,8 @@ package org.apache.accumulo.core.replication.proto;
       }
 
       // optional int64 createdTime = 5 [default = 0];
-      private long createdTime_ ;
+      private long createdTime_;
+
       /**
        * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
@@ -856,6 +880,7 @@ package org.apache.accumulo.core.replication.proto;
       public boolean hasCreatedTime() {
         return ((bitField0_ & 0x00000010) == 0x00000010);
       }
+
       /**
        * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
@@ -866,6 +891,7 @@ package org.apache.accumulo.core.replication.proto;
       public long getCreatedTime() {
         return createdTime_;
       }
+
       /**
        * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
@@ -879,6 +905,7 @@ package org.apache.accumulo.core.replication.proto;
         onChanged();
         return this;
       }
+
       /**
        * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
@@ -904,45 +931,30 @@ package org.apache.accumulo.core.replication.proto;
     // @@protoc_insertion_point(class_scope:Status)
   }
 
-  private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_Status_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_Status_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor internal_static_Status_descriptor;
+  private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_Status_fieldAccessorTable;
 
-  public static com.google.protobuf.Descriptors.FileDescriptor
-      getDescriptor() {
+  public static com.google.protobuf.Descriptors.FileDescriptor getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
-      descriptor;
+
+  private static com.google.protobuf.Descriptors.FileDescriptor descriptor;
   static {
-    java.lang.String[] descriptorData = {
-      "\n#src/main/protobuf/replication.proto\"u\n" +
-      "\006Status\022\020\n\005begin\030\001 \001(\003:\0010\022\016\n\003end\030\002 \001(\003:\001" +
-      "0\022\032\n\013infiniteEnd\030\003 \001(\010:\005false\022\025\n\006closed\030" +
-      "\004 \001(\010:\005false\022\026\n\013createdTime\030\005 \001(\003:\0010B.\n*" +
-      "org.apache.accumulo.core.replication.pro" +
-      "toH\001"
+    java.lang.String[] descriptorData = {"\n#src/main/protobuf/replication.proto\"u\n"
+        + "\006Status\022\020\n\005begin\030\001 \001(\003:\0010\022\016\n\003end\030\002 \001(\003:\001"
+        + "0\022\032\n\013infiniteEnd\030\003 \001(\010:\005false\022\025\n\006closed\030"
+        + "\004 \001(\010:\005false\022\026\n\013createdTime\030\005 \001(\003:\0010B.\n*" + "org.apache.accumulo.core.replication.pro" + "toH\001"};
+    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner = new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
+      public com.google.protobuf.ExtensionRegistry assignDescriptors(com.google.protobuf.Descriptors.FileDescriptor root) {
+        descriptor = root;
+        internal_static_Status_descriptor = getDescriptor().getMessageTypes().get(0);
+        internal_static_Status_fieldAccessorTable = new com.google.protobuf.GeneratedMessage.FieldAccessorTable(internal_static_Status_descriptor,
+            new java.lang.String[] {"Begin", "End", "InfiniteEnd", "Closed", "CreatedTime",});
+        return null;
+      }
     };
-    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-        public com.google.protobuf.ExtensionRegistry assignDescriptors(
-            com.google.protobuf.Descriptors.FileDescriptor root) {
-          descriptor = root;
-          internal_static_Status_descriptor =
-            getDescriptor().getMessageTypes().get(0);
-          internal_static_Status_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_Status_descriptor,
-              new java.lang.String[] { "Begin", "End", "InfiniteEnd", "Closed", "CreatedTime", });
-          return null;
-        }
-      };
-    com.google.protobuf.Descriptors.FileDescriptor
-      .internalBuildGeneratedFileFrom(descriptorData,
-        new com.google.protobuf.Descriptors.FileDescriptor[] {
-        }, assigner);
+    com.google.protobuf.Descriptors.FileDescriptor.internalBuildGeneratedFileFrom(descriptorData, new com.google.protobuf.Descriptors.FileDescriptor[] {},
+        assigner);
   }
 
   // @@protoc_insertion_point(outer_class_scope)

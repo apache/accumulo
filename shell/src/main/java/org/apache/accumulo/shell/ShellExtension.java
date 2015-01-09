@@ -19,9 +19,9 @@ package org.apache.accumulo.shell;
 import org.apache.accumulo.shell.Shell.Command;
 
 public abstract class ShellExtension {
-    
-    public abstract String getExtensionName();
 
-    public abstract Command[] getCommands();
-    
+  public abstract String getExtensionName();
+
+  public abstract Command[] getCommands();
+
 }

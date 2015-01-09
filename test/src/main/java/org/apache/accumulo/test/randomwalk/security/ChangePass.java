@@ -30,40 +30,40 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class ChangePass extends Test {
-  
+
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
-    
+
     String principal;
     AuthenticationToken token;
     if (source.equals("system")) {
-      principal = WalkingSecurity.get(state,env).getSysUserName();
-      token = WalkingSecurity.get(state,env).getSysToken();
+      principal = WalkingSecurity.get(state, env).getSysUserName();
+      token = WalkingSecurity.get(state, env).getSysToken();
     } else {
-      principal = WalkingSecurity.get(state,env).getTabUserName();
-      token = WalkingSecurity.get(state,env).getTabToken();
+      principal = WalkingSecurity.get(state, env).getTabUserName();
+      token = WalkingSecurity.get(state, env).getTabToken();
     }
     Connector conn = env.getInstance().getConnector(principal, token);
-    
+
     boolean hasPerm;
     boolean targetExists;
     if (target.equals("table")) {
-      target = WalkingSecurity.get(state,env).getTabUserName();
+      target = WalkingSecurity.get(state, env).getTabUserName();
     } else
-      target = WalkingSecurity.get(state,env).getSysUserName();
-    
-    targetExists = WalkingSecurity.get(state,env).userExists(target);
-    
-    hasPerm = WalkingSecurity.get(state,env).canChangePassword(new Credentials(principal, token).toThrift(env.getInstance()), target);
-    
+      target = WalkingSecurity.get(state, env).getSysUserName();
+
+    targetExists = WalkingSecurity.get(state, env).userExists(target);
+
+    hasPerm = WalkingSecurity.get(state, env).canChangePassword(new Credentials(principal, token).toThrift(env.getInstance()), target);
+
     Random r = new Random();
-    
+
     byte[] newPassw = new byte[r.nextInt(50) + 1];
     for (int i = 0; i < newPassw.length; i++)
       newPassw[i] = (byte) ((r.nextInt(26) + 65) & 0xFF);
-    
+
     PasswordToken newPass = new PasswordToken(newPassw);
     try {
       conn.securityOperations().changeLocalUserPassword(target, newPass);
@@ -78,14 +78,14 @@ public class ChangePass extends Test {
             throw new AccumuloException("User " + target + " doesn't exist and they SHOULD.", ae);
           return;
         case BAD_CREDENTIALS:
-          if (!WalkingSecurity.get(state,env).userPassTransient(conn.whoami()))
+          if (!WalkingSecurity.get(state, env).userPassTransient(conn.whoami()))
             throw new AccumuloException("Bad credentials for user " + conn.whoami());
           return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state,env).changePassword(target, newPass);
+    WalkingSecurity.get(state, env).changePassword(target, newPass);
     // Waiting 1 second for password to propogate through Zk
     Thread.sleep(1000);
     if (!hasPerm)

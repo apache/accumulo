@@ -22,18 +22,18 @@ import org.htrace.TraceScope;
 
 /**
  * Wrap a Runnable with a Span that survives a change in threads.
- * 
+ *
  */
 public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
-  
+
   private final Span parent;
   private final Runnable runnable;
   private final String description;
-  
+
   public TraceRunnable(Runnable runnable) {
     this(Trace.currentSpan(), runnable);
   }
-  
+
   public TraceRunnable(Span parent, Runnable runnable) {
     this(parent, runnable, null);
   }
@@ -43,7 +43,7 @@ public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
     this.runnable = runnable;
     this.description = description;
   }
-  
+
   @Override
   public void run() {
     if (parent != null) {
@@ -61,16 +61,16 @@ public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
   private String getDescription() {
     return this.description == null ? Thread.currentThread().getName() : description;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof TraceRunnable) {
       return 0 == this.compareTo((TraceRunnable) o);
     }
-    
+
     return false;
   }
-  
+
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public int compareTo(TraceRunnable o) {

@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -111,7 +110,7 @@ public class VolumeManagerImplTest {
     List<String> volumes = Arrays.asList("file://one/", "file://two/", "file://three/");
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(INSTANCE_DFS_URI, volumes.get(0));
-    conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes,","));
+    conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes, ","));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     VolumeManager vm = VolumeManagerImpl.get(conf);
     String choice = vm.choose(Optional.of("sometable"), volumes.toArray(new String[0]));

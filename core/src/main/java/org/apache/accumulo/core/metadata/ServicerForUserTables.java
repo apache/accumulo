@@ -23,9 +23,9 @@ import org.apache.accumulo.core.client.impl.ClientContext;
  * Metadata for user tables are serviced in the metadata table.
  */
 class ServicerForUserTables extends TableMetadataServicer {
-  
+
   public ServicerForUserTables(ClientContext context, String tableId) {
     super(context, MetadataTable.NAME, tableId);
   }
-  
+
 }

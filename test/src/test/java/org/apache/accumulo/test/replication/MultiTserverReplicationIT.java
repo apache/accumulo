@@ -41,7 +41,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 
 /**
- * 
+ *
  */
 public class MultiTserverReplicationIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);

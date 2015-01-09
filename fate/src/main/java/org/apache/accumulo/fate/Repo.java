@@ -20,14 +20,14 @@ import java.io.Serializable;
 
 /**
  * Repeatable persisted operation
- * 
+ *
  */
 public interface Repo<T> extends ReadOnlyRepo<T>, Serializable {
-  
+
   Repo<T> call(long tid, T environment) throws Exception;
-  
+
   void undo(long tid, T environment) throws Exception;
-  
+
   // this allows the last fate op to return something to the user
   String getReturn();
 }

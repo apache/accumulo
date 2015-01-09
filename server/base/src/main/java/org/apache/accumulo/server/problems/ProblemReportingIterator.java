@@ -37,7 +37,7 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private String resource;
   private String table;
   private final AccumuloServerContext context;
-  
+
   public ProblemReportingIterator(AccumuloServerContext context, String table, String resource, boolean continueOnError,
       SortedKeyValueIterator<Key,Value> source) {
     this.context = context;
@@ -46,22 +46,22 @@ public class ProblemReportingIterator implements InterruptibleIterator {
     this.continueOnError = continueOnError;
     this.source = source;
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new ProblemReportingIterator(context, table, resource, continueOnError, source.deepCopy(env));
   }
-  
+
   @Override
   public Key getTopKey() {
     return source.getTopKey();
   }
-  
+
   @Override
   public Value getTopValue() {
     return source.getTopValue();
   }
-  
+
   @Override
   public boolean hasTop() {
     if (sawError) {
@@ -69,12 +69,12 @@ public class ProblemReportingIterator implements InterruptibleIterator {
     }
     return source.hasTop();
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public void next() throws IOException {
     try {
@@ -87,13 +87,13 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       }
     }
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     if (continueOnError && sawError) {
       return;
     }
-    
+
     try {
       source.seek(range, columnFamilies, inclusive);
     } catch (IOException ioe) {
@@ -104,15 +104,15 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       }
     }
   }
-  
+
   public boolean sawError() {
     return sawError;
   }
-  
+
   public String getResource() {
     return resource;
   }
-  
+
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
     ((InterruptibleIterator) source).setInterruptFlag(flag);
