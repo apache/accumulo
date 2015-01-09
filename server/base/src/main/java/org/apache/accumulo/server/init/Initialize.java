@@ -227,7 +227,8 @@ public class Initialize {
       c.println();
       c.println("You can change the instance secret in accumulo by using:");
       c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName() + " oldPassword newPassword.");
-      c.println("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. Without this accumulo will not operate correctly");
+      c.println("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. "
+          + "Without this accumulo will not operate correctly");
     }
     try {
       if (isInitialized(fs)) {

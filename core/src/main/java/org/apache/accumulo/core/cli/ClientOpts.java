@@ -166,9 +166,9 @@ public class ClientOpts extends Help {
   @Parameter(names = "--ssl", description = "Connect to accumulo over SSL")
   public boolean sslEnabled = false;
 
-  @Parameter(
-      names = "--config-file",
-      description = "Read the given client config file.  If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+  @Parameter(names = "--config-file", description = "Read the given client config file. "
+      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
+      + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
   public String clientConfigFile = null;
 
   public void startDebugLogging() {

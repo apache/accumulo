@@ -82,7 +82,7 @@ public interface InstanceOperations {
    * List the active scans on tablet server.
    *
    * @param tserver
-   *          The tablet server address should be of the form <ip address>:<port>
+   *          The tablet server address should be of the form {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
    */
 
@@ -92,7 +92,7 @@ public interface InstanceOperations {
    * List the active compaction running on a tablet server
    *
    * @param tserver
-   *          The tablet server address should be of the form <ip address>:<port>
+   *          The tablet server address should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
    */
@@ -103,7 +103,7 @@ public interface InstanceOperations {
    * Throws an exception if a tablet server can not be contacted.
    *
    * @param tserver
-   *          The tablet server address should be of the form <ip address>:<port>
+   *          The tablet server address should be of the form {@code <ip address>:<port>}
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;

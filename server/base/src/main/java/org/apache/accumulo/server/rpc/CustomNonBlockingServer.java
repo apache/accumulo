@@ -250,8 +250,8 @@ public class CustomNonBlockingServer extends THsHaServer {
         clientKey = client.registerSelector(selector, SelectionKey.OP_READ);
 
         // add this key to the map
-          FrameBuffer frameBuffer = processorFactory_.isAsyncProcessor() ?
-                  new CustomAsyncFrameBuffer(client, clientKey,SelectAcceptThread.this) :
+          FrameBuffer frameBuffer =
+              processorFactory_.isAsyncProcessor() ? new CustomAsyncFrameBuffer(client, clientKey,SelectAcceptThread.this) :
                   new CustomFrameBuffer(client, clientKey,SelectAcceptThread.this);
 
           clientKey.attach(frameBuffer);

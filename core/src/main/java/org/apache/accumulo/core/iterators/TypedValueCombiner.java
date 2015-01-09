@@ -29,7 +29,7 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 /**
  * A Combiner that decodes each Value to type V before reducing, then encodes the result of typedReduce back to Value.
  *
- * Subclasses must implement a typedReduce method: public V typedReduce(Key key, Iterator<V> iter);
+ * Subclasses must implement a typedReduce method: {@code public V typedReduce(Key key, Iterator<V> iter);}
  *
  * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Vs) for all non-deleted versions of that Key.
  *
@@ -42,7 +42,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   protected static final String LOSSY = "lossy";
 
   /**
-   * A Java Iterator that translates an Iterator<Value> to an Iterator<V> using the decode method of an Encoder.
+   * A Java Iterator that translates an {@code Iterator<Value>} to an {@code Iterator<V>} using the decode method of an Encoder.
    */
   private static class VIterator<V> implements Iterator<V> {
     private Iterator<Value> source;
@@ -50,7 +50,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     private boolean lossy;
 
     /**
-     * Constructs an Iterator<V> from an Iterator<Value>
+     * Constructs an {@code Iterator<V>} from an {@code Iterator<Value>}
      *
      * @param iter
      *          The source iterator
@@ -114,14 +114,14 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   }
 
   /**
-   * Sets the Encoder<V> used to translate Values to V and back.
+   * Sets the {@code Encoder<V>} used to translate Values to V and back.
    */
   protected void setEncoder(Encoder<V> encoder) {
     this.encoder = encoder;
   }
 
   /**
-   * Instantiates and sets the Encoder<V> used to translate Values to V and back.
+   * Instantiates and sets the {@code Encoder<V>} used to translate Values to V and back.
    *
    * @throws IllegalArgumentException
    *           if ClassNotFoundException, InstantiationException, or IllegalAccessException occurs

@@ -83,7 +83,7 @@ public class CompactionInfo {
 
     CompactionReason reason;
 
-    if (compactor.hasIMM())
+    if (compactor.hasIMM()) {
       switch (compactor.getMinCReason()) {
         case USER:
           reason = CompactionReason.USER;
@@ -96,7 +96,7 @@ public class CompactionInfo {
           reason = CompactionReason.SYSTEM;
           break;
       }
-    else
+    } else {
       switch (compactor.getMajorCompactionReason()) {
         case USER:
           reason = CompactionReason.USER;
@@ -112,6 +112,7 @@ public class CompactionInfo {
           reason = CompactionReason.SYSTEM;
           break;
       }
+    }
 
     List<IterInfo> iiList = new ArrayList<IterInfo>();
     Map<String,Map<String,String>> iterOptions = new HashMap<String,Map<String,String>>();

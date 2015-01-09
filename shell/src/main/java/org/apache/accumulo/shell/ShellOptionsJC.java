@@ -169,9 +169,9 @@ public class ShellOptionsJC {
   @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
   private boolean useSsl = false;
 
-  @Parameter(
-      names = "--config-file",
-      description = "read the given client config file.  If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+  @Parameter(names = "--config-file", description = "read the given client config file. "
+      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
+      + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
   private String clientConfigFile = null;
 
   @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description = "use a zookeeper instance with the given instance name")

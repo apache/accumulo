@@ -42,8 +42,8 @@ import org.apache.hadoop.util.ToolRunner;
 import com.beust.jcommander.Parameter;
 
 /**
- * Takes a table and outputs the specified column to a set of part files on hdfs accumulo accumulo.examples.mapreduce.TableToFile <username> <password>
- * <tablename> <column> <hdfs-output-path>
+ * Takes a table and outputs the specified column to a set of part files on hdfs
+ * {@code accumulo accumulo.examples.mapreduce.TableToFile <username> <password> <tablename> <column> <hdfs-output-path>}
  */
 public class TableToFile extends Configured implements Tool {
 

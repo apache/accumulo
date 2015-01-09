@@ -41,7 +41,8 @@ public class EGrepCommand extends GrepCommand {
 
   @Override
   public String description() {
-    return "searches each row, column family, column qualifier and value, in parallel, on the server side (using a java Matcher, so put .* before and after your term if you're not matching the whole element)";
+    return "searches each row, column family, column qualifier and value, in parallel, on the server side "
+        + "(using a java Matcher, so put .* before and after your term if you're not matching the whole element)";
   }
 
   @Override

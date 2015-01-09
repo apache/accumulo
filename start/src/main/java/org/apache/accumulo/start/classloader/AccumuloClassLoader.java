@@ -91,8 +91,8 @@ public class AccumuloClassLoader {
   }
 
   /**
-   * Parses and XML Document for a property node for a <name> with the value propertyName if it finds one the function return that property's value for its
-   * <value> node. If not found the function will return null
+   * Parses and XML Document for a property node for a &lt;name&gt; with the value propertyName if it finds one the function return that property's value for its
+   * &lt;value&gt; node. If not found the function will return null
    *
    * @param d
    *          XMLDocument to search through
