@@ -29,7 +29,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for {@link AccumuloConfiguration}.
-   * 
+   *
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
@@ -41,7 +41,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   /**
    * The supported Accumulo properties we set in this OutputFormat, that change the behavior of the RecordWriter.<br />
    * These properties correspond to the supported public static setter methods available to this class.
-   * 
+   *
    * @param property
    *          the Accumulo property to check
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
@@ -64,7 +64,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   /**
    * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
    * stored in the Job's configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -79,7 +79,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the compression type to use for data blocks. Specifying a compression may require additional libraries to be available to your Job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -97,10 +97,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   /**
    * Sets the size for data blocks within each file.<br />
    * Data blocks are a span of key/value pairs stored in the file that are compressed and indexed as a group.
-   * 
+   *
    * <p>
    * Making this value smaller may increase seek performance, but at the cost of increasing the size of the indexes (which can also affect seek performance).
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -117,7 +117,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by the underlying file system.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -135,7 +135,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   /**
    * Sets the size for index blocks within each file; smaller blocks means a deeper index hierarchy within the file, while larger blocks mean a more shallow
    * index hierarchy within the file. This can affect the performance of queries.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -152,7 +152,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the file system replication factor for the resulting file, overriding the file system default.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf

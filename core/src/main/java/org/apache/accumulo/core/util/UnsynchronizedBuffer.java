@@ -21,24 +21,24 @@ import java.nio.ByteBuffer;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * 
+ *
  */
 public class UnsynchronizedBuffer {
   // created this little class instead of using ByteArrayOutput stream and DataOutputStream
   // because both are synchronized... lots of small syncs slow things down
   public static class Writer {
-    
+
     int offset = 0;
     byte data[];
-    
+
     public Writer() {
       data = new byte[64];
     }
-    
+
     public Writer(int initialCapacity) {
       data = new byte[initialCapacity];
     }
-    
+
     private void reserve(int l) {
       if (offset + l > data.length) {
         int newSize = UnsynchronizedBuffer.nextArraySize(offset + l);
@@ -47,15 +47,15 @@ public class UnsynchronizedBuffer {
         System.arraycopy(data, 0, newData, 0, offset);
         data = newData;
       }
-      
+
     }
-    
+
     public void add(byte[] bytes, int off, int length) {
       reserve(length);
       System.arraycopy(bytes, off, data, offset, length);
       offset += length;
     }
-    
+
     public void add(boolean b) {
       reserve(1);
       if (b)
@@ -63,13 +63,13 @@ public class UnsynchronizedBuffer {
       else
         data[offset++] = 0;
     }
-    
+
     public byte[] toArray() {
       byte ret[] = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
-    
+
     public ByteBuffer toByteBuffer() {
       return ByteBuffer.wrap(data, 0, offset);
     }
@@ -84,23 +84,23 @@ public class UnsynchronizedBuffer {
         data[offset++] = (byte) i;
         return;
       }
-      
+
       int len = -112;
       if (i < 0) {
         i ^= -1L; // take one's complement'
         len = -120;
       }
-      
+
       long tmp = i;
       while (tmp != 0) {
         tmp = tmp >> 8;
         len--;
       }
-      
+
       data[offset++] = (byte) len;
-      
+
       len = (len < -120) ? -(len + 120) : -(len + 112);
-      
+
       for (int idx = len; idx != 0; idx--) {
         int shiftbits = (idx - 1) * 8;
         long mask = 0xFFL << shiftbits;
@@ -108,15 +108,15 @@ public class UnsynchronizedBuffer {
       }
     }
   }
-  
+
   public static class Reader {
     int offset;
     byte data[];
-    
+
     public Reader(byte b[]) {
       this.data = b;
     }
-    
+
     public Reader(ByteBuffer buffer) {
       if (buffer.hasArray()) {
         offset = buffer.arrayOffset();
@@ -130,21 +130,21 @@ public class UnsynchronizedBuffer {
     public int readInt() {
       return (data[offset++] << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0);
     }
-    
+
     public long readLong() {
       return (((long) data[offset++] << 56) + ((long) (data[offset++] & 255) << 48) + ((long) (data[offset++] & 255) << 40)
           + ((long) (data[offset++] & 255) << 32) + ((long) (data[offset++] & 255) << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
     }
-    
+
     public void readBytes(byte b[]) {
       System.arraycopy(data, offset, b, 0, b.length);
       offset += b.length;
     }
-    
+
     public boolean readBoolean() {
       return (data[offset++] == 1);
     }
-    
+
     public int readVInt() {
       return (int) readVLong();
     }
@@ -167,19 +167,19 @@ public class UnsynchronizedBuffer {
 
   /**
    * Determines what next array size should be by rounding up to next power of two.
-   * 
+   *
    */
   public static int nextArraySize(int i) {
     if (i < 0)
       throw new IllegalArgumentException();
-    
+
     if (i > (1 << 30))
       return Integer.MAX_VALUE; // this is the next power of 2 minus one... a special case
-  
+
     if (i == 0) {
       return 1;
     }
-    
+
     // round up to next power of two
     int ret = i;
     ret--;
@@ -189,7 +189,7 @@ public class UnsynchronizedBuffer {
     ret |= ret >> 8;
     ret |= ret >> 16;
     ret++;
-    
+
     return ret;
   }
 }

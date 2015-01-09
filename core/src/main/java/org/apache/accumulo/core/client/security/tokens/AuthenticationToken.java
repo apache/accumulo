@@ -33,15 +33,15 @@ import javax.security.auth.Destroyable;
 import org.apache.hadoop.io.Writable;
 
 /**
- * 
+ *
  * @since 1.5.0
  */
 public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
-  
+
   /**
    * A utility class to serialize/deserialize {@link AuthenticationToken} objects.<br/>
    * Unfortunately, these methods are provided in an inner-class, to avoid breaking the interface API.
-   * 
+   *
    * @since 1.6.0
    */
   public static final class AuthenticationTokenSerializer {
@@ -49,7 +49,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * A convenience method to create tokens from serialized bytes, created by {@link #serialize(AuthenticationToken)}
      * <p>
      * The specified tokenType will be instantiated, and used to deserialize the decoded bytes. The resulting object will then be returned to the caller.
-     * 
+     *
      * @param tokenType
      *          the token class to use to deserialize the bytes
      * @param tokenBytes
@@ -78,10 +78,10 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       }
       return type;
     }
-    
+
     /**
      * An alternate version of {@link #deserialize(Class, byte[])} that accepts a token class name rather than a token class.
-     * 
+     *
      * @param tokenClassName
      *          the fully-qualified class name to be returned
      * @see #serialize(AuthenticationToken)
@@ -97,12 +97,12 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       }
       return deserialize(tokenType, tokenBytes);
     }
-    
+
     /**
      * A convenience method to serialize tokens.
      * <p>
      * The provided {@link AuthenticationToken} will be serialized to bytes by its own implementation and returned to the caller.
-     * 
+     *
      * @param token
      *          the token to serialize
      * @return a serialized representation of the provided {@link AuthenticationToken}
@@ -125,17 +125,17 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       return bytes;
     }
   }
-  
+
   class Properties implements Destroyable, Map<String,char[]> {
-    
+
     private boolean destroyed = false;
     private HashMap<String,char[]> map = new HashMap<String,char[]>();
-    
+
     private void checkDestroyed() {
       if (destroyed)
         throw new IllegalStateException();
     }
-    
+
     public char[] put(String key, CharSequence value) {
       checkDestroyed();
       char[] toPut = new char[value.length()];
@@ -143,14 +143,14 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
         toPut[i] = value.charAt(i);
       return map.put(key, toPut);
     }
-    
+
     public void putAllStrings(Map<String,? extends CharSequence> map) {
       checkDestroyed();
       for (Map.Entry<String,? extends CharSequence> entry : map.entrySet()) {
         put(entry.getKey(), entry.getValue());
       }
     }
-    
+
     @Override
     public void destroy() throws DestroyFailedException {
       for (String key : this.keySet()) {
@@ -160,133 +160,133 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       this.clear();
       destroyed = true;
     }
-    
+
     @Override
     public boolean isDestroyed() {
       return destroyed;
     }
-    
+
     @Override
     public int size() {
       checkDestroyed();
       return map.size();
     }
-    
+
     @Override
     public boolean isEmpty() {
       checkDestroyed();
       return map.isEmpty();
     }
-    
+
     @Override
     public boolean containsKey(Object key) {
       checkDestroyed();
       return map.containsKey(key);
     }
-    
+
     @Override
     public boolean containsValue(Object value) {
       checkDestroyed();
       return map.containsValue(value);
     }
-    
+
     @Override
     public char[] get(Object key) {
       checkDestroyed();
       return map.get(key);
     }
-    
+
     @Override
     public char[] put(String key, char[] value) {
       checkDestroyed();
       return map.put(key, value);
     }
-    
+
     @Override
     public char[] remove(Object key) {
       checkDestroyed();
       return map.remove(key);
     }
-    
+
     @Override
     public void putAll(Map<? extends String,? extends char[]> m) {
       checkDestroyed();
       map.putAll(m);
     }
-    
+
     @Override
     public void clear() {
       checkDestroyed();
       map.clear();
     }
-    
+
     @Override
     public Set<String> keySet() {
       checkDestroyed();
       return map.keySet();
     }
-    
+
     @Override
     public Collection<char[]> values() {
       checkDestroyed();
       return map.values();
     }
-    
+
     @Override
     public Set<Map.Entry<String,char[]>> entrySet() {
       checkDestroyed();
       return map.entrySet();
     }
   }
-  
+
   static class TokenProperty implements Comparable<TokenProperty> {
     private String key, description;
     private boolean masked;
-    
+
     public TokenProperty(String name, String description, boolean mask) {
       this.key = name;
       this.description = description;
       this.masked = mask;
     }
-    
+
     @Override
     public String toString() {
       return this.key + " - " + description;
     }
-    
+
     public String getKey() {
       return this.key;
     }
-    
+
     public String getDescription() {
       return this.description;
     }
-    
+
     public boolean getMask() {
       return this.masked;
     }
-    
+
     @Override
     public int hashCode() {
       return key.hashCode();
     }
-    
+
     @Override
     public boolean equals(Object o) {
       if (o instanceof TokenProperty)
         return ((TokenProperty) o).key.equals(key);
       return false;
     }
-    
+
     @Override
     public int compareTo(TokenProperty o) {
       return key.compareTo(o.key);
     }
   }
-  
+
   public void init(Properties properties);
-  
+
   public Set<TokenProperty> getProperties();
-  
+
   public AuthenticationToken clone();
 }

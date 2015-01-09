@@ -152,7 +152,7 @@ public class ServerConfigurationFactory {
     synchronized (tableConfigs) {
       conf = tableConfigs.get(instanceID).get(tableId);
     }
-    // can't hold the lock during the construction and validation of the config, 
+    // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null && Tables.exists(instance, tableId)) {
       conf = new TableConfiguration(instance.getInstanceID(), tableId, getNamespaceConfigurationForTable(tableId));
@@ -174,7 +174,7 @@ public class ServerConfigurationFactory {
     synchronized (tableParentConfigs) {
       conf = tableParentConfigs.get(instanceID).get(tableId);
     }
-    // can't hold the lock during the construction and validation of the config, 
+    // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null) {
       // changed - include instance in constructor call
@@ -190,7 +190,7 @@ public class ServerConfigurationFactory {
   public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
     checkPermissions();
     NamespaceConfiguration conf;
-    // can't hold the lock during the construction and validation of the config, 
+    // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     synchronized (namespaceConfigs) {
       conf = namespaceConfigs.get(instanceID).get(namespaceId);

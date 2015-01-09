@@ -23,20 +23,20 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
 
 /**
- * 
+ *
  */
 public class TraceRepo<T> implements Repo<T> {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   TInfo tinfo;
   Repo<T> repo;
-  
+
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;
     tinfo = Tracer.traceInfo();
   }
-  
+
   @Override
   public long isReady(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -46,7 +46,7 @@ public class TraceRepo<T> implements Repo<T> {
       span.stop();
     }
   }
-  
+
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -59,7 +59,7 @@ public class TraceRepo<T> implements Repo<T> {
       span.stop();
     }
   }
-  
+
   @Override
   public void undo(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -69,15 +69,15 @@ public class TraceRepo<T> implements Repo<T> {
       span.stop();
     }
   }
-  
+
   @Override
   public String getDescription() {
     return repo.getDescription();
   }
-  
+
   @Override
   public String getReturn() {
     return repo.getReturn();
   }
-  
+
 }

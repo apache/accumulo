@@ -30,60 +30,60 @@ import org.apache.accumulo.tserver.ConditionalMutationSet.DeferFilter;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 
 /**
- * 
+ *
  */
 class RowLocks {
-  
+
   private Map<ByteSequence,RowLock> rowLocks = new HashMap<ByteSequence,RowLock>();
-  
+
   static class RowLock {
     ReentrantLock rlock;
     int count;
     ByteSequence rowSeq;
-    
+
     RowLock(ReentrantLock rlock, ByteSequence rowSeq) {
       this.rlock = rlock;
       this.count = 0;
       this.rowSeq = rowSeq;
     }
-    
+
     public boolean tryLock() {
       return rlock.tryLock();
     }
-    
+
     public void lock() {
       rlock.lock();
     }
-    
+
     public void unlock() {
       rlock.unlock();
     }
   }
-  
+
   private RowLock getRowLock(ArrayByteSequence rowSeq) {
-      RowLock lock = rowLocks.get(rowSeq);
-      if (lock == null) {
-        lock = new RowLock(new ReentrantLock(), rowSeq);
-        rowLocks.put(rowSeq, lock);
-      }
-      
-      lock.count++;
-      return lock;
+    RowLock lock = rowLocks.get(rowSeq);
+    if (lock == null) {
+      lock = new RowLock(new ReentrantLock(), rowSeq);
+      rowLocks.put(rowSeq, lock);
+    }
+
+    lock.count++;
+    return lock;
   }
-  
+
   private void returnRowLock(RowLock lock) {
-      if (lock.count == 0)
-        throw new IllegalStateException();
-      lock.count--;
-      
-      if (lock.count == 0) {
-        rowLocks.remove(lock.rowSeq);
-      }
+    if (lock.count == 0)
+      throw new IllegalStateException();
+    lock.count--;
+
+    if (lock.count == 0) {
+      rowLocks.remove(lock.rowSeq);
+    }
   }
-  
+
   List<RowLock> acquireRowlocks(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
     ArrayList<RowLock> locks = new ArrayList<RowLock>();
-    
+
     // assume that mutations are in sorted order to avoid deadlock
     synchronized (rowLocks) {
       for (List<ServerConditionalMutation> scml : updates.values()) {
@@ -92,7 +92,7 @@ class RowLocks {
         }
       }
     }
-    
+
     HashSet<ByteSequence> rowsNotLocked = null;
 
     // acquire as many locks as possible, not blocking on rows that are already locked
@@ -108,9 +108,9 @@ class RowLocks {
       // if there is only one lock, then wait for it
       locks.get(0).lock();
     }
-    
+
     if (rowsNotLocked != null) {
-      
+
       final HashSet<ByteSequence> rnlf = rowsNotLocked;
       // assume will get locks needed, do something expensive otherwise
       ConditionalMutationSet.defer(updates, deferred, new DeferFilter() {
@@ -121,11 +121,11 @@ class RowLocks {
               deferred.add(scm);
             else
               okMutations.add(scm);
-            
+
           }
         }
       });
-      
+
       ArrayList<RowLock> filteredLocks = new ArrayList<RowLock>();
       ArrayList<RowLock> locksToReturn = new ArrayList<RowLock>();
       for (RowLock rowLock : locks) {
@@ -135,7 +135,7 @@ class RowLocks {
           filteredLocks.add(rowLock);
         }
       }
-      
+
       synchronized (rowLocks) {
         for (RowLock rowLock : locksToReturn) {
           returnRowLock(rowLock);
@@ -146,12 +146,12 @@ class RowLocks {
     }
     return locks;
   }
-  
+
   void releaseRowLocks(List<RowLock> locks) {
     for (RowLock rowLock : locks) {
       rowLock.unlock();
     }
-    
+
     synchronized (rowLocks) {
       for (RowLock rowLock : locks) {
         returnRowLock(rowLock);

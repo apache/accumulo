@@ -48,7 +48,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class BulkImporterTest {
-  
+
   static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
   static final Text tableId = new Text("1");
   static {
@@ -58,49 +58,49 @@ public class BulkImporterTest {
     }
     fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
   }
-  
+
   class MockTabletLocator extends TabletLocator {
     int invalidated = 0;
-    
+
     @Override
     public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
         TableNotFoundException {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(), "localhost", "1");
     }
-    
+
     @Override
-    public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+        List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
         AccumuloSecurityException, TableNotFoundException {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public void invalidateCache(KeyExtent failedExtent) {
       invalidated++;
     }
-    
+
     @Override
     public void invalidateCache(Collection<KeyExtent> keySet) {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public void invalidateCache() {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public void invalidateCache(String server) {
       throw new NotImplementedException();
     }
   }
-  
+
   @Test
   public void testFindOverlappingTablets() throws Exception {
     Credentials credentials = null;
@@ -142,7 +142,7 @@ public class BulkImporterTest {
     Assert.assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")), overlaps.get(2).tablet_extent);
     Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")), overlaps.get(3).tablet_extent);
     Assert.assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
-    
+
     List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(acuConf, vm, locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text(
         "b")), credentials);
     Assert.assertEquals(3, overlaps2.size());
@@ -151,5 +151,5 @@ public class BulkImporterTest {
     Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")), overlaps2.get(2).tablet_extent);
     Assert.assertEquals(locator.invalidated, 1);
   }
-  
+
 }

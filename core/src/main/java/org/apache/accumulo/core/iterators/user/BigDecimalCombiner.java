@@ -31,18 +31,17 @@ import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
- * A family of combiners that treat values as BigDecimals, encoding and 
- * decoding using the built-in BigDecimal String input/output functions.
+ * A family of combiners that treat values as BigDecimals, encoding and decoding using the built-in BigDecimal String input/output functions.
  */
 public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> {
   private final static BigDecimalEncoder BDE = new BigDecimalEncoder();
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setEncoder(BDE);
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
@@ -50,14 +49,14 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
     io.setDescription("bigdecimalcombiner interprets Values as BigDecimals before combining");
     return io;
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (super.validateOptions(options) == false)
       return false;
     return true;
   }
-  
+
   public static class BigDecimalSummingCombiner extends BigDecimalCombiner {
     @Override
     public BigDecimal typedReduce(Key key, Iterator<BigDecimal> iter) {
@@ -70,7 +69,7 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
       return sum;
     }
   }
-  
+
   public static class BigDecimalMaxCombiner extends BigDecimalCombiner {
     @Override
     public BigDecimal typedReduce(Key key, Iterator<BigDecimal> iter) {
@@ -83,7 +82,7 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
       return max;
     }
   }
-  
+
   public static class BigDecimalMinCombiner extends BigDecimalCombiner {
     @Override
     public BigDecimal typedReduce(Key key, Iterator<BigDecimal> iter) {
@@ -96,17 +95,17 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
       return min;
     }
   }
-  
+
   /**
    * Provides the ability to encode scientific notation.
-   * 
+   *
    */
   public static class BigDecimalEncoder implements org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<BigDecimal> {
     @Override
     public byte[] encode(BigDecimal v) {
       return v.toString().getBytes(UTF_8);
     }
-    
+
     @Override
     public BigDecimal decode(byte[] b) throws ValueFormatException {
       try {

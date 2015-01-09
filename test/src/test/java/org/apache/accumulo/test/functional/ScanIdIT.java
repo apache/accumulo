@@ -16,6 +16,22 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,29 +56,13 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 /**
  * ACCUMULO-2641 Integration test. ACCUMULO-2641 Adds scan id to thrift protocol so that {@code org.apache.accumulo.core.client.admin.ActiveScan.getScanid()}
- * returns a unique scan id.<p>
+ * returns a unique scan id.
+ * <p>
  * <p/>
- * The test uses the Minicluster and the {@code org.apache.accumulo.test.functional.SlowIterator} to create multiple scan sessions.
- * The test exercises multiple tablet servers with splits and multiple ranges to force the scans to occur across multiple tablet servers
- * for completeness.
+ * The test uses the Minicluster and the {@code org.apache.accumulo.test.functional.SlowIterator} to create multiple scan sessions. The test exercises multiple
+ * tablet servers with splits and multiple ranges to force the scans to occur across multiple tablet servers for completeness.
  * <p/>
  * This patch modified thrift, the TraceRepoDeserializationTest test seems to fail unless the following be added:
  * <p/>
@@ -92,7 +92,8 @@ public class ScanIdIT extends AccumuloClusterIT {
   }
 
   /**
-   * @throws Exception any exception is a test failure.
+   * @throws Exception
+   *           any exception is a test failure.
    */
   @Test
   public void testScanId() throws Exception {
@@ -174,15 +175,14 @@ public class ScanIdIT extends AccumuloClusterIT {
     }
 
     /**
-     * execute the scan across the sample data and put scan result into result map until
-     * testInProgress flag is set to false.
+     * execute the scan across the sample data and put scan result into result map until testInProgress flag is set to false.
      */
-    @Override public void run() {
+    @Override
+    public void run() {
 
       /*
-      * set random initial delay of up to to
-      * allow scanners to proceed to different points.
-      */
+       * set random initial delay of up to to allow scanners to proceed to different points.
+       */
 
       long delay = random.nextInt(5000);
 
@@ -245,10 +245,10 @@ public class ScanIdIT extends AccumuloClusterIT {
   }
 
   /**
-   * Create splits on table and force migration by taking table offline and then bring back
-   * online for test.
+   * Create splits on table and force migration by taking table offline and then bring back online for test.
    *
-   * @param conn Accumulo connector Accumulo connector to test cluster or MAC instance.
+   * @param conn
+   *          Accumulo connector Accumulo connector to test cluster or MAC instance.
    */
   private void addSplits(final Connector conn, final String tableName) {
 
@@ -296,11 +296,11 @@ public class ScanIdIT extends AccumuloClusterIT {
   /**
    * Generate some sample data using random row id to distribute across splits.
    * <p/>
-   * The primary goal is to determine that each scanner is assigned a unique scan id.
-   * This test does check that the count value  for fam1 increases if a scanner reads multiple value, but this is
-   * secondary consideration for this test, that is included for completeness.
+   * The primary goal is to determine that each scanner is assigned a unique scan id. This test does check that the count value for fam1 increases if a scanner
+   * reads multiple value, but this is secondary consideration for this test, that is included for completeness.
    *
-   * @param connector Accumulo connector Accumulo connector to test cluster or MAC instance.
+   * @param connector
+   *          Accumulo connector Accumulo connector to test cluster or MAC instance.
    */
   private void generateSampleData(Connector connector, final String tablename) {
 
@@ -333,11 +333,11 @@ public class ScanIdIT extends AccumuloClusterIT {
   }
 
   /**
-   * Attach the test slow iterator so that we have time to read the scan id without creating a large dataset. Uses a
-   * fairly large sleep and delay times because we are not concerned with how much data is read and we do not read
-   * all of the data - the test stops once each scanner reports a scan id.
+   * Attach the test slow iterator so that we have time to read the scan id without creating a large dataset. Uses a fairly large sleep and delay times because
+   * we are not concerned with how much data is read and we do not read all of the data - the test stops once each scanner reports a scan id.
    *
-   * @param connector Accumulo connector Accumulo connector to test cluster or MAC instance.
+   * @param connector
+   *          Accumulo connector Accumulo connector to test cluster or MAC instance.
    */
   private void attachSlowIterator(Connector connector, final String tablename) {
     try {

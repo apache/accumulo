@@ -28,7 +28,7 @@ import org.junit.Test;
 import com.google.common.io.Files;
 
 /**
- * 
+ *
  */
 public class CleanShutdownMacTest {
 
@@ -44,7 +44,7 @@ public class CleanShutdownMacTest {
     cluster.setShutdownExecutor(mockService);
 
     EasyMock.expect(future.get()).andReturn(0).anyTimes();
-    EasyMock.expect(mockService.<Integer>submit(EasyMock.anyObject(Callable.class))).andReturn(future).anyTimes();
+    EasyMock.expect(mockService.<Integer> submit(EasyMock.anyObject(Callable.class))).andReturn(future).anyTimes();
     EasyMock.expect(mockService.shutdownNow()).andReturn(Collections.<Runnable> emptyList()).once();
 
     EasyMock.replay(mockService, future);

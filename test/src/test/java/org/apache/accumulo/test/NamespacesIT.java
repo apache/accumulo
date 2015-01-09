@@ -115,7 +115,7 @@ public class NamespacesIT extends AccumuloIT {
     cluster.getConfig().setNumTservers(1);
     cluster.start();
   }
-  
+
   @Before
   public void setupConnectorAndNamespace() throws Exception {
     // prepare a unique namespace and get a new root connector for each test
@@ -345,7 +345,7 @@ public class NamespacesIT extends AccumuloIT {
     // verify entry is filtered out (also, verify conflict checking API)
     c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
     c.namespaceOperations().attachIterator(namespace, setting);
-    UtilWaitThread.sleep(2*1000);
+    UtilWaitThread.sleep(2 * 1000);
     try {
       c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
       fail();
@@ -361,7 +361,7 @@ public class NamespacesIT extends AccumuloIT {
 
     // verify can see inserted entry again
     c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
-    UtilWaitThread.sleep(2*1000);
+    UtilWaitThread.sleep(2 * 1000);
     assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
     s = c.createScanner(t1, Authorizations.EMPTY);

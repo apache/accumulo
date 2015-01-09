@@ -70,7 +70,7 @@ public class TServerUtils {
 
   /**
    * Start a server, at the given port, or higher, if that port is not available.
-   * 
+   *
    * @param portHintProperty
    *          the port to attempt to open, can be zero, meaning "any available port"
    * @param processor
@@ -197,8 +197,7 @@ public class TServerUtils {
   }
 
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor, final String serverName, String threadName,
-      final int numThreads,
-      long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
+      final int numThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
     CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());

@@ -26,14 +26,14 @@ import org.apache.log4j.Logger;
 public class DiscardCloseOutputStream extends FilterOutputStream {
 
   private static final Logger log = Logger.getLogger(DiscardCloseOutputStream.class);
-  
+
   public DiscardCloseOutputStream(OutputStream out) {
     super(out);
   }
-  
+
   public void close() throws IOException {
     // Discard
     log.trace("Discarded close");
   }
-  
+
 }

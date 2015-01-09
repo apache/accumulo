@@ -24,9 +24,9 @@ import org.apache.accumulo.core.security.Credentials;
  * Metadata for user tables are serviced in the metadata table.
  */
 class ServicerForUserTables extends TableMetadataServicer {
-  
+
   public ServicerForUserTables(Instance instance, Credentials credentials, String tableId) {
     super(instance, credentials, MetadataTable.NAME, tableId);
   }
-  
+
 }

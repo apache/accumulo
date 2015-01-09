@@ -60,7 +60,7 @@ public class CompactionPlan {
 
   /**
    * Validate compaction plan.
-   * 
+   *
    * @param allFiles
    *          All possible files
    * @throws IllegalStateException

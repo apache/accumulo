@@ -33,12 +33,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
-  
+
   private static final String TEST_DIR1 = getHdfsUri() + "/test-dir";
   private static final Path DIR1_PATH = new Path("/test-dir");
   private static final String TEST_FILE1 = TEST_DIR1 + "/accumulo-test-1.jar";
   private static final Path FILE1_PATH = new Path(DIR1_PATH, "accumulo-test-1.jar");
-  
+
   private DefaultFileSystemManager manager = null;
   private FileSystem hdfs = null;
 
@@ -49,16 +49,16 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     manager.init();
     this.hdfs = cluster.getFileSystem();
   }
-    
+
   private FileObject createTestFile(FileSystem hdfs) throws IOException {
-    //Create the directory
+    // Create the directory
     hdfs.mkdirs(DIR1_PATH);
     FileObject dir = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(dir);
     Assert.assertTrue(dir.exists());
     Assert.assertTrue(dir.getType().equals(FileType.FOLDER));
-    
-    //Create the file in the directory
+
+    // Create the file in the directory
     hdfs.create(FILE1_PATH).close();
     FileObject f = manager.resolveFile(TEST_FILE1);
     Assert.assertNotNull(f);
@@ -66,84 +66,84 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     Assert.assertTrue(f.getType().equals(FileType.FILE));
     return f;
   }
-  
+
   @Test
   public void testInit() throws Exception {
     FileObject fo = manager.resolveFile(TEST_FILE1);
     Assert.assertNotNull(fo);
   }
-  
+
   @Test
   public void testExistsFails() throws Exception {
     FileObject fo = manager.resolveFile(TEST_FILE1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
   }
-  
+
   @Test
   public void testExistsSucceeds() throws Exception {
     FileObject fo = manager.resolveFile(TEST_FILE1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
-    
-    //Create the file
+
+    // Create the file
     @SuppressWarnings("unused")
     FileObject f = createTestFile(hdfs);
-    
+
   }
 
-  @Test(expected=UnsupportedOperationException.class)
+  @Test(expected = UnsupportedOperationException.class)
   public void testCanRenameTo() throws Exception {
     FileObject fo = createTestFile(this.hdfs);
     Assert.assertNotNull(fo);
     fo.canRenameTo(fo);
   }
-  
+
   @Test
   public void testDoListChildren() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     FileObject dir = file.getParent();
-    
+
     FileObject[] children = dir.getChildren();
     Assert.assertTrue(children.length == 1);
     Assert.assertTrue(children[0].getName().equals(file.getName()));
-    
+
   }
-  
+
   @Test
   public void testGetContentSize() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     Assert.assertEquals(0, file.getContent().getSize());
   }
-  
+
   @Test
   public void testGetInputStream() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     file.getContent().getInputStream().close();
   }
-  
+
   @Test
   public void testIsHidden() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     Assert.assertFalse(file.isHidden());
   }
@@ -154,7 +154,7 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     Assert.assertTrue(file.isReadable());
   }
@@ -165,29 +165,29 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     Assert.assertFalse(file.isWriteable());
   }
-  
+
   @Test
   public void testLastModificationTime() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     Assert.assertFalse(-1 == file.getContent().getLastModifiedTime());
   }
-  
+
   @Test
   public void testGetAttributes() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     Map<String,Object> attributes = file.getContent().getAttributes();
     Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.BLOCK_SIZE.toString()));
@@ -198,14 +198,14 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.OWNER.toString()));
     Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.PERMISSIONS.toString()));
   }
-  
-  @Test(expected=FileSystemException.class)
+
+  @Test(expected = FileSystemException.class)
   public void testRandomAccessContent() throws Exception {
     FileObject fo = manager.resolveFile(TEST_DIR1);
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     file.getContent().getRandomAccessContent(RandomAccessMode.READWRITE).close();
   }
@@ -216,7 +216,7 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
     file.getContent().getRandomAccessContent(RandomAccessMode.READ).close();
   }
@@ -227,20 +227,20 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     Assert.assertNotNull(fo);
     Assert.assertFalse(fo.exists());
 
-    //Create the test file
+    // Create the test file
     FileObject file = createTestFile(hdfs);
-    //Get a handle to the same file
+    // Get a handle to the same file
     FileObject file2 = manager.resolveFile(TEST_FILE1);
     Assert.assertEquals(file, file2);
   }
-  
+
   @After
   public void tearDown() throws Exception {
     if (null != hdfs) {
       hdfs.delete(DIR1_PATH, true);
-      hdfs.close();  
+      hdfs.close();
     }
     manager.close();
   }
-    
+
 }

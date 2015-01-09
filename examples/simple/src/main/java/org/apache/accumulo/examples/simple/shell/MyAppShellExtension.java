@@ -20,14 +20,14 @@ import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellExtension;
 
 public class MyAppShellExtension extends ShellExtension {
-  
+
   public String getExtensionName() {
     return "MyApp";
   }
-  
+
   @Override
   public Command[] getCommands() {
-    return new Command[] { new DebugCommand() };
+    return new Command[] {new DebugCommand()};
   }
-  
+
 }

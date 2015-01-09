@@ -50,7 +50,6 @@ public class BigDecimalCombinerTest {
   List<Column> columns;
   Combiner ai;
 
-
   @Before
   public void setup() {
     encoder = new BigDecimalCombiner.BigDecimalEncoder();

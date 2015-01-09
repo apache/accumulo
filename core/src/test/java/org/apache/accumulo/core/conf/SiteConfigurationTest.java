@@ -31,7 +31,6 @@ import org.junit.Test;
 public class SiteConfigurationTest {
   private static boolean isCredentialProviderAvailable;
 
-
   @BeforeClass
   public static void checkCredentialProviderAvailable() {
     try {
@@ -52,25 +51,25 @@ public class SiteConfigurationTest {
         .withConstructor(AccumuloConfiguration.class).withArgs(DefaultConfiguration.getInstance()).createMock();
 
     siteCfg.set(Property.INSTANCE_SECRET, "ignored");
-    
+
     // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret', 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
     Assert.assertNotNull(keystore);
     String keystorePath = new File(keystore.getFile()).getAbsolutePath();
-    
+
     Configuration hadoopConf = new Configuration();
     hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, "jceks://file" + keystorePath);
-    
+
     EasyMock.expect(siteCfg.getHadoopConfiguration()).andReturn(hadoopConf).once();
 
     EasyMock.replay(siteCfg);
-    
+
     Map<String,String> props = new HashMap<String,String>();
     siteCfg.getProperties(props, new AllFilter());
-    
+
     Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
     Assert.assertEquals(null, props.get("ignored.property"));
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }
-  
+
 }

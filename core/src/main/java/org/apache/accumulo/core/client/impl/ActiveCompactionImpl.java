@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 
-
 /**
  *
  * @since 1.6.0

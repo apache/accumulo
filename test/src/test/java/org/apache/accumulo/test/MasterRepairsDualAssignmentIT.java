@@ -51,7 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
-  
+
   @Override
   public int defaultTimeoutSeconds() {
     return 5 * 60;

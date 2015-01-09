@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,12 +59,12 @@ import com.beust.jcommander.Parameter;
  * <li>The rowid is the right justified row id as a int.
  * <li>The filler consists of 7 runs of 10 characters from 'A' to 'Z'.
  * </ul>
- * 
+ *
  * This TeraSort is slightly modified to allow for variable length key sizes and value sizes. The row length isn't variable. To generate a terabyte of data in
  * the same way TeraSort does use 10000000000 rows and 10/10 byte key length and 78/78 byte value length. Along with the 10 byte row id and \r\n this gives you
  * 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key and value parameters are inclusive/inclusive respectively.
- * 
- * 
+ *
+ *
  */
 public class TeraSortIngest extends Configured implements Tool {
   /**
@@ -202,7 +202,7 @@ public class TeraSortIngest extends Configured implements Tool {
 
     /**
      * Start the random number generator on the given iteration.
-     * 
+     *
      * @param initalIteration
      *          the iteration number to start on
      */
@@ -290,7 +290,7 @@ public class TeraSortIngest extends Configured implements Tool {
 
     /**
      * Add the required filler bytes. Each row consists of 7 blocks of 10 characters and 1 block of 8 characters.
-     * 
+     *
      * @param rowId
      *          the current row number
      */

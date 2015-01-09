@@ -24,7 +24,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class ShowTraceLinkTypeTest {
-  
+
   @Test
   public void testTraceSortingForMonitor() {
     /*
@@ -32,7 +32,7 @@ public class ShowTraceLinkTypeTest {
      * data)
      */
     ArrayList<RemoteSpan> spans = new ArrayList<RemoteSpan>(10), expectedOrdering = new ArrayList<RemoteSpan>(10);
-    
+
     // "Random" ordering
     spans.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 55l, 75l, "desc5", Collections.<String,String> emptyMap()));
     spans.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 25l, 30l, "desc2", Collections.<String,String> emptyMap()));
@@ -44,7 +44,7 @@ public class ShowTraceLinkTypeTest {
     spans.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 100l, 120l, "desc10", Collections.<String,String> emptyMap()));
     spans.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 15l, 25l, "desc1", Collections.<String,String> emptyMap()));
     spans.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 75l, 100l, "desc7", Collections.<String,String> emptyMap()));
-    
+
     // We expect them to be sorted by 'start'
     expectedOrdering.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 15l, 25l, "desc1", Collections.<String,String> emptyMap()));
     expectedOrdering.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 25l, 30l, "desc2", Collections.<String,String> emptyMap()));
@@ -56,9 +56,9 @@ public class ShowTraceLinkTypeTest {
     expectedOrdering.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 85l, 90l, "desc8", Collections.<String,String> emptyMap()));
     expectedOrdering.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 95l, 110l, "desc9", Collections.<String,String> emptyMap()));
     expectedOrdering.add(new RemoteSpan("sender", "svc", 0l, 0l, 0l, 100l, 120l, "desc10", Collections.<String,String> emptyMap()));
-    
+
     Collections.sort(spans);
-    
+
     Assert.assertEquals(expectedOrdering, spans);
   }
 }

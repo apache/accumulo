@@ -17,10 +17,7 @@
 package org.apache.accumulo.tserver;
 
 public class EndOfTableException extends Exception {
-  
-  /**
-	 * 
-	 */
+
   private static final long serialVersionUID = 1L;
-  
+
 }

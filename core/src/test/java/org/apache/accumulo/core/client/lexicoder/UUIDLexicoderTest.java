@@ -21,17 +21,17 @@ import java.util.UUID;
 
 public class UUIDLexicoderTest extends LexicoderTest {
   public void testSortOrder() {
-    
+
     assertSortOrder(new UUIDLexicoder(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
-    
+
     ArrayList<UUID> uuids = new ArrayList<UUID>();
-    
+
     for (long ms = -260l; ms < 260l; ms++) {
       for (long ls = -2l; ls < 2; ls++) {
         uuids.add(new UUID(ms, ls));
       }
     }
-    
+
     assertSortOrder(new UUIDLexicoder(), uuids.toArray(new UUID[0]));
   }
 }

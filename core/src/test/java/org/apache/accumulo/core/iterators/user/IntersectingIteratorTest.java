@@ -51,11 +51,11 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class IntersectingIteratorTest extends TestCase {
-  
+
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   private static final Logger log = Logger.getLogger(IntersectingIterator.class);
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
-  
+
   TreeMap<Key,Value> map;
   HashSet<Text> docs = new HashSet<Text>();
   Text[] columnFamilies;
@@ -63,20 +63,20 @@ public class IntersectingIteratorTest extends TestCase {
   Text[] otherColumnFamilies;
   Text[] searchFamilies;
   boolean[] notFlags;
-  
+
   int docid = 0;
-  
+
   static {
     log.setLevel(Level.OFF);
   }
-  
+
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
       HashSet<Text> docs, Text[] negatedColumns) {
     Random r = new Random();
     Value v = new Value(new byte[0]);
     TreeMap<Key,Value> map = new TreeMap<Key,Value>();
     boolean[] negateMask = new boolean[columnFamilies.length];
-    
+
     for (int i = 0; i < columnFamilies.length; i++) {
       negateMask[i] = false;
       if (negatedColumns.length > 0)
@@ -113,33 +113,33 @@ public class IntersectingIteratorTest extends TestCase {
     }
     return map;
   }
-  
+
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
       Text[] otherColumnFamilies, HashSet<Text> docs) throws IOException {
     Text nullText[] = new Text[0];
     return createIteratorStack(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, nullText);
   }
-  
+
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
       Text[] otherColumnFamilies, HashSet<Text> docs, Text[] negatedColumns) throws IOException {
     TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, negatedColumns);
     return new SortedMapIterator(inMemoryMap);
   }
-  
+
   private void cleanup() throws IOException {
     docid = 0;
   }
-  
+
   public void testNull() {}
-  
+
   @Override
   public void setUp() {
     Logger.getRootLogger().setLevel(Level.ERROR);
   }
-  
+
   private static final int NUM_ROWS = 10;
   private static final int NUM_DOCIDS = 1000;
-  
+
   public void test1() throws IOException {
     columnFamilies = new Text[2];
     columnFamilies[0] = new Text("C");
@@ -149,7 +149,7 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[1] = new Text("B");
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
-    
+
     float hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
@@ -167,7 +167,7 @@ public class IntersectingIteratorTest extends TestCase {
     assertTrue(hitCount == docs.size());
     cleanup();
   }
-  
+
   public void test2() throws IOException {
     columnFamilies = new Text[3];
     columnFamilies[0] = new Text("A");
@@ -178,7 +178,7 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[1] = new Text("C");
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
-    
+
     float hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
@@ -196,7 +196,7 @@ public class IntersectingIteratorTest extends TestCase {
     assertTrue(hitCount == docs.size());
     cleanup();
   }
-  
+
   public void test3() throws IOException {
     columnFamilies = new Text[6];
     columnFamilies[0] = new Text("C");
@@ -210,7 +210,7 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[1] = new Text("B");
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
-    
+
     float hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     SortedKeyValueIterator<Key,Value> source2 = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
@@ -233,7 +233,7 @@ public class IntersectingIteratorTest extends TestCase {
     assertTrue(hitCount == docs.size());
     cleanup();
   }
-  
+
   public void test4() throws IOException {
     columnFamilies = new Text[3];
     notFlags = new boolean[3];
@@ -251,7 +251,7 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[1] = new Text("C");
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
-    
+
     float hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
@@ -269,7 +269,7 @@ public class IntersectingIteratorTest extends TestCase {
     assertTrue(hitCount == docs.size());
     cleanup();
   }
-  
+
   public void test6() throws IOException {
     columnFamilies = new Text[1];
     columnFamilies[0] = new Text("C");
@@ -278,7 +278,7 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[1] = new Text("B");
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
-    
+
     float hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
@@ -296,7 +296,7 @@ public class IntersectingIteratorTest extends TestCase {
     assertTrue(hitCount == docs.size());
     cleanup();
   }
-  
+
   public void testWithBatchScanner() throws Exception {
     Value empty = new Value(new byte[] {});
     MockInstance inst = new MockInstance("mockabye");
@@ -308,7 +308,7 @@ public class IntersectingIteratorTest extends TestCase {
     m.put("15qh", "5000000000000000", empty);
     bw.addMutation(m);
     bw.close();
-    
+
     BatchScanner bs = connector.createBatchScanner("index", Authorizations.EMPTY, 10);
     IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});

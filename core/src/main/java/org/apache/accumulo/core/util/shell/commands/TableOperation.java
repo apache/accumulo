@@ -96,7 +96,7 @@ public abstract class TableOperation extends Command {
 
   /**
    * Allows implementation to remove certain tables from the set of tables to be operated on.
-   * 
+   *
    * @param pattern
    *          The pattern which tables were selected using
    * @param tables

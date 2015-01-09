@@ -20,21 +20,21 @@ import java.util.Iterator;
 
 /**
  * Base class to model an infinite stream of data. A stream implements an iterator whose {{@link #hasNext()} method will always return true.
- * 
+ *
  */
 public abstract class Stream<T> implements Iterator<T> {
-  
+
   @Override
   public final boolean hasNext() {
     return true;
   }
-  
+
   @Override
   public abstract T next();
-  
+
   @Override
   public final void remove() {
     throw new UnsupportedOperationException();
   }
-  
+
 }

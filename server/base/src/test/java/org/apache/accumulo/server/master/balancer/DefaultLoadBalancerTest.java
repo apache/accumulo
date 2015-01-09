@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
@@ -47,10 +46,10 @@ import org.junit.Test;
 import com.google.common.net.HostAndPort;
 
 public class DefaultLoadBalancerTest {
-  
+
   class FakeTServer {
     List<KeyExtent> extents = new ArrayList<KeyExtent>();
-    
+
     TabletServerStatus getStatus(TServerInstance server) {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<String,TableInfo>();
@@ -67,12 +66,12 @@ public class DefaultLoadBalancerTest {
       return result;
     }
   }
-  
+
   Map<TServerInstance,FakeTServer> servers = new HashMap<TServerInstance,FakeTServer>();
-  Map<KeyExtent, TServerInstance> last = new HashMap<KeyExtent, TServerInstance>();
-  
+  Map<KeyExtent,TServerInstance> last = new HashMap<KeyExtent,TServerInstance>();
+
   class TestDefaultLoadBalancer extends DefaultLoadBalancer {
-    
+
     @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table) throws ThriftSecurityException, TException {
       List<TabletStats> result = new ArrayList<TabletStats>();
@@ -84,13 +83,13 @@ public class DefaultLoadBalancerTest {
       return result;
     }
   }
-  
+
   @Before
   public void setUp() {
     last.clear();
     servers.clear();
   }
-  
+
   @Test
   public void testAssignMigrations() {
     servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"), new FakeTServer());
@@ -110,42 +109,42 @@ public class DefaultLoadBalancerTest {
     metadataTable.add(makeExtent(table, "e", "d"));
     metadataTable.add(makeExtent(table, null, "e"));
     Collections.sort(metadataTable);
-    
+
     TestDefaultLoadBalancer balancer = new TestDefaultLoadBalancer();
-    
+
     SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<TServerInstance,TabletServerStatus>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
     }
     assignTablets(metadataTable, servers, current, balancer);
-    
+
     // Verify that the counts on the tables are correct
     Map<String,Integer> expectedCounts = new HashMap<String,Integer>();
     expectedCounts.put("t1", 1);
     expectedCounts.put("t2", 1);
     expectedCounts.put("t3", 2);
     checkBalance(metadataTable, servers, expectedCounts);
-    
+
     // Rebalance once
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
     }
-    
+
     // Nothing should happen, we are balanced
     ArrayList<TabletMigration> out = new ArrayList<TabletMigration>();
     balancer.getMigrations(current, out);
     assertEquals(out.size(), 0);
-    
+
     // Take down a tabletServer
     TServerInstance first = current.keySet().iterator().next();
     current.remove(first);
     FakeTServer remove = servers.remove(first);
-    
+
     // reassign offline extents
     assignTablets(remove.extents, servers, current, balancer);
     checkBalance(metadataTable, servers, null);
   }
-  
+
   private void assignTablets(List<KeyExtent> metadataTable, Map<TServerInstance,FakeTServer> servers, SortedMap<TServerInstance,TabletServerStatus> status,
       TestDefaultLoadBalancer balancer) {
     // Assign tablets
@@ -157,7 +156,7 @@ public class DefaultLoadBalancerTest {
       last.put(extent, assignment);
     }
   }
-  
+
   SortedMap<TServerInstance,TabletServerStatus> getAssignments(Map<TServerInstance,FakeTServer> servers) {
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
@@ -165,7 +164,7 @@ public class DefaultLoadBalancerTest {
     }
     return result;
   }
-  
+
   @Test
   public void testUnevenAssignment() {
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
@@ -205,7 +204,7 @@ public class DefaultLoadBalancerTest {
     }
     assertEquals(8, moved);
   }
-  
+
   @Test
   public void testUnevenAssignment2() {
     // make 26 servers
@@ -230,7 +229,7 @@ public class DefaultLoadBalancerTest {
     for (int i = 0; i < 10; i++) {
       shortServer.getValue().extents.add(makeExtent("s" + i, null, null));
     }
-    
+
     TestDefaultLoadBalancer balancer = new TestDefaultLoadBalancer();
     Set<KeyExtent> migrations = Collections.emptySet();
     int moved = 0;
@@ -251,7 +250,7 @@ public class DefaultLoadBalancerTest {
     // average is 58, with 2 at 59: we need 48 more moved to the short server
     assertEquals(48, moved);
   }
-  
+
   private void checkBalance(List<KeyExtent> metadataTable, Map<TServerInstance,FakeTServer> servers, Map<String,Integer> expectedCounts) {
     // Verify they are spread evenly over the cluster
     int average = metadataTable.size() / servers.size();
@@ -262,7 +261,7 @@ public class DefaultLoadBalancerTest {
       if (diff > 1)
         fail("average number of tablets is " + average + " but a server has " + server.extents.size());
     }
-    
+
     if (expectedCounts != null) {
       for (FakeTServer server : servers.values()) {
         Map<String,Integer> counts = new HashMap<String,Integer>();
@@ -278,15 +277,15 @@ public class DefaultLoadBalancerTest {
       }
     }
   }
-  
+
   private static KeyExtent makeExtent(String table, String end, String prev) {
     return new KeyExtent(new Text(table), toText(end), toText(prev));
   }
-  
+
   private static Text toText(String value) {
     if (value != null)
       return new Text(value);
     return null;
   }
-  
+
 }

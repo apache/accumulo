@@ -98,13 +98,13 @@ import org.apache.thrift.TException;
  * that *a* request completed by seeing the flag written into the metadata
  * table, but we won't know if some other rogue thread is still waiting to start
  * a thread and repeat the operation.
- * 
+ *
  * The master can ask the tablet server if it has any requests still running.
  * Except the tablet server might have some thread about to start a request, but
  * before it has made any bookkeeping about the request. To prevent problems
  * like this, an Arbitrator is used. Before starting any new request, the tablet
  * server checks the Arbitrator to see if the request is still valid.
- * 
+ *
  */
 
 public class BulkImport extends MasterRepo {
@@ -145,7 +145,7 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug(" tid " + tid + " sourceDir " + sourceDir);
@@ -217,7 +217,7 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   private String prepareBulkImport(VolumeManager fs, String dir, String tableId) throws IOException {
     Path bulkDir = createNewBulkDir(fs, tableId);

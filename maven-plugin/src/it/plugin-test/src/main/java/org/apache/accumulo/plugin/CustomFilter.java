@@ -21,13 +21,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 
 /**
- * 
+ *
  */
 public class CustomFilter extends Filter {
-  
+
   @Override
   public boolean accept(Key k, Value v) {
     return k.getColumnFamily().toString().equals("allowed");
   }
-  
+
 }

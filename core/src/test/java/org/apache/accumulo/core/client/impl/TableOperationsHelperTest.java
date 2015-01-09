@@ -223,16 +223,16 @@ public class TableOperationsHelperTest {
   }
 
   void check(TableOperationsHelper t, String tablename, String[] values) throws Exception {
-      Map<String,String> expected = new TreeMap<String,String>();
-      for (String value : values) {
-        String parts[] = value.split("=", 2);
-        expected.put(parts[0], parts[1]);
-      }
-      Map<String,String> actual = new TreeMap<String,String>();
-      for (Entry<String,String> entry : t.getProperties(tablename)) {
-        actual.put(entry.getKey(), entry.getValue());
-      }
-      Assert.assertEquals(expected, actual);
+    Map<String,String> expected = new TreeMap<String,String>();
+    for (String value : values) {
+      String parts[] = value.split("=", 2);
+      expected.put(parts[0], parts[1]);
+    }
+    Map<String,String> actual = new TreeMap<String,String>();
+    for (Entry<String,String> entry : t.getProperties(tablename)) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expected, actual);
   }
 
   @Test

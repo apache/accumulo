@@ -185,8 +185,8 @@ public class TraceServer implements Watcher {
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
-          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
-              .newInstance();
+          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
+              .asSubclass(AuthenticationToken.class).newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {

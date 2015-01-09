@@ -40,24 +40,26 @@ import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 
-
 public class TraceDump {
   static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000l;
 
   static class Opts extends ClientOnDefaultTable {
-    @Parameter(names={"-l", "--list"}, description="List recent traces")
+    @Parameter(names = {"-l", "--list"}, description = "List recent traces")
     boolean list = false;
-    @Parameter(names={"-s", "--start"}, description="The start time of traces to display")
+    @Parameter(names = {"-s", "--start"}, description = "The start time of traces to display")
     String start;
-    @Parameter(names={"-e", "--end"}, description="The end time of traces to display")
+    @Parameter(names = {"-e", "--end"}, description = "The end time of traces to display")
     String end;
-    @Parameter(names={"-d", "--dump"}, description="Dump the traces")
+    @Parameter(names = {"-d", "--dump"}, description = "Dump the traces")
     boolean dump = false;
-    @Parameter(names={"-i", "--instance"}, description="URL to point to accumulo.")
+    @Parameter(names = {"-i", "--instance"}, description = "URL to point to accumulo.")
     String instance;
-    @Parameter(description=" <trace id> { <trace id> ... }")
+    @Parameter(description = " <trace id> { <trace id> ... }")
     List<String> traceIds = new ArrayList<String>();
-    Opts() { super("trace");}
+
+    Opts() {
+      super("trace");
+    }
   }
 
   public static void main(String[] args) throws Exception {

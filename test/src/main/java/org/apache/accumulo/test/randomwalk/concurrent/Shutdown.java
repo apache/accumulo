@@ -31,16 +31,16 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class Shutdown extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     log.info("shutting down");
     SetGoalState.main(new String[] {MasterGoalState.CLEAN_STOP.name()});
-    
+
     while (!state.getConnector().instanceOperations().getTabletServers().isEmpty()) {
       UtilWaitThread.sleep(1000);
     }
-    
+
     while (true) {
       try {
         Instance instance = HdfsZooInstance.getInstance();
@@ -52,9 +52,9 @@ public class Shutdown extends Test {
       }
       UtilWaitThread.sleep(1000);
     }
-    
+
     log.info("servers stopped");
     UtilWaitThread.sleep(10000);
   }
-  
+
 }

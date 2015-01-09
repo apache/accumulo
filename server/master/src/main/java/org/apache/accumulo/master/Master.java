@@ -335,8 +335,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         for (String tableId : zoo.getChildren(tables)) {
           String targetNamespace = (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
               : Namespaces.DEFAULT_NAMESPACE_ID;
-          log.debug("Upgrade moving table " + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8) + " (ID: "
-              + tableId + ") into namespace with ID " + targetNamespace);
+          log.debug("Upgrade moving table " + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8) + " (ID: " + tableId
+              + ") into namespace with ID " + targetNamespace);
           zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE, targetNamespace.getBytes(UTF_8), NodeExistsPolicy.SKIP);
         }
 

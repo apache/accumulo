@@ -23,14 +23,14 @@ import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
  * A lexicoder that flips the sort order from another lexicoder. If this is applied to {@link DateLexicoder}, the most recent date will be sorted first and the
  * oldest date will be sorted last. If it's applied to {@link LongLexicoder}, the Long.MAX_VALUE will be sorted first and Long.MIN_VALUE will be sorted last,
  * etc...
- * 
+ *
  * @since 1.6.0
  */
 
 public class ReverseLexicoder<T> implements Lexicoder<T> {
-  
+
   private Lexicoder<T> lexicoder;
-  
+
   /**
    * @param lexicoder
    *          The lexicoder who's sort order will be flipped.
@@ -38,27 +38,27 @@ public class ReverseLexicoder<T> implements Lexicoder<T> {
   public ReverseLexicoder(Lexicoder<T> lexicoder) {
     this.lexicoder = lexicoder;
   }
-  
+
   @Override
   public byte[] encode(T data) {
     byte[] bytes = escape(lexicoder.encode(data));
     byte[] ret = new byte[bytes.length + 1];
-    
+
     for (int i = 0; i < bytes.length; i++)
       ret[i] = (byte) (0xff - (0xff & bytes[i]));
-    
+
     ret[bytes.length] = (byte) 0xff;
-    
+
     return ret;
   }
-  
+
   @Override
   public T decode(byte[] data) {
     byte ret[] = new byte[data.length - 1];
-    
+
     for (int i = 0; i < ret.length; i++)
       ret[i] = (byte) (0xff - (0xff & data[i]));
-    
+
     return lexicoder.decode(unescape(ret));
   }
 }

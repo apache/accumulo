@@ -76,7 +76,8 @@ public class MiniAccumuloClusterImplTest {
     testTableID = tableops.tableIdMap().get(TEST_TABLE);
 
     Scanner s = conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused") Entry<Key,Value> e : s) {}
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> e : s) {}
   }
 
   @Test(timeout = 10000)

@@ -40,7 +40,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * 
+ *
  */
 public class ZooLockTest {
 
@@ -155,7 +155,7 @@ public class ZooLockTest {
   @Test(timeout = 10000)
   public void testNoParent() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
- 
+
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
 
     Assert.assertFalse(zl.isLocked());
@@ -175,7 +175,7 @@ public class ZooLockTest {
   @Test(timeout = 10000)
   public void testDeleteLock() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
- 
+
     ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
     zk.mkdirs(parent);
 
@@ -206,7 +206,7 @@ public class ZooLockTest {
   @Test(timeout = 10000)
   public void testDeleteWaiting() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
- 
+
     ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
     zk.mkdirs(parent);
 
@@ -280,7 +280,7 @@ public class ZooLockTest {
     while (!watcher.isConnected()) {
       Thread.sleep(200);
     }
-    
+
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
@@ -318,7 +318,7 @@ public class ZooLockTest {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
-    
+
     ConnectedWatcher watcher = new ConnectedWatcher();
     ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
     zk.addAuthInfo("digest", "secret".getBytes());
@@ -326,7 +326,7 @@ public class ZooLockTest {
     while (!watcher.isConnected()) {
       Thread.sleep(200);
     }
-    
+
     for (int i = 0; i < 10; i++) {
       zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zk.delete(parent, -1);
@@ -360,7 +360,7 @@ public class ZooLockTest {
     while (!watcher.isConnected()) {
       Thread.sleep(200);
     }
-    
+
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);

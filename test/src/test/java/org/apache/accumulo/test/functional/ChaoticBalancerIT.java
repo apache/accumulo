@@ -38,10 +38,10 @@ public class ChaoticBalancerIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
   }
 
   @Override

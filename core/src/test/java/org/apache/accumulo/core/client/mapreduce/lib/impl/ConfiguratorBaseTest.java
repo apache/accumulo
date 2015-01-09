@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class ConfiguratorBaseTest {
 
@@ -128,10 +128,10 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetVisibiltyCacheSize(){
-	 Configuration conf = new Configuration();
-	 assertEquals(Constants.DEFAULT_VISIBILITY_CACHE_SIZE,ConfiguratorBase.getVisibilityCacheSize(conf));
-	 ConfiguratorBase.setVisibilityCacheSize(conf, 2000);
-	 assertEquals(2000,ConfiguratorBase.getVisibilityCacheSize(conf));
+  public void testSetVisibiltyCacheSize() {
+    Configuration conf = new Configuration();
+    assertEquals(Constants.DEFAULT_VISIBILITY_CACHE_SIZE, ConfiguratorBase.getVisibilityCacheSize(conf));
+    ConfiguratorBase.setVisibilityCacheSize(conf, 2000);
+    assertEquals(2000, ConfiguratorBase.getVisibilityCacheSize(conf));
   }
 }

@@ -57,7 +57,7 @@ public class ShardFixture extends Fixture {
 
     String tableId = conn.tableOperations().tableIdMap().get(name);
     log.info("Created index table " + name + "(id:" + tableId + ")");
-    
+
     SortedSet<Text> splits = genSplits(numPartitions, rand.nextInt(numPartitions) + 1, "%06x");
     conn.tableOperations().addSplits(name, splits);
 

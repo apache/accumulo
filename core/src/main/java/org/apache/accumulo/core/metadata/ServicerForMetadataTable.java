@@ -24,9 +24,9 @@ import org.apache.accumulo.core.security.Credentials;
  * The metadata table's metadata is serviced in the root table.
  */
 class ServicerForMetadataTable extends TableMetadataServicer {
-  
+
   public ServicerForMetadataTable(Instance instance, Credentials credentials) {
     super(instance, credentials, RootTable.NAME, MetadataTable.ID);
   }
-  
+
 }

@@ -139,9 +139,10 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
       }
     } catch (RuntimeException e) {
       // catch the runtime exception from the scanner iterator
-      if (e.getCause() instanceof AccumuloSecurityException && ((AccumuloSecurityException) e.getCause()).getSecurityErrorCode() == SecurityErrorCode.BAD_CREDENTIALS) {
-          e.printStackTrace(System.err);
-          System.exit(FAIL_CODE);
+      if (e.getCause() instanceof AccumuloSecurityException
+          && ((AccumuloSecurityException) e.getCause()).getSecurityErrorCode() == SecurityErrorCode.BAD_CREDENTIALS) {
+        e.printStackTrace(System.err);
+        System.exit(FAIL_CODE);
       }
     }
   }

@@ -245,8 +245,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
   @Before
   public void setupShell() throws Exception {
     ts = new TestShell(getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(), getCluster().getConfig()
-        .getClientConfFile()
-        .getAbsolutePath());
+        .getClientConfFile().getAbsolutePath());
   }
 
   @AfterClass

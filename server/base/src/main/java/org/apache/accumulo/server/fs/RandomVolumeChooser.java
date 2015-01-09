@@ -20,7 +20,7 @@ import java.util.Random;
 
 public class RandomVolumeChooser implements VolumeChooser {
   Random random = new Random();
-  
+
   @Override
   public String choose(String[] options) {
     return options[random.nextInt(options.length)];

@@ -42,21 +42,21 @@ import org.apache.thrift.transport.TTransportException;
 import com.google.common.collect.Iterables;
 
 public abstract class TabletBalancer {
-  
+
   private static final Logger log = Logger.getLogger(TabletBalancer.class);
-  
+
   protected ServerConfiguration configuration;
-  
+
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the configuration.
    */
   public void init(ServerConfiguration conf) {
     configuration = conf;
   }
-  
+
   /**
    * Assign tablets to tablet servers. This method is called whenever the master finds tablets that are unassigned.
-   * 
+   *
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only. The TabletServerStatus for each server may be null if the tablet
    *          server has not yet responded to a recent request for status.
@@ -67,14 +67,14 @@ public abstract class TabletBalancer {
    */
   abstract public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments);
-  
+
   /**
    * Ask the balancer if any migrations are necessary.
-   * 
+   *
    * If the balancer is going to self-abort due to some environmental constraint (e.g. it requires some minimum number of tservers, or a maximum number of
    * outstanding migrations), it should issue a log message to alert operators. The message should be at WARN normally and at ERROR if the balancer knows that
    * the problem can not self correct. It should not issue these messages more than once a minute.
-   * 
+   *
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only.
    * @param migrations
@@ -82,7 +82,7 @@ public abstract class TabletBalancer {
    * @param migrationsOut
    *          new migrations to perform; should not contain tablets in the current set of migrations. Write-only.
    * @return the time, in milliseconds, to wait before re-balancing.
-   * 
+   *
    *         This method will not be called when there are unassigned tablets.
    */
   public abstract long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut);
@@ -94,25 +94,24 @@ public abstract class TabletBalancer {
   protected static final long TIME_BETWEEN_BALANCER_WARNINGS = 60 * ONE_SECOND;
 
   /**
-   * A deferred call descendent TabletBalancers use to log why they can't continue.
-   * The call is deferred so that TabletBalancer can limit how often messages happen.
+   * A deferred call descendent TabletBalancers use to log why they can't continue. The call is deferred so that TabletBalancer can limit how often messages
+   * happen.
    *
    * Implementations should be reused as much as possible.
    *
-   * Be sure to pass in a properly scoped Logger instance so that messages indicate
-   * what part of the system is having trouble.
+   * Be sure to pass in a properly scoped Logger instance so that messages indicate what part of the system is having trouble.
    */
   protected static abstract class BalancerProblem implements Runnable {
     protected final Logger balancerLog;
+
     public BalancerProblem(Logger logger) {
       balancerLog = logger;
     }
   }
 
   /**
-   * If a TabletBalancer requires active tservers, it should use this problem to indicate when there are none.
-   * NoTservers is safe to share with anyone who uses the same Logger. TabletBalancers should have a single
-   * static instance.
+   * If a TabletBalancer requires active tservers, it should use this problem to indicate when there are none. NoTservers is safe to share with anyone who uses
+   * the same Logger. TabletBalancers should have a single static instance.
    */
   protected static class NoTservers extends BalancerProblem {
     public NoTservers(Logger logger) {
@@ -126,14 +125,12 @@ public abstract class TabletBalancer {
   }
 
   /**
-   * If a TabletBalancer only balances when there are no outstanding migrations, it should use this problem
-   * to indicate when they exist.
+   * If a TabletBalancer only balances when there are no outstanding migrations, it should use this problem to indicate when they exist.
    *
-   * Iff a TabletBalancer makes use of the migrations member to provide samples, then OutstandingMigrations
-   * is not thread safe.
+   * Iff a TabletBalancer makes use of the migrations member to provide samples, then OutstandingMigrations is not thread safe.
    */
   protected static class OutstandingMigrations extends BalancerProblem {
-    public Set<KeyExtent> migrations = Collections.<KeyExtent>emptySet();
+    public Set<KeyExtent> migrations = Collections.<KeyExtent> emptySet();
 
     public OutstandingMigrations(Logger logger) {
       super(logger);
@@ -148,8 +145,8 @@ public abstract class TabletBalancer {
   }
 
   /**
-   * Warn that a Balancer can't work because of some external restriction.
-   * Will not call the provided logging handler  more often than TIME_BETWEEN_BALANCER_WARNINGS
+   * Warn that a Balancer can't work because of some external restriction. Will not call the provided logging handler more often than
+   * TIME_BETWEEN_BALANCER_WARNINGS
    */
   protected void constraintNotMet(BalancerProblem cause) {
     if (!stuck) {
@@ -169,11 +166,11 @@ public abstract class TabletBalancer {
   protected void resetBalancerErrors() {
     stuck = false;
   }
-  
+
   /**
    * Fetch the tablets for the given table by asking the tablet server. Useful if your balance strategy needs details at the tablet level to decide what tablets
    * to move.
-   * 
+   *
    * @param tserver
    *          The tablet server to ask.
    * @param tableId
@@ -198,14 +195,14 @@ public abstract class TabletBalancer {
     }
     return null;
   }
-  
+
   /**
    * Utility to ensure that the migrations from balance() are consistent:
    * <ul>
    * <li>Tablet objects are not null
    * <li>Source and destination tablet servers are not null and current
    * </ul>
-   * 
+   *
    * @return A list of TabletMigration object that passed sanity checks.
    */
   public static List<TabletMigration> checkMigrationSanity(Set<TServerInstance> current, List<TabletMigration> migrations) {
@@ -235,5 +232,5 @@ public abstract class TabletBalancer {
     }
     return result;
   }
-  
+
 }

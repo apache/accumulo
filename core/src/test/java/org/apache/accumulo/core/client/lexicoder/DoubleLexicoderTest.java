@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 /**
- * 
+ *
  */
 public class DoubleLexicoderTest extends LexicoderTest {
   public void testSortOrder() {
@@ -25,6 +25,6 @@ public class DoubleLexicoderTest extends LexicoderTest {
         -1.1, -1.01, Math.nextUp(Double.NEGATIVE_INFINITY), Math.nextAfter(0.0, Double.NEGATIVE_INFINITY),
         Math.nextAfter(Double.MAX_VALUE, Double.NEGATIVE_INFINITY), Math.pow(10.0, 30.0) * -1.0, Math.pow(10.0, 30.0), Math.pow(10.0, -30.0) * -1.0,
         Math.pow(10.0, -30.0));
-    
+
   }
 }

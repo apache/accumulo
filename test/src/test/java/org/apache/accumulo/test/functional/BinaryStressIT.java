@@ -54,7 +54,7 @@ public class BinaryStressIT extends AccumuloClusterIT {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "50K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
   }
 
   private String majcDelay, maxMem;
@@ -83,7 +83,7 @@ public class BinaryStressIT extends AccumuloClusterIT {
       InstanceOperations iops = getConnector().instanceOperations();
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
-      
+
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }

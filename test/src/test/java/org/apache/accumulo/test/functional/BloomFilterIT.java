@@ -57,10 +57,10 @@ public class BloomFilterIT extends AccumuloClusterIT {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setDefaultMemory(1, MemoryUnit.GIGABYTE);
     cfg.setNumTservers(1);
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
     siteConfig.put(Property.TSERV_MUTATION_QUEUE_MAX.getKey(), "10M");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
   }
 
   @Override
@@ -162,7 +162,7 @@ public class BloomFilterIT extends AccumuloClusterIT {
   private void timeCheck(long t1, long t2) throws Exception {
     double improvement = (t1 - t2) * 1.0 / t1;
     if (improvement < .1) {
-      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + (improvement*100) + "%)");
+      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + (improvement * 100) + "%)");
     }
     log.info(String.format("Improvement: %.2f%% (%d vs %d)", (improvement * 100), t1, t2));
   }

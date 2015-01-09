@@ -54,7 +54,6 @@ public class HexFormatterTest {
     assertEquals(new Text("\0"), formatter.interpretRow(new Text("0")));
   }
 
-
   @Test
   public void testRoundTripRows() {
     Text bytes = new Text(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});

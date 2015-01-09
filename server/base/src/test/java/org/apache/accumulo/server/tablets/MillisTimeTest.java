@@ -16,18 +16,20 @@
  */
 package org.apache.accumulo.server.tablets;
 
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.server.data.ServerMutation;
-import org.apache.accumulo.server.tablets.TabletTime.MillisTime;
-
-import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.server.data.ServerMutation;
+import org.apache.accumulo.server.tablets.TabletTime.MillisTime;
+import org.junit.Before;
+import org.junit.Test;
 
 public class MillisTimeTest {
   private static final long TIME = 1234L;

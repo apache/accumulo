@@ -38,7 +38,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class GarbageCollectionTest {
   static class TestGCE implements GarbageCollectionEnvironment {
@@ -334,7 +334,6 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertRemoved(gce);
   }
-
 
   @Test
   public void testCustomDirectories() throws Exception {

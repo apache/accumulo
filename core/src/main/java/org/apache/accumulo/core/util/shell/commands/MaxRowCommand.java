@@ -24,17 +24,17 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
 
 public class MaxRowCommand extends ScanCommand {
-  
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
-    
+
     final Range range = getRange(cl, interpeter);
     final Authorizations auths = getAuths(cl, shellState);
     final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
-    
+
     try {
       final Text max = shellState.getConnector().tableOperations()
           .getMaxRow(tableName, auths, startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
@@ -44,10 +44,10 @@ public class MaxRowCommand extends ScanCommand {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "finds the max row in a table within a given range";

@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,12 +42,8 @@ import org.junit.Test;
 
 import com.google.common.io.Files;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-
 /**
- * 
+ *
  */
 public class FileUtilTest {
 

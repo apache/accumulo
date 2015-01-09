@@ -31,13 +31,13 @@ public class NumSummationTest extends TestCase {
       b[i] = 0;
     return b;
   }
-  
+
   public void test1() {
     try {
       long[] la = {1l, 2l, 3l};
       byte[] b = NumArraySummation.longArrayToBytes(la);
       long[] la2 = NumArraySummation.bytesToLongArray(b);
-      
+
       assertTrue(la.length == la2.length);
       for (int i = 0; i < la.length; i++) {
         assertTrue(i + ": " + la[i] + " does not equal " + la2[i], la[i] == la2[i]);
@@ -46,7 +46,7 @@ public class NumSummationTest extends TestCase {
       assertTrue(false);
     }
   }
-  
+
   public void test2() {
     try {
       NumArraySummation nas = new NumArraySummation();
@@ -68,7 +68,7 @@ public class NumSummationTest extends TestCase {
       assertTrue(false);
     }
   }
-  
+
   public void test3() {
     try {
       NumArraySummation nas = new NumArraySummation();
@@ -87,19 +87,19 @@ public class NumSummationTest extends TestCase {
       assertTrue(false);
     }
   }
-  
+
   public void test4() {
     try {
       long l = 5l;
       byte[] b = NumSummation.longToBytes(l);
       long l2 = NumSummation.bytesToLong(b);
-      
+
       assertTrue(l == l2);
     } catch (Exception e) {
       assertTrue(false);
     }
   }
-  
+
   public void test5() {
     try {
       NumSummation ns = new NumSummation();
@@ -108,23 +108,23 @@ public class NumSummationTest extends TestCase {
       }
       long l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == 13);
-      
+
       ns.collect(new Value(NumSummation.longToBytes(Long.MAX_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == Long.MAX_VALUE);
-      
+
       ns.collect(new Value(NumSummation.longToBytes(Long.MIN_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == -1);
-      
+
       ns.collect(new Value(NumSummation.longToBytes(Long.MIN_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == Long.MIN_VALUE);
-      
+
       ns.collect(new Value(NumSummation.longToBytes(Long.MIN_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == Long.MIN_VALUE);
-      
+
       ns.reset();
       l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == 0);

@@ -22,13 +22,13 @@ import java.util.List;
  * An abstract version of ZooKeeper that we can write tests against.
  */
 public interface DistributedStore {
-  
+
   List<String> getChildren(String path) throws DistributedStoreException;
-  
+
   byte[] get(String path) throws DistributedStoreException;
-  
+
   void put(String path, byte[] bs) throws DistributedStoreException;
-  
+
   void remove(String path) throws DistributedStoreException;
-  
+
 }

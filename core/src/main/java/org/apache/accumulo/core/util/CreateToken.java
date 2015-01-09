@@ -33,53 +33,52 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.util.Base64;
 
 import com.beust.jcommander.Parameter;
 
 public class CreateToken {
-  
+
   private static ConsoleReader reader = null;
-  
+
   private static ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
       reader = new ConsoleReader();
     return reader;
   }
-  
+
   static class Opts extends Help {
     @Parameter(names = {"-u", "--user"}, description = "Connection user")
     public String principal = null;
-    
+
     @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
     public Password password = null;
-    
+
     @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
     public Password securePassword = null;
-    
+
     @Parameter(names = {"-tc", "--tokenClass"}, description = "The class of the authentication token")
     public String tokenClassName = PasswordToken.class.getName();
-    
+
     @Parameter(names = {"-f", "--file"}, description = "The filename to save the auth token to. Multiple tokens can be stored in the same file,"
         + " but only the first for each user will be recognized.")
     public String tokenFile = null;
   }
-  
+
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(CreateToken.class.getName(), args);
-    
+
     Password pass = opts.password;
     if (pass == null && opts.securePassword != null) {
       pass = opts.securePassword;
     }
-    
+
     try {
       String principal = opts.principal;
       if (principal == null) {
         principal = getConsoleReader().readLine("Username (aka principal): ");
       }
-      
+
       AuthenticationToken token = Class.forName(opts.tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
       Properties props = new Properties();
       for (TokenProperty tp : token.getProperties()) {
@@ -97,7 +96,7 @@ public class CreateToken {
         token.init(props);
       }
       String tokenBase64 = Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token));
-      
+
       String tokenFile = opts.tokenFile;
       if (tokenFile == null) {
         tokenFile = getConsoleReader().readLine("File to save auth token to: ");

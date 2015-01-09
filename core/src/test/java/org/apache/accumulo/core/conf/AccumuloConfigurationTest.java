@@ -33,15 +33,15 @@ public class AccumuloConfigurationTest {
     assertEquals(42l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42m"));
     assertEquals(42l * 1024l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42G"));
     assertEquals(42l * 1024l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42g"));
-    
+
   }
-  
-  @Test(expected = IllegalArgumentException.class)  
+
+  @Test(expected = IllegalArgumentException.class)
   public void testGetMemoryInBytesFailureCases1() throws Exception {
     AccumuloConfiguration.getMemoryInBytes("42x");
   }
-  
-  @Test(expected = IllegalArgumentException.class)  
+
+  @Test(expected = IllegalArgumentException.class)
   public void testGetMemoryInBytesFailureCases2() throws Exception {
     AccumuloConfiguration.getMemoryInBytes("FooBar");
   }

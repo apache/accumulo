@@ -36,7 +36,7 @@ public class ServerConfigurationUtilTest {
   private static boolean isCredentialProviderAvailable = false;
   private static final String keystoreName = "/site-cfg.jceks";
 
-  //site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret', 'general.rpc.timeout'=>'timeout'}
+  // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret', 'general.rpc.timeout'=>'timeout'}
   private static File keystore;
 
   @BeforeClass
@@ -60,7 +60,7 @@ public class ServerConfigurationUtilTest {
   protected String getKeyStoreUrl(File absoluteFilePath) {
     return "jceks://file" + absoluteFilePath.getAbsolutePath();
   }
-  
+
   @Test
   public void loadSensitivePropertyFromCredentialProvider() {
     if (!isCredentialProviderAvailable) {
@@ -74,7 +74,7 @@ public class ServerConfigurationUtilTest {
     AccumuloConfiguration accClientConf = ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
     Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
-  
+
   @Test
   public void defaultValueForSensitiveProperty() {
     if (!isCredentialProviderAvailable) {

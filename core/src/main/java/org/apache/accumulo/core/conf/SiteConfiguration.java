@@ -25,10 +25,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
 /**
- * A configuration drawn from an XML configuration file specified by the system property
- * org.apache.accumulo.config.file, which points to the file as a resource. The default value is
- * "accumulo-site.xml". <b>Note</b>: Client code should not use this class, and it may be deprecated in the
- * future.
+ * A configuration drawn from an XML configuration file specified by the system property org.apache.accumulo.config.file, which points to the file as a
+ * resource. The default value is "accumulo-site.xml". <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
@@ -154,7 +152,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public void clear() {
     getXmlConfig().clear();
   }
-
 
   /**
    * method here to support testing, do not call

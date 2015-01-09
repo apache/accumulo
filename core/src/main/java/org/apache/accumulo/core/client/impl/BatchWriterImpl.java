@@ -25,10 +25,10 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class BatchWriterImpl implements BatchWriter {
-  
+
   private String table;
   private TabletServerBatchWriter bw;
-  
+
   public BatchWriterImpl(Instance instance, Credentials credentials, String table, BatchWriterConfig config) {
     ArgumentChecker.notNull(instance, credentials, table);
     if (config == null)
@@ -36,27 +36,27 @@ public class BatchWriterImpl implements BatchWriter {
     this.table = table;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);
   }
-  
+
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
     ArgumentChecker.notNull(m);
     bw.addMutation(table, m);
   }
-  
+
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
     ArgumentChecker.notNull(iterable);
     bw.addMutation(table, iterable.iterator());
   }
-  
+
   @Override
   public void close() throws MutationsRejectedException {
     bw.close();
   }
-  
+
   @Override
   public void flush() throws MutationsRejectedException {
     bw.flush();
   }
-  
+
 }

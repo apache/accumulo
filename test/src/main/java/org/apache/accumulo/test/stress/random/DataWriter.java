@@ -22,12 +22,12 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 public class DataWriter extends Stream<Void> {
   private final BatchWriter writer;
   private final RandomMutations mutations;
-  
+
   public DataWriter(BatchWriter writer, RandomMutations mutations) {
     this.writer = writer;
     this.mutations = mutations;
   }
-  
+
   @Override
   public Void next() {
     try {
@@ -37,7 +37,7 @@ public class DataWriter extends Stream<Void> {
     }
     return null;
   }
-  
+
   @Override
   public void finalize() {
     try {

@@ -203,11 +203,8 @@ public class ExamplesIT extends AccumuloClusterIT {
         new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable", dataTable,
             "--vis", visibility, "--chunkSize", Integer.toString(10000), getUsableDir()});
     assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0, entry.getKey().intValue());
-    entry = getClusterControl()
-        .execWithStdout(
-            QueryUtil.class,
-        new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path",
-                "accumulo-site.xml"});
+    entry = getClusterControl().execWithStdout(QueryUtil.class,
+        new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path", "accumulo-site.xml"});
     if (ClusterType.MINI == getClusterType()) {
       MiniAccumuloClusterImpl impl = (MiniAccumuloClusterImpl) cluster;
       for (LogWriter writer : impl.getLogWriters()) {
@@ -360,8 +357,7 @@ public class ExamplesIT extends AccumuloClusterIT {
   @Test
   public void testTeraSortAndRead() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance,
-        "-z",
+    goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z",
         keepers, "-u", user, "-p", passwd, "--splits", "4");
     Path output = new Path(dir, "tmp/nines");
     if (fs.exists(output)) {

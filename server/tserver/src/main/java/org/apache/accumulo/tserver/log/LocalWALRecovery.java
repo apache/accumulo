@@ -144,7 +144,7 @@ public class LocalWALRecovery implements Runnable {
 
         Path localWal = new Path(file.toURI());
         FileSystem localFs = FileSystem.getLocal(fs.getConf());
-        
+
         @SuppressWarnings("deprecation")
         Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
         // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));

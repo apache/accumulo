@@ -64,8 +64,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
   }
 
   public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
-    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", getToken()),
-        new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
+    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", getToken()), new BatchWriterConfig(), cacheTimeoutInSeconds,
+        TimeUnit.SECONDS);
   }
 
   @Test

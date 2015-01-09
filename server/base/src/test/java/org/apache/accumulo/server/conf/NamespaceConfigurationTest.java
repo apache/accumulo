@@ -17,11 +17,22 @@
 package org.apache.accumulo.server.conf;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -35,16 +46,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 
 public class NamespaceConfigurationTest {
   private static final String NSID = "namespace";
@@ -86,8 +87,8 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGet_InZK() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(
-        "sekrit".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
+        .andReturn("sekrit".getBytes(UTF_8));
     replay(zc);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
   }
@@ -123,10 +124,8 @@ public class NamespaceConfigurationTest {
     children.add("foo");
     children.add("ding");
     expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF)).andReturn(children);
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn(
-        "bar".getBytes(UTF_8));
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn(
-        "dong".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn("dong".getBytes(UTF_8));
     replay(zc);
     c.getProperties(props, filter);
     assertEquals(2, props.size());
@@ -150,8 +149,8 @@ public class NamespaceConfigurationTest {
   public void testInvalidateCache() {
     // need to do a get so the accessor is created
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(
-        "sekrit".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
+        .andReturn("sekrit".getBytes(UTF_8));
     zc.clear();
     replay(zc);
     c.get(Property.INSTANCE_SECRET);

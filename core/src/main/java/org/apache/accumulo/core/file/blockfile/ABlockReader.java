@@ -21,30 +21,31 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 /*
- * Minimal interface to read a block from a 
+ * Minimal interface to read a block from a
  * block based file
- * 
+ *
  */
 
 public interface ABlockReader extends DataInput {
-  
+
   long getRawSize();
-  
+
   DataInputStream getStream() throws IOException;
-  
+
   void close() throws IOException;
-  
+
   /**
    * An indexable block supports seeking, getting a position, and associating an arbitrary index with the block
-   * 
+   *
    * @return true, if the block is indexable; otherwise false.
    */
   boolean isIndexable();
 
   void seek(int position);
 
-  /** Get the file position.
-
+  /**
+   * Get the file position.
+   *
    * @return the file position.
    */
   int getPosition();

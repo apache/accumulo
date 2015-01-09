@@ -435,7 +435,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
     final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
-    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId); 
+    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 

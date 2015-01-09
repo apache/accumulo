@@ -30,12 +30,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class MetadataSplitIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
- 
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
@@ -50,7 +50,7 @@ public class MetadataSplitIT extends ConfigurableMacIT {
       c.tableOperations().create("table" + i);
       c.tableOperations().flush(MetadataTable.NAME, null, null, true);
     }
-    UtilWaitThread.sleep(10*1000);
+    UtilWaitThread.sleep(10 * 1000);
     assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
   }
 }

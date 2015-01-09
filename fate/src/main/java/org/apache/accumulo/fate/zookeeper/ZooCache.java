@@ -40,8 +40,7 @@ import org.apache.zookeeper.data.Stat;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
- * A cache for values stored in ZooKeeper. Values are kept up to date as they
- * change.
+ * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
 public class ZooCache {
   private static final Logger log = Logger.getLogger(ZooCache.class);
@@ -104,31 +103,36 @@ public class ZooCache {
   /**
    * Creates a new cache.
    *
-   * @param zooKeepers comma-separated list of ZooKeeper host[:port]s
-   * @param sessionTimeout ZooKeeper session timeout
+   * @param zooKeepers
+   *          comma-separated list of ZooKeeper host[:port]s
+   * @param sessionTimeout
+   *          ZooKeeper session timeout
    */
   public ZooCache(String zooKeepers, int sessionTimeout) {
     this(zooKeepers, sessionTimeout, null);
   }
 
   /**
-   * Creates a new cache. The given watcher is called whenever a watched node
-   * changes.
+   * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
-   * @param zooKeepers comma-separated list of ZooKeeper host[:port]s
-   * @param sessionTimeout ZooKeeper session timeout
-   * @param watcher watcher object
+   * @param zooKeepers
+   *          comma-separated list of ZooKeeper host[:port]s
+   * @param sessionTimeout
+   *          ZooKeeper session timeout
+   * @param watcher
+   *          watcher object
    */
   public ZooCache(String zooKeepers, int sessionTimeout, Watcher watcher) {
     this(new ZooReader(zooKeepers, sessionTimeout), watcher);
   }
 
   /**
-   * Creates a new cache. The given watcher is called whenever a watched node
-   * changes.
+   * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
-   * @param reader ZooKeeper reader
-   * @param watcher watcher object
+   * @param reader
+   *          ZooKeeper reader
+   * @param watcher
+   *          watcher object
    */
   public ZooCache(ZooReader reader, Watcher watcher) {
     this.zReader = reader;
@@ -187,7 +191,8 @@ public class ZooCache {
   /**
    * Gets the children of the given node. A watch is established by this call.
    *
-   * @param zPath path of node
+   * @param zPath
+   *          path of node
    * @return children list, or null if node has no children or does not exist
    */
   public synchronized List<String> getChildren(final String zPath) {
@@ -222,10 +227,10 @@ public class ZooCache {
   }
 
   /**
-   * Gets data at the given path. Status information is not returned. A watch is
-   * established by this call.
+   * Gets data at the given path. Status information is not returned. A watch is established by this call.
    *
-   * @param zPath path to get
+   * @param zPath
+   *          path to get
    * @return path data, or null if non-existent
    */
   public synchronized byte[] get(final String zPath) {
@@ -233,11 +238,12 @@ public class ZooCache {
   }
 
   /**
-   * Gets data at the given path, filling status information into the given
-   * <code>Stat</code> object. A watch is established by this call.
+   * Gets data at the given path, filling status information into the given <code>Stat</code> object. A watch is established by this call.
    *
-   * @param zPath path to get
-   * @param stat status object to populate
+   * @param zPath
+   *          path to get
+   * @param stat
+   *          status object to populate
    * @return path data, or null if non-existent
    */
   public synchronized byte[] get(final String zPath, Stat stat) {
@@ -332,17 +338,20 @@ public class ZooCache {
   /**
    * Checks if a data value (or lack of one) is cached.
    *
-   * @param zPath path of node
+   * @param zPath
+   *          path of node
    * @return true if data value is cached
    */
   @VisibleForTesting
   synchronized boolean dataCached(String zPath) {
     return cache.containsKey(zPath);
   }
+
   /**
    * Checks if children of a node (or lack of them) are cached.
    *
-   * @param zPath path of node
+   * @param zPath
+   *          path of node
    * @return true if children are cached
    */
   @VisibleForTesting
@@ -353,7 +362,8 @@ public class ZooCache {
   /**
    * Clears this cache of all information about nodes rooted at the given path.
    *
-   * @param zPath path of top node
+   * @param zPath
+   *          path of top node
    */
   public synchronized void clear(String zPath) {
 

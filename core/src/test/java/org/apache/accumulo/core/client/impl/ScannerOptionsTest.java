@@ -28,7 +28,7 @@ import org.junit.Test;
  * Test that scanner options are set/unset correctly
  */
 public class ScannerOptionsTest {
-  
+
   /**
    * Test that you properly add and remove iterators from a scanner
    */
@@ -40,7 +40,7 @@ public class ScannerOptionsTest {
     options.removeScanIterator("NAME");
     assertEquals(0, options.serverSideIteratorList.size());
   }
-  
+
   @Test
   public void testIteratorConflict() {
     ScannerOptions options = new ScannerOptions();

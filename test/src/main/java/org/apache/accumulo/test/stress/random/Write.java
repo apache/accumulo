@@ -22,25 +22,25 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 
 public class Write {
-  
+
   public static void main(String[] args) throws Exception {
     WriteOptions opts = new WriteOptions();
     BatchWriterOpts batch_writer_opts = new BatchWriterOpts();
     opts.parseArgs(Write.class.getName(), args, batch_writer_opts);
-    
+
     opts.check();
-    
+
     Connector c = opts.getConnector();
-    
-    if(opts.clear_table && c.tableOperations().exists(opts.getTableName())) {
+
+    if (opts.clear_table && c.tableOperations().exists(opts.getTableName())) {
       try {
-      c.tableOperations().delete(opts.getTableName());
-      } catch(TableNotFoundException e) {
+        c.tableOperations().delete(opts.getTableName());
+      } catch (TableNotFoundException e) {
         System.err.println("Couldn't delete the table because it doesn't exist any more.");
       }
     }
-    
-    if(!c.tableOperations().exists(opts.getTableName())) {
+
+    if (!c.tableOperations().exists(opts.getTableName())) {
       try {
         c.tableOperations().create(opts.getTableName());
       } catch (TableExistsException e) {
@@ -53,42 +53,21 @@ public class Write {
       writeDelay = 0;
     }
 
-    DataWriter dw = new DataWriter(c.createBatchWriter(opts.getTableName(), batch_writer_opts.getBatchWriterConfig()),
-        new RandomMutations(
-            //rows
-            new RandomByteArrays(
-                new RandomWithinRange(
-                    opts.row_seed,
-                    opts.rowMin(),
-                    opts.rowMax())),
-            //cfs
-            new RandomByteArrays(
-                new RandomWithinRange(
-                    opts.cf_seed,
-                    opts.cfMin(),
-                    opts.cfMax())),
-            //cqs
-            new RandomByteArrays(
-                new RandomWithinRange(
-                    opts.cq_seed,
-                    opts.cqMin(),
-                    opts.cqMax())),
-            //vals
-            new RandomByteArrays(
-                new RandomWithinRange(
-                    opts.value_seed,
-                    opts.valueMin(),
-                    opts.valueMax())),
-            //number of cells per row
-            new RandomWithinRange(
-                opts.row_width_seed,
-                opts.rowWidthMin(),
-                opts.rowWidthMax()),
-            // max cells per mutation
-            opts.max_cells_per_mutation)
-        );
-    
-    while(true) {
+    DataWriter dw = new DataWriter(c.createBatchWriter(opts.getTableName(), batch_writer_opts.getBatchWriterConfig()), new RandomMutations(
+    // rows
+        new RandomByteArrays(new RandomWithinRange(opts.row_seed, opts.rowMin(), opts.rowMax())),
+        // cfs
+        new RandomByteArrays(new RandomWithinRange(opts.cf_seed, opts.cfMin(), opts.cfMax())),
+        // cqs
+        new RandomByteArrays(new RandomWithinRange(opts.cq_seed, opts.cqMin(), opts.cqMax())),
+        // vals
+        new RandomByteArrays(new RandomWithinRange(opts.value_seed, opts.valueMin(), opts.valueMax())),
+        // number of cells per row
+        new RandomWithinRange(opts.row_width_seed, opts.rowWidthMin(), opts.rowWidthMax()),
+        // max cells per mutation
+        opts.max_cells_per_mutation));
+
+    while (true) {
       dw.next();
       if (writeDelay > 0) {
         Thread.sleep(writeDelay);

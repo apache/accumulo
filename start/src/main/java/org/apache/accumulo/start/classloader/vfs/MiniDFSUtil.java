@@ -20,7 +20,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class MiniDFSUtil {
-  
+
   public static String computeDatanodeDirectoryPermission() {
     // MiniDFSCluster will check the permissions on the data directories, but does not
     // do a good job of setting them properly. We need to get the users umask and set
@@ -32,12 +32,12 @@ public class MiniDFSUtil {
       try {
         String line = bri.readLine();
         p.waitFor();
-        
+
         Short umask = Short.parseShort(line.trim(), 8);
         // Need to set permission to 777 xor umask
         // leading zero makes java interpret as base 8
         int newPermission = 0777 ^ umask;
-        
+
         return String.format("%03o", newPermission);
       } finally {
         bri.close();
@@ -46,5 +46,5 @@ public class MiniDFSUtil {
       throw new RuntimeException("Error getting umask from O/S", e);
     }
   }
-  
+
 }

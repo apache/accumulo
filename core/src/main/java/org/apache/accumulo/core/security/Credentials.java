@@ -34,7 +34,7 @@ import org.apache.accumulo.core.util.Base64;
  * important, so that the authentication token carried in a {@link Connector} can be destroyed, invalidating future RPC operations from that {@link Connector}.
  * <p>
  * See ACCUMULO-1312
- * 
+ *
  * @since 1.6.0
  */
 public class Credentials {
@@ -44,7 +44,7 @@ public class Credentials {
 
   /**
    * Creates a new credentials object.
-   * 
+   *
    * @param principal
    *          unique identifier for the entity (e.g. a user or service) authorized for these credentials
    * @param token
@@ -57,7 +57,7 @@ public class Credentials {
 
   /**
    * Gets the principal.
-   * 
+   *
    * @return unique identifier for the entity (e.g. a user or service) authorized for these credentials
    */
   public String getPrincipal() {
@@ -66,7 +66,7 @@ public class Credentials {
 
   /**
    * Gets the authentication token.
-   * 
+   *
    * @return authentication token used to prove that the principal for these credentials has been properly verified
    */
   public AuthenticationToken getToken() {
@@ -76,7 +76,7 @@ public class Credentials {
   /**
    * Converts the current object to the relevant thrift type. The object returned from this contains a non-destroyable version of the
    * {@link AuthenticationToken}, so this should be used just before placing on the wire, and references to it should be tightly controlled.
-   * 
+   *
    * @param instance
    *          client instance
    * @return Thrift credentials
@@ -93,7 +93,9 @@ public class Credentials {
 
   /**
    * Converts a given thrift object to our internal Credentials representation.
-   * @param serialized a Thrift encoded set of credentials
+   *
+   * @param serialized
+   *          a Thrift encoded set of credentials
    * @return a new Credentials instance; destroy the token when you're done.
    */
   public static Credentials fromThrift(TCredentials serialized) {
@@ -103,7 +105,7 @@ public class Credentials {
   /**
    * Converts the current object to a serialized form. The object returned from this contains a non-destroyable version of the {@link AuthenticationToken}, so
    * references to it should be tightly controlled.
-   * 
+   *
    * @return serialized form of these credentials
    */
   public final String serialize() {
@@ -114,7 +116,7 @@ public class Credentials {
 
   /**
    * Converts the serialized form to an instance of {@link Credentials}. The original serialized form will not be affected.
-   * 
+   *
    * @param serializedForm
    *          serialized form of credentials
    * @return deserialized credentials

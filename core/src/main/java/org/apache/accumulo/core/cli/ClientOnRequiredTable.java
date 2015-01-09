@@ -24,17 +24,17 @@ import org.apache.hadoop.mapreduce.Job;
 import com.beust.jcommander.Parameter;
 
 public class ClientOnRequiredTable extends ClientOpts {
-  
+
   @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
   public String tableName = null;
-  
+
   @Parameter(names = {"-tf", "--tokenFile"}, description = "File in hdfs containing the user's authentication token create with \"bin/accumulo create-token\"")
   public String tokenFile = "";
-  
+
   @Override
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     super.setAccumuloConfigs(job);
-    
+
     if (tokenFile.isEmpty()) {
       AccumuloInputFormat.setConnectorInfo(job, principal, getToken());
       AccumuloOutputFormat.setConnectorInfo(job, principal, getToken());

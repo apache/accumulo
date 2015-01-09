@@ -37,11 +37,9 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 
 /**
- * 
+ *
  */
 public class ListVolumesUsed {
-
-
 
   public static void main(String[] args) throws Exception {
     listVolumes(HdfsZooInstance.getInstance(), SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
@@ -83,8 +81,6 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
 
   }
-
-
 
   private static void listTable(String name, Connector conn) throws Exception {
 

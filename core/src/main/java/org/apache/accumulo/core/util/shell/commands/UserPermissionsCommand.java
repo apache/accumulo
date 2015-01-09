@@ -31,7 +31,7 @@ import org.apache.commons.cli.Options;
 
 public class UserPermissionsCommand extends Command {
   private Option userOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
@@ -63,7 +63,6 @@ public class UserPermissionsCommand extends Command {
     }
     shellState.getReader().println();
 
-    
     runOnce = true;
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";

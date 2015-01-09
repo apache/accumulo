@@ -30,48 +30,48 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class FirstEntryInRowIterator extends SkippingIterator implements OptionDescriber {
-  
+
   // options
   static final String NUM_SCANS_STRING_NAME = "scansBeforeSeek";
-  
+
   // iterator predecessor seek options to pass through
   private Range latestRange;
   private Collection<ByteSequence> latestColumnFamilies;
   private boolean latestInclusive;
-  
+
   // private fields
   private Text lastRowFound;
   private int numscans;
-  
+
   /**
    * convenience method to set the option to optimize the frequency of scans vs. seeks
    */
   public static void setNumScansBeforeSeek(IteratorSetting cfg, int num) {
     cfg.addOption(NUM_SCANS_STRING_NAME, Integer.toString(num));
   }
-  
+
   // this must be public for OptionsDescriber
   public FirstEntryInRowIterator() {
     super();
   }
-  
+
   public FirstEntryInRowIterator(FirstEntryInRowIterator other, IteratorEnvironment env) {
     super();
     setSource(other.getSource().deepCopy(env));
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new FirstEntryInRowIterator(this, env);
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     String o = options.get(NUM_SCANS_STRING_NAME);
     numscans = o == null ? 10 : Integer.parseInt(o);
   }
-  
+
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
@@ -79,7 +79,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
       return;
     int count = 0;
     while (getSource().hasTop() && lastRowFound.equals(getSource().getTopKey().getRow())) {
-      
+
       // try to efficiently jump to the next matching key
       if (count < numscans) {
         ++count;
@@ -87,7 +87,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
       } else {
         // too many scans, just seek
         count = 0;
-        
+
         // determine where to seek to, but don't go beyond the user-specified range
         Key nextKey = getSource().getTopKey().followingKey(PartialKey.ROW);
         if (!latestRange.afterEndKey(nextKey))
@@ -100,14 +100,14 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     }
     lastRowFound = getSource().hasTop() ? getSource().getTopKey().getRow(lastRowFound) : null;
   }
-  
+
   private boolean finished = true;
-  
+
   @Override
   public boolean hasTop() {
     return !finished && getSource().hasTop();
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // save parameters for future internal seeks
@@ -115,19 +115,19 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     latestColumnFamilies = columnFamilies;
     latestInclusive = inclusive;
     lastRowFound = null;
-    
+
     Key startKey = range.getStartKey();
     Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
     super.seek(seekRange, columnFamilies, inclusive);
     finished = false;
-    
+
     if (getSource().hasTop()) {
       lastRowFound = getSource().getTopKey().getRow();
       if (range.beforeStartKey(getSource().getTopKey()))
         consume();
     }
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     String name = "firstEntry";
@@ -136,7 +136,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     namedOptions.put(NUM_SCANS_STRING_NAME, "Number of scans to try before seeking [10]");
     return new IteratorOptions(name, desc, namedOptions, null);
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     try {
@@ -148,5 +148,5 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     }
     return true;
   }
-  
+
 }

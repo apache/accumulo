@@ -28,11 +28,11 @@ import org.apache.hadoop.io.Text;
 
 /**
  * Conditions that must be met on a particular column in a row.
- * 
+ *
  * @since 1.6.0
  */
 public class Condition {
-  
+
   private ByteSequence cf;
   private ByteSequence cq;
   private ByteSequence cv;
@@ -40,7 +40,6 @@ public class Condition {
   private Long ts;
   private IteratorSetting iterators[] = new IteratorSetting[0];
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
-  
 
   public Condition(CharSequence cf, CharSequence cq) {
     ArgumentChecker.notNull(cf, cq);
@@ -48,7 +47,7 @@ public class Condition {
     this.cq = new ArrayByteSequence(cq.toString().getBytes(UTF_8));
     this.cv = EMPTY;
   }
-  
+
   public Condition(byte[] cf, byte[] cq) {
     ArgumentChecker.notNull(cf, cq);
     this.cf = new ArrayByteSequence(cf);
@@ -73,14 +72,14 @@ public class Condition {
   public ByteSequence getFamily() {
     return cf;
   }
-  
+
   public ByteSequence getQualifier() {
     return cq;
   }
 
   /**
    * Sets the version for the column to check. If this is not set then the latest column will be checked, unless iterators do something different.
-   * 
+   *
    * @return returns this
    */
 
@@ -88,14 +87,14 @@ public class Condition {
     this.ts = ts;
     return this;
   }
-  
+
   public Long getTimestamp() {
     return ts;
   }
 
   /**
    * see {@link #setValue(byte[])}
-   * 
+   *
    * @return returns this
    */
 
@@ -108,7 +107,7 @@ public class Condition {
   /**
    * This method sets the expected value of a column. Inorder for the condition to pass the column must exist and have this value. If a value is not set, then
    * the column must be absent for the condition to pass.
-   * 
+   *
    * @return returns this
    */
 
@@ -117,10 +116,10 @@ public class Condition {
     this.val = new ArrayByteSequence(value);
     return this;
   }
-  
+
   /**
    * see {@link #setValue(byte[])}
-   * 
+   *
    * @return returns this
    */
 
@@ -129,10 +128,10 @@ public class Condition {
     this.val = new ArrayByteSequence(value.getBytes(), 0, value.getLength());
     return this;
   }
-  
+
   /**
    * see {@link #setValue(byte[])}
-   * 
+   *
    * @return returns this
    */
 
@@ -148,7 +147,7 @@ public class Condition {
 
   /**
    * Sets the visibility for the column to check. If not set it defaults to empty visibility.
-   * 
+   *
    * @return returns this
    */
 
@@ -167,17 +166,17 @@ public class Condition {
    * its possible to test other conditions, besides equality and absence, like less than. On the server side the iterators will be seeked using a range that
    * covers only the family, qualifier, and visibility (if the timestamp is set then it will be used to narrow the range). Value equality will be tested using
    * the first entry returned by the iterator stack.
-   * 
+   *
    * @return returns this
    */
 
   public Condition setIterators(IteratorSetting... iterators) {
     ArgumentChecker.notNull(iterators);
-    
+
     if (iterators.length > 1) {
       HashSet<String> names = new HashSet<String>();
       HashSet<Integer> prios = new HashSet<Integer>();
-      
+
       for (IteratorSetting iteratorSetting : iterators) {
         if (!names.add(iteratorSetting.getName()))
           throw new IllegalArgumentException("iterator name used more than once " + iteratorSetting.getName());
@@ -185,7 +184,7 @@ public class Condition {
           throw new IllegalArgumentException("iterator priority used more than once " + iteratorSetting.getPriority());
       }
     }
-    
+
     this.iterators = iterators;
     return this;
   }

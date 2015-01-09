@@ -27,11 +27,11 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * A lexicoder for a UUID that maintains its lexicographic sorting order.
- * 
+ *
  * @since 1.6.0
  */
 public class UUIDLexicoder implements Lexicoder<UUID> {
-  
+
   /**
    * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace, "Rules for Lexical Equivalence" in
    *      Section 3.</a>
@@ -41,18 +41,18 @@ public class UUIDLexicoder implements Lexicoder<UUID> {
     try {
       byte ret[] = new byte[16];
       DataOutputStream out = new DataOutputStream(new FixedByteArrayOutputStream(ret));
-      
+
       out.writeLong(uuid.getMostSignificantBits() ^ 0x8000000000000000l);
       out.writeLong(uuid.getLeastSignificantBits() ^ 0x8000000000000000l);
-      
+
       out.close();
-      
+
       return ret;
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public UUID decode(byte[] b) throws ValueFormatException {
     try {
@@ -62,5 +62,5 @@ public class UUIDLexicoder implements Lexicoder<UUID> {
       throw new RuntimeException(e);
     }
   }
-  
+
 }

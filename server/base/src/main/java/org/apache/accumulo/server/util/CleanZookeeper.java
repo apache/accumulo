@@ -32,16 +32,16 @@ import org.apache.zookeeper.KeeperException;
 import com.beust.jcommander.Parameter;
 
 public class CleanZookeeper {
-  
+
   private static final Logger log = Logger.getLogger(CleanZookeeper.class);
-  
+
   static class Opts extends Help {
-    @Parameter(names={"-z", "--keepers"}, description="comma separated list of zookeeper hosts")
+    @Parameter(names = {"-z", "--keepers"}, description = "comma separated list of zookeeper hosts")
     String keepers = "localhost:2181";
-    @Parameter(names={"--password"}, description="the system secret", password=true)
+    @Parameter(names = {"--password"}, description = "the system secret", password = true)
     String auth;
   }
-  
+
   /**
    * @param args
    *          must contain one element: the address of a zookeeper node a second parameter provides an additional authentication value
@@ -51,13 +51,13 @@ public class CleanZookeeper {
   public static void main(String[] args) throws IOException {
     Opts opts = new Opts();
     opts.parseArgs(CleanZookeeper.class.getName(), args);
-    
+
     String root = Constants.ZROOT;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     if (opts.auth != null) {
-      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:"+opts.auth).getBytes(UTF_8));
+      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
     }
-    
+
     try {
       for (String child : zk.getChildren(root)) {
         if (Constants.ZINSTANCES.equals("/" + child)) {
@@ -85,5 +85,5 @@ public class CleanZookeeper {
       System.out.println("Error Occurred: " + ex);
     }
   }
-  
+
 }

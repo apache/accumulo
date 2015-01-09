@@ -22,9 +22,9 @@ package org.apache.accumulo.core.client.lexicoder;
  * @since 1.6.0
  */
 public class DoubleLexicoder implements Lexicoder<Double> {
-  
+
   private ULongLexicoder longEncoder = new ULongLexicoder();
-  
+
   @Override
   public byte[] encode(Double d) {
     long l = Double.doubleToRawLongBits(d);
@@ -32,10 +32,10 @@ public class DoubleLexicoder implements Lexicoder<Double> {
       l = ~l;
     else
       l = l ^ 0x8000000000000000l;
-    
+
     return longEncoder.encode(l);
   }
-  
+
   @Override
   public Double decode(byte[] data) {
     long l = longEncoder.decode(data);
@@ -45,5 +45,5 @@ public class DoubleLexicoder implements Lexicoder<Double> {
       l = ~l;
     return Double.longBitsToDouble(l);
   }
-  
+
 }

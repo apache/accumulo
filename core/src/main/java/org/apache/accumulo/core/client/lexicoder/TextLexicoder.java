@@ -22,20 +22,20 @@ import org.apache.hadoop.io.Text;
 /**
  * A lexicoder that preserves a Text's native sort order. It can be combined with other encoders like the {@link ReverseLexicoder} to flip the default sort
  * order.
- * 
+ *
  * @since 1.6.0
  */
 
 public class TextLexicoder implements Lexicoder<Text> {
-  
+
   @Override
   public byte[] encode(Text data) {
     return TextUtil.getBytes(data);
   }
-  
+
   @Override
   public Text decode(byte[] data) {
     return new Text(data);
   }
-  
+
 }

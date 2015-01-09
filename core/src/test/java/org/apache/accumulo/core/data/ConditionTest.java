@@ -195,34 +195,34 @@ public class ConditionTest {
     c2.setIterators(ITERATORS);
     assertTrue(c.equals(c2));
     assertTrue(c2.equals(c));
-    
+
     // set everything but vis, so its null
     Condition c4 = new Condition(FAMILY, QUALIFIER);
     c4.setValue(VALUE);
     c4.setTimestamp(1234L);
     c4.setIterators(ITERATORS);
-    
+
     assertFalse(c.equals(c4));
     assertFalse(c4.equals(c));
-    
+
     // set everything but timestamp, so its null
     Condition c5 = new Condition(FAMILY, QUALIFIER);
     c5.setVisibility(cvis);
     c5.setValue(VALUE);
     c5.setIterators(ITERATORS);
-    
+
     assertFalse(c.equals(c5));
     assertFalse(c5.equals(c));
-    
+
     // set everything but value
     Condition c6 = new Condition(FAMILY, QUALIFIER);
     c6.setVisibility(cvis);
     c6.setTimestamp(1234L);
     c6.setIterators(ITERATORS);
-    
+
     assertFalse(c.equals(c6));
     assertFalse(c6.equals(c));
-    
+
     // test w/ no optional fields set
     Condition c7 = new Condition(FAMILY, QUALIFIER);
     Condition c8 = new Condition(FAMILY, QUALIFIER);

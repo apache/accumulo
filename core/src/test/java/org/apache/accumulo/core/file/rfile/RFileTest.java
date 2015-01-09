@@ -178,7 +178,7 @@ public class RFileTest {
     private AccumuloConfiguration accumuloConfiguration;
     public Reader reader;
     public SortedKeyValueIterator<Key,Value> iter;
-    
+
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
       if (this.accumuloConfiguration == null)
@@ -250,7 +250,7 @@ public class RFileTest {
   static String nf(String prefix, int i) {
     return String.format(prefix + "%06d", i);
   }
-  
+
   public AccumuloConfiguration conf = null;
 
   @Test
@@ -1761,15 +1761,16 @@ public class RFileTest {
     trf.closeWriter();
 
     byte[] rfBytes = trf.baos.toByteArray();
-    
+
     // If we get here, we have encrypted bytes
     for (Property prop : Property.values()) {
       if (prop.isSensitive()) {
         byte[] toCheck = prop.getKey().getBytes();
-        assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));  }
-    }    
+        assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));
+      }
+    }
   }
-  
+
   @Test
   public void testRootTabletEncryption() throws Exception {
 

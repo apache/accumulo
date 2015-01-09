@@ -25,12 +25,12 @@ public class ClientOnRequiredTable extends org.apache.accumulo.core.cli.ClientOn
   {
     principal = "root";
   }
-  
+
   @Override
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
-    
+
     if (mock)
       return cachedInstance = new MockInstance(instance);
     if (instance == null) {

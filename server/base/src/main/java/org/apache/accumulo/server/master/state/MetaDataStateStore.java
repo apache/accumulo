@@ -35,40 +35,40 @@ import org.apache.hadoop.io.Text;
 
 public class MetaDataStateStore extends TabletStateStore {
   // private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
-  
+
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
   private static final int MAX_MEMORY = 200 * 1024 * 1024;
-  
+
   final protected Instance instance;
   final protected CurrentState state;
   final protected Credentials credentials;
   final private String targetTableName;
-  
+
   protected MetaDataStateStore(Instance instance, Credentials credentials, CurrentState state, String targetTableName) {
     this.instance = instance;
     this.state = state;
     this.credentials = credentials;
     this.targetTableName = targetTableName;
   }
-  
+
   public MetaDataStateStore(Instance instance, Credentials credentials, CurrentState state) {
     this(instance, credentials, state, MetadataTable.NAME);
   }
-  
+
   protected MetaDataStateStore(String tableName) {
     this(HdfsZooInstance.getInstance(), SystemCredentials.get(), null, tableName);
   }
-  
+
   public MetaDataStateStore() {
     this(MetadataTable.NAME);
   }
-  
+
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
     return new MetaDataTableScanner(instance, credentials, MetadataSchema.TabletsSection.getRange(), state);
   }
-  
+
   @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
@@ -90,7 +90,7 @@ public class MetaDataStateStore extends TabletStateStore {
       }
     }
   }
-  
+
   BatchWriter createBatchWriter() {
     try {
       return instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createBatchWriter(targetTableName,
@@ -102,7 +102,7 @@ public class MetaDataStateStore extends TabletStateStore {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
@@ -122,10 +122,10 @@ public class MetaDataStateStore extends TabletStateStore {
       }
     }
   }
-  
+
   @Override
   public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
-    
+
     BatchWriter writer = createBatchWriter();
     try {
       for (TabletLocationState tls : tablets) {
@@ -148,7 +148,7 @@ public class MetaDataStateStore extends TabletStateStore {
       }
     }
   }
-  
+
   @Override
   public String name() {
     return "Normal Tablets";

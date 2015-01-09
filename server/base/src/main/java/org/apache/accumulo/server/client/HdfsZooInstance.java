@@ -56,7 +56,7 @@ import org.apache.log4j.Logger;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
- * 
+ *
  */
 public class HdfsZooInstance implements Instance {
 

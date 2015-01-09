@@ -56,7 +56,7 @@ public class MergeStats {
   int total = 0;
   boolean lowerSplit = false;
   boolean upperSplit = false;
-  
+
   public MergeStats(MergeInfo info) {
     this.info = info;
     if (info.getState().equals(MergeState.NONE))
@@ -66,11 +66,11 @@ public class MergeStats {
     if (info.getExtent().getPrevEndRow() == null)
       lowerSplit = true;
   }
-  
+
   public MergeInfo getMergeInfo() {
     return info;
   }
-  
+
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
     if (info.getState().equals(MergeState.NONE))
       return;
@@ -100,7 +100,7 @@ public class MergeStats {
     if (state.equals(TabletState.UNASSIGNED))
       this.unassigned++;
   }
-  
+
   public MergeState nextMergeState(Connector connector, CurrentState master) throws Exception {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
@@ -173,7 +173,7 @@ public class MergeStats {
     }
     return state;
   }
-  
+
   private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
@@ -188,7 +188,7 @@ public class MergeStats {
     Range range = new Range(first, false, null, true);
     scanner.setRange(range);
     KeyExtent prevExtent = null;
-    
+
     log.debug("Scanning range " + range);
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState tls;
@@ -202,31 +202,31 @@ public class MergeStats {
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }
-      
+
       if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
         log.debug("failing consistency: needs to be chopped" + tls.extent);
         return false;
       }
-      
+
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
         if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
           log.debug("failing consistency: prev row is too high " + start);
           return false;
         }
-        
+
         if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED) {
           log.debug("failing consistency: assigned or hosted " + tls);
           return false;
         }
-        
+
       } else if (!tls.extent.isPreviousExtent(prevExtent)) {
         log.debug("hole in " + MetadataTable.NAME);
         return false;
       }
-      
+
       prevExtent = tls.extent;
-      
+
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped, !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
       if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
@@ -237,11 +237,11 @@ public class MergeStats {
         + verify.total);
     return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
   }
-  
+
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
-    
+
     Connector conn = opts.getConnector();
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     for (Entry<String,String> entry : tableIdMap.entrySet()) {

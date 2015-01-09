@@ -36,7 +36,7 @@ public class DefaultFormatter implements Formatter {
     protected DateFormat initialValue() {
       return new DefaultDateFormat();
     }
-    
+
     class DefaultDateFormat extends DateFormat {
       private static final long serialVersionUID = 1L;
 
@@ -50,42 +50,42 @@ public class DefaultFormatter implements Formatter {
       public Date parse(String source, ParsePosition pos) {
         return new Date(Long.parseLong(source));
       }
-      
+
     }
   };
-  
+
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     checkState(false);
     si = scanner.iterator();
     doTimestamps = printTimestamps;
   }
-  
+
   public boolean hasNext() {
     checkState(true);
     return si.hasNext();
   }
-  
+
   public String next() {
     DateFormat timestampFormat = null;
-    
-    if(doTimestamps) {
+
+    if (doTimestamps) {
       timestampFormat = formatter.get();
     }
-    
+
     return next(timestampFormat);
   }
-  
+
   protected String next(DateFormat timestampFormat) {
     checkState(true);
     return formatEntry(si.next(), timestampFormat);
   }
-  
+
   public void remove() {
     checkState(true);
     si.remove();
   }
-  
+
   protected void checkState(boolean expectInitialized) {
     if (expectInitialized && si == null)
       throw new IllegalStateException("Not initialized");
@@ -96,22 +96,22 @@ public class DefaultFormatter implements Formatter {
   // this should be replaced with something like Record.toString();
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
     DateFormat timestampFormat = null;
-    
-    if(showTimestamps) {
+
+    if (showTimestamps) {
       timestampFormat = formatter.get();
     }
-    
+
     return formatEntry(entry, timestampFormat);
   }
-  
+
   /* so a new date object doesn't get created for every record in the scan result */
   private static ThreadLocal<Date> tmpDate = new ThreadLocal<Date>() {
     @Override
-    protected Date initialValue() { 
+    protected Date initialValue() {
       return new Date();
     }
   };
-  
+
   public static String formatEntry(Entry<Key,Value> entry, DateFormat timestampFormat) {
     StringBuilder sb = new StringBuilder();
     Key key = entry.getKey();
@@ -119,16 +119,16 @@ public class DefaultFormatter implements Formatter {
 
     // append row
     appendText(sb, key.getRow(buffer)).append(" ");
-    
+
     // append column family
     appendText(sb, key.getColumnFamily(buffer)).append(":");
-    
+
     // append column qualifier
     appendText(sb, key.getColumnQualifier(buffer)).append(" ");
-    
+
     // append visibility expression
     sb.append(new ColumnVisibility(key.getColumnVisibility(buffer)));
-    
+
     // append timestamp
     if (timestampFormat != null) {
       tmpDate.get().setTime(entry.getKey().getTimestamp());
@@ -142,18 +142,18 @@ public class DefaultFormatter implements Formatter {
       sb.append("\t");
       appendValue(sb, value);
     }
-    
+
     return sb.toString();
   }
 
   static StringBuilder appendText(StringBuilder sb, Text t) {
     return appendBytes(sb, t.getBytes(), 0, t.getLength());
   }
-  
+
   static StringBuilder appendValue(StringBuilder sb, Value value) {
     return appendBytes(sb, value.get(), 0, value.get().length);
   }
-  
+
   static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[offset + i];
@@ -166,7 +166,7 @@ public class DefaultFormatter implements Formatter {
     }
     return sb;
   }
-  
+
   public Iterator<Entry<Key,Value>> getScannerIterator() {
     return si;
   }

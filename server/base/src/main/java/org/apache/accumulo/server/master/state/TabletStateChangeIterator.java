@@ -44,16 +44,16 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
 public class TabletStateChangeIterator extends SkippingIterator {
-  
+
   private static final String SERVERS_OPTION = "servers";
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
   // private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
-  
+
   Set<TServerInstance> current;
   Set<String> onlineTables;
   Map<Text,MergeInfo> merges;
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
@@ -61,7 +61,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     onlineTables = parseTables(options.get(TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
   }
-  
+
   private Set<String> parseTables(String tables) {
     if (tables == null)
       return null;
@@ -70,7 +70,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       result.add(table);
     return result;
   }
-  
+
   private Set<TServerInstance> parseServers(String servers) {
     if (servers == null)
       return null;
@@ -88,7 +88,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
     return result;
   }
-  
+
   private Map<Text,MergeInfo> parseMerges(String merges) {
     if (merges == null)
       return null;
@@ -107,16 +107,16 @@ public class TabletStateChangeIterator extends SkippingIterator {
       throw new RuntimeException(ex);
     }
   }
-  
+
   @Override
   protected void consume() throws IOException {
     while (getSource().hasTop()) {
       Key k = getSource().getTopKey();
       Value v = getSource().getTopValue();
-      
+
       if (onlineTables == null || current == null)
         return;
-      
+
       TabletLocationState tls;
       try {
         tls = MetaDataTableScanner.createTabletLocationState(k, v);
@@ -133,7 +133,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
       // is the table supposed to be online or offline?
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId().toString());
-      
+
       switch (tls.getState(current)) {
         case ASSIGNED:
           // we always want data about assigned tablets
@@ -151,12 +151,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
       getSource().next();
     }
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
-  
+
   public static void setCurrentServers(IteratorSetting cfg, Set<TServerInstance> goodServers) {
     if (goodServers != null) {
       List<String> servers = new ArrayList<String>();
@@ -165,12 +165,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
       cfg.addOption(SERVERS_OPTION, StringUtil.join(servers, ","));
     }
   }
-  
+
   public static void setOnlineTables(IteratorSetting cfg, Set<String> onlineTables) {
     if (onlineTables != null)
       cfg.addOption(TABLES_OPTION, StringUtil.join(onlineTables, ","));
   }
-  
+
   public static void setMerges(IteratorSetting cfg, Collection<MergeInfo> merges) {
     DataOutputBuffer buffer = new DataOutputBuffer();
     try {
@@ -186,5 +186,5 @@ public class TabletStateChangeIterator extends SkippingIterator {
     String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
   }
-  
+
 }

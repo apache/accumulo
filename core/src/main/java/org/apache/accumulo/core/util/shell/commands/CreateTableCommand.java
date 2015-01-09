@@ -84,7 +84,7 @@ public class CreateTableCommand extends Command {
         while (file.hasNextLine()) {
           line = file.nextLine();
           if (!line.isEmpty())
-            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8 ))) : new Text(line));
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
         }
       } finally {
         file.close();

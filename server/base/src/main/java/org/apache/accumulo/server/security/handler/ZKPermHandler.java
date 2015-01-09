@@ -217,8 +217,7 @@ public class ZKPermHandler implements PermissionHandler {
         synchronized (zooCache) {
           zooCache.clear(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
           ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
-              ZKSecurityTool.convertTablePermissions(tablePerms),
-              NodeExistsPolicy.OVERWRITE);
+              ZKSecurityTool.convertTablePermissions(tablePerms), NodeExistsPolicy.OVERWRITE);
         }
       }
     } catch (KeeperException e) {
@@ -244,8 +243,7 @@ public class ZKPermHandler implements PermissionHandler {
         synchronized (zooCache) {
           zooCache.clear(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
           ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
-              ZKSecurityTool.convertNamespacePermissions(namespacePerms),
-              NodeExistsPolicy.OVERWRITE);
+              ZKSecurityTool.convertNamespacePermissions(namespacePerms), NodeExistsPolicy.OVERWRITE);
         }
       }
     } catch (KeeperException e) {
@@ -435,8 +433,8 @@ public class ZKPermHandler implements PermissionHandler {
   private void createTablePerm(String user, String table, Set<TablePermission> perms) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
-          ZKSecurityTool.convertTablePermissions(perms), NodeExistsPolicy.FAIL);
+      ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, ZKSecurityTool.convertTablePermissions(perms),
+          NodeExistsPolicy.FAIL);
     }
   }
 

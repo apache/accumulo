@@ -19,7 +19,6 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -29,11 +28,12 @@ import org.apache.accumulo.core.trace.TraceDump.Printer;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
 
 public class TraceCommand extends DebugCommand {
-  
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
@@ -93,7 +93,7 @@ public class TraceCommand extends DebugCommand {
     }
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "turns trace logging on or off";

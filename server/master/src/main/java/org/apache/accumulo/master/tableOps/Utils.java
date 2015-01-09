@@ -118,8 +118,7 @@ public class Utils {
   public static long reserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
 
-    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.encodeBase64String(directory.getBytes(UTF_8));
+    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + Base64.encodeBase64String(directory.getBytes(UTF_8));
 
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
 
@@ -131,8 +130,7 @@ public class Utils {
 
   public static void unreserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
-    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.encodeBase64String(directory.getBytes(UTF_8));
+    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + Base64.encodeBase64String(directory.getBytes(UTF_8));
     ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
   }
 

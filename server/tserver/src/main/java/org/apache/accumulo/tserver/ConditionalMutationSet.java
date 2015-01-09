@@ -29,14 +29,14 @@ import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.WritableComparator;
 
 /**
- * 
+ *
  */
 public class ConditionalMutationSet {
 
   interface DeferFilter {
     void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred);
   }
-  
+
   static class DuplicateFilter implements DeferFilter {
     public void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
       okMutations.add(scml.get(0));
@@ -49,14 +49,14 @@ public class ConditionalMutationSet {
       }
     }
   }
-  
+
   static void defer(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferredMutations, DeferFilter filter) {
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
       List<ServerConditionalMutation> scml = entry.getValue();
       List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(scml.size());
       List<ServerConditionalMutation> deferred = new ArrayList<ServerConditionalMutation>();
       filter.defer(scml, okMutations, deferred);
-      
+
       if (deferred.size() > 0) {
         scml.clear();
         scml.addAll(okMutations);
@@ -71,7 +71,7 @@ public class ConditionalMutationSet {
       }
     }
   }
-  
+
   static void deferDuplicatesRows(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
     defer(updates, deferred, new DuplicateFilter());
   }

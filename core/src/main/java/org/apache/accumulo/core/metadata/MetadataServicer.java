@@ -31,13 +31,13 @@ import org.apache.accumulo.core.util.ArgumentChecker;
  * Provides a consolidated API for handling table metadata
  */
 public abstract class MetadataServicer {
-  
+
   public static MetadataServicer forTableName(Instance instance, Credentials credentials, String tableName) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName);
     Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
     return forTableId(instance, credentials, conn.tableOperations().tableIdMap().get(tableName));
   }
-  
+
   public static MetadataServicer forTableId(Instance instance, Credentials credentials, String tableId) {
     ArgumentChecker.notNull(tableId);
     if (RootTable.ID.equals(tableId))
@@ -47,19 +47,19 @@ public abstract class MetadataServicer {
     else
       return new ServicerForUserTables(instance, credentials, tableId);
   }
-  
+
   /**
-   * 
+   *
    * @return the table id of the table currently being serviced
    */
   public abstract String getServicedTableId();
-  
+
   /**
    * Populate the provided data structure with the known tablets for the table being serviced
-   * 
+   *
    * @param tablets
    *          A mapping of all known tablets to their location (if available, null otherwise)
    */
   public abstract void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
+
 }

@@ -34,23 +34,23 @@ import org.apache.log4j.Logger;
 
 /**
  * A special iterator for the metadata table that removes inactive bulk load flags
- * 
+ *
  */
 public class MetadataBulkLoadFilter extends Filter {
   private static Logger log = Logger.getLogger(MetadataBulkLoadFilter.class);
-  
+
   enum Status {
     ACTIVE, INACTIVE
   }
-  
+
   Map<Long,Status> bulkTxStatusCache;
   Arbitrator arbitrator;
-  
+
   @Override
   public boolean accept(Key k, Value v) {
     if (!k.isDeleted() && k.compareColumnFamily(TabletsSection.BulkFileColumnFamily.NAME) == 0) {
       long txid = Long.valueOf(v.toString());
-      
+
       Status status = bulkTxStatusCache.get(txid);
       if (status == null) {
         try {
@@ -63,28 +63,28 @@ public class MetadataBulkLoadFilter extends Filter {
           status = Status.ACTIVE;
           log.error(e, e);
         }
-        
+
         bulkTxStatusCache.put(txid, status);
       }
-      
+
       return status == Status.ACTIVE;
     }
-    
+
     return true;
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    
+
     if (env.getIteratorScope() == IteratorScope.scan) {
       throw new IOException("This iterator not intended for use at scan time");
     }
-    
+
     bulkTxStatusCache = new HashMap<Long,MetadataBulkLoadFilter.Status>();
     arbitrator = getArbitrator();
   }
-  
+
   protected Arbitrator getArbitrator() {
     return new ZooArbitrator();
   }

@@ -36,16 +36,16 @@ import org.apache.hadoop.mapred.Reporter;
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides row names as {@link Text} as keys, and a
  * corresponding {@link PeekingIterator} as a value, which in turn makes the {@link Key}/{@link Value} pairs for that row available to the Map function.
- * 
+ *
  * The user must specify the following via static configurator methods:
- * 
+ *
  * <ul>
  * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(JobConf, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)} OR {@link AccumuloRowInputFormat#setMockInstance(JobConf, String)}
  * </ul>
- * 
+ *
  * Other static methods are optional.
  */
 public class AccumuloRowInputFormat extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {

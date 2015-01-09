@@ -32,7 +32,7 @@ public class Setup extends Test {
   public void visit(State state, Properties props) throws Exception {
     Random rand = new Random();
     state.set("rand", rand);
-    
+
     int numBanks = Integer.parseInt(props.getProperty("numBanks", "1000"));
     log.debug("numBanks = " + numBanks);
     state.set("numBanks", numBanks);
@@ -52,9 +52,7 @@ public class Setup extends Test {
       log.debug("set " + Property.TABLE_BLOCKCACHE_ENABLED.getKey() + " " + blockCache);
     } catch (TableExistsException tee) {}
 
-
-    ConditionalWriter cw = state.getConnector()
-        .createConditionalWriter(tableName, new ConditionalWriterConfig().setMaxWriteThreads(1));
+    ConditionalWriter cw = state.getConnector().createConditionalWriter(tableName, new ConditionalWriterConfig().setMaxWriteThreads(1));
     state.set("cw", cw);
 
   }

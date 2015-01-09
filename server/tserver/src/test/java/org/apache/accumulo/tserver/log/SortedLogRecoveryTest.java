@@ -611,8 +611,8 @@ public class SortedLogRecoveryTest {
     Mutation m2 = new ServerMutation(new Text("row1"));
     m2.put("foo", "bar", "v2");
 
-    KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 2, extent),
-        createKeyValue(MUTATION, 2, 2, m1), createKeyValue(COMPACTION_START, 3, 2, compactionStartFile), createKeyValue(MUTATION, 4, 2, m2),};
+    KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 2, extent), createKeyValue(MUTATION, 2, 2, m1),
+        createKeyValue(COMPACTION_START, 3, 2, compactionStartFile), createKeyValue(MUTATION, 4, 2, m2),};
 
     Arrays.sort(entries);
     Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();

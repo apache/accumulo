@@ -34,7 +34,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.commons.lang.mutable.MutableLong;
 
 /**
- * 
+ *
  */
 public class LocalityGroupIterator extends HeapIterator implements InterruptibleIterator {
 
@@ -45,12 +45,12 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       this(localityGroup.columnFamilies, localityGroup.isDefaultLocalityGroup);
       this.iterator = (InterruptibleIterator) localityGroup.iterator.deepCopy(env);
     }
-    
+
     public LocalityGroup(InterruptibleIterator iterator, Map<ByteSequence,MutableLong> columnFamilies, boolean isDefaultLocalityGroup) {
       this(columnFamilies, isDefaultLocalityGroup);
       this.iterator = iterator;
     }
-    
+
     public LocalityGroup(Map<ByteSequence,MutableLong> columnFamilies, boolean isDefaultLocalityGroup) {
       this.isDefaultLocalityGroup = isDefaultLocalityGroup;
       this.columnFamilies = columnFamilies;
@@ -64,7 +64,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     protected Map<ByteSequence,MutableLong> columnFamilies;
     private InterruptibleIterator iterator;
   }
-  
+
   private LocalityGroup groups[];
   private Set<ByteSequence> nonDefaultColumnFamilies;
   private AtomicBoolean interruptFlag;
@@ -79,13 +79,13 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
-  
+
   public static final int seek(HeapIterator hiter, LocalityGroup[] groups, Set<ByteSequence> nonDefaultColumnFamilies, Range range,
       Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     hiter.clear();
-    
+
     int numLGSeeked = 0;
-    
+
     Set<ByteSequence> cfSet;
     if (columnFamilies.size() > 0)
       if (columnFamilies instanceof Set<?>) {
@@ -101,13 +101,13 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       // when include is set to true it means this locality groups contains
       // wanted column families
       boolean include = false;
-      
+
       if (cfSet.size() == 0) {
         include = !inclusive;
       } else if (lgr.isDefaultLocalityGroup && lgr.columnFamilies == null) {
         // do not know what column families are in the default locality group,
         // only know what column families are not in it
-        
+
         if (inclusive) {
           if (!nonDefaultColumnFamilies.containsAll(cfSet)) {
             // default LG may contain wanted and unwanted column families
@@ -123,7 +123,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
          * Need to consider the following cases for inclusive and exclusive (lgcf:locality group column family set, cf:column family set) lgcf and cf are
          * disjoint lgcf and cf are the same cf contains lgcf lgcf contains cf lgccf and cf intersect but neither is a subset of the other
          */
-        
+
         for (Entry<ByteSequence,MutableLong> entry : lgr.columnFamilies.entrySet())
           if (entry.getValue().longValue() > 0)
             if (cfSet.contains(entry.getKey())) {
@@ -140,7 +140,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
         numLGSeeked++;
       }// every column family is excluded, zero count, or not present
     }
-    
+
     return numLGSeeked;
   }
 
@@ -152,16 +152,16 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     LocalityGroup[] groupsCopy = new LocalityGroup[groups.length];
-    
+
     for (int i = 0; i < groups.length; i++) {
       groupsCopy[i] = new LocalityGroup(groups[i], env);
       if (interruptFlag != null)
         groupsCopy[i].getIterator().setInterruptFlag(interruptFlag);
     }
-    
+
     return new LocalityGroupIterator(groupsCopy, nonDefaultColumnFamilies);
   }
-  
+
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
     this.interruptFlag = flag;
@@ -169,5 +169,5 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       lgr.getIterator().setInterruptFlag(flag);
     }
   }
-  
+
 }

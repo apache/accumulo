@@ -78,7 +78,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Scanner}.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum ScanOpts {
@@ -87,7 +87,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for various features.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum Features {
@@ -96,7 +96,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the name of the input table, over which this job will scan.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -112,7 +112,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the name of the input table, over which this job will scan.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -125,7 +125,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization. Defaults to the empty set.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -141,7 +141,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets the authorizations to set for the scans from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -157,7 +157,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the input ranges to scan on all input tables for this job. If not set, the entire table will be scanned.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -186,7 +186,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets the ranges to scan over from a job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -212,7 +212,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -246,7 +246,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Restricts the columns that will be mapped over for the single input table on this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -283,7 +283,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets the columns to be mapped over from this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -323,7 +323,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Encode an iterator on the input for the single input table associated with this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -361,10 +361,10 @@ public class InputConfigurator extends ConfiguratorBase {
   /**
    * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
    * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
-   * 
+   *
    * <p>
    * By default, this feature is <b>enabled</b>.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -380,7 +380,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -395,10 +395,10 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Controls the use of the {@link IsolatedScanner} in this job.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -413,7 +413,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Determines whether a configuration has isolation enabled.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -429,10 +429,10 @@ public class InputConfigurator extends ConfiguratorBase {
   /**
    * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack to be constructed within the Map
    * task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be available on the classpath for the task.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -447,7 +447,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Determines whether a configuration uses local iterators.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -465,26 +465,26 @@ public class InputConfigurator extends ConfiguratorBase {
    * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
    * table's files. If the table is not offline, then the job will fail. If the table comes online during the map reduce job, it is likely that the job will
    * fail.
-   * 
+   *
    * <p>
    * To use this option, the map reduce user will need access to read the Accumulo directory in HDFS.
-   * 
+   *
    * <p>
    * Reading the offline table will create the scan time iterator stack in the map process. So any iterators that are configured for the table will need to be
    * on the mapper's classpath.
-   * 
+   *
    * <p>
    * One way to use this feature is to clone a table, take the clone offline, and use the clone as the input table for a map reduce job. If you plan to map
    * reduce over the data many times, it may be better to the compact the table, clone it, take it offline, and use the clone for all map reduce jobs. The
    * reason to do this is that compaction will reduce each tablet in the table to one file, and it is faster to read from one file.
-   * 
+   *
    * <p>
    * There are two possible advantages to reading a tables file directly out of HDFS. First, you may see better read performance. Second, it will support
    * speculative execution better. When reading an online table speculative execution can put more load on an already slow tablet server.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -499,7 +499,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -514,7 +514,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets configurations for multiple tables at a time.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -541,7 +541,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Returns all {@link InputTableConfig} objects associated with this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -574,7 +574,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Returns the {@link InputTableConfig} for the given table
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -591,7 +591,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Initializes an Accumulo {@link TabletLocator} based on the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -614,7 +614,7 @@ public class InputConfigurator extends ConfiguratorBase {
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -669,7 +669,7 @@ public class InputConfigurator extends ConfiguratorBase {
   /**
    * Returns the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} for the configuration based on the properties set using the single-table
    * input methods.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf

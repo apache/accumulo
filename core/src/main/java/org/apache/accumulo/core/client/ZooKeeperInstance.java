@@ -48,15 +48,15 @@ import org.apache.log4j.Logger;
 /**
  * <p>
  * An implementation of instance that looks in zookeeper to find information needed to connect to an instance of accumulo.
- * 
+ *
  * <p>
  * The advantage of using zookeeper to obtain information about accumulo is that zookeeper is highly available, very responsive, and supports caching.
- * 
+ *
  * <p>
  * Because it is possible for multiple instances of accumulo to share a single set of zookeeper servers, all constructors require an accumulo instance name.
- * 
+ *
  * If you do not know the instance names then run accumulo org.apache.accumulo.server.util.ListInstances on an accumulo server.
- * 
+ *
  */
 
 public class ZooKeeperInstance implements Instance {
@@ -76,7 +76,7 @@ public class ZooKeeperInstance implements Instance {
   private ClientConfiguration clientConf;
 
   /**
-   * 
+   *
    * @param instanceName
    *          The name of specific accumulo instance. This is set at initialization time.
    * @param zooKeepers
@@ -87,7 +87,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * 
+   *
    * @param instanceName
    *          The name of specific accumulo instance. This is set at initialization time.
    * @param zooKeepers
@@ -102,7 +102,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * 
+   *
    * @param instanceId
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
@@ -115,7 +115,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * 
+   *
    * @param instanceId
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
@@ -131,17 +131,18 @@ public class ZooKeeperInstance implements Instance {
 
   /**
    * @param config
-   *          Client configuration for specifying connection options.
-   *          See {@link ClientConfiguration} which extends Configuration with convenience methods specific to Accumulo.
+   *          Client configuration for specifying connection options. See {@link ClientConfiguration} which extends Configuration with convenience methods
+   *          specific to Accumulo.
    * @since 1.6.0
    */
   public ZooKeeperInstance(Configuration config) {
     this(config, new ZooCacheFactory());
   }
+
   ZooKeeperInstance(Configuration config, ZooCacheFactory zcf) {
     ArgumentChecker.notNull(config);
     if (config instanceof ClientConfiguration) {
-      this.clientConf = (ClientConfiguration)config;
+      this.clientConf = (ClientConfiguration) config;
     } else {
       this.clientConf = new ClientConfiguration(config);
     }

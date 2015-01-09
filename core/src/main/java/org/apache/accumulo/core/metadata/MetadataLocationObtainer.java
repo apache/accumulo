@@ -65,59 +65,61 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
   private Instance instance;
-  
+
   public MetadataLocationObtainer(Instance instance) {
-    
+
     this.instance = instance;
-    
+
     locCols = new TreeSet<Column>();
     locCols.add(new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
     locCols.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<Column>(locCols);
   }
-  
+
   @Override
   public TabletLocations lookupTablet(Credentials credentials, TabletLocation src, Text row, Text stopRow, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
-    
+
     try {
       OpTimer opTimer = null;
       if (log.isTraceEnabled())
         opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
             + src.tablet_extent + " tserver=" + src.tablet_location);
-      
+
       Range range = new Range(row, true, stopRow, true);
-      
+
       TreeMap<Key,Value> encodedResults = new TreeMap<Key,Value>();
       TreeMap<Key,Value> results = new TreeMap<Key,Value>();
-      
+
       // Use the whole row iterator so that a partial mutations is not read. The code that extracts locations for tablets does a sanity check to ensure there is
       // only one location. Reading a partial mutation could make it appear there are multiple locations when there are not.
       List<IterInfo> serverSideIteratorList = new ArrayList<IterInfo>();
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-      
+
       boolean more = ThriftScanner.getBatchFromServer(instance, credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, ServerConfigurationUtil.getConfiguration(instance));
-      
+          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false,
+          ServerConfigurationUtil.getConfiguration(instance));
+
       decodeRows(encodedResults, results);
-      
+
       if (more && results.size() == 1) {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
         more = ThriftScanner.getBatchFromServer(instance, credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-            serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, ServerConfigurationUtil.getConfiguration(instance));
-        
+            serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false,
+            ServerConfigurationUtil.getConfiguration(instance));
+
         decodeRows(encodedResults, results);
       }
-      
+
       if (opTimer != null)
         opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
-      
-      //if (log.isTraceEnabled()) log.trace("results "+results);
-      
+
+      // if (log.isTraceEnabled()) log.trace("results "+results);
+
       return MetadataLocationObtainer.getMetadataLocationEntries(results);
-      
+
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
         log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
@@ -131,10 +133,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
       parent.invalidateCache(src.tablet_location);
     }
-    
+
     return null;
   }
-  
+
   private void decodeRows(TreeMap<Key,Value> encodedResults, TreeMap<Key,Value> results) throws AccumuloException {
     for (Entry<Key,Value> entry : encodedResults.entrySet()) {
       try {
@@ -144,15 +146,15 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     }
   }
-  
+
   @Override
   public List<TabletLocation> lookupTablets(Credentials credentials, String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
-    
+
     final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
 
     ResultReceiver rr = new ResultReceiver() {
-      
+
       @Override
       public void receive(List<Entry<Key,Value>> entries) {
         for (Entry<Key,Value> entry : entries) {
@@ -164,7 +166,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         }
       }
     };
-    
+
     ScannerOptions opts = new ScannerOptions() {
       ScannerOptions setOpts() {
         this.fetchedColumns = locCols;
@@ -174,7 +176,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         return this;
       }
     }.setOpts();
-    
+
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
     try {
@@ -193,10 +195,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       log.trace("lookupTablets failed server=" + tserver, e);
       throw e;
     }
-    
+
     return MetadataLocationObtainer.getMetadataLocationEntries(results).getLocations();
   }
-  
+
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Key key;
     Value val;
@@ -204,30 +206,30 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Text session = null;
     Value prevRow = null;
     KeyExtent ke;
-    
+
     List<TabletLocation> results = new ArrayList<TabletLocation>();
     ArrayList<KeyExtent> locationless = new ArrayList<KeyExtent>();
-    
+
     Text lastRowFromKey = new Text();
-    
+
     // text obj below is meant to be reused in loop for efficiency
     Text colf = new Text();
     Text colq = new Text();
-    
+
     for (Entry<Key,Value> entry : entries.entrySet()) {
       key = entry.getKey();
       val = entry.getValue();
-      
+
       if (key.compareRow(lastRowFromKey) != 0) {
         prevRow = null;
         location = null;
         session = null;
         key.getRow(lastRowFromKey);
       }
-      
+
       colf = key.getColumnFamily(colf);
       colq = key.getColumnQualifier(colq);
-      
+
       // interpret the row id as a key extent
       if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME) || colf.equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
         if (location != null) {
@@ -238,19 +240,19 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         prevRow = new Value(val);
       }
-      
+
       if (prevRow != null) {
         ke = new KeyExtent(key.getRow(), prevRow);
         if (location != null)
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else
           locationless.add(ke);
-        
+
         location = null;
         prevRow = null;
       }
     }
-    
+
     return new TabletLocations(results, locationless);
   }
 }

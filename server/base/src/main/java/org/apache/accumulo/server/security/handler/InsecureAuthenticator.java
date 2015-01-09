@@ -30,47 +30,42 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  * primarily for testing, but can also be used for any system where user space management is not a concern.
  */
 public class InsecureAuthenticator implements Authenticator {
-  
+
   @Override
-  public void initialize(String instanceId, boolean initialize) {
-  }
-  
+  public void initialize(String instanceId, boolean initialize) {}
+
   @Override
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
     return true;
   }
-  
+
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
-  }
-  
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {}
+
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) {
     return token instanceof NullToken;
   }
-  
+
   @Override
   public Set<String> listUsers() throws AccumuloSecurityException {
     return Collections.emptySet();
   }
-  
+
   @Override
-  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
-  }
-  
+  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {}
+
   @Override
-  public void dropUser(String user) throws AccumuloSecurityException {
-  }
-  
+  public void dropUser(String user) throws AccumuloSecurityException {}
+
   @Override
-  public void changePassword(String user, AuthenticationToken token) throws AccumuloSecurityException {
-  }
-  
+  public void changePassword(String user, AuthenticationToken token) throws AccumuloSecurityException {}
+
   @Override
   public boolean userExists(String user) {
     return true;
   }
-  
+
   @Override
   public boolean validTokenClass(String tokenClass) {
     return tokenClass.equals(NullToken.class.getName());
@@ -82,5 +77,5 @@ public class InsecureAuthenticator implements Authenticator {
     cs.add(NullToken.class);
     return cs;
   }
-  
+
 }

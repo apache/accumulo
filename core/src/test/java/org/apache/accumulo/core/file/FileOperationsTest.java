@@ -30,15 +30,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.junit.Test;
 
 public class FileOperationsTest {
-  
+
   public FileOperationsTest() {}
-  
+
   /**
    * Test for filenames with +1 dot
    */
   @Test
   public void handlesFilenamesWithMoreThanOneDot() throws IOException {
-    
+
     Boolean caughtException = false;
     FileSKVWriter writer = null;
     String filename = "target/test.file." + RFile.EXTENSION;
@@ -61,7 +61,7 @@ public class FileOperationsTest {
       }
       FileUtils.forceDelete(testFile);
     }
-    
+
     assertFalse("Should not throw with more than 1 dot in filename.", caughtException);
   }
 }

@@ -19,11 +19,12 @@ package org.apache.accumulo.tserver.compaction;
 
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.accumulo.server.fs.FileRef;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.google.common.collect.ImmutableSet;
 
 public class CompactionPlanTest {
 

@@ -44,7 +44,7 @@ import org.apache.thrift.TException;
 public class ChaoticLoadBalancer extends TabletBalancer {
   private static final Logger log = Logger.getLogger(ChaoticLoadBalancer.class);
   Random r = new Random();
-  
+
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
@@ -62,7 +62,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
         toAssign.put(e.getKey(), avg - numTablets);
       }
     }
-    
+
     for (KeyExtent ke : unassigned.keySet()) {
       int index = r.nextInt(tServerArray.size());
       TServerInstance dest = tServerArray.get(index);
@@ -76,7 +76,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       }
     }
   }
-  
+
   protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
 
   /**
@@ -108,7 +108,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     // totalTablets is fuzzy due to asynchronicity of the stats
     // *1.2 to handle fuzziness, and prevent locking for 'perfect' balancing scenarios
     long avg = (long) Math.ceil(((double) totalTablets) / current.size() * 1.2);
-    
+
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       for (String table : e.getValue().getTableMap().keySet()) {
         if (!moveMetadata && MetadataTable.NAME.equals(table))
@@ -125,7 +125,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
               underCapacityTServer.remove(index);
             if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg && !underCapacityTServer.contains(e.getKey()))
               underCapacityTServer.add(e.getKey());
-            
+
             // We can get some craziness with only 1 tserver, so lets make sure there's always an option!
             if (underCapacityTServer.isEmpty())
               underCapacityTServer.addAll(numTablets.keySet());
@@ -139,13 +139,13 @@ public class ChaoticLoadBalancer extends TabletBalancer {
         }
       }
     }
-    
+
     return 100;
   }
-  
+
   @Override
   public void init(ServerConfiguration conf) {
     super.init(conf);
   }
-  
+
 }

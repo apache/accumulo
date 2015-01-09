@@ -333,7 +333,6 @@ public class MockTableOperationsTest {
 
   }
 
-
   @Test
   public void testTableIdMap() throws Exception {
     Instance inst = new MockInstance("testTableIdMap");

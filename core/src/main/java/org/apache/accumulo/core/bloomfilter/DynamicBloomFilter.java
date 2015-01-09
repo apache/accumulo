@@ -2,30 +2,30 @@
  *
  * Copyright (c) 2005, European Commission project OneLab under contract 034819 (http://www.one-lab.org)
  * All rights reserved.
- * Redistribution and use in source and binary forms, with or 
- * without modification, are permitted provided that the following 
+ * Redistribution and use in source and binary forms, with or
+ * without modification, are permitted provided that the following
  * conditions are met:
- *  - Redistributions of source code must retain the above copyright 
+ *  - Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- *  - Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in 
+ *  - Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the distribution.
  *  - Neither the name of the University Catholique de Louvain - UCL
- *    nor the names of its contributors may be used to endorse or 
- *    promote products derived from this software without specific prior 
+ *    nor the names of its contributors may be used to endorse or
+ *    promote products derived from this software without specific prior
  *    written permission.
- *    
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN 
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -71,10 +71,10 @@ import org.apache.hadoop.util.bloom.Key;
  * one. A given key is said to belong to the DBF if the <code>k</code> positions are set to one in one of the matrix rows.
  * <p>
  * Originally created by <a href="http://www.one-lab.org">European Commission One-Lab Project 034819</a>.
- * 
+ *
  * @see Filter The general behavior of a filter
  * @see BloomFilter A Bloom filter
- * 
+ *
  * @see <a href="http://www.cse.fau.edu/~jie/research/publications/Publication_files/infocom2006.pdf">Theory and Network Applications of Dynamic Bloom
  *      Filters</a>
  */
@@ -83,27 +83,27 @@ public class DynamicBloomFilter extends Filter {
    * Threshold for the maximum number of key to record in a dynamic Bloom filter row.
    */
   private int nr;
-  
+
   /**
    * The number of keys recorded in the current standard active Bloom filter.
    */
   private int currentNbRecord;
-  
+
   /**
    * The matrix of Bloom filter.
    */
   private BloomFilter[] matrix;
-  
+
   /**
    * Zero-args constructor for the serialization.
    */
   public DynamicBloomFilter() {}
-  
+
   /**
    * Constructor.
    * <p>
    * Builds an empty Dynamic Bloom filter.
-   * 
+   *
    * @param vectorSize
    *          The number of bits in the vector.
    * @param nbHash
@@ -115,83 +115,83 @@ public class DynamicBloomFilter extends Filter {
    */
   public DynamicBloomFilter(final int vectorSize, final int nbHash, final int hashType, final int nr) {
     super(vectorSize, nbHash, hashType);
-    
+
     this.nr = nr;
     this.currentNbRecord = 0;
-    
+
     matrix = new BloomFilter[1];
     matrix[0] = new BloomFilter(this.vectorSize, this.nbHash, this.hashType);
   }
-  
+
   @Override
   public boolean add(final Key key) {
     if (key == null) {
       throw new NullPointerException("Key can not be null");
     }
-    
+
     BloomFilter bf = getActiveStandardBF();
-    
+
     if (bf == null) {
       addRow();
       bf = matrix[matrix.length - 1];
       currentNbRecord = 0;
     }
-    
+
     boolean added = bf.add(key);
-    
+
     if (added)
       currentNbRecord++;
-    
+
     return added;
   }
-  
+
   @Override
   public void and(final Filter filter) {
     if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
-    
+
     DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
-    
+
     if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
-    
+
     for (int i = 0; i < matrix.length; i++) {
       matrix[i].and(dbf.matrix[i]);
     }
   }
-  
+
   @Override
   public boolean membershipTest(final Key key) {
     if (key == null) {
       return true;
     }
-    
+
     for (int i = 0; i < matrix.length; i++) {
       if (matrix[i].membershipTest(key)) {
         return true;
       }
     }
-    
+
     return false;
   }
-  
+
   @Override
   public void not() {
     for (int i = 0; i < matrix.length; i++) {
       matrix[i].not();
     }
   }
-  
+
   @Override
   public void or(final Filter filter) {
     if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
-    
+
     DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
-    
+
     if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
@@ -199,36 +199,36 @@ public class DynamicBloomFilter extends Filter {
       matrix[i].or(dbf.matrix[i]);
     }
   }
-  
+
   @Override
   public void xor(final Filter filter) {
     if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
     DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
-    
+
     if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
-    
+
     for (int i = 0; i < matrix.length; i++) {
       matrix[i].xor(dbf.matrix[i]);
     }
   }
-  
+
   @Override
   public String toString() {
     StringBuilder res = new StringBuilder();
-    
+
     for (int i = 0; i < matrix.length; i++) {
       res.append(matrix[i]);
       res.append(Character.LINE_SEPARATOR);
     }
     return res.toString();
   }
-  
+
   // Writable
-  
+
   @Override
   public void write(final DataOutput out) throws IOException {
     super.write(out);
@@ -239,12 +239,12 @@ public class DynamicBloomFilter extends Filter {
       matrix[i].write(out);
     }
   }
-  
+
   @Override
   public void readFields(final DataInput in) throws IOException {
-    
+
     super.readFields(in);
-    
+
     nr = in.readInt();
     currentNbRecord = in.readInt();
     int len = in.readInt();
@@ -254,32 +254,32 @@ public class DynamicBloomFilter extends Filter {
       matrix[i].readFields(in);
     }
   }
-  
+
   /**
    * Adds a new row to <i>this</i> dynamic Bloom filter.
    */
   private void addRow() {
     BloomFilter[] tmp = new BloomFilter[matrix.length + 1];
-    
+
     for (int i = 0; i < matrix.length; i++) {
       tmp[i] = matrix[i];
     }
-    
+
     tmp[tmp.length - 1] = new BloomFilter(vectorSize, nbHash, hashType);
-    
+
     matrix = tmp;
   }
-  
+
   /**
    * Returns the active standard Bloom filter in <i>this</i> dynamic Bloom filter.
-   * 
+   *
    * @return BloomFilter The active standard Bloom filter. <code>Null</code> otherwise.
    */
   private BloomFilter getActiveStandardBF() {
     if (currentNbRecord >= nr) {
       return null;
     }
-    
+
     return matrix[matrix.length - 1];
   }
 }

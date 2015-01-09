@@ -20,7 +20,6 @@ import com.google.common.net.HostAndPort;
 
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
-
   static public HostAndPort parseAddress(String address) throws NumberFormatException {
     return parseAddress(address, false);
   }
@@ -30,7 +29,7 @@ public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
     HostAndPort hap = HostAndPort.fromString(address);
     if (!ignoreMissingPort && !hap.hasPort())
       throw new IllegalArgumentException("Address was expected to contain port. address=" + address);
-    
+
     return hap;
   }
 

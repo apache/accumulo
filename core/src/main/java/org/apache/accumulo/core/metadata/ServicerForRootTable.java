@@ -30,18 +30,18 @@ import org.apache.accumulo.core.security.Credentials;
  * The root table's metadata is serviced in zookeeper.
  */
 class ServicerForRootTable extends MetadataServicer {
-  
+
   private Instance instance;
-  
+
   public ServicerForRootTable(Instance instance, Credentials credentials) {
     this.instance = instance;
   }
-  
+
   @Override
   public String getServicedTableId() {
     return RootTable.ID;
   }
-  
+
   @Override
   public void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     tablets.put(RootTable.EXTENT, instance.getRootTabletLocation());

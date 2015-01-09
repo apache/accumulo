@@ -344,7 +344,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       long diff = now - lastMemoryCheckTime;
       if (diff > keepAliveTimeout) {
         log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
-                    TIME_BETWEEN_GC_CHECKS / 1000., diff / 1000.));
+            TIME_BETWEEN_GC_CHECKS / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;
       return;
@@ -605,8 +605,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           }
 
-          ActiveScan activeScan = new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
-              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB());
+          ActiveScan activeScan = new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime,
+              ScanType.SINGLE, state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
+              ss.auths.getAuthorizationsBB());
 
           // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in ActiveScan constructor
           activeScan.setScanId(entry.getKey());
@@ -1174,7 +1175,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           List<TKeyValue> retResults = new ArrayList<TKeyValue>();
           for (KVEntry entry : results)
             retResults.add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-          Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET, new Translator.ListTranslator<Range,TRange>(Translators.RT));
+          Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET,
+              new Translator.ListTranslator<Range,TRange>(Translators.RT));
           List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
           TKeyExtent retPartScan = null;
           TKey retPartNextKey = null;

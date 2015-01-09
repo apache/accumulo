@@ -23,6 +23,6 @@ package org.apache.accumulo.core.client.mock;
 public class MockTableOperations extends MockTableOperationsImpl {
 
   MockTableOperations(MockAccumulo acu, String username) {
-    super(acu,username);
+    super(acu, username);
   }
 }

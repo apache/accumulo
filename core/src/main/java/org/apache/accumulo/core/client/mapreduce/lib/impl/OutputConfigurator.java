@@ -35,7 +35,7 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for {@link BatchWriter}.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum WriteOpts {
@@ -44,7 +44,7 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for various features.
-   * 
+   *
    * @since 1.6.0
    */
   public static enum Features {
@@ -54,7 +54,7 @@ public class OutputConfigurator extends ConfiguratorBase {
   /**
    * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
    * underscores.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -70,7 +70,7 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets the default table name from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -86,7 +86,7 @@ public class OutputConfigurator extends ConfiguratorBase {
   /**
    * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
    * used. Setting the configuration multiple times overwrites any previous configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -110,7 +110,7 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets the {@link BatchWriterConfig} settings.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -138,10 +138,10 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -156,7 +156,7 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Determines whether tables are permitted to be created as needed.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -171,10 +171,10 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
-   * 
+   *
    * <p>
    * By default, this feature is <b>disabled</b>.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -189,7 +189,7 @@ public class OutputConfigurator extends ConfiguratorBase {
 
   /**
    * Determines whether this feature is enabled.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf

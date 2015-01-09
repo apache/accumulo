@@ -50,7 +50,7 @@ public class TestUpgradePathForWALogs {
   public static void createTestDirectory() {
     File baseDir = new File(System.getProperty("user.dir") + "/target/upgrade-tests");
     baseDir.mkdirs();
-    testDir = new File(baseDir,  TestUpgradePathForWALogs.class.getName());
+    testDir = new File(baseDir, TestUpgradePathForWALogs.class.getName());
     FileUtils.deleteQuietly(testDir);
     testDir.mkdir();
   }

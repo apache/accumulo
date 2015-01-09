@@ -31,11 +31,11 @@ public class AggregatorSet extends ColumnToClassMapping<Aggregator> {
   public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
     super(opts, Aggregator.class);
   }
-  
+
   public AggregatorSet() {
     super();
   }
-  
+
   public Aggregator getAggregator(Key k) {
     return getObject(k);
   }

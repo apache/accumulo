@@ -55,37 +55,37 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class ProblemReports implements Iterable<ProblemReport> {
-  
+
   private static final Logger log = Logger.getLogger(ProblemReports.class);
-  
+
   private final LRUMap problemReports = new LRUMap(1000);
-  
+
   /*
    * use a thread pool so that reporting a problem never blocks
-   * 
+   *
    * make the thread pool use a bounded queue to avoid the case where problem reports are not being processed because the whole system is in a really bad state
    * (like HDFS is down) and everything is reporting lots of problems, but problem reports can not be processed
    */
   private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(500), new NamingThreadFactory(
       "acu-problem-reporter"));
-  
+
   public void report(final ProblemReport pr) {
-    
+
     synchronized (problemReports) {
       if (problemReports.containsKey(pr)) {
         return;
       }
-      
+
       problemReports.put(pr, System.currentTimeMillis());
     }
-    
+
     Runnable r = new Runnable() {
-      
+
       @Override
       public void run() {
-        
+
         log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource());
-        
+
         try {
           if (isMeta(pr.getTableName())) {
             // file report in zookeeper
@@ -98,33 +98,33 @@ public class ProblemReports implements Iterable<ProblemReport> {
           log.error("Failed to file problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
         }
       }
-      
+
     };
-    
+
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
       log.error("Failed to report problem " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + "  " + ree.getMessage());
     }
-    
+
   }
-  
+
   public void printProblems() throws Exception {
     for (ProblemReport pr : this) {
       System.out.println(pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + " " + pr.getException());
     }
   }
-  
+
   public void deleteProblemReport(String table, ProblemType pType, String resource) {
     final ProblemReport pr = new ProblemReport(table, pType, resource, null);
-    
+
     Runnable r = new Runnable() {
-      
+
       @Override
       public void run() {
         try {
           if (isMeta(pr.getTableName())) {
-           // file report in zookeeper
+            // file report in zookeeper
             pr.removeFromZooKeeper();
           } else {
             // file report in metadata table
@@ -135,18 +135,18 @@ public class ProblemReports implements Iterable<ProblemReport> {
         }
       }
     };
-    
+
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
       log.error("Failed to delete problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + "  " + ree.getMessage());
     }
   }
-  
+
   private static ProblemReports instance;
-  
+
   public void deleteProblemReports(String table) throws Exception {
-    
+
     if (isMeta(table)) {
       Iterator<ProblemReport> pri = iterator(table);
       while (pri.hasNext()) {
@@ -154,38 +154,38 @@ public class ProblemReports implements Iterable<ProblemReport> {
       }
       return;
     }
-    
+
     Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
-    
+
     scanner.setRange(new Range(new Text("~err_" + table)));
-    
+
     Mutation delMut = new Mutation(new Text("~err_" + table));
-    
+
     boolean hasProblems = false;
     for (Entry<Key,Value> entry : scanner) {
       hasProblems = true;
       delMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
     }
-    
+
     if (hasProblems)
       MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(delMut);
   }
-  
+
   private static boolean isMeta(String tableId) {
     return tableId.equals(MetadataTable.ID) || tableId.equals(RootTable.ID);
   }
-  
+
   public Iterator<ProblemReport> iterator(final String table) {
     try {
-      
+
       return new Iterator<ProblemReport>() {
-        
+
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         private int iter1Count = 0;
         private Iterator<String> iter1;
-        
+
         private Iterator<String> getIter1() {
           if (iter1 == null) {
             try {
@@ -200,29 +200,29 @@ public class ProblemReports implements Iterable<ProblemReport> {
               throw new RuntimeException(e);
             }
           }
-          
+
           return iter1;
         }
-        
+
         private Iterator<Entry<Key,Value>> iter2;
-        
+
         private Iterator<Entry<Key,Value>> getIter2() {
           if (iter2 == null) {
             try {
               if ((table == null || !isMeta(table)) && iter1Count == 0) {
                 Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
                 Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-                
+
                 scanner.setTimeout(3, TimeUnit.SECONDS);
-                
+
                 if (table == null) {
                   scanner.setRange(new Range(new Text("~err_"), false, new Text("~err`"), false));
                 } else {
                   scanner.setRange(new Range(new Text("~err_" + table)));
                 }
-                
+
                 iter2 = scanner.iterator();
-                
+
               } else {
                 Map<Key,Value> m = Collections.emptyMap();
                 iter2 = m.entrySet().iterator();
@@ -231,23 +231,23 @@ public class ProblemReports implements Iterable<ProblemReport> {
               throw new RuntimeException(e);
             }
           }
-          
+
           return iter2;
         }
-        
+
         @Override
         public boolean hasNext() {
           if (getIter1().hasNext()) {
             return true;
           }
-          
+
           if (getIter2().hasNext()) {
             return true;
           }
-          
+
           return false;
         }
-        
+
         @Override
         public ProblemReport next() {
           try {
@@ -255,66 +255,66 @@ public class ProblemReports implements Iterable<ProblemReport> {
               iter1Count++;
               return ProblemReport.decodeZooKeeperEntry(getIter1().next());
             }
-            
+
             if (getIter2().hasNext()) {
               return ProblemReport.decodeMetadataEntry(getIter2().next());
             }
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
-          
+
           throw new NoSuchElementException();
         }
-        
+
         @Override
         public void remove() {
           throw new UnsupportedOperationException();
         }
-        
+
       };
-      
+
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public Iterator<ProblemReport> iterator() {
     return iterator(null);
   }
-  
+
   public static synchronized ProblemReports getInstance() {
     if (instance == null) {
       instance = new ProblemReports();
     }
-    
+
     return instance;
   }
-  
+
   public static void main(String args[]) throws Exception {
     getInstance().printProblems();
   }
-  
+
   public Map<String,Map<ProblemType,Integer>> summarize() {
-    
+
     TreeMap<String,Map<ProblemType,Integer>> summary = new TreeMap<String,Map<ProblemType,Integer>>();
-    
+
     for (ProblemReport pr : this) {
       Map<ProblemType,Integer> tableProblems = summary.get(pr.getTableName());
       if (tableProblems == null) {
         tableProblems = new EnumMap<ProblemType,Integer>(ProblemType.class);
         summary.put(pr.getTableName(), tableProblems);
       }
-      
+
       Integer count = tableProblems.get(pr.getProblemType());
       if (count == null) {
         count = 0;
       }
-      
+
       tableProblems.put(pr.getProblemType(), count + 1);
     }
-    
+
     return summary;
   }
-  
+
 }

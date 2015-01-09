@@ -30,18 +30,18 @@ import org.apache.accumulo.tserver.Compactor.CompactionInfo;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  */
 public class CompactionWatcher implements Runnable {
   private Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<List<Long>,ObservedCompactionInfo>();
   private AccumuloConfiguration config;
   private static boolean watching = false;
-  
+
   private static class ObservedCompactionInfo {
     CompactionInfo compactionInfo;
     long firstSeen;
     boolean loggedWarning;
-    
+
     ObservedCompactionInfo(CompactionInfo ci, long time) {
       this.compactionInfo = ci;
       this.firstSeen = time;
@@ -54,24 +54,24 @@ public class CompactionWatcher implements Runnable {
 
   public void run() {
     List<CompactionInfo> runningCompactions = Compactor.getRunningCompactions();
-    
+
     Set<List<Long>> newKeys = new HashSet<List<Long>>();
-    
+
     long time = System.currentTimeMillis();
 
     for (CompactionInfo ci : runningCompactions) {
       List<Long> compactionKey = Arrays.asList(ci.getID(), ci.getEntriesRead(), ci.getEntriesWritten());
       newKeys.add(compactionKey);
-      
+
       if (!observedCompactions.containsKey(compactionKey)) {
         observedCompactions.put(compactionKey, new ObservedCompactionInfo(ci, time));
       }
     }
-    
+
     // look for compactions that finished or made progress and logged a warning
     HashMap<List<Long>,ObservedCompactionInfo> copy = new HashMap<List<Long>,ObservedCompactionInfo>(observedCompactions);
     copy.keySet().removeAll(newKeys);
-    
+
     for (ObservedCompactionInfo oci : copy.values()) {
       if (oci.loggedWarning) {
         Logger.getLogger(CompactionWatcher.class).info("Compaction of " + oci.compactionInfo.getExtent() + " is no longer stuck");
@@ -80,7 +80,7 @@ public class CompactionWatcher implements Runnable {
 
     // remove any compaction that completed or made progress
     observedCompactions.keySet().retainAll(newKeys);
-    
+
     long warnTime = config.getTimeInMillis(Property.TSERV_COMPACTION_WARN_TIME);
 
     // check for stuck compactions

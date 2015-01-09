@@ -164,7 +164,8 @@ public enum Property {
   @Experimental
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files."),
-  GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "", PropertyType.STRING, "Comma-separated list of paths to CredentialProviders"),
+  GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "", PropertyType.STRING,
+      "Comma-separated list of paths to CredentialProviders"),
 
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),
@@ -274,10 +275,10 @@ public enum Property {
       "The number of threads for the distributed work queue. These threads are used for copying failed bulk files."),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
-  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING, "The method to invoke when sync'ing WALs. HSync will provide " +
-      "resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method " +
-      "will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value " +
-      "of 'hsync' which will result in faster writes, but with less durability"),
+  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING, "The method to invoke when sync'ing WALs. HSync will provide "
+      + "resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method "
+      + "will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value "
+      + "of 'hsync' which will result in faster writes, but with less durability"),
   TSERV_ASSIGNMENT_DURATION_WARNING("tserver.assignment.duration.warning", "10m", PropertyType.TIMEDURATION, "The amount of time an assignment can run "
       + " before the server will print a warning along with the current stack trace. Meant to help debug stuck assignments"),
 
@@ -313,8 +314,10 @@ public enum Property {
   MONITOR_SSL_TRUSTSTORE("monitor.ssl.trustStore", "", PropertyType.PATH, "The truststore for enabling monitor SSL."),
   @Sensitive
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
-  MONITOR_SSL_INCLUDE_CIPHERS("monitor.ssl.include.ciphers", "", PropertyType.STRING, "A comma-separated list of allows SSL Ciphers, see monitor.ssl.exclude.ciphers to disallow ciphers"),
-  MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING, "A comma-separated list of disallowed SSL Ciphers, see mmonitor.ssl.include.ciphers to allow ciphers"),
+  MONITOR_SSL_INCLUDE_CIPHERS("monitor.ssl.include.ciphers", "", PropertyType.STRING,
+      "A comma-separated list of allows SSL Ciphers, see monitor.ssl.exclude.ciphers to disallow ciphers"),
+  MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING,
+      "A comma-separated list of disallowed SSL Ciphers, see mmonitor.ssl.include.ciphers to allow ciphers"),
   MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1,TLSv1.1,TLSv1.2", PropertyType.STRING, "A comma-separate list of allowed SSL protocols"),
 
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
@@ -415,9 +418,12 @@ public enum Property {
           + "These iterators can take options if additional properties are set that look like this property, "
           + "but are suffixed with a period, followed by 'opt' followed by another period, and a property name.\n"
           + "For example, table.iterator.minc.vers.opt.maxVersions = 3"),
-  TABLE_ITERATOR_SCAN_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.scan.name() + ".", null, PropertyType.PREFIX, "Convenience prefix to find options for the scan iterator scope"),
-  TABLE_ITERATOR_MINC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.minc.name() + ".", null, PropertyType.PREFIX, "Convenience prefix to find options for the minc iterator scope"),
-  TABLE_ITERATOR_MAJC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.majc.name() + ".", null, PropertyType.PREFIX, "Convenience prefix to find options for the majc iterator scope"),
+  TABLE_ITERATOR_SCAN_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.scan.name() + ".", null, PropertyType.PREFIX,
+      "Convenience prefix to find options for the scan iterator scope"),
+  TABLE_ITERATOR_MINC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.minc.name() + ".", null, PropertyType.PREFIX,
+      "Convenience prefix to find options for the minc iterator scope"),
+  TABLE_ITERATOR_MAJC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.majc.name() + ".", null, PropertyType.PREFIX,
+      "Convenience prefix to find options for the majc iterator scope"),
   TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
       "Properties in this category are per-table properties that define locality groups in a table. These properties start "
           + "with the category prefix, followed by a name, followed by a period, and followed by a property for that group.\n"

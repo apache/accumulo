@@ -56,7 +56,7 @@ public class BulkFailedCopyProcessor implements Processor {
       VolumeManager vm = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
       FileSystem origFs = TraceFileSystem.wrap(vm.getVolumeByPath(orig).getFileSystem());
       FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
-      
+
       FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
       destFs.rename(tmp, dest);
       log.debug("copied " + orig + " to " + dest);

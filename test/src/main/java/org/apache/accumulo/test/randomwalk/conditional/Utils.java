@@ -16,9 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.conditional;
 
-
 /**
- * 
+ *
  */
 public class Utils {
 

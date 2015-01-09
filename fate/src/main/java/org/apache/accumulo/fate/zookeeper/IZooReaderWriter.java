@@ -40,7 +40,7 @@ public interface IZooReaderWriter extends IZooReader {
   boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
 
   void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
-  
+
   boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls) throws KeeperException, InterruptedException;
 
   String putPersistentSequential(String zPath, byte[] data) throws KeeperException, InterruptedException;

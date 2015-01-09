@@ -129,7 +129,7 @@ public class StandaloneClusterControl implements ClusterControl {
   public void adminStopAll() throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[] { accumuloPath, Admin.class.getName(), "stopAll" };
+    String[] cmd = new String[] {accumuloPath, Admin.class.getName(), "stopAll"};
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());

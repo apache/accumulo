@@ -30,7 +30,7 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
-    
+
     if (mock)
       return cachedInstance = new MockInstance(instance);
     if (instance == null) {
@@ -38,6 +38,7 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
     }
     return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
   }
+
   public ClientOnDefaultTable(String table) {
     super(table);
   }

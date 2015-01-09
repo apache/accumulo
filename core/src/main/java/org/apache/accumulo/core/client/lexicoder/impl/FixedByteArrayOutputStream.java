@@ -23,23 +23,23 @@ import java.io.OutputStream;
  * Uses a fixed length array and will not grow in size dynamically like the {@link java.io.ByteArrayOutputStream}.
  */
 public class FixedByteArrayOutputStream extends OutputStream {
-  
+
   private int i;
   byte out[];
-  
+
   public FixedByteArrayOutputStream(byte out[]) {
     this.out = out;
   }
-  
+
   @Override
   public void write(int b) throws IOException {
     out[i++] = (byte) b;
   }
-  
+
   @Override
   public void write(byte b[], int off, int len) throws IOException {
     System.arraycopy(b, off, out, i, len);
     i += len;
   }
-  
+
 }

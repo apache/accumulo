@@ -29,25 +29,25 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ExtensionCommand extends Command {
-  
+
   protected Option enable, disable, list;
-  
+
   private static ServiceLoader<ShellExtension> extensions = null;
-  
+
   private Set<String> loadedHeaders = new HashSet<String>();
   private Set<String> loadedCommands = new HashSet<String>();
   private Set<String> loadedExtensions = new TreeSet<String>();
-  
+
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     if (cl.hasOption(enable.getOpt())) {
       extensions = ServiceLoader.load(ShellExtension.class);
       for (ShellExtension se : extensions) {
-        
+
         loadedExtensions.add(se.getExtensionName());
         String header = "-- " + se.getExtensionName() + " Extension Commands ---------";
         loadedHeaders.add(header);
         shellState.commandGrouping.put(header, se.getCommands());
-        
+
         for (Command cmd : se.getCommands()) {
           String name = se.getExtensionName() + "::" + cmd.getName();
           loadedCommands.add(name);
@@ -55,15 +55,15 @@ public class ExtensionCommand extends Command {
         }
       }
     } else if (cl.hasOption(disable.getOpt())) {
-      //Remove the headers
+      // Remove the headers
       for (String header : loadedHeaders) {
         shellState.commandGrouping.remove(header);
       }
-      //remove the commands
+      // remove the commands
       for (String name : loadedCommands) {
         shellState.commandFactory.remove(name);
       }
-      //Reset state
+      // Reset state
       loadedExtensions.clear();
       extensions.reload();
     } else if (cl.hasOption(list.getOpt())) {
@@ -73,15 +73,15 @@ public class ExtensionCommand extends Command {
     }
     return 0;
   }
-  
+
   public String description() {
     return "Enable, disable, or list shell extensions";
   }
-  
+
   public int numArgs() {
     return 0;
   }
-  
+
   @Override
   public String getName() {
     return "extensions";
@@ -98,5 +98,5 @@ public class ExtensionCommand extends Command {
     o.addOption(list);
     return o;
   }
-    
+
 }

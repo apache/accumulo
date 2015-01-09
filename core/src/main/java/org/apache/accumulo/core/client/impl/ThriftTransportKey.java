@@ -24,9 +24,9 @@ class ThriftTransportKey {
   private final int port;
   private final long timeout;
   private final SslConnectionParams sslParams;
-  
+
   private int hash = -1;
-  
+
   ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
     ArgumentChecker.notNull(location);
     String[] locationAndPort = location.split(":", 2);
@@ -35,23 +35,23 @@ class ThriftTransportKey {
       this.port = Integer.parseInt(locationAndPort[1]);
     } else
       throw new IllegalArgumentException("Location was expected to contain port but did not. location=" + location);
-    
+
     this.timeout = timeout;
     this.sslParams = sslParams;
   }
-  
+
   String getLocation() {
     return location;
   }
-  
+
   int getPort() {
     return port;
   }
-  
+
   long getTimeout() {
     return timeout;
   }
-  
+
   public boolean isSsl() {
     return sslParams != null;
   }
@@ -63,17 +63,17 @@ class ThriftTransportKey {
     ThriftTransportKey ttk = (ThriftTransportKey) o;
     return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)));
   }
-  
+
   @Override
   public int hashCode() {
     if (hash == -1)
       hash = toString().hashCode();
     return hash;
   }
-  
+
   @Override
   public String toString() {
-    return (isSsl()?"ssl:":"") + location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ")";
+    return (isSsl() ? "ssl:" : "") + location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ")";
   }
 
   public SslConnectionParams getSslParams() {

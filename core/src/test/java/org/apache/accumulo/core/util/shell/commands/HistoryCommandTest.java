@@ -30,7 +30,6 @@ import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.commands.HistoryCommand;
 import org.apache.commons.cli.CommandLine;
 import org.junit.Assume;
 import org.junit.Before;

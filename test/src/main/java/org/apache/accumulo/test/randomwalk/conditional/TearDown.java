@@ -23,7 +23,7 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 /**
- * 
+ *
  */
 public class TearDown extends Test {
   @Override

@@ -22,7 +22,7 @@ import java.lang.reflect.Proxy;
 /**
  * To move trace data from client to server, the RPC call must be annotated to take a TInfo object as its first argument. The user can simply pass null, so long
  * as they wrap their Client and Service objects with these functions.
- * 
+ *
  * <pre>
  * Trace.on(&quot;remoteMethod&quot;);
  * Iface c = new Client();
@@ -30,11 +30,11 @@ import java.lang.reflect.Proxy;
  * c.remoteMethod(null, arg2, arg3);
  * Trace.off();
  * </pre>
- * 
+ *
  * The wrapper will see the annotated method and send or re-establish the trace information.
- * 
+ *
  * Note that the result of these calls is a Proxy object that conforms to the basic interfaces, but is not your concrete instance.
- * 
+ *
  */
 public class TraceWrap {
 

@@ -26,11 +26,11 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   private static final String SCHEME = "digest";
   private static final String USER = "accumulo";
   private static ZooReaderWriter instance = null;
-  
+
   public ZooReaderWriter(String string, int timeInMillis, String secret) {
     super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8));
   }
-  
+
   public static synchronized ZooReaderWriter getInstance() {
     if (instance == null) {
       AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
@@ -39,5 +39,5 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
     }
     return instance;
   }
-  
+
 }

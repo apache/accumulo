@@ -45,12 +45,12 @@ public class Main {
       Class<?> runTMP = null;
 
       Thread.currentThread().setContextClassLoader(cl);
-      
-      if (args[0].equals("help")){
+
+      if (args[0].equals("help")) {
         printUsage();
         System.exit(0);
       } else if (args[0].equals("master")) {
-	runTMP = cl.loadClass("org.apache.accumulo.master.Master");
+        runTMP = cl.loadClass("org.apache.accumulo.master.Master");
       } else if (args[0].equals("tserver")) {
         runTMP = cl.loadClass("org.apache.accumulo.tserver.TabletServer");
       } else if (args[0].equals("shell")) {

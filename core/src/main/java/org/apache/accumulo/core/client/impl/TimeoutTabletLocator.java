@@ -31,14 +31,14 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class TimeoutTabletLocator extends TabletLocator {
-  
+
   private TabletLocator locator;
   private long timeout;
   private Long firstFailTime = null;
-  
+
   private void failed() {
     if (firstFailTime == null) {
       firstFailTime = System.currentTimeMillis();
@@ -46,93 +46,93 @@ public class TimeoutTabletLocator extends TabletLocator {
       throw new TimedOutException("Failed to obtain metadata");
     }
   }
-  
+
   private void succeeded() {
     firstFailTime = null;
   }
-  
+
   public TimeoutTabletLocator(TabletLocator locator, long timeout) {
     this.locator = locator;
     this.timeout = timeout;
   }
-  
+
   @Override
   public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    
+
     try {
       TabletLocation ret = locator.locateTablet(credentials, row, skipRow, retry);
-      
+
       if (ret == null)
         failed();
       else
         succeeded();
-      
+
       return ret;
     } catch (AccumuloException ae) {
       failed();
       throw ae;
     }
   }
-  
+
   @Override
-  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+      List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
       locator.binMutations(credentials, mutations, binnedMutations, failures);
-      
+
       if (failures.size() == mutations.size())
         failed();
       else
         succeeded();
-      
+
     } catch (AccumuloException ae) {
       failed();
       throw ae;
     }
   }
-  
+
   /**
-   * 
+   *
    */
-  
+
   @Override
   public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    
+
     try {
       List<Range> ret = locator.binRanges(credentials, ranges, binnedRanges);
-      
+
       if (ranges.size() == ret.size())
         failed();
       else
         succeeded();
-      
+
       return ret;
     } catch (AccumuloException ae) {
       failed();
       throw ae;
     }
   }
-  
+
   @Override
   public void invalidateCache(KeyExtent failedExtent) {
     locator.invalidateCache(failedExtent);
   }
-  
+
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {
     locator.invalidateCache(keySet);
   }
-  
+
   @Override
   public void invalidateCache() {
     locator.invalidateCache();
   }
-  
+
   @Override
   public void invalidateCache(String server) {
     locator.invalidateCache(server);
   }
-  
+
 }

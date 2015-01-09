@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class AuthenticationTokenTest {
   @Test
@@ -43,14 +43,14 @@ public class AuthenticationTokenTest {
     for (byte b : randomBytes)
       allZero = allZero && b == 0;
     assertFalse(allZero);
-    
+
     byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken(randomBytes));
     PasswordToken passwordToken = AuthenticationTokenSerializer.deserialize(PasswordToken.class, serialized);
     assertArrayEquals(randomBytes, passwordToken.getPassword());
-    
+
     serialized = AuthenticationTokenSerializer.serialize(new NullToken());
     AuthenticationToken nullToken = AuthenticationTokenSerializer.deserialize(NullToken.class, serialized);
     assertEquals(new NullToken(), nullToken);
   }
-  
+
 }

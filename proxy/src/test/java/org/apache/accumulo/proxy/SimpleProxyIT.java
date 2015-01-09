@@ -185,8 +185,9 @@ public class SimpleProxyIT {
     // wait for accumulo to be up and functional
     ZooKeeperInstance zoo = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = zoo.getConnector("root", new PasswordToken(secret.getBytes()));
-    for (@SuppressWarnings("unused") Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-        ;
+    for (@SuppressWarnings("unused")
+    Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
+      ;
 
     Properties props = new Properties();
     props.put("instance", accumulo.getConfig().getInstanceName());

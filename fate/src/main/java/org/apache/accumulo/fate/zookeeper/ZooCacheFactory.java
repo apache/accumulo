@@ -18,6 +18,7 @@ package org.apache.accumulo.fate.zookeeper;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.zookeeper.Watcher;
 
 /**
@@ -47,15 +48,17 @@ public class ZooCacheFactory {
       return zc;
     }
   }
+
   /**
-   * Gets a watched {@link ZooCache}. If the watcher is null, then the same (unwatched)
-   * object may be returned for multiple calls with the same remaining arguments.
+   * Gets a watched {@link ZooCache}. If the watcher is null, then the same (unwatched) object may be returned for multiple calls with the same remaining
+   * arguments.
    *
    * @param zooKeepers
    *          comma-seprated list of ZooKeeper host[:port]s
    * @param sessionTimeout
    *          session timeout
-   * @param watcher watcher (optional)
+   * @param watcher
+   *          watcher (optional)
    * @return cache object
    */
   public ZooCache getZooCache(String zooKeepers, int sessionTimeout, Watcher watcher) {

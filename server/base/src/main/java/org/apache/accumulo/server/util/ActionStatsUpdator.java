@@ -19,10 +19,10 @@ package org.apache.accumulo.server.util;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 
 /**
- * 
+ *
  */
 public class ActionStatsUpdator {
-  
+
   public static void update(ActionStats summary, ActionStats td) {
     summary.status += td.status;
     summary.elapsed += td.elapsed;
@@ -33,5 +33,5 @@ public class ActionStatsUpdator {
     summary.queueSumDev += td.queueSumDev;
     summary.fail += td.fail;
   }
-  
+
 }

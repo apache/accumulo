@@ -88,7 +88,7 @@ public class SetIterCommand extends Command {
 
     // Try to get the name provided by the setiter command
     String name = cl.getOptionValue(nameOpt.getOpt(), null);
-    
+
     // Cannot continue if no name is provided
     if (null == name && null == configuredName) {
       throw new IllegalArgumentException("No provided or default name for iterator");
@@ -235,7 +235,7 @@ public class SetIterCommand extends Command {
     if (null != iterOptions) {
       final IteratorOptions itopts = iterOptions.describeOptions();
       iteratorName = itopts.getName();
-      
+
       if (iteratorName == null) {
         throw new IllegalArgumentException(className + " described its default distinguishing name as null");
       }
@@ -250,9 +250,9 @@ public class SetIterCommand extends Command {
           options.remove(key);
         }
         localOptions.clear();
-  
+
         reader.println(itopts.getDescription());
-  
+
         String prompt;
         if (itopts.getNamedOptions() != null) {
           for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
@@ -269,7 +269,7 @@ public class SetIterCommand extends Command {
             localOptions.put(e.getKey(), input);
           }
         }
-  
+
         if (itopts.getUnnamedOptionDescriptions() != null) {
           for (String desc : itopts.getUnnamedOptionDescriptions()) {
             reader.println(Shell.repeat("-", 10) + "> entering options: " + desc);
@@ -284,20 +284,20 @@ public class SetIterCommand extends Command {
               } else {
                 input = new String(input);
               }
-  
+
               if (input.length() == 0)
                 break;
-  
+
               String[] sa = input.split(" ", 2);
               localOptions.put(sa[0], sa[1]);
             }
           }
         }
-  
+
         options.putAll(localOptions);
         if (!iterOptions.validateOptions(options))
           reader.println("invalid options for " + clazz.getName());
-  
+
       } while (!iterOptions.validateOptions(options));
     } else {
       reader.flush();
@@ -310,12 +310,12 @@ public class SetIterCommand extends Command {
         // Treat whitespace or empty string as no name provided
         iteratorName = null;
       }
-      
+
       reader.flush();
       reader.println("Optional, configure name-value options for iterator:");
       String prompt = Shell.repeat("-", 10) + "> set option (<name> <value>, hit enter to skip): ";
       final HashMap<String,String> localOptions = new HashMap<String,String>();
-      
+
       while (true) {
         reader.flush();
         input = reader.readLine(prompt);
@@ -324,15 +324,15 @@ public class SetIterCommand extends Command {
           throw new IOException("Input stream closed");
         } else if (StringUtils.isWhitespace(input)) {
           break;
-        } 
+        }
 
         String[] sa = input.split(" ", 2);
         localOptions.put(sa[0], sa[1]);
       }
-      
+
       options.putAll(localOptions);
     }
-    
+
     return iteratorName;
   }
 

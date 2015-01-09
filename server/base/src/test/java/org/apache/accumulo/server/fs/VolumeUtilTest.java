@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * 
+ *
  */
 public class VolumeUtilTest {
 
@@ -79,12 +79,12 @@ public class VolumeUtilTest {
     replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/a")));
     replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/b")));
 
-    Assert.assertEquals("viewfs:/a/tables/t-00000/C000.rf",
-        VolumeUtil.switchVolume("hdfs://nn1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
+    Assert
+        .assertEquals("viewfs:/a/tables/t-00000/C000.rf", VolumeUtil.switchVolume("hdfs://nn1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
     Assert.assertEquals("viewfs:/a/tables/t-00000/C000.rf",
         VolumeUtil.switchVolume("hdfs://nn1:9000/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
-    Assert.assertEquals("viewfs:/b/tables/t-00000/C000.rf",
-        VolumeUtil.switchVolume("hdfs://nn2/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
+    Assert
+        .assertEquals("viewfs:/b/tables/t-00000/C000.rf", VolumeUtil.switchVolume("hdfs://nn2/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
     Assert.assertNull(VolumeUtil.switchVolume("viewfs:/a/tables/t-00000/C000.rf", FileType.TABLE, replacements));
     Assert.assertNull(VolumeUtil.switchVolume("file:/nn1/a/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
 
@@ -205,9 +205,7 @@ public class VolumeUtilTest {
 
     FileType ft = FileType.TABLE;
 
-    Assert.assertEquals("file:/foo/v8/tables/+r/root_tablet",
-        VolumeUtil.switchVolume("file:/foo/v1/tables/+r/root_tablet",
-        ft, replacements));
+    Assert.assertEquals("file:/foo/v8/tables/+r/root_tablet", VolumeUtil.switchVolume("file:/foo/v1/tables/+r/root_tablet", ft, replacements));
   }
 
   private void writeFile(FileSystem fs, Path dir, String filename, String data) throws IOException {

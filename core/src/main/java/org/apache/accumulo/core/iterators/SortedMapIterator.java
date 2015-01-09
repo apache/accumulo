@@ -32,67 +32,66 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 
 /**
  * A simple iterator over a Java SortedMap
- * 
- * Note that this class is intended as an in-memory replacement for RFile$Reader, so its behavior reflects
- * the same assumptions; namely, that this iterator is not responsible for respecting the columnFamilies
- * passed into seek().  If you want a Map-backed Iterator that returns only sought CFs, construct a new 
+ *
+ * Note that this class is intended as an in-memory replacement for RFile$Reader, so its behavior reflects the same assumptions; namely, that this iterator is
+ * not responsible for respecting the columnFamilies passed into seek(). If you want a Map-backed Iterator that returns only sought CFs, construct a new
  * ColumnFamilySkippingIterator(new SortedMapIterator(map)).
- * 
+ *
  * @see org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator
- * 
+ *
  */
 
 public class SortedMapIterator implements InterruptibleIterator {
   private Iterator<Entry<Key,Value>> iter;
   private Entry<Key,Value> entry;
-  
+
   private SortedMap<Key,Value> map;
   private Range range;
-  
+
   private AtomicBoolean interruptFlag;
   private int interruptCheckCount = 0;
-  
+
   public SortedMapIterator deepCopy(IteratorEnvironment env) {
     return new SortedMapIterator(map, interruptFlag);
   }
-  
+
   private SortedMapIterator(SortedMap<Key,Value> map, AtomicBoolean interruptFlag) {
     this.map = map;
     iter = null;
     this.range = new Range();
     entry = null;
-    
+
     this.interruptFlag = interruptFlag;
   }
-  
+
   public SortedMapIterator(SortedMap<Key,Value> map) {
     this(map, null);
   }
-  
+
   @Override
   public Key getTopKey() {
     return entry.getKey();
   }
-  
+
   @Override
   public Value getTopValue() {
     return entry.getValue();
   }
-  
+
   @Override
   public boolean hasTop() {
     return entry != null;
   }
-  
+
   @Override
   public void next() throws IOException {
-    
+
     if (entry == null)
       throw new IllegalStateException();
-    
+
     if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
       throw new IterationInterruptedException();
-    
+
     if (iter.hasNext()) {
       entry = iter.next();
       if (range.afterEndKey((Key) entry.getKey())) {
@@ -100,22 +99,22 @@ public class SortedMapIterator implements InterruptibleIterator {
       }
     } else
       entry = null;
-    
+
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    
+
     if (interruptFlag != null && interruptFlag.get())
       throw new IterationInterruptedException();
-    
+
     this.range = range;
-    
+
     Key key = range.getStartKey();
     if (key == null) {
       key = new Key();
     }
-    
+
     iter = map.tailMap(key).entrySet().iterator();
     if (iter.hasNext()) {
       entry = iter.next();
@@ -124,16 +123,16 @@ public class SortedMapIterator implements InterruptibleIterator {
       }
     } else
       entry = null;
-    
+
     while (hasTop() && range.beforeStartKey(getTopKey())) {
       next();
     }
   }
-  
+
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
     this.interruptFlag = flag;

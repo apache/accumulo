@@ -791,8 +791,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (flush)
       _flush(tableId, start, end, true);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
-        end == null ? EMPTY : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
+        : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -1308,8 +1308,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * Create an IsolatedScanner over the given table, fetching the columns necessary to determine when a table has transitioned to online or offline.
    */
   protected IsolatedScanner createMetadataScanner(Instance inst, Credentials creds, String metaTable, Range range) throws TableNotFoundException,
-      AccumuloException,
-      AccumuloSecurityException {
+      AccumuloException, AccumuloSecurityException {
     Scanner scanner = inst.getConnector(creds.getPrincipal(), creds.getToken()).createScanner(metaTable, Authorizations.EMPTY);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
@@ -1440,11 +1439,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloSecurityException(e.getUser(), e.getCode());
       } catch (TTransportException e) {
         // some sort of communication error occurred, retry
-	if (pair == null) {
+        if (pair == null) {
           log.debug("Disk usage request failed.  Pair is null.  Retrying request...", e);
-	} else {
+        } else {
           log.debug("Disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
-	}
+        }
         UtilWaitThread.sleep(100);
       } catch (TException e) {
         // may be a TApplicationException which indicates error on the server side

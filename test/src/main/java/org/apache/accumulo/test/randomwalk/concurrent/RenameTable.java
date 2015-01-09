@@ -29,31 +29,31 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class RenameTable extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String srcTableName = tableNames.get(rand.nextInt(tableNames.size()));
     String newTableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     String srcNamespace = "", newNamespace = "";
-    
+
     int index = srcTableName.indexOf('.');
     if (-1 != index) {
       srcNamespace = srcTableName.substring(0, index);
     }
-    
+
     index = newTableName.indexOf('.');
     if (-1 != index) {
       newNamespace = newTableName.substring(0, index);
     }
-    
+
     try {
       conn.tableOperations().rename(srcTableName, newTableName);
       log.debug("Renamed table " + srcTableName + " " + newTableName);
@@ -70,7 +70,7 @@ public class RenameTable extends Test {
           return;
         }
       }
-      
+
       log.debug("Rename " + srcTableName + " failed, doesnt exist");
     } catch (IllegalArgumentException e) {
       log.debug("Rename: " + e.toString());
@@ -81,7 +81,7 @@ public class RenameTable extends Test {
       }
       log.debug("Rename " + srcTableName + " failed.", e);
     }
-    
+
     if (!srcNamespace.equals(newNamespace)) {
       log.error("RenameTable operation should have failed when renaming across namespaces.");
     }

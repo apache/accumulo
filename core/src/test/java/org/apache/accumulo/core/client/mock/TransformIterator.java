@@ -28,5 +28,3 @@ public class TransformIterator extends WrappingIterator {
     return new Key(new Text(k.getRow().toString().toLowerCase()), k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibility(), k.getTimestamp());
   }
 }
-
-

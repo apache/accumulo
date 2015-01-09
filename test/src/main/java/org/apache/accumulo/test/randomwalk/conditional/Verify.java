@@ -33,7 +33,7 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 /**
- * 
+ *
  */
 public class Verify extends Test {
 
@@ -78,7 +78,6 @@ public class Verify extends Test {
     if (count > 0 && sum != numAccts * 100) {
       throw new Exception("Sum is off " + sum);
     }
-
 
     log.debug("Verified " + row + " count = " + count + " sum = " + sum + " min = " + min + " max = " + max);
   }

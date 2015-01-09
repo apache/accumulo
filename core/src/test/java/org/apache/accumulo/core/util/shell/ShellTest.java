@@ -285,12 +285,12 @@ public class ShellTest {
 
     input.set("\n\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo", true);
-    
+
     input.set("bar\nname value\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 31", true);
-    
-    //TODO can't verify this as config -t fails, functionality verified in ShellServerIT
-    
+
+    // TODO can't verify this as config -t fails, functionality verified in ShellServerIT
+
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 }

@@ -31,7 +31,7 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class Init extends Test {
 
@@ -67,21 +67,21 @@ public class Init extends Test {
 
         if (j % 1000 == 0 && j > 0) {
           Status status = cw.write(m).getStatus();
-          
-          while(status == Status.UNKNOWN)
+
+          while (status == Status.UNKNOWN)
             status = cw.write(m).getStatus();
-          
+
           if (status == Status.ACCEPTED)
             acceptedCount++;
           m = new ConditionalMutation(Utils.getBank(i));
         }
 
       }
-      if (m.getConditions().size() > 0){
+      if (m.getConditions().size() > 0) {
         Status status = cw.write(m).getStatus();
-        while(status == Status.UNKNOWN)
+        while (status == Status.UNKNOWN)
           status = cw.write(m).getStatus();
-        
+
         if (status == Status.ACCEPTED)
           acceptedCount++;
       }

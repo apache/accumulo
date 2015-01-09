@@ -26,33 +26,33 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class DefaultKeySizeConstraintTest {
-  
+
   Constraint constraint = new DefaultKeySizeConstraint();
-  
+
   byte[] oversized = new byte[1048577];
   byte[] large = new byte[419430];
-  
+
   @Test
   public void testConstraint() {
 
     // pass constraints
     Mutation m = new Mutation("rowId");
-    m.put("colf", "colq", new Value(new byte[]{}));
+    m.put("colf", "colq", new Value(new byte[] {}));
     assertEquals(Collections.emptyList(), constraint.check(null, m));
 
     // test with row id > 1mb
     m = new Mutation(oversized);
-    m.put("colf", "colq", new Value(new byte[]{}));
+    m.put("colf", "colq", new Value(new byte[] {}));
     assertEquals(Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION), constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
-    m.put(new Text(oversized), new Text("colq"), new Value(new byte[]{}));
+    m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
     assertEquals(Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION), constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
-    m.put(new Text(oversized), new Text("colq"), new Value(new byte[]{}));
+    m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
     assertEquals(Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION), constraint.check(null, m));
 
     // test sum of smaller sizes violates 1mb constraint

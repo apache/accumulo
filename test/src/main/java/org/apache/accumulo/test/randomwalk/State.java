@@ -87,7 +87,7 @@ public class State {
   }
 
   /**
-   * 
+   *
    * @return a copy of Properties, so accidental changes don't affect the framework
    */
   public Properties getProperties() {

@@ -34,7 +34,7 @@ public interface SecurityOperations {
 
   /**
    * Create a user
-   * 
+   *
    * @param user
    *          the name of the user to create
    * @param password
@@ -52,7 +52,7 @@ public interface SecurityOperations {
 
   /**
    * Create a user
-   * 
+   *
    * @param principal
    *          the name of the user to create
    * @param password
@@ -67,7 +67,7 @@ public interface SecurityOperations {
 
   /**
    * Delete a user
-   * 
+   *
    * @param user
    *          the user name to delete
    * @throws AccumuloException
@@ -81,7 +81,7 @@ public interface SecurityOperations {
 
   /**
    * Delete a user
-   * 
+   *
    * @param principal
    *          the user name to delete
    * @throws AccumuloException
@@ -94,7 +94,7 @@ public interface SecurityOperations {
 
   /**
    * Verify a username/password combination is valid
-   * 
+   *
    * @param user
    *          the name of the user to authenticate
    * @param password
@@ -111,7 +111,7 @@ public interface SecurityOperations {
 
   /**
    * Verify a username/password combination is valid
-   * 
+   *
    * @param principal
    *          the name of the user to authenticate
    * @param token
@@ -127,7 +127,7 @@ public interface SecurityOperations {
 
   /**
    * Set the user's password
-   * 
+   *
    * @param user
    *          the name of the user to modify
    * @param password
@@ -144,7 +144,7 @@ public interface SecurityOperations {
 
   /**
    * Set the user's password
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param token
@@ -159,7 +159,7 @@ public interface SecurityOperations {
 
   /**
    * Set the user's record-level authorizations
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param authorizations
@@ -173,7 +173,7 @@ public interface SecurityOperations {
 
   /**
    * Retrieves the user's authorizations for scanning
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @return the set of authorizations the user has available for scanning
@@ -186,7 +186,7 @@ public interface SecurityOperations {
 
   /**
    * Verify the user has a particular system permission
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @param perm
@@ -201,7 +201,7 @@ public interface SecurityOperations {
 
   /**
    * Verify the user has a particular table permission
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @param table
@@ -218,7 +218,7 @@ public interface SecurityOperations {
 
   /**
    * Verify the user has a particular namespace permission
-   * 
+   *
    * @param principal
    *          the name of the user to query
    * @param namespace
@@ -235,7 +235,7 @@ public interface SecurityOperations {
 
   /**
    * Grant a user a system permission
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param permission
@@ -249,7 +249,7 @@ public interface SecurityOperations {
 
   /**
    * Grant a user a specific permission for a specific table
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param table
@@ -265,7 +265,7 @@ public interface SecurityOperations {
 
   /**
    * Grant a user a specific permission for a specific namespace
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param namespace
@@ -281,7 +281,7 @@ public interface SecurityOperations {
 
   /**
    * Revoke a system permission from a user
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param permission
@@ -295,7 +295,7 @@ public interface SecurityOperations {
 
   /**
    * Revoke a table permission for a specific user on a specific table
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param table
@@ -311,7 +311,7 @@ public interface SecurityOperations {
 
   /**
    * Revoke a namespace permission for a specific user on a specific namespace
-   * 
+   *
    * @param principal
    *          the name of the user to modify
    * @param namespace
@@ -327,7 +327,7 @@ public interface SecurityOperations {
 
   /**
    * Return a list of users in accumulo
-   * 
+   *
    * @return a set of user names
    * @throws AccumuloException
    *           if a general error occurs
@@ -340,7 +340,7 @@ public interface SecurityOperations {
 
   /**
    * Return a list of users in accumulo
-   * 
+   *
    * @return a set of user names
    * @throws AccumuloException
    *           if a general error occurs

@@ -234,7 +234,7 @@ public class ContinuousVerify extends Configured implements Tool {
   }
 
   /**
-   * 
+   *
    * @param args
    *          instanceName zookeepers username password table columns outputpath
    */

@@ -33,11 +33,12 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerConfigurationUtil {
   private static final Logger log = LoggerFactory.getLogger(ServerConfigurationUtil.class);
+
   @SuppressWarnings("deprecation")
   public static AccumuloConfiguration getConfiguration(Instance instance) {
     return instance.getConfiguration();
   }
-  
+
   public static AccumuloConfiguration convertClientConfig(final AccumuloConfiguration base, final Configuration config) {
 
     return new AccumuloConfiguration() {
@@ -85,7 +86,7 @@ public class ServerConfigurationUtil {
         if (null != hadoopConf) {
           try {
             for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
-              if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) { 
+              if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
                 continue;
               }
 

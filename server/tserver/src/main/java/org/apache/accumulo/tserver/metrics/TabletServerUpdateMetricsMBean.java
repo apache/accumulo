@@ -17,7 +17,7 @@
 package org.apache.accumulo.tserver.metrics;
 
 public interface TabletServerUpdateMetricsMBean {
-  
+
   final static String permissionErrors = "permissionErrors";
   final static String unknownTabletErrors = "unknownTabletErrors";
   final static String mutationArraySize = "mutationArraysSize";
@@ -25,42 +25,42 @@ public interface TabletServerUpdateMetricsMBean {
   final static String constraintViolations = "constraintViolations";
   final static String waLogWriteTime = "waLogWriteTime";
   final static String commitTime = "commitTime";
-  
+
   long getPermissionErrorCount();
-  
+
   long getUnknownTabletErrorCount();
-  
+
   long getMutationArrayAvgSize();
-  
+
   long getMutationArrayMinSize();
-  
+
   long getMutationArrayMaxSize();
-  
+
   long getCommitPrepCount();
-  
+
   long getCommitPrepMinTime();
-  
+
   long getCommitPrepMaxTime();
-  
+
   long getCommitPrepAvgTime();
-  
+
   long getConstraintViolationCount();
-  
+
   long getWALogWriteCount();
-  
+
   long getWALogWriteMinTime();
-  
+
   long getWALogWriteMaxTime();
-  
+
   long getWALogWriteAvgTime();
-  
+
   long getCommitCount();
-  
+
   long getCommitMinTime();
-  
+
   long getCommitMaxTime();
-  
+
   long getCommitAvgTime();
-  
+
   void reset();
 }

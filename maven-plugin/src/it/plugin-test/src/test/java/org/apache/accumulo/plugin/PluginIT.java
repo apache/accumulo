@@ -43,17 +43,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PluginIT {
-  
+
   private static Instance instance;
   private static Connector connector;
-  
+
   @BeforeClass
   public static void setUp() throws Exception {
     String instanceName = "plugin-it-instance";
     instance = new MiniAccumuloInstance(instanceName, new File("target/accumulo-maven-plugin/" + instanceName));
     connector = instance.getConnector("root", new PasswordToken("ITSecret"));
   }
-  
+
   @Test
   public void testInstanceConnection() {
     assertTrue(instance != null);
@@ -61,7 +61,7 @@ public class PluginIT {
     assertTrue(connector != null);
     assertTrue(connector instanceof Connector);
   }
-  
+
   @Test
   public void testCreateTable() throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException {
     String tableName = "testCreateTable";
@@ -69,7 +69,7 @@ public class PluginIT {
     assertTrue(connector.tableOperations().exists(tableName));
     assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testCreateTablePassed").createNewFile());
   }
-  
+
   @Test
   public void writeToTable() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
     String tableName = "writeToTable";
@@ -91,7 +91,7 @@ public class PluginIT {
     assertEquals(1, count);
     assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testWriteToTablePassed").createNewFile());
   }
-  
+
   @Test
   public void checkIterator() throws IOException, AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     String tableName = "checkIterator";
@@ -108,7 +108,7 @@ public class PluginIT {
     m.put("allowed", "CQ3", "V3");
     bw.addMutation(m);
     bw.close();
-    
+
     // check filter
     Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     IteratorSetting is = new IteratorSetting(5, CustomFilter.class);
@@ -119,7 +119,7 @@ public class PluginIT {
       assertEquals("allowed", entry.getKey().getColumnFamily().toString());
     }
     assertEquals(4, count);
-    
+
     // check filter negated
     scanner.clearScanIterators();
     CustomFilter.setNegate(is, true);
@@ -132,5 +132,5 @@ public class PluginIT {
     assertEquals(2, count);
     assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testCheckIteratorPassed").createNewFile());
   }
-  
+
 }

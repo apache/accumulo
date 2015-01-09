@@ -29,27 +29,27 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  */
 
 public interface Authenticator {
-  
+
   void initialize(String instanceId, boolean initialize);
-  
+
   boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
-  
+
   void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
-  
+
   boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
-  
+
   Set<String> listUsers() throws AccumuloSecurityException;
-  
+
   void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
-  
+
   void dropUser(String user) throws AccumuloSecurityException;
-  
+
   void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException;
-  
+
   boolean userExists(String user) throws AccumuloSecurityException;
-  
+
   Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();
-  
+
   /**
    * Returns true if the given token is appropriate for this Authenticator
    */

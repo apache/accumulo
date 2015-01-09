@@ -254,7 +254,7 @@ public class SendLogToChainsaw extends XMLLayout {
   }
 
   /**
-   * 
+   *
    * @param args
    *          <ol>
    *          <li>path to log directory</li>

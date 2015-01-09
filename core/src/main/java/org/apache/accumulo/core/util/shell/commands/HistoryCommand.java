@@ -33,7 +33,7 @@ import com.google.common.collect.Iterators;
 public class HistoryCommand extends Command {
   private Option clearHist;
   private Option disablePaginationOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.hasOption(clearHist.getOpt())) {
@@ -49,20 +49,20 @@ public class HistoryCommand extends Command {
 
       shellState.printLines(historyIterator, !cl.hasOption(disablePaginationOpt.getOpt()));
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return ("generates a list of commands previously executed");
   }
-  
+
   @Override
   public int numArgs() {
     return 0;
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();

@@ -23,7 +23,7 @@ import org.apache.accumulo.monitor.util.celltypes.StringType;
 import org.apache.accumulo.trace.thrift.RemoteSpan;
 
 /**
- * 
+ *
  */
 public class ShowTraceLinkType extends StringType<RemoteSpan> {
   @Override
@@ -33,7 +33,7 @@ public class ShowTraceLinkType extends StringType<RemoteSpan> {
     RemoteSpan span = (RemoteSpan) obj;
     return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
   }
-  
+
   @Override
   public int compare(RemoteSpan o1, RemoteSpan o2) {
     if (o1 == null && o2 == null)

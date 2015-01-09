@@ -173,7 +173,8 @@ public class FunctionalTestUtils {
 
   public static int count(Iterable<?> i) {
     int count = 0;
-    for (@SuppressWarnings("unused") Object entry : i)
+    for (@SuppressWarnings("unused")
+    Object entry : i)
       count++;
     return count;
   }

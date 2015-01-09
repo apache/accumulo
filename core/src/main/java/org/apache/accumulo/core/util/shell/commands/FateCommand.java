@@ -27,8 +27,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -45,18 +45,18 @@ import org.apache.zookeeper.KeeperException;
 
 /**
  * Manage FATE transactions
- * 
+ *
  */
 public class FateCommand extends Command {
-  
+
   private static final String SCHEME = "digest";
-  
+
   private static final String USER = "accumulo";
-  
+
   private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ParseException, KeeperException, InterruptedException,
       IOException {
@@ -67,14 +67,14 @@ public class FateCommand extends Command {
     }
     String cmd = args[0];
     boolean failedCommand = false;
-    
+
     AdminUtil<FateCommand> admin = new AdminUtil<FateCommand>(false);
-    
+
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
     IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(), cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<FateCommand>(path, zk);
-    
+
     if ("fail".equals(cmd)) {
       if (args.length <= 1) {
         throw new ParseException("Must provide transaction ID");
@@ -113,7 +113,7 @@ public class FateCommand extends Command {
           }
         }
       }
-      
+
       // Parse TStatus filters for print display
       EnumSet<TStatus> filterStatus = null;
       if (cl.hasOption(statusOption.getOpt())) {
@@ -128,7 +128,7 @@ public class FateCommand extends Command {
           }
         }
       }
-      
+
       StringBuilder buf = new StringBuilder(8096);
       Formatter fmt = new Formatter(buf);
       admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid, filterStatus);
@@ -136,30 +136,30 @@ public class FateCommand extends Command {
     } else {
       throw new ParseException("Invalid command option");
     }
-    
+
     return failedCommand ? 1 : 0;
   }
-  
+
   protected synchronized IZooReaderWriter getZooReaderWriter(Instance instance, String secret) {
-    
+
     if (secret == null) {
       AccumuloConfiguration conf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
       secret = conf.get(Property.INSTANCE_SECRET);
     }
-    
+
     return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), SCHEME, (USER + ":" + secret).getBytes());
   }
-  
+
   @Override
   public String description() {
     return "manage FATE transactions";
   }
-  
+
   @Override
   public String usage() {
     return getName() + " fail <txid>... | delete <txid>... | print [<txid>...]";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -175,7 +175,7 @@ public class FateCommand extends Command {
     o.addOption(disablePaginationOpt);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     // Arg length varies between 1 to n

@@ -48,9 +48,8 @@ class NamespaceConfWatcher implements Watcher {
   }
 
   static String toString(WatchedEvent event) {
-    return new StringBuilder("{path=").append(event.getPath()).append(",state=")
-      .append(event.getState()).append(",type=").append(event.getType())
-      .append("}").toString();
+    return new StringBuilder("{path=").append(event.getPath()).append(",state=").append(event.getState()).append(",type=").append(event.getType()).append("}")
+        .toString();
   }
 
   @Override

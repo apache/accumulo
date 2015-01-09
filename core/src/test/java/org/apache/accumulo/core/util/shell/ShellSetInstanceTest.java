@@ -83,6 +83,7 @@ public class ShellSetInstanceTest {
     // determine the current user (see security.UserGroupInformation).
     System.setProperty("HADOOP_USER_NAME", "test");
   }
+
   @AfterClass
   public static void teardownClass() {
     System.clearProperty("HADOOP_USER_NAME");
@@ -98,6 +99,7 @@ public class ShellSetInstanceTest {
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output), new PrintWriter(output));
     shell.setLogErrorsToConsole();
   }
+
   @After
   public void tearDown() {
     shell.shutdown();
@@ -116,34 +118,36 @@ public class ShellSetInstanceTest {
     shell.setInstance(opts);
     verify(theInstance, MockInstance.class);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_Explicit() throws Exception {
     testSetInstance_HdfsZooInstance(true, false, false);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_InstanceGiven() throws Exception {
     testSetInstance_HdfsZooInstance(false, true, false);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_HostsGiven() throws Exception {
     testSetInstance_HdfsZooInstance(false, false, true);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_Implicit() throws Exception {
     testSetInstance_HdfsZooInstance(false, false, false);
   }
-  
+
   @SuppressWarnings("deprecation")
-  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts)
-    throws Exception {
+  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
     if (!explicitHdfs) {
-      expect(opts.getZooKeeperInstance())
-        .andReturn(Collections.<String>emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
       if (onlyInstance) {
         expect(opts.getZooKeeperInstanceName()).andReturn("instance");
         expect(clientConf.withInstance("instance")).andReturn(clientConf);
@@ -164,7 +168,7 @@ public class ShellSetInstanceTest {
     }
 
     mockStatic(ConfigSanityCheck.class);
-    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration>anyObject());
+    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
     expectLastCall().atLeastOnce();
     replay(ConfigSanityCheck.class);
 
@@ -185,29 +189,31 @@ public class ShellSetInstanceTest {
     if (!onlyInstance) {
       mockStatic(ZooUtil.class);
       randomUUID = UUID.randomUUID();
-      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class)))
-        .andReturn(randomUUID.toString());
+      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class))).andReturn(randomUUID.toString());
       replay(ZooUtil.class);
       expect(clientConf.withInstance(randomUUID)).andReturn(clientConf);
     }
     replay(clientConf);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-    
+
     expectNew(ZooKeeperInstance.class, clientConf).andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);
     verify(theInstance, ZooKeeperInstance.class);
   }
+
   @Test
   public void testSetInstance_ZKInstance_DashZ() throws Exception {
     testSetInstance_ZKInstance(true);
   }
+
   @Test
   public void testSetInstance_ZKInstance_DashZIandZH() throws Exception {
     testSetInstance_ZKInstance(false);
   }
+
   private void testSetInstance_ZKInstance(boolean dashZ) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
@@ -225,7 +231,7 @@ public class ShellSetInstanceTest {
     } else {
       expect(clientConf.withInstance("bar")).andReturn(clientConf);
       expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
     }

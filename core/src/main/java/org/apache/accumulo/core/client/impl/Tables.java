@@ -290,7 +290,7 @@ public class Tables {
 
   /**
    * Returns the namespace id for a given table ID.
-   * 
+   *
    * @param instance
    *          The Accumulo Instance
    * @param tableId

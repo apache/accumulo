@@ -90,5 +90,4 @@ public class BulkImportVolumeIT extends AccumuloClusterIT {
     assertEquals(1, fs.listStatus(err).length);
   }
 
-
 }

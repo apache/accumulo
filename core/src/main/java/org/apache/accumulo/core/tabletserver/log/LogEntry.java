@@ -37,7 +37,7 @@ public class LogEntry {
   public String filename;
   public int tabletId;
   public Collection<String> logSet;
-  
+
   public LogEntry() {}
 
   public LogEntry(LogEntry le) {
@@ -52,11 +52,11 @@ public class LogEntry {
   public String toString() {
     return extent.toString() + " " + filename + " (" + tabletId + ")";
   }
-  
+
   public String getName() {
     return server + "/" + filename;
   }
-  
+
   public byte[] toBytes() throws IOException {
     DataOutputBuffer out = new DataOutputBuffer();
     extent.write(out);
@@ -70,7 +70,7 @@ public class LogEntry {
     }
     return Arrays.copyOf(out.getData(), out.getLength());
   }
-  
+
   public void fromBytes(byte bytes[]) throws IOException {
     DataInputBuffer inp = new DataInputBuffer();
     inp.reset(bytes, bytes.length);
@@ -86,7 +86,7 @@ public class LogEntry {
       logSet.add(inp.readUTF());
     this.logSet = logSet;
   }
-  
+
   static private final Text EMPTY_TEXT = new Text();
 
   public static LogEntry fromKeyValue(Key key, Value value) {
@@ -101,19 +101,19 @@ public class LogEntry {
     result.timestamp = key.getTimestamp();
     return result;
   }
-  
+
   public Text getRow() {
     return extent.getMetadataEntry();
   }
-  
+
   public Text getColumnFamily() {
     return MetadataSchema.TabletsSection.LogColumnFamily.NAME;
   }
-  
+
   public Text getColumnQualifier() {
     return new Text(server + "/" + filename);
   }
-  
+
   public Value getValue() {
     return new Value((StringUtil.join(logSet, ";") + "|" + tabletId).getBytes());
   }

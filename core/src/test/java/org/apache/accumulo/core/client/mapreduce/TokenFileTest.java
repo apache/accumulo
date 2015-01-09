@@ -51,7 +51,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * 
+ *
  */
 public class TokenFileTest {
   private static AssertionError e1 = null;

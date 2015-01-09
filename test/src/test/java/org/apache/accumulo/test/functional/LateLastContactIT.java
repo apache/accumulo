@@ -26,11 +26,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 /**
- * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail. 
- * Start a ZombieTServer, and see that master stops it.
+ * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail. Start a ZombieTServer, and see that master stops it.
  */
 public class LateLastContactIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
@@ -46,5 +45,5 @@ public class LateLastContactIT extends ConfigurableMacIT {
     Process zombie = cluster.exec(ZombieTServer.class);
     assertEquals(0, zombie.waitFor());
   }
-  
+
 }

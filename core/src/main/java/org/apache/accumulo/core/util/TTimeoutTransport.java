@@ -34,16 +34,16 @@ import org.apache.thrift.transport.TTransport;
 import com.google.common.net.HostAndPort;
 
 public class TTimeoutTransport {
-  
+
   private static InputStream getInputStream(Socket socket, long timeout) {
     try {
       Method m = NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
-      return (InputStream)m.invoke(null, socket, timeout);
+      return (InputStream) m.invoke(null, socket, timeout);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
-  
+
   public static TTransport create(HostAndPort addr, long timeoutMillis) throws IOException {
     return create(new InetSocketAddress(addr.getHostText(), addr.getPort()), timeoutMillis);
   }

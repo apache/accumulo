@@ -94,8 +94,8 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
     }
 
     String result = "";
-    while(true) {
-      Thread.sleep(LOCATION_DELAY_SECS * 1000);  // extra precaution to ensure monitor has opportunity to log
+    while (true) {
+      Thread.sleep(LOCATION_DELAY_SECS * 1000); // extra precaution to ensure monitor has opportunity to log
 
       // Verify messages were received at the monitor.
       URL url = new URL("http://" + monitorLocation + "/log");

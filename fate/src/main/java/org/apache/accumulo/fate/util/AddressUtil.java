@@ -29,7 +29,7 @@ public class AddressUtil {
   /**
    * Fetch the security value that determines how long DNS failures are cached. Looks up the security property 'networkaddress.cache.negative.ttl'. Should that
    * fail returns the default value used in the Oracle JVM 1.4+, which is 10 seconds.
-   * 
+   *
    * @param originalException
    *          the host lookup that is the source of needing this lookup. maybe be null.
    * @return positive integer number of seconds

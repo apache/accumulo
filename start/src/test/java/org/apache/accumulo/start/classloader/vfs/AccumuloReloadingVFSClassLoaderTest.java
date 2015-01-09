@@ -132,7 +132,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
   //
   // This is caused by the filed being deleted and then readded in the same monitor tick. This causes the file to ultimately register the deletion over any
   // other events.
-  @Test @Ignore
+  @Test
+  @Ignore
   public void testFastDeleteAndReAdd() throws Exception {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
@@ -161,10 +162,10 @@ public class AccumuloReloadingVFSClassLoaderTest {
     // Update the class
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
 
-    //Wait for the monitor to notice
+    // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
-    
+
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());

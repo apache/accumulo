@@ -229,9 +229,8 @@ public class Shell extends ShellOptions {
   private boolean masking = false;
 
   public Shell() throws IOException {
-    this(new ConsoleReader(), new PrintWriter(
-        new OutputStreamWriter(System.out,
-        System.getProperty("jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))));
+    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, System.getProperty("jline.WindowsTerminal.output.encoding",
+        System.getProperty("file.encoding")))));
   }
 
   public Shell(ConsoleReader reader, PrintWriter writer) {
@@ -397,7 +396,7 @@ public class Shell extends ShellOptions {
 
   /**
    * Sets the instance used by the shell based on the given options.
-   * 
+   *
    * @param options
    *          shell options
    */
@@ -1166,7 +1165,7 @@ public class Shell extends ShellOptions {
 
   /**
    * Return the formatter for the current table.
-   * 
+   *
    * @return the formatter class for the current table
    */
   public Class<? extends Formatter> getFormatter() {
@@ -1175,7 +1174,7 @@ public class Shell extends ShellOptions {
 
   /**
    * Return the formatter for the given table.
-   * 
+   *
    * @param tableName
    *          the table name
    * @return the formatter class for the given table

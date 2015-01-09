@@ -281,7 +281,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, Credentials.fromThrift(credentials), tid, tableId, files, errorDir, setTime);
+          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, Credentials.fromThrift(credentials), tid, tableId,
+              files, errorDir, setTime);
         }
       });
     } catch (AccumuloSecurityException e) {

@@ -22,21 +22,21 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class MockBatchWriter implements BatchWriter {
-  
+
   final String tablename;
   final MockAccumulo acu;
-  
+
   MockBatchWriter(MockAccumulo acu, String tablename) {
     this.acu = acu;
     this.tablename = tablename;
   }
-  
+
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
     ArgumentChecker.notNull(m);
     acu.addMutation(tablename, m);
   }
-  
+
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
     ArgumentChecker.notNull(iterable);
@@ -44,11 +44,11 @@ public class MockBatchWriter implements BatchWriter {
       acu.addMutation(tablename, m);
     }
   }
-  
+
   @Override
   public void flush() throws MutationsRejectedException {}
-  
+
   @Override
   public void close() throws MutationsRejectedException {}
-  
+
 }

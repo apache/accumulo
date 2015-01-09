@@ -19,24 +19,24 @@ package org.apache.accumulo.monitor.util.celltypes;
 import static org.apache.accumulo.core.util.NumUtil.bigNumberForQuantity;
 
 public class NumberType<T extends Number> extends CellType<T> {
-  
+
   protected final T warnMin, warnMax, errMin, errMax;
-  
+
   public NumberType(T warnMin, T warnMax, T errMin, T errMax) {
     this.warnMin = warnMin;
     this.warnMax = warnMax;
     this.errMin = errMin;
     this.errMax = errMax;
   }
-  
+
   public NumberType(T errMin, T errMax) {
     this(null, null, errMin, errMax);
   }
-  
+
   public NumberType() {
     this(null, null);
   }
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public String format(Object obj) {
@@ -62,7 +62,7 @@ public class NumberType<T extends Number> extends CellType<T> {
     }
     return s;
   }
-  
+
   @Override
   public int compare(T o1, T o2) {
     if (o1 == null && o2 == null)
@@ -74,27 +74,27 @@ public class NumberType<T extends Number> extends CellType<T> {
     else
       return Double.valueOf(o1.doubleValue()).compareTo(o2.doubleValue());
   }
-  
+
   public static String commas(long i) {
     return bigNumberForQuantity(i);
   }
-  
+
   public static String commas(long i, long errMin, long errMax) {
     if (i < errMin || i > errMax)
       return String.format("<span class='error'>%s</span>", bigNumberForQuantity(i));
     return bigNumberForQuantity(i);
   }
-  
+
   public static String commas(double i) {
     return bigNumberForQuantity((long) i);
   }
-  
+
   public static String commas(double d, double errMin, double errMax) {
     if (d < errMin || d > errMax)
       return String.format("<span class='error'>%s</span>", bigNumberForQuantity(d));
     return bigNumberForQuantity(d);
   }
-  
+
   public static String commas(long i, long warnMin, long warnMax, long errMin, long errMax) {
     if (i < errMin || i > errMax)
       return String.format("<span class='error'>%s</span>", bigNumberForQuantity(i));
@@ -102,7 +102,7 @@ public class NumberType<T extends Number> extends CellType<T> {
       return String.format("<span class='warning'>%s</span>", bigNumberForQuantity(i));
     return bigNumberForQuantity(i);
   }
-  
+
   public static String commas(double d, double warnMin, double warnMax, double errMin, double errMax) {
     if (d < errMin || d > errMax)
       return String.format("<span class='error'>%s</span>", bigNumberForQuantity(d));
@@ -110,7 +110,7 @@ public class NumberType<T extends Number> extends CellType<T> {
       return String.format("<span class='warning'>%s</span>", bigNumberForQuantity(d));
     return bigNumberForQuantity(d);
   }
-  
+
   @Override
   public String alignment() {
     return "right";

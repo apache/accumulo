@@ -32,14 +32,14 @@ public final class TextUtil {
     }
     return bytes;
   }
-  
+
   public static ByteBuffer getByteBuffer(Text text) {
     if (text == null)
       return null;
     byte[] bytes = text.getBytes();
     return ByteBuffer.wrap(bytes, 0, text.getLength());
   }
-  
+
   public static Text truncate(Text text, int maxLen) {
     if (text.getLength() > maxLen) {
       Text newText = new Text();
@@ -48,10 +48,10 @@ public final class TextUtil {
       newText.append(suffix.getBytes(UTF_8), 0, suffix.length());
       return newText;
     }
-    
+
     return text;
   }
-  
+
   public static Text truncate(Text row) {
     return truncate(row, Constants.MAX_DATA_TO_PRINT);
   }

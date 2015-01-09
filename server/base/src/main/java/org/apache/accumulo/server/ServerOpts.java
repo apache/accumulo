@@ -21,9 +21,9 @@ import org.apache.accumulo.core.cli.Help;
 import com.beust.jcommander.Parameter;
 
 public class ServerOpts extends Help {
-  @Parameter(names={"-a", "--address"}, description = "address to bind to")
+  @Parameter(names = {"-a", "--address"}, description = "address to bind to")
   String address = null;
-  
+
   public String getAddress() {
     if (address != null)
       return address;

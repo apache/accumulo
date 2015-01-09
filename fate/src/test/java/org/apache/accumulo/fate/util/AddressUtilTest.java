@@ -24,7 +24,7 @@ import org.apache.log4j.Logger;
 
 /**
  * Test the AddressUtil class.
- * 
+ *
  */
 public class AddressUtilTest extends TestCase {
 
@@ -88,7 +88,7 @@ public class AddressUtilTest extends TestCase {
       log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. you can ignore it.");
       AddressUtil.getAddressCacheNegativeTtl(null);
       fail("The JVM Security settings cache DNS failures forever, this should cause an exception.");
-    } catch(IllegalArgumentException exception) {
+    } catch (IllegalArgumentException exception) {
       assertTrue(true);
     }
   }

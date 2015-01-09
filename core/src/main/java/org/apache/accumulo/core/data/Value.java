@@ -26,11 +26,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
-
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
@@ -47,28 +47,31 @@ public class Value implements WritableComparable<Object> {
   public Value() {
     this(EMPTY, false);
   }
-  
+
   /**
    * Create a Value using the byte array as the initial value.
-   * 
-   * @param bytes May not be null
+   *
+   * @param bytes
+   *          May not be null
    */
   public Value(byte[] bytes) {
     this(bytes, false);
   }
-  
+
   /**
    * Create a Value using a copy of the ByteBuffer's content.
-   * 
-   * @param bytes May not be null
+   *
+   * @param bytes
+   *          May not be null
    */
   public Value(ByteBuffer bytes) {
     /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
-  
+
   /**
-   * @param bytes may not be null
+   * @param bytes
+   *          may not be null
    * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
    */
   @Deprecated
@@ -76,11 +79,14 @@ public class Value implements WritableComparable<Object> {
     /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
-  
+
   /**
    * Create a Value based on the given bytes.
-   * @param bytes may not be null
-   * @param copy signal if Value must make its own copy of bytes, or if it can use the array directly.
+   *
+   * @param bytes
+   *          may not be null
+   * @param copy
+   *          signal if Value must make its own copy of bytes, or if it can use the array directly.
    */
   public Value(byte[] bytes, boolean copy) {
     Preconditions.checkNotNull(bytes);
@@ -90,22 +96,24 @@ public class Value implements WritableComparable<Object> {
       this.value = new byte[bytes.length];
       System.arraycopy(bytes, 0, this.value, 0, bytes.length);
     }
-    
+
   }
-  
+
   /**
    * Set the new Value to a copy of the contents of the passed <code>ibw</code>.
-   * 
-   * @param ibw may not be null.
+   *
+   * @param ibw
+   *          may not be null.
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
   }
-  
+
   /**
    * Set the value to a copy of the given byte range
-   * 
-   * @param newData source of copy, may not be null
+   *
+   * @param newData
+   *          source of copy, may not be null
    * @param offset
    *          the offset in newData to start at
    * @param length
@@ -116,63 +124,65 @@ public class Value implements WritableComparable<Object> {
     this.value = new byte[length];
     System.arraycopy(newData, offset, this.value, 0, length);
   }
-  
+
   /**
    * @return the underlying byte array directly.
    */
   public byte[] get() {
-    assert(null != value);
+    assert (null != value);
     return this.value;
   }
-  
+
   /**
-   * @param b Use passed bytes as backing array for this instance, may not be null.
+   * @param b
+   *          Use passed bytes as backing array for this instance, may not be null.
    */
   public void set(final byte[] b) {
     Preconditions.checkNotNull(b);
     this.value = b;
   }
-  
+
   /**
-   * 
-   * @param b copy the given byte array, may not be null.
+   *
+   * @param b
+   *          copy the given byte array, may not be null.
    */
   public void copy(byte[] b) {
     Preconditions.checkNotNull(b);
     this.value = new byte[b.length];
     System.arraycopy(b, 0, this.value, 0, b.length);
   }
-  
+
   /**
    * @return the current size of the underlying buffer.
    */
   public int getSize() {
-    assert(null != value);
+    assert (null != value);
     return this.value.length;
   }
-  
+
   @Override
   public void readFields(final DataInput in) throws IOException {
     this.value = new byte[in.readInt()];
     in.readFully(this.value, 0, this.value.length);
   }
-  
+
   @Override
   public void write(final DataOutput out) throws IOException {
     out.writeInt(this.value.length);
     out.write(this.value, 0, this.value.length);
   }
-  
+
   // Below methods copied from BytesWritable
-  
+
   @Override
   public int hashCode() {
     return WritableComparator.hashBytes(value, this.value.length);
   }
-  
+
   /**
    * Define the sort order of the BytesWritable.
-   * 
+   *
    * @param right_obj
    *          The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
@@ -181,17 +191,17 @@ public class Value implements WritableComparable<Object> {
   public int compareTo(Object right_obj) {
     return compareTo(((Value) right_obj).get());
   }
-  
+
   /**
    * Compares the bytes in this object to the specified byte array
-   * 
+   *
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
    */
   public int compareTo(final byte[] that) {
     int diff = this.value.length - that.length;
     return (diff != 0) ? diff : WritableComparator.compareBytes(this.value, 0, this.value.length, that, 0, that.length);
   }
-  
+
   @Override
   public boolean equals(Object right_obj) {
     if (right_obj instanceof byte[]) {
@@ -202,35 +212,33 @@ public class Value implements WritableComparable<Object> {
     }
     return false;
   }
-  
+
   @Override
   public String toString() {
     return new String(get(), UTF_8);
   }
-  
+
   /**
    * A Comparator optimized for Value.
    */
   public static class Comparator extends WritableComparator {
     private BytesWritable.Comparator comparator = new BytesWritable.Comparator();
-    
+
     /** constructor */
     public Comparator() {
       super(Value.class);
     }
-    
+
     @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
       return comparator.compare(b1, s1, l1, b2, s2, l2);
     }
   }
-  
+
   static { // register this comparator
     WritableComparator.define(Value.class, new Comparator());
   }
-  
-  /**
-	 */
+
   public static byte[][] toArray(final List<byte[]> array) {
     // List#toArray doesn't work on lists of byte [].
     byte[][] results = new byte[array.size()][];
@@ -239,5 +247,5 @@ public class Value implements WritableComparable<Object> {
     }
     return results;
   }
-  
+
 }

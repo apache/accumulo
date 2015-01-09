@@ -96,7 +96,7 @@ public class ZooReaderWriterTest {
   @Test(expected = SessionExpiredException.class)
   public void testMutateNodeCreationFails() throws Exception {
     final String path = "/foo";
-    final byte[] value = new byte[]{0};
+    final byte[] value = new byte[] {0};
     final List<ACL> acls = Collections.<ACL> emptyList();
     Mutator mutator = new Mutator() {
       @Override

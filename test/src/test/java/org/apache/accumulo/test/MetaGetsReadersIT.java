@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -39,9 +42,6 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class MetaGetsReadersIT extends ConfigurableMacIT {
 
   @Override
@@ -50,7 +50,7 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "2");
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
   }
-  
+
   private static Thread slowScan(final Connector c, final String tableName, final AtomicBoolean stop) {
     Thread thread = new Thread() {
       public void run() {
@@ -73,7 +73,7 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
     };
     return thread;
   }
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
@@ -98,8 +98,8 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
     UtilWaitThread.sleep(500);
     long now = System.currentTimeMillis();
     Scanner m = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : m) {
-    }
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : m) {}
     long delay = System.currentTimeMillis() - now;
     System.out.println("Delay = " + delay);
     assertTrue("metadata table scan was slow", delay < 1000);

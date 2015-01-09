@@ -81,8 +81,8 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -513,6 +513,7 @@ public class Monitor {
     public final long scanCount;
     public final Long oldestScan;
     public final long fetched;
+
     ScanStats(List<ActiveScan> active) {
       this.scanCount = active.size();
       long oldest = -1;
@@ -523,10 +524,12 @@ public class Monitor {
       this.fetched = System.currentTimeMillis();
     }
   }
-  static final Map<String, ScanStats> allScans = new HashMap<String, ScanStats>();
-  public static Map<String, ScanStats> getScans() {
+
+  static final Map<String,ScanStats> allScans = new HashMap<String,ScanStats>();
+
+  public static Map<String,ScanStats> getScans() {
     synchronized (allScans) {
-      return new TreeMap<String, ScanStats>(allScans);
+      return new TreeMap<String,ScanStats>(allScans);
     }
   }
 

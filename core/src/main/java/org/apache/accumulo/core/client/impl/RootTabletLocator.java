@@ -42,23 +42,24 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class RootTabletLocator extends TabletLocator {
-  
+
   private final Instance instance;
   private final TabletServerLockChecker lockChecker;
   private final ZooCacheFactory zcf;
-  
+
   RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker) {
     this(instance, lockChecker, new ZooCacheFactory());
   }
+
   RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker, ZooCacheFactory zcf) {
     this.instance = instance;
     this.lockChecker = lockChecker;
     this.zcf = zcf;
   }
-  
+
   @Override
-  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+      List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation rootTabletLocation = getRootTabletLocation();
     if (rootTabletLocation != null) {
       TabletServerMutations<T> tsm = new TabletServerMutations<T>(rootTabletLocation.tablet_session);
@@ -70,11 +71,11 @@ public class RootTabletLocator extends TabletLocator {
       failures.addAll(mutations);
     }
   }
-  
+
   @Override
   public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    
+
     TabletLocation rootTabletLocation = getRootTabletLocation();
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
@@ -84,37 +85,37 @@ public class RootTabletLocator extends TabletLocator {
     }
     return ranges;
   }
-  
+
   @Override
   public void invalidateCache(KeyExtent failedExtent) {}
-  
+
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {}
-  
+
   @Override
   public void invalidateCache(String server) {
     ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
   }
-  
+
   @Override
   public void invalidateCache() {}
-  
+
   protected TabletLocation getRootTabletLocation() {
     String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
     ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-    
+
     OpTimer opTimer = new OpTimer(Logger.getLogger(this.getClass()), Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);
     opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
-    
+
     if (loc == null) {
       return null;
     }
-    
+
     String[] tokens = new String(loc).split("\\|");
-    
+
     if (lockChecker.isLockHeld(tokens[0], tokens[1]))
       return new TabletLocation(RootTable.EXTENT, tokens[0], tokens[1]);
     else
@@ -130,8 +131,8 @@ public class RootTabletLocator extends TabletLocator {
       UtilWaitThread.sleep(500);
       location = getRootTabletLocation();
     }
-    
+
     return location;
   }
-  
+
 }

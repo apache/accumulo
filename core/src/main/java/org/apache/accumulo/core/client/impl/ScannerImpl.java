@@ -33,30 +33,30 @@ import org.apache.hadoop.io.Text;
 
 /**
  * provides scanner functionality
- * 
+ *
  * "Clients can iterate over multiple column families, and there are several mechanisms for limiting the rows, columns, and timestamps traversed by a scan. For
  * example, we could restrict [a] scan ... to only produce anchors whose columns match [a] regular expression ..., or to only produce anchors whose timestamps
  * fall within ten days of the current time."
- * 
+ *
  */
 public class ScannerImpl extends ScannerOptions implements Scanner {
-  
+
   // keep a list of columns over which to scan
   // keep track of the last thing read
   // hopefully, we can track all the state in the scanner on the client
   // and just query for the next highest row from the tablet server
-  
+
   private Instance instance;
   private Credentials credentials;
   private Authorizations authorizations;
   private Text table;
-  
+
   private int size;
-  
+
   private Range range;
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
-  
+
   public ScannerImpl(Instance instance, Credentials credentials, String table, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
@@ -64,21 +64,21 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.table = new Text(table);
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
-    
+
     this.size = Constants.SCAN_BATCH_SIZE;
   }
-  
+
   @Override
   public synchronized void setRange(Range range) {
     ArgumentChecker.notNull(range);
     this.range = range;
   }
-  
+
   @Override
   public synchronized Range getRange() {
     return range;
   }
-  
+
   @Override
   public synchronized void setBatchSize(int size) {
     if (size > 0)
@@ -86,12 +86,12 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     else
       throw new IllegalArgumentException("size must be greater than zero");
   }
-  
+
   @Override
   public synchronized int getBatchSize() {
     return size;
   }
-  
+
   /**
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
    * Scanner object will have no effect on existing iterators.
@@ -100,17 +100,17 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
-  
+
   @Override
   public synchronized void enableIsolation() {
     this.isolated = true;
   }
-  
+
   @Override
   public synchronized void disableIsolation() {
     this.isolated = false;
   }
-  
+
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
@@ -119,7 +119,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     else
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
-  
+
   @Deprecated
   @Override
   public int getTimeOut() {
@@ -128,16 +128,16 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
       return Integer.MAX_VALUE;
     return (int) timeout;
   }
-  
+
   @Override
   public synchronized void setReadaheadThreshold(long batches) {
     if (0 > batches) {
       throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
     }
-    
+
     readaheadThreshold = batches;
   }
-  
+
   @Override
   public synchronized long getReadaheadThreshold() {
     return readaheadThreshold;

@@ -63,10 +63,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
     if (cfg.getNumTservers() < 2) {
       cfg.setNumTservers(2);
@@ -129,10 +129,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
-    long currentWait = 10*1000;
+    long currentWait = 10 * 1000;
     boolean balancingWorked = false;
 
-    while (!balancingWorked && (System.currentTimeMillis() - startTime) < ((5*60 + 15)*1000)) {
+    while (!balancingWorked && (System.currentTimeMillis() - startTime) < ((5 * 60 + 15) * 1000)) {
       Thread.sleep(currentWait);
       currentWait *= 2;
 
@@ -166,7 +166,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
       long[] tabletsPerServer = new long[stats.getTServerInfoSize()];
       Arrays.fill(tabletsPerServer, 0l);
       for (int i = 0; i < stats.getTServerInfoSize(); i++) {
-        for (Map.Entry<String, TableInfo> entry : stats.getTServerInfo().get(i).getTableMap().entrySet()) {
+        for (Map.Entry<String,TableInfo> entry : stats.getTServerInfo().get(i).getTableMap().entrySet()) {
           tabletsPerServer[i] += entry.getValue().getTablets();
         }
       }
@@ -175,7 +175,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
         log.debug("We should have > 10 tablets. sleeping for " + currentWait + "ms");
         continue;
       }
-      if ((NumberUtils.min(tabletsPerServer) / ((double)NumberUtils.max(tabletsPerServer))) < 0.5) {
+      if ((NumberUtils.min(tabletsPerServer) / ((double) NumberUtils.max(tabletsPerServer))) < 0.5) {
         log.debug("ratio of min to max tablets per server should be roughly even. sleeping for " + currentWait + "ms");
         continue;
       }

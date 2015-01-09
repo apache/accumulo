@@ -26,16 +26,16 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class ViewFSUtilsTest {
-  
-  private String[] shuffle(String ... inputs){
+
+  private String[] shuffle(String... inputs) {
     // code below will modify array
     Collections.shuffle(Arrays.asList(inputs));
     return inputs;
   }
-  
+
   @Test
   public void testDisjointMountPoints() throws IllegalArgumentException, IOException {
     if (ViewFSUtils.isViewFSSupported()) {
@@ -47,8 +47,7 @@ public class ViewFSUtilsTest {
 
       String[] tablesDirs1 = shuffle("viewfs:///ns1/accumulo/tables", "viewfs:///ns2/accumulo/tables", "viewfs:///ns22/accumulo/tables",
           "viewfs:///ns/accumulo/tables");
-      String[] tablesDirs2 = shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns2/accumulo/tables", "viewfs:/ns22/accumulo/tables",
-          "viewfs:/ns/accumulo/tables");
+      String[] tablesDirs2 = shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns2/accumulo/tables", "viewfs:/ns22/accumulo/tables", "viewfs:/ns/accumulo/tables");
 
       for (String ns : Arrays.asList("ns1", "ns2", "ns22", "ns")) {
         Path match = ViewFSUtils.matchingFileSystem(new Path("viewfs:/" + ns + "/bulk_import_01"), tablesDirs2, conf);

@@ -38,7 +38,7 @@ import com.google.common.io.Files;
 /**
  * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
  * like the following:
- * 
+ *
  * <pre>
  * rootPassword=secret
  * instanceName=testInstance
@@ -52,10 +52,10 @@ import com.google.common.io.Files;
  * shutdownPort=4446
  * site.instance.secret=HUSH
  * </pre>
- * 
+ *
  * All items in the properties file above are optional and a default value will be provided in their absence. Any site configuration properties (typically found
  * in the accumulo-site.xml file) should be prefixed with "site." in the properties file.
- * 
+ *
  * @since 1.6.0
  */
 public class MiniAccumuloRunner {
@@ -129,7 +129,7 @@ public class MiniAccumuloRunner {
 
   /**
    * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a shutdown port for asynchronous operation.
-   * 
+   *
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
    */

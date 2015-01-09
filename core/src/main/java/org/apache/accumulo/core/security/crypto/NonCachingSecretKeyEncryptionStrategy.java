@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 
 //TODO ACCUMULO-2530 Update properties to use a URI instead of a relative path to secret key
 public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
-  
+
   private static final Logger log = Logger.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params, String pathToKeyName, Path pathToKey, FileSystem fs)
@@ -45,10 +45,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     DataInputStream in = null;
     try {
       if (!fs.exists(pathToKey)) {
-        
+
         if (encryptionMode == Cipher.UNWRAP_MODE) {
           log.error("There was a call to decrypt the session key but no key encryption key exists.  Either restore it, reconfigure the conf file to point to it in HDFS, or throw the affected data away and begin again.");
-          throw new RuntimeException("Could not find key encryption key file in configured location in HDFS ("+pathToKeyName+")");
+          throw new RuntimeException("Could not find key encryption key file in configured location in HDFS (" + pathToKeyName + ")");
         } else {
           DataOutputStream out = null;
           try {
@@ -64,18 +64,18 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
             out.flush();
           } finally {
             if (out != null) {
-              out.close();        
+              out.close();
             }
           }
 
         }
       }
       in = fs.open(pathToKey);
-            
+
       int keyEncryptionKeyLength = in.readInt();
       byte[] keyEncryptionKey = new byte[keyEncryptionKeyLength];
       in.read(keyEncryptionKey);
-      
+
       Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
 
       try {
@@ -83,8 +83,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       } catch (InvalidKeyException e) {
         log.error(e);
         throw new RuntimeException(e);
-      }      
-      
+      }
+
       if (Cipher.UNWRAP_MODE == encryptionMode) {
         try {
           Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
@@ -109,9 +109,9 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
           log.error(e);
           throw new RuntimeException(e);
         }
-        
+
       }
-      
+
     } finally {
       if (in != null) {
         in.close();
@@ -123,20 +123,19 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
   private String getFullPathToKey(CryptoModuleParameters params) {
     String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
     String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
-    
-    
+
     if (pathToKeyName == null) {
       pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
     }
-    
+
     if (instanceDirectory == null) {
       instanceDirectory = Property.INSTANCE_DFS_DIR.getDefaultValue();
     }
-    
+
     if (!pathToKeyName.startsWith("/")) {
       pathToKeyName = "/" + pathToKeyName;
     }
-    
+
     String fullPath = instanceDirectory + pathToKeyName;
     return fullPath;
   }
@@ -148,20 +147,20 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     if (hdfsURI == null) {
       hdfsURI = Property.INSTANCE_DFS_URI.getDefaultValue();
     }
-    
+
     String fullPath = getFullPathToKey(params);
     Path pathToKey = new Path(fullPath);
-    
+
     try {
       // TODO ACCUMULO-2530 Ensure volumes a properly supported
-      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());   
+      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
       doKeyEncryptionOperation(Cipher.WRAP_MODE, params, fullPath, pathToKey, fs);
-      
+
     } catch (IOException e) {
       log.error(e);
       throw new RuntimeException(e);
     }
-    
+
     return params;
   }
 
@@ -170,24 +169,23 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
   public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params) {
     String hdfsURI = params.getAllOptions().get(Property.INSTANCE_DFS_URI.getKey());
     if (hdfsURI == null) {
-      hdfsURI = Property.INSTANCE_DFS_URI.getDefaultValue(); 
+      hdfsURI = Property.INSTANCE_DFS_URI.getDefaultValue();
     }
-    
+
     String pathToKeyName = getFullPathToKey(params);
     Path pathToKey = new Path(pathToKeyName);
-    
+
     try {
       // TODO ACCUMULO-2530 Ensure volumes a properly supported
-      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());   
+      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
       doKeyEncryptionOperation(Cipher.UNWRAP_MODE, params, pathToKeyName, pathToKey, fs);
-      
-      
+
     } catch (IOException e) {
       log.error(e);
       throw new RuntimeException(e);
     }
-        
+
     return params;
   }
-  
+
 }

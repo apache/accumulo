@@ -110,8 +110,8 @@ public class RestartStressIT extends AccumuloClusterIT {
       public Integer call() {
         try {
           return control.exec(TestIngest.class,
-              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
-                  "--rows", "" + IOPTS.rows, "--table", tableName});
+              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
+                  cluster.getZooKeepers(), "--rows", "" + IOPTS.rows, "--table", tableName});
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;

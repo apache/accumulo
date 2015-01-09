@@ -36,26 +36,29 @@ public class DateStringFormatter implements Formatter {
       return new SimpleDateFormat(DATE_FORMAT);
     }
   };
-  
+
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     this.printTimestamps = printTimestamps;
     defaultFormatter.initialize(scanner, printTimestamps);
   }
+
   @Override
   public boolean hasNext() {
     return defaultFormatter.hasNext();
   }
+
   @Override
   public String next() {
     DateFormat timestampformat = null;
-    
-    if(printTimestamps) {
+
+    if (printTimestamps) {
       timestampformat = formatter.get();
     }
-    
+
     return defaultFormatter.next(timestampformat);
   }
+
   @Override
   public void remove() {
     defaultFormatter.remove();

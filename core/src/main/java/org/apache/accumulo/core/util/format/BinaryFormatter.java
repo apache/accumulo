@@ -25,17 +25,17 @@ import org.apache.hadoop.io.Text;
 
 public class BinaryFormatter extends DefaultFormatter {
   private static int showLength;
-  
+
   public String next() {
     checkState(true);
     return formatEntry(getScannerIterator().next(), isDoTimestamps());
   }
-  
+
   // this should be replaced with something like Record.toString();
   // it would be great if we were able to combine code with DefaultFormatter.formatEntry, but that currently does not respect the showLength option.
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
     StringBuilder sb = new StringBuilder();
-    
+
     Key key = entry.getKey();
 
     // append row
@@ -49,11 +49,11 @@ public class BinaryFormatter extends DefaultFormatter {
 
     // append visibility expression
     sb.append(new ColumnVisibility(key.getColumnVisibility()));
-    
+
     // append timestamp
     if (showTimestamps)
       sb.append(" ").append(entry.getKey().getTimestamp());
-    
+
     // append value
     Value value = entry.getValue();
     if (value != null && value.getSize() > 0) {
@@ -62,20 +62,20 @@ public class BinaryFormatter extends DefaultFormatter {
     }
     return sb.toString();
   }
-  
+
   public static StringBuilder appendText(StringBuilder sb, Text t) {
     return appendBytes(sb, t.getBytes(), 0, t.getLength());
   }
-  
+
   static StringBuilder appendValue(StringBuilder sb, Value value) {
     return appendBytes(sb, value.get(), 0, value.get().length);
   }
-  
+
   static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
     int length = Math.min(len, showLength);
     return DefaultFormatter.appendBytes(sb, ba, offset, length);
   }
-  
+
   public static void getlength(int length) {
     showLength = length;
   }

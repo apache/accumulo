@@ -252,7 +252,8 @@ class SetupPermissions extends MasterRepo {
     SecurityOperation security = AuditedSecurityOperation.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
+        security
+            .grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
         throw e;

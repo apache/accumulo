@@ -32,26 +32,26 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * 
+ *
  * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. It does so by encapsulating an entire row of key/value
  * pairs into a single key/value pair, which is returned through the client as an atomic operation.
- * 
+ *
  * <p>
  * This iterator extends the {@link RowEncodingIterator}, providing implementations for rowEncoder and rowDecoder which serializes all column and value
  * information from a given row into a single ByteStream in a value.
- * 
+ *
  * <p>
  * As with the RowEncodingIterator, when seeking in the WholeRowIterator using a range that starts at a non-inclusive first key in a row, this iterator will
  * skip to the next row.
- * 
+ *
  * <p>
  * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
- * 
+ *
  * @see RowFilter
  */
 public class WholeRowIterator extends RowEncodingIterator {
   public WholeRowIterator() {}
-  
+
   WholeRowIterator(SortedKeyValueIterator<Key,Value> source) {
     this.sourceIter = source;
   }
@@ -74,8 +74,8 @@ public class WholeRowIterator extends RowEncodingIterator {
   }
 
   /**
-   * Returns the byte array containing the field of row key from the given DataInputStream din.
-   * Assumes that din first has the length of the field, followed by the field itself.
+   * Returns the byte array containing the field of row key from the given DataInputStream din. Assumes that din first has the length of the field, followed by
+   * the field itself.
    */
   private static byte[] readField(DataInputStream din) throws IOException {
     int len = din.readInt();
@@ -85,8 +85,7 @@ public class WholeRowIterator extends RowEncodingIterator {
     // We ignore the zero length case because DataInputStream.read can return -1
     // if zero length was expected and end of stream has been reached.
     if (len > 0 && len != readLen) {
-      throw new IOException(String.format("Expected to read %d bytes but read %d",
-          len, readLen));
+      throw new IOException(String.format("Expected to read %d bytes but read %d", len, readLen));
     }
     return b;
   }
@@ -107,7 +106,7 @@ public class WholeRowIterator extends RowEncodingIterator {
     }
     return map;
   }
-  
+
   // take a stream of keys and values and output a value that encodes everything but their row
   // keys and values must be paired one for one
   public static final Value encodeRow(List<Key> keys, List<Value> values) throws IOException {
@@ -142,7 +141,7 @@ public class WholeRowIterator extends RowEncodingIterator {
       dout.writeInt(valBytes.length);
       dout.write(valBytes);
     }
-    
+
     return new Value(out.toByteArray());
   }
 }

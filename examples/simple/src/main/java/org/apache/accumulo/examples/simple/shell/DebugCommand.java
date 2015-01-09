@@ -39,5 +39,5 @@ public class DebugCommand extends Command {
   public int numArgs() {
     return 0;
   }
-  
+
 }

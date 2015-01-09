@@ -46,10 +46,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static final Encoder<List<Long>> FIXED_LONG_ARRAY_ENCODER = new FixedLongArrayEncoder();
   public static final Encoder<List<Long>> VAR_LONG_ARRAY_ENCODER = new VarLongArrayEncoder();
   public static final Encoder<List<Long>> STRING_ARRAY_ENCODER = new StringArrayEncoder();
-  
+
   private static final String TYPE = "type";
   private static final String CLASS_PREFIX = "class:";
-  
+
   public static enum Type {
     /**
      * indicates a variable-length encoding of a list of Longs using {@link SummingArrayCombiner.VarLongArrayEncoder}
@@ -64,7 +64,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
      */
     STRING
   }
-  
+
   @Override
   public List<Long> typedReduce(Key key, Iterator<List<Long>> iter) {
     List<Long> sum = new ArrayList<Long>();
@@ -73,7 +73,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
     return sum;
   }
-  
+
   public static List<Long> arrayAdd(List<Long> la, List<Long> lb) {
     if (la.size() > lb.size()) {
       for (int i = 0; i < lb.size(); i++) {
@@ -87,13 +87,13 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       return lb;
     }
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setEncoder(options);
   }
-  
+
   private void setEncoder(Map<String,String> options) {
     String type = options.get(TYPE);
     if (type == null)
@@ -117,7 +117,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       }
     }
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
@@ -126,7 +126,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (super.validateOptions(options) == false)
@@ -138,12 +138,12 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
     return true;
   }
-  
+
   public abstract static class DOSArrayEncoder<V> implements Encoder<List<V>> {
     public abstract void write(DataOutputStream dos, V v) throws IOException;
-    
+
     public abstract V read(DataInputStream dis) throws IOException;
-    
+
     @Override
     public byte[] encode(List<V> vl) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -158,7 +158,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       }
       return baos.toByteArray();
     }
-    
+
     @Override
     public List<V> decode(byte[] b) {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
@@ -174,31 +174,31 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       }
     }
   }
-  
+
   public static class VarLongArrayEncoder extends DOSArrayEncoder<Long> {
     @Override
     public void write(DataOutputStream dos, Long v) throws IOException {
       WritableUtils.writeVLong(dos, v);
     }
-    
+
     @Override
     public Long read(DataInputStream dis) throws IOException {
       return WritableUtils.readVLong(dis);
     }
   }
-  
+
   public static class FixedLongArrayEncoder extends DOSArrayEncoder<Long> {
     @Override
     public void write(DataOutputStream dos, Long v) throws IOException {
       dos.writeLong(v);
     }
-    
+
     @Override
     public Long read(DataInputStream dis) throws IOException {
       return dis.readLong();
     }
   }
-  
+
   public static class StringArrayEncoder implements Encoder<List<Long>> {
     @Override
     public byte[] encode(List<Long> la) {
@@ -211,7 +211,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       }
       return sb.toString().getBytes(UTF_8);
     }
-    
+
     @Override
     public List<Long> decode(byte[] b) {
       String[] longstrs = new String(b, UTF_8).split(",");
@@ -229,10 +229,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       return la;
     }
   }
-  
+
   /**
    * A convenience method for setting the encoding type.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param type
@@ -241,10 +241,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static void setEncodingType(IteratorSetting is, Type type) {
     is.addOption(TYPE, type.toString());
   }
-  
+
   /**
    * A convenience method for setting the encoding type.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param encoderClass
@@ -253,10 +253,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<List<Long>>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());
   }
-  
+
   /**
    * A convenience method for setting the encoding type.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param encoderClassName

@@ -48,7 +48,7 @@ public class MaxOpenIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String, String> conf = new HashMap<String, String>();
+    Map<String,String> conf = new HashMap<String,String>();
     conf.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "4");
     conf.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     conf.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "2");

@@ -32,8 +32,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -45,7 +45,7 @@ import org.apache.thrift.transport.TTransportException;
 
 public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
-  
+
   public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       return executeRaw(instance, exec);
@@ -57,7 +57,7 @@ public class ServerClient {
       throw new AccumuloException(e);
     }
   }
-  
+
   public static void execute(Instance instance, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       executeRaw(instance, exec);
@@ -69,7 +69,7 @@ public class ServerClient {
       throw new AccumuloException(e);
     }
   }
-  
+
   public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
@@ -88,7 +88,7 @@ public class ServerClient {
       }
     }
   }
-  
+
   public static void executeRaw(Instance instance, ClientExec<ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
@@ -108,34 +108,33 @@ public class ServerClient {
       }
     }
   }
-  
+
   static volatile boolean warnedAboutTServersBeingDown = false;
 
   public static Pair<String,ClientService.Client> getConnection(Instance instance) throws TTransportException {
     return getConnection(instance, true);
   }
-  
+
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
     AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
     return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
-  
+
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
     ArgumentChecker.notNull(instance);
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
-    
+
     // add tservers
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null && !new String(data, UTF_8).equals("master"))
-        servers.add(new ThriftTransportKey(
-          new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT),
-          rpcTimeout, SslConnectionParams.forClient(ServerConfigurationUtil.getConfiguration(instance))));
+        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, SslConnectionParams
+            .forClient(ServerConfigurationUtil.getConfiguration(instance))));
     }
-    
+
     boolean opened = false;
     try {
       Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
@@ -156,7 +155,7 @@ public class ServerClient {
       }
     }
   }
-  
+
   public static void close(ClientService.Client client) {
     if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());

@@ -20,7 +20,7 @@ package org.apache.accumulo.core.util;
  * This class provides methods to check arguments of a variable number for null values, or anything else that might be required on a routine basis. These
  * methods should be used for early failures as close to the end user as possible, so things do not fail later on the server side, when they are harder to
  * debug.
- * 
+ *
  * Methods are created for a specific number of arguments, due to the poor performance of array allocation for varargs methods.
  */
 public class ArgumentChecker {

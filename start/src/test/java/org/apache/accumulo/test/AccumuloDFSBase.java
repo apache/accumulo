@@ -41,7 +41,7 @@ public class AccumuloDFSBase {
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
- 
+
   private static URI HDFS_URI;
 
   protected static URI getHdfsUri() {
@@ -53,7 +53,7 @@ public class AccumuloDFSBase {
     System.setProperty("java.io.tmpdir", System.getProperty("user.dir") + "/target");
     // System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
     // Logger.getRootLogger().setLevel(Level.ERROR);
-    
+
     // Put the MiniDFSCluster directory in the target directory
     System.setProperty("test.build.data", "target/build/test/data");
 
@@ -63,7 +63,7 @@ public class AccumuloDFSBase {
 
     conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
-    
+
     try {
       cluster = new MiniDFSCluster(conf, 1, true, null);
       cluster.waitClusterUp();

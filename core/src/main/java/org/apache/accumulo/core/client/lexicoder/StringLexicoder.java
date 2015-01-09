@@ -21,20 +21,20 @@ import static com.google.common.base.Charsets.UTF_8;
 /**
  * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be combined with other encoders like the
  * {@link ReverseLexicoder} to flip the default sort order.
- * 
+ *
  * @since 1.6.0
  */
 
 public class StringLexicoder implements Lexicoder<String> {
-  
+
   @Override
   public byte[] encode(String data) {
     return data.getBytes(UTF_8);
   }
-  
+
   @Override
   public String decode(byte[] data) {
     return new String(data, UTF_8);
   }
-  
+
 }

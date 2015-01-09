@@ -20,11 +20,11 @@ import java.util.Arrays;
 
 /**
  * A single column and value pair within a mutation
- * 
+ *
  */
 
 public class ColumnUpdate {
-  
+
   private byte[] columnFamily;
   private byte[] columnQualifier;
   private byte[] columnVisibility;
@@ -32,7 +32,7 @@ public class ColumnUpdate {
   private boolean hasTimestamp;
   private byte[] val;
   private boolean deleted;
-  
+
   public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
     this.columnFamily = cf;
     this.columnQualifier = cq;
@@ -42,45 +42,45 @@ public class ColumnUpdate {
     this.deleted = deleted;
     this.val = val;
   }
-  
+
   public boolean hasTimestamp() {
     return hasTimestamp;
   }
-  
+
   /**
    * Returns the column
-   * 
+   *
    */
   public byte[] getColumnFamily() {
     return columnFamily;
   }
-  
+
   public byte[] getColumnQualifier() {
     return columnQualifier;
   }
-  
+
   public byte[] getColumnVisibility() {
     return columnVisibility;
   }
-  
+
   public long getTimestamp() {
     return this.timestamp;
   }
-  
+
   public boolean isDeleted() {
     return this.deleted;
   }
-  
+
   public byte[] getValue() {
     return this.val;
   }
-  
+
   @Override
   public String toString() {
-    return Arrays.toString(columnFamily) + ":" + Arrays.toString(columnQualifier) + " ["
-        + Arrays.toString(columnVisibility) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
+    return Arrays.toString(columnFamily) + ":" + Arrays.toString(columnQualifier) + " [" + Arrays.toString(columnVisibility) + "] "
+        + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (!(obj instanceof ColumnUpdate))
@@ -90,7 +90,7 @@ public class ColumnUpdate {
         && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility()) && isDeleted() == upd.isDeleted() && Arrays.equals(getValue(), upd.getValue())
         && hasTimestamp() == upd.hasTimestamp() && getTimestamp() == upd.getTimestamp();
   }
-  
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(columnFamily) + Arrays.hashCode(columnQualifier) + Arrays.hashCode(columnVisibility)

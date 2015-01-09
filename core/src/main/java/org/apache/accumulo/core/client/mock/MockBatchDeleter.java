@@ -35,14 +35,14 @@ import org.apache.accumulo.core.security.ColumnVisibility;
  * <li>There is no waiting for memory to fill before flushing</li>
  * <li>Only one thread is used for writing</li>
  * </ol>
- * 
+ *
  * Otherwise, it behaves as expected.
  */
 public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
-  
+
   private final MockAccumulo acc;
   private final String tableName;
-  
+
   /**
    * Create a {@link BatchDeleter} for the specified instance on the specified table where the writer uses the specified {@link Authorizations}.
    */
@@ -51,10 +51,10 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
     this.acc = acc;
     this.tableName = tableName;
   }
-  
+
   @Override
   public void delete() throws MutationsRejectedException, TableNotFoundException {
-    
+
     BatchWriter writer = new MockBatchWriter(acc, tableName);
     try {
       Iterator<Entry<Key,Value>> iter = super.iterator();
@@ -69,5 +69,5 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
       writer.close();
     }
   }
-  
+
 }

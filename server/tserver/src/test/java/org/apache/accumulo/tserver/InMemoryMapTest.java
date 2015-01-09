@@ -267,17 +267,17 @@ public class InMemoryMapTest {
 
     ski1.close();
   }
-  
+
   private void deepCopyAndDelete(int interleaving, boolean interrupt) throws Exception {
     // interleaving == 0 intentionally omitted, this runs the test w/o deleting in mem map
 
     InMemoryMap imm = new InMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
-    
+
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
-    
+
     MemoryIterator ski1 = imm.skvIterator();
-    
+
     AtomicBoolean iflag = new AtomicBoolean(false);
     ski1.setInterruptFlag(iflag);
 
@@ -286,7 +286,7 @@ public class InMemoryMapTest {
       if (interrupt)
         iflag.set(true);
     }
-    
+
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(null);
 
     if (interleaving == 2) {
@@ -335,7 +335,7 @@ public class InMemoryMapTest {
         fail("i = " + i);
       } catch (IterationInterruptedException iie) {}
   }
-   
+
   @Test
   public void testBug1() throws Exception {
     InMemoryMap imm = new InMemoryMap(false, tempFolder.newFolder().getAbsolutePath());

@@ -31,7 +31,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 @ThreadSafe
 @Mojo(name = "stop", defaultPhase = LifecyclePhase.POST_INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.TEST)
 public class StopMojo extends AbstractAccumuloMojo {
-  
+
   @Override
   public void execute() throws MojoExecutionException {
     for (MiniAccumuloClusterImpl mac : StartMojo.runningClusters) {

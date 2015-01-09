@@ -6,9 +6,9 @@
  * "License"); you may not use this file except in compliance with the
  * License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -27,54 +27,54 @@ import java.util.Map;
  * Simple one RFile soft reference cache.
  */
 public class SimpleBlockCache implements BlockCache {
-  
+
   private static class SimpleCacheEntry implements CacheEntry {
-    
+
     private byte[] buffer;
     private Object index;
-    
+
     SimpleCacheEntry(byte[] buffer) {
       this.buffer = buffer;
     }
-    
+
     @Override
     public byte[] getBuffer() {
       return buffer;
     }
-    
+
     @Override
     public Object getIndex() {
       return index;
     }
-    
+
     @Override
     public void setIndex(Object idx) {
       this.index = idx;
     }
-    
+
   }
-  
+
   private static class Ref extends SoftReference<SimpleCacheEntry> {
     public String blockId;
-    
+
     public Ref(String blockId, SimpleCacheEntry sce, ReferenceQueue<SimpleCacheEntry> q) {
       super(sce, q);
       this.blockId = blockId;
     }
   }
-  
+
   private Map<String,Ref> cache = new HashMap<String,Ref>();
-  
+
   private ReferenceQueue<SimpleCacheEntry> q = new ReferenceQueue<SimpleCacheEntry>();
   public int dumps = 0;
-  
+
   /**
    * Constructor
    */
   public SimpleBlockCache() {
     super();
   }
-  
+
   void processQueue() {
     Ref r;
     while ((r = (Ref) q.poll()) != null) {
@@ -82,7 +82,7 @@ public class SimpleBlockCache implements BlockCache {
       dumps++;
     }
   }
-  
+
   /**
    * @return the size
    */
@@ -90,7 +90,7 @@ public class SimpleBlockCache implements BlockCache {
     processQueue();
     return cache.size();
   }
-  
+
   public synchronized SimpleCacheEntry getBlock(String blockName) {
     processQueue(); // clear out some crap.
     Ref ref = cache.get(blockName);
@@ -98,23 +98,23 @@ public class SimpleBlockCache implements BlockCache {
       return null;
     return ref.get();
   }
-  
+
   public synchronized SimpleCacheEntry cacheBlock(String blockName, byte buf[]) {
     SimpleCacheEntry sce = new SimpleCacheEntry(buf);
     cache.put(blockName, new Ref(blockName, sce, q));
     return sce;
   }
-  
+
   public synchronized SimpleCacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
     SimpleCacheEntry sce = new SimpleCacheEntry(buf);
     cache.put(blockName, new Ref(blockName, sce, q));
     return sce;
   }
-  
+
   public void shutdown() {
     // noop
   }
-  
+
   @Override
   public long getMaxSize() {
     return Long.MAX_VALUE;

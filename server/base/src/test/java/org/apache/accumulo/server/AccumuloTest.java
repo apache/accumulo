@@ -108,6 +108,7 @@ public class AccumuloTest {
       FileUtils.deleteDirectory(confDir);
     }
   }
+
   @Test
   public void testLocateLogConfig_Default() throws Exception {
     File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
@@ -121,6 +122,7 @@ public class AccumuloTest {
       FileUtils.deleteDirectory(confDir);
     }
   }
+
   @Test
   public void testLocateLogConfig_Explicit() throws Exception {
     File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());

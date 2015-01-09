@@ -40,9 +40,9 @@ public class MockTabletLocator extends org.apache.accumulo.core.client.mock.impl
       TableNotFoundException {
     return locateTablet(Credentials.fromThrift(credentials), row, skipRow, retry);
   }
-  
-  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures, TCredentials credentials)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+
+  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
+      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     binMutations(Credentials.fromThrift(credentials), mutations, binnedMutations, failures);
   }
 

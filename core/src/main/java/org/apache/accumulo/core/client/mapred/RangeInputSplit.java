@@ -33,7 +33,7 @@ public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.R
   public RangeInputSplit(RangeInputSplit split) throws IOException {
     super(split);
   }
-  
+
   protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
     super(table, tableId, range, locations);
   }

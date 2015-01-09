@@ -115,9 +115,9 @@ public class MockNamespacesTest {
   /**
    * This test creates a namespace, modifies it's properties, and checks to make sure that those properties are applied to its tables. To do something on a
    * namespace-wide level, use {@link NamespaceOperations}.
-   * 
+   *
    * Checks to make sure namespace-level properties are overridden by table-level properties.
-   * 
+   *
    * Checks to see if the default namespace's properties work as well.
    */
 
@@ -212,7 +212,7 @@ public class MockNamespacesTest {
     // TODO implement clone in mock
     /*
      * c.tableOperations().clone(tableName1, tableName2, false, null, null);
-     * 
+     *
      * assertTrue(c.tableOperations().exists(tableName1)); assertTrue(c.tableOperations().exists(tableName2));
      */
     return;

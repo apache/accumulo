@@ -36,7 +36,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterIT {
     return 30;
   }
 
-  //a test for ACCUMULO-3096
+  // a test for ACCUMULO-3096
   @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
 
@@ -45,7 +45,6 @@ public class MetaConstraintRetryIT extends AccumuloClusterIT {
     Credentials credentials = new Credentials(getPrincipal(), getToken());
     Writer w = new Writer(super.getConnector().getInstance(), credentials, MetadataTable.ID);
     KeyExtent extent = new KeyExtent(new Text("5"), null, null);
-
 
     Mutation m = new Mutation(extent.getMetadataEntry());
     // unknown columns should cause contraint violation

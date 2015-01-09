@@ -20,5 +20,4 @@ package org.apache.accumulo.core.client.admin;
  * @deprecated since 1.6.0; not intended for public api and you should not use it.
  */
 @Deprecated
-public abstract class TableOperationsHelper extends org.apache.accumulo.core.client.impl.TableOperationsHelper {
-}
+public abstract class TableOperationsHelper extends org.apache.accumulo.core.client.impl.TableOperationsHelper {}

@@ -25,7 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class ScannerImplTest {
 
@@ -36,10 +36,10 @@ public class ScannerImplTest {
     s.setReadaheadThreshold(0);
     s.setReadaheadThreshold(10);
     s.setReadaheadThreshold(Long.MAX_VALUE);
-    
+
     Assert.assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
   }
-  
+
   @Test(expected = IllegalArgumentException.class)
   public void testInValidReadaheadValues() {
     MockInstance instance = new MockInstance();

@@ -21,28 +21,25 @@ import org.apache.commons.vfs2.FileSystemConfigBuilder;
 
 /**
  * Configuration settings for the HdfsFileSystem.
- * 
+ *
  * @since 2.1
  */
-public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder
-{
-    private static final HdfsFileSystemConfigBuilder BUILDER = new HdfsFileSystemConfigBuilder();
+public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder {
+  private static final HdfsFileSystemConfigBuilder BUILDER = new HdfsFileSystemConfigBuilder();
 
-    /**
-     * @return HdfsFileSystemConfigBuilder instance
-     */
-    public static HdfsFileSystemConfigBuilder getInstance()
-    {
-        return BUILDER;
-    }
+  /**
+   * @return HdfsFileSystemConfigBuilder instance
+   */
+  public static HdfsFileSystemConfigBuilder getInstance() {
+    return BUILDER;
+  }
 
-    /**
-     * @return HDFSFileSystem
-     */
-    @Override
-    protected Class<? extends FileSystem> getConfigClass()
-    {
-        return HdfsFileSystem.class;
-    }
+  /**
+   * @return HDFSFileSystem
+   */
+  @Override
+  protected Class<? extends FileSystem> getConfigClass() {
+    return HdfsFileSystem.class;
+  }
 
 }

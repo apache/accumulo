@@ -579,8 +579,8 @@ public class VolumeManagerImpl implements VolumeManager {
   public String choose(String[] options) {
     final String choice = chooser.choose(options);
     if (!(ArrayUtils.contains(options, choice))) {
-      log.error("The configured volume chooser, '" +  chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; " +
-          "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.");
+      log.error("The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; "
+          + "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.");
       return failsafeChooser.choose(options);
     }
     return choice;

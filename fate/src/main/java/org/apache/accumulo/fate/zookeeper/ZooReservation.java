@@ -27,11 +27,11 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReservation {
-  
+
   public static boolean attempt(IZooReaderWriter zk, String path, String reservationID, String debugInfo) throws KeeperException, InterruptedException {
     if (reservationID.contains(":"))
       throw new IllegalArgumentException();
-    
+
     while (true) {
       try {
         zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(UTF_8), NodeExistsPolicy.FAIL);
@@ -44,18 +44,18 @@ public class ZooReservation {
         } catch (NoNodeException nne) {
           continue;
         }
-        
+
         String idInZoo = new String(zooData, UTF_8).split(":")[0];
-        
+
         return idInZoo.equals(reservationID);
       }
     }
-    
+
   }
-  
+
   public static void release(IZooReaderWriter zk, String path, String reservationID) throws KeeperException, InterruptedException {
     byte[] zooData;
-    
+
     try {
       zooData = zk.getData(path, null);
     } catch (NoNodeException e) {
@@ -63,15 +63,15 @@ public class ZooReservation {
       Logger.getLogger(ZooReservation.class).debug("Node does not exist " + path);
       return;
     }
-    
+
     String zooDataStr = new String(zooData, UTF_8);
     String idInZoo = zooDataStr.split(":")[0];
-    
+
     if (!idInZoo.equals(reservationID)) {
       throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + reservationID + " " + zooDataStr);
     }
-    
+
     zk.recursiveDelete(path, NodeMissingPolicy.SKIP);
   }
-  
+
 }

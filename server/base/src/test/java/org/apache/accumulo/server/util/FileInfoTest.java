@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.server.util.FileUtil.FileInfo;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class FileInfoTest {
   private Key key1;

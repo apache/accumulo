@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client.mock;
  */
 @Deprecated
 public class MockInstanceOperations extends MockInstanceOperationsImpl {
-  
+
   public MockInstanceOperations(MockAccumulo acu) {
     super(acu);
   }

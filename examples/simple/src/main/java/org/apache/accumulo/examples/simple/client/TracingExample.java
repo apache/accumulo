@@ -41,7 +41,7 @@ import com.beust.jcommander.Parameter;
 
 /**
  * A simple example showing how to use the distributed tracing API in client code
- * 
+ *
  */
 public class TracingExample {
 

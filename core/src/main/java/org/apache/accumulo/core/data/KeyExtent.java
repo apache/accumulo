@@ -19,7 +19,7 @@ package org.apache.accumulo.core.data;
 /**
  * keeps track of information needed to identify a tablet
  * apparently, we only need the endKey and not the start as well
- * 
+ *
  */
 
 import java.io.ByteArrayOutputStream;
@@ -89,7 +89,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Default constructor
-   * 
+   *
    */
   public KeyExtent() {
     this.setTableId(new Text());
@@ -124,7 +124,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Returns a String representing this extent's entry in the Metadata table
-   * 
+   *
    */
   public Text getMetadataEntry() {
     return getMetadataEntry(getTableId(), getEndRow());
@@ -159,7 +159,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Sets the extents table id
-   * 
+   *
    */
   public void setTableId(Text tId) {
 
@@ -173,7 +173,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Returns the extent's table id
-   * 
+   *
    */
   public Text getTableId() {
     return textTableId;
@@ -195,7 +195,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Sets this extent's end row
-   * 
+   *
    */
   public void setEndRow(Text endRow) {
     setEndRow(endRow, true, true);
@@ -203,7 +203,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Returns this extent's end row
-   * 
+   *
    */
   public Text getEndRow() {
     return textEndRow;
@@ -211,7 +211,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Return the previous extent's end row
-   * 
+   *
    */
   public Text getPrevEndRow() {
     return textPrevEndRow;
@@ -233,7 +233,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Sets the previous extent's end row
-   * 
+   *
    */
   public void setPrevEndRow(Text prevEndRow) {
     setPrevEndRow(prevEndRow, true, true);
@@ -241,7 +241,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Populates the extents data fields from a DataInput object
-   * 
+   *
    */
   @Override
   public void readFields(DataInput in) throws IOException {
@@ -271,7 +271,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Writes this extent's data fields to a DataOutput object
-   * 
+   *
    */
   @Override
   public void write(DataOutput out) throws IOException {
@@ -292,7 +292,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Returns a String representing the previous extent's entry in the Metadata table
-   * 
+   *
    */
   public Mutation getPrevRowUpdateMutation() {
     return getPrevRowUpdateMutation(this);
@@ -300,7 +300,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Empty start or end rows tell the method there are no start or end rows, and to use all the keyextents that are before the end row if no start row etc.
-   * 
+   *
    * @deprecated this method not intended for public use and is likely to be removed in a future version.
    * @return all the key extents that the rows cover
    */
@@ -397,7 +397,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   /**
    * Compares extents based on rows
-   * 
+   *
    */
   @Override
   public int compareTo(KeyExtent other) {
@@ -508,7 +508,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   // note: this is only the encoding of the table id and the last row, not the prev row
   /**
    * Populates the extent's fields based on a flatted extent
-   * 
+   *
    */
   private void decodeMetadataRow(Text flattenedExtent) {
     int semiPos = -1;

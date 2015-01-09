@@ -84,12 +84,12 @@ public class VolumeConfiguration {
 
   /**
    * Compute the URIs to be used by Accumulo
-   * 
+   *
    */
   public static String[] getVolumeUris(AccumuloConfiguration conf) {
     return getVolumeUris(conf, CachedConfiguration.getInstance());
   }
-  
+
   public static String[] getVolumeUris(AccumuloConfiguration conf, Configuration hadoopConfig) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
 

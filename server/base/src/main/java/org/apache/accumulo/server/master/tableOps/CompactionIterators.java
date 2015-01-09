@@ -31,19 +31,19 @@ public class CompactionIterators implements Writable {
   byte[] startRow;
   byte[] endRow;
   List<IteratorSetting> iterators;
-  
+
   public CompactionIterators(byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) {
     this.startRow = startRow;
     this.endRow = endRow;
     this.iterators = iterators;
   }
-  
+
   public CompactionIterators() {
     startRow = null;
     endRow = null;
     iterators = Collections.emptyList();
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeBoolean(startRow != null);
@@ -51,19 +51,19 @@ public class CompactionIterators implements Writable {
       out.writeInt(startRow.length);
       out.write(startRow);
     }
-    
+
     out.writeBoolean(endRow != null);
     if (endRow != null) {
       out.writeInt(endRow.length);
       out.write(endRow);
     }
-    
+
     out.writeInt(iterators.size());
     for (IteratorSetting is : iterators) {
       is.write(out);
     }
   }
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     if (in.readBoolean()) {
@@ -72,34 +72,34 @@ public class CompactionIterators implements Writable {
     } else {
       startRow = null;
     }
-    
+
     if (in.readBoolean()) {
       endRow = new byte[in.readInt()];
       in.readFully(endRow);
     } else {
       endRow = null;
     }
-    
+
     int num = in.readInt();
     iterators = new ArrayList<IteratorSetting>(num);
-    
+
     for (int i = 0; i < num; i++) {
       iterators.add(new IteratorSetting(in));
     }
   }
-  
+
   public Text getEndRow() {
     if (endRow == null)
       return null;
     return new Text(endRow);
   }
-  
+
   public Text getStartRow() {
     if (startRow == null)
       return null;
     return new Text(startRow);
   }
-  
+
   public List<IteratorSetting> getIterators() {
     return iterators;
   }

@@ -39,64 +39,64 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 
 public class TabletIteratorTest extends TestCase {
-  
+
   class TestTabletIterator extends TabletIterator {
-    
+
     private Connector conn;
-    
+
     public TestTabletIterator(Connector conn) throws Exception {
       super(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY), MetadataSchema.TabletsSection.getRange(), true, true);
       this.conn = conn;
     }
-    
+
     @Override
     protected void resetScanner() {
       try {
         Scanner ds = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         Text tablet = new KeyExtent(new Text("0"), new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
-        
+
         Mutation m = new Mutation(tablet);
-        
+
         BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
         for (Entry<Key,Value> entry : ds) {
           Key k = entry.getKey();
           m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
         }
-        
+
         bw.addMutation(m);
-        
+
         bw.close();
-        
+
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      
+
       super.resetScanner();
     }
-    
+
   }
-  
+
   // simulate a merge happening while iterating over tablets
   public void testMerge() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
-    
+
     KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut1, new Value("/d1".getBytes()));
-    
+
     KeyExtent ke2 = new KeyExtent(new Text("0"), null, null);
     Mutation mut2 = ke2.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut2, new Value("/d2".getBytes()));
-    
+
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     bw1.addMutation(mut1);
     bw1.addMutation(mut2);
     bw1.close();
-    
+
     TestTabletIterator tabIter = new TestTabletIterator(conn);
-    
+
     try {
       while (tabIter.hasNext()) {
         tabIter.next();

@@ -1070,7 +1070,8 @@ public class Tablet {
   }
 
   public Tablet(KeyExtent extent, TabletServer tabletServer, TabletResourceManager trm, SplitInfo info) throws IOException {
-    this(tabletServer, new Text(info.dir), extent, trm, CachedConfiguration.getInstance(), info.datafiles, info.time, info.initFlushID, info.initCompactID, info.lastLocation);
+    this(tabletServer, new Text(info.dir), extent, trm, CachedConfiguration.getInstance(), info.datafiles, info.time, info.initFlushID, info.initCompactID,
+        info.lastLocation);
     splitCreationTime = System.currentTimeMillis();
   }
 

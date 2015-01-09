@@ -19,11 +19,11 @@ package org.apache.accumulo.core.util;
 import java.util.Iterator;
 
 public class PeekingIterator<E> implements Iterator<E> {
-  
+
   boolean isInitialized;
   Iterator<E> source;
   E top;
-  
+
   public PeekingIterator(Iterator<E> source) {
     this.source = source;
     if (source.hasNext())
@@ -32,14 +32,14 @@ public class PeekingIterator<E> implements Iterator<E> {
       top = null;
     isInitialized = true;
   }
-  
+
   /**
    * Creates an uninitialized instance. This should be used in conjunction with {@link #initialize(Iterator)}.
    */
   public PeekingIterator() {
     isInitialized = false;
   }
-  
+
   /**
    * Initializes this iterator, to be used with {@link #PeekingIterator()}.
    */
@@ -52,13 +52,13 @@ public class PeekingIterator<E> implements Iterator<E> {
     isInitialized = true;
     return this;
   }
-  
+
   public E peek() {
     if (!isInitialized)
       throw new IllegalStateException("Iterator has not yet been initialized");
     return top;
   }
-  
+
   @Override
   public E next() {
     if (!isInitialized)
@@ -70,12 +70,12 @@ public class PeekingIterator<E> implements Iterator<E> {
       top = null;
     return lastPeeked;
   }
-  
+
   @Override
   public void remove() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public boolean hasNext() {
     if (!isInitialized)

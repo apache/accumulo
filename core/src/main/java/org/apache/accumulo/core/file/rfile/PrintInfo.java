@@ -39,7 +39,7 @@ import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
   private static final Logger log = Logger.getLogger(PrintInfo.class);
-  
+
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
@@ -48,29 +48,29 @@ public class PrintInfo {
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
   }
-  
+
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
 
     AccumuloConfiguration aconf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
     // TODO ACCUMULO-2462 This will only work for RFiles (path only, not URI) in HDFS when the correct filesystem for the given file
-    // is on Property.INSTANCE_DFS_DIR or, when INSTANCE_DFS_DIR is not defined, is on the default filesystem 
+    // is on Property.INSTANCE_DFS_DIR or, when INSTANCE_DFS_DIR is not defined, is on the default filesystem
     // defined in the Hadoop's core-site.xml
     //
     // A workaround is to always provide a URI to this class
     FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
-    FileSystem localFs  = FileSystem.getLocal(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
     if (opts.files.isEmpty()) {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    
+
     long countBuckets[] = new long[11];
     long sizeBuckets[] = new long[countBuckets.length];
     long totalSize = 0;
-    
+
     for (String arg : opts.files) {
       Path path = new Path(arg);
       FileSystem fs;
@@ -81,14 +81,14 @@ public class PrintInfo {
         log.warn("Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       }
-      
+
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(_rdr);
-      
+
       iter.printInfo();
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
-      
+
       if (opts.histogram || opts.dump) {
         iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
         while (iter.hasTop()) {
@@ -113,7 +113,7 @@ public class PrintInfo {
           System.out.println(String.format("%11.0f : %10d %6.2f%%", Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));
         }
       }
-      
+
       // If the output stream has closed, there is no reason to keep going.
       if (System.out.checkError())
         return;

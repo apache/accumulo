@@ -50,7 +50,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 
 public class RowFilterTest {
@@ -67,7 +67,7 @@ public class RowFilterTest {
       if (rowIterator.hasTop()) {
         firstKey = new Key(rowIterator.getTopKey());
       }
-      
+
       while (rowIterator.hasTop()) {
         sum += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -198,7 +198,7 @@ public class RowFilterTest {
     }
     IteratorSetting is = new IteratorSetting(40, SummingRowFilter.class);
     conn.tableOperations().attachIterator("table1", is);
-    
+
     Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
     assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
 
@@ -226,7 +226,7 @@ public class RowFilterTest {
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
     scanner.fetchColumn(new Text("cf1"), new Text("cq4"));
     assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(scanner));
-    
+
   }
 
   @Test

@@ -319,7 +319,7 @@ public class NativeMapIT {
     tm.put(new Key(new Text("foo")), new Value(new byte[] {'1'}));
     tm.put(new Key(new Text("foo1")), new Value(new byte[] {'2'}));
     tm.put(new Key(new Text("foo2")), new Value(new byte[] {'3'}));
- 
+
     for (Entry<Key,Value> entry : tm.entrySet()) {
       nm.put(entry.getKey(), entry.getValue());
     }

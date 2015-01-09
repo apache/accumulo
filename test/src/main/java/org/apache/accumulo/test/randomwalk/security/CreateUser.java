@@ -26,13 +26,13 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateUser extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken());
-    
+
     String tableUserName = WalkingSecurity.get(state).getTabUserName();
-    
+
     boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
     boolean hasPermission = WalkingSecurity.get(state).canCreateUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
     PasswordToken tabUserPass = new PasswordToken("Super Sekret Table User Password");

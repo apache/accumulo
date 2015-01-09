@@ -17,22 +17,22 @@
 package org.apache.accumulo.core.util;
 
 /**
- * 
+ *
  */
 public class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> extends Pair<A,B> implements Comparable<ComparablePair<A,B>> {
-  
+
   public ComparablePair(A f, B s) {
     super(f, s);
   }
-  
+
   @Override
   public int compareTo(ComparablePair<A,B> abPair) {
     int cmp = first.compareTo(abPair.first);
     if (cmp == 0) {
       cmp = second.compareTo(abPair.second);
     }
-    
+
     return cmp;
   }
-  
+
 }

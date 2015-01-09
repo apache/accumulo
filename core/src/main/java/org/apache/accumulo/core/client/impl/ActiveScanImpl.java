@@ -23,8 +23,8 @@ import java.util.Map;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
-import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.ScanState;
+import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
@@ -33,6 +33,7 @@ import org.apache.accumulo.core.security.Authorizations;
 
 /**
  * A class that contains information about an ActiveScan
+ *
  * @since 1.6.0
  */
 public class ActiveScanImpl extends ActiveScan {

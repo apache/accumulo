@@ -22,11 +22,12 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 
 /**
  * Provides a class for administering the accumulo instance
+ *
  * @deprecated since 1.6.0; not intended for public api and you should not use it.
  */
 @Deprecated
 public class InstanceOperationsImpl extends org.apache.accumulo.core.client.impl.InstanceOperationsImpl {
-  
+
   /**
    * @param instance
    *          the connection information for this instance
@@ -36,7 +37,7 @@ public class InstanceOperationsImpl extends org.apache.accumulo.core.client.impl
   private InstanceOperationsImpl(Instance instance, Credentials credentials) {
     super(instance, credentials);
   }
-  
+
   /**
    * @param instance
    *          the connection information for this instance

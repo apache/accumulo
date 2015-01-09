@@ -46,8 +46,8 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.commons.io.FileExistsException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -177,7 +177,8 @@ public class CertUtils {
     CertUtils certUtils = new CertUtils(opts.keystoreType, opts.issuerDirString, opts.encryptionAlg, opts.keysize, opts.signingAlg);
 
     if ("generate-all".equals(operation)) {
-      certUtils.createAll(new File(opts.rootKeystore), new File(opts.localKeystore), new File(opts.truststore), opts.keyNamePrefix, rootKeyPassword, keyPassword, opts.truststorePassword);
+      certUtils.createAll(new File(opts.rootKeystore), new File(opts.localKeystore), new File(opts.truststore), opts.keyNamePrefix, rootKeyPassword,
+          keyPassword, opts.truststorePassword);
     } else if ("generate-local".equals(operation)) {
       certUtils.createSignedCert(new File(opts.localKeystore), opts.keyNamePrefix + "-local", keyPassword, opts.rootKeystore, rootKeyPassword);
     } else if ("generate-self-trusted".equals(operation)) {

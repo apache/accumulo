@@ -34,7 +34,7 @@ import org.apache.thrift.transport.TTransportException;
  * {@link TNonblockingServer} methods, especially {@link org.apache.thrift.server.TNonblockingServer.SelectAcceptThread}, in order to override the
  * {@link org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer} and {@link org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer} with
  * one that reveals the client address from its transport.
- * 
+ *
  * <p>
  * The justification for this is explained in https://issues.apache.org/jira/browse/ACCUMULO-1691, and is needed due to the repeated regressions:
  * <ul>
@@ -42,7 +42,7 @@ import org.apache.thrift.transport.TTransportException;
  * <li>https://issues.apache.org/jira/browse/THRIFT-1464</li>
  * <li>https://issues.apache.org/jira/browse/THRIFT-2173</li>
  * </ul>
- * 
+ *
  * <p>
  * This class contains a copy of {@link org.apache.thrift.server.TNonblockingServer.SelectAcceptThread} from Thrift 0.9.1, with the slight modification of
  * instantiating a custom FrameBuffer, rather than the {@link org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer} and

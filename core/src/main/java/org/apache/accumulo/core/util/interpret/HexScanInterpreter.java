@@ -23,5 +23,5 @@ import org.apache.accumulo.core.util.format.HexFormatter;
  * dashes (because {@link HexFormatter} outputs dashes) which are ignored.
  */
 public class HexScanInterpreter extends HexFormatter implements ScanInterpreter {
-  
+
 }

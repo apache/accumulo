@@ -19,17 +19,15 @@ package org.apache.accumulo.core.util;
 import org.apache.commons.codec.binary.StringUtils;
 
 /**
- * A wrapper around commons-codec's Base64 to make sure we get the non-chunked behavior that
- * became the default in commons-codec version 1.5+ while relying on the commons-codec version 1.4
- * that Hadoop Client provides.
+ * A wrapper around commons-codec's Base64 to make sure we get the non-chunked behavior that became the default in commons-codec version 1.5+ while relying on
+ * the commons-codec version 1.4 that Hadoop Client provides.
  */
 public final class Base64 {
 
   /**
    * Private to prevent instantiation.
    */
-  private Base64() {
-  }
+  private Base64() {}
 
   /**
    * Serialize to Base64 byte array, non-chunked.

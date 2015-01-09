@@ -22,21 +22,21 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class SecurityErrorCodeTest {
-  
+
   @Test
   public void testEnumsSame() {
     HashSet<String> secNames1 = new HashSet<String>();
     HashSet<String> secNames2 = new HashSet<String>();
-    
+
     for (SecurityErrorCode sec : SecurityErrorCode.values())
       secNames1.add(sec.name());
-    
+
     for (org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode sec : org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.values())
       secNames2.add(sec.name());
-    
+
     Assert.assertEquals(secNames1, secNames2);
   }
 }

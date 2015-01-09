@@ -37,19 +37,19 @@ import com.beust.jcommander.Parameter;
 
 /**
  * This program queries a set of terms in the shard table (populated by {@link Index}) using the {@link IntersectingIterator}.
- * 
+ *
  * See docs/examples/README.shard for instructions.
  */
 
 public class Query {
-  
+
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(description=" term { <term> ... }")
+    @Parameter(description = " term { <term> ... }")
     List<String> terms = new ArrayList<String>();
   }
-  
+
   public static List<String> query(BatchScanner bs, List<String> terms) {
-    
+
     Text columns[] = new Text[terms.size()];
     int i = 0;
     for (String term : terms) {
@@ -65,7 +65,7 @@ public class Query {
     }
     return result;
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
@@ -77,5 +77,5 @@ public class Query {
     for (String entry : query(bs, opts.terms))
       System.out.println("  " + entry);
   }
-  
+
 }

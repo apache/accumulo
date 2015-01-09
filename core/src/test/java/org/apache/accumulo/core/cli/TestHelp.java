@@ -1,4 +1,5 @@
 package org.apache.accumulo.core.cli;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,12 +18,13 @@ package org.apache.accumulo.core.cli;
  */
 
 import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
 public class TestHelp {
   protected class HelpStub extends Help {
     @Override
-    public void parseArgs(String programName, String[] args, Object ... others) {
+    public void parseArgs(String programName, String[] args, Object... others) {
       super.parseArgs(programName, args, others);
     }
 
@@ -31,7 +33,7 @@ public class TestHelp {
       throw new RuntimeException(Integer.toString(status));
     }
   }
-  
+
   @Test
   public void testInvalidArgs() {
     String[] args = {"foo"};

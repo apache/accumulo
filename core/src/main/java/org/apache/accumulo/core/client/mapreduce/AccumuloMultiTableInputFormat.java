@@ -39,23 +39,23 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 /**
  * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapreduce.InputFormat} provides keys
  * and values of type {@link Key} and {@link Value} to the Map function.
- * 
+ *
  * The user must specify the following via static configurator methods:
- * 
+ *
  * <ul>
  * <li>{@link AccumuloMultiTableInputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloMultiTableInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloMultiTableInputFormat#setZooKeeperInstance(Job, ClientConfiguration)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
  * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(Job, Map)}
  * </ul>
- * 
+ *
  * Other static methods are optional.
  */
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**
    * Sets the {@link InputTableConfig} objects on the given Hadoop configuration
-   * 
+   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param configs
@@ -87,11 +87,11 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
 
       @Override
       protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {
-        List<IteratorSetting> iterators = split.getIterators(); 
+        List<IteratorSetting> iterators = split.getIterators();
         if (null == iterators) {
           iterators = getInputTableConfig(context, tableName).getIterators();
         }
-        
+
         for (IteratorSetting setting : iterators) {
           scanner.addScanIterator(setting);
         }

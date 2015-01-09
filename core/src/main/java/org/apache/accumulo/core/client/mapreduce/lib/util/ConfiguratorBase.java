@@ -36,7 +36,7 @@ public class ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
-   * 
+   *
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
@@ -47,7 +47,7 @@ public class ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
-   * 
+   *
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
@@ -58,7 +58,7 @@ public class ConfiguratorBase {
 
   /**
    * Configuration keys for general configuration options.
-   * 
+   *
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
@@ -69,7 +69,7 @@ public class ConfiguratorBase {
 
   /**
    * Provides a configuration key for a given feature enum, prefixed by the implementingClass
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param e
@@ -85,11 +85,11 @@ public class ConfiguratorBase {
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-   * 
+   *
    * <p>
    * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
    * conversion to a string, and is not intended to be secure.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -109,7 +109,7 @@ public class ConfiguratorBase {
 
   /**
    * Determines if the connector info has already been set for this instance.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -126,7 +126,7 @@ public class ConfiguratorBase {
 
   /**
    * Gets the user name from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -147,7 +147,7 @@ public class ConfiguratorBase {
    * yourself.
    * <p>
    * Gets the serialized token class from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -169,7 +169,7 @@ public class ConfiguratorBase {
    * <p>
    * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
    * provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -187,7 +187,7 @@ public class ConfiguratorBase {
 
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -207,7 +207,7 @@ public class ConfiguratorBase {
 
   /**
    * Configures a {@link MockInstance} for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -224,7 +224,7 @@ public class ConfiguratorBase {
 
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -242,7 +242,7 @@ public class ConfiguratorBase {
 
   /**
    * Sets the log level for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -259,7 +259,7 @@ public class ConfiguratorBase {
 
   /**
    * Gets the log level from this configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf

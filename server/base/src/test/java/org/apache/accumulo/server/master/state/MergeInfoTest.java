@@ -16,19 +16,25 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
 
 public class MergeInfoTest {
   private KeyExtent keyExtent;

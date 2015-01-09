@@ -24,22 +24,22 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class TabletOperations {
-  
+
   private static final Logger log = Logger.getLogger(TabletOperations.class);
-  
+
   public static String createTabletDirectory(VolumeManager fs, String tableId, Text endRow) {
     String lowDirectory;
-    
+
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
     String volume = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
-    
+
     while (true) {
       try {
         if (endRow == null) {
@@ -52,7 +52,7 @@ public class TabletOperations {
           log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
         } else {
           lowDirectory = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-          Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" +  lowDirectory);
+          Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
           if (fs.exists(lowDirectoryPath))
             throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
           if (fs.mkdirs(lowDirectoryPath)) {
@@ -63,13 +63,13 @@ public class TabletOperations {
       } catch (IOException e) {
         log.warn(e);
       }
-      
+
       log.warn("Failed to create dir for tablet in table " + tableId + " in volume " + volume + " + will retry ...");
       UtilWaitThread.sleep(3000);
-      
+
     }
   }
-  
+
   public static String createTabletDirectory(String tableDir, Text endRow) {
     while (true) {
       try {
