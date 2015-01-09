@@ -740,6 +740,10 @@
                 <property name="eachLine" value="true" />
               </module>
               <module name="TreeWalker">
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="\s+$" />
+                  <property name="message" value="Line has trailing whitespace." />
+                </module>
                 <module name="OuterTypeFilename" />
                 <module name="LineLength">
                   <!-- needs extra, because Eclipse formatter ignores the ending left brace -->
