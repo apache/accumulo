@@ -1610,7 +1610,9 @@ public class Tablet {
     }
 
     ranges = Range.mergeOverlapping(ranges);
-    Collections.sort(ranges);
+    if (ranges.size() > 1) {
+      Collections.sort(ranges);
+    }
 
     Range tabletRange = extent.toDataRange();
     for (Range range : ranges) {
