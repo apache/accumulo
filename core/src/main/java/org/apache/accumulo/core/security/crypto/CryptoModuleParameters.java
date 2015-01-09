@@ -280,7 +280,7 @@ public class CryptoModuleParameters {
    * <li>the code reading an encrypted stream and coming across the encrypted version of one of these keys, OR
    * <li>the {@link CryptoModuleParameters#getKeyEncryptionStrategyClass()} that encrypted the plaintext key (see
    * {@link CryptoModuleParameters#getPlaintextKey()}).
-   * <ul>
+   * </ul>
    * <p>
    * For <b>encryption</b>, this value is generally not required, but is usually set by the underlying module during encryption. <br>
    * For <b>decryption</b>, this value is <b>usually required</b>.

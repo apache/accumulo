@@ -954,7 +954,7 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java</excludes>
+          <excludes>**/thrift/*.java,**/HelpMojo.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
