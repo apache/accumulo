@@ -67,7 +67,9 @@ public class BatchVerify extends Test {
       }
 
       ranges = Range.mergeOverlapping(ranges);
-      Collections.sort(ranges);
+      if (ranges.size() > 1) {
+        Collections.sort(ranges);
+      }
 
       if (count == 0 || ranges.size() == 0)
         return;

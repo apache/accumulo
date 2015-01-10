@@ -424,6 +424,8 @@ public class Range implements WritableComparable<Range> {
   public static List<Range> mergeOverlapping(Collection<Range> ranges) {
     if (ranges.size() == 0)
       return Collections.emptyList();
+    if (ranges.size() == 1)
+      return Collections.singletonList(ranges.iterator().next());
 
     List<Range> ral = new ArrayList<Range>(ranges);
     Collections.sort(ral);
