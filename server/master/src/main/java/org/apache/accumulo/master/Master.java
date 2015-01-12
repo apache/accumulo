@@ -285,6 +285,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             "Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
       }
       Accumulo.abortIfFateTransactions();
+
+      if (serverConfig.getConfiguration().get(Property.INSTANCE_VOLUMES).trim().length() > 0) {
+        throw new IllegalStateException("Do not set property " + Property.INSTANCE_VOLUMES.getKey()
+            + " until after upgrade. Kill all Accumulo processes, unset property, and try again.");
+      }
+
       try {
         log.info("Upgrading zookeeper");
 
