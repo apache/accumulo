@@ -26,6 +26,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
+. "$bin"/config-server.sh
 unset DISPLAY
 
 if [ ! -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then

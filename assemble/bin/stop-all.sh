@@ -27,6 +27,7 @@ bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
+. "$bin"/config-server.sh
 
 echo "Stopping accumulo services..."
 ${bin}/accumulo admin "$@" stopAll

@@ -30,6 +30,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
+. "$bin"/config-server.sh
 
 IFCONFIG=/sbin/ifconfig
 [[ ! -x $IFCONFIG ]] && IFCONFIG='/bin/netstat -ie'

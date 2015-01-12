@@ -27,6 +27,7 @@ script=$( basename "$SOURCE" )
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
+. "$bin"/config-server.sh
 
 HOST="$1"
 host "$1" >/dev/null 2>/dev/null
