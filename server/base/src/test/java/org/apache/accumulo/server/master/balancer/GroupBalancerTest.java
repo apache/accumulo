@@ -1,0 +1,285 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.accumulo.server.master.balancer;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.master.state.TabletMigration;
+import org.apache.hadoop.io.Text;
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+
+public class GroupBalancerTest {
+
+  private static Function<KeyExtent,String> partitioner = new Function<KeyExtent,String>() {
+
+    @Override
+    public String apply(KeyExtent input) {
+      return input.getEndRow().toString().substring(0, 2);
+    }
+  };
+
+  public static class TabletServers {
+    private final Set<TServerInstance> tservers = new HashSet<>();
+    private final Map<KeyExtent,TServerInstance> tabletLocs = new HashMap<>();
+
+    public void addTservers(String... locs) {
+      for (String loc : locs) {
+        addTserver(loc);
+      }
+    }
+
+    public void addTserver(String loc) {
+      tservers.add(new TServerInstance(loc, 6));
+    }
+
+    public void addTablet(String er, String location) {
+      TServerInstance tsi = new TServerInstance(location, 6);
+      tabletLocs.put(new KeyExtent(new Text("b"), er == null ? null : new Text(er), null), new TServerInstance(location, 6));
+      tservers.add(tsi);
+    }
+
+    public void balance() {
+      GroupBalancer balancer = new GroupBalancer("1") {
+
+        @Override
+        protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
+          return Iterables.transform(tabletLocs.entrySet(), new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
+
+            @Override
+            public Pair<KeyExtent,Location> apply(final Entry<KeyExtent,TServerInstance> input) {
+              return new Pair<KeyExtent,Location>(input.getKey(), new Location(input.getValue()));
+            }
+          });
+
+        }
+
+        @Override
+        protected Function<KeyExtent,String> getPartitioner() {
+          return partitioner;
+        }
+
+        @Override
+        protected long getWaitTime() {
+          return 0;
+        }
+      };
+
+      balance(balancer);
+    }
+
+    public void balance(TabletBalancer balancer) {
+
+      while (true) {
+        Set<KeyExtent> migrations = new HashSet<>();
+        List<TabletMigration> migrationsOut = new ArrayList<>();
+        SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
+
+        for (TServerInstance tsi : tservers) {
+          current.put(tsi, new TabletServerStatus());
+        }
+
+        balancer.balance(current, migrations, migrationsOut);
+
+        for (TabletMigration tabletMigration : migrationsOut) {
+          Assert.assertEquals(tabletLocs.get(tabletMigration.tablet), tabletMigration.oldServer);
+          Assert.assertTrue(tservers.contains(tabletMigration.newServer));
+
+          tabletLocs.put(tabletMigration.tablet, tabletMigration.newServer);
+        }
+
+        if (migrationsOut.size() == 0) {
+          break;
+        }
+      }
+
+      checkBalance();
+    }
+
+    void checkBalance() {
+      MapCounter<String> groupCounts = new MapCounter<>();
+      Map<TServerInstance,MapCounter<String>> tserverGroupCounts = new HashMap<>();
+
+      for (Entry<KeyExtent,TServerInstance> entry : tabletLocs.entrySet()) {
+        String group = partitioner.apply(entry.getKey());
+        TServerInstance loc = entry.getValue();
+
+        groupCounts.increment(group, 1);
+        MapCounter<String> tgc = tserverGroupCounts.get(loc);
+        if (tgc == null) {
+          tgc = new MapCounter<>();
+          tserverGroupCounts.put(loc, tgc);
+        }
+
+        tgc.increment(group, 1);
+      }
+
+      Map<String,Integer> expectedCounts = new HashMap<>();
+
+      int totalExtra = 0;
+      for (String group : groupCounts.keySet()) {
+        long groupCount = groupCounts.get(group);
+        totalExtra += groupCount % tservers.size();
+        expectedCounts.put(group, (int) (groupCount / tservers.size()));
+      }
+
+      // The number of extra tablets from all groups that each tserver must have.
+      int expectedExtra = totalExtra / tservers.size();
+      int maxExtraGroups = expectedExtra + ((totalExtra % tservers.size() > 0) ? 1 : 0);
+
+      for (Entry<TServerInstance,MapCounter<String>> entry : tserverGroupCounts.entrySet()) {
+        MapCounter<String> tgc = entry.getValue();
+        int tserverExtra = 0;
+        for (String group : groupCounts.keySet()) {
+          Assert.assertTrue(tgc.get(group) >= expectedCounts.get(group));
+          Assert.assertTrue(tgc.get(group) <= expectedCounts.get(group) + 1);
+          tserverExtra += tgc.get(group) - expectedCounts.get(group);
+        }
+
+        Assert.assertTrue(tserverExtra >= expectedExtra);
+        Assert.assertTrue(tserverExtra <= maxExtraGroups);
+      }
+    }
+
+    Map<KeyExtent,TServerInstance> getLocations() {
+      return tabletLocs;
+    }
+  }
+
+  @Test
+  public void testSingleGroup() {
+
+    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g"}, new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
+
+    for (String[] suffixes : tests) {
+      for (int maxTS = 1; maxTS <= 4; maxTS++) {
+        TabletServers tservers = new TabletServers();
+        tservers = new TabletServers();
+        int ts = 0;
+        for (String s : suffixes) {
+          tservers.addTablet("01" + s, "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+        }
+
+        tservers.addTservers("192.168.1.2:9997", "192.168.1.3:9997", "192.168.1.4:9997");
+        tservers.balance();
+        tservers.balance();
+      }
+    }
+  }
+
+  @Test
+  public void testTwoGroups() {
+    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g"}, new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
+
+    for (String[] suffixes1 : tests) {
+      for (String[] suffixes2 : tests) {
+        for (int maxTS = 1; maxTS <= 4; maxTS++) {
+          TabletServers tservers = new TabletServers();
+          tservers = new TabletServers();
+          int ts = 0;
+          for (String s : suffixes1) {
+            tservers.addTablet("01" + s, "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+          }
+
+          for (String s : suffixes2) {
+            tservers.addTablet("02" + s, "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+          }
+
+          tservers.addTservers("192.168.1.2:9997", "192.168.1.3:9997", "192.168.1.4:9997");
+          tservers.balance();
+          tservers.balance();
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testThreeGroups() {
+    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g"}, new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
+
+    for (String[] suffixes1 : tests) {
+      for (String[] suffixes2 : tests) {
+        for (String[] suffixes3 : tests) {
+          for (int maxTS = 1; maxTS <= 4; maxTS++) {
+            TabletServers tservers = new TabletServers();
+            tservers = new TabletServers();
+            int ts = 0;
+            for (String s : suffixes1) {
+              tservers.addTablet("01" + s, "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+            }
+
+            for (String s : suffixes2) {
+              tservers.addTablet("02" + s, "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+            }
+
+            for (String s : suffixes3) {
+              tservers.addTablet("03" + s, "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+            }
+
+            tservers.addTservers("192.168.1.2:9997", "192.168.1.3:9997", "192.168.1.4:9997");
+            tservers.balance();
+            tservers.balance();
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testManySingleTabletGroups() {
+
+    for (int numGroups = 1; numGroups <= 13; numGroups++) {
+      for (int maxTS = 1; maxTS <= 4; maxTS++) {
+        TabletServers tservers = new TabletServers();
+        tservers = new TabletServers();
+        int ts = 0;
+
+        for (int group = 1; group <= numGroups; group++) {
+          tservers.addTablet(String.format("%02d:p", group), "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+        }
+
+        tservers.addTservers("192.168.1.2:9997", "192.168.1.3:9997", "192.168.1.4:9997");
+
+        tservers.balance();
+        tservers.balance();
+      }
+    }
+  }
+}

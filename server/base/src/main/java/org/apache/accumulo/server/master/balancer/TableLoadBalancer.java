@@ -84,6 +84,8 @@ public class TableLoadBalancer extends TabletBalancer {
             perTableBalancers.put(table, balancer);
             balancer.init(configuration);
           }
+
+          log.info("Loaded new class " + clazzName + " for table " + table);
         } catch (Exception e) {
           log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
         }
