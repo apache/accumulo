@@ -185,7 +185,6 @@ public class Shell extends ShellOptions {
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
   public final Map<String,Command[]> commandGrouping = new TreeMap<String,Command[]>();
-  protected boolean configError = false;
 
   // exit if true
   private boolean exit = false;
@@ -215,7 +214,11 @@ public class Shell extends ShellOptions {
     this.writer = writer;
   }
 
-  // Not for client use
+  /**
+   * Configures the shell using the provided options. Not for client use.
+   *
+   * @return true if the shell was successfully configured, false otherwise.
+   */
   public boolean config(String... args) {
 
     CommandLine cl;
@@ -225,9 +228,9 @@ public class Shell extends ShellOptions {
         throw new ParseException("Unrecognized arguments: " + cl.getArgList());
 
       if (cl.hasOption(helpOpt.getOpt())) {
-        configError = true;
         printHelp("shell", SHELL_DESCRIPTION, opts);
-        return true;
+        exitCode = 0;
+        return false;
       }
 
       setDebugging(cl.hasOption(debugOption.getLongOpt()));
@@ -238,10 +241,10 @@ public class Shell extends ShellOptions {
         throw new MissingArgumentException(zooKeeperInstance);
 
     } catch (Exception e) {
-      configError = true;
       printException(e);
       printHelp("shell", SHELL_DESCRIPTION, opts);
-      return true;
+      exitCode = 1;
+      return false;
     }
 
     // get the options that were parsed
@@ -316,7 +319,8 @@ public class Shell extends ShellOptions {
 
     } catch (Exception e) {
       printException(e);
-      configError = true;
+      exitCode = 1;
+      return false;
     }
 
     // decide whether to execute commands from a file and quit
@@ -373,7 +377,7 @@ public class Shell extends ShellOptions {
     for (Command cmd : otherCommands) {
       commandFactory.put(cmd.getName(), cmd);
     }
-    return configError;
+    return true;
   }
 
   protected void setInstance(CommandLine cl) {
@@ -408,15 +412,14 @@ public class Shell extends ShellOptions {
 
   public static void main(String args[]) throws IOException {
     Shell shell = new Shell();
-    shell.config(args);
+    if (!shell.config(args)) {
+      System.exit(shell.getExitCode());
+    }
 
     System.exit(shell.start());
   }
 
   public int start() throws IOException {
-    if (configError)
-      return 1;
-
     String input;
     if (isVerbose())
       printInfo();

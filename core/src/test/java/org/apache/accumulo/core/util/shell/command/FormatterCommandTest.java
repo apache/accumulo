@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util.shell.command;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -57,7 +59,7 @@ public class FormatterCommandTest {
     writer = new StringWriter();
 
     final MockShell shell = new MockShell(in, writer);
-    shell.config(args);
+    assertTrue("Failed to configure shell without error", shell.config(args));
 
     // Can't call createtable in the shell with MockAccumulo
     shell.getConnector().tableOperations().create("test");
