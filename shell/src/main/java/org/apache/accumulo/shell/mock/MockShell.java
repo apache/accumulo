@@ -44,15 +44,19 @@ public class MockShell extends Shell {
     this.out = out;
   }
 
+  @Override
   public boolean config(String... args) {
-    configError = super.config(args);
+    // If configuring the shell failed, fail quickly
+    if (!super.config(args)) {
+      return false;
+    }
 
     // Update the ConsoleReader with the input and output "redirected"
     try {
       this.reader = new ConsoleReader(in, out);
     } catch (Exception e) {
       printException(e);
-      configError = true;
+      return false;
     }
 
     // Don't need this for testing purposes
@@ -61,7 +65,7 @@ public class MockShell extends Shell {
 
     // Make the parsing from the client easier;
     this.verbose = false;
-    return configError;
+    return true;
   }
 
   @Override
@@ -71,9 +75,6 @@ public class MockShell extends Shell {
   }
 
   public int start() throws IOException {
-    if (configError)
-      return 1;
-
     String input;
     if (isVerbose())
       printInfo();
