@@ -760,8 +760,8 @@ public class SimpleProxyIT {
     upd.setDeleteCell(false);
     Map<ByteBuffer,List<ColumnUpdate>> notDelete = Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
     client.updateAndFlush(creds, TABLE_TEST, notDelete);
-    scanner = client.createScanner(creds, TABLE_TEST, null);
-    entries = client.nextK(scanner, 10);
+    String scanner = client.createScanner(creds, TABLE_TEST, null);
+    ScanResult entries = client.nextK(scanner, 10);
     client.closeScanner(scanner);
     assertFalse(entries.more);
     assertEquals(1, entries.results.size());
