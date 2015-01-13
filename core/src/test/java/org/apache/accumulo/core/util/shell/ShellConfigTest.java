@@ -61,30 +61,30 @@ public class ShellConfigTest {
 
   @Test
   public void testHelp() {
-    assertTrue(shell.config("--help"));
+    assertFalse(shell.config("--help"));
     assertTrue("Did not print usage", output.get().startsWith("Usage"));
   }
 
   @Test
   public void testBadArg() {
-    assertTrue(shell.config("--bogus"));
+    assertFalse(shell.config("--bogus"));
     assertTrue("Did not print usage", output.get().startsWith("Usage"));
   }
 
   @Test
   public void testTokenWithoutOptions() {
-    assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName()));
+    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName()));
     assertFalse(output.get().contains(ParameterException.class.getCanonicalName()));
   }
 
   @Test
   public void testTokenAndOption() {
-    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-u", "foo", "-l", "password=foo"));
+    assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-u", "foo", "-l", "password=foo"));
   }
 
   @Test
   public void testTokenAndOptionAndPassword() {
-    assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-l", "password=foo", "-p", "bar"));
+    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-l", "password=foo", "-p", "bar"));
     assertTrue(output.get().contains(ParameterException.class.getCanonicalName()));
   }
 }

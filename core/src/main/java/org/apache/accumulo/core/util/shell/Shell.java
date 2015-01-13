@@ -209,7 +209,6 @@ public class Shell extends ShellOptions {
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
   public final Map<String,Command[]> commandGrouping = new TreeMap<String,Command[]>();
-  protected boolean configError = false;
 
   // exit if true
   private boolean exit = false;
@@ -239,7 +238,11 @@ public class Shell extends ShellOptions {
     this.writer = writer;
   }
 
-  // Not for client use
+  /**
+   * Configures the shell using the provided options. Not for client use.
+   *
+   * @return true if the shell was successfully configured, false otherwise.
+   */
   public boolean config(String... args) {
     ShellOptionsJC options = new ShellOptionsJC();
     JCommander jc = new JCommander();
@@ -249,21 +252,23 @@ public class Shell extends ShellOptions {
     try {
       jc.parse(args);
     } catch (ParameterException e) {
-      configError = true;
+      jc.usage();
+      exitCode = 1;
+      return false;
     }
 
     if (options.isHelpEnabled()) {
-      configError = true;
-    }
-
-    if (!configError && options.getUnrecognizedOptions() != null) {
-      configError = true;
-      logError("Unrecognized Options: " + options.getUnrecognizedOptions().toString());
-    }
-
-    if (configError) {
       jc.usage();
-      return true;
+      // Not an error
+      exitCode = 0;
+      return false;
+    }
+
+    if (options.getUnrecognizedOptions() != null) {
+      logError("Unrecognized Options: " + options.getUnrecognizedOptions().toString());
+      jc.usage();
+      exitCode = 1;
+      return false;
     }
 
     setDebugging(options.isDebugEnabled());
@@ -333,7 +338,8 @@ public class Shell extends ShellOptions {
 
     } catch (Exception e) {
       printException(e);
-      configError = true;
+      exitCode = 1;
+      return false;
     }
 
     // decide whether to execute commands from a file and quit
@@ -391,7 +397,7 @@ public class Shell extends ShellOptions {
     for (Command cmd : otherCommands) {
       commandFactory.put(cmd.getName(), cmd);
     }
-    return configError;
+    return true;
   }
 
   /**
@@ -514,8 +520,10 @@ public class Shell extends ShellOptions {
 
   public static void main(String args[]) throws IOException {
     Shell shell = new Shell();
-    try {
-      shell.config(args);
+    try{
+      if (!shell.config(args)) {
+        System.exit(shell.getExitCode());
+      }
 
       System.exit(shell.start());
     } finally {
@@ -524,9 +532,6 @@ public class Shell extends ShellOptions {
   }
 
   public int start() throws IOException {
-    if (configError)
-      return 1;
-
     String input;
     if (isVerbose())
       printInfo();
