@@ -53,6 +53,8 @@ include::chapters/replication.txt[]
 
 include::chapters/implementation.txt[]
 
+include::chapters/ssl.txt[]
+
 include::chapters/administration.txt[]
 
 include::chapters/multivolume.txt[]
