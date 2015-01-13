@@ -687,7 +687,7 @@ public class SimpleTest {
     } catch (UnknownWriter uw) {}
   }
 
-  @Test(timeout = 10000)
+  @Test(timeout = 10 * 1000)
   public void testDelete() throws Exception {
     if (client.tableExists(creds, TABLE_TEST))
       client.deleteTable(creds, TABLE_TEST);
@@ -701,6 +701,16 @@ public class SimpleTest {
     assertEquals(1, entries.results.size());
 
     ColumnUpdate upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
+    upd.setDeleteCell(false);
+    Map<ByteBuffer,List<ColumnUpdate>> notDelete = Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
+    client.updateAndFlush(creds, TABLE_TEST, notDelete);
+    scanner = client.createScanner(creds, TABLE_TEST, null);
+    entries = client.nextK(scanner, 10);
+    client.closeScanner(scanner);
+    assertFalse(entries.more);
+    assertEquals(1, entries.results.size());
+
+    upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
     upd.setDeleteCell(true);
     Map<ByteBuffer,List<ColumnUpdate>> delete = Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
 
