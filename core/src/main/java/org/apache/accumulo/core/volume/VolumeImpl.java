@@ -70,15 +70,39 @@ public class VolumeImpl implements Volume {
   public boolean isValidPath(Path p) {
     checkNotNull(p);
 
+    FileSystem other;
     try {
-      if (fs.equals(p.getFileSystem(CachedConfiguration.getInstance()))) {
-        return p.toUri().getPath().startsWith(basePath);
-      }
+      other = p.getFileSystem(CachedConfiguration.getInstance());
     } catch (IOException e) {
       log.warn("Could not determine filesystem from path: " + p);
+      return false;
+    }
+
+    if (equivalentFileSystems(other)) {
+      return equivalentPaths(p);
     }
 
     return false;
+  }
+
+  /**
+   * Test whether the provided {@link FileSystem} object reference the same actual filesystem as the member <code>fs</code>.
+   *
+   * @param other
+   *          The filesystem to compare
+   */
+  boolean equivalentFileSystems(FileSystem other) {
+    return fs.getUri().equals(other.getUri());
+  }
+
+  /**
+   * Tests if the provided {@link Path} is rooted inside this volume, contained within <code>basePath</code>.
+   *
+   * @param other
+   *          The path to compare
+   */
+  boolean equivalentPaths(Path other) {
+    return other.toUri().getPath().startsWith(basePath);
   }
 
   @Override
