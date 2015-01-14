@@ -65,7 +65,7 @@ public class AccumuloDFSBase {
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
 
     try {
-      cluster = new MiniDFSCluster(conf, 1, true, null);
+      cluster = new MiniDFSCluster.Builder(conf).build();
       cluster.waitClusterUp();
       // We can't assume that the hostname of "localhost" will still be "localhost" after
       // starting up the NameNode. We may get mapped into a FQDN via settings in /etc/hosts.

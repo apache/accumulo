@@ -68,8 +68,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
 
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
     AccumuloInputFormat.addIterator(job, is);
@@ -82,8 +81,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
 
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
@@ -131,8 +129,7 @@ public class AccumuloInputFormatTest {
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
     AccumuloInputFormat.addIterator(job, someSetting);
 
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
@@ -158,8 +155,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testGetIteratorSettings() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
 
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
@@ -190,8 +186,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testSetRegex() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
 
     String regex = ">\"*%<>\'\\";
 
@@ -250,8 +245,7 @@ public class AccumuloInputFormatTest {
       @SuppressWarnings("unchecked")
       Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
-      @SuppressWarnings("deprecation")
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(inputFormatClass);
@@ -300,8 +294,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testCorrectRangeInputSplits() throws Exception {
-    @SuppressWarnings("deprecation")
-    Job job = new Job(new Configuration(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    Job job = Job.getInstance(new Configuration(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
 
     String username = "user", table = "table", instance = "mapreduce_testCorrectRangeInputSplits";
     PasswordToken password = new PasswordToken("password");
@@ -397,8 +390,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testEmptyColumnFamily() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
     Set<Pair<Text,Text>> cols = new HashSet<Pair<Text,Text>>();
     cols.add(new Pair<Text,Text>(new Text(""), null));
     cols.add(new Pair<Text,Text>(new Text("foo"), new Text("bar")));

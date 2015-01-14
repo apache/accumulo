@@ -442,17 +442,14 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     @Override
     public void deleteTableDirIfEmpty(String tableID) throws IOException {
       // if dir exist and is empty, then empty list is returned...
-      // hadoop 1.0 will return null if the file doesn't exist
       // hadoop 2.0 will throw an exception if the file does not exist
       for (String dir : ServerConstants.getTablesDirs()) {
         FileStatus[] tabletDirs = null;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
         } catch (FileNotFoundException ex) {
-          // ignored
-        }
-        if (tabletDirs == null)
           continue;
+        }
 
         if (tabletDirs.length == 0) {
           Path p = new Path(dir + "/" + tableID);

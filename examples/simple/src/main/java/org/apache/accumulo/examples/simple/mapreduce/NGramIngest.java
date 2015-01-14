@@ -68,7 +68,7 @@ public class NGramIngest extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
 
-    Job job = JobUtil.getJob(getConf());
+    Job job = Job.getInstance(getConf());
     job.setJobName(getClass().getSimpleName());
     job.setJarByClass(getClass());
 

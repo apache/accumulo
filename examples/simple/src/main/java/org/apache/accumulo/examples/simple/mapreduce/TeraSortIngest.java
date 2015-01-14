@@ -366,7 +366,7 @@ public class TeraSortIngest extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
-    Job job = JobUtil.getJob(getConf());
+    Job job = Job.getInstance(getConf());
     job.setJobName("TeraSortCloud");
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();

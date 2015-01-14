@@ -435,10 +435,7 @@ public class Initialize {
       Path dir = new Path(s);
       try {
         FileStatus fstat = fs.getFileStatus(dir);
-        // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-        @SuppressWarnings("deprecation")
-        boolean isDirectory = fstat.isDir();
-        if (!isDirectory) {
+        if (!fstat.isDirectory()) {
           log.fatal("location " + dir + " exists but is not a directory");
           return;
         }

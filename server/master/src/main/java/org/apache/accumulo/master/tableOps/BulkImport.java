@@ -141,8 +141,6 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug(" tid " + tid + " sourceDir " + sourceDir);
 
@@ -161,7 +159,7 @@ public class BulkImport extends MasterRepo {
     if (errorStatus == null)
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
           + " does not exist");
-    if (!errorStatus.isDir())
+    if (!errorStatus.isDirectory())
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
           + " is not a directory");
     if (fs.listStatus(errorPath).length != 0)
@@ -213,8 +211,6 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
   private String prepareBulkImport(Master master, final VolumeManager fs, String dir, String tableId) throws Exception {
     final Path bulkDir = createNewBulkDir(fs, tableId);
 
@@ -250,7 +246,7 @@ public class BulkImport extends MasterRepo {
             }
 
             if (extension.equals(Constants.MAPFILE_EXTENSION)) {
-              if (!fileStatus.isDir()) {
+              if (!fileStatus.isDirectory()) {
                 log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                 return null;
               }
@@ -261,7 +257,7 @@ public class BulkImport extends MasterRepo {
               }
               try {
                 FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
-                if (dataStatus.isDir()) {
+                if (dataStatus.isDirectory()) {
                   log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                   return null;
                 }

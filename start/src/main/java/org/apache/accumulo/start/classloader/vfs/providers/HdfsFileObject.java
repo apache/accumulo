@@ -147,15 +147,13 @@ public class HdfsFileObject extends AbstractFileObject {
    * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetType()
    */
   @Override
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
   protected FileType doGetType() throws Exception {
     try {
       doAttach();
       if (null == stat) {
         return FileType.IMAGINARY;
       }
-      if (stat.isDir()) {
+      if (stat.isDirectory()) {
         return FileType.FOLDER;
       } else {
         return FileType.FILE;

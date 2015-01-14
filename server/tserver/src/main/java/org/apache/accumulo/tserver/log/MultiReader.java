@@ -89,7 +89,6 @@ public class MultiReader {
 
   private PriorityBuffer heap = new PriorityBuffer();
 
-  @SuppressWarnings("deprecation")
   public MultiReader(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(directory)) {
@@ -100,7 +99,7 @@ public class MultiReader {
         continue;
       }
       FileSystem ns = fs.getVolumeByPath(child.getPath()).getFileSystem();
-      heap.add(new Index(new Reader(ns, child.getPath().toString(), ns.getConf())));
+      heap.add(new Index(new Reader(ns.makeQualified(child.getPath()), ns.getConf())));
     }
     if (!foundFinish)
       throw new IOException("Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);

@@ -387,8 +387,6 @@ public class CollectTabletStats {
     return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
   private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
     VolumeManager fs = VolumeManagerImpl.get();
 
@@ -396,7 +394,7 @@ public class CollectTabletStats {
     for (FileRef file : files) {
       FileStatus status = fs.getFileStatus(file.path());
 
-      if (status.isDir()) {
+      if (status.isDirectory()) {
         // assume it is a map file
         status = fs.getFileStatus(new Path(file + "/data"));
       }

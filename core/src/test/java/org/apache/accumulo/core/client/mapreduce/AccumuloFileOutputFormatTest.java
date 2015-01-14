@@ -131,8 +131,7 @@ public class AccumuloFileOutputFormatTest {
       String pass = args[1];
       String table = args[2];
 
-      @SuppressWarnings("deprecation")
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloInputFormat.class);
@@ -197,8 +196,7 @@ public class AccumuloFileOutputFormatTest {
     long d = 10l;
     String e = "snappy";
 
-    @SuppressWarnings("deprecation")
-    Job job1 = new Job();
+    Job job1 = Job.getInstance();
     AccumuloFileOutputFormat.setReplication(job1, a);
     AccumuloFileOutputFormat.setFileBlockSize(job1, b);
     AccumuloFileOutputFormat.setDataBlockSize(job1, c);
@@ -219,8 +217,7 @@ public class AccumuloFileOutputFormatTest {
     d = 110l;
     e = "lzo";
 
-    @SuppressWarnings("deprecation")
-    Job job2 = new Job();
+    Job job2 = Job.getInstance();
     AccumuloFileOutputFormat.setReplication(job2, a);
     AccumuloFileOutputFormat.setFileBlockSize(job2, b);
     AccumuloFileOutputFormat.setDataBlockSize(job2, c);

@@ -385,7 +385,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set("dfs.datanode.synconclose", "true");
       conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
-      miniDFS = new MiniDFSCluster(conf, 1, true, null);
+      miniDFS = new MiniDFSCluster.Builder(conf).build();
       if (oldTestBuildData == null)
         System.clearProperty("test.build.data");
       else

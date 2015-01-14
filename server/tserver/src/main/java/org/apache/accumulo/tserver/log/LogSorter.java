@@ -176,8 +176,8 @@ public class LogSorter {
       Path path = new Path(destPath, String.format("part-r-%05d", part));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
 
-      @SuppressWarnings("deprecation")
-      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns, path.toString(), LogFileKey.class, LogFileValue.class);
+      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path), MapFile.Writer.keyClass(LogFileKey.class),
+          MapFile.Writer.valueClass(LogFileValue.class));
       try {
         Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
           @Override

@@ -465,10 +465,7 @@ public class GarbageCollectWriteAheadLogs {
         continue;
       for (FileStatus status : listing) {
         String server = status.getPath().getName();
-        // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-        @SuppressWarnings("deprecation")
-        boolean isDirectory = status.isDir();
-        if (isDirectory) {
+        if (status.isDirectory()) {
           servers.add(server);
           for (FileStatus file : fs.listStatus(new Path(walRoot, server))) {
             if (isUUID(file.getPath().getName())) {

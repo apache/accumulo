@@ -26,23 +26,21 @@ import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.SequenceFile;
 
 public class MapFileUtil {
-  @SuppressWarnings("deprecation")
   public static MapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs, String dirName, Configuration conf) throws IOException {
     MapFile.Reader mfr = null;
     try {
-      mfr = new MapFile.Reader(fs, dirName, conf);
+      mfr = new MapFile.Reader(fs.makeQualified(new Path(dirName)), conf);
       return mfr;
     } catch (IOException e) {
       throw e;
     }
   }
 
-  @SuppressWarnings("deprecation")
   public static SequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile) throws IOException {
     Path indexPath = new Path(mapFile, MapFile.INDEX_FILE_NAME);
     SequenceFile.Reader index = null;
     try {
-      index = new SequenceFile.Reader(fs, indexPath, conf);
+      index = new SequenceFile.Reader(conf, SequenceFile.Reader.file(fs.makeQualified(indexPath)));
       return index;
     } catch (IOException e) {
       throw e;

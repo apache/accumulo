@@ -1168,8 +1168,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ranges;
   }
 
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
   private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException, AccumuloSecurityException {
     Path ret;
     Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
@@ -1186,7 +1184,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (!fs.exists(ret))
       throw new AccumuloException(kind + " import " + type + " directory " + dir + " does not exist!");
 
-    if (!fs.getFileStatus(ret).isDir()) {
+    if (!fs.getFileStatus(ret).isDirectory()) {
       throw new AccumuloException(kind + " import " + type + " directory " + dir + " is not a directory!");
     }
 

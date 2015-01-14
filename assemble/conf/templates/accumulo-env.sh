@@ -34,8 +34,6 @@ else
    unset HADOOP_HOME
 fi
 
-# hadoop-1.2:
-# test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/conf"
 # hadoop-2.0:
 test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/etc/hadoop"
 

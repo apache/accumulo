@@ -98,8 +98,7 @@ public class AccumuloMultiTableInputFormatTest {
       String table1 = args[2];
       String table2 = args[3];
 
-      @SuppressWarnings("deprecation")
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloMultiTableInputFormat.class);
@@ -165,8 +164,7 @@ public class AccumuloMultiTableInputFormatTest {
    */
   @Test
   public void testInputTableConfigSerialization() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
 
     InputTableConfig tableConfig = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))

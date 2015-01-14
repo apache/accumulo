@@ -73,7 +73,7 @@ public class WordCount extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(WordCount.class.getName(), args);
 
-    Job job = JobUtil.getJob(getConf());
+    Job job = Job.getInstance(getConf());
     job.setJobName(WordCount.class.getName());
     job.setJarByClass(this.getClass());
 

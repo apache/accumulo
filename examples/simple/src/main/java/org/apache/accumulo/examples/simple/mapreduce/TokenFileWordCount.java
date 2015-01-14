@@ -71,7 +71,7 @@ public class TokenFileWordCount extends Configured implements Tool {
     String input = args[4];
     String tableName = args[5];
 
-    Job job = JobUtil.getJob(getConf());
+    Job job = Job.getInstance(getConf());
     job.setJobName(TokenFileWordCount.class.getName());
     job.setJarByClass(this.getClass());
 

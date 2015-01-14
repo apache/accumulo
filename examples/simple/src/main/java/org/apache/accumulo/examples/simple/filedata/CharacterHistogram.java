@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.SummingArrayCombiner;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -83,7 +82,7 @@ public class CharacterHistogram extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
-    Job job = JobUtil.getJob(getConf());
+    Job job = Job.getInstance(getConf());
     job.setJobName(this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
 

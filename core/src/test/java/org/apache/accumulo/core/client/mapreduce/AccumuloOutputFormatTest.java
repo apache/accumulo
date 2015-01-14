@@ -96,8 +96,7 @@ public class AccumuloOutputFormatTest {
       String table1 = args[2];
       String table2 = args[3];
 
-      @SuppressWarnings("deprecation")
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloInputFormat.class);
@@ -132,8 +131,7 @@ public class AccumuloOutputFormatTest {
 
   @Test
   public void testBWSettings() throws IOException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
 
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();

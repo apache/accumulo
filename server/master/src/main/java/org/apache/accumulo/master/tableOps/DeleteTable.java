@@ -268,18 +268,15 @@ class CleanUp extends MasterRepo {
       final String childName = child.getPath().getName();
       final Path childInSrc = new Path(src, childName), childInDest = new Path(dest, childName);
 
-      @SuppressWarnings("deprecation")
       boolean isFile = fs.isFile(childInSrc), isDir = child.isDir();
 
-      // TODO change to `child.isFile()` when Hadoop-1 support is dropped
-      if (isFile) {
+      if (child.isFile()) {
         if (fs.exists(childInDest)) {
           log.warn("File already exists in archive, ignoring. " + childInDest);
         } else {
           fs.rename(childInSrc, childInDest);
         }
-        // TODO change to `child.isDirectory()` when Hadoop-1 support is dropped
-      } else if (isDir) {
+      } else if (child.isDirectory()) {
         if (fs.exists(childInDest)) {
           // Recurse
           merge(fs, childInSrc, childInDest);

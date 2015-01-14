@@ -294,29 +294,6 @@
         </dependency>
       </dependencies>
     </profile>
-    <!-- profile for building against Hadoop 1.x
-    Activate using: mvn -Dhadoop.profile=1 -->
-    <profile>
-      <id>hadoop-1</id>
-      <activation>
-        <property>
-          <name>hadoop.profile</name>
-          <value>1</value>
-        </property>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>commons-httpclient</groupId>
-          <artifactId>commons-httpclient</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-tools</artifactId>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
-    </profile>
     <!-- profile for building against Hadoop 2.x
      XXX Since this is the default, make sure to sync hadoop-default when changing.
     Activate using: mvn -Dhadoop.profile=2 -->

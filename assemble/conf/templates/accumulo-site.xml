@@ -127,10 +127,6 @@ ${mvnProjBaseDir}
       /usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,
       /usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar
       <!-- End HDP 2.2 requirements -->
-      <!-- Hadoop 1 requirements -->
-      $HADOOP_PREFIX/[^.].*.jar,
-      $HADOOP_PREFIX/lib/(?!slf4j)[^.].*.jar,
-      <!-- End Hadoop 1 requirements -->
     </value>
     <description>Classpaths that accumulo checks for updates and class files.</description>
   </property>

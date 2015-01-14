@@ -92,8 +92,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
       }
     }
 
-    @SuppressWarnings("deprecation")
-    Job job = new Job();
+    Job job = Job.getInstance();
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
     AccumuloInputFormat.setConnectorInfo(job, getPrincipal(), getToken());

@@ -18,7 +18,6 @@ package org.apache.accumulo.core.conf;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,7 +29,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -40,7 +38,6 @@ import org.junit.Test;
  *
  */
 public class CredentialProviderFactoryShimTest {
-  private static final Logger log = Logger.getLogger(CredentialProviderFactoryShimTest.class);
 
   private static final String populatedKeyStoreName = "/accumulo.jceks", emptyKeyStoreName = "/empty.jceks";
   private static File emptyKeyStore, populatedKeyStore;
@@ -165,9 +162,7 @@ public class CredentialProviderFactoryShimTest {
   public void extractFromHdfs() throws Exception {
     File target = new File(System.getProperty("user.dir"), "target");
     String prevValue = System.setProperty("test.build.data", new File(target, this.getClass().getName() + "_minidfs").toString());
-    // TODO Remove when Hadoop1 support is dropped
-    @SuppressWarnings("deprecation")
-    MiniDFSCluster dfsCluster = new MiniDFSCluster(new Configuration(), 1, true, null);
+    MiniDFSCluster dfsCluster = new MiniDFSCluster.Builder(new Configuration()).build();
     try {
       if (null != prevValue) {
         System.setProperty("test.build.data", prevValue);
@@ -176,15 +171,7 @@ public class CredentialProviderFactoryShimTest {
       }
 
       // One namenode, One configuration
-      Configuration dfsConfiguration;
-      Method m = MiniDFSCluster.class.getMethod("getConfiguration", int.class);
-      try {
-        Object result = m.invoke(dfsCluster, 0);
-        dfsConfiguration = (Configuration) result;
-      } catch (Exception e) {
-        log.info("Couldn't get configuration from MiniDFS cluster, assuming hadoop-1 and ignoring test", e);
-        return;
-      }
+      Configuration dfsConfiguration = dfsCluster.getConfiguration(0);
       Path destPath = new Path("/accumulo.jceks");
       FileSystem dfs = dfsCluster.getFileSystem();
       // Put the populated keystore in hdfs

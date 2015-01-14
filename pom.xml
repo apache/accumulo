@@ -864,7 +864,7 @@
               </requireMavenVersion>
               <requireProperty>
                 <property>hadoop.profile</property>
-                <regex>(1|2)</regex>
+                <regex>(2)</regex>
                 <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
   Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
               </requireProperty>

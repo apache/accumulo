@@ -89,7 +89,7 @@ public class UniqueColumns extends Configured implements Tool {
 
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
 
-    Job job = JobUtil.getJob(getConf());
+    Job job = Job.getInstance(getConf());
     job.setJobName(jobName);
     job.setJarByClass(this.getClass());
 

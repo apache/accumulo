@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -109,7 +108,7 @@ public class BulkIngestExample extends Configured implements Tool {
     Configuration conf = getConf();
     PrintStream out = null;
     try {
-      Job job = JobUtil.getJob(conf);
+      Job job = Job.getInstance(conf);
       job.setJobName("bulk ingest example");
       job.setJarByClass(this.getClass());
 

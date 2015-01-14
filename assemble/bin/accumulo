@@ -137,7 +137,7 @@ if [ ! -d "${ACCUMULO_LOG_DIR}" ]; then
 fi
 
 # This is default for hadoop 2.x;
-#   for hadoop 1.0, 1.1, specify (DY)LD_LIBRARY_PATH
+#   for another distribution, specify (DY)LD_LIBRARY_PATH
 #   explicitly in ${ACCUMULO_HOME}/conf/accumulo-env.sh
 #   usually something like:
 #     ${HADOOP_PREFIX}/lib/native/${PLATFORM}

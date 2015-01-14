@@ -345,11 +345,10 @@ public class VolumeUtil {
     return false;
   }
 
-  @SuppressWarnings("deprecation")
   private static HashSet<String> getFileNames(FileStatus[] filesStatuses) {
     HashSet<String> names = new HashSet<String>();
     for (FileStatus fileStatus : filesStatuses)
-      if (fileStatus.isDir())
+      if (fileStatus.isDirectory())
         throw new IllegalArgumentException("expected " + fileStatus.getPath() + " to be a file");
       else
         names.add(fileStatus.getPath().getName());

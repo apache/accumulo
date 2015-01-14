@@ -21,13 +21,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -47,6 +45,7 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -56,7 +55,6 @@ import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
-import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Optional;
@@ -175,33 +173,10 @@ public class VolumeManagerImpl implements VolumeManager {
     FileSystem fs = v.getFileSystem();
     blockSize = correctBlockSize(fs.getConf(), blockSize);
     bufferSize = correctBufferSize(fs.getConf(), bufferSize);
+    EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
+    log.debug("creating " + logPath + " with CreateFlag set: " + set);
     try {
-      // This...
-      // EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-      // return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
-      // Becomes this:
-      Class<?> createFlags = Class.forName("org.apache.hadoop.fs.CreateFlag");
-      List<Enum<?>> flags = new ArrayList<Enum<?>>();
-      if (createFlags.isEnum()) {
-        for (Object constant : createFlags.getEnumConstants()) {
-          if (constant.toString().equals("SYNC_BLOCK")) {
-            flags.add((Enum<?>) constant);
-            log.debug("Found synch enum " + constant);
-          }
-          if (constant.toString().equals("CREATE")) {
-            flags.add((Enum<?>) constant);
-            log.debug("Found CREATE enum " + constant);
-          }
-        }
-      }
-      Object set = EnumSet.class.getMethod("of", java.lang.Enum.class, java.lang.Enum.class).invoke(null, flags.get(0), flags.get(1));
-      log.debug("CreateFlag set: " + set);
-      Method create = fs.getClass().getMethod("create", Path.class, FsPermission.class, EnumSet.class, Integer.TYPE, Short.TYPE, Long.TYPE, Progressable.class);
-      log.debug("creating " + logPath + " with SYNCH_BLOCK flag");
-      return (FSDataOutputStream) create.invoke(fs, logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
-    } catch (ClassNotFoundException ex) {
-      // Expected in hadoop 1.0
-      return fs.create(logPath, true, bufferSize, replication, blockSize);
+      return fs.create(logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
     } catch (Exception ex) {
       log.debug(ex, ex);
       return fs.create(logPath, true, bufferSize, replication, blockSize);
