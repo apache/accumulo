@@ -64,7 +64,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    */
   public static void setInputTableConfigs(Job job, Map<String,InputTableConfig> configs) {
     checkNotNull(configs);
-    InputConfigurator.setInputTableConfigs(CLASS, getConfiguration(job), configs);
+    InputConfigurator.setInputTableConfigs(CLASS, job.getConfiguration(), configs);
   }
 
   @Override

@@ -404,17 +404,8 @@ public class DfsLogger {
       else
         logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
 
-      try {
-        sync = logFile.getClass().getMethod("hsync");
-        flush = logFile.getClass().getMethod("hflush");
-      } catch (Exception ex) {
-        try {
-          // fall back to sync: send data to datanodes
-          flush = sync = logFile.getClass().getMethod("sync");
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
+      sync = logFile.getClass().getMethod("hsync");
+      flush = logFile.getClass().getMethod("hflush");
 
       // Initialize the crypto operations.
       org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory.getCryptoModule(conf

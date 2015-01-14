@@ -39,30 +39,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 public class TabletServerSyncCheckTest {
-  private static final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
-
-  @Test(expected = RuntimeException.class)
-  public void testFailureOnExplicitSyncFalseConf() {
-    Configuration conf = new Configuration();
-    conf.set(DFS_DURABLE_SYNC, "false");
-
-    FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.<String,Volume> of("foo", new VolumeImpl(fs, "/")));
-
-    vm.ensureSyncIsEnabled();
-  }
-
-  @Test(expected = RuntimeException.class)
-  public void testFailureOnSingleExplicitSyncFalseConf() {
-    Configuration conf1 = new Configuration(), conf2 = new Configuration();
-    conf1.set(DFS_DURABLE_SYNC, "false");
-
-    FileSystem fs1 = new TestFileSystem(conf1);
-    FileSystem fs2 = new TestFileSystem(conf2);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.<String,Volume> of("bar", new VolumeImpl(fs2, "/"), "foo", new VolumeImpl(fs1, "/")));
-
-    vm.ensureSyncIsEnabled();
-  }
+  private static final String DFS_SUPPORT_APPEND = "dfs.support.append";
 
   @Test(expected = RuntimeException.class)
   public void testFailureOnExplicitAppendFalseConf() {

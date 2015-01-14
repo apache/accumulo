@@ -19,8 +19,6 @@ package org.apache.accumulo.server.fs;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
@@ -56,8 +54,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
 import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
@@ -222,66 +220,30 @@ public class VolumeManagerImpl implements VolumeManager {
 
   protected void ensureSyncIsEnabled() {
     for (Entry<String,Volume> entry : getFileSystems().entrySet()) {
-      final String volumeName = entry.getKey();
       FileSystem fs = entry.getValue().getFileSystem();
 
       if (fs instanceof DistributedFileSystem) {
-        final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
+        // Avoid use of DFSConfigKeys since it's private
+        final String DFS_SUPPORT_APPEND = "dfs.support.append", DFS_DATANODE_SYNCONCLOSE = "dfs.datanode.synconclose";
         final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
-        // Check to make sure that we have proper defaults configured
-        try {
-          // If the default is off (0.20.205.x or 1.0.x)
-          DFSConfigKeys configKeys = new DFSConfigKeys();
-
-          // Can't use the final constant itself as Java will inline it at compile time
-          Field dfsSupportAppendDefaultField = configKeys.getClass().getField("DFS_SUPPORT_APPEND_DEFAULT");
-          boolean dfsSupportAppendDefaultValue = dfsSupportAppendDefaultField.getBoolean(configKeys);
-
-          if (!dfsSupportAppendDefaultValue) {
-            // See if the user did the correct override
-            if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
-              String msg = "Accumulo requires that dfs.support.append to true. " + ticketMessage;
-              log.fatal(msg);
-              throw new RuntimeException(msg);
-            }
-          }
-        } catch (NoSuchFieldException e) {
-          // If we can't find DFSConfigKeys.DFS_SUPPORT_APPEND_DEFAULT, the user is running
-          // 1.1.x or 1.2.x. This is ok, though, as, by default, these versions have append/sync enabled.
-        } catch (Exception e) {
-          log.warn("Error while checking for " + DFS_SUPPORT_APPEND + " on volume " + volumeName
-              + ". The user should ensure that Hadoop is configured to properly supports append and sync. " + ticketMessage, e);
-        }
 
         // If either of these parameters are configured to be false, fail.
         // This is a sign that someone is writing bad configuration.
-        if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
-          String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false. " + ticketMessage;
+        if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true)) {
+          String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " not be configured as false. " + ticketMessage;
           log.fatal(msg);
           throw new RuntimeException(msg);
         }
 
-        try {
-          // Check DFSConfigKeys to see if DFS_DATANODE_SYNCONCLOSE_KEY exists (should be everything >=1.1.1 and the 0.23 line)
-          Class<?> dfsConfigKeysClz = Class.forName("org.apache.hadoop.hdfs.DFSConfigKeys");
-          dfsConfigKeysClz.getDeclaredField("DFS_DATANODE_SYNCONCLOSE_KEY");
-
-          // Everything else
-          if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
-            // Only warn once per process per volume URI
-            synchronized (WARNED_ABOUT_SYNCONCLOSE) {
-              if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
-                WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
-                log.warn("dfs.datanode.synconclose set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss");
-              }
+        // Warn if synconclose isn't set
+        if (!fs.getConf().getBoolean(DFS_DATANODE_SYNCONCLOSE, false)) {
+          // Only warn once per process per volume URI
+          synchronized (WARNED_ABOUT_SYNCONCLOSE) {
+            if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
+              WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
+              log.warn(DFS_DATANODE_SYNCONCLOSE + " set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss");
             }
           }
-        } catch (ClassNotFoundException ex) {
-          // hadoop 1.0.X or hadoop 1.1.0
-        } catch (SecurityException e) {
-          // hadoop 1.0.X or hadoop 1.1.0
-        } catch (NoSuchFieldException e) {
-          // hadoop 1.0.X or hadoop 1.1.0
         }
       }
     }
@@ -370,24 +332,7 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public short getDefaultReplication(Path path) {
     Volume v = getVolumeByPath(path);
-    FileSystem fs = v.getFileSystem();
-    try {
-      // try calling hadoop 2 method
-      Method method = fs.getClass().getMethod("getDefaultReplication", Path.class);
-      return ((Short) method.invoke(fs, path)).shortValue();
-    } catch (NoSuchMethodException e) {
-      // ignore
-    } catch (IllegalArgumentException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
-    }
-
-    @SuppressWarnings("deprecation")
-    short rep = fs.getDefaultReplication();
-    return rep;
+    return v.getFileSystem().getDefaultReplication(path);
   }
 
   @Override
@@ -431,44 +376,16 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public boolean isReady() throws IOException {
     for (Volume volume : getFileSystems().values()) {
-      FileSystem fs = volume.getFileSystem();
+      final FileSystem fs = volume.getFileSystem();
 
       if (!(fs instanceof DistributedFileSystem))
         continue;
-      DistributedFileSystem dfs = (DistributedFileSystem) fs;
-      // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
-      // Becomes this:
-      Class<?> safeModeAction;
-      try {
-        // hadoop 2.0
-        safeModeAction = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsConstants$SafeModeAction");
-      } catch (ClassNotFoundException ex) {
-        // hadoop 1.0
-        try {
-          safeModeAction = Class.forName("org.apache.hadoop.hdfs.protocol.FSConstants$SafeModeAction");
-        } catch (ClassNotFoundException e) {
-          throw new RuntimeException("Cannot figure out the right class for Constants");
-        }
-      }
-      Object get = null;
-      for (Object obj : safeModeAction.getEnumConstants()) {
-        if (obj.toString().equals("SAFEMODE_GET"))
-          get = obj;
-      }
-      if (get == null) {
-        throw new RuntimeException("cannot find SAFEMODE_GET");
-      }
-      try {
-        Method setSafeMode = dfs.getClass().getMethod("setSafeMode", safeModeAction);
-        boolean inSafeMode = (Boolean) setSafeMode.invoke(dfs, get);
-        if (inSafeMode) {
-          return false;
-        }
-      } catch (IllegalArgumentException exception) {
-        /* Send IAEs back as-is, so that those that wrap UnknownHostException can be handled in the same place as similar sources of failure. */
-        throw exception;
-      } catch (Exception ex) {
-        throw new RuntimeException("cannot find method setSafeMode");
+
+      final DistributedFileSystem dfs = (DistributedFileSystem) fs;
+
+      // Returns true when safemode is on
+      if (dfs.setSafeMode(SafeModeAction.SAFEMODE_GET)) {
+        return false;
       }
     }
     return true;

@@ -41,7 +41,7 @@ public class HadoopLogCloser implements LogCloser {
 
     // if path points to a viewfs path, then resolve to underlying filesystem
     if (ViewFSUtils.isViewFS(ns)) {
-      Path newSource = ViewFSUtils.resolvePath(ns, source);
+      Path newSource = ns.resolvePath(source);
       if (!newSource.equals(source) && newSource.toUri().getScheme() != null) {
         ns = newSource.getFileSystem(CachedConfiguration.getInstance());
         source = newSource;

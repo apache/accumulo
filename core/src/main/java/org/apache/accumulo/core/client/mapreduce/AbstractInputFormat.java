@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,7 +56,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -124,7 +122,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
-    return InputConfigurator.isConnectorInfoSet(CLASS, getConfiguration(context));
+    return InputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
   }
 
   /**
@@ -137,7 +135,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getPrincipal(JobContext context) {
-    return InputConfigurator.getPrincipal(CLASS, getConfiguration(context));
+    return InputConfigurator.getPrincipal(CLASS, context.getConfiguration());
   }
 
   /**
@@ -173,7 +171,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    return InputConfigurator.getAuthenticationToken(CLASS, getConfiguration(context));
+    return InputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
   }
 
   /**
@@ -231,7 +229,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
-    return InputConfigurator.getInstance(CLASS, getConfiguration(context));
+    return InputConfigurator.getInstance(CLASS, context.getConfiguration());
   }
 
   /**
@@ -257,7 +255,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setLogLevel(Job, Level)
    */
   protected static Level getLogLevel(JobContext context) {
-    return InputConfigurator.getLogLevel(CLASS, getConfiguration(context));
+    return InputConfigurator.getLogLevel(CLASS, context.getConfiguration());
   }
 
   /**
@@ -282,7 +280,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setScanAuthorizations(Job, Authorizations)
    */
   protected static Authorizations getScanAuthorizations(JobContext context) {
-    return InputConfigurator.getScanAuthorizations(CLASS, getConfiguration(context));
+    return InputConfigurator.getScanAuthorizations(CLASS, context.getConfiguration());
   }
 
   /**
@@ -294,7 +292,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.6.0
    */
   protected static Map<String,InputTableConfig> getInputTableConfigs(JobContext context) {
-    return InputConfigurator.getInputTableConfigs(CLASS, getConfiguration(context));
+    return InputConfigurator.getInputTableConfigs(CLASS, context.getConfiguration());
   }
 
   /**
@@ -311,7 +309,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.6.0
    */
   protected static InputTableConfig getInputTableConfig(JobContext context, String tableName) {
-    return InputConfigurator.getInputTableConfig(CLASS, getConfiguration(context), tableName);
+    return InputConfigurator.getInputTableConfig(CLASS, context.getConfiguration(), tableName);
   }
 
   /**
@@ -327,7 +325,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.6.0
    */
   protected static TabletLocator getTabletLocator(JobContext context, String table) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, getConfiguration(context), table);
+    return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), table);
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
@@ -341,7 +339,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobContext context) throws IOException {
-    InputConfigurator.validateOptions(CLASS, getConfiguration(context));
+    InputConfigurator.validateOptions(CLASS, context.getConfiguration());
   }
 
   /**
@@ -677,17 +675,5 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         }
     }
     return splits;
-  }
-
-  // use reflection to pull the Configuration out of the JobContext for Hadoop 1 and Hadoop 2 compatibility
-  public static Configuration getConfiguration(JobContext context) {
-    try {
-      Class<?> c = AbstractInputFormat.class.getClassLoader().loadClass("org.apache.hadoop.mapreduce.JobContext");
-      Method m = c.getMethod("getConfiguration");
-      Object o = m.invoke(context, new Object[0]);
-      return (Configuration) o;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 }

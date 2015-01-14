@@ -62,7 +62,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
-    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, InputFormatBase.getConfiguration(context));
+    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
   }
 
   /**
@@ -138,7 +138,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   @Override
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
     // get the path of the temporary output file
-    final Configuration conf = InputFormatBase.getConfiguration(context);
+    final Configuration conf = context.getConfiguration();
     final AccumuloConfiguration acuConf = getAccumuloConfiguration(context);
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);

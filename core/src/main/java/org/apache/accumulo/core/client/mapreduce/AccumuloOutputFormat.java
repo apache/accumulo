@@ -120,7 +120,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
-    return OutputConfigurator.isConnectorInfoSet(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
   }
 
   /**
@@ -133,7 +133,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getPrincipal(JobContext context) {
-    return OutputConfigurator.getPrincipal(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
   }
 
   /**
@@ -169,7 +169,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    return OutputConfigurator.getAuthenticationToken(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
   }
 
   /**
@@ -227,7 +227,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
-    return OutputConfigurator.getInstance(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getInstance(CLASS, context.getConfiguration());
   }
 
   /**
@@ -253,7 +253,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setLogLevel(Job, Level)
    */
   protected static Level getLogLevel(JobContext context) {
-    return OutputConfigurator.getLogLevel(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getLogLevel(CLASS, context.getConfiguration());
   }
 
   /**
@@ -280,7 +280,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setDefaultTableName(Job, String)
    */
   protected static String getDefaultTableName(JobContext context) {
-    return OutputConfigurator.getDefaultTableName(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getDefaultTableName(CLASS, context.getConfiguration());
   }
 
   /**
@@ -307,7 +307,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setBatchWriterOptions(Job, BatchWriterConfig)
    */
   protected static BatchWriterConfig getBatchWriterOptions(JobContext context) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getBatchWriterOptions(CLASS, context.getConfiguration());
   }
 
   /**
@@ -336,7 +336,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setCreateTables(Job, boolean)
    */
   protected static Boolean canCreateTables(JobContext context) {
-    return OutputConfigurator.canCreateTables(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.canCreateTables(CLASS, context.getConfiguration());
   }
 
   /**
@@ -365,7 +365,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setSimulationMode(Job, boolean)
    */
   protected static Boolean getSimulationMode(JobContext context) {
-    return OutputConfigurator.getSimulationMode(CLASS, InputFormatBase.getConfiguration(context));
+    return OutputConfigurator.getSimulationMode(CLASS, context.getConfiguration());
   }
 
   /**

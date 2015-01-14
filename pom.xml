@@ -121,7 +121,7 @@
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
+    <!-- overwritten in profiles hadoop-2 -->
     <hadoop.version>2.2.0</hadoop.version>
     <htrace.version>3.0.4</htrace.version>
     <httpclient.version>3.1</httpclient.version>
@@ -135,7 +135,7 @@
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <sealJars>false</sealJars>
-    <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
+    <!-- overwritten in profiles hadoop-2 -->
     <slf4j.version>1.7.5</slf4j.version>
     <!-- Thrift version -->
     <thrift.version>0.9.1</thrift.version>
@@ -1305,22 +1305,6 @@
         <hadoop.profile>2</hadoop.profile>
         <hadoop.version>2.2.0</hadoop.version>
         <httpclient.version>3.1</httpclient.version>
-        <slf4j.version>1.7.5</slf4j.version>
-      </properties>
-    </profile>
-    <!-- profile for building against Hadoop 1.x
-    Activate using: mvn -Dhadoop.profile=1 -->
-    <profile>
-      <id>hadoop-1</id>
-      <activation>
-        <property>
-          <name>hadoop.profile</name>
-          <value>1</value>
-        </property>
-      </activation>
-      <properties>
-        <hadoop.version>1.2.1</hadoop.version>
-        <httpclient.version>3.0.1</httpclient.version>
         <slf4j.version>1.7.5</slf4j.version>
       </properties>
     </profile>

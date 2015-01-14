@@ -17,8 +17,6 @@
 package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,24 +44,6 @@ public class ViewFSUtils {
 
   public static boolean isViewFS(FileSystem fs) {
     return fs.getClass().getName().equals(VIEWFS_CLASSNAME);
-  }
-
-  public static Path resolvePath(FileSystem fs, Path path) throws IOException {
-    // resolve path is new hadoop 2 so call it via reflection
-    try {
-      Method method = fs.getClass().getMethod("resolvePath", Path.class);
-      return (Path) method.invoke(fs, path);
-    } catch (IllegalArgumentException e) {
-      throw new IOException(e);
-    } catch (IllegalAccessException e) {
-      throw new IOException(e);
-    } catch (InvocationTargetException e) {
-      throw new IOException(e);
-    } catch (SecurityException e) {
-      throw new IOException(e);
-    } catch (NoSuchMethodException e) {
-      throw new IOException(e);
-    }
   }
 
   public static Path matchingFileSystem(Path source, String[] options, Configuration conf) throws IOException {

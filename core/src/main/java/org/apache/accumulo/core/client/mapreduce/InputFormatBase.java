@@ -62,7 +62,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setInputTableName(Job, String)
    */
   protected static String getInputTableName(JobContext context) {
-    return InputConfigurator.getInputTableName(CLASS, getConfiguration(context));
+    return InputConfigurator.getInputTableName(CLASS, context.getConfiguration());
   }
 
   /**
@@ -101,7 +101,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setRanges(Job, Collection)
    */
   protected static List<Range> getRanges(JobContext context) throws IOException {
-    return InputConfigurator.getRanges(CLASS, getConfiguration(context));
+    return InputConfigurator.getRanges(CLASS, context.getConfiguration());
   }
 
   /**
@@ -128,7 +128,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #fetchColumns(Job, Collection)
    */
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext context) {
-    return InputConfigurator.getFetchedColumns(CLASS, getConfiguration(context));
+    return InputConfigurator.getFetchedColumns(CLASS, context.getConfiguration());
   }
 
   /**
@@ -154,7 +154,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #addIterator(Job, IteratorSetting)
    */
   protected static List<IteratorSetting> getIterators(JobContext context) {
-    return InputConfigurator.getIterators(CLASS, getConfiguration(context));
+    return InputConfigurator.getIterators(CLASS, context.getConfiguration());
   }
 
   /**
@@ -185,7 +185,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setAutoAdjustRanges(Job, boolean)
    */
   protected static boolean getAutoAdjustRanges(JobContext context) {
-    return InputConfigurator.getAutoAdjustRanges(CLASS, getConfiguration(context));
+    return InputConfigurator.getAutoAdjustRanges(CLASS, context.getConfiguration());
   }
 
   /**
@@ -214,7 +214,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setScanIsolation(Job, boolean)
    */
   protected static boolean isIsolated(JobContext context) {
-    return InputConfigurator.isIsolated(CLASS, getConfiguration(context));
+    return InputConfigurator.isIsolated(CLASS, context.getConfiguration());
   }
 
   /**
@@ -244,7 +244,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setLocalIterators(Job, boolean)
    */
   protected static boolean usesLocalIterators(JobContext context) {
-    return InputConfigurator.usesLocalIterators(CLASS, getConfiguration(context));
+    return InputConfigurator.usesLocalIterators(CLASS, context.getConfiguration());
   }
 
   /**
@@ -292,7 +292,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setOfflineTableScan(Job, boolean)
    */
   protected static boolean isOfflineScan(JobContext context) {
-    return InputConfigurator.isOfflineScan(CLASS, getConfiguration(context));
+    return InputConfigurator.isOfflineScan(CLASS, context.getConfiguration());
   }
 
   /**
@@ -308,7 +308,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   @Deprecated
   protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, getConfiguration(context), InputConfigurator.getInputTableName(CLASS, getConfiguration(context)));
+    return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), InputConfigurator.getInputTableName(CLASS, context.getConfiguration()));
   }
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
