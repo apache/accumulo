@@ -212,6 +212,8 @@ public class TServerUtils {
     SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
+        // there is a minor race condition between sampling the current state of the thread pool and adjusting it
+        // however, this isn't really an issue, since it adjusts periodically anyway
         if (pool.getCorePoolSize() <= pool.getActiveCount()) {
           int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
           log.info("Increasing server thread pool size on " + serverName + " to " + larger);
@@ -221,10 +223,6 @@ public class TServerUtils {
           if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
             int smaller = Math.max(numThreads, pool.getCorePoolSize() - 1);
             if (smaller != pool.getCorePoolSize()) {
-              // ACCUMULO-2997 there is a race condition here... the active count could be higher by the time
-              // we decrease the core pool size... so the active count could end up higher than
-              // the core pool size, in which case everything will be queued... the increase case
-              // should handle this and prevent deadlock
               log.info("Decreasing server thread pool size on " + serverName + " to " + smaller);
               pool.setCorePoolSize(smaller);
             }
