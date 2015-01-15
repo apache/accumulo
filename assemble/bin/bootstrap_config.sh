@@ -25,6 +25,7 @@ where options include (long options not available on all platforms):
     -j, --jvm        Configure to use the jvm
     -o, --overwrite  Overwrite the default config directory
     -v, --version    Specify the Apache Hadoop version supported versions: '1' '2'
+    -k, --kerberos   Configure for use with Kerberos
     -h, --help       Print this help message
 EOF
 }
@@ -54,12 +55,13 @@ TYPE=
 HADOOP_VERSION=
 OVERWRITE="0"
 BASE_DIR=
+KERBEROS=
 
 #Execute getopt
 if [[ $(uname -s) == "Linux" ]]; then
-  args=$(getopt -o "b:d:s:njov:h" -l "basedir:,dir:,size:,native,jvm,overwrite,version:,help" -q -- "$@")
+  args=$(getopt -o "b:d:s:njokv:h" -l "basedir:,dir:,size:,native,jvm,overwrite,kerberos,version:,help" -q -- "$@")
 else # Darwin, BSD
-  args=$(getopt b:d:s:njov:h $*)
+  args=$(getopt b:d:s:njokv:h $*)
 fi
 
 #Bad arguments
@@ -92,6 +94,9 @@ do
       shift;;
     -v|--version)
       HADOOP_VERSION=$2; shift
+      shift;;
+    -k|--kerberos)
+      KERBEROS="true"
       shift;;
     -h|--help)
       usage
@@ -250,6 +255,15 @@ elif [[ "${HADOOP_VERSION}" != "2" && "${HADOOP_VERSION}" != "HDP2" && "${HADOOP
   exit 1
 fi
 
+TRACE_USER="root"
+
+if [[ ! -z "${KERBEROS}" ]]; then
+  echo
+  read -p "Enter server's Kerberos principal: " PRINCIPAL
+  read -p "Enter server's Kerberos keytab: " KEYTAB
+  TRACE_USER="${PRINCIPAL}"
+fi
+
 for var in SIZE TYPE HADOOP_VERSION; do
   if [[ -z ${!var} ]]; then
     echo "Invalid $var configuration"
@@ -292,7 +306,22 @@ sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
     -e "s/\${cacheIndexSize}/${!CACHE_INDEX_SIZE}/" \
     -e "s/\${sortBufferSize}/${!SORT_BUFFER_SIZE}/" \
     -e "s/\${waLogMaxSize}/${!WAL_MAX_SIZE}/" \
+    -e "s=\${traceUser}=${TRACE_USER}=" \
     -e "s=\${mvnProjBaseDir}=${MAVEN_PROJ_BASEDIR}=" ${TEMPLATE_CONF_DIR}/$ACCUMULO_SITE > ${CONF_DIR}/$ACCUMULO_SITE
+
+# If we're not using kerberos, filter out the krb properties
+if [[ -z "${KERBEROS}" ]]; then
+  sed -e 's/<!-- Kerberos requirements -->/<!-- Kerberos requirements --><!--/' \
+      -e 's/<!-- End Kerberos requirements -->/--><!-- End Kerberos requirements -->/' \
+      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+  mv temp "${CONF_DIR}/$ACCUMULO_SITE"
+else
+  # Make the substitutions
+  sed -e "s!\${keytab}!${KEYTAB}!" \
+      -e "s!\${principal}!${PRINCIPAL}!" \
+      ${CONF_DIR}/${ACCUMULO_SITE} > temp
+  mv temp ${CONF_DIR}/${ACCUMULO_SITE}
+fi
 
 #Configure for hadoop 1
 if [[ "${HADOOP_VERSION}" == "2" ]]; then

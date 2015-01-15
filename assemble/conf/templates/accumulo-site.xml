@@ -72,9 +72,46 @@
     <value>secret</value>
   </property>
 
+  <!-- Kerberos requirements -->
+  <property>
+    <name>instance.rpc.sasl.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>general.kerberos.keytab</name>
+    <value>${keytab}</value>
+  </property>
+
+  <property>
+    <name>general.kerberos.principal</name>
+    <value>${principal}</value>
+  </property>
+
+  <property>
+    <name>trace.token.type</name>
+    <value>org.apache.accumulo.core.client.security.tokens.KerberosToken</value>
+  </property>
+
+  <property>
+    <name>instance.security.authenticator</name>
+    <value>org.apache.accumulo.server.security.handler.KerberosAuthenticator</value>
+  </property>
+
+  <property>
+    <name>instance.security.authorizor</name>
+    <value>org.apache.accumulo.server.security.handler.KerberosAuthorizor</value>
+  </property>
+
+  <property>
+    <name>instance.security.permissionHandler</name>
+    <value>org.apache.accumulo.server.security.handler.KerberosPermissionHandler</value>
+  </property>
+  <!-- End Kerberos requirements -->
+
   <property>
     <name>trace.user</name>
-    <value>root</value>
+    <value>${traceUser}</value>
   </property>
 
   <property>
