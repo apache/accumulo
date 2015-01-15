@@ -159,8 +159,10 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-minikdc</artifactId>
       <!-- Specifically depend on this version of minikdc to avoid having
-           to increase out normal hadoop dependency --> 
-      <version>2.3.0</version>
+           to increase out normal hadoop dependency -->
+      <?SORTPOM IGNORE?>
+      <version>2.3.0</version><!--$NO-MVN-MAN-VER$-->
+      <?SORTPOM RESUME?>
       <scope>test</scope>
       <exclusions>
         <!-- Pulls in an older bouncycastle version -->

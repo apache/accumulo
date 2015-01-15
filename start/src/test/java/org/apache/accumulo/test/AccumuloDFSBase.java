@@ -35,7 +35,6 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-@SuppressWarnings("deprecation")
 public class AccumuloDFSBase {
 
   protected static Configuration conf = null;

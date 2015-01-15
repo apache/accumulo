@@ -268,8 +268,6 @@ class CleanUp extends MasterRepo {
       final String childName = child.getPath().getName();
       final Path childInSrc = new Path(src, childName), childInDest = new Path(dest, childName);
 
-      boolean isFile = fs.isFile(childInSrc), isDir = child.isDir();
-
       if (child.isFile()) {
         if (fs.exists(childInDest)) {
           log.warn("File already exists in archive, ignoring. " + childInDest);
