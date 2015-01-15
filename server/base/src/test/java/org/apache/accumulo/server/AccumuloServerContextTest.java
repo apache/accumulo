@@ -44,6 +44,8 @@ public class AccumuloServerContextTest {
 
   @Before
   public void setup() throws Exception {
+    System.setProperty("java.security.krb5.realm", "accumulo");
+    System.setProperty("java.security.krb5.kdc", "fake");
     Configuration conf = new Configuration(false);
     conf.set(CommonConfigurationKeys.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
     UserGroupInformation.setConfiguration(conf);
