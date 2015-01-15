@@ -79,6 +79,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       String errMsg = "Tried and failed to load native map library from " + ldLibraryPath;
       try {
         System.loadLibrary("accumulo");
+        loadedNativeLibraries.set(true);
         log.info("Loaded native map shared library from " + ldLibraryPath);
       } catch (Exception e) {
         log.error(errMsg, e);
