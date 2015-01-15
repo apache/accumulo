@@ -133,6 +133,16 @@ public class ExistingMacIT extends ConfigurableMacIT {
 
   @Test
   public void testExistingRunningInstance() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    Connector conn = getConnector();
+    // Ensure that a master and tserver are up so the existing instance check won't fail.
+    conn.tableOperations().create(table);
+    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    Mutation m = new Mutation("foo");
+    m.put("cf", "cq", "value");
+    bw.addMutation(m);
+    bw.close();
+
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
     FileUtils.deleteQuietly(hadoopConfDir);
     hadoopConfDir.mkdirs();
