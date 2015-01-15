@@ -90,6 +90,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -108,7 +109,6 @@ import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tserver.InMemoryMap;
@@ -145,6 +145,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 
 /**
  *
@@ -2236,7 +2237,7 @@ public class Tablet implements TabletCommitter {
       KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
 
-      String lowDirectory = TabletOperations.createTabletDirectory(getTabletServer().getFileSystem(), extent.getTableId().toString(), midRow);
+      String lowDirectory = createTabletDirectory(getTabletServer().getFileSystem(), extent.getTableId().toString(), midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();
@@ -2722,4 +2723,41 @@ public class Tablet implements TabletCommitter {
   public AtomicLong getScannedCounter() {
     return scannedCount;
   }
+
+  private static String createTabletDirectory(VolumeManager fs, String tableId, Text endRow) {
+    String lowDirectory;
+
+    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    String volume = fs.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
+
+    while (true) {
+      try {
+        if (endRow == null) {
+          lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
+          Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
+          if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath)) {
+            FileSystem pathFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
+            return lowDirectoryPath.makeQualified(pathFs.getUri(), pathFs.getWorkingDirectory()).toString();
+          }
+          log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
+        } else {
+          lowDirectory = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
+          Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
+          if (fs.exists(lowDirectoryPath))
+            throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
+          if (fs.mkdirs(lowDirectoryPath)) {
+            FileSystem lowDirectoryFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
+            return lowDirectoryPath.makeQualified(lowDirectoryFs.getUri(), lowDirectoryFs.getWorkingDirectory()).toString();
+          }
+        }
+      } catch (IOException e) {
+        log.warn(e);
+      }
+
+      log.warn("Failed to create dir for tablet in table " + tableId + " in volume " + volume + " + will retry ...");
+      UtilWaitThread.sleep(3000);
+
+    }
+  }
+
 }
