@@ -67,7 +67,7 @@ public class MetadataBatchScanTest {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScanTest.class.getName(), args);
     Instance inst = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost"));
-    final Connector connector = inst.getConnector(opts.principal, opts.getToken());
+    final Connector connector = inst.getConnector(opts.getPrincipal(), opts.getToken());
 
     TreeSet<Long> splits = new TreeSet<Long>();
     Random r = new Random(42);

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -50,7 +51,11 @@ public class WrongTabletTest {
     final ClientContext context = new AccumuloServerContext(conf) {
       @Override
       public synchronized Credentials getCredentials() {
-        return new Credentials(opts.principal, opts.getToken());
+        try {
+          return new Credentials(opts.getPrincipal(), opts.getToken());
+        } catch (AccumuloSecurityException e) {
+          throw new RuntimeException(e);
+        }
       }
     };
     try {

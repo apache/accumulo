@@ -210,6 +210,6 @@ public class RemoveEntriesForMissingFiles {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
 
-    checkAllTables(new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), ClientConfiguration.loadDefault()), opts.fix);
+    checkAllTables(new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), ClientConfiguration.loadDefault()), opts.fix);
   }
 }

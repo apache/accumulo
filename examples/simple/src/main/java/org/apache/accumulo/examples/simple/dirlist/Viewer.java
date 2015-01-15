@@ -82,6 +82,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       return data;
     }
 
+    @Override
     public String toString() {
       return getName();
     }
@@ -102,7 +103,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     setSize(1000, 800);
     setDefaultCloseOperation(EXIT_ON_CLOSE);
     q = new QueryUtil(opts);
-    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.principal, opts.getToken(), opts.dataTable, opts.auths);
+    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.getPrincipal(), opts.getToken(), opts.dataTable, opts.auths);
     this.topPath = opts.path;
   }
 

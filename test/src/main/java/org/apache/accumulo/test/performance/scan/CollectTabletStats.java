@@ -109,7 +109,7 @@ public class CollectTabletStats {
 
     Instance instance = opts.getInstance();
     final ServerConfigurationFactory sconf = new ServerConfigurationFactory(instance);
-    Credentials creds = new Credentials(opts.principal, opts.getToken());
+    Credentials creds = new Credentials(opts.getPrincipal(), opts.getToken());
     ClientContext context = new ClientContext(instance, creds, sconf.getConfiguration());
 
     String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());

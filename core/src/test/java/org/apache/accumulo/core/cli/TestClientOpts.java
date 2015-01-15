@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.security.auth.DestroyFailedException;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -63,8 +65,14 @@ public class TestClientOpts {
     ClientOpts args = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
-    assertNull(args.principal);
-    assertNull(args.securePassword);
+    try {
+      assertNull(args.getPrincipal());
+      fail("Expected to receive exception fetching non-existent principal");
+    } catch (AccumuloSecurityException e) {
+      // Pass -- no explicit principal and no token to infer a principal from
+    }
+
+    assertNull(args.getSecurePassword());
     assertNull(args.getToken());
     assertEquals(Long.valueOf(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
     assertEquals(Long.valueOf(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
@@ -83,8 +91,8 @@ public class TestClientOpts {
     jc.addObject(bsOpts);
     jc.parse("-u", "bar", "-p", "foo", "--batchLatency", "3s", "--batchTimeout", "2s", "--batchMemory", "1M", "--debug", "--trace", "--scanThreads", "7", "-i",
         "instance", "--auths", "G1,G2,G3", "-z", "zoohost1,zoohost2", "--help");
-    assertEquals("bar", args.principal);
-    assertNull(args.securePassword);
+    assertEquals("bar", args.getPrincipal());
+    assertNull(args.getSecurePassword());
     assertEquals(new PasswordToken("foo"), args.getToken());
     assertEquals(Long.valueOf(3000), bwOpts.batchLatency);
     assertEquals(Long.valueOf(2000), bwOpts.batchTimeout);
@@ -182,7 +190,7 @@ public class TestClientOpts {
     jc.parse("--config-file", clientConfFile.getCanonicalPath());
     args.updateKerberosCredentials();
 
-    assertEquals(KerberosToken.CLASS_NAME, args.tokenClassName);
+    assertEquals(KerberosToken.CLASS_NAME, args.getTokenClassName());
   }
 
   @Test

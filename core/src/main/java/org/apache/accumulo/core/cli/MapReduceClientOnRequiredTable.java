@@ -35,11 +35,11 @@ public class MapReduceClientOnRequiredTable extends MapReduceClientOpts {
     super.setAccumuloConfigs(job);
 
     if (tokenFile.isEmpty()) {
-      AccumuloInputFormat.setConnectorInfo(job, principal, getToken());
-      AccumuloOutputFormat.setConnectorInfo(job, principal, getToken());
+      AccumuloInputFormat.setConnectorInfo(job, getPrincipal(), getToken());
+      AccumuloOutputFormat.setConnectorInfo(job, getPrincipal(), getToken());
     } else {
-      AccumuloInputFormat.setConnectorInfo(job, principal, tokenFile);
-      AccumuloOutputFormat.setConnectorInfo(job, principal, tokenFile);
+      AccumuloInputFormat.setConnectorInfo(job, getPrincipal(), tokenFile);
+      AccumuloOutputFormat.setConnectorInfo(job, getPrincipal(), tokenFile);
     }
     AccumuloInputFormat.setInputTableName(job, getTableName());
     AccumuloInputFormat.setScanAuthorizations(job, auths);

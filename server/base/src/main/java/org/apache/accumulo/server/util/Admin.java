@@ -191,7 +191,7 @@ public class Admin {
       if (opts.getToken() == null) {
         context = new AccumuloServerContext(confFactory);
       } else {
-        final Credentials userCreds = new Credentials(opts.principal, opts.getToken());
+        final Credentials userCreds = new Credentials(opts.getPrincipal(), opts.getToken());
         context = new AccumuloServerContext(confFactory) {
           @Override
           public synchronized Credentials getCredentials() {

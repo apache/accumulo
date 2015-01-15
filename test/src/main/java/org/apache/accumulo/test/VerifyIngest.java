@@ -81,7 +81,7 @@ public class VerifyIngest {
     byte[][] bytevals = TestIngest.generateValues(opts.dataSize);
 
     Authorizations labelAuths = new Authorizations("L1", "L2", "G1", "GROUP2");
-    connector.securityOperations().changeUserAuthorizations(opts.principal, labelAuths);
+    connector.securityOperations().changeUserAuthorizations(opts.getPrincipal(), labelAuths);
 
     int expectedRow = opts.startRow;
     int expectedCol = 0;

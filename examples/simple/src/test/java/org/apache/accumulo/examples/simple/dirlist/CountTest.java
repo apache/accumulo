@@ -75,9 +75,9 @@ public class CountTest extends TestCase {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.instance = "counttest";
     opts.setTableName("dirlisttable");
-    opts.password = new Password("secret");
+    opts.setPassword(new Password("secret"));
     opts.mock = true;
-    opts.password = new Opts.Password("");
+    opts.setPassword(new Opts.Password(""));
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
 

@@ -223,7 +223,7 @@ public class TestIngest {
       writer.startDefaultLocalityGroup();
     } else {
       bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
-      connector.securityOperations().changeUserAuthorizations(opts.principal, AUTHS);
+      connector.securityOperations().changeUserAuthorizations(opts.getPrincipal(), AUTHS);
     }
     Text labBA = new Text(opts.columnVisibility.getExpression());
 

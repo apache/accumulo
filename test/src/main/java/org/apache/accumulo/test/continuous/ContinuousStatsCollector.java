@@ -137,7 +137,7 @@ public class ContinuousStatsCollector {
 
       MasterClientService.Iface client = null;
       try {
-        ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), new ServerConfigurationFactory(
+        ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), new ServerConfigurationFactory(
             opts.getInstance()).getConfiguration());
         client = MasterClient.getConnectionWithRetry(context);
         MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());

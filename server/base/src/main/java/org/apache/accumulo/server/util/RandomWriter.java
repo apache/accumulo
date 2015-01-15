@@ -47,10 +47,12 @@ public class RandomWriter {
       max_mutations = num_mutations;
     }
 
+    @Override
     public boolean hasNext() {
       return mutations_so_far < max_mutations;
     }
 
+    @Override
     public Mutation next() {
       Text row_value = new Text(Long.toString(((r.nextLong() & 0x7fffffffffffffffl) / 177) % 100000000000l));
       Mutation m = new Mutation(row_value);
@@ -67,6 +69,7 @@ public class RandomWriter {
       return m;
     }
 
+    @Override
     public void remove() {
       mutations_so_far++;
     }
@@ -92,7 +95,7 @@ public class RandomWriter {
     opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
 
     long start = System.currentTimeMillis();
-    log.info("starting at " + start + " for user " + opts.principal);
+    log.info("starting at " + start + " for user " + opts.getPrincipal());
     try {
       Connector connector = opts.getConnector();
       BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());

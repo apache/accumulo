@@ -71,7 +71,7 @@ public class VerifyTabletAssignments {
     Opts opts = new Opts();
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
 
-    ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.principal, opts.getToken()), opts.getClientConfiguration());
+    ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), opts.getClientConfiguration());
     Connector conn = opts.getConnector();
     for (String table : conn.tableOperations().list())
       checkTable(context, opts, table, null);

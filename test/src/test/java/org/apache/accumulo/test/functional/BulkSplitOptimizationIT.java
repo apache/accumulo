@@ -119,7 +119,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
     opts.rows = 100000;
     opts.startRow = 0;
     opts.cols = 1;
-    opts.password = new Password(new String(token.getPassword(), UTF_8));
+    opts.setPassword(new Password(new String(token.getPassword(), UTF_8)));
     opts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
 

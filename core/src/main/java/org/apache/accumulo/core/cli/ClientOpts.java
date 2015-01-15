@@ -106,16 +106,16 @@ public class ClientOpts extends Help {
   }
 
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
-  public String principal = null;
+  private String principal = null;
 
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
-  public Password password = null;
+  private Password password = null;
 
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
-  public Password securePassword = null;
+  private Password securePassword = null;
 
   @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
-  public String tokenClassName = null;
+  private String tokenClassName = null;
 
   @DynamicParameter(names = "-l",
       description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
@@ -249,6 +249,30 @@ public class ClientOpts extends Help {
       }
     }
     return principal;
+  }
+
+  public void setPrincipal(String principal) {
+    this.principal = principal;
+  }
+
+  public Password getPassword() {
+    return password;
+  }
+
+  public void setPassword(Password password) {
+    this.password = password;
+  }
+
+  public Password getSecurePassword() {
+    return securePassword;
+  }
+
+  public void setSecurePassword(Password securePassword) {
+    this.securePassword = securePassword;
+  }
+
+  public String getTokenClassName() {
+    return tokenClassName;
   }
 
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {

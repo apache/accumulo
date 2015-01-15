@@ -23,7 +23,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ClientOnRequiredTable extends org.apache.accumulo.core.cli.ClientOnRequiredTable {
   {
-    principal = "root";
+    setPrincipal("root");
   }
 
   @Override

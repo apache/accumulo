@@ -80,11 +80,11 @@ public class ReadWriteExample {
     conn = opts.getConnector();
 
     // add the authorizations to the user
-    Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.principal);
+    Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.getPrincipal());
     ByteArraySet auths = new ByteArraySet(userAuthorizations.getAuthorizations());
     auths.addAll(opts.auths.getAuthorizations());
     if (!auths.isEmpty())
-      conn.securityOperations().changeUserAuthorizations(opts.principal, new Authorizations(auths));
+      conn.securityOperations().changeUserAuthorizations(opts.getPrincipal(), new Authorizations(auths));
 
     // create table
     if (opts.createtable) {
