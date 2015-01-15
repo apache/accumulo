@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -71,6 +72,7 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
+  private AccumuloConfiguration conf;
   private ClientConfiguration clientConf;
 
   /**
@@ -245,6 +247,18 @@ public class ZooKeeperInstance implements Instance {
   @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, new PasswordToken(pass));
+  }
+
+  @Override
+  @Deprecated
+  public AccumuloConfiguration getConfiguration() {
+    return conf = conf == null ? DefaultConfiguration.getInstance() : ClientContext.convertClientConfig(clientConf);
+  }
+
+  @Override
+  @Deprecated
+  public void setConfiguration(AccumuloConfiguration conf) {
+    this.conf = conf;
   }
 
   /**

@@ -46,6 +46,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -174,6 +175,20 @@ public class HdfsZooInstance implements Instance {
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
+  }
+
+  private AccumuloConfiguration conf = null;
+
+  @Deprecated
+  @Override
+  public AccumuloConfiguration getConfiguration() {
+    return conf = conf == null ? new ServerConfigurationFactory(this).getConfiguration() : conf;
+  }
+
+  @Override
+  @Deprecated
+  public void setConfiguration(AccumuloConfiguration conf) {
+    this.conf = conf;
   }
 
   public static void main(String[] args) {
