@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -60,6 +61,8 @@ import org.apache.hadoop.io.WritableUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+
+import com.google.common.base.Preconditions;
 
 class CompactionDriver extends MasterRepo {
 
@@ -207,11 +210,16 @@ public class CompactRange extends MasterRepo {
 
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
       throws ThriftTableOperationException {
+
+    Preconditions.checkNotNull(tableId, "Invalid argument: null tableId");
+    Preconditions.checkNotNull(iterators, "Invalid argument: null iterator list");
+    Preconditions.checkNotNull(compactionStrategy, "Invalid argument: null compactionStrategy");
+
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
 
-    if (iterators.size() > 0 || compactionStrategy != null) {
+    if (iterators.size() > 0 || !compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)) {
       this.config = WritableUtils.toByteArray(new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
     }
 
@@ -249,7 +257,7 @@ public class CompactRange extends MasterRepo {
               continue; // skip self
 
             throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
-                "Another compaction with iterators is running");
+                "Another compaction with iterators and/or a compaction strategy is running");
           }
 
           StringBuilder encodedIterators = new StringBuilder();

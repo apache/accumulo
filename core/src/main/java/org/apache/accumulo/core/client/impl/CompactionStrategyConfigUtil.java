@@ -25,11 +25,20 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 
 public class CompactionStrategyConfigUtil {
+
+  public static final CompactionStrategyConfig DEFAULT_STRATEGY = new CompactionStrategyConfig(
+      "org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy") {
+    @Override
+    public CompactionStrategyConfig setOptions(Map<String,String> opts) {
+      throw new UnsupportedOperationException();
+    }
+  };
 
   private static final int MAGIC = 0xcc5e6024;
 

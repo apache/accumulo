@@ -300,7 +300,8 @@ public interface TableOperations {
    * @param end
    *          last tablet to be merged contains this row, null means the last tablet in table
    * @param iterators
-   *          A set of iterators that will be applied to each tablet compacted
+   *          A set of iterators that will be applied to each tablet compacted. If two or more concurrent calls to compact pass iterators, then only one will
+   *          succeed and the others will fail.
    * @param flush
    *          when true, table memory is flushed before compaction starts
    * @param wait

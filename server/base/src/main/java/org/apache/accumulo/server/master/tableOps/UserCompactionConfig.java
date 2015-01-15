@@ -46,6 +46,7 @@ public class UserCompactionConfig implements Writable {
     startRow = null;
     endRow = null;
     iterators = Collections.emptyList();
+    compactionStrategy = CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
   }
 
   @Override

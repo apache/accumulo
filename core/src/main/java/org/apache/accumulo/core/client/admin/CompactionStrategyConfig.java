@@ -71,4 +71,14 @@ public class CompactionStrategyConfig {
   public Map<String,String> getOptions() {
     return Collections.unmodifiableMap(options);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof CompactionStrategyConfig) {
+      CompactionStrategyConfig ocsc = (CompactionStrategyConfig) o;
+      return className.equals(ocsc.className) && options.equals(ocsc.options);
+    }
+
+    return false;
+  }
 }

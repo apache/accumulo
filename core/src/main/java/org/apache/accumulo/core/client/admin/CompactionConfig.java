@@ -20,9 +20,9 @@ package org.apache.accumulo.core.client.admin;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -39,12 +39,7 @@ public class CompactionConfig {
   private boolean flush = true;
   private boolean wait = true;
   private List<IteratorSetting> iterators = Collections.emptyList();
-  private CompactionStrategyConfig compactionStrategy = new CompactionStrategyConfig("org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy") {
-    @Override
-    public CompactionStrategyConfig setOptions(Map<String,String> opts) {
-      throw new UnsupportedOperationException();
-    }
-  };
+  private CompactionStrategyConfig compactionStrategy = CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
 
   /**
    * @param start

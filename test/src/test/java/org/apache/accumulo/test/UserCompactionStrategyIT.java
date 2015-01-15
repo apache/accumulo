@@ -26,6 +26,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -298,6 +300,39 @@ public class UserCompactionStrategyIT extends AccumuloClusterIT {
 
     Assert.assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
 
+  }
+
+  @Test
+  public void testConcurrent() throws Exception {
+    // two compactions without iterators or strategy should be able to run concurrently
+
+    Connector c = getConnector();
+
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+
+    // write random data because its very unlikely it will compress
+    writeRandomValue(c, tableName, 1 << 16);
+    writeRandomValue(c, tableName, 1 << 16);
+
+    c.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
+    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+    Assert.assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+
+    writeRandomValue(c, tableName, 1 << 16);
+
+    IteratorSetting iterConfig = new IteratorSetting(30, SlowIterator.class);
+    SlowIterator.setSleepTime(iterConfig, 1000);
+
+    long t1 = System.currentTimeMillis();
+    c.tableOperations().compact(tableName, new CompactionConfig().setWait(false).setIterators(Arrays.asList(iterConfig)));
+    try {
+      // this compaction should fail because previous one set iterators
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      if (System.currentTimeMillis() - t1 < 2000)
+        Assert.fail("Expected compaction to fail because another concurrent compaction set iterators");
+    } catch (AccumuloException e) {}
   }
 
   void writeRandomValue(Connector c, String tableName, int size) throws Exception {
