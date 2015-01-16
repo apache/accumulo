@@ -2322,7 +2322,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     try {
       String zPath = ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/" + getClientAddressString();
 
-      zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
+      try {
+        zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
+      } catch (KeeperException e) {
+        if (KeeperException.Code.NOAUTH == e.code()) {
+          log.error("Failed to write to ZooKeeper. Ensure that accumulo-site.xml, specifically instance.secret, is consistent.");
+        }
+        throw e;
+      }
 
       tabletServerLock = new ZooLock(zPath);
 
