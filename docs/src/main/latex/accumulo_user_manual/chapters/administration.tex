@@ -539,3 +539,68 @@ The Accumulo client library is configured to retry failed mutations and in many
 cases clients will be able to continue processing after the recovery process without
 throwing an exception.
 
+\section{Migrating Accumulo from non-HA Namenode to HA Namenode}
+
+The following steps will allow a non-HA instance to be migrated to an HA instance. Consider an HDFS URL
+\texttt{hdfs://namenode.example.com:8020} which is going to be moved to \texttt{hdfs://nameservice1}.
+
+Before moving HDFS over to the HA namenode, use \texttt{\$ACCUMULO\_HOME/bin/accumulo admin volumes} to confirm
+that the only volume displayed is the volume from the current namenode's HDFS URL.
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+Listing volumes referenced in zookeeper
+        Volume : hdfs://namenode.example.com:8020/accumulo
+
+Listing volumes referenced in accumulo.root tablets section
+        Volume : hdfs://namenode.example.com:8020/accumulo
+Listing volumes referenced in accumulo.root deletes section (volume replacement occurrs at deletion time)
+
+Listing volumes referenced in accumulo.metadata tablets section
+        Volume : hdfs://namenode.example.com:8020/accumulo
+
+Listing volumes referenced in accumulo.metadata deletes section (volume replacement occurrs at deletion time)
+\end{verbatim}
+
+After verifying the current volume is correct, shut down the cluster and transition HDFS to the HA nameservice.
+
+Edit \texttt{\$ACCUMULO\_HOME/conf/accumulo-site.xml} to notify accumulo that a volume is being replaced. First,
+add the new nameservice volume to the \texttt{instance.volumes} property. Next, add the
+\texttt{instance.volumes.replacements} property in the form of \texttt{old new}. It's important to not include
+the volume that's being replaced in \texttt{instance.volumes}, otherwise it's possible accumulo could continue
+to write to the volume.
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+<!-- instance.dfs.uri and instance.dfs.dir should not be set-->
+<property>
+  <name>instance.volumes</name>
+  <value>hdfs://nameservice1/accumulo</value>
+</property>
+<property>
+  <name>instance.volumes.replacements</name>
+  <value>hdfs://namenode.example.com:8020/accumulo hdfs://nameservice1/accumulo</value>
+</property>
+\end{verbatim}
+
+Run \texttt{\$ACCUMULO\_HOME/bin/accumulo init --add-volumes} and start up the accumulo cluster. Verify that the
+new nameservice volume shows up with \texttt{\$ACCUMULO\_HOME/bin/accumulo admin volumes}.
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+Listing volumes referenced in zookeeper
+        Volume : hdfs://namenode.example.com:8020/accumulo
+        Volume : hdfs://nameservice1/accumulo
+
+Listing volumes referenced in accumulo.root tablets section
+        Volume : hdfs://namenode.example.com:8020/accumulo
+        Volume : hdfs://nameservice1/accumulo
+Listing volumes referenced in accumulo.root deletes section (volume replacement occurrs at deletion time)
+
+Listing volumes referenced in accumulo.metadata tablets section
+        Volume : hdfs://namenode.example.com:8020/accumulo
+        Volume : hdfs://nameservice1/accumulo
+Listing volumes referenced in accumulo.metadata deletes section (volume replacement occurrs at deletion time)
+\end{verbatim}
+
+Some erroneous GarbageCollector messages may still be seen for a small period while data is transitioning to
+the new volumes. This is expected and can usually be ignored.
+
+
