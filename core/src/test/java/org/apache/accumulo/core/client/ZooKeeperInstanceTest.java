@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,8 +63,11 @@ public class ZooKeeperInstanceTest {
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
     expect(zcf.getZooCache("zk1", 30000)).andReturn(zc).anyTimes();
-    replay(zcf);
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(UTF_8));
+    expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
+    replay(zc, zcf);
     zki = new ZooKeeperInstance(config, zcf);
+    EasyMock.resetToDefault(zc);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -105,7 +109,8 @@ public class ZooKeeperInstanceTest {
   public void testGetInstanceID_NoMapping() {
     expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(null);
     replay(zc);
-    zki.getInstanceID();
+    EasyMock.reset(config, zcf);
+    new ZooKeeperInstance(config, zcf);
   }
 
   @Test(expected = RuntimeException.class)
@@ -148,8 +153,11 @@ public class ZooKeeperInstanceTest {
   public void testAllZooKeepersAreUsed() {
     final String zookeepers = "zk1,zk2,zk3", instanceName = "accumulo";
     ZooCacheFactory factory = createMock(ZooCacheFactory.class);
+    EasyMock.reset(zc);
     expect(factory.getZooCache(zookeepers, 30000)).andReturn(zc).anyTimes();
-    replay(factory);
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName)).andReturn(IID_STRING.getBytes(UTF_8));
+    expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
+    replay(zc, factory);
     ClientConfiguration cfg = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers);
     ZooKeeperInstance zki = new ZooKeeperInstance(cfg, factory);
     assertEquals(zookeepers, zki.getZooKeepers());
