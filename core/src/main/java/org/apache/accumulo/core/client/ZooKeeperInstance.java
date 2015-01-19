@@ -153,6 +153,10 @@ public class ZooKeeperInstance implements Instance {
     this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
     this.zooKeepersSessionTimeOut = (int) AccumuloConfiguration.getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
     zooCache = zcf.getZooCache(zooKeepers, zooKeepersSessionTimeOut);
+    if (null != instanceName) {
+      // Validates that the provided instanceName actually exists
+      getInstanceID();
+    }
   }
 
   @Override

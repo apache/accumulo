@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -83,6 +84,12 @@ public class ReadWriteIT extends AccumuloClusterIT {
   @Override
   protected int defaultTimeoutSeconds() {
     return 6 * 60;
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void invalidInstanceName() throws Exception {
+    final Connector conn = getConnector();
+    new ZooKeeperInstance("fake_instance_name", conn.getInstance().getZooKeepers());
   }
 
   @Test
