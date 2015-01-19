@@ -354,7 +354,7 @@ public class TServerUtils {
     // but sadly this isn't the case. Because TSaslTransport needs to issue a handshake when it open()'s which will fail
     // when the server does an accept() to (presumably) wake up the eventing system.
     log.info("Creating SASL thread pool thrift server on port=" + address.getPort());
-    TServerSocket transport = new TServerSocket(address.getPort());
+    TServerSocket transport = new TServerSocket(address.getPort(), (int) socketTimeout);
 
     final String hostname;
     try {
