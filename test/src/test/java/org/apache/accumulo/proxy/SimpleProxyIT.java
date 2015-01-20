@@ -115,6 +115,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
+import com.google.common.net.HostAndPort;
+
 /**
  * Call every method on the proxy and try to verify that it works.
  */
@@ -140,16 +142,17 @@ public class SimpleProxyIT {
   };
   private static ByteBuffer creds = null;
 
-  private static Class<? extends TProtocolFactory> protocolClass;
+  private static TProtocolFactory protocol;
 
-  static Class<? extends TProtocolFactory> getRandomProtocol() {
+  static TProtocolFactory getRandomProtocol() throws InstantiationException, IllegalAccessException {
     List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
     protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
 
-    return protocolFactories.get(random.nextInt(protocolFactories.size()));
+    Class<? extends TProtocolFactory> clz = protocolFactories.get(random.nextInt(protocolFactories.size()));
+    return clz.newInstance();
   }
 
   private static final AtomicInteger tableCounter = new AtomicInteger(0);
@@ -195,11 +198,10 @@ public class SimpleProxyIT {
     props.put("zookeepers", accumulo.getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
 
-    protocolClass = getRandomProtocol();
+    protocol = getRandomProtocol();
 
     proxyPort = PortUtils.getRandomFreePort();
-    proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
-        protocolClass, props);
+    proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
     thread = new Thread() {
       @Override
       public void run() {
@@ -209,7 +211,7 @@ public class SimpleProxyIT {
     thread.start();
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
-    client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
+    client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
     creds = client.login(principal, properties);
   }
 
@@ -831,7 +833,7 @@ public class SimpleProxyIT {
       public void run() {
         String scanner;
         try {
-          Client client2 = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
+          Client client2 = new TestProxyClient("localhost", proxyPort, protocol).proxy();
           scanner = client2.createScanner(creds, "slow", null);
           client2.nextK(scanner, 10);
           client2.closeScanner(scanner);
@@ -885,7 +887,7 @@ public class SimpleProxyIT {
       @Override
       public void run() {
         try {
-          Client client2 = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
+          Client client2 = new TestProxyClient("localhost", proxyPort, protocol).proxy();
           client2.compactTable(creds, "slow", null, null, null, true, true, null);
         } catch (Exception e) {
           throw new RuntimeException(e);

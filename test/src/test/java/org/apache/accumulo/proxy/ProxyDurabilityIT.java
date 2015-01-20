@@ -49,9 +49,11 @@ import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.apache.thrift.protocol.TJSONProtocol.Factory;
+import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.server.TServer;
 import org.junit.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class ProxyDurabilityIT extends ConfigurableMacIT {
 
@@ -74,11 +76,10 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     props.put("zookeepers", c.getInstance().getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
 
-    Class<Factory> protocolClass = org.apache.thrift.protocol.TJSONProtocol.Factory.class;
+    TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 
     int proxyPort = PortUtils.getRandomFreePort();
-    final TServer proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class,
-        proxyPort, protocolClass, props);
+    final TServer proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
     Thread thread = new Thread() {
       @Override
       public void run() {
@@ -88,7 +89,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     thread.start();
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
-    Client client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
+    Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
     Map<String,String> properties = new TreeMap<String,String>();
     properties.put("password", ROOT_PASSWORD);
     ByteBuffer login = client.login("root", properties);

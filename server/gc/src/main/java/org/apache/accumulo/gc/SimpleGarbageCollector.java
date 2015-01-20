@@ -712,7 +712,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     Iface rpcProxy = RpcWrapper.service(this);
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
-      Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass());
+      Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
       processor = new Processor<Iface>(tcProxy);
     } else {
       processor = new Processor<Iface>(rpcProxy);

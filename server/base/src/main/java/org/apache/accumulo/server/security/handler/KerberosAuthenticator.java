@@ -28,13 +28,17 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
-import org.apache.accumulo.server.thrift.UGIAssumingProcessor;
+import org.apache.accumulo.server.security.UserImpersonation;
+import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
@@ -53,9 +57,15 @@ public class KerberosAuthenticator implements Authenticator {
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private String zkUserPath;
   private final ZooCache zooCache;
+  private final UserImpersonation impersonation;
 
   public KerberosAuthenticator() {
-    zooCache = new ZooCache();
+    this(new ZooCache(), SiteConfiguration.getInstance());
+  }
+
+  public KerberosAuthenticator(ZooCache cache, AccumuloConfiguration conf) {
+    this.zooCache = cache;
+    this.impersonation = new UserImpersonation(conf);
   }
 
   @Override
@@ -104,11 +114,20 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
-    final String rpcPrincipal = UGIAssumingProcessor.currentPrincipal();
+    final String rpcPrincipal = UGIAssumingProcessor.rpcPrincipal();
 
     if (!rpcPrincipal.equals(principal)) {
       // KerberosAuthenticator can't do perform this because KerberosToken is just a shim and doesn't contain the actual credentials
-      throw new AccumuloSecurityException(principal, SecurityErrorCode.AUTHENTICATOR_FAILED);
+      // Double check that the rpc user can impersonate as the requested user.
+      UsersWithHosts usersWithHosts = impersonation.get(rpcPrincipal);
+      if (null == usersWithHosts) {
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.AUTHENTICATOR_FAILED);
+      }
+      if (!usersWithHosts.getUsers().contains(principal)) {
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.AUTHENTICATOR_FAILED);
+      }
+
+      log.debug("Allowing impersonation of {} by {}", principal, rpcPrincipal);
     }
 
     // User is authenticated at the transport layer -- nothing extra is necessary

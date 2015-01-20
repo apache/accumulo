@@ -46,4 +46,8 @@ public enum ThriftServerType {
   public String toString() {
     return name;
   }
+
+  public static ThriftServerType getDefault() {
+    return CUSTOM_HS_HA;
+  }
 }

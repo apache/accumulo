@@ -25,9 +25,11 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
-import org.apache.accumulo.server.thrift.UGIAssumingProcessor;
+import org.apache.accumulo.server.security.UserImpersonation;
+import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +42,11 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
   private static final ConcurrentHashMap<String,Class<? extends AuthenticationToken>> TOKEN_CLASS_CACHE = new ConcurrentHashMap<>();
   private final I instance;
+  private final UserImpersonation impersonation;
 
-  protected TCredentialsUpdatingInvocationHandler(final I serverInstance) {
+  protected TCredentialsUpdatingInvocationHandler(final I serverInstance, AccumuloConfiguration conf) {
     instance = serverInstance;
+    impersonation = new UserImpersonation(conf);
   }
 
   @Override
@@ -85,7 +89,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     }
 
     // The Accumulo principal extracted from the SASL transport
-    final String principal = UGIAssumingProcessor.currentPrincipal();
+    final String principal = UGIAssumingProcessor.rpcPrincipal();
 
     if (null == principal) {
       log.debug("Found KerberosToken in TCredentials, but did not receive principal from SASL processor");
@@ -94,10 +98,26 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
     // The principal from the SASL transport should match what the user requested as their Accumulo principal
     if (!principal.equals(tcreds.principal)) {
-      final String msg = "Principal in credentials object should match kerberos principal. Expected '" + principal + "' but was '" + tcreds.principal + "'";
-      log.warn(msg);
-      throw new ThriftSecurityException(msg, SecurityErrorCode.BAD_CREDENTIALS);
+      UsersWithHosts usersWithHosts = impersonation.get(principal);
+      if (null == usersWithHosts) {
+        principalMismatch(principal, tcreds.principal);
+      }
+      if (!usersWithHosts.getUsers().contains(tcreds.principal)) {
+        principalMismatch(principal, tcreds.principal);
+      }
+      String clientAddr = TServerUtils.clientAddress.get();
+      if (!usersWithHosts.getHosts().contains(clientAddr)) {
+        final String msg = "Principal in credentials object allowed mismatched Kerberos principals, but not on " + clientAddr;
+        log.warn(msg);
+        throw new ThriftSecurityException(msg, SecurityErrorCode.BAD_CREDENTIALS);
+      }
     }
+  }
+
+  protected void principalMismatch(String expected, String actual) throws ThriftSecurityException {
+    final String msg = "Principal in credentials object should match kerberos principal. Expected '" + expected + "' but was '" + actual + "'";
+    log.warn(msg);
+    throw new ThriftSecurityException(msg, SecurityErrorCode.BAD_CREDENTIALS);
   }
 
   protected Class<? extends AuthenticationToken> getTokenClassFromName(String tokenClassName) {

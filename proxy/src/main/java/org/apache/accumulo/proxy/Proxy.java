@@ -20,31 +20,60 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
+import java.net.InetAddress;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.rpc.SaslConnectionParams;
+import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
+import org.apache.accumulo.server.metrics.MetricsFactory;
 import org.apache.accumulo.server.rpc.RpcWrapper;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
+import org.apache.accumulo.server.rpc.ServerAddress;
+import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.rpc.TimedProcessor;
+import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.server.THsHaServer;
-import org.apache.thrift.server.TServer;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TNonblockingServerSocket;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.common.io.Files;
+import com.google.common.net.HostAndPort;
 
 public class Proxy {
 
   private static final Logger log = Logger.getLogger(Proxy.class);
+
+  public static final String USE_MINI_ACCUMULO_KEY = "useMiniAccumulo";
+  public static final String USE_MINI_ACCUMULO_DEFAULT = "false";
+  public static final String USE_MOCK_INSTANCE_KEY = "useMockInstance";
+  public static final String USE_MOCK_INSTANCE_DEFAULT = "false";
+  public static final String ACCUMULO_INSTANCE_NAME_KEY = "instance";
+  public static final String ZOOKEEPERS_KEY = "zookeepers";
+  public static final String THRIFT_THREAD_POOL_SIZE_KEY = "numThreads";
+  // Default number of threads from THsHaServer.Args
+  public static final String THRIFT_THREAD_POOL_SIZE_DEFAULT = "5";
+  public static final String THRIFT_MAX_FRAME_SIZE_KEY = "maxFrameSize";
+  public static final String THRIFT_MAX_FRAME_SIZE_DEFAULT = "16M";
+
+  // Type of thrift server to create
+  public static final String THRIFT_SERVER_TYPE = "thriftServerType";
+  public static final String THRIFT_SERVER_TYPE_DEFAULT = "";
+  public static final ThriftServerType DEFAULT_SERVER_TYPE = ThriftServerType.getDefault();
+
+  public static final String KERBEROS_PRINCIPAL = "kerberosPrincipal";
+  public static final String KERBEROS_KEYTAB = "kerberosKeytab";
 
   public static class PropertiesConverter implements IStringConverter<Properties> {
     @Override
@@ -74,10 +103,10 @@ public class Proxy {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);
 
-    boolean useMini = Boolean.parseBoolean(opts.prop.getProperty("useMiniAccumulo", "false"));
-    boolean useMock = Boolean.parseBoolean(opts.prop.getProperty("useMockInstance", "false"));
-    String instance = opts.prop.getProperty("instance");
-    String zookeepers = opts.prop.getProperty("zookeepers");
+    boolean useMini = Boolean.parseBoolean(opts.prop.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
+    boolean useMock = Boolean.parseBoolean(opts.prop.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
+    String instance = opts.prop.getProperty(ACCUMULO_INSTANCE_NAME_KEY);
+    String zookeepers = opts.prop.getProperty(ZOOKEEPERS_KEY);
 
     if (!useMini && !useMock && instance == null) {
       System.err.println("Properties file must contain one of : useMiniAccumulo=true, useMockInstance=true, or instance=<instance name>");
@@ -118,34 +147,94 @@ public class Proxy {
 
     Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
         .asSubclass(TProtocolFactory.class);
+    TProtocolFactory protoFactory = protoFactoryClass.newInstance();
     int port = Integer.parseInt(opts.prop.getProperty("port"));
-    TServer server = createProxyServer(AccumuloProxy.class, ProxyServer.class, port, protoFactoryClass, opts.prop);
-    server.serve();
+    HostAndPort address = HostAndPort.fromParts(InetAddress.getLocalHost().getCanonicalHostName(), port);
+    ServerAddress server = createProxyServer(address, protoFactory, opts.prop);
+    // Wait for the server to come up
+    while (!server.server.isServing()) {
+      Thread.sleep(100);
+    }
+    log.info("Proxy server started on " + server.getAddress());
+    while (server.server.isServing()) {
+      Thread.sleep(1000);
+    }
   }
 
-  public static TServer createProxyServer(Class<?> api, Class<?> implementor, final int port, Class<? extends TProtocolFactory> protoClass,
-      Properties properties) throws Exception {
-    final TNonblockingServerSocket socket = new TNonblockingServerSocket(port);
+  public static ServerAddress createProxyServer(HostAndPort address, TProtocolFactory protocolFactory, Properties properties) throws Exception {
+    final int numThreads = Integer.parseInt(properties.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
+    final long maxFrameSize = AccumuloConfiguration.getMemoryInBytes(properties.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
+    final int simpleTimerThreadpoolSize = Integer.parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
+    // How frequently to try to resize the thread pool
+    final long threadpoolResizeInterval = 1000l * 5;
+    // No timeout
+    final long serverSocketTimeout = 0l;
+    // Use the new hadoop metrics2 support
+    final MetricsFactory metricsFactory = new MetricsFactory(false);
+    final String serverName = "Proxy", threadName = "Accumulo Thrift Proxy";
 
-    // create the implementor
-    Object impl = implementor.getConstructor(Properties.class).newInstance(properties);
+    // create the implementation of the proxy interface
+    ProxyServer impl = new ProxyServer(properties);
 
-    Class<?> proxyProcClass = Class.forName(api.getName() + "$Processor");
-    Class<?> proxyIfaceClass = Class.forName(api.getName() + "$Iface");
+    // Wrap the implementation -- translate some exceptions
+    AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl);
 
-    @SuppressWarnings("unchecked")
-    Constructor<? extends TProcessor> proxyProcConstructor = (Constructor<? extends TProcessor>) proxyProcClass.getConstructor(proxyIfaceClass);
+    // Create the processor from the implementation
+    TProcessor processor = new AccumuloProxy.Processor<AccumuloProxy.Iface>(wrappedImpl);
 
-    final TProcessor processor = proxyProcConstructor.newInstance(TCredentialsUpdatingWrapper.service(RpcWrapper.service(impl), impl.getClass()));
+    // Get the type of thrift server to instantiate
+    final String serverTypeStr = properties.getProperty(THRIFT_SERVER_TYPE, THRIFT_SERVER_TYPE_DEFAULT);
+    ThriftServerType serverType = DEFAULT_SERVER_TYPE;
+    if (!THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
+      serverType = ThriftServerType.get(serverTypeStr);
+    }
 
-    THsHaServer.Args args = new THsHaServer.Args(socket);
-    args.processor(processor);
-    final long maxFrameSize = AccumuloConfiguration.getMemoryInBytes(properties.getProperty("maxFrameSize", "16M"));
-    if (maxFrameSize > Integer.MAX_VALUE)
-      throw new RuntimeException(maxFrameSize + " is larger than MAX_INT");
-    args.transportFactory(new TFramedTransport.Factory((int) maxFrameSize));
-    args.protocolFactory(protoClass.newInstance());
-    args.maxReadBufferBytes = maxFrameSize;
-    return new THsHaServer(args);
+    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    SslConnectionParams sslParams = null;
+    SaslConnectionParams saslParams = null;
+    switch (serverType) {
+      case SSL:
+        sslParams = SslConnectionParams.forClient(ClientContext.convertClientConfig(clientConf));
+        break;
+      case SASL:
+        saslParams = SaslConnectionParams.forConfig(clientConf);
+        if (null == saslParams) {
+          log.fatal("SASL thrift server was requested but it is disabled in client configuration");
+          throw new RuntimeException();
+        }
+
+        // Kerberos needs to be enabled to use it
+        if (!UserGroupInformation.isSecurityEnabled()) {
+          log.fatal("Hadoop security is not enabled");
+          throw new RuntimeException();
+        }
+
+        // Login via principal and keytab
+        final String kerberosPrincipal = properties.getProperty(KERBEROS_PRINCIPAL, ""),
+        kerberosKeytab = properties.getProperty(KERBEROS_KEYTAB, "");
+        if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
+          log.fatal("Kerberos principal and keytab must be provided");
+          throw new RuntimeException();
+        }
+        UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
+        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        log.info("Logged in as " + ugi.getUserName());
+
+        processor = new UGIAssumingProcessor(processor);
+
+        break;
+      default:
+        // nothing to do -- no extra configuration necessary
+        break;
+    }
+
+    // Hook up support for tracing for thrift calls
+    TimedProcessor timedProcessor = new TimedProcessor(metricsFactory, processor, serverName, threadName);
+
+    // Create the thrift server with our processor and properties
+    ServerAddress serverAddr = TServerUtils.startTServer(address, serverType, timedProcessor, serverName, threadName, numThreads, simpleTimerThreadpoolSize,
+        threadpoolResizeInterval, maxFrameSize, sslParams, saslParams, serverSocketTimeout);
+
+    return serverAddr;
   }
 }

@@ -43,7 +43,6 @@ import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.thrift.UGIAssumingProcessor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.security.SaslRpcServer;
@@ -149,9 +148,8 @@ public class TServerUtils {
           port = 1024 + port % (65535 - 1024);
         try {
           HostAndPort addr = HostAndPort.fromParts(hostname, port);
-          return TServerUtils.startTServer(addr, serverType, timedProcessor, serverName, threadName, minThreads,
-              simpleTimerThreadpoolSize, timeBetweenThreadChecks, maxMessageSize,
-              service.getServerSslParams(), service.getServerSaslParams(), service.getClientTimeoutInMillis());
+          return TServerUtils.startTServer(addr, serverType, timedProcessor, serverName, threadName, minThreads, simpleTimerThreadpoolSize,
+              timeBetweenThreadChecks, maxMessageSize, service.getServerSslParams(), service.getServerSaslParams(), service.getClientTimeoutInMillis());
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
           if (ex.getCause() == null || ex.getCause().getClass() == BindException.class) {
@@ -390,8 +388,7 @@ public class TServerUtils {
     }
 
     return new ServerAddress(new TThreadPoolServer(new TThreadPoolServer.Args(transport).transportFactory(ugiTransportFactory)
-        .processorFactory(clientInfoFactory)
-        .protocolFactory(ThriftUtil.protocolFactory())), address);
+        .processorFactory(clientInfoFactory).protocolFactory(ThriftUtil.protocolFactory())), address);
   }
 
   public static ServerAddress startTServer(AccumuloConfiguration conf, HostAndPort address, ThriftServerType serverType, TProcessor processor,
@@ -411,9 +408,9 @@ public class TServerUtils {
    *
    * @return A ServerAddress encapsulating the Thrift server created and the host/port which it is bound to.
    */
-  public static ServerAddress startTServer(HostAndPort address,ThriftServerType serverType, TimedProcessor processor, String serverName, String threadName, int numThreads,
-      int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize,  SslConnectionParams sslParams,
-      SaslConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
+  public static ServerAddress startTServer(HostAndPort address, ThriftServerType serverType, TimedProcessor processor, String serverName, String threadName,
+      int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, SaslConnectionParams saslParams,
+      long serverSocketTimeout) throws TTransportException {
 
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it would require changes in how the transports
     // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's quality of protection addresses privacy issues.

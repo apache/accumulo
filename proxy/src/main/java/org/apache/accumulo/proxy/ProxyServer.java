@@ -104,6 +104,8 @@ import org.apache.accumulo.proxy.thrift.ScanType;
 import org.apache.accumulo.proxy.thrift.UnknownScanner;
 import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
+import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -175,6 +177,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
   protected Cache<UUID,BatchWriterPlusException> writerCache;
   protected Cache<UUID,ConditionalWriter> conditionalWriterCache;
 
+  private final ThriftServerType serverType;
+
   public ProxyServer(Properties props) {
 
     String useMock = props.getProperty("useMockInstance");
@@ -190,6 +194,14 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
+
+    final String serverTypeStr = props.getProperty(Proxy.THRIFT_SERVER_TYPE, Proxy.THRIFT_SERVER_TYPE_DEFAULT);
+    ThriftServerType tempServerType = Proxy.DEFAULT_SERVER_TYPE;
+    if (!Proxy.THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
+      tempServerType = ThriftServerType.get(serverTypeStr);
+    }
+
+    serverType = tempServerType;
 
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
 
@@ -1526,14 +1538,24 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   @Override
   public ByteBuffer login(String principal, Map<String,String> loginProperties) throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+    if (ThriftServerType.SASL == serverType) {
+      String remoteUser = UGIAssumingProcessor.rpcPrincipal();
+      if (null == remoteUser || !remoteUser.equals(principal)) {
+        logger.error("Denying login from user " + remoteUser + " who attempted to log in as " + principal);
+        throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException("RPC principal did not match requested Accumulo principal");
+      }
+    }
+
     try {
       AuthenticationToken token = getToken(principal, loginProperties);
       ByteBuffer login = ByteBuffer.wrap((instance.getInstanceID() + "," + new Credentials(principal, token).serialize()).getBytes(UTF_8));
       getConnector(login); // check to make sure user exists
       return login;
     } catch (AccumuloSecurityException e) {
+      logger.error("Failed to login", e);
       throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
     } catch (Exception e) {
+      logger.error("Failed to login", e);
       throw new TException(e);
     }
   }
@@ -1544,9 +1566,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
     AuthenticationToken token;
     try {
       token = tokenClass.newInstance();
-    } catch (InstantiationException e) {
-      throw new AccumuloException(e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
+      logger.error("Error constructing authentication token", e);
       throw new AccumuloException(e);
     }
     token.init(props);

@@ -51,7 +51,7 @@ public class SaslConnectionParamsTest {
 
   @Test
   public void testNullParams() {
-    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    ClientConfiguration clientConf = new ClientConfiguration();
     AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
     assertEquals("false", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
     assertNull(SaslConnectionParams.forConfig(rpcConf));

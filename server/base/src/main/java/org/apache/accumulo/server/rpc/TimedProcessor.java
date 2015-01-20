@@ -37,9 +37,11 @@ public class TimedProcessor implements TProcessor {
   private long idleStart = 0;
 
   public TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName, String threadName) {
+    this(new MetricsFactory(conf), next, serverName, threadName);
+  }
+
+  public TimedProcessor(MetricsFactory factory, TProcessor next, String serverName, String threadName) {
     this.other = next;
-    // Register the metrics MBean
-    MetricsFactory factory = new MetricsFactory(conf);
     metrics = factory.createThriftMetrics(serverName, threadName);
     try {
       metrics.register();

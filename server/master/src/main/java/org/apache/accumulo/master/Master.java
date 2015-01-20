@@ -1095,7 +1095,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     Iface rpcProxy = RpcWrapper.service(clientHandler);
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
-      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass());
+      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(), getConfiguration());
       processor = new Processor<Iface>(tcredsProxy);
     } else {
       processor = new Processor<Iface>(rpcProxy);

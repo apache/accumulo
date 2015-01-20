@@ -20,8 +20,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.metrics2.MetricsSystem;
 
-import com.google.common.base.Preconditions;
-
 /**
  *
  */
@@ -31,9 +29,11 @@ public class MetricsFactory {
   private final MetricsSystem metricsSystem;
 
   public MetricsFactory(AccumuloConfiguration conf) {
-    Preconditions.checkNotNull(conf);
-    useOldMetrics = conf.getBoolean(Property.GENERAL_LEGACY_METRICS);
+    this(conf.getBoolean(Property.GENERAL_LEGACY_METRICS));
+  }
 
+  public MetricsFactory(boolean useOldMetrics) {
+    this.useOldMetrics = useOldMetrics;
     if (useOldMetrics) {
       metricsSystem = null;
     } else {

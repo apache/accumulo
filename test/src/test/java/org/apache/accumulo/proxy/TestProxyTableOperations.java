@@ -43,6 +43,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.net.HostAndPort;
+
 public class TestProxyTableOperations {
 
   protected static TServer proxy;
@@ -59,8 +61,7 @@ public class TestProxyTableOperations {
     prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
 
-    proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
-        port, TCompactProtocol.Factory.class, prop);
+    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
     thread = new Thread() {
       @Override
       public void run() {

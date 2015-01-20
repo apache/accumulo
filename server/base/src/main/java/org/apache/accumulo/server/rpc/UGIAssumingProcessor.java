@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public class UGIAssumingProcessor implements TProcessor {
   private static final Logger log = LoggerFactory.getLogger(UGIAssumingProcessor.class);
 
-  public static final ThreadLocal<String> principal = new ThreadLocal<String>();
+  public static final ThreadLocal<String> rpcPrincipal = new ThreadLocal<String>();
   private final TProcessor wrapped;
   private final UserGroupInformation loginUser;
 
@@ -56,8 +56,8 @@ public class UGIAssumingProcessor implements TProcessor {
   /**
    * The principal of the user who authenticated over SASL.
    */
-  public static String currentPrincipal() {
-    return principal.get();
+  public static String rpcPrincipal() {
+    return rpcPrincipal.get();
   }
 
   @Override
@@ -78,13 +78,13 @@ public class UGIAssumingProcessor implements TProcessor {
 
     try {
       // Set the principal in the ThreadLocal for access to get authorizations
-      principal.set(remoteUser);
+      rpcPrincipal.set(remoteUser);
 
       return wrapped.process(inProt, outProt);
     } finally {
       // Unset the principal after we're done using it just to be sure that it's not incorrectly
       // used in the same thread down the line.
-      principal.set(null);
+      rpcPrincipal.set(null);
     }
   }
 }
