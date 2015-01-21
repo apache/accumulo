@@ -275,7 +275,7 @@ public class Accumulo {
         UtilWaitThread.sleep(1000);
       }
     }
-    log.info("Zookeeper connected and initialized, attemping to talk to HDFS");
+    log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
     while (true) {
@@ -293,7 +293,7 @@ public class Accumulo {
             /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
             sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
           } else {
-            log.error("Unable to connect to HDFS and have exceeded max number of retries.", exception);
+            log.error("Unable to connect to HDFS and have exceeded the maximum number of retries.", exception);
             throw exception;
           }
           unknownHostTries--;
