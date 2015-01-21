@@ -184,6 +184,42 @@ something similar to the following in the application log.
 2015-01-07 11:57:56,830 [security.UserGroupInformation] INFO : Login successful for user accumulo/hostname@EXAMPLE.COM using keytab file /etc/security/keytabs/accumulo.service.keytab
 ----
 
+===== Impersonation
+
+Impersonation is functionality which allows a certain user to act as another. One direct application
+of this concept within Accumulo is the Thrift proxy. The Thrift proxy is configured to accept
+user requests and pass them onto Accumulo, enabling client access to Accumulo via any thrift-compatible
+language. When the proxy is running with SASL transports, this enforces that clients present a valid
+Kerberos identity to make a connection. In this situation, the Thrift proxy server does not have
+access to the secret key material in order to make a secure connection to Accumulo as the client,
+it can only connect to Accumulo as itself. Impersonation, in this context, refers to the ability
+of the proxy to authenticate to Accumulo as itself, but act on behalf of an Accumulo user.
+
+Accumulo supports basic impersonation of end-users by a third party via static rules in Accumulo's
+site configuration file.
+
+----
+<property>
+  <name>instance.rpc.sasl.impersonation.$PROXY_USER.users</name>
+  <value>*</value>
+</property>
+
+<property>
+  <name>instance.rpc.sasl.impersonation.$PROXY_USER.hosts</name>
+  <value>*</value>
+</property>
+----
+
+The value +$PROXY_USER+ is the Kerberos principal of the server which is acting on behalf of a user.
+Impersonation is enforced by the Kerberos principal and the host from which the RPC originated. Both
+of the above properties expects values which are comma-separated lists. The value of each user in the
+list should be the complete Kerberos principal of the user which the give +$PROXY_USER+ can impersonate,
+and each value of the hosts list should be the FQDN of the machine which the +$PROXY_USER+ can submit
+requests from.
+
+Both the hosts and users configuration properties also accept a value of +*+ to denote that any user or host
+is acceptable for +$PROXY_USER+.
+
 ==== Clients
 
 ===== Create client principal
