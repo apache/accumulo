@@ -37,9 +37,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
@@ -111,10 +110,10 @@ public class ExistingMacIT extends ConfigurableMacIT {
     File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_2");
     FileUtils.deleteQuietly(testDir2);
 
-    MiniAccumuloConfig macConfig2 = new MiniAccumuloConfig(testDir2, "notused");
+    MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
     macConfig2.useExistingInstance(new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
 
-    MiniAccumuloCluster accumulo2 = new MiniAccumuloCluster(macConfig2);
+    MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
     conn = accumulo2.getConnector("root", ROOT_PASSWORD);
@@ -152,12 +151,12 @@ public class ExistingMacIT extends ConfigurableMacIT {
     File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_3");
     FileUtils.deleteQuietly(testDir2);
 
-    MiniAccumuloConfig macConfig2 = new MiniAccumuloConfig(testDir2, "notused");
+    MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
     macConfig2.useExistingInstance(new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
 
     System.out.println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"));
 
-    MiniAccumuloCluster accumulo2 = new MiniAccumuloCluster(macConfig2);
+    MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     try {
       accumulo2.start();
       Assert.fail("A 2nd MAC instance should not be able to start over an existing MAC instance");

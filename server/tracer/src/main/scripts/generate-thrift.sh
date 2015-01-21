@@ -22,3 +22,8 @@ PACKAGES_TO_GENERATE=(tracer)
 
 . ../../core/src/main/scripts/generate-thrift.sh
 
+# Ensure serialVersionUID stays the same for all 1.6.x versions (see ACCUMULO-3433, ACCUMULO-3132)
+sed -i -e 's/\(public class TInfo .*\)$/\1\
+\
+  private static final long serialVersionUID = -4659975753252858243l; \/\/ See ACCUMULO-3132\
+ /' src/main/java/org/apache/accumulo/trace/thrift/TInfo.java
