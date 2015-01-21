@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,7 +34,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -73,6 +71,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -677,11 +676,14 @@ public class Initialize {
   }
 
   private static void addVolumes(VolumeManager fs) throws IOException {
+
+    String[] volumeURIs = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+
     HashSet<String> initializedDirs = new HashSet<String>();
-    initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), true)));
+    initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(volumeURIs, true)));
 
     HashSet<String> uinitializedDirs = new HashSet<String>();
-    uinitializedDirs.addAll(Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
+    uinitializedDirs.addAll(Arrays.asList(volumeURIs));
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
@@ -689,6 +691,12 @@ public class Initialize {
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
+    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
+      if (aBasePath.equals(replacementVolume.getSecond()))
+        log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS + " and should not appear in " +
+            Property.INSTANCE_VOLUMES + ". It is highly recommended that this property be removed as data could still be written to this volume.");
+    }
+
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version " + Accumulo.getAccumuloPersistentVersion(fs));
