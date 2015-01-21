@@ -116,7 +116,7 @@ public class ExistingMacIT extends ConfigurableMacIT {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
-    conn = accumulo2.getConnector("root", ROOT_PASSWORD);
+    conn = accumulo2.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
     Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
 
