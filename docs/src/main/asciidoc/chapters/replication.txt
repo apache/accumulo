@@ -362,22 +362,18 @@ While there are changes that could be made to the replication implementation whi
 presently, it is not recommended to configure Iterators or Combiners which are not idempotent to support cases where
 inaccuracy of aggregations is not acceptable.
 
-==== Server-Assigned Timestamps
+==== Duplicate Keys
 
-Accumulo has the ability to, when not provided by the client, assign a timestamp to updates made to a table. This is a
-very useful feature as it reduces the amount of code a client must write and also gives some notion of ordering to the
-updates that were made to a table (in addition to some solving some very problematic Accumulo implementation details).
-However, replicating Mutations that were created with a server-assigned timestamp can be very problematic. To understand
-this, we must first start at the BatchWriter.
+In Accumulo, when more than one key exists that are exactly the same, keys that are equal down to the timestamp,
+the retained value is non-deterministic. Replication introduces another level of non-determinism in this case.
+For a table that is being replicated and has multiple equal keys with different values inserted into it, the final
+value in that table on the primary instance is not guaranteed to be the final value on all replicas.
 
-To allow for efficient ingest into Accumulo, the BatchWriter will collect many mutations, group them into batches and
-send them to the correct server to be applied to the appropriate Tablet. For each Mutation in that batch that the server
-receives, the server will set a timestamp that is at least as large as the last timestamp (to account for clock skew). In short,
-this means that all of the Mutations in this batch will get the same timestamp and be deduplicated in a certain order
-via the in-memory map and recorded in the write-ahead log.
+For example, say the values that were inserted on the primary instance were +value1+ and +value2+ and the final
+value was +value1+, it is not guaranteed that all replicas will have +value1+ like the primary. The final value is
+non-deterministic for each instance.
 
-The problem is that these updates could be replayed on the remote in different commit sessions, which means that they
-could result in different RFiles on disk (separate minor-compactions). Because of this, mutations with server-assigned
-timestamps which are written within the same batch have the possibility to be applied in a different order on a peer. In
-the case where a user might submit multiple updates for the same Key in rapid succession, the user should ensure proper
-timestamps are set at the client.
+As is the recommendation without replication enabled, if multiple values for the same key (sans timestamp) are written to
+Accumulo, it is strongly recommended that the value in the timestamp properly reflects the intended version by
+the client. That is to say, newer values inserted into the table should have larger timestamps. If the time between
+writing updates to the same key is significant (order minutes), this concern can likely be ignored.
