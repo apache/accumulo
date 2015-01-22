@@ -42,6 +42,7 @@ import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.proxy.Proxy;
+import org.apache.accumulo.proxy.ProxyServer;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
@@ -60,11 +61,15 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +78,9 @@ import org.slf4j.LoggerFactory;
  */
 public class KerberosProxyIT extends AccumuloIT {
   private static final Logger log = LoggerFactory.getLogger(KerberosProxyIT.class);
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   private static TestingKdc kdc;
   private static String krbEnabledForITs = null;
@@ -284,7 +292,7 @@ public class KerberosProxyIT extends AccumuloIT {
     ugiTransport.close();
   }
 
-  @Test(expected = AccumuloSecurityException.class)
+  @Test
   public void testDisallowedClientForImpersonation() throws Exception {
     String user = testName.getMethodName();
     File keytab = new File(kdc.getKeytabDir(), user + ".keytab");
@@ -295,6 +303,16 @@ public class KerberosProxyIT extends AccumuloIT {
     UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
 
     log.info("Logged in as " + ugi);
+
+    // Expect an AccumuloSecurityException
+    thrown.expect(AccumuloSecurityException.class);
+    // Error msg would look like:
+    //
+    // org.apache.accumulo.core.client.AccumuloSecurityException: Error BAD_CREDENTIALS for user Principal in credentials object should match kerberos
+    // principal.
+    // Expected 'proxy/hw10447.local@EXAMPLE.COM' but was 'testDisallowedClientForImpersonation@EXAMPLE.COM' - Username or Password is Invalid)
+    thrown.expect(new ThriftExceptionMatchesPattern(".*Error BAD_CREDENTIALS.*"));
+    thrown.expect(new ThriftExceptionMatchesPattern(".*Expected '" + proxyPrincipal + "' but was '" + kdc.qualifyUser(user) + "'.*"));
 
     TSocket socket = new TSocket(hostname, proxyPort);
     log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
@@ -321,8 +339,12 @@ public class KerberosProxyIT extends AccumuloIT {
     }
   }
 
-  @Test(expected = AccumuloSecurityException.class)
+  @Test
   public void testMismatchPrincipals() throws Exception {
+    // Should get an AccumuloSecurityException and the given message
+    thrown.expect(AccumuloSecurityException.class);
+    thrown.expect(new ThriftExceptionMatchesPattern(ProxyServer.RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG));
+
     // Make a new user
     String user = testName.getMethodName();
     File keytab = new File(kdc.getKeytabDir(), user + ".keytab");
@@ -357,6 +379,29 @@ public class KerberosProxyIT extends AccumuloIT {
       if (null != ugiTransport) {
         ugiTransport.close();
       }
+    }
+  }
+
+  private static class ThriftExceptionMatchesPattern extends TypeSafeMatcher<AccumuloSecurityException> {
+    private String pattern;
+
+    public ThriftExceptionMatchesPattern(String pattern) {
+      this.pattern = pattern;
+    }
+
+    @Override
+    protected boolean matchesSafely(AccumuloSecurityException item) {
+      return item.isSetMsg() && item.msg.matches(pattern);
+    }
+
+    @Override
+    public void describeTo(Description description) {
+      description.appendText("matches pattern ").appendValue(pattern);
+    }
+
+    @Override
+    protected void describeMismatchSafely(AccumuloSecurityException item, Description mismatchDescription) {
+      mismatchDescription.appendText("does not match");
     }
   }
 }

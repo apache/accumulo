@@ -123,6 +123,7 @@ import com.google.common.cache.RemovalNotification;
 public class ProxyServer implements AccumuloProxy.Iface {
 
   public static final Logger logger = Logger.getLogger(ProxyServer.class);
+  public static final String RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG = "RPC principal did not match requested Accumulo principal";
   protected Instance instance;
 
   protected Class<? extends AuthenticationToken> tokenClass;
@@ -1542,7 +1543,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       String remoteUser = UGIAssumingProcessor.rpcPrincipal();
       if (null == remoteUser || !remoteUser.equals(principal)) {
         logger.error("Denying login from user " + remoteUser + " who attempted to log in as " + principal);
-        throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException("RPC principal did not match requested Accumulo principal");
+        throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG);
       }
     }
 
