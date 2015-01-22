@@ -26,4 +26,4 @@ PACKAGES_TO_GENERATE=(tracer)
 sed -i -e 's/\(public class TInfo .*\)$/\1\
 \
   private static final long serialVersionUID = -4659975753252858243l; \/\/ See ACCUMULO-3132\
- /' src/main/java/org/apache/accumulo/trace/thrift/TInfo.java
+/' src/main/java/org/apache/accumulo/trace/thrift/TInfo.java
