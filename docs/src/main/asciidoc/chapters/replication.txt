@@ -377,3 +377,13 @@ As is the recommendation without replication enabled, if multiple values for the
 Accumulo, it is strongly recommended that the value in the timestamp properly reflects the intended version by
 the client. That is to say, newer values inserted into the table should have larger timestamps. If the time between
 writing updates to the same key is significant (order minutes), this concern can likely be ignored.
+
+==== Bulk Imports
+
+Currently, files that are bulk imported into a table configured for replication are not replicated. There is no
+technical reason why it was not implemented, it was simply omitted from the initial implementation. This is considered a
+fair limitation because bulk importing generated files multiple locations is much simpler than bifurcating "live" ingest
+data into two instances. Given some existing bulk import process which creates files and them imports them into an
+Accumulo instance, it is trivial to copy those files to a new HDFS instance and import them into another Accumulo
+instance using the same process. Hadoop's +distcp+ command provides an easy way to copy large amounts of data to another
+HDFS instance which makes the problem of duplicating bulk imports very easy to solve.
