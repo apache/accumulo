@@ -264,10 +264,10 @@ public class UserImpersonationTest {
     UsersWithHosts uwh = impersonation.get(server);
 
     assertNotNull(uwh);
-    
+
     assertTrue(uwh.acceptsAllHosts());
     assertFalse(uwh.acceptsAllUsers());
-    
+
     assertTrue(uwh.getUsers().contains(client));
   }
 }
