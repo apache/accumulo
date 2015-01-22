@@ -19,6 +19,7 @@ package org.apache.accumulo.core.rpc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
 import javax.security.sasl.Sasl;
@@ -37,7 +38,8 @@ import org.junit.Test;
 
 public class SaslConnectionParamsTest {
 
-  private String user;
+  private UserGroupInformation testUser;
+  private String username;
 
   @Before
   public void setup() throws Exception {
@@ -46,7 +48,8 @@ public class SaslConnectionParamsTest {
     Configuration conf = new Configuration(false);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
     UserGroupInformation.setConfiguration(conf);
-    user = UserGroupInformation.getCurrentUser().getUserName();
+    testUser = UserGroupInformation.createUserForTesting("test_user", new String[0]);
+    username = testUser.getUserName();
   }
 
   @Test
@@ -59,47 +62,59 @@ public class SaslConnectionParamsTest {
 
   @Test
   public void testDefaultParamsAsClient() throws Exception {
-    final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    testUser.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
 
-    // The primary is the first component of the principal
-    final String primary = "accumulo";
-    clientConf.withSasl(true, primary);
+        // The primary is the first component of the principal
+        final String primary = "accumulo";
+        clientConf.withSasl(true, primary);
 
-    assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
 
-    final SaslConnectionParams saslParams = SaslConnectionParams.forConfig(clientConf);
-    assertEquals(primary, saslParams.getKerberosServerPrimary());
+        final SaslConnectionParams saslParams = SaslConnectionParams.forConfig(clientConf);
+        assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-    final QualityOfProtection defaultQop = QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
-    assertEquals(defaultQop, saslParams.getQualityOfProtection());
+        final QualityOfProtection defaultQop = QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
+        assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
-    Map<String,String> properties = saslParams.getSaslProperties();
-    assertEquals(1, properties.size());
-    assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
-    assertEquals(user, saslParams.getPrincipal());
+        Map<String,String> properties = saslParams.getSaslProperties();
+        assertEquals(1, properties.size());
+        assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
+        assertEquals(username, saslParams.getPrincipal());
+        return null;
+      }
+    });
   }
 
   @Test
   public void testDefaultParamsAsServer() throws Exception {
-    final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    testUser.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
 
-    // The primary is the first component of the principal
-    final String primary = "accumulo";
-    clientConf.withSasl(true, primary);
+        // The primary is the first component of the principal
+        final String primary = "accumulo";
+        clientConf.withSasl(true, primary);
 
-    final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-    assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+        final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
+        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
 
-    final SaslConnectionParams saslParams = SaslConnectionParams.forConfig(rpcConf);
-    assertEquals(primary, saslParams.getKerberosServerPrimary());
+        final SaslConnectionParams saslParams = SaslConnectionParams.forConfig(rpcConf);
+        assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-    final QualityOfProtection defaultQop = QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
-    assertEquals(defaultQop, saslParams.getQualityOfProtection());
+        final QualityOfProtection defaultQop = QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
+        assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
-    Map<String,String> properties = saslParams.getSaslProperties();
-    assertEquals(1, properties.size());
-    assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
-    assertEquals(user, saslParams.getPrincipal());
+        Map<String,String> properties = saslParams.getSaslProperties();
+        assertEquals(1, properties.size());
+        assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
+        assertEquals(username, saslParams.getPrincipal());
+        return null;
+      }
+    });
   }
 
 }
