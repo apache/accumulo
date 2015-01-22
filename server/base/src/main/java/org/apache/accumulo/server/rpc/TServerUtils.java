@@ -360,8 +360,7 @@ public class TServerUtils {
    * @return A ServerAddress with the bound-socket information and the Thrift server
    */
   public static ServerAddress createSslThreadPoolServer(HostAndPort address, TProcessor processor, long socketTimeout, SslConnectionParams sslParams,
-      String serverName, int numThreads, int numSimpleTimerThreads, long timeBetweenThreadChecks)
-      throws TTransportException {
+      String serverName, int numThreads, int numSimpleTimerThreads, long timeBetweenThreadChecks) throws TTransportException {
     TServerSocket transport;
     try {
       transport = getSslServerSocket(address.getPort(), (int) socketTimeout, InetAddress.getByName(address.getHostText()), sslParams);
@@ -383,14 +382,25 @@ public class TServerUtils {
     // We'd really prefer to use THsHaServer (or similar) to avoid 1 RPC == 1 Thread that the TThreadPoolServer does,
     // but sadly this isn't the case. Because TSaslTransport needs to issue a handshake when it open()'s which will fail
     // when the server does an accept() to (presumably) wake up the eventing system.
-    log.info("Creating SASL thread pool thrift server on port=" + address.getPort());
+    log.info("Creating SASL thread pool thrift server on listening on {}:{}", address.getHostText(), address.getPort());
     TServerSocket transport = new TServerSocket(address.getPort(), (int) socketTimeout);
 
-    final String hostname;
+    final String hostname, fqdn;
     try {
       hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
+      fqdn = InetAddress.getLocalHost().getCanonicalHostName();
     } catch (UnknownHostException e) {
       throw new TTransportException(e);
+    }
+
+    // ACCUMULO-3497 an easy sanity check we can perform for the user when SASL is enabled. Clients and servers have to agree upon the FQDN
+    // so that the SASL handshake can occur. If the provided hostname doesn't match the FQDN for this host, fail quickly and inform them to update
+    // their configuration.
+    if (!hostname.equals(fqdn)) {
+      log.error(
+          "Expected hostname of '{}' but got '{}'. Ensure the entries in the Accumulo hosts files (e.g. masters, slaves) are the FQDN for each host when using SASL.",
+          fqdn, hostname);
+      throw new RuntimeException("SASL requires that the address the thrift server listens on is the same as the FQDN for this host");
     }
 
     final UserGroupInformation serverUser;
@@ -413,6 +423,7 @@ public class TServerUtils {
     TTransportFactory ugiTransportFactory = new UGIAssumingTransportFactory(saslTransportFactory, serverUser);
 
     if (address.getPort() == 0) {
+      // If we chose a port dynamically, make a new use it (along with the proper hostname)
       address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
     }
 
