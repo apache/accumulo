@@ -94,6 +94,11 @@ public class KerberosIT extends AccumuloIT {
     }
   }
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60 * 5;
+  }
+
   private MiniAccumuloClusterImpl mac;
 
   @Before
