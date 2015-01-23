@@ -396,7 +396,7 @@ public class TServerUtils {
     // ACCUMULO-3497 an easy sanity check we can perform for the user when SASL is enabled. Clients and servers have to agree upon the FQDN
     // so that the SASL handshake can occur. If the provided hostname doesn't match the FQDN for this host, fail quickly and inform them to update
     // their configuration.
-    if (!hostname.equals(fqdn)) {
+    if (!"0.0.0.0".equals(hostname) && !hostname.equals(fqdn)) {
       log.error(
           "Expected hostname of '{}' but got '{}'. Ensure the entries in the Accumulo hosts files (e.g. masters, slaves) are the FQDN for each host when using SASL.",
           fqdn, hostname);
@@ -425,6 +425,7 @@ public class TServerUtils {
     if (address.getPort() == 0) {
       // If we chose a port dynamically, make a new use it (along with the proper hostname)
       address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+      log.info("SASL thrift server bound on {}", address);
     }
 
     ThreadPoolExecutor pool = createSelfResizingThreadPool(serverName, numThreads, numSTThreads, timeBetweenThreadChecks);
