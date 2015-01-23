@@ -232,8 +232,8 @@ public class Proxy {
     TimedProcessor timedProcessor = new TimedProcessor(metricsFactory, processor, serverName, threadName);
 
     // Create the thrift server with our processor and properties
-    ServerAddress serverAddr = TServerUtils.startTServer(address, serverType, timedProcessor, serverName, threadName, numThreads, simpleTimerThreadpoolSize,
-        threadpoolResizeInterval, maxFrameSize, sslParams, saslParams, serverSocketTimeout);
+    ServerAddress serverAddr = TServerUtils.startTServer(address, serverType, timedProcessor, protocolFactory, serverName, threadName, numThreads,
+        simpleTimerThreadpoolSize, threadpoolResizeInterval, maxFrameSize, sslParams, saslParams, serverSocketTimeout);
 
     return serverAddr;
   }

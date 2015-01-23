@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -108,7 +107,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -120,13 +118,12 @@ import com.google.common.net.HostAndPort;
 /**
  * Call every method on the proxy and try to verify that it works.
  */
-public class SimpleProxyIT {
+public abstract class SimpleProxyBase {
 
-  public static File macTestFolder = new File(System.getProperty("user.dir") + "/target/" + SimpleProxyIT.class.getName());
+  public static File macTestFolder = new File(System.getProperty("user.dir") + "/target/" + SimpleProxyBase.class.getName());
 
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
-  private static Random random = new Random();
   private static TServer proxyServer;
   private static Thread thread;
   private static int proxyPort;
@@ -142,18 +139,16 @@ public class SimpleProxyIT {
   };
   private static ByteBuffer creds = null;
 
-  private static TProtocolFactory protocol;
-
-  static TProtocolFactory getRandomProtocol() throws InstantiationException, IllegalAccessException {
-    List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
-    protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
-    protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
-    protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
-    protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
-
-    Class<? extends TProtocolFactory> clz = protocolFactories.get(random.nextInt(protocolFactories.size()));
-    return clz.newInstance();
-  }
+  // static TProtocolFactory getRandomProtocol() throws InstantiationException, IllegalAccessException {
+  // List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
+  // protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
+  // protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
+  // protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
+  // protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
+  //
+  // Class<? extends TProtocolFactory> clz = protocolFactories.get(random.nextInt(protocolFactories.size()));
+  // return clz.newInstance();
+  // }
 
   private static final AtomicInteger tableCounter = new AtomicInteger(0);
 
@@ -179,8 +174,7 @@ public class SimpleProxyIT {
     return new Timeout(waitLonger * 60 * 1000);
   }
 
-  @BeforeClass
-  public static void setupMiniCluster() throws Exception {
+  public static void setupMiniCluster(TProtocolFactory protocol) throws Exception {
     FileUtils.deleteQuietly(macTestFolder);
     macTestFolder.mkdirs();
     MiniAccumuloConfig config = new MiniAccumuloConfig(macTestFolder, secret).setNumTservers(1);
@@ -197,8 +191,6 @@ public class SimpleProxyIT {
     props.put("instance", accumulo.getConfig().getInstanceName());
     props.put("zookeepers", accumulo.getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
-
-    protocol = getRandomProtocol();
 
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
@@ -225,6 +217,8 @@ public class SimpleProxyIT {
     accumulo.stop();
     FileUtils.deleteQuietly(macTestFolder);
   }
+
+  public abstract TProtocolFactory getProtocol();
 
   @Test
   public void security() throws Exception {
@@ -833,7 +827,7 @@ public class SimpleProxyIT {
       public void run() {
         String scanner;
         try {
-          Client client2 = new TestProxyClient("localhost", proxyPort, protocol).proxy();
+          Client client2 = new TestProxyClient("localhost", proxyPort, getProtocol()).proxy();
           scanner = client2.createScanner(creds, "slow", null);
           client2.nextK(scanner, 10);
           client2.closeScanner(scanner);
@@ -887,7 +881,7 @@ public class SimpleProxyIT {
       @Override
       public void run() {
         try {
-          Client client2 = new TestProxyClient("localhost", proxyPort, protocol).proxy();
+          Client client2 = new TestProxyClient("localhost", proxyPort, getProtocol()).proxy();
           client2.compactTable(creds, "slow", null, null, null, true, true, null);
         } catch (Exception e) {
           throw new RuntimeException(e);
