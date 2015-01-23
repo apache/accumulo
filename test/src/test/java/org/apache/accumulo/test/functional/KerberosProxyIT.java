@@ -87,6 +87,11 @@ public class KerberosProxyIT extends AccumuloIT {
   private static File proxyKeytab;
   private static String hostname, proxyPrimary, proxyPrincipal;
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60 * 5;
+  }
+
   @BeforeClass
   public static void startKdc() throws Exception {
     kdc = new TestingKdc();
