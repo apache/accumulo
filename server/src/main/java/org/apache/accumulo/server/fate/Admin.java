@@ -17,7 +17,9 @@
 package org.apache.accumulo.server.fate;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
@@ -41,8 +43,8 @@ import com.beust.jcommander.Parameters;
 public class Admin {
 
   static class TxOpts {
-    @Parameter(description = "<txid>", required = true)
-    List<String> args = new ArrayList<String>();
+    @Parameter(description = "<txid>...", required = true)
+    List<String> txids = new ArrayList<String>();
   }
 
   @Parameters(commandDescription = "Stop an existing FATE by transaction id")
@@ -58,8 +60,12 @@ public class Admin {
     Help opts = new Help();
     JCommander jc = new JCommander(opts);
     jc.setProgramName(Admin.class.getName());
-    jc.addCommand("fail", new FailOpts());
-    jc.addCommand("delete", new DeleteOpts());
+    LinkedHashMap<String,TxOpts> txOpts = new LinkedHashMap<String,TxOpts>(2);
+    txOpts.put("fail", new FailOpts());
+    txOpts.put("delete", new DeleteOpts());
+    for (Entry<String,TxOpts> entry : txOpts.entrySet()) {
+      jc.addCommand(entry.getKey(), entry.getValue());
+    }
     jc.addCommand("print", new PrintOpts());
     jc.parse(args);
     if (opts.help || jc.getParsedCommand() == null) {
@@ -76,14 +82,18 @@ public class Admin {
     ZooStore<Master> zs = new ZooStore<Master>(path, zk);
 
     if (jc.getParsedCommand().equals("fail")) {
-      if (!admin.prepFail(zs, zk, masterPath, args[1])) {
-        System.exit(1);
+      for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
+        if (!admin.prepFail(zs, zk, masterPath, txid)) {
+          System.exit(1);
+        }
       }
     } else if (jc.getParsedCommand().equals("delete")) {
-      if (!admin.prepDelete(zs, zk, masterPath, args[1])) {
-        System.exit(1);
+      for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
+        if (!admin.prepDelete(zs, zk, masterPath, txid)) {
+          System.exit(1);
+        }
+        admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, txid);
       }
-      admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, args[1]);
     } else if (jc.getParsedCommand().equals("print")) {
       admin.print(new ReadOnlyStore<Master>(zs), zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);
     }
