@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -71,6 +72,10 @@ public class GroupBalancerTest {
     }
 
     public void balance() {
+      balance(10000);
+    }
+
+    public void balance(final int maxMigrations) {
       GroupBalancer balancer = new GroupBalancer("1") {
 
         @Override
@@ -94,12 +99,17 @@ public class GroupBalancerTest {
         protected long getWaitTime() {
           return 0;
         }
+
+        @Override
+        protected int getMaxMigrations() {
+          return maxMigrations;
+        }
       };
 
-      balance(balancer);
+      balance(balancer, maxMigrations);
     }
 
-    public void balance(TabletBalancer balancer) {
+    public void balance(TabletBalancer balancer, int maxMigrations) {
 
       while (true) {
         Set<KeyExtent> migrations = new HashSet<>();
@@ -111,6 +121,8 @@ public class GroupBalancerTest {
         }
 
         balancer.balance(current, migrations, migrationsOut);
+
+        Assert.assertTrue("Max Migration exceeded " + maxMigrations + " " + migrationsOut.size(), migrationsOut.size() <= (maxMigrations + 5));
 
         for (TabletMigration tabletMigration : migrationsOut) {
           Assert.assertEquals(tabletLocs.get(tabletMigration.tablet), tabletMigration.oldServer);
@@ -163,7 +175,8 @@ public class GroupBalancerTest {
         int tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
           Assert.assertTrue(tgc.get(group) >= expectedCounts.get(group));
-          Assert.assertTrue(tgc.get(group) <= expectedCounts.get(group) + 1);
+          Assert.assertTrue("Group counts not as expected group:" + group + " actual:" + tgc.get(group) + " expected:" + (expectedCounts.get(group) + 1)
+              + " tserver:" + entry.getKey(), tgc.get(group) <= expectedCounts.get(group) + 1);
           tserverExtra += tgc.get(group) - expectedCounts.get(group);
         }
 
@@ -281,5 +294,65 @@ public class GroupBalancerTest {
         tservers.balance();
       }
     }
+  }
+
+  @Test
+  public void testMaxMigrations() {
+
+    for (int max : new int[] {1, 2, 3, 7, 10, 30}) {
+      TabletServers tservers = new TabletServers();
+
+      for (int i = 1; i <= 9; i++) {
+        tservers.addTablet("01" + i, "192.168.1.1:9997");
+      }
+
+      for (int i = 1; i <= 4; i++) {
+        tservers.addTablet("02" + i, "192.168.1.2:9997");
+      }
+
+      for (int i = 1; i <= 5; i++) {
+        tservers.addTablet("03" + i, "192.168.1.3:9997");
+      }
+
+      tservers.addTservers("192.168.1.4:9997", "192.168.1.5:9997");
+
+      tservers.balance(max);
+    }
+  }
+
+  @Test
+  public void bigTest() {
+    TabletServers tservers = new TabletServers();
+    Random rand = new Random(42);
+
+    for (int g = 1; g <= 60; g++) {
+      for (int t = 1; t <= 241; t++) {
+        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
+      }
+    }
+
+    for (int i = 1; i <= 250; i++) {
+      tservers.addTserver("192.168.1." + i + ":9997");
+    }
+
+    tservers.balance(1000);
+  }
+
+  @Test
+  public void bigTest2() {
+    TabletServers tservers = new TabletServers();
+    Random rand = new Random(42);
+
+    for (int g = 1; g <= 60; g++) {
+      for (int t = 1; t <= rand.nextInt(1000); t++) {
+        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
+      }
+    }
+
+    for (int i = 1; i <= 250; i++) {
+      tservers.addTserver("192.168.1." + i + ":9997");
+    }
+
+    tservers.balance(1000);
   }
 }
