@@ -35,8 +35,6 @@ import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.log4j.Logger;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 /**
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for changes in any of the files/directories that are in the
  * classpath and will recreate the delegate object if there is any change in the classpath.
@@ -58,7 +56,16 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private final ThreadPoolExecutor executor;
   {
     BlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(2);
-    ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).build();
+    ThreadFactory factory = new ThreadFactory() {
+
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+      }
+
+    };
     executor = new ThreadPoolExecutor(1, 1, 1, SECONDS, queue, factory);
   }
 
