@@ -17,10 +17,13 @@
 package org.apache.accumulo.fate;
 
 import java.util.EnumSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.util.Daemon;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.log4j.Logger;
 
@@ -41,6 +44,7 @@ public class Fate<T> {
 
   private TStore<T> store;
   private T environment;
+  private ExecutorService executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
@@ -154,10 +158,19 @@ public class Fate<T> {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(int numThreads) {
+    final AtomicInteger runnerCount = new AtomicInteger(0);
+    executor = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
+
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread t = new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
+        t.setDaemon(true);
+        return t;
+      }
+
+    });
     for (int i = 0; i < numThreads; i++) {
-      // TODO: use an ExecutorService, maybe a utility to do these steps throughout the server packages - ACCUMULO-1311
-      Thread thread = new Daemon(new LoggingRunnable(log, new TransactionRunner()), "Repo runner " + i);
-      thread.start();
+      executor.execute(new TransactionRunner());
     }
   }
 
@@ -250,6 +263,7 @@ public class Fate<T> {
    */
   public void shutdown() {
     keepRunning.set(false);
+    executor.shutdown();
   }
 
 }
