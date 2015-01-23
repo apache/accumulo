@@ -26,9 +26,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.htrace.Span;
-import org.htrace.Tracer;
-
 public class TraceExecutorService implements ExecutorService {
 
   private final ExecutorService impl;
@@ -109,15 +106,5 @@ public class TraceExecutorService implements ExecutorService {
   public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException,
       TimeoutException {
     return impl.invokeAny(wrapCollection(tasks), timeout, unit);
-  }
-
-  /**
-   * Finish a given trace and set the span for the current thread to null.
-   */
-  public static void endThread(Span span) {
-    if (span != null) {
-      span.stop();
-      Tracer.getInstance().continueSpan(null);
-    }
   }
 }

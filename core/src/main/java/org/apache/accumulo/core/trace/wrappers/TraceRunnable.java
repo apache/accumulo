@@ -51,7 +51,7 @@ public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
       try {
         runnable.run();
       } finally {
-        TraceExecutorService.endThread(chunk.getSpan());
+        chunk.close();
       }
     } else {
       runnable.run();

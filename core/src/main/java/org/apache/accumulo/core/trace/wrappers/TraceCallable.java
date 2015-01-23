@@ -52,7 +52,7 @@ public class TraceCallable<V> implements Callable<V> {
       try {
         return impl.call();
       } finally {
-        TraceExecutorService.endThread(chunk.getSpan());
+        chunk.close();
       }
     } else {
       return impl.call();

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.trace.instrument;
 
-import org.apache.accumulo.core.trace.wrappers.TraceExecutorService;
 import org.apache.accumulo.trace.thrift.TInfo;
 
 /**
@@ -65,7 +64,10 @@ public class Trace extends org.apache.accumulo.core.trace.Trace {
 
   // Stop a trace in this thread, starting now
   public static void endThread(Span span) {
-    TraceExecutorService.endThread(span.getSpan());
+    if (span != null) {
+      span.stop();
+      org.htrace.Tracer.getInstance().continueSpan(null);
+    }
   }
 
   // Wrap the runnable in a new span, if tracing

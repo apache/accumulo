@@ -19,7 +19,6 @@ package org.apache.accumulo.core.util;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.trace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ public class NamingThreadFactory implements ThreadFactory {
   }
 
   public Thread newThread(Runnable r) {
-    return new Daemon(new LoggingRunnable(log, new TraceRunnable(r)), name + " " + threadNum.getAndIncrement());
+    return new Daemon(new LoggingRunnable(log, r), name + " " + threadNum.getAndIncrement());
   }
 
 }
