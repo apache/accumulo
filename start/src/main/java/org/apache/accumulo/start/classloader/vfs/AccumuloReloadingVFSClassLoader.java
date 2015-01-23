@@ -16,8 +16,15 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
@@ -27,6 +34,8 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.log4j.Logger;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for changes in any of the files/directories that are in the
@@ -38,15 +47,49 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private static final Logger log = Logger.getLogger(AccumuloReloadingVFSClassLoader.class);
 
   // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking the name node for info too frequently.
-  private static final int DEFAULT_TIMEOUT = 300000;
+  private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
 
-  private String uris;
   private FileObject[] files;
-  private FileSystemManager vfs = null;
-  private ReloadingClassLoader parent = null;
-  private DefaultFileMonitor monitor = null;
-  private VFSClassLoader cl = null;
-  private boolean preDelegate;
+  private VFSClassLoader cl;
+  private final ReloadingClassLoader parent;
+  private final String uris;
+  private final DefaultFileMonitor monitor;
+  private final boolean preDelegate;
+  private final ThreadPoolExecutor executor;
+  {
+    BlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(2);
+    ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).build();
+    executor = new ThreadPoolExecutor(1, 1, 1, SECONDS, queue, factory);
+  }
+
+  private final Runnable refresher = new Runnable() {
+    @Override
+    public void run() {
+      while (!executor.isTerminating()) {
+        try {
+          FileSystemManager vfs = AccumuloVFSClassLoader.generateVfs();
+          FileObject[] files = AccumuloVFSClassLoader.resolve(vfs, uris);
+
+          log.debug("Rebuilding dynamic classloader using files- " + stringify(files));
+
+          VFSClassLoader cl;
+          if (preDelegate)
+            cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+          else
+            cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
+          updateClassloader(files, cl);
+          return;
+        } catch (Exception e) {
+          log.error(e.getMessage(), e);
+          try {
+            Thread.sleep(DEFAULT_TIMEOUT);
+          } catch (InterruptedException ie) {
+            log.error(e.getMessage(), ie);
+          }
+        }
+      }
+    }
+  };
 
   public String stringify(FileObject[] files) {
     StringBuilder sb = new StringBuilder();
@@ -63,36 +106,29 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   @Override
   public synchronized ClassLoader getClassLoader() {
-    if (cl == null || cl.getParent() != parent.getClassLoader()) {
-      try {
-        vfs = AccumuloVFSClassLoader.generateVfs();
-        files = AccumuloVFSClassLoader.resolve(vfs, uris);
-
-        log.debug("Rebuilding dynamic classloader using files- " + stringify(files));
-
-        if (preDelegate)
-          cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
-        else
-          cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
-
-      } catch (FileSystemException fse) {
-        throw new RuntimeException(fse);
-      }
+    if (cl.getParent() != parent.getClassLoader()) {
+      scheduleRefresh();
     }
-
     return cl;
   }
 
-  private synchronized void setClassloader(VFSClassLoader cl) {
-    this.cl = cl;
+  private void scheduleRefresh() {
+    try {
+      executor.execute(refresher);
+    } catch (RejectedExecutionException e) {
+      log.trace("Ignoring refresh request (already refreshing)");
+    }
+  }
 
+  private synchronized void updateClassloader(FileObject[] files, VFSClassLoader cl) {
+    this.files = files;
+    this.cl = cl;
   }
 
   public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ReloadingClassLoader parent, long monitorDelay, boolean preDelegate)
       throws FileSystemException {
 
     this.uris = uris;
-    this.vfs = vfs;
     this.parent = parent;
     this.preDelegate = preDelegate;
 
@@ -126,25 +162,29 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
    * Should be ok if this is not called because the thread started by DefaultFileMonitor is a daemon thread
    */
   public void close() {
+    executor.shutdownNow();
     monitor.stop();
   }
 
+  @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
       log.debug(event.getFile().getURL().toString() + " created, recreating classloader");
-    setClassloader(null);
+    scheduleRefresh();
   }
 
+  @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
       log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
-    setClassloader(null);
+    scheduleRefresh();
   }
 
+  @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
       log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
-    setClassloader(null);
+    scheduleRefresh();
   }
 
   @Override
