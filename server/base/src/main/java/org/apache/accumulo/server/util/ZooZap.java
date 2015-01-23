@@ -37,10 +37,8 @@ import com.beust.jcommander.Parameter;
 public class ZooZap {
   private static final Logger log = Logger.getLogger(ZooZap.class);
 
-  static boolean verbose = false;
-
-  private static void message(String msg) {
-    if (verbose)
+  private static void message(String msg, Opts opts) {
+    if (opts.verbose)
       System.out.println(msg);
   }
 
@@ -80,7 +78,7 @@ public class ZooZap {
     if (opts.zapMaster) {
       String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
 
-      zapDirectory(zoo, masterLockPath);
+      zapDirectory(zoo, masterLockPath, opts);
     }
 
     if (opts.zapTservers) {
@@ -88,7 +86,7 @@ public class ZooZap {
       try {
         List<String> children = zoo.getChildren(tserversPath);
         for (String child : children) {
-          message("Deleting " + tserversPath + "/" + child + " from zookeeper");
+          message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
           if (opts.zapMaster)
             ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
@@ -96,7 +94,7 @@ public class ZooZap {
             String path = tserversPath + "/" + child;
             if (zoo.getChildren(path).size() > 0) {
               if (!ZooLock.deleteLock(path, "tserver")) {
-                message("Did not delete " + tserversPath + "/" + child);
+                message("Did not delete " + tserversPath + "/" + child, opts);
               }
             }
           }
@@ -108,16 +106,16 @@ public class ZooZap {
 
     if (opts.zapTracers) {
       String path = opts.getTraceZKPath();
-      zapDirectory(zoo, path);
+      zapDirectory(zoo, path, opts);
     }
 
   }
 
-  private static void zapDirectory(IZooReaderWriter zoo, String path) {
+  private static void zapDirectory(IZooReaderWriter zoo, String path, Opts opts) {
     try {
       List<String> children = zoo.getChildren(path);
       for (String child : children) {
-        message("Deleting " + path + "/" + child + " from zookeeper");
+        message("Deleting " + path + "/" + child + " from zookeeper", opts);
         zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
       }
     } catch (Exception e) {

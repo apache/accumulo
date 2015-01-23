@@ -53,7 +53,6 @@ public class SplitLarge {
   public static void main(String[] args) throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
-    long maxSize = 10 * 1024 * 1024;
     Opts opts = new Opts();
     opts.parseArgs(SplitLarge.class.getName(), args);
 
@@ -79,7 +78,7 @@ public class SplitLarge {
       while (iter.hasTop()) {
         Key key = iter.getTopKey();
         Value value = iter.getTopValue();
-        if (key.getSize() + value.getSize() < maxSize) {
+        if (key.getSize() + value.getSize() < opts.maxSize) {
           small.append(key, value);
         } else {
           large.append(key, value);
