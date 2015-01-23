@@ -23,7 +23,7 @@ import java.net.URLClassLoader;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
+import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.junit.After;
 import org.junit.Assert;
@@ -150,8 +150,7 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     AccumuloVFSClassLoader.getClassLoader();
-    AccumuloReloadingVFSClassLoader loader = Whitebox.getInternalState(AccumuloVFSClassLoader.class, "loader");
-    DefaultFileSystemManager manager = Whitebox.getInternalState(loader, "vfs");
+    FileSystemManager manager = AccumuloVFSClassLoader.generateVfs();
     UniqueFileReplicator replicator = Whitebox.getInternalState(manager, "fileReplicator");
     File tempDir = Whitebox.getInternalState(replicator, "tempDir");
     String tempDirParent = tempDir.getParent();
@@ -194,8 +193,7 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     AccumuloVFSClassLoader.getClassLoader();
-    AccumuloReloadingVFSClassLoader loader = Whitebox.getInternalState(AccumuloVFSClassLoader.class, "loader");
-    DefaultFileSystemManager manager = Whitebox.getInternalState(loader, "vfs");
+    FileSystemManager manager = AccumuloVFSClassLoader.generateVfs();
     UniqueFileReplicator replicator = Whitebox.getInternalState(manager, "fileReplicator");
     File tempDir = Whitebox.getInternalState(replicator, "tempDir");
     String tempDirParent = tempDir.getParent();
