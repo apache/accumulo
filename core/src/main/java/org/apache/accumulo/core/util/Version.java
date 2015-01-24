@@ -19,7 +19,27 @@ package org.apache.accumulo.core.util;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Version {
+import org.apache.accumulo.start.Main;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+
+import com.google.auto.service.AutoService;
+
+@AutoService(KeywordExecutable.class)
+public class Version implements KeywordExecutable {
+
+  public Version() {}
+
+  @Override
+  public String keyword() {
+    return "version";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
+    Class<?> runTMP = Main.getClassLoader().loadClass("org.apache.accumulo.core.Constants");
+    System.out.println(runTMP.getField("VERSION").get(null));
+  }
+
   String package_ = null;
   int major = 0;
   int minor = 0;

@@ -28,6 +28,11 @@
   <description>The tracer server for Apache Accumulo to listen for, and store, distributed tracing messages.</description>
   <dependencies>
     <dependency>
+      <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
     </dependency>

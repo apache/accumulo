@@ -20,167 +20,139 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.log4j.Logger;
 
 public class Main {
 
   private static final Logger log = Logger.getLogger(Main.class);
+  private static ClassLoader classLoader;
+  private static Class<?> vfsClassLoader;
+  private static Map<String,KeywordExecutable> servicesMap;
 
-  public static void main(String[] args) {
-    Runnable r = null;
-
+  public static void main(final String[] args) {
     try {
       if (args.length == 0) {
         printUsage();
         System.exit(1);
       }
 
-      Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-
-      Class<?> vfsClassLoader = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-
-      ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class[] {}).invoke(null, new Object[] {});
-
-      Class<?> runTMP = null;
-
-      Thread.currentThread().setContextClassLoader(cl);
-
-      switch (args[0]) {
-        case "help":
-          printUsage();
-          System.exit(0);
-          break;
-        case "master":
-          runTMP = cl.loadClass("org.apache.accumulo.master.Master");
-          break;
-        case "tserver":
-          runTMP = cl.loadClass("org.apache.accumulo.tserver.TabletServer");
-          break;
-        case "shell":
-          runTMP = cl.loadClass("org.apache.accumulo.shell.Shell");
-          break;
-        case "init":
-          runTMP = cl.loadClass("org.apache.accumulo.server.init.Initialize");
-          break;
-        case "admin":
-          runTMP = cl.loadClass("org.apache.accumulo.server.util.Admin");
-          break;
-        case "gc":
-          runTMP = cl.loadClass("org.apache.accumulo.gc.SimpleGarbageCollector");
-          break;
-        case "monitor":
-          runTMP = cl.loadClass("org.apache.accumulo.monitor.Monitor");
-          break;
-        case "tracer":
-          runTMP = cl.loadClass("org.apache.accumulo.tracer.TraceServer");
-          break;
-        case "proxy":
-          runTMP = cl.loadClass("org.apache.accumulo.proxy.Proxy");
-          break;
-        case "minicluster":
-          runTMP = cl.loadClass("org.apache.accumulo.minicluster.MiniAccumuloRunner");
-          break;
-        case "classpath":
-          vfsClassLoader.getMethod("printClassPath", new Class[] {}).invoke(vfsClassLoader, new Object[] {});
-          return;
-        case "version":
-          runTMP = cl.loadClass("org.apache.accumulo.core.Constants");
-          System.out.println(runTMP.getField("VERSION").get(null));
-          return;
-        case "rfile-info":
-          runTMP = cl.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
-          break;
-        case "login-info":
-          runTMP = cl.loadClass("org.apache.accumulo.server.util.LoginProperties");
-          break;
-        case "zookeeper":
-          runTMP = cl.loadClass("org.apache.accumulo.server.util.ZooKeeperMain");
-          break;
-        case "create-token":
-          runTMP = cl.loadClass("org.apache.accumulo.core.util.CreateToken");
-          break;
-        case "info":
-          runTMP = cl.loadClass("org.apache.accumulo.server.util.Info");
-          break;
-        case "jar":
-          if (args.length < 2) {
-            printUsage();
-            System.exit(1);
-          }
-          try {
-            JarFile f = new JarFile(args[1]);
-            runTMP = loadClassFromJar(args, f, cl);
-          } catch (IOException ioe) {
-            System.out.println("File " + args[1] + " could not be found or read.");
-            System.exit(1);
-          } catch (ClassNotFoundException cnfe) {
-            System.out.println("Classname " + (args.length > 2 ? args[2] : "in JAR manifest")
-                + " not found.  Please make sure you use the wholly qualified package name.");
-            System.exit(1);
-          }
-          break;
-        default:
-          try {
-            runTMP = cl.loadClass(args[0]);
-          } catch (ClassNotFoundException cnfe) {
-            System.out.println("Classname " + args[0] + " not found.  Please make sure you use the wholly qualified package name.");
-            System.exit(1);
-          }
-          break;
-      }
-      Method main = null;
-      try {
-        main = runTMP.getMethod("main", args.getClass());
-      } catch (Throwable t) {
-        log.error("Could not run main method on '" + runTMP.getName() + "'.", t);
-      }
-      if (main == null || !Modifier.isPublic(main.getModifiers()) || !Modifier.isStatic(main.getModifiers())) {
-        System.out.println(args[0] + " must implement a public static void main(String args[]) method");
-        System.exit(1);
-      }
-      int chopArgsCount;
-      if (args[0].equals("jar")) {
-        if (args.length > 2 && runTMP.getName().equals(args[2])) {
-          chopArgsCount = 3;
-        } else {
-          chopArgsCount = 2;
-        }
+      // determine whether a keyword was used or a class name, and execute it with the remaining args
+      String keywordOrClassName = args[0];
+      KeywordExecutable keywordExec = getExecutables(getClassLoader()).get(keywordOrClassName);
+      if (keywordExec != null) {
+        execKeyword(keywordExec, stripArgs(args, 1));
       } else {
-        chopArgsCount = 1;
+        execMainClassName(keywordOrClassName, stripArgs(args, 1));
       }
-      String argsToPass[] = new String[args.length - chopArgsCount];
-      System.arraycopy(args, chopArgsCount, argsToPass, 0, args.length - chopArgsCount);
-      final Object thisIsJustOneArgument = argsToPass;
-      final Method finalMain = main;
-      r = new Runnable() {
-        @Override
-        public void run() {
-          try {
-            finalMain.invoke(null, thisIsJustOneArgument);
-          } catch (InvocationTargetException e) {
-            if (e.getCause() != null) {
-              die(e.getCause());
-            } else {
-              // Should never happen, but check anyway.
-              die(e);
-            }
-          } catch (Exception e) {
-            die(e);
-          }
-        }
-      };
 
-      Thread t = new Thread(r, args[0]);
-      t.setContextClassLoader(cl);
-      t.start();
     } catch (Throwable t) {
       log.error("Uncaught exception", t);
       System.exit(1);
     }
+  }
+
+  public static ClassLoader getClassLoader() {
+    if (classLoader == null) {
+      try {
+        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader", new Class[0]).invoke(null, new Object[0]);
+        classLoader = clTmp;
+      } catch (ClassNotFoundException | IOException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+          | SecurityException e) {
+        log.error("Problem initializing the class loader", e);
+        System.exit(1);
+      }
+    }
+    return classLoader;
+  }
+
+  public static Class<?> getVFSClassLoader() throws IOException, ClassNotFoundException {
+    if (vfsClassLoader == null) {
+      Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
+      Class<?> vfsClassLoaderTmp = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
+      vfsClassLoader = vfsClassLoaderTmp;
+    }
+    return vfsClassLoader;
+  }
+
+  private static void execKeyword(final KeywordExecutable keywordExec, final String[] args) {
+    Runnable r = new Runnable() {
+      @Override
+      public void run() {
+        try {
+          keywordExec.execute(args);
+        } catch (Exception e) {
+          die(e);
+        }
+      }
+    };
+    startThread(r, keywordExec.keyword());
+  }
+
+  private static void execMainClassName(final String className, final String[] args) {
+    Class<?> classWithMain = null;
+    try {
+      classWithMain = getClassLoader().loadClass(className);
+    } catch (ClassNotFoundException cnfe) {
+      System.out.println("Classname " + className + " not found.  Please make sure you use the wholly qualified package name.");
+      System.exit(1);
+    }
+    execMainClass(classWithMain, args);
+  }
+
+  public static void execMainClass(final Class<?> classWithMain, final String[] args) {
+    Method main = null;
+    try {
+      main = classWithMain.getMethod("main", args.getClass());
+    } catch (Throwable t) {
+      log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
+    }
+    if (main == null || !Modifier.isPublic(main.getModifiers()) || !Modifier.isStatic(main.getModifiers())) {
+      System.out.println(classWithMain.getName() + " must implement a public static void main(String args[]) method");
+      System.exit(1);
+    }
+    final Method finalMain = main;
+    Runnable r = new Runnable() {
+      @Override
+      public void run() {
+        try {
+          final Object thisIsJustOneArgument = args;
+          finalMain.invoke(null, thisIsJustOneArgument);
+        } catch (InvocationTargetException e) {
+          if (e.getCause() != null) {
+            die(e.getCause());
+          } else {
+            // Should never happen, but check anyway.
+            die(e);
+          }
+        } catch (Exception e) {
+          die(e);
+        }
+      }
+    };
+    startThread(r, classWithMain.getName());
+  }
+
+  public static String[] stripArgs(final String[] originalArgs, int numToStrip) {
+    int newSize = originalArgs.length - numToStrip;
+    String newArgs[] = new String[newSize];
+    System.arraycopy(originalArgs, numToStrip, newArgs, 0, newSize);
+    return newArgs;
+  }
+
+  private static void startThread(final Runnable r, final String name) {
+    Thread t = new Thread(r, name);
+    t.setContextClassLoader(getClassLoader());
+    t.start();
   }
 
   /**
@@ -189,22 +161,65 @@ public class Main {
    * @param t
    *          The {@link Throwable} containing a stack trace to print.
    */
-  private static void die(Throwable t) {
+  private static void die(final Throwable t) {
     log.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
     System.exit(1);
   }
 
-  private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info "
-        + "| tracer | minicluster | proxy | zookeeper | create-token | info | version | help | jar <jar> [<main class>] args | <accumulo class> args");
+  public static void printUsage() {
+    TreeSet<String> keywords = new TreeSet<>(getExecutables(getClassLoader()).keySet());
+
+    // jar is a special case, because it has arguments
+    keywords.remove("jar");
+    keywords.add("jar <jar> [<main class>] args");
+
+    String prefix = "";
+    String kwString = "";
+    for (String kw : keywords) {
+      kwString += prefix + kw;
+      prefix = " | ";
+    }
+    System.out.println("accumulo " + kwString + " | <accumulo class> args");
+  }
+
+  static Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
+    if (servicesMap == null) {
+      servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
+    }
+    return servicesMap;
+  }
+
+  static Map<String,KeywordExecutable> checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
+    TreeSet<String> blacklist = new TreeSet<>();
+    TreeMap<String,KeywordExecutable> results = new TreeMap<>();
+    for (KeywordExecutable service : services) {
+      String keyword = service.keyword();
+      if (blacklist.contains(keyword)) {
+        // subsequent times a duplicate is found, just warn and exclude it
+        warnDuplicate(service);
+      } else if (results.containsKey(keyword)) {
+        // the first time a duplicate is found, blacklist it and warn
+        blacklist.add(keyword);
+        warnDuplicate(results.remove(keyword));
+        warnDuplicate(service);
+      } else {
+        // first observance of this keyword, so just add it to the list
+        results.put(service.keyword(), service);
+      }
+    }
+    return Collections.unmodifiableSortedMap(results);
+  }
+
+  private static void warnDuplicate(final KeywordExecutable service) {
+    log.warn("Ambiguous duplicate binding for keyword '" + service.keyword() + "' found: " + service.getClass().getName());
   }
 
   // feature: will work even if main class isn't in the JAR
-  static Class<?> loadClassFromJar(String[] args, JarFile f, ClassLoader cl) throws IOException, ClassNotFoundException {
+  public static Class<?> loadClassFromJar(final String[] args, final JarFile f, final ClassLoader cl) throws ClassNotFoundException, IOException {
     ClassNotFoundException explicitNotFound = null;
-    if (args.length >= 3) {
+    if (args.length >= 2) {
       try {
-        return cl.loadClass(args[2]); // jar jar-file main-class
+        return cl.loadClass(args[1]); // jar-file main-class
       } catch (ClassNotFoundException cnfe) {
         // assume this is the first argument, look for main class in JAR manifest
         explicitNotFound = cnfe;
@@ -219,4 +234,5 @@ public class Main {
     }
     return cl.loadClass(mainClass);
   }
+
 }

@@ -58,16 +58,19 @@ import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 import com.google.common.net.HostAndPort;
 
-public class Admin {
+@AutoService(KeywordExecutable.class)
+public class Admin implements KeywordExecutable {
   private static final Logger log = Logger.getLogger(Admin.class);
 
   static class AdminOpts extends ClientOpts {
@@ -139,6 +142,16 @@ public class Admin {
   }
 
   public static void main(String[] args) {
+    new Admin().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "admin";
+  }
+
+  @Override
+  public void execute(final String[] args) {
     boolean everything;
 
     AdminOpts opts = new AdminOpts();
@@ -368,11 +381,11 @@ public class Admin {
   private static final MessageFormat tablePermFormat = new MessageFormat("grant Table.{0} -t {1} -u {2}\n");
   private static final MessageFormat userAuthsFormat = new MessageFormat("setauths -u {0} -s {1}\n");
 
-  private static DefaultConfiguration defaultConfig;
-  private static Map<String,String> siteConfig, systemConfig;
-  private static List<String> localUsers;
+  private DefaultConfiguration defaultConfig;
+  private Map<String,String> siteConfig, systemConfig;
+  private List<String> localUsers;
 
-  public static void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
+  public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
 
     File outputDirectory = null;
     if (opts.directory != null) {
@@ -431,7 +444,7 @@ public class Admin {
     }
   }
 
-  private static String getDefaultConfigValue(String key) {
+  private String getDefaultConfigValue(String key) {
     if (null == key)
       return null;
 
@@ -445,7 +458,7 @@ public class Admin {
     return defaultValue;
   }
 
-  private static void printNameSpaceConfiguration(Connector connector, String namespace, File outputDirectory) throws IOException, AccumuloException,
+  private void printNameSpaceConfiguration(Connector connector, String namespace, File outputDirectory) throws IOException, AccumuloException,
       AccumuloSecurityException, NamespaceNotFoundException {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     FileWriter nsWriter = new FileWriter(namespaceScript);
@@ -495,7 +508,7 @@ public class Admin {
     userWriter.close();
   }
 
-  private static void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
+  private void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     Configuration conf = new Configuration(false);
     TreeMap<String,String> site = new TreeMap<String,String>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
@@ -520,7 +533,7 @@ public class Admin {
     }
   }
 
-  private static void printTableConfiguration(Connector connector, String tableName, File outputDirectory) throws AccumuloException, TableNotFoundException,
+  private void printTableConfiguration(Connector connector, String tableName, File outputDirectory) throws AccumuloException, TableNotFoundException,
       IOException, AccumuloSecurityException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);

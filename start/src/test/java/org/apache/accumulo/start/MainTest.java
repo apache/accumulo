@@ -44,7 +44,7 @@ public class MainTest {
 
   @Test
   public void testLoadClassFromJar_ExplicitMainClass() throws Exception {
-    String[] args = {"jar", "the.jar", "main.class", "arg1", "arg2"};
+    String[] args = {"the.jar", "main.class", "arg1", "arg2"};
     EasyMock.<Class<?>> expect(cl.loadClass("main.class")).andReturn(MAIN_CLASS);
     replay(cl);
     assertEquals(MAIN_CLASS, Main.loadClassFromJar(args, f, cl));
@@ -52,7 +52,7 @@ public class MainTest {
 
   @Test
   public void testLoadClassFromJar_ManifestMainClass() throws Exception {
-    String[] args = {"jar", "the.jar", "arg1", "arg2"};
+    String[] args = {"the.jar", "arg1", "arg2"};
     expect(cl.loadClass("arg1")).andThrow(new ClassNotFoundException());
     EasyMock.<Class<?>> expect(cl.loadClass(MAIN_CLASS_NAME)).andReturn(MAIN_CLASS);
     replay(cl);
@@ -63,7 +63,7 @@ public class MainTest {
 
   @Test(expected = ClassNotFoundException.class)
   public void testLoadClassFromJar_NoMainClass() throws Exception {
-    String[] args = {"jar", "the.jar", "arg1", "arg2"};
+    String[] args = {"the.jar", "arg1", "arg2"};
     expect(cl.loadClass("arg1")).andThrow(new ClassNotFoundException());
     replay(cl);
     mockManifestMainClass(f, null);
@@ -73,7 +73,7 @@ public class MainTest {
 
   @Test(expected = ClassNotFoundException.class)
   public void testLoadClassFromJar_NoMainClassNoArgs() throws Exception {
-    String[] args = {"jar", "the.jar"};
+    String[] args = {"the.jar"};
     mockManifestMainClass(f, null);
     replay(f);
     Main.loadClassFromJar(args, f, cl);
@@ -81,7 +81,7 @@ public class MainTest {
 
   @Test(expected = ClassNotFoundException.class)
   public void testLoadClassFromJar_ExplicitMainClass_Fail() throws Exception {
-    String[] args = {"jar", "the.jar", "main.class", "arg1", "arg2"};
+    String[] args = {"the.jar", "main.class", "arg1", "arg2"};
     expect(cl.loadClass("main.class")).andThrow(new ClassNotFoundException());
     replay(cl);
     mockManifestMainClass(f, null);
@@ -91,7 +91,7 @@ public class MainTest {
 
   @Test(expected = ClassNotFoundException.class)
   public void testLoadClassFromJar_ManifestMainClass_Fail() throws Exception {
-    String[] args = {"jar", "the.jar", "arg1", "arg2"};
+    String[] args = {"the.jar", "arg1", "arg2"};
     expect(cl.loadClass("arg1")).andThrow(new ClassNotFoundException());
     expect(cl.loadClass(MAIN_CLASS_NAME)).andThrow(new ClassNotFoundException());
     replay(cl);

@@ -21,12 +21,15 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class ZooKeeperMain {
+@AutoService(KeywordExecutable.class)
+public class ZooKeeperMain implements KeywordExecutable {
 
   static class Opts extends Help {
 
@@ -38,6 +41,16 @@ public class ZooKeeperMain {
   }
 
   public static void main(String[] args) throws Exception {
+    new ZooKeeperMain().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "zookeeper";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
     FileSystem fs = VolumeManagerImpl.get().getDefaultVolume().getFileSystem();

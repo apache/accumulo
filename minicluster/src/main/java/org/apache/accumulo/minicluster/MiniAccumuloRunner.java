@@ -136,7 +136,7 @@ public class MiniAccumuloRunner {
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
    */
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) throws IOException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(MiniAccumuloRunner.class.getName(), args);
 

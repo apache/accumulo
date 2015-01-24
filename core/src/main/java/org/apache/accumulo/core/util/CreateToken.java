@@ -33,14 +33,17 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class CreateToken {
+@AutoService(KeywordExecutable.class)
+public class CreateToken implements KeywordExecutable {
 
-  private static ConsoleReader reader = null;
+  private ConsoleReader reader = null;
 
-  private static ConsoleReader getConsoleReader() throws IOException {
+  private ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
       reader = new ConsoleReader();
     return reader;
@@ -65,6 +68,16 @@ public class CreateToken {
   }
 
   public static void main(String[] args) {
+    new CreateToken().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "create-token";
+  }
+
+  @Override
+  public void execute(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(CreateToken.class.getName(), args);
 

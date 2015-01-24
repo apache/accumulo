@@ -39,6 +39,7 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.rpc.TimedProcessor;
 import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -48,10 +49,12 @@ import org.apache.thrift.protocol.TProtocolFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 
-public class Proxy {
+@AutoService(KeywordExecutable.class)
+public class Proxy implements KeywordExecutable {
 
   private static final Logger log = Logger.getLogger(Proxy.class);
 
@@ -99,7 +102,13 @@ public class Proxy {
     Properties prop;
   }
 
-  public static void main(String[] args) throws Exception {
+  @Override
+  public String keyword() {
+    return "proxy";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);
 
@@ -159,6 +168,10 @@ public class Proxy {
     while (server.server.isServing()) {
       Thread.sleep(1000);
     }
+  }
+
+  public static void main(String[] args) throws Exception {
+    new Proxy().execute(args);
   }
 
   public static ServerAddress createProxyServer(HostAndPort address, TProtocolFactory protocolFactory, Properties properties) throws Exception {

@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import jline.console.ConsoleReader;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -94,6 +96,7 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -106,6 +109,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 
@@ -113,7 +117,8 @@ import com.google.common.base.Optional;
  * This class is used to setup the directory structure and the root tablet to get an instance started
  *
  */
-public class Initialize {
+@AutoService(KeywordExecutable.class)
+public class Initialize implements KeywordExecutable {
   private static final Logger log = Logger.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
@@ -267,7 +272,7 @@ public class Initialize {
     log.fatal("The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
   }
 
-  public static boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
+  public boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
     if (!checkInit(conf, fs, SiteConfiguration.getInstance())) {
       return false;
     }
@@ -301,7 +306,7 @@ public class Initialize {
     return initialize(opts, instanceNamePath, fs, rootUser);
   }
 
-  private static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs, String rootUser) {
+  private boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs, String rootUser) {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
@@ -399,7 +404,7 @@ public class Initialize {
     }
   }
 
-  private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir) throws IOException {
+  private void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir) throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
 
     // initialize initial system tables config in zookeeper
@@ -539,7 +544,7 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_TSERVERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
   }
 
-  private static String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
+  private String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
     // setup the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
@@ -571,7 +576,7 @@ public class Initialize {
     return instanceNamePath;
   }
 
-  private static String getRootUserName(Opts opts) throws IOException {
+  private String getRootUserName(Opts opts) throws IOException {
     AccumuloConfiguration conf = SiteConfiguration.getInstance();
     final String keytab = conf.get(Property.GENERAL_KERBEROS_KEYTAB);
     if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue()) || !conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -597,7 +602,7 @@ public class Initialize {
     } while (true);
   }
 
-  private static byte[] getRootPassword(Opts opts, String rootUser) throws IOException {
+  private byte[] getRootPassword(Opts opts, String rootUser) throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
@@ -693,10 +698,9 @@ public class Initialize {
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getSecond()))
-        log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS + " and should not appear in " +
-            Property.INSTANCE_VOLUMES + ". It is highly recommended that this property be removed as data could still be written to this volume.");
+        log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS + " and should not appear in " + Property.INSTANCE_VOLUMES
+            + ". It is highly recommended that this property be removed as data could still be written to this volume.");
     }
-
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version " + Accumulo.getAccumuloPersistentVersion(fs));
@@ -722,7 +726,13 @@ public class Initialize {
     byte[] rootpass = null;
   }
 
-  public static void main(String[] args) {
+  @Override
+  public String keyword() {
+    return "init";
+  }
+
+  @Override
+  public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(Initialize.class.getName(), args);
 
@@ -755,5 +765,9 @@ public class Initialize {
       log.fatal(e, e);
       throw new RuntimeException(e);
     }
+  }
+
+  public static void main(String[] args) {
+    new Initialize().execute(args);
   }
 }

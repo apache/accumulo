@@ -28,13 +28,20 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
-/**
- *
- */
-public class LoginProperties {
+import com.google.auto.service.AutoService;
 
-  public static void main(String[] args) throws Exception {
+@AutoService(KeywordExecutable.class)
+public class LoginProperties implements KeywordExecutable {
+
+  @Override
+  public String keyword() {
+    return "login-info";
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
     AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration();
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
         .asSubclass(Authenticator.class).newInstance();
@@ -55,5 +62,9 @@ public class LoginProperties {
 
       System.out.println();
     }
+  }
+
+  public static void main(String[] args) throws Exception {
+    new LoginProperties().execute(args);
   }
 }

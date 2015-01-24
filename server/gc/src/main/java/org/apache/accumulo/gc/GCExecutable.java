@@ -14,33 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.gc;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import java.io.IOException;
+
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.zookeeper.KeeperException;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class Info implements KeywordExecutable {
-
+public class GCExecutable implements KeywordExecutable {
   @Override
   public String keyword() {
-    return "info";
+    return "gc";
   }
 
   @Override
-  public void execute(final String[] args) throws KeeperException, InterruptedException {
-    Instance instance = HdfsZooInstance.getInstance();
-    System.out.println("monitor: " + MonitorUtil.getLocation(instance));
-    System.out.println("masters: " + instance.getMasterLocations());
-    System.out.println("zookeepers: " + instance.getZooKeepers());
-  }
-
-  public static void main(String[] args) throws Exception {
-    new Info().execute(args);
+  public void execute(final String[] args) throws IOException {
+    SimpleGarbageCollector.main(args);
   }
 }

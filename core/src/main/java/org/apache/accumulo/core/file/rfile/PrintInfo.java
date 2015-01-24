@@ -30,14 +30,18 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class PrintInfo {
+@AutoService(KeywordExecutable.class)
+public class PrintInfo implements KeywordExecutable {
+
   private static final Logger log = Logger.getLogger(PrintInfo.class);
 
   static class Opts extends Help {
@@ -50,6 +54,16 @@ public class PrintInfo {
   }
 
   public static void main(String[] args) throws Exception {
+    new PrintInfo().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "rfile-info";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
     Configuration conf = new Configuration();
 
     AccumuloConfiguration aconf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
