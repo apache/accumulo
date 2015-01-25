@@ -15,12 +15,12 @@
   limitations under the License.
 -->
 <version>
-  1.6.0-SNAPSHOT
+  1.7.0-SNAPSHOT
 </version>
 
 <archives>
-  ../../../core/target/accumulo-core-1.6.0-SNAPSHOT.jar
-  ../../../minicluster/target/accumulo-minicluster-1.6.0-SNAPSHOT.jar
+  ../../../core/target/accumulo-core-1.7.0-SNAPSHOT.jar
+  ../../../minicluster/target/accumulo-minicluster-1.7.0-SNAPSHOT.jar
 </archives>
 
 <skip_packages>
@@ -36,4 +36,3 @@
   org.apache.accumulo.core.data
   org.apache.accumulo.minicluster
 </packages>
-
