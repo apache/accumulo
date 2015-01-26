@@ -206,6 +206,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
+              <exclude>compat/japi-compliance/exclude_classes.txt</exclude>
               <exclude>system/bench/lib/*splits</exclude>
               <exclude>system/continuous/*.txt</exclude>
             </excludes>
