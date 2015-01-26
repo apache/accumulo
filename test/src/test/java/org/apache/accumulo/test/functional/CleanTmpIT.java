@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -104,8 +104,8 @@ public class CleanTmpIT extends AccumuloClusterIT {
     // Make the file
     fs.create(tmp).close();
     log.info("Created tmp file {}", tmp.toString());
-    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+    getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
     assertEquals(2, FunctionalTestUtils.count(scanner));

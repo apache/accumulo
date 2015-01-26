@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -87,7 +87,7 @@ public class Accumulo3047IT extends AccumuloClusterIT {
     iops.setProperty(Property.GC_CYCLE_START.getKey(), "0s");
     log.info("Restarting garbage collector");
 
-    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().stopAllServers(ClusterServerType.GARBAGE_COLLECTOR);
 
     Instance instance = getConnector().getInstance();
     ZooCache zcache = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
@@ -104,7 +104,7 @@ public class Accumulo3047IT extends AccumuloClusterIT {
 
     log.info("GC lock was lost");
 
-    getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().startAllServers(ClusterServerType.GARBAGE_COLLECTOR);
     log.info("Garbage collector was restarted");
 
     gcLockData = null;
@@ -129,8 +129,8 @@ public class Accumulo3047IT extends AccumuloClusterIT {
       iops.setProperty(Property.GC_CYCLE_START.getKey(), gcCycleStart);
     }
     log.info("Restarting garbage collector");
-    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
-    getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().stopAllServers(ClusterServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().startAllServers(ClusterServerType.GARBAGE_COLLECTOR);
     log.info("Garbage collector was restarted");
   }
 

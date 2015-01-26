@@ -19,12 +19,12 @@ package org.apache.accumulo.test.functional;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -63,8 +63,8 @@ public class WriteAheadLogIT extends AccumuloClusterIT {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.tableName = tableName;
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+    getCluster().getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 

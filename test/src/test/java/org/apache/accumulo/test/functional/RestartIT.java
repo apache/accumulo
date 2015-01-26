@@ -29,6 +29,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -42,7 +43,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -128,8 +128,8 @@ public class RestartIT extends AccumuloClusterIT {
       }
     });
 
-    control.stopAllServers(ServerType.MASTER);
-    control.startAllServers(ServerType.MASTER);
+    control.stopAllServers(ClusterServerType.MASTER);
+    control.startAllServers(ClusterServerType.MASTER);
     assertEquals(0, ret.get().intValue());
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
@@ -146,11 +146,11 @@ public class RestartIT extends AccumuloClusterIT {
 
     // TODO implement a kill all too?
     // cluster.stop() would also stop ZooKeeper
-    control.stopAllServers(ServerType.MASTER);
-    control.stopAllServers(ServerType.TRACER);
-    control.stopAllServers(ServerType.TABLET_SERVER);
-    control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
-    control.stopAllServers(ServerType.MONITOR);
+    control.stopAllServers(ClusterServerType.MASTER);
+    control.stopAllServers(ClusterServerType.TRACER);
+    control.stopAllServers(ClusterServerType.TABLET_SERVER);
+    control.stopAllServers(ClusterServerType.GARBAGE_COLLECTOR);
+    control.stopAllServers(ClusterServerType.MONITOR);
 
     ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
@@ -165,7 +165,7 @@ public class RestartIT extends AccumuloClusterIT {
 
     cluster.start();
     UtilWaitThread.sleep(5);
-    control.stopAllServers(ServerType.MASTER);
+    control.stopAllServers(ClusterServerType.MASTER);
 
     masterLockData = new byte[0];
     do {
@@ -202,7 +202,7 @@ public class RestartIT extends AccumuloClusterIT {
       }
     });
 
-    control.stopAllServers(ServerType.MASTER);
+    control.stopAllServers(ClusterServerType.MASTER);
 
     ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
@@ -229,7 +229,7 @@ public class RestartIT extends AccumuloClusterIT {
     VOPTS.tableName = tableName;
     TestIngest.ingest(c, OPTS, BWOPTS);
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-    cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    cluster.getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
     cluster.start();
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
@@ -243,7 +243,7 @@ public class RestartIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     // Original test started and then stopped a GC. Not sure why it did this. The GC was
     // already running by default, and it would have nothing to do after only creating a table
-    control.stopAllServers(ServerType.TABLET_SERVER);
+    control.stopAllServers(ClusterServerType.TABLET_SERVER);
 
     cluster.start();
     c.tableOperations().create(names[1]);
@@ -257,7 +257,7 @@ public class RestartIT extends AccumuloClusterIT {
     OPTS.tableName = tableName;
     TestIngest.ingest(c, OPTS, BWOPTS);
     try {
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
       getCluster().getClusterControl().adminStopAll();
     } finally {
       getCluster().start();

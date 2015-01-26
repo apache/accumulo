@@ -19,6 +19,7 @@ package org.apache.accumulo.minicluster;
 import java.io.File;
 import java.util.Map;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
 /**
@@ -121,7 +122,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
-    impl.setMemory(serverType, memory, memoryUnit);
+    impl.setMemory(ClusterServerType.get(serverType), memory, memoryUnit);
     return this;
   }
 
@@ -176,7 +177,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public long getMemory(ServerType serverType) {
-    return impl.getMemory(serverType);
+    return impl.getMemory(ClusterServerType.get(serverType));
   }
 
   /**

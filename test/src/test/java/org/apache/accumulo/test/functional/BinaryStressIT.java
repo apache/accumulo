@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -73,8 +73,8 @@ public class BinaryStressIT extends AccumuloClusterIT {
     iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "0");
     iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 
-    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+    getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
   }
 
   @After
@@ -84,8 +84,8 @@ public class BinaryStressIT extends AccumuloClusterIT {
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
   }
 

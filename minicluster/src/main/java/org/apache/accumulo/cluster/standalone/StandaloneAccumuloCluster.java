@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -29,7 +30,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.master.state.SetGoalState;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -112,7 +112,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
     control.exec(SetGoalState.class, new String[] {"NORMAL"});
 
-    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+    for (ClusterServerType type : Arrays.asList(ClusterServerType.MASTER, ClusterServerType.TABLET_SERVER, ClusterServerType.TRACER,
+        ClusterServerType.GARBAGE_COLLECTOR, ClusterServerType.MONITOR)) {
       control.startAllServers(type);
     }
   }
@@ -123,7 +124,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
-    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+    for (ClusterServerType type : Arrays.asList(ClusterServerType.MASTER, ClusterServerType.TABLET_SERVER, ClusterServerType.TRACER,
+        ClusterServerType.GARBAGE_COLLECTOR, ClusterServerType.MONITOR)) {
       control.stopAllServers(type);
     }
   }

@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -31,7 +32,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -77,10 +77,10 @@ public class Accumulo3010IT extends AccumuloClusterIT {
     ClusterControl control = cluster.getClusterControl();
 
     // kill the tablet servers
-    control.stopAllServers(ServerType.TABLET_SERVER);
+    control.stopAllServers(ClusterServerType.TABLET_SERVER);
 
     // recover
-    control.startAllServers(ServerType.TABLET_SERVER);
+    control.startAllServers(ClusterServerType.TABLET_SERVER);
 
     // ensure the table is readable
     for (@SuppressWarnings("unused")

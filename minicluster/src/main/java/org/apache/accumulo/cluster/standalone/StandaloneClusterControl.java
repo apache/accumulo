@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.util.Shell.ExitCodeException;
@@ -137,7 +137,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void startAllServers(ServerType server) throws IOException {
+  public void startAllServers(ClusterServerType server) throws IOException {
     File confDir = getConfDir();
 
     switch (server) {
@@ -181,7 +181,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void start(ServerType server, String hostname) throws IOException {
+  public void start(ClusterServerType server, String hostname) throws IOException {
     String[] cmd = new String[] {startServerPath, hostname, getProcessString(server)};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
@@ -190,7 +190,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void stopAllServers(ServerType server) throws IOException {
+  public void stopAllServers(ClusterServerType server) throws IOException {
     File confDir = getConfDir();
 
     switch (server) {
@@ -226,14 +226,14 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void stop(ServerType server, String hostname) throws IOException {
+  public void stop(ClusterServerType server, String hostname) throws IOException {
     // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor, tracer instead kill
 
     kill(server, hostname);
   }
 
   @Override
-  public void signal(ServerType server, String hostname, String signal) throws IOException {
+  public void signal(ClusterServerType server, String hostname, String signal) throws IOException {
     String pid = getPid(server, accumuloHome, hostname);
 
     if (pid.trim().isEmpty()) {
@@ -261,21 +261,21 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void suspend(ServerType server, String hostname) throws IOException {
+  public void suspend(ClusterServerType server, String hostname) throws IOException {
     signal(server, hostname, "SIGSTOP");
   }
 
   @Override
-  public void resume(ServerType server, String hostname) throws IOException {
+  public void resume(ClusterServerType server, String hostname) throws IOException {
     signal(server, hostname, "SIGCONT");
   }
 
   @Override
-  public void kill(ServerType server, String hostname) throws IOException {
+  public void kill(ClusterServerType server, String hostname) throws IOException {
     signal(server, hostname, "SIGKILL");
   }
 
-  protected String getPid(ServerType server, String accumuloHome, String hostname) throws IOException {
+  protected String getPid(ClusterServerType server, String accumuloHome, String hostname) throws IOException {
     String[] getPidCommand = getPidCommand(server, accumuloHome);
     Entry<Integer,String> ret = exec(hostname, getPidCommand);
     if (0 != ret.getKey()) {
@@ -285,13 +285,13 @@ public class StandaloneClusterControl implements ClusterControl {
     return ret.getValue();
   }
 
-  protected String[] getPidCommand(ServerType server, String accumuloHome) {
+  protected String[] getPidCommand(ClusterServerType server, String accumuloHome) {
     // Lifted from stop-server.sh to get the PID
     return new String[] {"ps", "aux", "|", "fgrep", accumuloHome, "|", "fgrep", getProcessString(server), "|", "fgrep", "-v", "grep", "|", "fgrep", "-v",
         "ssh", "|", "awk", "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
-  protected String getProcessString(ServerType server) {
+  protected String getProcessString(ClusterServerType server) {
     switch (server) {
       case TABLET_SERVER:
         return "tserver";

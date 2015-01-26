@@ -24,11 +24,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
@@ -47,7 +47,7 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> siteConfig = new HashMap<String,String>();
   private Map<String,String> configuredSiteConig = new HashMap<String,String>();
   private int numTservers = 2;
-  private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
+  private Map<ClusterServerType,Long> memoryConfig = new HashMap<ClusterServerType,Long>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<String,String>();
 
@@ -321,7 +321,7 @@ public class MiniAccumuloConfigImpl {
    *
    * @since 1.6.0
    */
-  public MiniAccumuloConfigImpl setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
+  public MiniAccumuloConfigImpl setMemory(ClusterServerType serverType, long memory, MemoryUnit memoryUnit) {
     this.memoryConfig.put(serverType, memoryUnit.toBytes(memory));
     return this;
   }
@@ -416,7 +416,7 @@ public class MiniAccumuloConfigImpl {
    *
    * @since 1.6.0
    */
-  public long getMemory(ServerType serverType) {
+  public long getMemory(ClusterServerType serverType) {
     return memoryConfig.containsKey(serverType) ? memoryConfig.get(serverType) : defaultMemorySize;
   }
 

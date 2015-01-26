@@ -19,8 +19,6 @@ package org.apache.accumulo.cluster;
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.minicluster.ServerType;
-
 /**
  * Basic functionality required to control an Accumulo cluster
  */
@@ -44,40 +42,40 @@ public interface ClusterControl {
   /**
    * Starts all occurrences of the given server
    */
-  void startAllServers(ServerType server) throws IOException;
+  void startAllServers(ClusterServerType server) throws IOException;
 
   /**
    * Start the given process on the host
    */
-  void start(ServerType server, String hostname) throws IOException;
+  void start(ClusterServerType server, String hostname) throws IOException;
 
   /**
    * Stops all occurrences of the given server
    */
-  void stopAllServers(ServerType server) throws IOException;
+  void stopAllServers(ClusterServerType server) throws IOException;
 
   /**
    * Stop the given process on the host
    */
-  void stop(ServerType server, String hostname) throws IOException;
+  void stop(ClusterServerType server, String hostname) throws IOException;
 
   /**
    * Send the provided signal to the process on the host
    */
-  void signal(ServerType server, String hostname, String signal) throws IOException;
+  void signal(ClusterServerType server, String hostname, String signal) throws IOException;
 
   /**
    * Send SIGSTOP to the given process on the host
    */
-  void suspend(ServerType server, String hostname) throws IOException;
+  void suspend(ClusterServerType server, String hostname) throws IOException;
 
   /**
    * Send SIGCONT to the given process on the host
    */
-  void resume(ServerType server, String hostname) throws IOException;
+  void resume(ClusterServerType server, String hostname) throws IOException;
 
   /**
    * Send SIGKILL to the given process on the host
    */
-  void kill(ServerType server, String hostname) throws IOException;
+  void kill(ClusterServerType server, String hostname) throws IOException;
 }

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -83,8 +83,8 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 
     ClusterControl control = cluster.getClusterControl();
-    control.stopAllServers(ServerType.TABLET_SERVER);
-    control.startAllServers(ServerType.TABLET_SERVER);
+    control.stopAllServers(ClusterServerType.TABLET_SERVER);
+    control.startAllServers(ClusterServerType.TABLET_SERVER);
 
     Scanner s = conn.createScanner(table, Authorizations.EMPTY);
     int count = 0;

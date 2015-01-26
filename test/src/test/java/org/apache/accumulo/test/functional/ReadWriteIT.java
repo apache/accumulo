@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -63,7 +64,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -97,7 +97,7 @@ public class ReadWriteIT extends AccumuloClusterIT {
     // Start accumulo, create a table, insert some data, verify we can read it out.
     // Shutdown cleanly.
     log.debug("Starting Monitor");
-    cluster.getClusterControl().startAllServers(ServerType.MONITOR);
+    cluster.getClusterControl().startAllServers(ClusterServerType.MONITOR);
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
     ingest(connector, ROWS, COLS, 50, 0, tableName);
@@ -128,9 +128,9 @@ public class ReadWriteIT extends AccumuloClusterIT {
       }
     } while (null != masterLockData);
 
-    control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
-    control.stopAllServers(ServerType.MONITOR);
-    control.stopAllServers(ServerType.TRACER);
+    control.stopAllServers(ClusterServerType.GARBAGE_COLLECTOR);
+    control.stopAllServers(ClusterServerType.MONITOR);
+    control.stopAllServers(ClusterServerType.TRACER);
     log.debug("success!");
     // Restarting everything
     cluster.start();

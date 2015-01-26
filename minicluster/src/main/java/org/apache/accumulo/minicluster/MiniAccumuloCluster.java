@@ -18,8 +18,10 @@ package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -75,7 +77,15 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    */
   public Set<Pair<ServerType,Integer>> getDebugPorts() {
-    return impl.getDebugPorts();
+    Set<Pair<ClusterServerType,Integer>> implPorts = impl.getDebugPorts();
+    Set<Pair<ServerType,Integer>> returnPorts = new HashSet<Pair<ServerType,Integer>>();
+    for (Pair<ClusterServerType,Integer> pair : implPorts) {
+      ServerType st = pair.getFirst().toServerType();
+      if (null != st) {
+        returnPorts.add(new Pair<ServerType,Integer>(st, pair.getSecond()));
+      }
+    }
+    return returnPorts;
   }
 
   /**

@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
@@ -39,7 +40,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
@@ -91,8 +91,8 @@ public class SplitIT extends AccumuloClusterIT {
     boolean restarted = false;
     if (!tservMaxMem.equals("5K")) {
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), "5K");
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getCluster().getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
       restarted = true;
     }
 
@@ -111,8 +111,8 @@ public class SplitIT extends AccumuloClusterIT {
       log.info("Resetting {}={}", Property.TSERV_MAXMEM.getKey(), tservMaxMem);
       getConnector().instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(), tservMaxMem);
       tservMaxMem = null;
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getCluster().getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
     if (null != tservMajcDelay) {
       log.info("Resetting {}={}", Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);

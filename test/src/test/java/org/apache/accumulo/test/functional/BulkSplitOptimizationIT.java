@@ -20,6 +20,7 @@ import static com.google.common.base.Charsets.UTF_8;
 
 import java.util.Collections;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
@@ -27,7 +28,6 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
@@ -63,8 +63,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
     majcDelay = conn.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
     if (!"1s".equals(majcDelay)) {
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
   }
 
@@ -73,8 +73,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
     if (null != majcDelay) {
       Connector conn = getConnector();
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
   }
 

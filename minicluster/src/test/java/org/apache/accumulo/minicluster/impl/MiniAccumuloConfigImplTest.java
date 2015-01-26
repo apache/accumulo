@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.ServerType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -77,13 +77,13 @@ public class MiniAccumuloConfigImplTest {
 
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
-    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
-    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
+    assertEquals(96 * 1024 * 1024l, config.getMemory(ClusterServerType.MASTER));
+    assertEquals(96 * 1024 * 1024l, config.getMemory(ClusterServerType.TABLET_SERVER));
     assertEquals(96 * 1024 * 1024l, config.getDefaultMemory());
-    config.setMemory(ServerType.MASTER, 256, MemoryUnit.MEGABYTE);
-    assertEquals(256 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
+    config.setMemory(ClusterServerType.MASTER, 256, MemoryUnit.MEGABYTE);
+    assertEquals(256 * 1024 * 1024l, config.getMemory(ClusterServerType.MASTER));
     assertEquals(96 * 1024 * 1024l, config.getDefaultMemory());
-    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
+    assertEquals(96 * 1024 * 1024l, config.getMemory(ClusterServerType.TABLET_SERVER));
   }
 
   @AfterClass

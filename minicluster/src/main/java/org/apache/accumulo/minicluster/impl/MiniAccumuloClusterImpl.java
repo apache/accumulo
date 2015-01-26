@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -164,7 +165,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private boolean initialized = false;
 
-  private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
+  private Set<Pair<ClusterServerType,Integer>> debugPorts = new HashSet<Pair<ClusterServerType,Integer>>();
 
   private File zooCfgFile;
   private String dfsUri;
@@ -324,7 +325,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return process;
   }
 
-  Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
+  Process _exec(Class<?> clazz, ClusterServerType serverType, String... args) throws IOException {
 
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
@@ -332,7 +333,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
-      debugPorts.add(new Pair<ServerType,Integer>(serverType, port));
+      debugPorts.add(new Pair<ClusterServerType,Integer>(serverType, port));
     }
     return _exec(clazz, jvmOpts, args);
   }
@@ -528,7 +529,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         });
       }
 
-      control.start(ServerType.ZOOKEEPER);
+      control.start(ClusterServerType.ZOOKEEPER);
 
       if (!initialized) {
         // sleep a little bit to let zookeeper come up before calling init, seems to work better
@@ -567,7 +568,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(), config.getZooKeepers());
 
-    control.start(ServerType.TABLET_SERVER);
+    control.start(ClusterServerType.TABLET_SERVER);
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
@@ -580,8 +581,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
-    control.start(ServerType.MASTER);
-    control.start(ServerType.GARBAGE_COLLECTOR);
+    control.start(ClusterServerType.MASTER);
+    control.start(ClusterServerType.GARBAGE_COLLECTOR);
 
     if (null == executor) {
       executor = Executors.newSingleThreadExecutor();
@@ -596,7 +597,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    * @return generated remote debug ports if in debug mode.
    * @since 1.6.0
    */
-  public Set<Pair<ServerType,Integer>> getDebugPorts() {
+  public Set<Pair<ClusterServerType,Integer>> getDebugPorts() {
     return debugPorts;
   }
 
@@ -657,10 +658,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     MiniAccumuloClusterControl control = getClusterControl();
 
-    control.stop(ServerType.GARBAGE_COLLECTOR, null);
-    control.stop(ServerType.MASTER, null);
-    control.stop(ServerType.TABLET_SERVER, null);
-    control.stop(ServerType.ZOOKEEPER, null);
+    control.stop(ClusterServerType.GARBAGE_COLLECTOR, null);
+    control.stop(ClusterServerType.MASTER, null);
+    control.stop(ClusterServerType.TABLET_SERVER, null);
+    control.stop(ClusterServerType.ZOOKEEPER, null);
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (null != executor) {

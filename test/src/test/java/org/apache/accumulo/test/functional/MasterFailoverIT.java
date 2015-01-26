@@ -19,12 +19,12 @@ package org.apache.accumulo.test.functional;
 import java.util.Collections;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -53,9 +53,9 @@ public class MasterFailoverIT extends AccumuloClusterIT {
     TestIngest.ingest(c, opts, new BatchWriterOpts());
 
     ClusterControl control = cluster.getClusterControl();
-    control.stopAllServers(ServerType.MASTER);
+    control.stopAllServers(ClusterServerType.MASTER);
     // start up a new one
-    control.startAllServers(ServerType.MASTER);
+    control.startAllServers(ClusterServerType.MASTER);
     // talk to it
     c.tableOperations().rename(names[0], names[1]);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();

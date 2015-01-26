@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
@@ -62,7 +63,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     this.cluster = cluster;
   }
 
-  public void start(ServerType server) throws IOException {
+  public void start(ClusterServerType server) throws IOException {
     start(server, null);
   }
 
@@ -125,12 +126,12 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public synchronized void startAllServers(ServerType server) throws IOException {
+  public synchronized void startAllServers(ClusterServerType server) throws IOException {
     start(server, null);
   }
 
   @Override
-  public synchronized void start(ServerType server, String hostname) throws IOException {
+  public synchronized void start(ClusterServerType server, String hostname) throws IOException {
     switch (server) {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
@@ -170,16 +171,16 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public synchronized void stopAllServers(ServerType server) throws IOException {
+  public synchronized void stopAllServers(ClusterServerType server) throws IOException {
     stop(server);
   }
 
-  public void stop(ServerType server) throws IOException {
+  public void stop(ClusterServerType server) throws IOException {
     stop(server, null);
   }
 
   @Override
-  public synchronized void stop(ServerType server, String hostname) throws IOException {
+  public synchronized void stop(ClusterServerType server, String hostname) throws IOException {
     switch (server) {
       case MASTER:
         if (null != masterProcess) {
@@ -284,17 +285,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public void signal(ServerType server, String hostname, String signal) throws IOException {
+  public void signal(ClusterServerType server, String hostname, String signal) throws IOException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void suspend(ServerType server, String hostname) throws IOException {
+  public void suspend(ClusterServerType server, String hostname) throws IOException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void resume(ServerType server, String hostname) throws IOException {
+  public void resume(ClusterServerType server, String hostname) throws IOException {
     throw new UnsupportedOperationException();
   }
 
@@ -368,7 +369,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public void kill(ServerType server, String hostname) throws IOException {
+  public void kill(ClusterServerType server, String hostname) throws IOException {
     stop(server, hostname);
   }
 

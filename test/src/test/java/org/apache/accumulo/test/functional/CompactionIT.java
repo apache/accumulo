@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
@@ -78,8 +78,8 @@ public class CompactionIT extends AccumuloClusterIT {
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
       iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
   }
 
@@ -93,8 +93,8 @@ public class CompactionIT extends AccumuloClusterIT {
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
       iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcMaxConcurrent);
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
   }
 

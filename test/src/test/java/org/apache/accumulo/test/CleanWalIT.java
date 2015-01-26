@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -88,10 +88,10 @@ public class CleanWalIT extends AccumuloClusterIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
     // all 3 tables should do recovery, but the bug doesn't really remove the log file references
 
-    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
 
     for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
       conn.tableOperations().flush(table, null, null, true);
@@ -112,10 +112,10 @@ public class CleanWalIT extends AccumuloClusterIT {
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
     try {
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().stopAllServers(ClusterServerType.TABLET_SERVER);
       UtilWaitThread.sleep(3 * 1000);
     } finally {
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().startAllServers(ClusterServerType.TABLET_SERVER);
     }
     assertEquals(0, count(tableName, conn));
   }
