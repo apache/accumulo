@@ -28,7 +28,7 @@ import java.util.Random;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
+import org.apache.accumulo.core.util.HadoopCompatUtil;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
@@ -49,6 +49,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import com.beust.jcommander.Parameter;
+
 
 /**
  * Generate the *almost* official terasort input data set. (See below) The user specifies the number of rows and the output directory and this class runs a
@@ -166,8 +167,8 @@ public class TeraSortIngest extends Configured implements Tool {
      */
     @Override
     public List<InputSplit> getSplits(JobContext job) {
-      long totalRows = InputFormatBase.getConfiguration(job).getLong(NUMROWS, 0);
-      int numSplits = InputFormatBase.getConfiguration(job).getInt(NUMSPLITS, 1);
+      long totalRows = HadoopCompatUtil.getConfiguration(job).getLong(NUMROWS, 0);
+      int numSplits = HadoopCompatUtil.getConfiguration(job).getInt(NUMSPLITS, 1);
       long rowsPerSplit = totalRows / numSplits;
       System.out.println("Generating " + totalRows + " using " + numSplits + " maps with step of " + rowsPerSplit);
       ArrayList<InputSplit> splits = new ArrayList<InputSplit>(numSplits);

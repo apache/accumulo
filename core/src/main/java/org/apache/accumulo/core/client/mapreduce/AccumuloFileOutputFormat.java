@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
+import org.apache.accumulo.core.util.HadoopCompatUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -62,7 +63,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
-    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, InputFormatBase.getConfiguration(context));
+    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, HadoopCompatUtil.getConfiguration(context));
   }
 
   /**
@@ -138,7 +139,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   @Override
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
     // get the path of the temporary output file
-    final Configuration conf = InputFormatBase.getConfiguration(context);
+    final Configuration conf = HadoopCompatUtil.getConfiguration(context);
     final AccumuloConfiguration acuConf = getAccumuloConfiguration(context);
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
+import org.apache.accumulo.core.util.HadoopCompatUtil;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -64,7 +65,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    */
   public static void setInputTableConfigs(Job job, Map<String,InputTableConfig> configs) {
     checkNotNull(configs);
-    InputConfigurator.setInputTableConfigs(CLASS, getConfiguration(job), configs);
+    InputConfigurator.setInputTableConfigs(CLASS, HadoopCompatUtil.getConfiguration(job), configs);
   }
 
   @Override
