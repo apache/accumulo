@@ -17,6 +17,17 @@
 \documentclass[11pt]{report}
 \title{Apache Accumulo User Manual\\
 Version 1.6}
+
+\newcommand\frontmatter{%
+    \cleardoublepage
+  %\@mainmatterfalse
+  \pagenumbering{roman}}
+
+\newcommand\mainmatter{%
+    \cleardoublepage
+ % \@mainmattertrue
+  \pagenumbering{arabic}}
+
 \usepackage{alltt}
 \usepackage{multirow}
 \usepackage{graphicx}
@@ -35,8 +46,10 @@ Version 1.6}
 {\end{flushleft} \setlength{\parindent}{7mm} \hangindent=0cm \normalfont}
 
 \begin{document}
+\frontmatter
 \maketitle
 \tableofcontents
+\mainmatter
 \include{chapters/introduction}
 \include{chapters/design}
 \include{chapters/shell}
