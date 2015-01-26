@@ -125,30 +125,12 @@ public abstract class SimpleProxyBase {
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static TServer proxyServer;
-  private static Thread thread;
   private static int proxyPort;
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
   private static String principal = "root";
 
-  private static Map<String,String> properties = new TreeMap<String,String>() {
-    private static final long serialVersionUID = 1L;
-
-    {
-      put("password", secret);
-    }
-  };
+  private static Map<String,String> properties = Collections.singletonMap("password", secret);
   private static ByteBuffer creds = null;
-
-  // static TProtocolFactory getRandomProtocol() throws InstantiationException, IllegalAccessException {
-  // List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
-  // protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
-  // protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
-  // protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
-  // protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
-  //
-  // Class<? extends TProtocolFactory> clz = protocolFactories.get(random.nextInt(protocolFactories.size()));
-  // return clz.newInstance();
-  // }
 
   private static final AtomicInteger tableCounter = new AtomicInteger(0);
 
@@ -194,13 +176,6 @@ public abstract class SimpleProxyBase {
 
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
-    thread = new Thread() {
-      @Override
-      public void run() {
-        proxyServer.serve();
-      }
-    };
-    thread.start();
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
     client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
@@ -211,8 +186,6 @@ public abstract class SimpleProxyBase {
   public static void tearDownMiniCluster() throws Exception {
     if (null != proxyServer) {
       proxyServer.stop();
-      thread.interrupt();
-      thread.join(5000);
     }
     accumulo.stop();
     FileUtils.deleteQuietly(macTestFolder);

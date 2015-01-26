@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import com.google.common.net.HostAndPort;
 
 public class TestProxySecurityOperations {
   protected static TServer proxy;
-  protected static Thread thread;
   protected static TestProxyClient tpc;
   protected static ByteBuffer userpass;
   protected static final int port = 10196;
@@ -60,28 +60,16 @@ public class TestProxySecurityOperations {
     prop.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
-    thread = new Thread() {
-      @Override
-      public void run() {
-        proxy.serve();
-      }
-    };
-    thread.start();
-
+    while (!proxy.isServing()) {
+      Thread.sleep(500);
+    }
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login("root", new TreeMap<String,String>() {
-      private static final long serialVersionUID = 1L;
-
-      {
-        put("password", "");
-      }
-    });
+    userpass = tpc.proxy().login("root", Collections.singletonMap("password", ""));
   }
 
   @AfterClass
   public static void tearDown() throws InterruptedException {
     proxy.stop();
-    thread.join();
   }
 
   @Before

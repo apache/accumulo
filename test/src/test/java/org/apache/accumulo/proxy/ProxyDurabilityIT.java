@@ -80,13 +80,6 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
 
     int proxyPort = PortUtils.getRandomFreePort();
     final TServer proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        proxyServer.serve();
-      }
-    };
-    thread.start();
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
     Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
@@ -124,7 +117,6 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     assertEquals(0, count(tableName));
 
     proxyServer.stop();
-    thread.join();
   }
 
   private void restartTServer() throws Exception {
