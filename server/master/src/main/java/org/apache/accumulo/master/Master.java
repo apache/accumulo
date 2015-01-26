@@ -602,7 +602,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         byte[] data = ZooReaderWriter.getInstance().getData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, null);
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
-        log.error("Problem getting real goal state: " + e);
+        log.error("Problem getting real goal state from zookeeper: " + e);
         UtilWaitThread.sleep(1000);
       }
   }
@@ -801,14 +801,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                   if (count == 0)
                     setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
                 }
-                  break;
+                break;
                 case UNLOAD_METADATA_TABLETS: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0)
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
-                  break;
+                break;
                 case UNLOAD_ROOT_TABLET: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
                   if (count > 0) {
@@ -835,15 +835,20 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                       setMasterState(MasterState.STOP);
                   }
                 }
-                  break;
+                break;
                 default:
                   break;
               }
           }
+        }catch(Throwable t) {
+          log.error("Error occurred reading / switching master goal state. Will continue with attempt to update status", t);
+        }
+
+        try {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
         } catch (Throwable t) {
-          log.error("Error balancing tablets", t);
+          log.error("Error balancing tablets, will wait for " + WAIT_BETWEEN_ERRORS / ONE_SECOND + " (seconds) and then retry", t);
           UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
         }
       }
