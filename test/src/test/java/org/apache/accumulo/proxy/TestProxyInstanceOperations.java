@@ -21,8 +21,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Properties;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.thrift.TException;
@@ -31,17 +31,19 @@ import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class TestProxyInstanceOperations {
+  private static final Logger log = LoggerFactory.getLogger(TestProxyInstanceOperations.class);
+
   protected static TServer proxy;
-  protected static Thread thread;
   protected static TestProxyClient tpc;
   protected static ByteBuffer userpass;
   protected static final int port = 10197;
 
-  @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
@@ -49,25 +51,18 @@ public class TestProxyInstanceOperations {
     prop.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
-    thread = new Thread() {
-      @Override
-      public void run() {
-        proxy.serve();
-      }
-    };
-    thread.start();
+    log.info("Waiting for proxy to start");
+    while (!proxy.isServing()) {
+      Thread.sleep(500);
+    }
+    log.info("Proxy started");
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy.login("root", new TreeMap<String,String>() {
-      {
-        put("password", "");
-      }
-    });
+    userpass = tpc.proxy.login("root", Collections.singletonMap("password", ""));
   }
 
   @AfterClass
   public static void tearDown() throws InterruptedException {
     proxy.stop();
-    thread.join();
   }
 
   @Test
