@@ -801,14 +801,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                   if (count == 0)
                     setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
                 }
-                break;
+                  break;
                 case UNLOAD_METADATA_TABLETS: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0)
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
-                break;
+                  break;
                 case UNLOAD_ROOT_TABLET: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
                   if (count > 0) {
@@ -835,7 +835,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                       setMasterState(MasterState.STOP);
                   }
                 }
-                break;
+                  break;
                 default:
                   break;
               }
