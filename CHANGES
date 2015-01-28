@@ -15,6 +15,175 @@
   limitations under the License.
 -->
 
+
+Release Notes - Accumulo - Version 1.6.2
+
+
+** Sub-task
+    * [ACCUMULO-1722] - add the ability to dump user permissions to the dumpConfig admin command
+    * [ACCUMULO-2981] - Cease use of underscore "_" as an identifier
+    * [ACCUMULO-3220] - Division by zero if encryption cipher isn't a block cipher
+    * [ACCUMULO-3221] - Unintential integer overflow in Shell authorization timeout
+    * [ACCUMULO-3223] - DefaultLoadBalancer allows a NPE just to catch it
+    * [ACCUMULO-3225] - Dead code in ConfigCommand
+    * [ACCUMULO-3226] - Unnecessary null check in Authorizations constructor
+    * [ACCUMULO-3228] - fix potential resource leaks
+    * [ACCUMULO-3278] - Mismatched arguments provided to Retry constructor in RetryFactory
+    * [ACCUMULO-3317] - Change Jetty configuration to disallow SSLv3
+    * [ACCUMULO-3318] - Alter Thrift RPC components to disallow SSLv3
+    * [ACCUMULO-3386] - Update release notes to explain how to correct data written with the buggy DateLexicoder
+    * [ACCUMULO-3401] - Remove internal use of deprecated test classes
+    * [ACCUMULO-3487] - FateAdmin command ignores jcommander txid args
+    * [ACCUMULO-3515] - SplitLarge command ignores jcommander maxSize option
+    * [ACCUMULO-3516] - ZooZap does not use verbose option from command-line
+
+
+** Bug
+    * [ACCUMULO-1292] - Tablet constructor can hang on vfs classloader, preventing tablets from loading
+    * [ACCUMULO-2381] - AddFilesWithMissingEntries needs to just find abandoned files, or be deleted
+    * [ACCUMULO-2591] - TeraSortIngest should maintain binary compatibility between Hadoop 1 and Hadoop 2
+    * [ACCUMULO-2641] - scan id not set in org.apache.accumulo.core.client.admin.ActiveScan
+    * [ACCUMULO-2727] - version argument of ZooUtil.recursiveDelete is ignored
+    * [ACCUMULO-2793] - Clean up handling of moving HDFS under Accumulo from non-HA to HA
+    * [ACCUMULO-3002] - Handle instance.volumes in upgrade
+    * [ACCUMULO-3085] - Missing space in RootFiles log message
+    * [ACCUMULO-3111] - Race condition in MetaSplitIT
+    * [ACCUMULO-3126] - Malformed package-info.java
+    * [ACCUMULO-3135] - RW concurrent test failed with table doesn't exist exception
+    * [ACCUMULO-3157] - MetaDataTableScanner is unclosed upon return from FindOfflineTablets#findOffline()
+    * [ACCUMULO-3158] - FindOfflineTablets.close() causing compilation failure
+    * [ACCUMULO-3172] - mavanagaiata plugin marks releases "dirty"
+    * [ACCUMULO-3181] - VolumeChooser usage doesn't always comply with implied API contract
+    * [ACCUMULO-3182] - Empty or partial WAL header blocks successful recovery
+    * [ACCUMULO-3183] - Compaction strategy does not use per table classpath
+    * [ACCUMULO-3187] - ExamplesIT testScansWithInterference and testIsolatedScansWithInterference run out of heap
+    * [ACCUMULO-3189] - Compaction strategy plan is not validated
+    * [ACCUMULO-3190] - Fix use of deprecated instance.getConfiguration()
+    * [ACCUMULO-3194] - BulkSplitOptimizationIT failed with 5 files associated with tablet instead of 1-4 files
+    * [ACCUMULO-3213] - EOFException on metadata tablet during DeleteTableDuringSplitIT
+    * [ACCUMULO-3215] - Import tries to use default DFS directory instead of configured
+    * [ACCUMULO-3217] - KeyValue doesn't implement equals or hashCode
+    * [ACCUMULO-3218] - ZooKeeperInstance only uses first ZooKeeper in list of quorum
+    * [ACCUMULO-3229] - Shell displays authTimeout poorly
+    * [ACCUMULO-3230] - MR/Yarn job submission fails using `accumulo` with timeline client enabled
+    * [ACCUMULO-3242] - Consolidate ZK code WRT retries
+    * [ACCUMULO-3244] - bulk import report should include filenames
+    * [ACCUMULO-3255] - ExistingMacIT.testExistingRunningInstance failed because it started on top of an already running instance
+    * [ACCUMULO-3261] - Image Randomwalk fails if no rows are found
+    * [ACCUMULO-3264] - AuditMessageIT broken
+    * [ACCUMULO-3269] - nondeterministic failure of MiniAccumuloClusterStartStopTest
+    * [ACCUMULO-3280] - Initialize creates unnecessary directories
+    * [ACCUMULO-3286] - ConditionalWriterIT.testTrace failed
+    * [ACCUMULO-3289] - BulkFileIT failed to import files
+    * [ACCUMULO-3290] - ShellServerIT#listscans fails if scan shows up a QUEUED
+    * [ACCUMULO-3291] - MiniAccumuloClusterStartStopTest uses /tmp instead of target/
+    * [ACCUMULO-3292] - ConditionalWriterIT#testOffline failed
+    * [ACCUMULO-3296] - ZooUtil.recursiveDelete looping indefinitely
+    * [ACCUMULO-3297] - FileManager semaphore acquisition may block Root and Metadata scans
+    * [ACCUMULO-3298] - ConditionalMutationSet.DuplicateFitler is misspelled 
+    * [ACCUMULO-3301] - TableOperationsImpl.waitForTableStateTransition(String, TableState) never fetches `future` column
+    * [ACCUMULO-3305] - MiniAccumuloClusterImpl#killProcess should use the stopWithTimeout method
+    * [ACCUMULO-3312] - IllegalArgumentException in master and gc during randomwalk
+    * [ACCUMULO-3314] - RewriteTabletDirectoriesIT failed
+    * [ACCUMULO-3323] - Bad formatting in continuous ingest readme
+    * [ACCUMULO-3332] - CloudStone tests fail with "NameError: global name 'accumuloConf' is not defined"
+    * [ACCUMULO-3333] - Cloudstone1 doesn't pass in username/password to shell
+    * [ACCUMULO-3334] - CloudStone4 doesn't provide arguments correctly to TeraSortIngest
+    * [ACCUMULO-3340] - MiniAccumuloCluster takes a long time to start when IPv6 is enabled
+    * [ACCUMULO-3341] - `deletetable -p` should never match a table in the accumulo namespace
+    * [ACCUMULO-3351] - Tracer can't write traces after offline and online of trace table
+    * [ACCUMULO-3352] - Confusing BulkImport error message
+    * [ACCUMULO-3355] - TraceDump.printStackTrace prints Long.MAX_VALUE as a date when trace is not found
+    * [ACCUMULO-3358] - Thread in ReadWriteIT.interleaveTest is never started
+    * [ACCUMULO-3362] - Incorrect javadoc on StatsCombiner
+    * [ACCUMULO-3365] - TraceServer dies if trace table is offline during constructor
+    * [ACCUMULO-3372] - deadlock in tserver
+    * [ACCUMULO-3377] - BulkImporter.getAssignments provides unhelpful exception with bad file permissions
+    * [ACCUMULO-3383] - AccumuloVFSClassloader creates conflicting local cache directory names when vfs.cache.dir property is set.
+    * [ACCUMULO-3385] - DateLexicoder fails to correctly order dates prior to 1970
+    * [ACCUMULO-3392] - Incorrect javadoc on MiniAccumuloCluster.start
+    * [ACCUMULO-3397] - CANDIDATE_MEMORY_PERCENTAGE is too low
+    * [ACCUMULO-3406] - IllegalArgumentException during file GC
+    * [ACCUMULO-3407] - scan page in monitor is causing the monitor to crash w/OOM
+    * [ACCUMULO-3408] - display the exact number of tablet servers
+    * [ACCUMULO-3419] - Some ExamplesIT tests repeatedly failing
+    * [ACCUMULO-3424] - Token class option always requires token property
+    * [ACCUMULO-3435] - Sporadic MetadataMaxFilesIT failure
+    * [ACCUMULO-3438] - Shell TokenConverter fails silently
+    * [ACCUMULO-3441] - Master stuck attempting to assign root tablet to previous session of tserver
+    * [ACCUMULO-3443] - DfsLogger doesn't specify charset when reading header bytes
+    * [ACCUMULO-3445] - Server failure to login using Kerberos doesn't exit the process
+    * [ACCUMULO-3446] - Move SecurityUtil out of core
+    * [ACCUMULO-3448] - ZooUtil throws exception even when retry succeeds
+    * [ACCUMULO-3450] - Example logging configs should disable audit log to application log files
+    * [ACCUMULO-3462] - tablet not major compacting
+    * [ACCUMULO-3468] - MonitorUtil's zookeeper timeout is a little low
+    * [ACCUMULO-3472] - VolumeImpl.isValidPath not working as intended
+    * [ACCUMULO-3474] - ProxyServer ignores value of isDeleted on ColumnUpdate
+    * [ACCUMULO-3475] - Shell.config()'s return value is ignored.
+    * [ACCUMULO-3481] - boolean not updated when native maps loaded from System.loadLibrary
+    * [ACCUMULO-3486] - Page numbers in the user manual's table of contents are incorrect.
+    * [ACCUMULO-3496] - ZooKeeperInstance doesn't validate instance name on creation
+    * [ACCUMULO-3503] - generate_thrift.sh search and replace for TInfo.java is not working on Mac
+    * [ACCUMULO-3504] - Typo in startup message
+    * [ACCUMULO-3532] - ServerType.TRACER and ServerType.MONITOR were added in 1.6.2 causing it to lose backwards compatibility
+    * [ACCUMULO-3533] - AbstractInputFormat.getConfiguration(JobContext) changed from package-private to public without minor version bump
+
+
+** Improvement
+    * [ACCUMULO-2290] - documentation should describe how to stop / start individual nodes
+    * [ACCUMULO-2826] - IntersectingIterator should allow a single column family
+    * [ACCUMULO-2984] - Enable running MAC using an existing instance
+    * [ACCUMULO-3160] - ExamplesIT usage of MAC is sub-par
+    * [ACCUMULO-3167] - Decouple MiniAccumuloCluster from integration test base class
+    * [ACCUMULO-3175] - More IT stabilizations
+    * [ACCUMULO-3188] - DfsLogger has inefficient seek in crypto case
+    * [ACCUMULO-3192] - Improve 'fate print' to support the '-np' argument
+    * [ACCUMULO-3212] - Configuration objects created with CredentialProvider load defaults unnecessarily
+    * [ACCUMULO-3224] - Shell should use nanos for auth timeout
+    * [ACCUMULO-3233] - Random port for ZK in MiniAccumulo might not be unique
+    * [ACCUMULO-3237] - generate-thrift.sh should check for 0.9.1, not just 0.9
+    * [ACCUMULO-3257] - Make Randomwalk respect timeout (maxSec) more reliably
+    * [ACCUMULO-3258] - Warning about synconclose is way too spammy
+    * [ACCUMULO-3259] - Randomwalk Bulk.xml create queued threads without bound.
+    * [ACCUMULO-3263] - re-write tablet directories to fairly use multiple name-nodes
+    * [ACCUMULO-3265] - Describe bootstrap_config.sh in README
+    * [ACCUMULO-3271] - Add splits to tables in MultiTable randomwalk module
+    * [ACCUMULO-3275] - "not balancing because of unhosted tablets" message should include number of unhosted tablets
+    * [ACCUMULO-3300] - monitor ingest, query, etc. rates are too smooth
+    * [ACCUMULO-3304] - Add introspection of long running assignments
+    * [ACCUMULO-3308] - Add section to "11.5. Configuration" to IMM and WAL configuration values
+    * [ACCUMULO-3315] - Explicitly wait for threadpool shutdown in RandomizeVolumes
+    * [ACCUMULO-3337] - Assorted test stabilizations from external test runs
+    * [ACCUMULO-3338] - Update example classpath configuration
+    * [ACCUMULO-3347] - Improve logging for cancelled scans
+    * [ACCUMULO-3395] - Keep a reference to Logger in RpcWrapper
+    * [ACCUMULO-3436] - User manual doesn't have any discussion about FATE
+    * [ACCUMULO-3440] - TabletGroupWatcher tablet assigning logging is excessive
+    * [ACCUMULO-3466] - Range.mergeOverlapping(Collection) should have short-circuit for collections with only one item
+
+
+** Task
+    * [ACCUMULO-2997] - Confusing race condition comment in resizing of TServer client pool
+    * [ACCUMULO-3203] - Remove unused, undocumented SecretKeyEncryptionStrategyContext
+    * [ACCUMULO-3205] - JCEKS files sometimes aren't detected as binary; they should be excluded from RAT.
+    * [ACCUMULO-3243] - Ensure all ITs have some timeout
+    * [ACCUMULO-3288] - Use static import for UTF-8
+    * [ACCUMULO-3316] - Update TLS usage to mitigate POODLE
+    * [ACCUMULO-3400] - VolumeManager should validate the choice that a VolumeChooser makes
+    * [ACCUMULO-3405] - Update findbugs maven plugin
+    * [ACCUMULO-3433] - Lack of consistent serialversionid causing TraceRepoDeserializationTest to fail
+    * [ACCUMULO-3451] - Enforce some minimal style checks in the build
+    * [ACCUMULO-3476] - Better documentation on configuring Accumulo for SSL in user manual
+    * [ACCUMULO-3505] - Remove existingInstance from MiniAccumuloConfig
+
+
+** Test
+    * [ACCUMULO-3207] - SimpleBalancerFairnessIT fails
+
+
+
+
 Release Notes - Accumulo - Version 1.6.1
 
 

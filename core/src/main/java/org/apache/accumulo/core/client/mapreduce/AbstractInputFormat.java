@@ -676,7 +676,7 @@ public abstract class AbstractInputFormat<K, V> extends InputFormat<K,V> {
     return splits;
   }
 
-  protected static Configuration getConfiguration(JobContext context) {
+  static Configuration getConfiguration(JobContext context) {
     return HadoopCompatUtil.getConfiguration(context);
   }
 }
