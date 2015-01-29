@@ -2057,7 +2057,6 @@ public class Tablet implements TabletCommitter {
    */
 
   CompactionStats majorCompact(MajorCompactionReason reason, long queued) {
-
     CompactionStats majCStats = null;
     boolean success = false;
     long start = System.currentTimeMillis();
@@ -2075,21 +2074,24 @@ public class Tablet implements TabletCommitter {
       majorCompactionState = CompactionState.WAITING_TO_START;
     }
 
-    // Always trace majC
-    Span span = Trace.on("majorCompaction");
+    Span span = null;
 
     try {
+      // Always trace majC
+      span = Trace.on("majorCompaction");
+
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
         MetadataTableUtil.chopped(getTabletServer(), getExtent(), this.getTabletServer().getLock());
         getTabletServer().enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
       success = true;
-    } catch (CompactionCanceledException mcce) {
+    } catch (CompactionCanceledException cce) {
       log.debug("Major compaction canceled, extent = " + getExtent());
-    } catch (Throwable t) {
-      log.error("MajC Failed, extent = " + getExtent());
-      log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
+    } catch (IOException ioe) {
+      log.error("MajC Failed, extent = " + getExtent(), ioe);
+    } catch (RuntimeException e) {
+      log.error("MajC Unexpected exception, extent = " + getExtent(), e);
     } finally {
       // ensure we always reset boolean, even
       // when an exception is thrown
@@ -2098,12 +2100,14 @@ public class Tablet implements TabletCommitter {
         this.notifyAll();
       }
 
-      span.data("extent", "" + getExtent());
-      if (majCStats != null) {
-        span.data("read", "" + majCStats.getEntriesRead());
-        span.data("written", "" + majCStats.getEntriesWritten());
+      if (span != null) {
+        span.data("extent", "" + getExtent());
+        if (majCStats != null) {
+          span.data("read", "" + majCStats.getEntriesRead());
+          span.data("written", "" + majCStats.getEntriesWritten());
+        }
+        span.stop();
       }
-      span.stop();
     }
     long count = 0;
     if (majCStats != null)
