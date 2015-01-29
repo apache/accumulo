@@ -2916,8 +2916,14 @@ public class Tablet {
           if (reason == MajorCompactionReason.NORMAL && needsMajorCompaction(reason))
             initiateMajorCompaction(reason);
         }
-
-      } catch (RuntimeException E) {
+      } catch (CompactionCanceledException cce) {
+        log.debug("Major compaction canceled, extent = " + getExtent());
+        failed = true;
+      } catch (IOException ioe) {
+        log.error("MajC Failed, extent = " + getExtent(), ioe);
+        failed = true;
+      } catch (RuntimeException e) {
+        log.error("MajC Unexpected exception, extent = " + getExtent(), e);
         failed = true;
       } finally {
         long count = 0;
@@ -3419,8 +3425,7 @@ public class Tablet {
    * Performs a major compaction on the tablet. If needsSplit() returns true, the tablet is split and a reference to the new tablet is returned.
    */
 
-  private CompactionStats majorCompact(MajorCompactionReason reason) {
-
+  private CompactionStats majorCompact(MajorCompactionReason reason) throws IOException, CompactionCanceledException {
     CompactionStats majCStats = null;
 
     synchronized (this) {
@@ -3438,20 +3443,13 @@ public class Tablet {
 
     try {
       // Always trace majC
-      Trace.on("majorCompaction");
+      span = Trace.on("majorCompaction");
 
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
         MetadataTable.chopped(getExtent(), this.tabletServer.getLock());
         tabletServer.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
-    } catch (CompactionCanceledException mcce) {
-      log.debug("Major compaction canceled, extent = " + getExtent());
-      throw new RuntimeException(mcce);
-    } catch (Throwable t) {
-      log.error("MajC Failed, extent = " + getExtent());
-      log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-      throw new RuntimeException(t);
     } finally {
       // ensure we always reset boolean, even
       // when an exception is thrown
@@ -3460,13 +3458,12 @@ public class Tablet {
         this.notifyAll();
       }
 
-      Span curr = Trace.currentTrace();
-      curr.data("extent", "" + getExtent());
-      if (majCStats != null) {
-        curr.data("read", "" + majCStats.getEntriesRead());
-        curr.data("written", "" + majCStats.getEntriesWritten());
-      }
       if (span != null) {
+        span.data("extent", "" + getExtent());
+        if (majCStats != null) {
+          span.data("read", "" + majCStats.getEntriesRead());
+          span.data("written", "" + majCStats.getEntriesWritten());
+        }
         span.stop();
       }
     }
