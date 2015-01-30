@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -64,11 +65,13 @@ import javax.management.StandardMBean;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.Translator.TKeyExtentTranslator;
@@ -252,6 +255,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
+  private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
   private TabletServerLogger logger;
 
@@ -280,6 +284,27 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
     }, TIME_BETWEEN_GC_CHECKS, TIME_BETWEEN_GC_CHECKS);
+    SimpleTimer.getInstance().schedule(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          SystemCredentials creds = SystemCredentials.get();
+          Connector connector = instance.getConnector(creds.getPrincipal(), creds.getToken());
+          for (String id : connector.tableOperations().tableIdMap().values()) {
+            TabletLocator locator = TabletLocator.getLocator(instance, new Text(id));
+            locator.invalidateCache();
+          }
+        } catch (Exception ex) {
+          log.error("Error clearing locator cache, ignoring", ex);
+        }
+      }
+    }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+  }
+
+  private static long jitter(long ms) {
+    Random r = new Random();
+    // add a random 10% wait
+    return (long)(1. + (r.nextDouble() / 10) * ms);
   }
 
   private synchronized static void logGCInfo(AccumuloConfiguration conf) {
