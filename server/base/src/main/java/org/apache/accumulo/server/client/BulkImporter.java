@@ -258,9 +258,9 @@ public class BulkImporter {
       printReport(paths);
       return assignmentStats;
     } finally {
-      if (client != null)
+      if (client != null) {
         ServerClient.close(client);
-      locator.invalidateCache();
+      }
     }
   }
 
