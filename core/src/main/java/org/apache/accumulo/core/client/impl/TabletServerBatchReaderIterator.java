@@ -208,8 +208,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           else
             throw new RuntimeException(fatalException);
 
-        if (queryThreadPool.isShutdown())
-          throw new RuntimeException("scanner closed");
+        if (queryThreadPool.isShutdown()) {
+          String shortMsg = "The BatchScanner was unexpectedly closed while this Iterator was still in use.";
+          log.error(shortMsg + " Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
+              + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.");
+          throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
+        }
 
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
