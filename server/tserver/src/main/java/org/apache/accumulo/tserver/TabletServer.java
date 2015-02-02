@@ -65,7 +65,6 @@ import javax.management.StandardMBean;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
@@ -287,16 +286,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
-        try {
-          SystemCredentials creds = SystemCredentials.get();
-          Connector connector = instance.getConnector(creds.getPrincipal(), creds.getToken());
-          for (String id : connector.tableOperations().tableIdMap().values()) {
-            TabletLocator locator = TabletLocator.getLocator(instance, new Text(id));
-            locator.invalidateCache();
-          }
-        } catch (Exception ex) {
-          log.error("Error clearing locator cache, ignoring", ex);
-        }
+        TabletLocator.clearLocators();
       }
     }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
   }
@@ -304,7 +294,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static long jitter(long ms) {
     Random r = new Random();
     // add a random 10% wait
-    return (long)(1. + (r.nextDouble() / 10) * ms);
+    return (long)((1. + (r.nextDouble() / 10)) * ms);
   }
 
   private synchronized static void logGCInfo(AccumuloConfiguration conf) {
