@@ -92,6 +92,10 @@ public abstract class TabletLocator {
 
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
 
+  public static synchronized void clearLocators() {
+    locators.clear();
+  }
+
   public static synchronized TabletLocator getLocator(ClientContext context, Text tableId) {
     Instance instance = context.getInstance();
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);

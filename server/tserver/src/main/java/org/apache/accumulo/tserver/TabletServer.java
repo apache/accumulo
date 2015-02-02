@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.Translator.TKeyExtentTranslator;
@@ -248,6 +250,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
+  private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
   private static final Set<Column> EMPTY_COLUMNS = Collections.emptySet();
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
@@ -347,6 +350,18 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     updateMetrics = metricsFactory.createUpdateMetrics();
     scanMetrics = metricsFactory.createScanMetrics();
     mincMetrics = metricsFactory.createMincMetrics();
+    SimpleTimer.getInstance(aconf).schedule(new Runnable() {
+      @Override
+      public void run() {
+        TabletLocator.clearLocators();
+      }
+    }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+  }
+
+  private static long jitter(long ms) {
+    Random r = new Random();
+    // add a random 10% wait
+    return (long)((1. + (r.nextDouble() / 10)) * ms);
   }
 
   private final SessionManager sessionManager;
