@@ -248,7 +248,9 @@
         <include>CHANGES</include>
         <include>LICENSE</include>
         <include>NOTICE</include>
-        <include>README</include>
+        <include>README.md</include>
+        <include>INSTALL.md</include>
+        <include>BUILD.md</include>
       </includes>
     </fileSet>
   </fileSets>

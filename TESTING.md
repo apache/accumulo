@@ -1,20 +1,19 @@
-Title: Testing Apache Accumulo
-Notice:    Licensed to the Apache Software Foundation (ASF) under one
-           or more contributor license agreements.  See the NOTICE file
-           distributed with this work for additional information
-           regarding copyright ownership.  The ASF licenses this file
-           to you under the Apache License, Version 2.0 (the
-           "License"); you may not use this file except in compliance
-           with the License.  You may obtain a copy of the License at
-           .
-             http://www.apache.org/licenses/LICENSE-2.0
-           .
-           Unless required by applicable law or agreed to in writing,
-           software distributed under the License is distributed on an
-           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-           KIND, either express or implied.  See the License for the
-           specific language governing permissions and limitations
-           under the License.
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 
 # Testing Apache Accumulo
 
@@ -23,14 +22,12 @@ to run which validate the product and developers to continue to iterate upon to 
 free of bugs as possible.
 
 The automated testing suite can be categorized as two sets of tests: unit tests and integration tests. These are the
-traditional unit and integrations tests as defined by the Apache Maven lifecycle phases (unit tests run at `test` and
-integration tests run at `integration-test`).
+traditional unit and integrations tests as defined by the Apache Maven [lifecycle][3] phases.
 
 # Unit tests
 
-Unit tests can be run by invoking `mvn test` at the top of the Apache Accumulo source tree; however, it is more often
-the case that these tests are automatically run by invoking `mvn package` instead.  Either invocation should work
-successfully.
+Unit tests can be run by invoking `mvn test` at the root of the Apache Accumulo source tree.  For more information see
+the [maven-surefire-plugin docs][4].
 
 The unit tests should run rather quickly (order of minutes for the entire project) and, in nearly all cases, do not
 require any noticable amount of computer resources (the compilation of the files typically exceeds running the tests).
@@ -42,16 +39,13 @@ the case, it is almost certainly in error.
 
 # Integration tests
 
-Integration tests can be run by invoking `mvn integration-test` at the top of the Apache Accumulo source tree; however,
-like `mvn package` being recommended for unit tests, `mvn verify` is often the recommended avenue to run the integration tests.
+Integration tests can be run by invoking `mvn verify` at the root of the Apache Accumulo source tree.  For more
+information see the [maven-failsafe-plugin docs][5].
 
-The integration tests are medium length tests (order minutes for each test class and order hours for the complete suite
-with single threaded execution) but are very encompassing of checking for regressions that were previously seen in the
-codebase. These tests do require a noticable amount of resources, at least another gigabyte of memory over what Maven
-itself requires. As such, it's recommended to have at least 3-4GB of free memory and 10GB of free disk space.
-
-Take note that when invoking the `integration-test` lifecycle phase, other functions will also be enabled which include
-static analysis (findbugs) and software license checks (release analysis tool -- RAT).
+The integration tests are medium length tests (order minutes for each test class and order hours for the complete suite)
+but are checking for regressions that were previously seen in the codebase. These tests do require a noticable amount of
+resources, at least another gigabyte of memory over what Maven itself requires. As such, it's recommended to have at
+least 3-4GB of free memory and 10GB of free disk space.
 
 ## Accumulo for testing
 
@@ -109,5 +103,12 @@ files to construct the FileSystem object for the cluster can be constructed (e.g
 # Manual Distributed Testing
 
 Apache Accumulo also contains a number of tests which are suitable for running against large clusters for hours to days
-at a time, for example the Continuous Ingest and Randomwalk test suites. These all exist in the repository under
+at a time, for example the [Continuous Ingest][1] and [Randomwalk test][2] suites. These all exist in the repository under
 `test/system` and contain their own README files for configuration and use.
+
+[1]: test/system/continuous/README.md
+[2]: test/system/randomwalk/README.md
+[3]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
+[4]: http://maven.apache.org/surefire/maven-surefire-plugin/
+[5]: http://maven.apache.org/surefire/maven-failsafe-plugin/
+
