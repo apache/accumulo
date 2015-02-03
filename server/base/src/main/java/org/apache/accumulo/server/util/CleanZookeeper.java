@@ -36,9 +36,9 @@ public class CleanZookeeper {
   private static final Logger log = Logger.getLogger(CleanZookeeper.class);
 
   static class Opts extends Help {
-    @Parameter(names = {"-z", "--keepers"}, description = "comma separated list of zookeeper hosts")
+    @Parameter(names = {"-z", "--keepers"}, description = "Comma-separated list of zookeeper hosts, if different than instance.zookeeper.host in accumulo-site.xml")
     String keepers = "localhost:2181";
-    @Parameter(names = {"--password"}, description = "the system secret", password = true)
+    @Parameter(names = {"--password"}, description = "The system secret, if different than instance.secret in accumulo-site.xml", password = true)
     String auth;
   }
 
