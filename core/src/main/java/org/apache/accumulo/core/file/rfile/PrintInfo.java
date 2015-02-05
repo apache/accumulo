@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -31,7 +30,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -72,13 +70,7 @@ public class PrintInfo implements KeywordExecutable {
   public void execute(final String[] args) throws Exception {
     Configuration conf = new Configuration();
 
-    AccumuloConfiguration aconf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
-    // TODO ACCUMULO-2462 This will only work for RFiles (path only, not URI) in HDFS when the correct filesystem for the given file
-    // is on Property.INSTANCE_DFS_DIR or, when INSTANCE_DFS_DIR is not defined, is on the default filesystem
-    // defined in the Hadoop's core-site.xml
-    //
-    // A workaround is to always provide a URI to this class
-    FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
+    FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
@@ -97,14 +89,15 @@ public class PrintInfo implements KeywordExecutable {
       if (arg.contains(":"))
         fs = path.getFileSystem(conf);
       else {
-        // Recommend a URI is given for the above todo reason
         log.warn("Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       }
+      System.out.println("Working on: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()).toString());
 
-      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
+      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
+          SiteConfiguration.getInstance(DefaultConfiguration.getInstance()));
       Reader iter = new RFile.Reader(_rdr);
-      MetricsGatherer<Map<String, ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
+      MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 
       if (opts.vis || opts.hash)
         iter.registerMetrics(vmg);
@@ -113,7 +106,7 @@ public class PrintInfo implements KeywordExecutable {
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
 
-      Map<String, ArrayList<ByteSequence>> localityGroupCF = null;
+      Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
       if (opts.histogram || opts.dump || opts.vis || opts.hash) {
         localityGroupCF = iter.getLocalityGroupCF();
