@@ -33,7 +33,6 @@ public class DefaultConfiguration extends AccumuloConfiguration {
         m.put(prop.getKey(), prop.getDefaultValue());
       }
     }
-    ConfigSanityCheck.validate(m.entrySet());
     resolvedProps = Collections.unmodifiableMap(m);
   }
 

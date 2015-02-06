@@ -43,4 +43,9 @@ public class DefaultConfigurationTest {
     c.getProperties(p, new AllFilter());
     assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
   }
+
+  @Test
+  public void testSanityCheck() {
+    ConfigSanityCheck.validate(c);
+  }
 }

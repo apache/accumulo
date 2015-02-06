@@ -27,6 +27,10 @@ public class ConfigSanityCheck {
 
   private static final Logger log = Logger.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   /**
    * Validates the given configuration entries. A valid configuration contains only valid properties (i.e., defined or otherwise valid) that are not prefixes
@@ -39,8 +43,8 @@ public class ConfigSanityCheck {
    *           if a fatal configuration error is found
    */
   public static void validate(Iterable<Entry<String,String>> entries) {
-    String instanceZkTimeoutKey = Property.INSTANCE_ZK_TIMEOUT.getKey();
     String instanceZkTimeoutValue = null;
+    boolean usingVolumes = false;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -54,13 +58,21 @@ public class ConfigSanityCheck {
       else if (!prop.getType().isValidFormat(value))
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
 
-      if (key.equals(instanceZkTimeoutKey)) {
+      if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
+      }
+
+      if (key.equals(Property.INSTANCE_VOLUMES.getKey())) {
+        usingVolumes = value != null && !value.isEmpty();
       }
     }
 
     if (instanceZkTimeoutValue != null) {
       checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue, new CheckTimeDurationBetween(1000, 300000));
+    }
+
+    if (!usingVolumes) {
+      log.warn("Use of " + INSTANCE_DFS_URI + " and " + INSTANCE_DFS_DIR + " are deprecated. Consider using " + Property.INSTANCE_VOLUMES + " instead.");
     }
   }
 

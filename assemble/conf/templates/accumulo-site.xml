@@ -22,6 +22,12 @@
     you are simply testing at your workstation, you will most definitely need to change the three entries below. -->
 
   <property>
+    <name>instance.volumes</name>
+    <value></value>
+    <description>comma separated list of URIs for volumes. example: hdfs://localhost:9000/accumulo</description>
+  </property>
+
+  <property>
     <name>instance.zookeeper.host</name>
     <value>localhost:2181</value>
     <description>comma separated list of zookeeper servers</description>
