@@ -18,7 +18,7 @@ package org.apache.accumulo.tserver;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import jline.internal.Preconditions;
+import com.google.common.base.Preconditions;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.slf4j.Logger;
