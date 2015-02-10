@@ -96,7 +96,9 @@ public class TableDiskUsage {
     Map<List<Integer>,Long> usage = new HashMap<List<Integer>,Long>();
 
     for (Entry<String,Integer[]> entry : tableFiles.entrySet()) {
-      log.info("fileSizes " + fileSizes + " key " + Arrays.asList(entry.getKey()));
+      if (log.isTraceEnabled()) {
+        log.trace("fileSizes " + fileSizes + " key " + entry.getKey());
+      }
       List<Integer> key = Arrays.asList(entry.getValue());
       Long size = fileSizes.get(entry.getKey());
 
