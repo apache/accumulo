@@ -16,8 +16,8 @@
 -->
 
 
-Release Notes - Accumulo - Version 1.6.2
 
+Release Notes - Accumulo - Version 1.6.2
 
 ** Sub-task
     * [ACCUMULO-1722] - add the ability to dump user permissions to the dumpConfig admin command
@@ -36,6 +36,7 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3487] - FateAdmin command ignores jcommander txid args
     * [ACCUMULO-3515] - SplitLarge command ignores jcommander maxSize option
     * [ACCUMULO-3516] - ZooZap does not use verbose option from command-line
+
 
 
 ** Bug
@@ -80,7 +81,7 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3292] - ConditionalWriterIT#testOffline failed
     * [ACCUMULO-3296] - ZooUtil.recursiveDelete looping indefinitely
     * [ACCUMULO-3297] - FileManager semaphore acquisition may block Root and Metadata scans
-    * [ACCUMULO-3298] - ConditionalMutationSet.DuplicateFitler is misspelled 
+    * [ACCUMULO-3298] - ConditionalMutationSet.DuplicateFitler is misspelled
     * [ACCUMULO-3301] - TableOperationsImpl.waitForTableStateTransition(String, TableState) never fetches `future` column
     * [ACCUMULO-3305] - MiniAccumuloClusterImpl#killProcess should use the stopWithTimeout method
     * [ACCUMULO-3312] - IllegalArgumentException in master and gc during randomwalk
@@ -128,6 +129,12 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3504] - Typo in startup message
     * [ACCUMULO-3532] - ServerType.TRACER and ServerType.MONITOR were added in 1.6.2 causing it to lose backwards compatibility
     * [ACCUMULO-3533] - AbstractInputFormat.getConfiguration(JobContext) changed from package-private to public without minor version bump
+    * [ACCUMULO-3541] - Seeing CompactionCanceledException errors in monitor
+    * [ACCUMULO-3547] - TabletServer clears cache after bulk import analysis
+    * [ACCUMULO-3549] - tablet server location cache may grow too large
+    * [ACCUMULO-3553] - Better description on CleanZookeeper password parameter
+
+
 
 
 ** Improvement
@@ -161,6 +168,14 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3436] - User manual doesn't have any discussion about FATE
     * [ACCUMULO-3440] - TabletGroupWatcher tablet assigning logging is excessive
     * [ACCUMULO-3466] - Range.mergeOverlapping(Collection) should have short-circuit for collections with only one item
+    * [ACCUMULO-3556] - Improve obtuse "Scanner closed" error message in TabletServerBatchScanner
+
+
+
+
+
+
+
 
 
 ** Task
@@ -180,7 +195,6 @@ Release Notes - Accumulo - Version 1.6.2
 
 ** Test
     * [ACCUMULO-3207] - SimpleBalancerFairnessIT fails
-
 
 
 
