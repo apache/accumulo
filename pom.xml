@@ -450,6 +450,12 @@
         <artifactId>jetty-util</artifactId>
         <version>${jetty.version}</version>
       </dependency>
+      <!-- Necessary for Hadoop-1 minidfs -->
+      <dependency>
+        <groupId>org.mortbay.jetty</groupId>
+        <artifactId>jetty</artifactId>
+        <version>6.1.26</version>
+      </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
