@@ -24,7 +24,7 @@
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>1.6.2-SNAPSHOT</version>
+  <version>1.6.2</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
@@ -94,7 +94,7 @@
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
-    <tag>${project.version}</tag>
+    <tag>1.6.2</tag>
     <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
@@ -911,8 +911,8 @@
                 <module name="OuterTypeFilename" />
                 <module name="LineLength">
                   <!-- needs extra, because Eclipse formatter ignores the ending left brace -->
-                  <property name="max" value="200"/>
-                  <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+                  <property name="max" value="200" />
+                  <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                 </module>
                 <module name="AvoidStarImport" />
                 <module name="UnusedImports">
