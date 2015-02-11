@@ -381,7 +381,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column(new Text("count"))));
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(tableName, is);
-    fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README"), new Path(dir + "/tmp/wc/README"));
+    fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README.md"), new Path(dir + "/tmp/wc/README.md"));
     goodExec(WordCount.class, "-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName);
   }
 
