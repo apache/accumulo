@@ -21,11 +21,11 @@ import java.nio.CharBuffer;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import jline.internal.Preconditions;
-
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
+
+import com.google.common.base.Preconditions;
 
 /**
  * An {@link AuthenticationToken} backed by a Hadoop CredentialProvider.
