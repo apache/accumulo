@@ -141,11 +141,15 @@ public class TabletStateChangeIterator extends SkippingIterator {
         case HOSTED:
           if (!shouldBeOnline)
             return;
+          break;
         case ASSIGNED_TO_DEAD_SERVER:
           return;
         case UNASSIGNED:
           if (shouldBeOnline)
             return;
+          break;
+        default:
+          throw new AssertionError("Inconceivable! The tablet is an unrecognized state: " + tls.getState(current));
       }
       // table is in the expected state so don't bother returning any information about it
       getSource().next();
