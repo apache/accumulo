@@ -473,11 +473,6 @@
         <version>${htrace.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.mortbay.jetty</groupId>
-        <artifactId>jetty</artifactId>
-        <version>6.1.26</version>
-      </dependency>
-      <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
         <version>${powermock.version}</version>
