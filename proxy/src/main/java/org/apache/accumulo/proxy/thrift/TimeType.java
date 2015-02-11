@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum TimeType implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum TimeType implements org.apache.thrift.TEnum {
   LOGICAL(0),
   MILLIS(1);
 

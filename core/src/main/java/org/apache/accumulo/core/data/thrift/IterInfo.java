@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class IterInfo implements org.apache.thrift.TBase<IterInfo, IterInfo._Fields>, java.io.Serializable, Cloneable, Comparable<IterInfo> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class IterInfo implements org.apache.thrift.TBase<IterInfo, IterInfo._Fields>, java.io.Serializable, Cloneable, Comparable<IterInfo> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("IterInfo");
 
   private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I32, (short)1);
@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
   public String iterName; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     PRIORITY((short)1, "priority"),
     CLASS_NAME((short)2, "className"),
     ITER_NAME((short)3, "iterName");

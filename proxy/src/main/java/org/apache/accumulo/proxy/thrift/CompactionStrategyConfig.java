@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class CompactionStrategyConfig implements org.apache.thrift.TBase<CompactionStrategyConfig, CompactionStrategyConfig._Fields>, java.io.Serializable, Cloneable, Comparable<CompactionStrategyConfig> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class CompactionStrategyConfig implements org.apache.thrift.TBase<CompactionStrategyConfig, CompactionStrategyConfig._Fields>, java.io.Serializable, Cloneable, Comparable<CompactionStrategyConfig> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("CompactionStrategyConfig");
 
   private static final org.apache.thrift.protocol.TField CLASS_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("className", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
   public Map<String,String> options; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CLASS_NAME((short)1, "className"),
     OPTIONS((short)2, "options");
 

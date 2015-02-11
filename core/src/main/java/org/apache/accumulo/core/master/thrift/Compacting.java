@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class Compacting implements org.apache.thrift.TBase<Compacting, Compacting._Fields>, java.io.Serializable, Cloneable, Comparable<Compacting> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class Compacting implements org.apache.thrift.TBase<Compacting, Compacting._Fields>, java.io.Serializable, Cloneable, Comparable<Compacting> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("Compacting");
 
   private static final org.apache.thrift.protocol.TField RUNNING_FIELD_DESC = new org.apache.thrift.protocol.TField("running", org.apache.thrift.protocol.TType.I32, (short)1);
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
   public int queued; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     RUNNING((short)1, "running"),
     QUEUED((short)2, "queued");
 

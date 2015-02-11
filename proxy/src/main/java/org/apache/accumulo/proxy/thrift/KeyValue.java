@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class KeyValue implements org.apache.thrift.TBase<KeyValue, KeyValue._Fields>, java.io.Serializable, Cloneable, Comparable<KeyValue> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class KeyValue implements org.apache.thrift.TBase<KeyValue, KeyValue._Fields>, java.io.Serializable, Cloneable, Comparable<KeyValue> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("KeyValue");
 
   private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer value; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     KEY((short)1, "key"),
     VALUE((short)2, "value");
 

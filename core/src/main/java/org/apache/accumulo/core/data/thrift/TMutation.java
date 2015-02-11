@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._Fields>, java.io.Serializable, Cloneable, Comparable<TMutation> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._Fields>, java.io.Serializable, Cloneable, Comparable<TMutation> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TMutation");
 
   private static final org.apache.thrift.protocol.TField ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("row", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -70,7 +70,7 @@ import org.slf4j.LoggerFactory;
   public List<String> sources; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ROW((short)1, "row"),
     DATA((short)2, "data"),
     VALUES((short)3, "values"),

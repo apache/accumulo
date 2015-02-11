@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum ReplicationCoordinatorErrorCode implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum ReplicationCoordinatorErrorCode implements org.apache.thrift.TEnum {
   NO_AVAILABLE_SERVERS(0),
   SERVICE_CONFIGURATION_UNAVAILABLE(1),
   CANNOT_AUTHENTICATE(2);

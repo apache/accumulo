@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum ScanType implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum ScanType implements org.apache.thrift.TEnum {
   SINGLE(0),
   BATCH(1);
 

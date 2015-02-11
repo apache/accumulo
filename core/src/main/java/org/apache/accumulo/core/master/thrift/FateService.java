@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class FateService {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class FateService {
 
   public interface Iface {
 
@@ -784,7 +784,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       CREDENTIALS((short)1, "credentials");
 
@@ -1248,7 +1248,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -1718,7 +1718,7 @@ import org.slf4j.LoggerFactory;
     public boolean autoClean; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)7, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       OPID((short)2, "opid"),
@@ -2777,7 +2777,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       TOPE((short)2, "tope");
 
@@ -3237,7 +3237,7 @@ import org.slf4j.LoggerFactory;
     public long opid; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       OPID((short)2, "opid");
@@ -3799,7 +3799,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec"),
       TOPE((short)2, "tope");
@@ -4357,7 +4357,7 @@ import org.slf4j.LoggerFactory;
     public long opid; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       OPID((short)2, "opid");
@@ -4915,7 +4915,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

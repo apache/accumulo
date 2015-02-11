@@ -51,7 +51,8 @@ mkdir -p $BUILD_DIR
 protoc ${PROTOC_ARGS} src/main/protobuf/*.proto || fail unable to generate Java protocol buffer classes
 
 # For all generated thrift code, suppress all warnings and add the LICENSE header
-find $BUILD_DIR -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public final class /@SuppressWarnings("all") public final class /'
+s='@SuppressWarnings({"unused"})'
+find $BUILD_DIR -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public final class \)/'"$s"' \1/'
 
 PREFIX="/*
 "

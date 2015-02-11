@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TabletClientService {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class TabletClientService {
 
   public interface Iface extends org.apache.accumulo.core.client.impl.thrift.ClientService.Iface {
 
@@ -4484,7 +4484,7 @@ import org.slf4j.LoggerFactory;
     public long readaheadThreshold; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)11, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       EXTENT((short)2, "extent"),
@@ -6182,7 +6182,7 @@ import org.slf4j.LoggerFactory;
     public TooManyFilesException tmfe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec"),
       NSTE((short)2, "nste"),
@@ -6843,7 +6843,7 @@ import org.slf4j.LoggerFactory;
     public long scanID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       SCAN_ID((short)1, "scanID");
 
@@ -7304,7 +7304,7 @@ import org.slf4j.LoggerFactory;
     public TooManyFilesException tmfe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       NSSI((short)1, "nssi"),
       NSTE((short)2, "nste"),
@@ -7965,7 +7965,7 @@ import org.slf4j.LoggerFactory;
     public long scanID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       SCAN_ID((short)1, "scanID");
 
@@ -8434,7 +8434,7 @@ import org.slf4j.LoggerFactory;
     public boolean waitForWrites; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)8, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       BATCH((short)2, "batch"),
@@ -9829,7 +9829,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -10290,7 +10290,7 @@ import org.slf4j.LoggerFactory;
     public long scanID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       SCAN_ID((short)1, "scanID");
 
@@ -10747,7 +10747,7 @@ import org.slf4j.LoggerFactory;
     public NoSuchScanIDException nssi; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       NSSI((short)1, "nssi");
 
@@ -11208,7 +11208,7 @@ import org.slf4j.LoggerFactory;
     public long scanID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       SCAN_ID((short)1, "scanID");
 
@@ -11663,7 +11663,7 @@ import org.slf4j.LoggerFactory;
     public NoSuchScanIDException nssi; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       NSSI((short)1, "nssi");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -12027,7 +12027,7 @@ import org.slf4j.LoggerFactory;
     public TDurability durability; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       /**
@@ -12601,7 +12601,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -13061,7 +13061,7 @@ import org.slf4j.LoggerFactory;
     public List<org.apache.accumulo.core.data.thrift.TMutation> mutations; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       UPDATE_ID((short)2, "updateID"),
       KEY_EXTENT((short)3, "keyExtent"),
@@ -13773,7 +13773,7 @@ import org.slf4j.LoggerFactory;
     public long updateID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       UPDATE_ID((short)1, "updateID");
 
@@ -14230,7 +14230,7 @@ import org.slf4j.LoggerFactory;
     public NoSuchScanIDException nssi; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       NSSI((short)1, "nssi");
 
@@ -14701,7 +14701,7 @@ import org.slf4j.LoggerFactory;
     public TDurability durability; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       KEY_EXTENT((short)2, "keyExtent"),
@@ -15483,7 +15483,7 @@ import org.slf4j.LoggerFactory;
     public ConstraintViolationException cve; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       NSTE((short)2, "nste"),
       CVE((short)3, "cve");
@@ -16051,7 +16051,7 @@ import org.slf4j.LoggerFactory;
     public TDurability durability; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       AUTHORIZATIONS((short)3, "authorizations"),
@@ -16870,7 +16870,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -17335,7 +17335,7 @@ import org.slf4j.LoggerFactory;
     public List<String> symbols; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       SESS_ID((short)2, "sessID"),
       MUTATIONS((short)3, "mutations"),
@@ -18122,7 +18122,7 @@ import org.slf4j.LoggerFactory;
     public NoSuchScanIDException nssi; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       NSSI((short)1, "nssi");
 
@@ -18632,7 +18632,7 @@ import org.slf4j.LoggerFactory;
     public long sessID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       SESS_ID((short)2, "sessID");
 
@@ -19085,7 +19085,7 @@ import org.slf4j.LoggerFactory;
 
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
 ;
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -19335,7 +19335,7 @@ import org.slf4j.LoggerFactory;
     public long sessID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       SESS_ID((short)2, "sessID");
 
@@ -19798,7 +19798,7 @@ import org.slf4j.LoggerFactory;
     public boolean setTime; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       TID((short)4, "tid"),
@@ -20639,7 +20639,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -21153,7 +21153,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer splitPoint; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       EXTENT((short)2, "extent"),
@@ -21829,7 +21829,7 @@ import org.slf4j.LoggerFactory;
     public NotServingTabletException nste; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       NSTE((short)2, "nste");
 
@@ -22291,7 +22291,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)5, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)4, "lock"),
@@ -22962,7 +22962,7 @@ import org.slf4j.LoggerFactory;
     public boolean save; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)5, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)4, "lock"),
@@ -23731,7 +23731,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer endRow; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)3, "lock"),
@@ -24613,7 +24613,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       LOCK((short)3, "lock"),
@@ -25282,7 +25282,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       LOCK((short)3, "lock"),
@@ -25955,7 +25955,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer endRow; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       LOCK((short)3, "lock"),
@@ -26833,7 +26833,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials");
 
@@ -27297,7 +27297,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -27760,7 +27760,7 @@ import org.slf4j.LoggerFactory;
     public String tableId; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       TABLE_ID((short)2, "tableId");
@@ -28322,7 +28322,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -28832,7 +28832,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       CREDENTIALS((short)1, "credentials");
 
@@ -29296,7 +29296,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -29759,7 +29759,7 @@ import org.slf4j.LoggerFactory;
     public String lock; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)2, "lock");
@@ -30319,7 +30319,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -30679,7 +30679,7 @@ import org.slf4j.LoggerFactory;
     public String lock; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)2, "lock");
@@ -31241,7 +31241,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       CREDENTIALS((short)1, "credentials");
 
@@ -31705,7 +31705,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -32215,7 +32215,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
       CREDENTIALS((short)1, "credentials");
 
@@ -32679,7 +32679,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec");
 
@@ -33191,7 +33191,7 @@ import org.slf4j.LoggerFactory;
     public List<String> filenames; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       FILENAMES((short)3, "filenames");
@@ -33802,7 +33802,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials");
 
@@ -34264,7 +34264,7 @@ import org.slf4j.LoggerFactory;
     public List<String> success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

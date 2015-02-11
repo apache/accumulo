@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum RemoteReplicationErrorCode implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum RemoteReplicationErrorCode implements org.apache.thrift.TEnum {
   COULD_NOT_DESERIALIZE(0),
   COULD_NOT_APPLY(1),
   TABLE_DOES_NOT_EXIST(2),

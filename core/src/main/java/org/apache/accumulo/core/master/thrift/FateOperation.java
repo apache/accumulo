@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum FateOperation implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum FateOperation implements org.apache.thrift.TEnum {
   TABLE_CREATE(0),
   TABLE_CLONE(1),
   TABLE_DELETE(2),

@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ReplicationServicer {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ReplicationServicer {
 
   public interface Iface {
 
@@ -458,7 +458,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       REMOTE_TABLE_ID((short)1, "remoteTableId"),
       DATA((short)2, "data"),
       CREDENTIALS((short)3, "credentials");
@@ -1020,7 +1020,7 @@ import org.slf4j.LoggerFactory;
     public RemoteReplicationException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       E((short)1, "e");
 
@@ -1478,7 +1478,7 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       REMOTE_TABLE_ID((short)1, "remoteTableId"),
       DATA((short)2, "data"),
       CREDENTIALS((short)3, "credentials");
@@ -2040,7 +2040,7 @@ import org.slf4j.LoggerFactory;
     public RemoteReplicationException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       E((short)1, "e");
 

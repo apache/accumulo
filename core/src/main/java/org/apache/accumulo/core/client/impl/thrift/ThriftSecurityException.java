@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ThriftSecurityException extends TException implements org.apache.thrift.TBase<ThriftSecurityException, ThriftSecurityException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftSecurityException> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ThriftSecurityException extends TException implements org.apache.thrift.TBase<ThriftSecurityException, ThriftSecurityException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftSecurityException> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftSecurityException");
 
   private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
   public SecurityErrorCode code; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     USER((short)1, "user"),
     /**
      * 

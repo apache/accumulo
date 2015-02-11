@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCycleStats._Fields>, java.io.Serializable, Cloneable, Comparable<GcCycleStats> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCycleStats._Fields>, java.io.Serializable, Cloneable, Comparable<GcCycleStats> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("GcCycleStats");
 
   private static final org.apache.thrift.protocol.TField STARTED_FIELD_DESC = new org.apache.thrift.protocol.TField("started", org.apache.thrift.protocol.TType.I64, (short)1);
@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
   public long errors; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     STARTED((short)1, "started"),
     FINISHED((short)2, "finished"),
     CANDIDATES((short)3, "candidates"),

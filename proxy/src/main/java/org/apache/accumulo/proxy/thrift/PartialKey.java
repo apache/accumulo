@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum PartialKey implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum PartialKey implements org.apache.thrift.TEnum {
   ROW(0),
   ROW_COLFAM(1),
   ROW_COLFAM_COLQUAL(2),

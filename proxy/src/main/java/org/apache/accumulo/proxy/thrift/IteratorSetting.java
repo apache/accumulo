@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class IteratorSetting implements org.apache.thrift.TBase<IteratorSetting, IteratorSetting._Fields>, java.io.Serializable, Cloneable, Comparable<IteratorSetting> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class IteratorSetting implements org.apache.thrift.TBase<IteratorSetting, IteratorSetting._Fields>, java.io.Serializable, Cloneable, Comparable<IteratorSetting> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("IteratorSetting");
 
   private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I32, (short)1);
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
   public Map<String,String> properties; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     PRIORITY((short)1, "priority"),
     NAME((short)2, "name"),
     ITERATOR_CLASS((short)3, "iteratorClass"),

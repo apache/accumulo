@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class KeyExtent implements org.apache.thrift.TBase<KeyExtent, KeyExtent._Fields>, java.io.Serializable, Cloneable, Comparable<KeyExtent> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class KeyExtent implements org.apache.thrift.TBase<KeyExtent, KeyExtent._Fields>, java.io.Serializable, Cloneable, Comparable<KeyExtent> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("KeyExtent");
 
   private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer prevEndRow; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TABLE_ID((short)1, "tableId"),
     END_ROW((short)2, "endRow"),
     PREV_END_ROW((short)3, "prevEndRow");

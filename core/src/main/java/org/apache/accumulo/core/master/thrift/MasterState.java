@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum MasterState implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum MasterState implements org.apache.thrift.TEnum {
   INITIAL(0),
   HAVE_LOCK(1),
   SAFE_MODE(2),

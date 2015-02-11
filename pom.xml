@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>14</version>
+    <version>16</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -125,8 +125,9 @@
     <hadoop.version>2.2.0</hadoop.version>
     <htrace.version>3.0.4</htrace.version>
     <httpclient.version>3.1</httpclient.version>
-    <java.ver>1.7</java.ver>
     <jetty.version>9.1.5.v20140505</jetty.version>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
     <!-- surefire/failsafe plugin option -->
@@ -162,6 +163,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
+        <!-- Hadoop-2.4.0 MiniDFSCluster uses classes from <Guava-15.0; fixed in 2.6.0 and later -->
         <version>14.0.1</version>
       </dependency>
       <dependency>
@@ -365,7 +367,12 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minikdc</artifactId>
-        <version>${hadoop.version}</version>
+        <!-- Specifically depend on this version of minikdc to avoid having
+           to increase out normal hadoop dependency; minikdc not available prior
+           to 2.3.0 -->
+        <?SORTPOM IGNORE?>
+        <version>2.3.0</version><!--$NO-MVN-MAN-VER$-->
+        <?SORTPOM RESUME?>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -595,11 +602,14 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>${java.ver}</source>
-            <target>${java.ver}</target>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
+            <compilerArgs>
+              <arg>-Xlint:all</arg>
+              <arg>-Xmaxwarns</arg>
+              <arg>5</arg>
+            </compilerArgs>
           </configuration>
         </plugin>
         <plugin>
@@ -621,7 +631,7 @@
             <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
             <reportOutputDirectory>docs</reportOutputDirectory>
-            <javadocVersion>${java.ver}</javadocVersion>
+            <javadocVersion>${maven.compiler.target}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
         </plugin>
@@ -1004,7 +1014,7 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java,**/HelpMojo.java</excludes>
+          <excludes>**/thrift/*.java,**/proto/*.java,**/HelpMojo.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
@@ -1076,6 +1086,20 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
+        <dependencies>
+          <!-- workaround for RAT-158 -->
+          <dependency>
+            <groupId>org.apache.maven.doxia</groupId>
+            <artifactId>doxia-core</artifactId>
+            <version>1.6</version>
+            <exclusions>
+              <exclusion>
+                <groupId>xerces</groupId>
+                <artifactId>xercesImpl</artifactId>
+              </exclusion>
+            </exclusions>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <id>check-licenses</id>
@@ -1143,7 +1167,7 @@
           </excludes>
           <format>html</format>
           <includeTests>true</includeTests>
-          <targetJdk>${java.ver}</targetJdk>
+          <targetJdk>${maven.compiler.target}</targetJdk>
         </configuration>
       </plugin>
       <plugin>

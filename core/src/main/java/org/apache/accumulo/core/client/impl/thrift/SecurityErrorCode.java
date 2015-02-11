@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum SecurityErrorCode implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum SecurityErrorCode implements org.apache.thrift.TEnum {
   DEFAULT_SECURITY_ERROR(0),
   BAD_CREDENTIALS(1),
   PERMISSION_DENIED(2),

@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class UpdateErrors implements org.apache.thrift.TBase<UpdateErrors, UpdateErrors._Fields>, java.io.Serializable, Cloneable, Comparable<UpdateErrors> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class UpdateErrors implements org.apache.thrift.TBase<UpdateErrors, UpdateErrors._Fields>, java.io.Serializable, Cloneable, Comparable<UpdateErrors> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("UpdateErrors");
 
   private static final org.apache.thrift.protocol.TField FAILED_EXTENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("failedExtents", org.apache.thrift.protocol.TType.MAP, (short)1);
@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
   public Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> authorizationFailures; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     FAILED_EXTENTS((short)1, "failedExtents"),
     VIOLATION_SUMMARIES((short)2, "violationSummaries"),
     AUTHORIZATION_FAILURES((short)3, "authorizationFailures");

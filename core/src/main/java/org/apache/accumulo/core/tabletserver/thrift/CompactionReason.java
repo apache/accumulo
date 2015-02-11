@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum CompactionReason implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum CompactionReason implements org.apache.thrift.TEnum {
   USER(0),
   SYSTEM(1),
   CHOP(2),

@@ -34,6 +34,11 @@
       <artifactId>jcommander</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
@@ -158,11 +163,6 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-minikdc</artifactId>
-      <!-- Specifically depend on this version of minikdc to avoid having
-           to increase out normal hadoop dependency -->
-      <?SORTPOM IGNORE?>
-      <version>2.3.0</version><!--$NO-MVN-MAN-VER$-->
-      <?SORTPOM RESUME?>
       <scope>test</scope>
       <exclusions>
         <!-- Pulls in an older bouncycastle version -->

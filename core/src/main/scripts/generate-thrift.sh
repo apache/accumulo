@@ -72,8 +72,10 @@ for f in src/main/thrift/*.thrift; do
 done
 
 # For all generated thrift code, suppress all warnings and add the LICENSE header
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public enum /@SuppressWarnings("all") public enum /'
+cs='@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"})'
+es='@SuppressWarnings({"unused"})'
+find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public class [A-Z]\)/'"$cs"' \1/'
+find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public enum [A-Z]\)/'"$es"' \1/'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   case $lang in

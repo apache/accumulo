@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum TDurability implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum TDurability implements org.apache.thrift.TEnum {
   DEFAULT(0),
   SYNC(1),
   FLUSH(2),

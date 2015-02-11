@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class InitialMultiScan implements org.apache.thrift.TBase<InitialMultiScan, InitialMultiScan._Fields>, java.io.Serializable, Cloneable, Comparable<InitialMultiScan> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class InitialMultiScan implements org.apache.thrift.TBase<InitialMultiScan, InitialMultiScan._Fields>, java.io.Serializable, Cloneable, Comparable<InitialMultiScan> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("InitialMultiScan");
 
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanID", org.apache.thrift.protocol.TType.I64, (short)1);
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
   public MultiScanResult result; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SCAN_ID((short)1, "scanID"),
     RESULT((short)2, "result");
 

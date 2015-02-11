@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum ScanState implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum ScanState implements org.apache.thrift.TEnum {
   IDLE(0),
   RUNNING(1),
   QUEUED(2);

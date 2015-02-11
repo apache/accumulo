@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServer._Fields>, java.io.Serializable, Cloneable, Comparable<DeadServer> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class DeadServer implements org.apache.thrift.TBase<DeadServer, DeadServer._Fields>, java.io.Serializable, Cloneable, Comparable<DeadServer> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("DeadServer");
 
   private static final org.apache.thrift.protocol.TField SERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("server", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
   public String status; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SERVER((short)1, "server"),
     LAST_STATUS((short)2, "lastStatus"),
     STATUS((short)3, "status");

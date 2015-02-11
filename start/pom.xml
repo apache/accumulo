@@ -46,13 +46,9 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
     </dependency>
-    <!-- Hadoop-2.4.0 MiniDFSCluster uses classes from <Guava-15.0 -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <?SORTPOM IGNORE?>
-      <version>14.0.1</version><!--$NO-MVN-MAN-VER$-->
-      <?SORTPOM RESUME?>
       <scope>test</scope>
     </dependency>
     <dependency>
