@@ -16,7 +16,6 @@
 -->
 
 
-
 Release Notes - Accumulo - Version 1.6.2
 
 ** Sub-task
@@ -38,12 +37,12 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3516] - ZooZap does not use verbose option from command-line
 
 
-
 ** Bug
     * [ACCUMULO-1292] - Tablet constructor can hang on vfs classloader, preventing tablets from loading
     * [ACCUMULO-2381] - AddFilesWithMissingEntries needs to just find abandoned files, or be deleted
     * [ACCUMULO-2591] - TeraSortIngest should maintain binary compatibility between Hadoop 1 and Hadoop 2
     * [ACCUMULO-2641] - scan id not set in org.apache.accumulo.core.client.admin.ActiveScan
+    * [ACCUMULO-2696] - Master has misleading log message in case of failure for status thread
     * [ACCUMULO-2727] - version argument of ZooUtil.recursiveDelete is ignored
     * [ACCUMULO-2793] - Clean up handling of moving HDFS under Accumulo from non-HA to HA
     * [ACCUMULO-3002] - Handle instance.volumes in upgrade
@@ -127,14 +126,17 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3496] - ZooKeeperInstance doesn't validate instance name on creation
     * [ACCUMULO-3503] - generate_thrift.sh search and replace for TInfo.java is not working on Mac
     * [ACCUMULO-3504] - Typo in startup message
+    * [ACCUMULO-3517] - Several utilities ignore jcommander options
     * [ACCUMULO-3532] - ServerType.TRACER and ServerType.MONITOR were added in 1.6.2 causing it to lose backwards compatibility
     * [ACCUMULO-3533] - AbstractInputFormat.getConfiguration(JobContext) changed from package-private to public without minor version bump
     * [ACCUMULO-3541] - Seeing CompactionCanceledException errors in monitor
+    * [ACCUMULO-3542] - Native tarball doesn't have a NOTICE
     * [ACCUMULO-3547] - TabletServer clears cache after bulk import analysis
     * [ACCUMULO-3549] - tablet server location cache may grow too large
     * [ACCUMULO-3553] - Better description on CleanZookeeper password parameter
-
-
+    * [ACCUMULO-3572] - TableDiskUsage contains log without a conditional
+    * [ACCUMULO-3576] - Usage of jline.internal.Preconditions breaks mini accumulo
+    * [ACCUMULO-3578] - Update license and notice
 
 
 ** Improvement
@@ -171,13 +173,6 @@ Release Notes - Accumulo - Version 1.6.2
     * [ACCUMULO-3556] - Improve obtuse "Scanner closed" error message in TabletServerBatchScanner
 
 
-
-
-
-
-
-
-
 ** Task
     * [ACCUMULO-2997] - Confusing race condition comment in resizing of TServer client pool
     * [ACCUMULO-3203] - Remove unused, undocumented SecretKeyEncryptionStrategyContext
@@ -195,6 +190,7 @@ Release Notes - Accumulo - Version 1.6.2
 
 ** Test
     * [ACCUMULO-3207] - SimpleBalancerFairnessIT fails
+
 
 
 
