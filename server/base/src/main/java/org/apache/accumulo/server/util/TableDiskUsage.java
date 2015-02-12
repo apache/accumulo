@@ -67,15 +67,20 @@ public class TableDiskUsage {
     if (internalIds.containsKey(tableId))
       throw new IllegalArgumentException("Already added table " + tableId);
 
+    // Keep an internal counter for each table added
     int iid = nextInternalId++;
 
+    // Store the table id to the internal id
     internalIds.put(tableId, iid);
+    // Store the internal id to the table id
     externalIds.put(iid, tableId);
   }
 
   void linkFileAndTable(String tableId, String file) {
+    // get the internal id for this table
     int internalId = internalIds.get(tableId);
 
+    // Initialize a bitset for tables (internal IDs) that reference this file
     Integer[] tables = tableFiles.get(file);
     if (tables == null) {
       tables = new Integer[internalIds.size()];
@@ -84,6 +89,7 @@ public class TableDiskUsage {
       tableFiles.put(file, tables);
     }
 
+    // Update the bitset to track that this table has seen this file
     tables[internalId] = 1;
   }
 
@@ -93,11 +99,16 @@ public class TableDiskUsage {
 
   Map<List<String>,Long> calculateUsage() {
 
+    // Bitset of tables that contain a file and total usage by all files that share that usage
     Map<List<Integer>,Long> usage = new HashMap<List<Integer>,Long>();
 
+    if (log.isTraceEnabled()) {
+      log.trace("fileSizes " + fileSizes);
+    }
+    // For each file w/ referenced-table bitset
     for (Entry<String,Integer[]> entry : tableFiles.entrySet()) {
       if (log.isTraceEnabled()) {
-        log.trace("fileSizes " + fileSizes + " key " + entry.getKey());
+        log.trace("file " + entry.getKey() + " table bitset " + Arrays.toString(entry.getValue()));
       }
       List<Integer> key = Arrays.asList(entry.getValue());
       Long size = fileSizes.get(entry.getKey());
@@ -117,13 +128,17 @@ public class TableDiskUsage {
     for (Entry<List<Integer>,Long> entry : usage.entrySet()) {
       List<String> externalKey = new ArrayList<String>();
       List<Integer> key = entry.getKey();
+      // table bitset
       for (int i = 0; i < key.size(); i++)
         if (key.get(i) != 0)
+          // Convert by internal id to the table id
           externalKey.add(externalIds.get(i));
 
+      // list of table ids and size of files shared across the tables
       externalUsage.put(externalKey, entry.getValue());
     }
 
+    // mapping of all enumerations of files being referenced by tables and total size of files who share the same reference
     return externalUsage;
   }
 
@@ -145,6 +160,7 @@ public class TableDiskUsage {
       throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
 
+    // Add each tableID
     for (String tableId : tableIds)
       tdu.addTable(tableId);
 
@@ -152,6 +168,7 @@ public class TableDiskUsage {
     HashSet<String> emptyTableIds = new HashSet<String>();
     HashSet<String> nameSpacesReferenced = new HashSet<String>();
 
+    // For each table ID
     for (String tableId : tableIds) {
       Scanner mdScanner = null;
       try {
@@ -166,12 +183,15 @@ public class TableDiskUsage {
         emptyTableIds.add(tableId);
       }
 
+      // Read each file referenced by that table
       for (Entry<Key,Value> entry : mdScanner) {
         String file = entry.getKey().getColumnQualifier().toString();
         String parts[] = file.split("/");
+        // the filename
         String uniqueName = parts[parts.length - 1];
         if (file.contains(":") || file.startsWith("../")) {
           String ref = parts[parts.length - 3];
+          // Track any tables which are referenced externally by the current table
           if (!ref.equals(tableId)) {
             tablesReferenced.add(ref);
           }
@@ -181,12 +201,15 @@ public class TableDiskUsage {
           }
         }
 
+        // add this file to this table
         tdu.linkFileAndTable(tableId, uniqueName);
       }
     }
 
+    // Each table seen (provided by user, or reference by table the user provided)
     for (String tableId : tablesReferenced) {
       for (String tableDir : nameSpacesReferenced) {
+        // Find each file and add its size
         FileStatus[] files = fs.globStatus(new Path(tableDir + "/" + tableId + "/*/*"));
         if (files != null) {
           for (FileStatus fileStatus : files) {
@@ -198,6 +221,7 @@ public class TableDiskUsage {
       }
     }
 
+    // Invert tableId->tableName
     HashMap<String,String> reverseTableIdMap = new HashMap<String,String>();
     for (Entry<String,String> entry : conn.tableOperations().tableIdMap().entrySet())
       reverseTableIdMap.put(entry.getValue(), entry.getKey());
@@ -234,9 +258,11 @@ public class TableDiskUsage {
 
     for (Entry<List<String>,Long> entry : tdu.calculateUsage().entrySet()) {
       TreeSet<String> tableNames = new TreeSet<String>();
+      // Convert size shared by each table id into size shared by each table name
       for (String tableId : entry.getKey())
         tableNames.add(reverseTableIdMap.get(tableId));
 
+      // Make table names to shared file size
       usage.put(tableNames, entry.getValue());
     }
 
@@ -256,6 +282,7 @@ public class TableDiskUsage {
 
     HashSet<String> tableIds = new HashSet<String>();
 
+    // Get table IDs for all tables requested to be 'du'
     for (String tableName : tables) {
       String tableId = conn.tableOperations().tableIdMap().get(tableName);
       if (tableId == null)
