@@ -41,7 +41,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
@@ -134,17 +133,16 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
       // we always want data about merges
       MergeInfo merge = merges.get(tls.extent.getTableId());
-      if (merge != null && merge.getExtent() != null && merge.getExtent().overlaps(tls.extent)) {
+      if (merge != null) {
+        // could make this smarter by only returning if the tablet is involved in the merge
         return;
       }
+
       // is the table supposed to be online or offline?
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId().toString());
 
       if (debug) {
-        Level oldLevel = log.getLevel();
-        log.setLevel(Level.DEBUG);
         log.debug(tls.extent + " is " + tls.getState(current) + " and should be " + (shouldBeOnline ? "on" : "off") + "line");
-        log.setLevel(oldLevel);
       }
       switch (tls.getState(current)) {
         case ASSIGNED:

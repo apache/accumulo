@@ -74,7 +74,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -936,7 +935,6 @@ public class ShellServerIT extends SharedMiniClusterIT {
   }
 
   @Test
-  @Ignore
   public void deleterows() throws Exception {
     final String table = name.getMethodName();
 
