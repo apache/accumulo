@@ -100,6 +100,7 @@ public class ShellServerTest {
   private static class NoOpErrorMessageCallback extends ErrorMessageCallback {
     private static final String empty = "";
 
+    @Override
     public String getErrorMessage() {
       return empty;
     }
@@ -108,7 +109,8 @@ public class ShellServerTest {
   private static final NoOpErrorMessageCallback noop = new NoOpErrorMessageCallback();
 
   private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder();
+  private static File baseDir = new File(System.getProperty("user.dir") + File.separator + "target" + File.separator + ShellServerTest.class.getName());
+  public static TemporaryFolder folder;
   public static MiniAccumuloCluster cluster;
   public TestOutputStream output;
   public Shell shell;
@@ -182,6 +184,8 @@ public class ShellServerTest {
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
+    baseDir.mkdirs();
+    folder = new TemporaryFolder(baseDir);
     folder.create();
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
@@ -215,7 +219,6 @@ public class ShellServerTest {
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     traceProcess.destroy();
-    folder.delete();
   }
 
   @Test(timeout = 60000)
@@ -453,6 +456,7 @@ public class ShellServerTest {
     for (int i = 0; i < 9 && !success; i++) {
       try {
         exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+          @Override
           public String getErrorMessage() {
             try {
               Connector c = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getConnector("root", new PasswordToken(secret));
@@ -470,6 +474,7 @@ public class ShellServerTest {
     // If we still couldn't do it, try again and let it fail
     if (!success) {
       exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+        @Override
         public String getErrorMessage() {
           try {
             Connector c = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getConnector("root", new PasswordToken(secret));
@@ -872,6 +877,7 @@ public class ShellServerTest {
     s.addScanIterator(cfg);
 
     Thread thread = new Thread() {
+      @Override
       public void run() {
         try {
           for (@SuppressWarnings("unused")

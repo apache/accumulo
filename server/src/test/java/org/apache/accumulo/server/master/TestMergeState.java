@@ -45,7 +45,6 @@ import org.apache.accumulo.server.master.state.MergeStats;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -119,10 +118,10 @@ public class TestMergeState {
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, auths, state);
     int count = 0;
     for (TabletLocationState tss : metaDataStateStore) {
-      Assert.assertEquals(TabletState.HOSTED, tss.getState(state.onlineTabletServers()));
-      count++;
+      if (tss != null)
+        count++;
     }
-    Assert.assertEquals(splits.length + 1, count);
+    Assert.assertEquals(0, count); // the normal case is to skip tablets in a good state
 
     // Create the hole
     // Split the tablet at one end of the range
