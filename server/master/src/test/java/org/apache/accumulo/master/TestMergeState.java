@@ -49,6 +49,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.net.HostAndPort;
@@ -56,6 +57,7 @@ import com.google.common.net.HostAndPort;
 /**
  *
  */
+@Ignore
 public class TestMergeState {
 
   class MockCurrentState implements CurrentState {
