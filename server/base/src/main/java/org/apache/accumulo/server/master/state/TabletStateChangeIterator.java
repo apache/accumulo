@@ -42,17 +42,21 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 public class TabletStateChangeIterator extends SkippingIterator {
 
   private static final String SERVERS_OPTION = "servers";
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
-  // private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
+  private static final String DEBUG_OPTION = "debug";
+  private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
 
   Set<TServerInstance> current;
   Set<String> onlineTables;
   Map<Text,MergeInfo> merges;
+  boolean debug = false;
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -60,6 +64,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     current = parseServers(options.get(SERVERS_OPTION));
     onlineTables = parseTables(options.get(TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
+    debug = options.containsKey(DEBUG_OPTION);
   }
 
   private Set<String> parseTables(String tables) {
@@ -134,6 +139,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
       // is the table supposed to be online or offline?
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId().toString());
 
+      if (debug) {
+        Level oldLevel = log.getLevel();
+        log.setLevel(Level.DEBUG);
+        log.debug(tls.extent + " is " + tls.getState(current) + " and should be " + (shouldBeOnline ? "on" : "off") + "line");
+        log.setLevel(oldLevel);
+      }
       switch (tls.getState(current)) {
         case ASSIGNED:
           // we always want data about assigned tablets
