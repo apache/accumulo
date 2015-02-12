@@ -70,6 +70,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -629,6 +630,7 @@ public class ShellServerTest {
     exec("deletetable -f " + table);
   }
 
+  @Ignore
   @Test(timeout = 45000)
   public void deleterows() throws Exception {
     final String table = name.getMethodName();

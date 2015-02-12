@@ -48,11 +48,13 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  *
  */
+@Ignore
 public class TestMergeState {
 
   class MockCurrentState implements CurrentState {
