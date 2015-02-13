@@ -21,9 +21,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
-class ThriftTransportKey {
+@VisibleForTesting
+public class ThriftTransportKey {
   private final HostAndPort server;
   private final long timeout;
   private final SslConnectionParams sslParams;
@@ -31,7 +33,8 @@ class ThriftTransportKey {
 
   private int hash = -1;
 
-  ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
+  @VisibleForTesting
+  public ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
     checkNotNull(server, "location is null");
     this.server = server;
     this.timeout = timeout;

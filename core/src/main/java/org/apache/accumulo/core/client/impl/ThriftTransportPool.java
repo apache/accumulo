@@ -39,6 +39,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class ThriftTransportPool {
@@ -411,7 +412,8 @@ public class ThriftTransportPool {
     return createNewTransport(cacheKey);
   }
 
-  Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
+  @VisibleForTesting
+  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
 
     servers = new ArrayList<ThriftTransportKey>(servers);
 
@@ -446,7 +448,7 @@ public class ThriftTransportPool {
       int index = random.nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);
 
-      if (!preferCachedConnection) {
+      if (preferCachedConnection) {
         synchronized (this) {
           List<CachedConnection> cachedConnList = getCache().get(ttk);
           if (cachedConnList != null) {
