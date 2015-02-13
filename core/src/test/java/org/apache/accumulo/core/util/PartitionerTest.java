@@ -38,15 +38,14 @@ public class PartitionerTest {
   @Test
   public void test1() {
 
-    @SuppressWarnings("unchecked")
-    Map<ByteSequence,MutableLong>[] groups = new Map[2];
+    PreAllocatedArray<Map<ByteSequence,MutableLong>> groups = new PreAllocatedArray<>(2);
 
-    groups[0] = new HashMap<ByteSequence,MutableLong>();
-    groups[0].put(new ArrayByteSequence("cf1"), new MutableLong(1));
-    groups[0].put(new ArrayByteSequence("cf2"), new MutableLong(1));
+    groups.set(0, new HashMap<ByteSequence,MutableLong>());
+    groups.get(0).put(new ArrayByteSequence("cf1"), new MutableLong(1));
+    groups.get(0).put(new ArrayByteSequence("cf2"), new MutableLong(1));
 
-    groups[1] = new HashMap<ByteSequence,MutableLong>();
-    groups[1].put(new ArrayByteSequence("cf3"), new MutableLong(1));
+    groups.set(1, new HashMap<ByteSequence,MutableLong>());
+    groups.get(1).put(new ArrayByteSequence("cf3"), new MutableLong(1));
 
     Partitioner p1 = new Partitioner(groups);
 
@@ -70,11 +69,10 @@ public class PartitionerTest {
     m5.put("cf5", "cq3", "v9");
 
     List<Mutation> mutations = Arrays.asList(m1, m2, m3, m4, m5);
-    @SuppressWarnings("unchecked")
-    List<Mutation>[] partitioned = new List[3];
+    PreAllocatedArray<List<Mutation>> partitioned = new PreAllocatedArray<>(3);
 
     for (int i = 0; i < partitioned.length; i++) {
-      partitioned[i] = new ArrayList<Mutation>();
+      partitioned.set(i, new ArrayList<Mutation>());
     }
 
     p1.partition(mutations, partitioned);
@@ -92,7 +90,7 @@ public class PartitionerTest {
     m4 = new Mutation("r4");
     m4.put("cf1", "cq1", "v6");
 
-    Assert.assertEquals(toKeySet(m1, m2, m3, m4), toKeySet(partitioned[0]));
+    Assert.assertEquals(toKeySet(m1, m2, m3, m4), toKeySet(partitioned.get(0)));
 
     m3 = new Mutation("r3");
     m3.put("cf3", "cq2", "v5");
@@ -100,12 +98,12 @@ public class PartitionerTest {
     m4 = new Mutation("r4");
     m4.put("cf3", "cq2", "v7");
 
-    Assert.assertEquals(toKeySet(m3, m4), toKeySet(partitioned[1]));
+    Assert.assertEquals(toKeySet(m3, m4), toKeySet(partitioned.get(1)));
 
     m4 = new Mutation("r4");
     m4.put("cf5", "cq3", "v8");
 
-    Assert.assertEquals(toKeySet(m4, m5), toKeySet(partitioned[2]));
+    Assert.assertEquals(toKeySet(m4, m5), toKeySet(partitioned.get(2)));
 
   }
 

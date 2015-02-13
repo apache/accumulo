@@ -85,6 +85,7 @@ public class AlterSystemPerm extends Test {
           case GRANT_INVALID:
             if (sysPerm.equals(SystemPermission.GRANT))
               return;
+            throw new AccumuloException("Got GRANT_INVALID when not dealing with GRANT", ae);
           case PERMISSION_DENIED:
             throw new AccumuloException("Test user doesn't have root", ae);
           case USER_DOESNT_EXIST:

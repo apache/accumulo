@@ -70,16 +70,10 @@ public class LogServlet extends BasicServlet {
       StringBuilder text = new StringBuilder();
       for (int i = 0; i < msg.length(); i++) {
         char c = msg.charAt(i);
-        switch (Character.getType(c)) {
-          case Character.UNASSIGNED:
-          case Character.LINE_SEPARATOR:
-          case Character.NON_SPACING_MARK:
-          case Character.PRIVATE_USE:
-            c = '?';
-          default:
-            text.append(c);
-        }
-
+        int type = Character.getType(c);
+        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR || type == Character.NON_SPACING_MARK
+            || type == Character.PRIVATE_USE;
+        text.append(notPrintable ? '?' : c);
       }
       StringBuilder builder = new StringBuilder(text.toString());
       if (ev.getThrowableStrRep() != null)

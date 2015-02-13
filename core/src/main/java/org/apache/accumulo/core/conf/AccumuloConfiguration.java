@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -167,25 +168,30 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return interpreted memory size
    */
   static public long getMemoryInBytes(String str) {
-    int multiplier = 0;
     char lastChar = str.charAt(str.length() - 1);
 
     if (lastChar == 'b') {
       log.warn("The 'b' in " + str + " is being considered as bytes. " + "Setting memory by bits is not supported");
     }
     try {
+      int multiplier;
       switch (Character.toUpperCase(lastChar)) {
         case 'G':
-          multiplier += 10;
+          multiplier = 30;
+          break;
         case 'M':
-          multiplier += 10;
+          multiplier = 20;
+          break;
         case 'K':
-          multiplier += 10;
+          multiplier = 10;
+          break;
         case 'B':
-          return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
+          multiplier = 0;
+          break;
         default:
           return Long.parseLong(str);
       }
+      return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
     } catch (Exception ex) {
       throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting. A valid value would a number "
           + "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
@@ -216,24 +222,32 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *          string value
    * @return interpreted time duration in milliseconds
    */
-  static public long getTimeInMillis(String str) {
-    int multiplier = 1;
+  public static long getTimeInMillis(String str) {
+    TimeUnit timeUnit;
+    int unitsLen = 1;
     switch (str.charAt(str.length() - 1)) {
       case 'd':
-        multiplier *= 24;
+        timeUnit = TimeUnit.DAYS;
+        break;
       case 'h':
-        multiplier *= 60;
+        timeUnit = TimeUnit.HOURS;
+        break;
       case 'm':
-        multiplier *= 60;
+        timeUnit = TimeUnit.MINUTES;
+        break;
       case 's':
-        multiplier *= 1000;
-        if (str.length() > 1 && str.endsWith("ms")) // millis
-          // case
-          return Long.parseLong(str.substring(0, str.length() - 2));
-        return Long.parseLong(str.substring(0, str.length() - 1)) * multiplier;
+        timeUnit = TimeUnit.SECONDS;
+        if (str.endsWith("ms")) {
+          timeUnit = TimeUnit.MILLISECONDS;
+          unitsLen = 2;
+        }
+        break;
       default:
-        return Long.parseLong(str) * 1000;
+        timeUnit = TimeUnit.SECONDS;
+        unitsLen = 0;
+        break;
     }
+    return timeUnit.toMillis(Long.parseLong(str.substring(0, str.length() - unitsLen)));
   }
 
   /**

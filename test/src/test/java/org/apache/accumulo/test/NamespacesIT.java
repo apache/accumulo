@@ -973,13 +973,16 @@ public class NamespacesIT extends AccumuloIT {
           case 0:
             ops.create(tableName);
             fail();
+            break;
           case 1:
             ops.create("a");
             ops.clone("a", tableName, true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
             fail();
+            break;
           case 2:
             ops.importTable(tableName, System.getProperty("user.dir") + "/target");
             fail();
+            break;
           default:
             // break out of infinite loop
             assertEquals(3, i); // check test integrity
@@ -1001,12 +1004,15 @@ public class NamespacesIT extends AccumuloIT {
           case 0:
             ops.removeConstraint(tableName, 0);
             fail();
+            break;
           case 1:
             ops.removeProperty(tableName, "a");
             fail();
+            break;
           case 2:
             ops.setProperty(tableName, "a", "b");
             fail();
+            break;
           default:
             // break out of infinite loop
             assertEquals(3, i); // check test integrity
@@ -1028,90 +1034,119 @@ public class NamespacesIT extends AccumuloIT {
           case 0:
             ops.addConstraint(tableName, NumericValueConstraint.class.getName());
             fail();
+            break;
           case 1:
             ops.addSplits(tableName, new TreeSet<Text>());
             fail();
+            break;
           case 2:
             ops.attachIterator(tableName, setting);
             fail();
+            break;
           case 3:
             ops.cancelCompaction(tableName);
             fail();
+            break;
           case 4:
             ops.checkIteratorConflicts(tableName, setting, EnumSet.allOf(IteratorScope.class));
             fail();
+            break;
           case 5:
             ops.clearLocatorCache(tableName);
             fail();
+            break;
           case 6:
             ops.clone(tableName, "2", true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
             fail();
+            break;
           case 7:
             ops.compact(tableName, a, z, true, true);
             fail();
+            break;
           case 8:
             ops.delete(tableName);
             fail();
+            break;
           case 9:
             ops.deleteRows(tableName, a, z);
             fail();
+            break;
           case 10:
             ops.splitRangeByTablets(tableName, new Range(), 10);
             fail();
+            break;
           case 11:
             ops.exportTable(tableName, namespace + "_dir");
             fail();
+            break;
           case 12:
             ops.flush(tableName, a, z, true);
             fail();
+            break;
           case 13:
             ops.getDiskUsage(Collections.singleton(tableName));
             fail();
+            break;
           case 14:
             ops.getIteratorSetting(tableName, "a", IteratorScope.scan);
             fail();
+            break;
           case 15:
             ops.getLocalityGroups(tableName);
             fail();
+            break;
           case 16:
             ops.getMaxRow(tableName, Authorizations.EMPTY, a, true, z, true);
             fail();
+            break;
           case 17:
             ops.getProperties(tableName);
             fail();
+            break;
           case 18:
             ops.importDirectory(tableName, "", "", false);
             fail();
+            break;
           case 19:
             ops.testClassLoad(tableName, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
             fail();
+            break;
           case 20:
             ops.listConstraints(tableName);
             fail();
+            break;
           case 21:
             ops.listIterators(tableName);
             fail();
+            break;
           case 22:
             ops.listSplits(tableName);
             fail();
+            break;
           case 23:
             ops.merge(tableName, a, z);
             fail();
+            break;
           case 24:
             ops.offline(tableName, true);
             fail();
+            break;
           case 25:
             ops.online(tableName, true);
             fail();
+            break;
           case 26:
             ops.removeIterator(tableName, "a", EnumSet.of(IteratorScope.scan));
             fail();
+            break;
           case 27:
             ops.rename(tableName, tableName + "2");
             fail();
+            break;
           case 28:
             ops.setLocalityGroups(tableName, Collections.<String,Set<Text>> emptyMap());
             fail();
+            break;
           default:
             // break out of infinite loop
             assertEquals(29, i); // check test integrity
@@ -1141,45 +1176,59 @@ public class NamespacesIT extends AccumuloIT {
           case 0:
             ops.addConstraint(namespace, NumericValueConstraint.class.getName());
             fail();
+            break;
           case 1:
             ops.attachIterator(namespace, setting);
             fail();
+            break;
           case 2:
             ops.checkIteratorConflicts(namespace, setting, EnumSet.of(IteratorScope.scan));
             fail();
+            break;
           case 3:
             ops.delete(namespace);
             fail();
+            break;
           case 4:
             ops.getIteratorSetting(namespace, "thing", IteratorScope.scan);
             fail();
+            break;
           case 5:
             ops.getProperties(namespace);
             fail();
+            break;
           case 6:
             ops.listConstraints(namespace);
             fail();
+            break;
           case 7:
             ops.listIterators(namespace);
             fail();
+            break;
           case 8:
             ops.removeConstraint(namespace, 1);
             fail();
+            break;
           case 9:
             ops.removeIterator(namespace, "thing", EnumSet.allOf(IteratorScope.class));
             fail();
+            break;
           case 10:
             ops.removeProperty(namespace, "a");
             fail();
+            break;
           case 11:
             ops.rename(namespace, namespace + "2");
             fail();
+            break;
           case 12:
             ops.setProperty(namespace, "k", "v");
             fail();
+            break;
           case 13:
             ops.testClassLoad(namespace, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
             fail();
+            break;
           default:
             // break out of infinite loop
             assertEquals(14, i); // check test integrity
@@ -1201,25 +1250,31 @@ public class NamespacesIT extends AccumuloIT {
             ops.create(namespace + "0");
             ops.create(namespace + "0"); // should fail here
             fail();
+            break;
           case 1:
             ops.create(namespace + i + "_1");
             ops.create(namespace + i + "_2");
             ops.rename(namespace + i + "_1", namespace + i + "_2"); // should fail here
             fail();
+            break;
           case 2:
             ops.create(Namespaces.DEFAULT_NAMESPACE);
             fail();
+            break;
           case 3:
             ops.create(Namespaces.ACCUMULO_NAMESPACE);
             fail();
+            break;
           case 4:
             ops.create(namespace + i + "_1");
             ops.rename(namespace + i + "_1", Namespaces.DEFAULT_NAMESPACE); // should fail here
             fail();
+            break;
           case 5:
             ops.create(namespace + i + "_1");
             ops.rename(namespace + i + "_1", Namespaces.ACCUMULO_NAMESPACE); // should fail here
             fail();
+            break;
           default:
             // break out of infinite loop
             assertEquals(6, i); // check test integrity

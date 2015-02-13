@@ -462,7 +462,7 @@ public class TestLruBlockCache extends TestCase {
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
     long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
         + (LruBlockCache.DEFAULT_CONCURRENCY_LEVEL * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
-    long negateBlockSize = (long) (totalOverhead / numEntries);
+    long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
     return ClassSize.align((long) Math.floor((roughBlockSize - negateBlockSize) * 0.99f));
   }
@@ -486,6 +486,7 @@ public class TestLruBlockCache extends TestCase {
       this.buf = new byte[size];
     }
 
+    @Override
     public long heapSize() {
       return CachedBlock.PER_BLOCK_OVERHEAD + ClassSize.align(blockName.length()) + ClassSize.align(buf.length);
     }

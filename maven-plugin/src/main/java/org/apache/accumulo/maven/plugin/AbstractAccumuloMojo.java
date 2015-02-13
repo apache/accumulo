@@ -24,12 +24,12 @@ import java.util.Arrays;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 public abstract class AbstractAccumuloMojo extends AbstractMojo {
 
-  @Component
+  @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
 
   void configureMiniClasspath(MiniAccumuloConfigImpl macConfig, String miniClasspath) throws MalformedURLException {

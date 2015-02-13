@@ -247,6 +247,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param inMemory
    *          if block is in-memory
    */
+  @Override
   public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
     CachedBlock cb = map.get(blockName);
     if (cb != null) {
@@ -277,6 +278,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param buf
    *          block buffer
    */
+  @Override
   public CacheEntry cacheBlock(String blockName, byte buf[]) {
     return cacheBlock(blockName, buf, false);
   }
@@ -289,6 +291,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @return buffer of specified block name, or null if not in cache
    */
 
+  @Override
   public CachedBlock getBlock(String blockName) {
     CachedBlock cb = map.get(blockName);
     if (cb == null) {
@@ -456,6 +459,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *
    * @return max size in bytes
    */
+  @Override
   public long getMaxSize() {
     return this.maxSize;
   }
@@ -648,7 +652,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
 
     public double evictedPerEviction() {
-      return (float) ((float) getEvictedCount() / (float) getEvictionCount());
+      return (float) getEvictedCount() / (float) getEvictionCount();
     }
   }
 
@@ -656,6 +660,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
       + (5 * SizeConstants.SIZEOF_FLOAT) + SizeConstants.SIZEOF_BOOLEAN + ClassSize.OBJECT);
 
   // HeapSize implementation
+  @Override
   public long heapSize() {
     return getCurrentSize();
   }
@@ -687,6 +692,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return (long) Math.floor(this.maxSize * this.memoryFactor * this.minFactor);
   }
 
+  @Override
   public void shutdown() {
     this.scheduleThreadPool.shutdown();
   }

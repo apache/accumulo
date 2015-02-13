@@ -482,25 +482,25 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    * @return {@code true} if anything after {@code part} is set on {@code key}, and {@code false} if not
    */
   protected boolean isSetAfterPart(Key key, PartialKey part) {
-    boolean isSet = false;
     if (key != null) {
-      // Breaks excluded on purpose.
       switch (part) {
         case ROW:
-          isSet = isSet || key.getColumnFamilyData().length() > 0;
+          return key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0 || key.getColumnVisibilityData().length() > 0
+              || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
         case ROW_COLFAM:
-          isSet = isSet || key.getColumnQualifierData().length() > 0;
+          return key.getColumnQualifierData().length() > 0 || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
+              || key.isDeleted();
         case ROW_COLFAM_COLQUAL:
-          isSet = isSet || key.getColumnVisibilityData().length() > 0;
+          return key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
         case ROW_COLFAM_COLQUAL_COLVIS:
-          isSet = isSet || key.getTimestamp() < Long.MAX_VALUE;
+          return key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
         case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-          isSet = isSet || key.isDeleted();
+          return key.isDeleted();
         case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-          break;
+          return false;
       }
     }
-    return isSet;
+    return false;
   }
 
   /**

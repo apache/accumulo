@@ -64,7 +64,7 @@ public class Main {
   public static ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
-        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader", new Class[0]).invoke(null, new Object[0]);
+        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         classLoader = clTmp;
       } catch (ClassNotFoundException | IOException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
           | SecurityException e) {

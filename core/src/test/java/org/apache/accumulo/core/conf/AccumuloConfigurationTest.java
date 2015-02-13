@@ -36,6 +36,16 @@ public class AccumuloConfigurationTest {
 
   }
 
+  @Test
+  public void testGetTimeInMillis() {
+    assertEquals(42L * 24 * 60 * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42d"));
+    assertEquals(42L * 60 * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42h"));
+    assertEquals(42L * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42m"));
+    assertEquals(42L * 1000, AccumuloConfiguration.getTimeInMillis("42s"));
+    assertEquals(42L * 1000, AccumuloConfiguration.getTimeInMillis("42"));
+    assertEquals(42L, AccumuloConfiguration.getTimeInMillis("42ms"));
+  }
+
   @Test(expected = IllegalArgumentException.class)
   public void testGetMemoryInBytesFailureCases1() throws Exception {
     AccumuloConfiguration.getMemoryInBytes("42x");

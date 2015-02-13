@@ -97,7 +97,7 @@ public class VisibilityEvaluator {
    *          authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.auths = escape((Authorizations) authorizations);
+    this.auths = escape(authorizations);
   }
 
   /**

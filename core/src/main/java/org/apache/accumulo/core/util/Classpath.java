@@ -30,6 +30,6 @@ public class Classpath implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Main.getVFSClassLoader().getMethod("printClassPath", new Class[0]).invoke(Main.getVFSClassLoader(), new Object[0]);
+    Main.getVFSClassLoader().getMethod("printClassPath").invoke(Main.getVFSClassLoader());
   }
 }

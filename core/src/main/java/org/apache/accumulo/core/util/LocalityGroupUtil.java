@@ -229,33 +229,32 @@ public class LocalityGroupUtil {
   public static class Partitioner {
 
     private Map<ByteSequence,Integer> colfamToLgidMap;
-    private Map<ByteSequence,MutableLong>[] groups;
+    private PreAllocatedArray<Map<ByteSequence,MutableLong>> groups;
 
-    public Partitioner(Map<ByteSequence,MutableLong> groups[]) {
+    public Partitioner(PreAllocatedArray<Map<ByteSequence,MutableLong>> groups) {
       this.groups = groups;
       this.colfamToLgidMap = new HashMap<ByteSequence,Integer>();
 
       for (int i = 0; i < groups.length; i++) {
-        for (ByteSequence cf : groups[i].keySet()) {
+        for (ByteSequence cf : groups.get(i).keySet()) {
           colfamToLgidMap.put(cf, i);
         }
       }
     }
 
-    public void partition(List<Mutation> mutations, List<Mutation> partitionedMutations[]) {
+    public void partition(List<Mutation> mutations, PreAllocatedArray<List<Mutation>> partitionedMutations) {
 
       MutableByteSequence mbs = new MutableByteSequence(new byte[0], 0, 0);
 
-      @SuppressWarnings("unchecked")
-      List<ColumnUpdate> parts[] = new List[groups.length + 1];
+      PreAllocatedArray<List<ColumnUpdate>> parts = new PreAllocatedArray<>(groups.length + 1);
 
       for (Mutation mutation : mutations) {
         if (mutation.getUpdates().size() == 1) {
           int lgid = getLgid(mbs, mutation.getUpdates().get(0));
-          partitionedMutations[lgid].add(mutation);
+          partitionedMutations.get(lgid).add(mutation);
         } else {
           for (int i = 0; i < parts.length; i++) {
-            parts[i] = null;
+            parts.set(i, null);
           }
 
           int lgcount = 0;
@@ -263,24 +262,24 @@ public class LocalityGroupUtil {
           for (ColumnUpdate cu : mutation.getUpdates()) {
             int lgid = getLgid(mbs, cu);
 
-            if (parts[lgid] == null) {
-              parts[lgid] = new ArrayList<ColumnUpdate>();
+            if (parts.get(lgid) == null) {
+              parts.set(lgid, new ArrayList<ColumnUpdate>());
               lgcount++;
             }
 
-            parts[lgid].add(cu);
+            parts.get(lgid).add(cu);
           }
 
           if (lgcount == 1) {
             for (int i = 0; i < parts.length; i++)
-              if (parts[i] != null) {
-                partitionedMutations[i].add(mutation);
+              if (parts.get(i) != null) {
+                partitionedMutations.get(i).add(mutation);
                 break;
               }
           } else {
             for (int i = 0; i < parts.length; i++)
-              if (parts[i] != null)
-                partitionedMutations[i].add(new PartitionedMutation(mutation.getRow(), parts[i]));
+              if (parts.get(i) != null)
+                partitionedMutations.get(i).add(new PartitionedMutation(mutation.getRow(), parts.get(i)));
           }
         }
       }

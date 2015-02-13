@@ -20,23 +20,22 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 
 /**
  * @deprecated since 1.4
  */
 @Deprecated
-public class AggregatorSet extends ColumnToClassMapping<Aggregator> {
+public class AggregatorSet extends ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> {
   public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-    super(opts, Aggregator.class);
+    super(opts, org.apache.accumulo.core.iterators.aggregation.Aggregator.class);
   }
 
   public AggregatorSet() {
     super();
   }
 
-  public Aggregator getAggregator(Key k) {
+  public org.apache.accumulo.core.iterators.aggregation.Aggregator getAggregator(Key k) {
     return getObject(k);
   }
 }

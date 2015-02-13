@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.trace.instrument;
 
-import org.apache.accumulo.trace.thrift.TInfo;
-
 /**
  * @deprecated since 1.7, use {@link org.apache.accumulo.core.trace.Trace} instead
  */
@@ -53,7 +51,7 @@ public class Trace extends org.apache.accumulo.core.trace.Trace {
   }
 
   // Start a trace in the current thread from information passed via RPC
-  public static Span trace(TInfo info, String description) {
+  public static Span trace(org.apache.accumulo.trace.thrift.TInfo info, String description) {
     return new Span(org.apache.accumulo.core.trace.Trace.trace(info, description));
   }
 

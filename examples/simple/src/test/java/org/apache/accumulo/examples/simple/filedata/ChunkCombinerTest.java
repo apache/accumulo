@@ -45,6 +45,7 @@ public class ChunkCombinerTest extends TestCase {
     private SortedMap<Key,Value> map;
     private Range range;
 
+    @Override
     public MapIterator deepCopy(IteratorEnvironment env) {
       return new MapIterator(map);
     }
@@ -83,7 +84,7 @@ public class ChunkCombinerTest extends TestCase {
           entry = null;
           continue;
         }
-        if (range.afterEndKey((Key) entry.getKey()))
+        if (range.afterEndKey(entry.getKey()))
           entry = null;
         break;
       }
@@ -109,6 +110,7 @@ public class ChunkCombinerTest extends TestCase {
       }
     }
 
+    @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }

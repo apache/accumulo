@@ -189,11 +189,13 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
           throw new UnsupportedOperationException();
         }
 
+        @Deprecated
         @Override
         public AccumuloConfiguration getConfiguration() {
           throw new UnsupportedOperationException();
         }
 
+        @Deprecated
         @Override
         public void setConfiguration(AccumuloConfiguration conf) {
           throw new UnsupportedOperationException();

@@ -92,58 +92,46 @@ public class TimeBinner {
 
         time = (time / opts.period) * opts.period;
 
-        double data_min = data;
-        double data_max = data;
-
         switch (operation) {
           case AMM_HACK1: {
-            data_min = Double.parseDouble(tokens[opts.dataColumn - 2]);
-            data_max = Double.parseDouble(tokens[opts.dataColumn - 1]);
-            // fall through to AMM
+            double data_min = Double.parseDouble(tokens[opts.dataColumn - 2]);
+            double data_max = Double.parseDouble(tokens[opts.dataColumn - 1]);
+
+            updateMin(time, aggregation3, data, data_min);
+            updateMax(time, aggregation4, data, data_max);
+
+            increment(time, aggregation1, data);
+            increment(time, aggregation2, 1);
+            break;
           }
           case AMM: {
-            DoubleWrapper mindw = get(time, aggregation3, Double.POSITIVE_INFINITY);
-            if (data < mindw.d)
-              mindw.d = data_min;
+            updateMin(time, aggregation3, data, data);
+            updateMax(time, aggregation4, data, data);
 
-            DoubleWrapper maxdw = get(time, aggregation4, Double.NEGATIVE_INFINITY);
-            if (data > maxdw.d)
-              maxdw.d = data_max;
-
-            // fall through to AVG
+            increment(time, aggregation1, data);
+            increment(time, aggregation2, 1);
+            break;
           }
           case AVG: {
-            DoubleWrapper sumdw = get(time, aggregation1, 0);
-            DoubleWrapper countdw = get(time, aggregation2, 0);
-
-            sumdw.d += data;
-            countdw.d++;
-
+            increment(time, aggregation1, data);
+            increment(time, aggregation2, 1);
             break;
           }
           case MAX: {
-            DoubleWrapper maxdw = get(time, aggregation1, Double.NEGATIVE_INFINITY);
-            if (data > maxdw.d) {
-              maxdw.d = data;
-            }
+            updateMax(time, aggregation1, data, data);
             break;
           }
           case MIN: {
-            DoubleWrapper mindw = get(time, aggregation1, Double.POSITIVE_INFINITY);
-            if (data < mindw.d) {
-              mindw.d = data;
-            }
+            updateMin(time, aggregation1, data, data);
             break;
           }
           case COUNT: {
-            DoubleWrapper countdw = get(time, aggregation1, 0);
-            countdw.d++;
+            increment(time, aggregation1, 1);
             break;
           }
           case SUM:
           case CUMULATIVE: {
-            DoubleWrapper sumdw = get(time, aggregation1, 0);
-            sumdw.d += data;
+            increment(time, aggregation1, data);
             break;
           }
         }
@@ -185,5 +173,21 @@ public class TimeBinner {
       System.out.println(sdf.format(new Date(entry.getKey())) + " " + value);
     }
 
+  }
+
+  private static void increment(long time, HashMap<Long,DoubleWrapper> aggregation, double amount) {
+    get(time, aggregation, 0).d += amount;
+  }
+
+  private static void updateMax(long time, HashMap<Long,DoubleWrapper> aggregation, double data, double new_max) {
+    DoubleWrapper maxdw = get(time, aggregation, Double.NEGATIVE_INFINITY);
+    if (data > maxdw.d)
+      maxdw.d = new_max;
+  }
+
+  private static void updateMin(long time, HashMap<Long,DoubleWrapper> aggregation, double data, double new_min) {
+    DoubleWrapper mindw = get(time, aggregation, Double.POSITIVE_INFINITY);
+    if (data < mindw.d)
+      mindw.d = new_min;
   }
 }

@@ -16,14 +16,13 @@
  */
 package org.apache.accumulo.core.iterators.aggregation.conf;
 
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.hadoop.io.Text;
 
 /**
  * @deprecated since 1.4
  */
 @Deprecated
-public class AggregatorConfiguration extends PerColumnIteratorConfig {
+public class AggregatorConfiguration extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig {
 
   public AggregatorConfiguration(Text columnFamily, String aggClassName) {
     super(columnFamily, aggClassName);

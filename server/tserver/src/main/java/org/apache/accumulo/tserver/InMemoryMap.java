@@ -63,6 +63,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
+import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
@@ -157,12 +158,14 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
 
   }
 
+  @Override
   public void next() throws IOException {
     super.next();
     if (hasTop())
       getTopKeyVal();
   }
 
+  @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
 
@@ -241,19 +244,18 @@ public class InMemoryMap {
 
   private static class LocalityGroupMap implements SimpleMap {
 
-    private Map<ByteSequence,MutableLong> groupFams[];
+    private PreAllocatedArray<Map<ByteSequence,MutableLong>> groupFams;
 
     // the last map in the array is the default locality group
     private SimpleMap maps[];
     private Partitioner partitioner;
-    private List<Mutation>[] partitioned;
+    private PreAllocatedArray<List<Mutation>> partitioned;
     private Set<ByteSequence> nonDefaultColumnFamilies;
 
-    @SuppressWarnings("unchecked")
     LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
-      this.groupFams = new Map[groups.size()];
+      this.groupFams = new PreAllocatedArray<>(groups.size());
       this.maps = new SimpleMap[groups.size() + 1];
-      this.partitioned = new List[groups.size() + 1];
+      this.partitioned = new PreAllocatedArray<>(groups.size() + 1);
       this.nonDefaultColumnFamilies = new HashSet<ByteSequence>();
 
       for (int i = 0; i < maps.length; i++) {
@@ -265,14 +267,14 @@ public class InMemoryMap {
         HashMap<ByteSequence,MutableLong> map = new HashMap<ByteSequence,MutableLong>();
         for (ByteSequence bs : cfset)
           map.put(bs, new MutableLong(1));
-        this.groupFams[count++] = map;
+        this.groupFams.set(count++, map);
         nonDefaultColumnFamilies.addAll(cfset);
       }
 
       partitioner = new LocalityGroupUtil.Partitioner(this.groupFams);
 
       for (int i = 0; i < partitioned.length; i++) {
-        partitioned[i] = new ArrayList<Mutation>();
+        partitioned.set(i, new ArrayList<Mutation>());
       }
     }
 
@@ -299,7 +301,7 @@ public class InMemoryMap {
       LocalityGroup groups[] = new LocalityGroup[maps.length];
       for (int i = 0; i < groups.length; i++) {
         if (i < groupFams.length)
-          groups[i] = new LocalityGroup(maps[i].skvIterator(), groupFams[i], false);
+          groups[i] = new LocalityGroup(maps[i].skvIterator(), groupFams.get(i), false);
         else
           groups[i] = new LocalityGroup(maps[i].skvIterator(), null, true);
       }
@@ -331,9 +333,9 @@ public class InMemoryMap {
         partitioner.partition(mutations, partitioned);
 
         for (int i = 0; i < partitioned.length; i++) {
-          if (partitioned[i].size() > 0) {
-            maps[i].mutate(partitioned[i], kvCount);
-            for (Mutation m : partitioned[i])
+          if (partitioned.get(i).size() > 0) {
+            maps[i].mutate(partitioned.get(i), kvCount);
+            for (Mutation m : partitioned.get(i))
               kvCount += m.getUpdates().size();
           }
         }
@@ -360,20 +362,24 @@ public class InMemoryMap {
         size.incrementAndGet();
     }
 
+    @Override
     public Value get(Key key) {
       return map.get(key);
     }
 
+    @Override
     public Iterator<Entry<Key,Value>> iterator(Key startKey) {
       Key lk = new Key(startKey);
       SortedMap<Key,Value> tm = map.tailMap(lk);
       return tm.entrySet().iterator();
     }
 
+    @Override
     public int size() {
       return size.get();
     }
 
+    @Override
     public synchronized InterruptibleIterator skvIterator() {
       if (map == null)
         throw new IllegalStateException();
@@ -381,6 +387,7 @@ public class InMemoryMap {
       return new SortedMapIterator(map);
     }
 
+    @Override
     public synchronized void delete() {
       map = null;
     }
@@ -420,26 +427,32 @@ public class InMemoryMap {
       nativeMap = new NativeMap();
     }
 
+    @Override
     public Value get(Key key) {
       return nativeMap.get(key);
     }
 
+    @Override
     public Iterator<Entry<Key,Value>> iterator(Key startKey) {
       return nativeMap.iterator(startKey);
     }
 
+    @Override
     public int size() {
       return nativeMap.size();
     }
 
+    @Override
     public InterruptibleIterator skvIterator() {
       return (InterruptibleIterator) nativeMap.skvIterator();
     }
 
+    @Override
     public void delete() {
       nativeMap.delete();
     }
 
+    @Override
     public long getMemoryUsed() {
       return nativeMap.getMemoryUsed();
     }
@@ -604,6 +617,7 @@ public class InMemoryMap {
     private SourceSwitchingIterator ssi;
     private MemoryDataSource mds;
 
+    @Override
     protected SortedKeyValueIterator<Key,Value> getSource() {
       if (closed.get())
         throw new IllegalStateException("Memory iterator is closed");
@@ -619,6 +633,7 @@ public class InMemoryMap {
       this.closed = closed;
     }
 
+    @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
       return new MemoryIterator(getSource().deepCopy(env), closed);
     }

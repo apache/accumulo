@@ -922,9 +922,9 @@ public class Mutation implements Writable {
 
   private void oldReadFields(byte first, DataInput in) throws IOException {
 
-    byte b = (byte) in.readByte();
-    byte c = (byte) in.readByte();
-    byte d = (byte) in.readByte();
+    byte b = in.readByte();
+    byte c = in.readByte();
+    byte d = in.readByte();
 
     int len = (((first & 0xff) << 24) | ((b & 0xff) << 16) | ((c & 0xff) << 8) | (d & 0xff));
     row = new byte[len];

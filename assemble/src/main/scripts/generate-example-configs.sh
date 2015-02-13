@@ -17,9 +17,12 @@
 
 # This script will regenerate the example configuration files for the tarball
 
+out=target/bootstrap-config.out
+
+echo 'Generating example scripts...' > $out
 for s in 1GB 2GB 3GB 512MB
 do
-  bin/bootstrap_config.sh -o -d target/example-configs/$s/standalone -s $s -j -v 2
-  bin/bootstrap_config.sh -o -d target/example-configs/$s/native-standalone -s $s -n -v 2
+  bin/bootstrap_config.sh -o -d target/example-configs/$s/standalone -s $s -j -v 2 &>> $out
+  bin/bootstrap_config.sh -o -d target/example-configs/$s/native-standalone -s $s -n -v 2 &>> $out
 done
 

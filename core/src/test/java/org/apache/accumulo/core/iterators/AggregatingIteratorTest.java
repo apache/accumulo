@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,38 +29,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-/**
- * @deprecated since 1.4
- */
-@Deprecated
-public class AggregatingIteratorTest extends TestCase {
+public class AggregatingIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
 
-  public static class SummationAggregator implements Aggregator {
+  /**
+   * @deprecated since 1.4; visible only for testing
+   */
+  @Deprecated
+  public static class SummationAggregator implements org.apache.accumulo.core.iterators.aggregation.Aggregator {
 
     int sum;
 
+    @Override
     public Value aggregate() {
       return new Value((sum + "").getBytes());
     }
 
+    @Override
     public void collect(Value value) {
       int val = Integer.parseInt(value.toString());
 
       sum += val;
     }
 
+    @Override
     public void reset() {
       sum = 0;
 
@@ -92,6 +97,8 @@ public class AggregatingIteratorTest extends TestCase {
     return new Text(String.format("r%03d", row));
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test1() throws IOException {
 
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
@@ -152,6 +159,8 @@ public class AggregatingIteratorTest extends TestCase {
 
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test2() throws IOException {
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
 
@@ -211,6 +220,8 @@ public class AggregatingIteratorTest extends TestCase {
     assertFalse(ai.hasTop());
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test3() throws IOException {
 
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
@@ -275,6 +286,8 @@ public class AggregatingIteratorTest extends TestCase {
 
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test4() throws IOException {
 
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
@@ -348,6 +361,8 @@ public class AggregatingIteratorTest extends TestCase {
 
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test5() throws IOException {
     // try aggregating across multiple data sets that contain
     // the exact same keys w/ different values
@@ -379,6 +394,8 @@ public class AggregatingIteratorTest extends TestCase {
     assertEquals("9", ai.getTopValue().toString());
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test6() throws IOException {
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
 
@@ -403,6 +420,8 @@ public class AggregatingIteratorTest extends TestCase {
 
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
   public void test7() throws IOException {
     // test that delete is not aggregated
 

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.apache.log4j.Logger;
 
 /**
@@ -264,7 +265,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     private NMIterator source;
 
-    private Entry<Key,Value> nextEntries[];
+    private PreAllocatedArray<Entry<Key,Value>> nextEntries;
     private int index;
     private int end;
 
@@ -272,10 +273,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       this(new MemKey());
     }
 
-    @SuppressWarnings("unchecked")
     ConcurrentIterator(Key key) {
       // start off with a small read ahead
-      nextEntries = new Entry[1];
+      nextEntries = new PreAllocatedArray<>(1);
 
       rlock.lock();
       try {
@@ -287,7 +287,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
 
     // it is assumed the read lock is held when this method is called
-    @SuppressWarnings("unchecked")
     private void fill() {
       end = 0;
       index = 0;
@@ -299,11 +298,11 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
-        nextEntries = new Entry[Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES)];
+        nextEntries = new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();
-        nextEntries[end++] = ne;
+        nextEntries.set(end++, ne);
         amountRead += ne.getKey().getSize() + ne.getValue().getSize();
 
         if (amountRead > READ_AHEAD_BYTES)
@@ -322,7 +321,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         throw new NoSuchElementException();
       }
 
-      Entry<Key,Value> ret = nextEntries[index++];
+      Entry<Key,Value> ret = nextEntries.get(index++);
 
       if (index == end) {
         rlock.lock();
@@ -332,7 +331,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
           source.delete();
           source = new NMIterator(ret.getKey());
           fill();
-          if (0 < end && nextEntries[0].getKey().equals(ret.getKey())) {
+          if (0 < end && nextEntries.get(0).getKey().equals(ret.getKey())) {
             index++;
             if (index == end) {
               fill();

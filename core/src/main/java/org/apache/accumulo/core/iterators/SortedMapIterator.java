@@ -51,6 +51,7 @@ public class SortedMapIterator implements InterruptibleIterator {
   private AtomicBoolean interruptFlag;
   private int interruptCheckCount = 0;
 
+  @Override
   public SortedMapIterator deepCopy(IteratorEnvironment env) {
     return new SortedMapIterator(map, interruptFlag);
   }
@@ -94,7 +95,7 @@ public class SortedMapIterator implements InterruptibleIterator {
 
     if (iter.hasNext()) {
       entry = iter.next();
-      if (range.afterEndKey((Key) entry.getKey())) {
+      if (range.afterEndKey(entry.getKey())) {
         entry = null;
       }
     } else
@@ -129,6 +130,7 @@ public class SortedMapIterator implements InterruptibleIterator {
     }
   }
 
+  @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
