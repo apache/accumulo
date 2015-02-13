@@ -187,7 +187,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   }
 
   /**
-   * Removes the {@link AuthenticationKey} from the local cache of keys using the provided {@link keyId}.
+   * Removes the {@link AuthenticationKey} from the local cache of keys using the provided {@code keyId}.
    *
    * @param keyId
    *          The unique ID for the {@link AuthenticationKey} to remove.

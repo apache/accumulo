@@ -48,7 +48,7 @@ public class ThriftMessageUtil {
   }
 
   /**
-   * Convert the {@link msg} to a byte array representation
+   * Convert the {@code msg} to a byte array representation
    *
    * @param msg
    *          The message to serialize
@@ -69,7 +69,7 @@ public class ThriftMessageUtil {
   }
 
   /**
-   * @see #deserialize(byte[], int, int, T)
+   * @see #deserialize(byte[], int, int, TBase)
    */
   public <T extends TBase<?,?>> T deserialize(ByteBuffer serialized, T instance) throws IOException {
     checkNotNull(serialized);
@@ -77,7 +77,7 @@ public class ThriftMessageUtil {
   }
 
   /**
-   * Assumes the entire contents of the byte array compose the serialized {@link instance}
+   * Assumes the entire contents of the byte array compose the serialized {@code instance}
    *
    * @see #deserialize(byte[], int, int, TBase)
    */
@@ -86,7 +86,7 @@ public class ThriftMessageUtil {
   }
 
   /**
-   * Deserializes a message into the provided {@link instance} from {@link serialized}
+   * Deserializes a message into the provided {@code instance} from {@code serialized}
    *
    * @param serialized
    *          The serialized representation of the object

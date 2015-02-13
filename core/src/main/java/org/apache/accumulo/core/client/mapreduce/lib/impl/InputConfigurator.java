@@ -644,7 +644,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param conn
    *          the Connector
-   * @see 1.7.0
+   * @since 1.7.0
    */
   public static void validatePermissions(Class<?> implementingClass, Configuration conf, Connector conn) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);

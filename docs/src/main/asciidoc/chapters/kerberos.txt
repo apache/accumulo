@@ -182,6 +182,16 @@ configured for your nodes and that Accumulo is configured to use the FQDN. It
 is extremely important to use the FQDN in each of the "hosts" files for each
 Accumulo process: +masters+, +monitors+, +slaves+, +tracers+, and +gc+.
 
+Normally, no changes are needed in +accumulo-env.sh+ to enable Kerberos. Typically, the +krb5.conf+
+is installed on the local machine in +/etc/+, and the Java library implementations will look
+here to find the necessary configuration to communicate with the KDC. Some installations
+may require a different +krb5.conf+ to be used for Accumulo: +ACCUMULO_KRB5_CONF+ enables this.
+
++ACCUMULO_KRB5_CONF+ can be configured to a directory containing a file named +krb5.conf+ or
+the path to the file itself. This will be provided to all Accumulo server and client processes
+via the JVM system property +java.security.krb5.conf+. If the environment variable is not set,
++java.security.krb5.conf+ will not be set either.
+
 ===== KerberosAuthenticator
 
 The +KerberosAuthenticator+ is an implementation of the pluggable security interfaces

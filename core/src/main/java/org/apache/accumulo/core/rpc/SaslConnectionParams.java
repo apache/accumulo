@@ -131,12 +131,6 @@ public class SaslConnectionParams {
   protected CallbackHandler callbackHandler;
   protected final Map<String,String> saslProperties;
 
-  /**
-   * Generate an {@link SaslConnectionParams} instance given the provided {@link AccumuloConfiguration}. The provided configuration is converted into a
-   * {@link ClientConfiguration}, ignoring any properties which are not {@link ClientProperty}s. If SASL is not being used, a null object will be returned.
-   * Callers should strive to use {@link #forConfig(ClientConfiguration)}; server processes are the only intended consumers of this method.
-   *
-   */
   public SaslConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
     this(new ClientConfiguration(new MapConfiguration(getProperties(conf))), token);
   }

@@ -99,9 +99,7 @@ public class DelegationToken extends PasswordToken {
   }
 
   /**
-   * The service name used to identify this {@link Token}
-   *
-   * @see Token#Constructor(byte[], byte[], Text, Text)
+   * The service name used to identify the {@link Token}
    */
   public Text getServiceName() {
     checkNotNull(identifier);

@@ -464,7 +464,7 @@ public class TServerUtils {
 
   /**
    * @see #startTServer(HostAndPort, ThriftServerType, TimedProcessor, TProtocolFactory, String, String, int, int, long, long, SslConnectionParams,
-   *      org.apache.accumulo.core.rpc.SaslConnectionParams, long)
+   *      SaslServerConnectionParams, long)
    */
   public static ServerAddress startTServer(HostAndPort address, ThriftServerType serverType, TimedProcessor processor, String serverName, String threadName,
       int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
