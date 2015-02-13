@@ -24,16 +24,17 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -54,6 +55,9 @@ public class TransportCachingIT extends AccumuloClusterIT {
   public void testCachedTransport() {
     Connector conn = getConnector();
     Instance instance = conn.getInstance();
+    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    clientConf.withInstance(instance.getInstanceName()).withZkHosts(instance.getZooKeepers());
+    ClientContext context = new ClientContext(instance, new Credentials(getPrincipal(), getToken()), clientConf);
     long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers
@@ -64,9 +68,11 @@ public class TransportCachingIT extends AccumuloClusterIT {
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
-      if (data != null && !new String(data, UTF_8).equals("master"))
-        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, SslConnectionParams
-            .forClient(ServerConfigurationUtil.getConfiguration(instance))));
+      if (data != null) {
+        String strData = new String(data, UTF_8);
+        if (!strData.equals("master"))
+          servers.add(new ThriftTransportKey(new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+      }
     }
 
     ThriftTransportPool pool = ThriftTransportPool.getInstance();
