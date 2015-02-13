@@ -279,6 +279,9 @@ public class ShellOptionsJC {
   }
 
   public boolean isAuthTimeoutDisabled() {
+    if (useSasl()) {
+      return true;
+    }
     return authTimeoutDisabled;
   }
 

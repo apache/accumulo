@@ -285,6 +285,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return true;
     }
 
+    if (Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED))) {
+      log.debug("SASL is enabled, disabling authorization timeout");
+      disableAuthTimeout = true;
+    }
+
     // get the options that were parsed
     final String user;
     try {
