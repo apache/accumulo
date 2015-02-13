@@ -19,7 +19,10 @@ package org.apache.accumulo.core.client.impl;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.SslConnectionParams;
 
-class ThriftTransportKey {
+import com.google.common.annotations.VisibleForTesting;
+
+@VisibleForTesting
+public class ThriftTransportKey {
   private final String location;
   private final int port;
   private final long timeout;
@@ -27,7 +30,8 @@ class ThriftTransportKey {
 
   private int hash = -1;
 
-  ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
+  @VisibleForTesting
+  public ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
     ArgumentChecker.notNull(location);
     String[] locationAndPort = location.split(":", 2);
     if (locationAndPort.length == 2) {

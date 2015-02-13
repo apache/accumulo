@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class ThriftTransportPool {
@@ -420,7 +421,8 @@ public class ThriftTransportPool {
     return createNewTransport(cacheKey);
   }
 
-  Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
+  @VisibleForTesting
+  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
 
     servers = new ArrayList<ThriftTransportKey>(servers);
 
