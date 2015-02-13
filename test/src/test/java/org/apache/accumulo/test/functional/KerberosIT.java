@@ -18,16 +18,24 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -35,22 +43,29 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.minikdc.MiniKdc;
@@ -63,6 +78,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -104,7 +120,17 @@ public class KerberosIT extends AccumuloIT {
   @Before
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
-    mac = harness.create(this, new PasswordToken("unused"), kdc);
+    mac = harness.create(this, new PasswordToken("unused"), kdc, new MiniClusterConfigurationCallback() {
+
+      @Override
+      public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+        Map<String,String> site = cfg.getSiteConfig();
+        site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
+        cfg.setSiteConfig(site);
+      }
+
+    });
+
     mac.getConfig().setNumTservers(1);
     mac.start();
     // Enabled kerberos auth
@@ -133,7 +159,7 @@ public class KerberosIT extends AccumuloIT {
     }
 
     // and the ability to modify the root and metadata tables
-    for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)){
+    for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)) {
       assertTrue(conn.securityOperations().hasTablePermission(conn.whoami(), table, TablePermission.ALTER_TABLE));
     }
   }
@@ -302,6 +328,226 @@ public class KerberosIT extends AccumuloIT {
     assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
     assertEquals(new Value("d".getBytes()), entry.getValue());
     assertFalse("Had more results from iterator", iter.hasNext());
+  }
+
+  @Test
+  public void testDelegationToken() throws Exception {
+    final String tableName = getUniqueNames(1)[0];
+
+    // Login as the "root" user
+    UserGroupInformation root = UserGroupInformation.loginUserFromKeytabAndReturnUGI(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    log.info("Logged in as {}", kdc.getClientPrincipal());
+
+    final int numRows = 100, numColumns = 10;
+
+    // As the "root" user, open up the connection and get a delegation token
+    final DelegationToken delegationToken = root.doAs(new PrivilegedExceptionAction<DelegationToken>() {
+      @Override
+      public DelegationToken run() throws Exception {
+        Connector conn = mac.getConnector(kdc.getClientPrincipal(), new KerberosToken());
+        log.info("Created connector as {}", kdc.getClientPrincipal());
+        assertEquals(kdc.getClientPrincipal(), conn.whoami());
+
+        conn.tableOperations().create(tableName);
+        BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+        for (int r = 0; r < numRows; r++) {
+          Mutation m = new Mutation(Integer.toString(r));
+          for (int c = 0; c < numColumns; c++) {
+            String col = Integer.toString(c);
+            m.put(col, col, col);
+          }
+          bw.addMutation(m);
+        }
+        bw.close();
+
+        return conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+      }
+    });
+
+    // The above login with keytab doesn't have a way to logout, so make a fake user that won't have krb credentials
+    UserGroupInformation userWithoutPrivs = UserGroupInformation.createUserForTesting("fake_user", new String[0]);
+    int recordsSeen = userWithoutPrivs.doAs(new PrivilegedExceptionAction<Integer>() {
+      @Override
+      public Integer run() throws Exception {
+        Connector conn = mac.getConnector(kdc.getClientPrincipal(), delegationToken);
+
+        BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+        bs.setRanges(Collections.singleton(new Range()));
+        int recordsSeen = Iterables.size(bs);
+        bs.close();
+        return recordsSeen;
+      }
+    });
+
+    assertEquals(numRows * numColumns, recordsSeen);
+  }
+
+  @Test
+  public void testDelegationTokenAsDifferentUser() throws Exception {
+    // Login as the "root" user
+    UserGroupInformation.loginUserFromKeytab(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    log.info("Logged in as {}", kdc.getClientPrincipal());
+
+    // As the "root" user, open up the connection and get a delegation token
+    Connector conn = mac.getConnector(kdc.getClientPrincipal(), new KerberosToken());
+    log.info("Created connector as {}", kdc.getClientPrincipal());
+    assertEquals(kdc.getClientPrincipal(), conn.whoami());
+    final DelegationToken delegationToken = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+
+    // The above login with keytab doesn't have a way to logout, so make a fake user that won't have krb credentials
+    UserGroupInformation userWithoutPrivs = UserGroupInformation.createUserForTesting("fake_user", new String[0]);
+    try {
+      // Use the delegation token to try to log in as a different user
+      userWithoutPrivs.doAs(new PrivilegedExceptionAction<Void>() {
+        @Override
+        public Void run() throws Exception {
+          mac.getConnector("some_other_user", delegationToken);
+          return null;
+        }
+      });
+      fail("Using a delegation token as a different user should throw an exception");
+    } catch (UndeclaredThrowableException e) {
+      Throwable cause = e.getCause();
+      assertNotNull(cause);
+      // We should get an AccumuloSecurityException from trying to use a delegation token for the wrong user
+      assertTrue("Expected cause to be AccumuloSecurityException, but was " + cause.getClass(), cause instanceof AccumuloSecurityException);
+    }
+  }
+
+  @Test(expected = AccumuloSecurityException.class)
+  public void testGetDelegationTokenDenied() throws Exception {
+    String newUser = testName.getMethodName();
+    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    if (newUserKeytab.exists()) {
+      newUserKeytab.delete();
+    }
+
+    // Create a new user
+    kdc.createPrincipal(newUserKeytab, newUser);
+
+    newUser = kdc.qualifyUser(newUser);
+
+    // Login as a normal user
+    UserGroupInformation.loginUserFromKeytab(newUser, newUserKeytab.getAbsolutePath());
+
+    // As the "root" user, open up the connection and get a delegation token
+    Connector conn = mac.getConnector(newUser, new KerberosToken());
+    log.info("Created connector as {}", newUser);
+    assertEquals(newUser, conn.whoami());
+
+    conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+  }
+
+  @Test
+  public void testRestartedMasterReusesSecretKey() throws Exception {
+    // Login as the "root" user
+    UserGroupInformation root = UserGroupInformation.loginUserFromKeytabAndReturnUGI(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    log.info("Logged in as {}", kdc.getClientPrincipal());
+
+    // As the "root" user, open up the connection and get a delegation token
+    final DelegationToken delegationToken1 = root.doAs(new PrivilegedExceptionAction<DelegationToken>() {
+      @Override
+      public DelegationToken run() throws Exception {
+        Connector conn = mac.getConnector(kdc.getClientPrincipal(), new KerberosToken());
+        log.info("Created connector as {}", kdc.getClientPrincipal());
+        assertEquals(kdc.getClientPrincipal(), conn.whoami());
+
+        DelegationToken token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+
+        assertTrue("Could not get tables with delegation token", mac.getConnector(kdc.getClientPrincipal(), token).tableOperations().list().size() > 0);
+
+        return token;
+      }
+    });
+
+    log.info("Stopping master");
+    mac.getClusterControl().stop(ServerType.MASTER);
+    Thread.sleep(5000);
+    log.info("Restarting master");
+    mac.getClusterControl().start(ServerType.MASTER);
+
+    // Make sure our original token is still good
+    root.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(kdc.getClientPrincipal(), delegationToken1);
+
+        assertTrue("Could not get tables with delegation token", conn.tableOperations().list().size() > 0);
+
+        return null;
+      }
+    });
+
+    // Get a new token, so we can compare the keyId on the second to the first
+    final DelegationToken delegationToken2 = root.doAs(new PrivilegedExceptionAction<DelegationToken>() {
+      @Override
+      public DelegationToken run() throws Exception {
+        Connector conn = mac.getConnector(kdc.getClientPrincipal(), new KerberosToken());
+        log.info("Created connector as {}", kdc.getClientPrincipal());
+        assertEquals(kdc.getClientPrincipal(), conn.whoami());
+
+        DelegationToken token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+
+        assertTrue("Could not get tables with delegation token", mac.getConnector(kdc.getClientPrincipal(), token).tableOperations().list().size() > 0);
+
+        return token;
+      }
+    });
+
+    // A restarted master should reuse the same secret key after a restart if the secret key hasn't expired (1day by default)
+    assertEquals(delegationToken1.getIdentifier().getKeyId(), delegationToken2.getIdentifier().getKeyId());
+  }
+
+  @Test(expected = AccumuloException.class)
+  public void testDelegationTokenWithInvalidLifetime() throws Throwable {
+    // Login as the "root" user
+    UserGroupInformation root = UserGroupInformation.loginUserFromKeytabAndReturnUGI(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    log.info("Logged in as {}", kdc.getClientPrincipal());
+
+    // As the "root" user, open up the connection and get a delegation token
+    try {
+      root.doAs(new PrivilegedExceptionAction<DelegationToken>() {
+        @Override
+        public DelegationToken run() throws Exception {
+          Connector conn = mac.getConnector(kdc.getClientPrincipal(), new KerberosToken());
+          log.info("Created connector as {}", kdc.getClientPrincipal());
+          assertEquals(kdc.getClientPrincipal(), conn.whoami());
+
+          // Should fail
+          return conn.securityOperations().getDelegationToken(new DelegationTokenConfig().setTokenLifetime(Long.MAX_VALUE, TimeUnit.MILLISECONDS));
+        }
+      });
+    } catch (UndeclaredThrowableException e) {
+      Throwable cause = e.getCause();
+      if (null != cause) {
+        throw cause;
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testDelegationTokenWithReducedLifetime() throws Throwable {
+    // Login as the "root" user
+    UserGroupInformation root = UserGroupInformation.loginUserFromKeytabAndReturnUGI(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    log.info("Logged in as {}", kdc.getClientPrincipal());
+
+    // As the "root" user, open up the connection and get a delegation token
+    final DelegationToken dt = root.doAs(new PrivilegedExceptionAction<DelegationToken>() {
+      @Override
+      public DelegationToken run() throws Exception {
+        Connector conn = mac.getConnector(kdc.getClientPrincipal(), new KerberosToken());
+        log.info("Created connector as {}", kdc.getClientPrincipal());
+        assertEquals(kdc.getClientPrincipal(), conn.whoami());
+
+        return conn.securityOperations().getDelegationToken(new DelegationTokenConfig().setTokenLifetime(5, TimeUnit.MINUTES));
+      }
+    });
+
+    AuthenticationTokenIdentifier identifier = dt.getIdentifier();
+    assertTrue("Expected identifier to expire in no more than 5 minutes: " + identifier,
+        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000));
   }
 
   /**

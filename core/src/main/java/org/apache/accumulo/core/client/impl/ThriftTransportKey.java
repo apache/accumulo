@@ -39,7 +39,7 @@ public class ThriftTransportKey {
     this.server = server;
     this.timeout = timeout;
     this.sslParams = context.getClientSslParams();
-    this.saslParams = context.getClientSaslParams();
+    this.saslParams = context.getSaslParams();
     if (null != saslParams) {
       // TSasl and TSSL transport factories don't play nicely together
       if (null != sslParams) {
@@ -97,7 +97,7 @@ public class ThriftTransportKey {
     if (isSsl()) {
       prefix = "ssl:";
     } else if (isSasl()) {
-      prefix = "sasl:" + saslParams.getPrincipal() + "@";
+      prefix = saslParams.toString() + ":";
     }
     return prefix + server + " (" + Long.toString(timeout) + ")";
   }

@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.CRC32;
 
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -105,16 +106,17 @@ public class ContinuousWalk {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousWalk.class.getName(), args);
+    ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
+    clientOpts.parseArgs(ContinuousWalk.class.getName(), args, opts);
 
-    Connector conn = opts.getConnector();
+    Connector conn = clientOpts.getConnector();
 
     Random r = new Random();
 
     ArrayList<Value> values = new ArrayList<Value>();
 
     while (true) {
-      Scanner scanner = ContinuousUtil.createScanner(conn, opts.getTableName(), opts.randomAuths.getAuths(r));
+      Scanner scanner = ContinuousUtil.createScanner(conn, clientOpts.getTableName(), opts.randomAuths.getAuths(r));
       String row = findAStartRow(opts.min, opts.max, scanner, r);
 
       while (row != null) {

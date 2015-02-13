@@ -173,4 +173,7 @@ service MasterClientService extends FateService {
   oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
 
   list<string> getActiveTservers(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+
+  // Delegation token request
+  security.TDelegationToken getDelegationToken(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:security.TDelegationTokenConfig cfg) throws (1:client.ThriftSecurityException sec)
 }

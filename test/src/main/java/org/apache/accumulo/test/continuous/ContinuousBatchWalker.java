@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchScannerOpts;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -52,16 +53,17 @@ public class ContinuousBatchWalker {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
-    opts.parseArgs(ContinuousBatchWalker.class.getName(), args, scanOpts, bsOpts);
+    ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
+    clientOpts.parseArgs(ContinuousBatchWalker.class.getName(), args, scanOpts, bsOpts, opts);
 
     Random r = new Random();
     Authorizations auths = opts.randomAuths.getAuths(r);
 
-    Connector conn = opts.getConnector();
-    Scanner scanner = ContinuousUtil.createScanner(conn, opts.getTableName(), auths);
+    Connector conn = clientOpts.getConnector();
+    Scanner scanner = ContinuousUtil.createScanner(conn, clientOpts.getTableName(), auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
 
-    BatchScanner bs = conn.createBatchScanner(opts.getTableName(), auths, bsOpts.scanThreads);
+    BatchScanner bs = conn.createBatchScanner(clientOpts.getTableName(), auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
     while (true) {

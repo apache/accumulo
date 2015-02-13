@@ -830,4 +830,8 @@ public class SecurityOperation {
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_NAMESPACE, namespaceId, false);
   }
 
+  public boolean canObtainDelegationToken(TCredentials credentials) throws ThriftSecurityException {
+    authenticate(credentials);
+    return hasSystemPermission(credentials, SystemPermission.OBTAIN_DELEGATION_TOKEN, false);
+  }
 }

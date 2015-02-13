@@ -21,20 +21,21 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOpts.TimeConverter;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.test.continuous.ContinuousIngest.BaseOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 
 public class ContinuousQuery {
 
-  public static class Opts extends BaseOpts {
+  public static class Opts extends ContinuousOpts {
     @Parameter(names = "--sleep", description = "the time to wait between queries", converter = TimeConverter.class)
     long sleepTime = 100;
   }
@@ -42,10 +43,11 @@ public class ContinuousQuery {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(ContinuousQuery.class.getName(), args, scanOpts);
+    ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
+    clientOpts.parseArgs(ContinuousQuery.class.getName(), args, scanOpts, opts);
 
-    Connector conn = opts.getConnector();
-    Scanner scanner = ContinuousUtil.createScanner(conn, opts.getTableName(), opts.auths);
+    Connector conn = clientOpts.getConnector();
+    Scanner scanner = ContinuousUtil.createScanner(conn, clientOpts.getTableName(), clientOpts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
 
     Random r = new Random();

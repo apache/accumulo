@@ -180,6 +180,8 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
+import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyWatcher;
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
@@ -312,6 +314,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
   private final ServerConfigurationFactory confFactory;
 
+  private final ZooAuthenticationKeyWatcher authKeyWatcher;
+
   public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) {
     super(confFactory);
     this.confFactory = confFactory;
@@ -356,6 +360,17 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TabletLocator.clearLocators();
       }
     }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+
+    // Create the secret manager
+    setSecretManager(new AuthenticationTokenSecretManager(instance, aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
+    if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
+      // Watcher to notice new AuthenticationKeys which enable delegation tokens
+      authKeyWatcher = new ZooAuthenticationKeyWatcher(getSecretManager(), ZooReaderWriter.getInstance(), ZooUtil.getRoot(instance)
+          + Constants.ZDELEGATION_TOKEN_KEYS);
+    } else {
+      authKeyWatcher = null;
+    }
   }
 
   private static long jitter(long ms) {
@@ -2419,6 +2434,17 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       updateMetrics.register();
     } catch (Exception e) {
       log.error("Error registering with JMX", e);
+    }
+
+    if (null != authKeyWatcher) {
+      log.info("Seeding ZooKeeper watcher for authentication keys");
+      try {
+        authKeyWatcher.updateAuthKeys();
+      } catch (KeeperException | InterruptedException e) {
+        // TODO Does there need to be a better check? What are the error conditions that we'd fall out here? AUTH_FAILURE?
+        // If we get the error, do we just put it on a timer and retry the exists(String, Watcher) call?
+        log.error("Failed to perform initial check for authentication tokens in ZooKeeper. Delegation token authentication will be unavailable.", e);
+      }
     }
 
     try {

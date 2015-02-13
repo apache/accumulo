@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.server;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -24,12 +28,15 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.rpc.SaslConnectionParams;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -69,17 +76,27 @@ public class AccumuloServerContextTest {
         final AccumuloConfiguration conf = ClientContext.convertClientConfig(clientConf);
         SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
 
+        EasyMock.expect(siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)).andReturn(true);
+
+        // Deal with SystemToken being private
+        PasswordToken pw = new PasswordToken("fake");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        pw.write(new DataOutputStream(baos));
+        SystemToken token = new SystemToken();
+        token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
+
         ServerConfigurationFactory factory = EasyMock.createMock(ServerConfigurationFactory.class);
         EasyMock.expect(factory.getConfiguration()).andReturn(conf).anyTimes();
         EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
         EasyMock.expect(factory.getInstance()).andReturn(instance).anyTimes();
 
         AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class).addMockedMethod("enforceKerberosLogin")
-            .addMockedMethod("getConfiguration").addMockedMethod("getServerConfigurationFactory").createMock();
+            .addMockedMethod("getConfiguration").addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials").createMock();
         context.enforceKerberosLogin();
         EasyMock.expectLastCall().anyTimes();
         EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
         EasyMock.expect(context.getServerConfigurationFactory()).andReturn(factory).anyTimes();
+        EasyMock.expect(context.getCredentials()).andReturn(new Credentials("accumulo/hostname@FAKE.COM", token)).once();
 
         // Just make the SiteConfiguration delegate to our ClientConfiguration (by way of the AccumuloConfiguration)
         // Presently, we only need get(Property) and iterator().
@@ -101,8 +118,8 @@ public class AccumuloServerContextTest {
         EasyMock.replay(factory, context, siteConfig);
 
         Assert.assertEquals(ThriftServerType.SASL, context.getThriftServerType());
-        SaslConnectionParams saslParams = context.getServerSaslParams();
-        Assert.assertEquals(SaslConnectionParams.forConfig(conf), saslParams);
+        SaslServerConnectionParams saslParams = context.getSaslParams();
+        Assert.assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
         Assert.assertEquals(username, saslParams.getPrincipal());
 
         EasyMock.verify(factory, context, siteConfig);

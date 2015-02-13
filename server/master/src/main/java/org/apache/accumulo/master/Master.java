@@ -124,6 +124,9 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
+import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
+import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
@@ -187,6 +190,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   private ReplicationDriver replicationWorkDriver;
   private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;
+
+  // Delegation Token classes
+  private final boolean delegationTokensAvailable;
+  private ZooAuthenticationKeyDistributor keyDistributor;
+  private AuthenticationTokenKeyManager authenticationTokenKeyManager;
 
   ZooLock masterLock = null;
   private TServer clientService = null;
@@ -560,7 +568,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
   }
 
-  private Master(ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
+  public Master(ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
     super(config);
     this.serverConfig = config;
     this.fs = fs;
@@ -587,6 +595,24 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
 
     this.security = AuditedSecurityOperation.getInstance(this);
+
+    // Create the secret manager (can generate and verify delegation tokens)
+    final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
+    setSecretManager(new AuthenticationTokenSecretManager(getInstance(), tokenLifetime));
+
+    authenticationTokenKeyManager = null;
+    keyDistributor = null;
+    if (getConfiguration().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      // SASL is enabled, create the key distributor (ZooKeeper) and manager (generates/rolls secret keys)
+      log.info("SASL is enabled, creating delegation token key manager and distributor");
+      final long tokenUpdateInterval = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
+      keyDistributor = new ZooAuthenticationKeyDistributor(ZooReaderWriter.getInstance(), ZooUtil.getRoot(getInstance()) + Constants.ZDELEGATION_TOKEN_KEYS);
+      authenticationTokenKeyManager = new AuthenticationTokenKeyManager(getSecretManager(), keyDistributor, tokenUpdateInterval, tokenLifetime);
+      delegationTokensAvailable = true;
+    } else {
+      log.info("SASL is not enabled, delegation tokens will not be available");
+      delegationTokensAvailable = false;
+    }
   }
 
   public TServerConnection getConnection(TServerInstance server) {
@@ -1096,6 +1122,25 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
 
+    // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
+    // the master client service.
+    if (null != authenticationTokenKeyManager && null != keyDistributor) {
+      log.info("Starting delegation-token key manager");
+      keyDistributor.initialize();
+      authenticationTokenKeyManager.start();
+      boolean logged = false;
+      while (!authenticationTokenKeyManager.isInitialized()) {
+        // Print out a status message when we start waiting for the key manager to get initialized
+        if (!logged) {
+          log.info("Waiting for AuthenticationTokenKeyManager to be initialized");
+          logged = true;
+        }
+        UtilWaitThread.sleep(200);
+      }
+      // And log when we are initialized
+      log.info("AuthenticationTokenSecretManager is initialized");
+    }
+
     clientHandler = new MasterClientServiceHandler(this);
     Iface rpcProxy = RpcWrapper.service(clientHandler);
     final Processor<Iface> processor;
@@ -1162,6 +1207,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     replicationWorkAssigner.join(remaining(deadline));
     replicationWorkDriver.join(remaining(deadline));
     replAddress.server.stop();
+    // Signal that we want it to stop, and wait for it to do so.
+    authenticationTokenKeyManager.gracefulStop();
+    authenticationTokenKeyManager.join(remaining(deadline));
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop
@@ -1475,5 +1523,12 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     DeadServerList obit = new DeadServerList(ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
     return result;
+  }
+
+  /**
+   * Can delegation tokens be generated for users
+   */
+  public boolean delegationTokensAvailable() {
+    return delegationTokensAvailable;
   }
 }

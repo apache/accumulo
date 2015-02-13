@@ -73,6 +73,27 @@ password, at the cost of needing to protect the keytab file. These principals
 will apply directly to authentication for clients accessing Accumulo and the
 Accumulo processes accessing HDFS.
 
+=== Delegation Tokens
+
+MapReduce, a common way that clients interact with Accumulo, does not map well to the
+client-server model that Kerberos was originally designed to support. Specifically, the parallelization
+of tasks across many nodes introduces the problem of securely sharing the user credentials across
+these tasks in as safe a manner as possible. To address this problem, Hadoop introduced the notion
+of a delegation token to be used in distributed execution settings.
+
+A delegation token is nothing more than a short-term, on-the-fly password generated after authenticating with the user's
+credentials.  In Hadoop itself, the Namenode and ResourceManager, for HDFS and YARN respectively, act as the gateway for
+delegation tokens requests. For example, before a YARN job is submitted, the implementation will request delegation
+tokens from the NameNode and ResourceManager so the YARN tasks can communicate with HDFS and YARN. In the same manner,
+support has been added in the Accumulo Master to generate delegation tokens to enable interaction with Accumulo via
+MapReduce when Kerberos authentication is enabled in a manner similar to HDFS and YARN.
+
+Generating an expiring password is, arguably, more secure than distributing the user's
+credentials across the cluster as only access to HDFS, YARN and Accumulo would be
+compromised in the case of the token being compromised as opposed to the entire
+Kerberos credential. Additional details for clients and servers will be covered
+in subsequent sections.
+
 === Configuring Accumulo
 
 To configure Accumulo for use with Kerberos, both client-facing and server-facing
@@ -149,6 +170,12 @@ serializing traces to the trace table.
 still use a normal KerberosToken and the same keytab/principal to serialize traces. Like
 non-Kerberized instances, the table must be created and permissions granted to the trace.user.
 ** The same +_HOST+ replacement is performed on this value, substituted the FQDN for +_HOST+.
+* *general.delegation.token.lifetime*=_7d_
+** The length of time that the server-side secret used to create delegation tokens is valid.
+   After a server-side secret expires, a delegation token created with that secret is no longer valid.
+* *general.delegation.token.update.interval*=_1d_
+** The frequency in which new server-side secrets should be generated to create delegation
+   tokens for clients. Generating new secrets reduces the likelihood of cryptographic attacks.
 
 Although it should be a prerequisite, it is ever important that you have DNS properly
 configured for your nodes and that Accumulo is configured to use the FQDN. It
@@ -220,6 +247,34 @@ requests from.
 Both the hosts and users configuration properties also accept a value of +*+ to denote that any user or host
 is acceptable for +$PROXY_USER+.
 
+===== Delegation Tokens
+
+Within Accumulo services, the primary task to implement delegation tokens is the generation and distribution
+of a shared secret among all Accumulo tabletservers and the master. The secret key allows for generation
+of delegation tokens for users and verification of delegation tokens presented by clients. If a server
+process is unaware of the secret key used to create a delegation token, the client cannot be authenticated.
+As ZooKeeper distribution is an asynchronous operation (typically on the order of seconds), the 
+value for `general.delegation.token.update.interval` should be on the order of hours to days to reduce the
+likelihood of servers rejecting valid clients because the server did not yet see a new secret key.
+
+Supporting authentication with both Kerberos credentials and delegation tokens, the SASL thrift
+server accepts connections with either `GSSAPI` and `DIGEST-MD5` mechanisms set. The `DIGEST-MD5` mechanism
+enables authentication as a normal username and password exchange which `DelegationToken`s leverages.
+
+Since delegation tokens are a weaker form of authentication than Kerberos credentials, user access
+to obtain delegation tokens from Accumulo is protected with the `DELEGATION_TOKEN` system permission. Only
+users with the system permission are allowed to obtain delegation tokens. It is also recommended
+to configure confidentiality with SASL, using the `rpc.sasl.qop=auth-conf` configuration property, to
+ensure that prying eyes cannot view the `DelegationToken` as it passes over the network.
+
+----
+# Check a user's permissions
+admin@REALM@accumulo> userpermissions -u user@REALM
+
+# Grant the DELEGATION_TOKEN system permission to a user
+admin@REALM@accumulo> grant System.DELEGATION_TOKEN -s -u user@REALM
+----
+
 ==== Clients
 
 ===== Create client principal
@@ -264,6 +319,61 @@ Three items need to be set to enable access to Accumulo:
 
 The second and third properties *must* match the configuration of the accumulo servers; this is
 required to set up the SASL transport.
+
+===== DelegationTokens with MapReduce
+
+To use DelegationTokens in a custom MapReduce job, the call to `setConnectorInfo()` method
+on `AccumuloInputFormat` or `AccumuloOutputFormat` should be the only necessary change. Instead
+of providing an instance of a `KerberosToken`, the user must call `SecurityOperations.getDelegationToken`
+using a `Connector` obtained with that `KerberosToken`, and pass the `DelegationToken` to
+`setConnectorInfo` instead of the `KerberosToken`. It is expected that the user launching
+the MapReduce job is already logged in via Kerberos via a keytab or via a locally-cached
+Kerberos ticket-granting-ticket (TGT).
+
+[source,java]
+----
+Instance instance = getInstance();
+KerberosToken kt = new KerberosToken();
+Connector conn = instance.getConnector(principal, kt);
+DelegationToken dt = conn.securityOperations().getDelegationToken();
+
+// Reading from Accumulo
+AccumuloInputFormat.setConnectorInfo(job, principal, dt);
+
+// Writing to Accumulo
+AccumuloOutputFormat.setConnectorInfo(job, principal, dt);
+----
+
+If the user passes a `KerberosToken` to the `setConnectorInfo` method, the implementation will
+attempt to obtain a `DelegationToken` automatically, but this does have limitations
+based on the other MapReduce configuration methods already called and permissions granted
+to the calling user. It is best for the user to acquire the DelegationToken on their own
+and provide it directly to `setConnectorInfo`.
+
+Users must have the `DELEGATION_TOKEN` system permission to call the `getDelegationToken`
+method. The obtained delegation token is only valid for the requesting user for a period
+of time dependent on Accumulo's configuration (`general.delegation.token.lifetime`).
+
+It is also possible to obtain and use `DelegationToken`s outside of the context
+of MapReduce.
+
+[source,java]
+----
+String principal = "user@REALM";
+Instance instance = getInstance();
+Connector connector = instance.getConnector(principal, new KerberosToken());
+DelegationToken delegationToken = connector.securityOperations().getDelegationToken();
+
+Connector dtConnector = instance.getConnector(principal, delegationToken);
+----
+
+Use of the `dtConnector` will perform each operation as the original user, but without
+their Kerberos credentials.
+
+For the duration of validity of the `DelegationToken`, the user *must* take the necessary precautions
+to protect the `DelegationToken` from prying eyes as it can be used by any user on any host to impersonate
+the user who requested the `DelegationToken`. YARN ensures that passing the delegation token from the client
+JVM to each YARN task is secure, even in multi-tenant instances.
 
 ==== Debugging
 

@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Base64;
@@ -69,8 +68,7 @@ public final class SystemCredentials extends Credentials {
     check_permission();
     String principal = SYSTEM_PRINCIPAL;
     AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    SaslConnectionParams saslParams = SaslConnectionParams.forConfig(conf);
-    if (null != saslParams) {
+    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the principal server-side, but the principal for SystemCredentials
       // isnt' actually used anywhere, so it really doesn't matter. We can't include the kerberos principal in the SystemToken as it would break equality when
       // different Accumulo servers are using different kerberos principals are their accumulo principal

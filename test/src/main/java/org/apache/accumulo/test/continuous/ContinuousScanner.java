@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -45,15 +46,16 @@ public class ContinuousScanner {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(ContinuousScanner.class.getName(), args, scanOpts);
+    ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
+    clientOpts.parseArgs(ContinuousScanner.class.getName(), args, scanOpts, opts);
 
     Random r = new Random();
 
     long distance = 1000000000000l;
 
-    Connector conn = opts.getConnector();
+    Connector conn = clientOpts.getConnector();
     Authorizations auths = opts.randomAuths.getAuths(r);
-    Scanner scanner = ContinuousUtil.createScanner(conn, opts.getTableName(), auths);
+    Scanner scanner = ContinuousUtil.createScanner(conn, clientOpts.getTableName(), auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
 
     double delta = Math.min(.05, .05 / (opts.numToScan / 1000.0));

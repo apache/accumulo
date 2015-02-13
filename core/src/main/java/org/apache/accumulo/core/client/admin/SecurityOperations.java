@@ -21,6 +21,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -350,4 +351,11 @@ public interface SecurityOperations {
    */
   Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException;
 
+  /**
+   * Obtain a {@link DelegationToken} for use when Kerberos credentials are unavailable (e.g. YARN Jobs)
+   *
+   * @return a {@link DelegationToken} for this user
+   * @since 1.7.0
+   */
+  DelegationToken getDelegationToken(DelegationTokenConfig cfg) throws AccumuloException, AccumuloSecurityException;
 }

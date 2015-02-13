@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.MapReduceClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
@@ -33,8 +34,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.test.continuous.ContinuousIngest.BaseOpts;
-import org.apache.accumulo.test.continuous.ContinuousIngest.ShortConverter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -116,7 +115,7 @@ public class ContinuousMoru extends Configured implements Tool {
     }
   }
 
-  static class Opts extends BaseOpts {
+  static class Opts extends ContinuousOpts {
     @Parameter(names = "--maxColF", description = "maximum column family value to use", converter = ShortConverter.class)
     short maxColF = Short.MAX_VALUE;
 
@@ -131,17 +130,18 @@ public class ContinuousMoru extends Configured implements Tool {
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(ContinuousMoru.class.getName(), args, bwOpts);
+    MapReduceClientOnDefaultTable clientOpts = new MapReduceClientOnDefaultTable("ci");
+    clientOpts.parseArgs(ContinuousMoru.class.getName(), args, bwOpts, opts);
 
     Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
 
     job.setInputFormatClass(AccumuloInputFormat.class);
-    opts.setAccumuloConfigs(job);
+    clientOpts.setAccumuloConfigs(job);
 
     // set up ranges
     try {
-      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
+      Set<Range> ranges = clientOpts.getConnector().tableOperations().splitRangeByTablets(clientOpts.getTableName(), new Range(), opts.maxMaps);
       AccumuloInputFormat.setRanges(job, ranges);
       AccumuloInputFormat.setAutoAdjustRanges(job, false);
     } catch (Exception e) {
@@ -163,7 +163,7 @@ public class ContinuousMoru extends Configured implements Tool {
     conf.set(CI_ID, UUID.randomUUID().toString());
 
     job.waitForCompletion(true);
-    opts.stopTracing();
+    clientOpts.stopTracing();
     return job.isSuccessful() ? 0 : 1;
   }
 

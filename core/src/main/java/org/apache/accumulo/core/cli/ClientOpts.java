@@ -241,6 +241,12 @@ public class ClientOpts extends Help {
         throw new AccumuloSecurityException("No principal or authentication token was provided", SecurityErrorCode.BAD_CREDENTIALS);
       }
 
+      // In MapReduce, if we create a DelegationToken, the principal is updated from the KerberosToken
+      // used to obtain the DelegationToken.
+      if (null != principal) {
+        return principal;
+      }
+
       // Try to extract the principal automatically from Kerberos
       if (token instanceof KerberosToken) {
         principal = ((KerberosToken) token).getPrincipal();

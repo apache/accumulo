@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -65,7 +66,7 @@ public class ThriftUtil {
   private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
 
-  public static final String GSSAPI = "GSSAPI";
+  public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
   /**
    * An instance of {@link TraceProtocolFactory}
@@ -252,7 +253,7 @@ public class ThriftUtil {
    *          RPC options
    */
   public static TTransport createTransport(HostAndPort address, ClientContext context) throws TException {
-    return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams(), context.getClientSaslParams());
+    return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams(), context.getSaslParams());
   }
 
   /**
@@ -345,11 +346,14 @@ public class ThriftUtil {
           // Is this pricey enough that we want to cache it?
           final String hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
 
-          log.trace("Opening transport to server as {} to {}/{}", currentUser, saslParams.getKerberosServerPrimary(), hostname);
+          final SaslMechanism mechanism = saslParams.getMechanism();
+
+          log.trace("Opening transport to server as {} to {}/{} using {}", currentUser, saslParams.getKerberosServerPrimary(), hostname, mechanism);
 
           // Create the client SASL transport using the information for the server
           // Despite the 'protocol' argument seeming to be useless, it *must* be the primary of the server being connected to
-          transport = new TSaslClientTransport(GSSAPI, null, saslParams.getKerberosServerPrimary(), hostname, saslParams.getSaslProperties(), null, transport);
+          transport = new TSaslClientTransport(mechanism.getMechanismName(), null, saslParams.getKerberosServerPrimary(), hostname,
+              saslParams.getSaslProperties(), saslParams.getCallbackHandler(), transport);
 
           // Wrap it all in a processor which will run with a doAs the current user
           transport = new UGIAssumingTransport(transport, currentUser);

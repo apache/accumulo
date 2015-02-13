@@ -30,7 +30,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.AccumuloServerContext;
 
 public class MetaDataStateStore extends TabletStateStore {
-  // private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
 
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;

@@ -117,6 +117,13 @@ public class GarbageCollectWriteAheadLogsTest {
         return systemConfig.get((Property) args[0]);
       }
     }).anyTimes();
+    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<Boolean>() {
+      @Override
+      public Boolean answer() {
+        Object[] args = EasyMock.getCurrentArguments();
+        return systemConfig.getBoolean((Property) args[0]);
+      }
+    }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
       @Override

@@ -23,6 +23,8 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -30,12 +32,17 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
+import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.TDelegationToken;
+import org.apache.accumulo.core.security.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
@@ -342,6 +349,34 @@ public class SecurityOperationsImpl implements SecurityOperations {
         return client.listLocalUsers(Tracer.traceInfo(), context.rpcCreds());
       }
     });
+  }
+
+  @Override
+  public DelegationToken getDelegationToken(DelegationTokenConfig cfg) throws AccumuloException, AccumuloSecurityException {
+    final TDelegationTokenConfig tConfig;
+    if (null != cfg) {
+      tConfig = DelegationTokenConfigSerializer.serialize(cfg);
+    } else {
+      tConfig = new TDelegationTokenConfig();
+    }
+
+    TDelegationToken thriftToken;
+    try {
+      thriftToken = MasterClient.execute(context, new ClientExecReturn<TDelegationToken,Client>() {
+        @Override
+        public TDelegationToken execute(Client client) throws Exception {
+          return client.getDelegationToken(Tracer.traceInfo(), context.rpcCreds(), tConfig);
+        }
+      });
+    } catch (TableNotFoundException e) {
+      // should never happen
+      throw new AssertionError("Received TableNotFoundException on method which should not throw that exception", e);
+    }
+
+    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier(thriftToken.getIdentifier());
+
+    // Get the password out of the thrift delegation token
+    return new DelegationToken(thriftToken.getPassword(), identifier);
   }
 
 }

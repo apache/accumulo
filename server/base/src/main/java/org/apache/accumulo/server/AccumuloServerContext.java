@@ -18,19 +18,26 @@ package org.apache.accumulo.server;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import com.google.common.base.Preconditions;
@@ -41,14 +48,23 @@ import com.google.common.base.Preconditions;
 public class AccumuloServerContext extends ClientContext {
 
   private final ServerConfigurationFactory confFactory;
+  private AuthenticationTokenSecretManager secretManager;
 
   /**
    * Construct a server context from the server's configuration
    */
   public AccumuloServerContext(ServerConfigurationFactory confFactory) {
+    this(confFactory, null);
+  }
+
+  /**
+   * Construct a server context from the server's configuration
+   */
+  public AccumuloServerContext(ServerConfigurationFactory confFactory, AuthenticationTokenSecretManager secretManager) {
     super(confFactory.getInstance(), getCredentials(confFactory.getInstance()), confFactory.getConfiguration());
     this.confFactory = confFactory;
-    if (null != getServerSaslParams()) {
+    this.secretManager = secretManager;
+    if (null != getSaslParams()) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       enforceKerberosLogin();
     }
@@ -65,7 +81,7 @@ public class AccumuloServerContext extends ClientContext {
     UserGroupInformation loginUser;
     try {
       // The system user should be logged in via keytab when the process is started, not the currentUser() like KerberosToken
-      loginUser = UserGroupInformation.getLoginUser();
+      loginUser = UserGroupInformation.getCurrentUser();
     } catch (IOException e) {
       throw new RuntimeException("Could not get login user", e);
     }
@@ -99,9 +115,13 @@ public class AccumuloServerContext extends ClientContext {
     return SslConnectionParams.forServer(getConfiguration());
   }
 
-  public SaslConnectionParams getServerSaslParams() {
-    // Not functionally different than the client SASL params, just uses the site configuration
-    return SaslConnectionParams.forConfig(getServerConfigurationFactory().getSiteConfiguration());
+  @Override
+  public SaslServerConnectionParams getSaslParams() {
+    AccumuloConfiguration conf = getServerConfigurationFactory().getSiteConfiguration();
+    if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      return null;
+    }
+    return new SaslServerConnectionParams(conf, getCredentials().getToken(), secretManager);
   }
 
   /**
@@ -130,4 +150,28 @@ public class AccumuloServerContext extends ClientContext {
     }
   }
 
+  public void setSecretManager(AuthenticationTokenSecretManager secretManager) {
+    this.secretManager = secretManager;
+  }
+
+  public AuthenticationTokenSecretManager getSecretManager() {
+    return secretManager;
+  }
+
+  // Need to override this from ClientContext to ensure that HdfsZooInstance doesn't "downcast"
+  // the AccumuloServerContext into a ClientContext (via the copy-constructor on ClientContext)
+  @Override
+  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+    // avoid making more connectors than necessary
+    if (conn == null) {
+      if (inst instanceof ZooKeeperInstance || inst instanceof HdfsZooInstance) {
+        // reuse existing context
+        conn = new ConnectorImpl(this);
+      } else {
+        Credentials c = getCredentials();
+        conn = getInstance().getConnector(c.getPrincipal(), c.getToken());
+      }
+    }
+    return conn;
+  }
 }

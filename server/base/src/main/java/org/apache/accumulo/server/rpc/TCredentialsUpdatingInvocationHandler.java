@@ -24,8 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
@@ -81,15 +83,25 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     }
 
     Class<? extends AuthenticationToken> tokenClass = getTokenClassFromName(tcreds.tokenClassName);
+
+    // The Accumulo principal extracted from the SASL transport
+    final String principal = UGIAssumingProcessor.rpcPrincipal();
+
+    // If we authenticated the user over DIGEST-MD5 and they have a DelegationToken, the principals should match
+    if (SaslMechanism.DIGEST_MD5 == UGIAssumingProcessor.rpcMechanism() && DelegationToken.class.isAssignableFrom(tokenClass)) {
+      if (!principal.equals(tcreds.principal)) {
+        log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the Accumulo principal {}. Disallowing RPC", principal, tcreds.principal);
+        throw new ThriftSecurityException("RPC principal did not match provided Accumulo principal", SecurityErrorCode.BAD_CREDENTIALS);
+      }
+      return;
+    }
+
     // If the authentication token isn't a KerberosToken
     if (!KerberosToken.class.isAssignableFrom(tokenClass) && !SystemToken.class.isAssignableFrom(tokenClass)) {
       // Don't include messages about SystemToken since it's internal
       log.debug("Will not update principal on authentication tokens other than KerberosToken. Received " + tokenClass);
       throw new ThriftSecurityException("Did not receive a valid token", SecurityErrorCode.BAD_CREDENTIALS);
     }
-
-    // The Accumulo principal extracted from the SASL transport
-    final String principal = UGIAssumingProcessor.rpcPrincipal();
 
     if (null == principal) {
       log.debug("Found KerberosToken in TCredentials, but did not receive principal from SASL processor");

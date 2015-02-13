@@ -52,11 +52,11 @@ public class ClientContext {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
-  private final Instance inst;
+  protected final Instance inst;
   private Credentials creds;
   private ClientConfiguration clientConf;
   private final AccumuloConfiguration rpcConf;
-  private Connector conn;
+  protected Connector conn;
 
   /**
    * Instantiate a client context
@@ -122,12 +122,21 @@ public class ClientContext {
   /**
    * Retrieve SASL configuration to initiate an RPC connection to a server
    */
-  public SaslConnectionParams getClientSaslParams() {
+  public SaslConnectionParams getSaslParams() {
+    final boolean defaultVal = Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue());
+
     // Use the clientConf if we have it
     if (null != clientConf) {
-      return SaslConnectionParams.forConfig(clientConf);
+      if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), defaultVal)) {
+        return null;
+      }
+      return new SaslConnectionParams(clientConf, creds.getToken());
     }
-    return SaslConnectionParams.forConfig(getConfiguration());
+    AccumuloConfiguration conf = getConfiguration();
+    if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      return null;
+    }
+    return new SaslConnectionParams(conf, creds.getToken());
   }
 
   /**

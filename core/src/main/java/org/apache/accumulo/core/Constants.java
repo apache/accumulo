@@ -82,6 +82,11 @@ public class Constants {
   public static final String ZRECOVERY = "/recovery";
 
   /**
+   * Base znode for storing secret keys that back delegation tokens
+   */
+  public static final String ZDELEGATION_TOKEN_KEYS = "/delegation_token_keys";
+
+  /**
    * Initial tablet directory name for the default tablet in all tables
    */
   public static final String DEFAULT_TABLET_LOCATION = "/default_tablet";

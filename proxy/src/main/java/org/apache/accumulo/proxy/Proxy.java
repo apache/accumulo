@@ -25,15 +25,17 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.server.metrics.MetricsFactory;
 import org.apache.accumulo.server.rpc.RpcWrapper;
+import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -204,16 +206,15 @@ public class Proxy implements KeywordExecutable {
 
     ClientConfiguration clientConf = ClientConfiguration.loadDefault();
     SslConnectionParams sslParams = null;
-    SaslConnectionParams saslParams = null;
+    SaslServerConnectionParams saslParams = null;
     switch (serverType) {
       case SSL:
         sslParams = SslConnectionParams.forClient(ClientContext.convertClientConfig(clientConf));
         break;
       case SASL:
-        saslParams = SaslConnectionParams.forConfig(clientConf);
-        if (null == saslParams) {
+        if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey())) {
           log.fatal("SASL thrift server was requested but it is disabled in client configuration");
-          throw new RuntimeException();
+          throw new RuntimeException("SASL is not enabled in configuration");
         }
 
         // Kerberos needs to be enabled to use it
@@ -232,6 +233,9 @@ public class Proxy implements KeywordExecutable {
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         log.info("Logged in as " + ugi.getUserName());
+
+        KerberosToken token = new KerberosToken();
+        saslParams = new SaslServerConnectionParams(clientConf, token, null);
 
         processor = new UGIAssumingProcessor(processor);
 

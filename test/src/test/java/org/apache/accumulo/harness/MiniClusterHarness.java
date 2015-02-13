@@ -70,7 +70,12 @@ public class MiniClusterHarness {
   }
 
   public MiniAccumuloClusterImpl create(AccumuloIT testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
-    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, kdc);
+    return create(testBase, token, kdc, MiniClusterConfigurationCallback.NO_CALLBACK);
+  }
+
+  public MiniAccumuloClusterImpl create(AccumuloIT testBase, AuthenticationToken token, TestingKdc kdc, MiniClusterConfigurationCallback configCallback)
+      throws Exception {
+    return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, configCallback, kdc);
   }
 
   public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {

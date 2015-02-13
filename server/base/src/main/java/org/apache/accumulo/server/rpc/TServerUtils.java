@@ -34,7 +34,6 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
@@ -150,7 +149,7 @@ public class TServerUtils {
         try {
           HostAndPort addr = HostAndPort.fromParts(hostname, port);
           return TServerUtils.startTServer(addr, serverType, timedProcessor, serverName, threadName, minThreads, simpleTimerThreadpoolSize,
-              timeBetweenThreadChecks, maxMessageSize, service.getServerSslParams(), service.getServerSaslParams(), service.getClientTimeoutInMillis());
+              timeBetweenThreadChecks, maxMessageSize, service.getServerSslParams(), service.getSaslParams(), service.getClientTimeoutInMillis());
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
           if (ex.getCause() == null || ex.getCause().getClass() == BindException.class) {
@@ -380,7 +379,7 @@ public class TServerUtils {
   }
 
   public static ServerAddress createSaslThreadPoolServer(HostAndPort address, TProcessor processor, TProtocolFactory protocolFactory, long socketTimeout,
-      SaslConnectionParams params, final String serverName, String threadName, final int numThreads, final int numSTThreads, long timeBetweenThreadChecks)
+      SaslServerConnectionParams params, final String serverName, String threadName, final int numThreads, final int numSTThreads, long timeBetweenThreadChecks)
       throws TTransportException {
     // We'd really prefer to use THsHaServer (or similar) to avoid 1 RPC == 1 Thread that the TThreadPoolServer does,
     // but sadly this isn't the case. Because TSaslTransport needs to issue a handshake when it open()'s which will fail
@@ -388,7 +387,7 @@ public class TServerUtils {
     log.info("Creating SASL thread pool thrift server on listening on {}:{}", address.getHostText(), address.getPort());
     TServerSocket transport = new TServerSocket(address.getPort(), (int) socketTimeout);
 
-    final String hostname, fqdn;
+    String hostname, fqdn;
     try {
       hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
       fqdn = InetAddress.getLocalHost().getCanonicalHostName();
@@ -396,10 +395,15 @@ public class TServerUtils {
       throw new TTransportException(e);
     }
 
+    // If we can't get a real hostname from the provided host test, use the hostname from DNS for localhost
+    if ("0.0.0.0".equals(hostname)) {
+      hostname = fqdn;
+    }
+
     // ACCUMULO-3497 an easy sanity check we can perform for the user when SASL is enabled. Clients and servers have to agree upon the FQDN
     // so that the SASL handshake can occur. If the provided hostname doesn't match the FQDN for this host, fail quickly and inform them to update
     // their configuration.
-    if (!"0.0.0.0".equals(hostname) && !hostname.equals(fqdn)) {
+    if (!hostname.equals(fqdn)) {
       log.error(
           "Expected hostname of '{}' but got '{}'. Ensure the entries in the Accumulo hosts files (e.g. masters, slaves) are the FQDN for each host when using SASL.",
           fqdn, hostname);
@@ -413,7 +417,7 @@ public class TServerUtils {
       throw new TTransportException(e);
     }
 
-    log.trace("Logged in as {}, creating TSsaslServerTransport factory as {}/{}", serverUser, params.getKerberosServerPrimary(), hostname);
+    log.debug("Logged in as {}, creating TSaslServerTransport factory with {}/{}", serverUser, params.getKerberosServerPrimary(), hostname);
 
     // Make the SASL transport factory with the instance and primary from the kerberos server principal, SASL properties
     // and the SASL callback handler from Hadoop to ensure authorization ID is the authentication ID. Despite the 'protocol' argument seeming to be useless, it
@@ -421,6 +425,14 @@ public class TServerUtils {
     TSaslServerTransport.Factory saslTransportFactory = new TSaslServerTransport.Factory();
     saslTransportFactory.addServerDefinition(ThriftUtil.GSSAPI, params.getKerberosServerPrimary(), hostname, params.getSaslProperties(),
         new SaslRpcServer.SaslGssCallbackHandler());
+
+    if (null != params.getSecretManager()) {
+      log.info("Adding DIGEST-MD5 server definition for delegation tokens");
+      saslTransportFactory.addServerDefinition(ThriftUtil.DIGEST_MD5, params.getKerberosServerPrimary(), hostname, params.getSaslProperties(),
+          new SaslServerDigestCallbackHandler(params.getSecretManager()));
+    } else {
+      log.info("SecretManager is null, not adding support for delegation token authentication");
+    }
 
     // Make sure the TTransportFactory is performing a UGI.doAs
     TTransportFactory ugiTransportFactory = new UGIAssumingTransportFactory(saslTransportFactory, serverUser);
@@ -440,7 +452,7 @@ public class TServerUtils {
 
   public static ServerAddress startTServer(AccumuloConfiguration conf, HostAndPort address, ThriftServerType serverType, TProcessor processor,
       String serverName, String threadName, int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
-      SaslConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
+      SaslServerConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
 
     if (ThriftServerType.SASL == serverType) {
       processor = updateSaslProcessor(serverType, processor);
@@ -452,11 +464,11 @@ public class TServerUtils {
 
   /**
    * @see #startTServer(HostAndPort, ThriftServerType, TimedProcessor, TProtocolFactory, String, String, int, int, long, long, SslConnectionParams,
-   *      SaslConnectionParams, long)
+   *      org.apache.accumulo.core.rpc.SaslConnectionParams, long)
    */
   public static ServerAddress startTServer(HostAndPort address, ThriftServerType serverType, TimedProcessor processor, String serverName, String threadName,
-      int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, SaslConnectionParams saslParams,
-      long serverSocketTimeout) throws TTransportException {
+      int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
+      SaslServerConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
     return startTServer(address, serverType, processor, ThriftUtil.protocolFactory(), serverName, threadName, numThreads, numSTThreads,
         timeBetweenThreadChecks, maxMessageSize, sslParams, saslParams, serverSocketTimeout);
   }
@@ -468,7 +480,7 @@ public class TServerUtils {
    */
   public static ServerAddress startTServer(HostAndPort address, ThriftServerType serverType, TimedProcessor processor, TProtocolFactory protocolFactory,
       String serverName, String threadName, int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
-      SaslConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
+      SaslServerConnectionParams saslParams, long serverSocketTimeout) throws TTransportException {
 
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it would require changes in how the transports
     // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's quality of protection addresses privacy issues.

@@ -51,6 +51,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mock.impl.MockTabletLocator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
@@ -616,9 +617,72 @@ public class InputConfigurator extends ConfiguratorBase {
     return TabletLocator.getLocator(context, new Text(tableId));
   }
 
+  /**
+   * Validates and extracts an {@link Instance} from the configuration
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @since 1.7.0
+   */
+  public static Instance validateInstance(Class<?> implementingClass, Configuration conf) throws IOException {
+    if (!isConnectorInfoSet(implementingClass, conf))
+      throw new IOException("Input info has not been set.");
+    String instanceKey = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
+    if (!"MockInstance".equals(instanceKey) && !"ZooKeeperInstance".equals(instanceKey))
+      throw new IOException("Instance info has not been set.");
+    return getInstance(implementingClass, conf);
+  }
+
+  /**
+   * Validates that the user has permissions on the requested tables
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param conn
+   *          the Connector
+   * @see 1.7.0
+   */
+  public static void validatePermissions(Class<?> implementingClass, Configuration conf, Connector conn) throws IOException {
+    Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
+    try {
+      if (getInputTableConfigs(implementingClass, conf).size() == 0)
+        throw new IOException("No table set.");
+
+      for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
+        if (!conn.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf), tableConfig.getKey(), TablePermission.READ))
+          throw new IOException("Unable to access table");
+      }
+      for (Map.Entry<String,InputTableConfig> tableConfigEntry : inputTableConfigs.entrySet()) {
+        InputTableConfig tableConfig = tableConfigEntry.getValue();
+        if (!tableConfig.shouldUseLocalIterators()) {
+          if (tableConfig.getIterators() != null) {
+            for (IteratorSetting iter : tableConfig.getIterators()) {
+              if (!conn.tableOperations().testClassLoad(tableConfigEntry.getKey(), iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
+                throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass() + " as a " + SortedKeyValueIterator.class.getName());
+            }
+          }
+        }
+      }
+    } catch (AccumuloException e) {
+      throw new IOException(e);
+    } catch (AccumuloSecurityException e) {
+      throw new IOException(e);
+    } catch (TableNotFoundException e) {
+      throw new IOException(e);
+    }
+  }
+
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
+   *
+   * <p>
+   * The implementation (JobContext or JobConf which created the Configuration) needs to be used to extract the proper {@link AuthenticationToken} for
+   * {@link DelegationToken} support.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -627,7 +691,11 @@ public class InputConfigurator extends ConfiguratorBase {
    * @throws IOException
    *           if the context is improperly configured
    * @since 1.6.0
+   *
+   * @see #validateInstance(Class, Configuration)
+   * @see #validatePermissions(Class, Configuration, Connector)
    */
+  @Deprecated
   public static void validateOptions(Class<?> implementingClass, Configuration conf) throws IOException {
 
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);

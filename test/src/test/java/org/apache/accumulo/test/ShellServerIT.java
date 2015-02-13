@@ -1168,7 +1168,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
   @Test
   public void systempermission() throws Exception {
     ts.exec("systempermissions");
-    assertEquals(11, ts.output.get().split("\n").length - 1);
+    assertEquals(12, ts.output.get().split("\n").length - 1);
     ts.exec("tablepermissions", true);
     assertEquals(6, ts.output.get().split("\n").length - 1);
   }

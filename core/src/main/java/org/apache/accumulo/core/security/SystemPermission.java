@@ -37,7 +37,8 @@ public enum SystemPermission {
   SYSTEM((byte) 7),
   CREATE_NAMESPACE((byte) 8),
   DROP_NAMESPACE((byte) 9),
-  ALTER_NAMESPACE((byte) 10);
+  ALTER_NAMESPACE((byte) 10),
+  OBTAIN_DELEGATION_TOKEN((byte) 11);
 
   private byte permID;
 

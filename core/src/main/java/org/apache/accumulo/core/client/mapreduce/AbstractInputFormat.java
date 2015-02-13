@@ -39,23 +39,30 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -63,6 +70,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.security.token.Token;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -79,8 +87,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
-   * conversion to a string, and is not intended to be secure.
+   * <b>WARNING:</b> For {@link PasswordToken}, the serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to
+   * provide a charset safe conversion to a string, and is not intended to be secure. This is not the case for {@link KerberosToken} and the corresponding
+   * {@link DelegationToken} acquired using the KerberosToken.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -91,6 +100,29 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
+    if (token instanceof KerberosToken) {
+      log.info("Received KerberosToken, attempting to fetch DelegationToken");
+      try {
+        Instance instance = getInstance(job);
+        Connector conn = instance.getConnector(principal, token);
+        token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+      } catch (Exception e) {
+        log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo", e);
+      }
+    }
+    // DelegationTokens can be passed securely from user to task without serializing insecurely in the configuration
+    if (token instanceof DelegationToken) {
+      DelegationToken delegationToken = (DelegationToken) token;
+
+      // Convert it into a Hadoop Token
+      AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
+      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(), delegationToken.getPassword(), identifier.getKind(),
+          delegationToken.getServiceName());
+
+      // Add the Hadoop Token to the Job so it gets serialized and passed along.
+      job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
+    }
+
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
 
@@ -171,7 +203,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    return InputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
+    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
+    return ConfiguratorBase.unwrapAuthenticationToken(context, token);
   }
 
   /**
@@ -339,7 +372,19 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobContext context) throws IOException {
-    InputConfigurator.validateOptions(CLASS, context.getConfiguration());
+    final Configuration conf = context.getConfiguration();
+    final Instance inst = InputConfigurator.validateInstance(CLASS, conf);
+    String principal = InputConfigurator.getPrincipal(CLASS, conf);
+    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, conf);
+    // In secure mode, we need to convert the DelegationTokenStub into a real DelegationToken
+    token = ConfiguratorBase.unwrapAuthenticationToken(context, token);
+    Connector conn;
+    try {
+      conn = inst.getConnector(principal, token);
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+    InputConfigurator.validatePermissions(CLASS, conf, conn);
   }
 
   /**

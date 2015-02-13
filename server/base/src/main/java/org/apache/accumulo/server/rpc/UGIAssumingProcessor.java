@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import javax.security.sasl.SaslServer;
 
+import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -40,6 +41,8 @@ public class UGIAssumingProcessor implements TProcessor {
   private static final Logger log = LoggerFactory.getLogger(UGIAssumingProcessor.class);
 
   public static final ThreadLocal<String> rpcPrincipal = new ThreadLocal<String>();
+  public static final ThreadLocal<SaslMechanism> rpcMechanism = new ThreadLocal<SaslMechanism>();
+
   private final TProcessor wrapped;
   private final UserGroupInformation loginUser;
 
@@ -60,6 +63,14 @@ public class UGIAssumingProcessor implements TProcessor {
     return rpcPrincipal.get();
   }
 
+  public static ThreadLocal<String> getRpcPrincipalThreadLocal() {
+    return rpcPrincipal;
+  }
+
+  public static SaslMechanism rpcMechanism() {
+    return rpcMechanism.get();
+  }
+
   @Override
   public boolean process(final TProtocol inProt, final TProtocol outProt) throws TException {
     TTransport trans = inProt.getTransport();
@@ -71,20 +82,42 @@ public class UGIAssumingProcessor implements TProcessor {
     String authId = saslServer.getAuthorizationID();
     String endUser = authId;
 
-    log.trace("Received SASL RPC from {}", endUser);
-
-    UserGroupInformation clientUgi = UserGroupInformation.createProxyUser(endUser, loginUser);
-    final String remoteUser = clientUgi.getUserName();
-
+    SaslMechanism mechanism;
     try {
-      // Set the principal in the ThreadLocal for access to get authorizations
-      rpcPrincipal.set(remoteUser);
+      mechanism = SaslMechanism.get(saslServer.getMechanismName());
+    } catch (Exception e) {
+      log.error("Failed to process RPC with SASL mechanism {}", saslServer.getMechanismName());
+      throw e;
+    }
 
-      return wrapped.process(inProt, outProt);
-    } finally {
-      // Unset the principal after we're done using it just to be sure that it's not incorrectly
-      // used in the same thread down the line.
-      rpcPrincipal.set(null);
+    switch (mechanism) {
+      case GSSAPI:
+        UserGroupInformation clientUgi = UserGroupInformation.createProxyUser(endUser, loginUser);
+        final String remoteUser = clientUgi.getUserName();
+
+        try {
+          // Set the principal in the ThreadLocal for access to get authorizations
+          rpcPrincipal.set(remoteUser);
+
+          return wrapped.process(inProt, outProt);
+        } finally {
+          // Unset the principal after we're done using it just to be sure that it's not incorrectly
+          // used in the same thread down the line.
+          rpcPrincipal.set(null);
+        }
+      case DIGEST_MD5:
+        // The CallbackHandler, after deserializing the TokenIdentifier in the name, has already updated
+        // the rpcPrincipal for us. We don't need to do it again here.
+        try {
+          rpcMechanism.set(mechanism);
+          return wrapped.process(inProt, outProt);
+        } finally {
+          // Unset the mechanism after we're done using it just to be sure that it's not incorrectly
+          // used in the same thread down the line.
+          rpcMechanism.set(null);
+        }
+      default:
+        throw new IllegalArgumentException("Cannot process SASL mechanism " + mechanism);
     }
   }
 }

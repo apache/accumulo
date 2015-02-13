@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,10 +25,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.sasl.Sasl;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.configuration.MapConfiguration;
@@ -79,6 +85,34 @@ public class SaslConnectionParams {
     }
   }
 
+  /**
+   * The SASL mechanism to use for authentication
+   */
+  public enum SaslMechanism {
+    GSSAPI("GSSAPI"), // Kerberos
+    DIGEST_MD5("DIGEST-MD5"); // Delegation Tokens
+
+    private final String mechanismName;
+
+    private SaslMechanism(String mechanismName) {
+      this.mechanismName = mechanismName;
+    }
+
+    public String getMechanismName() {
+      return mechanismName;
+    }
+
+    public static SaslMechanism get(String mechanismName) {
+      if (GSSAPI.mechanismName.equals(mechanismName)) {
+        return GSSAPI;
+      } else if (DIGEST_MD5.mechanismName.equals(mechanismName)) {
+        return DIGEST_MD5;
+      }
+
+      throw new IllegalArgumentException("No value for " + mechanismName);
+    }
+  }
+
   private static String defaultRealm;
 
   static {
@@ -90,25 +124,47 @@ public class SaslConnectionParams {
     }
   }
 
-  private String principal;
-  private QualityOfProtection qop;
-  private String kerberosServerPrimary;
-  private final Map<String,String> saslProperties;
-
-  private SaslConnectionParams() {
-    saslProperties = new HashMap<>();
-  }
+  protected String principal;
+  protected QualityOfProtection qop;
+  protected String kerberosServerPrimary;
+  protected SaslMechanism mechanism;
+  protected CallbackHandler callbackHandler;
+  protected final Map<String,String> saslProperties;
 
   /**
    * Generate an {@link SaslConnectionParams} instance given the provided {@link AccumuloConfiguration}. The provided configuration is converted into a
    * {@link ClientConfiguration}, ignoring any properties which are not {@link ClientProperty}s. If SASL is not being used, a null object will be returned.
    * Callers should strive to use {@link #forConfig(ClientConfiguration)}; server processes are the only intended consumers of this method.
    *
-   * @param conf
-   *          The configuration for clients to communicate with Accumulo
-   * @return An {@link SaslConnectionParams} instance or null if SASL is not enabled
    */
-  public static SaslConnectionParams forConfig(AccumuloConfiguration conf) {
+  public SaslConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
+    this(new ClientConfiguration(new MapConfiguration(getProperties(conf))), token);
+  }
+
+  public SaslConnectionParams(ClientConfiguration conf, AuthenticationToken token) {
+    checkNotNull(conf, "Configuration was null");
+    checkNotNull(token, "AuthenticationToken was null");
+
+    saslProperties = new HashMap<>();
+    updatePrincipalFromUgi();
+    updateFromConfiguration(conf);
+    updateFromToken(token);
+  }
+
+  protected void updateFromToken(AuthenticationToken token) {
+    if (token instanceof KerberosToken) {
+      mechanism = SaslMechanism.GSSAPI;
+      // No callbackhandlers necessary for GSSAPI
+      callbackHandler = null;
+    } else if (token instanceof DelegationToken) {
+      mechanism = SaslMechanism.DIGEST_MD5;
+      callbackHandler = new SaslClientDigestCallbackHandler((DelegationToken) token);
+    } else {
+      throw new IllegalArgumentException("Cannot determine SASL mechanism for token class: " + token.getClass());
+    }
+  }
+
+  protected static Map<String,String> getProperties(AccumuloConfiguration conf) {
     final Map<String,String> clientProperties = new HashMap<>();
 
     // Servers will only have the full principal in their configuration -- parse the
@@ -136,25 +192,10 @@ public class SaslConnectionParams {
       }
     }
 
-    ClientConfiguration clientConf = new ClientConfiguration(new MapConfiguration(clientProperties));
-    return forConfig(clientConf);
+    return clientProperties;
   }
 
-  /**
-   * Generate an {@link SaslConnectionParams} instance given the provided {@link ClientConfiguration}. If SASL is not being used, a null object will be
-   * returned.
-   *
-   * @param conf
-   *          The configuration for clients to communicate with Accumulo
-   * @return An {@link SaslConnectionParams} instance or null if SASL is not enabled
-   */
-  public static SaslConnectionParams forConfig(ClientConfiguration conf) {
-    if (!Boolean.parseBoolean(conf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED))) {
-      return null;
-    }
-
-    SaslConnectionParams params = new SaslConnectionParams();
-
+  protected void updatePrincipalFromUgi() {
     // Ensure we're using Kerberos auth for Hadoop UGI
     if (!UserGroupInformation.isSecurityEnabled()) {
       throw new RuntimeException("Cannot use SASL if Hadoop security is not enabled");
@@ -169,22 +210,23 @@ public class SaslConnectionParams {
     }
 
     // The full name is our principal
-    params.principal = currentUser.getUserName();
-    if (null == params.principal) {
+    this.principal = currentUser.getUserName();
+    if (null == this.principal) {
       throw new RuntimeException("Got null username from " + currentUser);
     }
 
+  }
+
+  protected void updateFromConfiguration(ClientConfiguration conf) {
     // Get the quality of protection to use
     final String qopValue = conf.get(ClientProperty.RPC_SASL_QOP);
-    params.qop = QualityOfProtection.get(qopValue);
+    this.qop = QualityOfProtection.get(qopValue);
 
     // Add in the SASL properties to a map so we don't have to repeatedly construct this map
-    params.saslProperties.put(Sasl.QOP, params.qop.getQuality());
+    this.saslProperties.put(Sasl.QOP, this.qop.getQuality());
 
     // The primary from the KRB principal on each server (e.g. primary/instance@realm)
-    params.kerberosServerPrimary = conf.get(ClientProperty.KERBEROS_SERVER_PRIMARY);
-
-    return params;
+    this.kerberosServerPrimary = conf.get(ClientProperty.KERBEROS_SERVER_PRIMARY);
   }
 
   public Map<String,String> getSaslProperties() {
@@ -211,10 +253,24 @@ public class SaslConnectionParams {
     return principal;
   }
 
+  /**
+   * The SASL mechanism to use for authentication
+   */
+  public SaslMechanism getMechanism() {
+    return mechanism;
+  }
+
+  /**
+   * The SASL callback handler for this mechanism, may be null.
+   */
+  public CallbackHandler getCallbackHandler() {
+    return callbackHandler;
+  }
+
   @Override
   public int hashCode() {
     HashCodeBuilder hcb = new HashCodeBuilder(23,29);
-    hcb.append(kerberosServerPrimary).append(saslProperties).append(qop.hashCode()).append(principal);
+    hcb.append(kerberosServerPrimary).append(saslProperties).append(qop.hashCode()).append(principal).append(mechanism).append(callbackHandler);
     return hcb.toHashCode();
   }
 
@@ -231,11 +287,29 @@ public class SaslConnectionParams {
       if (!principal.equals(other.principal)) {
         return false;
       }
+      if (!mechanism.equals(other.mechanism)) {
+        return false;
+      }
+      if (null == callbackHandler) {
+        if (null != other.callbackHandler) {
+          return false;
+        }
+      } else if (!callbackHandler.equals(other.callbackHandler)) {
+        return false;
+      }
 
       return saslProperties.equals(other.saslProperties);
     }
 
     return false;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder(64);
+    sb.append("SaslConnectionParams[").append("kerberosServerPrimary=").append(kerberosServerPrimary).append(", qualityOfProtection=").append(qop);
+    sb.append(", principal=").append(principal).append(", mechanism=").append(mechanism).append(", callbackHandler=").append(callbackHandler).append("]");
+    return sb.toString();
   }
 
   public static String getDefaultRealm() {

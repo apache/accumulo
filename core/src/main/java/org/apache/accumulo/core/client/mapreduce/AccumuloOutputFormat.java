@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -169,7 +170,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    return OutputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
+    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
+    return ConfiguratorBase.unwrapAuthenticationToken(context, token);
   }
 
   /**

@@ -19,7 +19,6 @@ package org.apache.accumulo.test.continuous;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,9 +28,8 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.MapReduceClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -46,75 +44,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-
-import com.beust.jcommander.IStringConverter;
-import com.beust.jcommander.Parameter;
 
 public class ContinuousIngest {
-
-  static public class BaseOpts extends MapReduceClientOnDefaultTable {
-    public class DebugConverter implements IStringConverter<String> {
-      @Override
-      public String convert(String debugLog) {
-        Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-        logger.setLevel(Level.TRACE);
-        logger.setAdditivity(false);
-        try {
-          logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
-        } catch (IOException ex) {
-          throw new RuntimeException(ex);
-        }
-        return debugLog;
-      }
-    }
-
-    @Parameter(names = "--min", description = "lowest random row number to use")
-    long min = 0;
-
-    @Parameter(names = "--max", description = "maximum random row number to use")
-    long max = Long.MAX_VALUE;
-
-    @Parameter(names = "--debugLog", description = "file to write debugging output", converter = DebugConverter.class)
-    String debugLog = null;
-
-    BaseOpts() {
-      super("ci");
-    }
-  }
-
-  public static class ShortConverter implements IStringConverter<Short> {
-    @Override
-    public Short convert(String value) {
-      return Short.valueOf(value);
-    }
-  }
-
-  static public class Opts extends BaseOpts {
-    @Parameter(names = "--num", description = "the number of entries to ingest")
-    long num = Long.MAX_VALUE;
-
-    @Parameter(names = "--maxColF", description = "maximum column family value to use", converter = ShortConverter.class)
-    short maxColF = Short.MAX_VALUE;
-
-    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use", converter = ShortConverter.class)
-    short maxColQ = Short.MAX_VALUE;
-
-    @Parameter(names = "--addCheckSum", description = "turn on checksums")
-    boolean checksum = false;
-
-    @Parameter(names = "--visibilities", description = "read the visibilities to ingest with from a file")
-    String visFile = null;
-  }
 
   private static final byte[] EMPTY_BYTES = new byte[0];
 
   private static List<ColumnVisibility> visibilities;
 
-  private static void initVisibilities(Opts opts) throws Exception {
+  private static void initVisibilities(ContinuousOpts opts) throws Exception {
     if (opts.visFile == null) {
       visibilities = Collections.singletonList(new ColumnVisibility());
       return;
@@ -140,22 +77,23 @@ public class ContinuousIngest {
 
   public static void main(String[] args) throws Exception {
 
-    Opts opts = new Opts();
+    ContinuousOpts opts = new ContinuousOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(ContinuousIngest.class.getName(), args, bwOpts);
+    ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
+    clientOpts.parseArgs(ContinuousIngest.class.getName(), args, bwOpts, opts);
 
     initVisibilities(opts);
 
     if (opts.min < 0 || opts.max < 0 || opts.max <= opts.min) {
       throw new IllegalArgumentException("bad min and max");
     }
-    Connector conn = opts.getConnector();
+    Connector conn = clientOpts.getConnector();
 
-    if (!conn.tableOperations().exists(opts.getTableName())) {
-      throw new TableNotFoundException(null, opts.getTableName(), "Consult the README and create the table before starting ingest.");
+    if (!conn.tableOperations().exists(clientOpts.getTableName())) {
+      throw new TableNotFoundException(null, clientOpts.getTableName(), "Consult the README and create the table before starting ingest.");
     }
 
-    BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(clientOpts.getTableName(), bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
 
     Random r = new Random();
@@ -233,7 +171,7 @@ public class ContinuousIngest {
     }
 
     bw.close();
-    opts.stopTracing();
+    clientOpts.stopTracing();
   }
 
   private static long flush(BatchWriter bw, long count, final int flushInterval, long lastFlushTime) throws MutationsRejectedException {

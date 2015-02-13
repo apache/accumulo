@@ -518,4 +518,22 @@ public class ZooUtil {
     }
   }
 
+  public static List<ACL> getACL(ZooKeeperConnectionInfo info, String zPath, Stat stat) throws KeeperException, InterruptedException {
+    final Retry retry = RETRY_FACTORY.create();
+    while (true) {
+      try {
+        return getZooKeeper(info).getACL(zPath, stat);
+      } catch (KeeperException e) {
+        final Code c = e.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
+  }
+
 }

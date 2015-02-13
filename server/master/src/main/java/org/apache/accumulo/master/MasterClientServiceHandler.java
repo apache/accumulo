@@ -33,6 +33,8 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.impl.DelegationTokenConfigSerializer;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -55,8 +57,11 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.thrift.TDelegationToken;
+import org.apache.accumulo.core.security.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -69,12 +74,14 @@ import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.token.Token;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -444,5 +451,28 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     }
 
     return servers;
+  }
+
+  @Override
+  public TDelegationToken getDelegationToken(TInfo tinfo, TCredentials credentials, TDelegationTokenConfig tConfig) throws ThriftSecurityException, TException {
+    if (!master.security.canObtainDelegationToken(credentials)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    // Make sure we're actually generating the secrets to make delegation tokens
+    // Round-about way to verify that SASL is also enabled.
+    if (!master.delegationTokensAvailable()) {
+      throw new TException("Delegation tokens are not available for use");
+    }
+
+    final DelegationTokenConfig config = DelegationTokenConfigSerializer.deserialize(tConfig);
+    final AuthenticationTokenSecretManager secretManager = master.getSecretManager();
+    try {
+      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(credentials.principal, config);
+
+      return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()), pair.getValue().getThriftIdentifier());
+    } catch (Exception e) {
+      throw new TException(e.getMessage());
+    }
   }
 }

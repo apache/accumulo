@@ -17,8 +17,11 @@
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,15 +31,23 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -56,7 +67,7 @@ public class ConfiguratorBase {
   }
 
   public static enum TokenSource {
-    FILE, INLINE;
+    FILE, INLINE, JOB;
 
     private String prefix;
 
@@ -138,8 +149,15 @@ public class ConfiguratorBase {
     checkArgument(token != null, "token is null");
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
-        TokenSource.INLINE.prefix() + token.getClass().getName() + ":" + Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+    if (token instanceof DelegationToken) {
+      // Avoid serializing the DelegationToken secret in the configuration -- the Job will do that work for us securely
+      DelegationToken delToken = (DelegationToken) token;
+      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.JOB.prefix() + token.getClass().getName() + ":"
+          + delToken.getServiceName().toString());
+    } else {
+      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
+          TokenSource.INLINE.prefix() + token.getClass().getName() + ":" + Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+    }
   }
 
   /**
@@ -230,6 +248,14 @@ public class ConfiguratorBase {
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
       return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
+    } else if (token.startsWith(TokenSource.JOB.prefix())) {
+      String[] args = token.substring(TokenSource.JOB.prefix().length()).split(":", 2);
+      if (args.length == 2) {
+        String className = args[0], serviceName = args[1];
+        if (DelegationToken.class.getName().equals(className)) {
+          return new DelegationTokenStub(serviceName);
+        }
+      }
     }
 
     throw new IllegalStateException("Token was not properly serialized into the configuration");
@@ -401,4 +427,53 @@ public class ConfiguratorBase {
     return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
   }
 
+  /**
+   * Unwraps the provided {@link AuthenticationToken} if it is an instance of {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
+   *
+   * @param job
+   *          The job
+   * @param token
+   *          The authentication token
+   */
+  public static AuthenticationToken unwrapAuthenticationToken(JobConf job, AuthenticationToken token) {
+    checkNotNull(job);
+    checkNotNull(token);
+    if (token instanceof DelegationTokenStub) {
+      DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
+      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
+      AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
+      try {
+        identifier.readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
+        return new DelegationToken(hadoopToken.getPassword(), identifier);
+      } catch (IOException e) {
+        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials", e);
+      }
+    }
+    return token;
+  }
+
+  /**
+   * Unwraps the provided {@link AuthenticationToken} if it is an instance of {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
+   *
+   * @param job
+   *          The job
+   * @param token
+   *          The authentication token
+   */
+  public static AuthenticationToken unwrapAuthenticationToken(JobContext job, AuthenticationToken token) {
+    checkNotNull(job);
+    checkNotNull(token);
+    if (token instanceof DelegationTokenStub) {
+      DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
+      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
+      AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
+      try {
+        identifier.readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
+        return new DelegationToken(hadoopToken.getPassword(), identifier);
+      } catch (IOException e) {
+        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials", e);
+      }
+    }
+    return token;
+  }
 }

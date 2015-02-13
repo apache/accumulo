@@ -454,4 +454,18 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw e;
     }
   }
+
+  public static final String DELEGATION_TOKEN_AUDIT_TEMPLATE = "requested delegation token";
+
+  @Override
+  public boolean canObtainDelegationToken(TCredentials credentials) throws ThriftSecurityException {
+    try {
+      boolean result = super.canObtainDelegationToken(credentials);
+      audit(credentials, result, DELEGATION_TOKEN_AUDIT_TEMPLATE);
+      return result;
+    } catch (ThriftSecurityException e) {
+      audit(credentials, false, DELEGATION_TOKEN_AUDIT_TEMPLATE);
+      throw e;
+    }
+  }
 }

@@ -20,16 +20,37 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.net.HostAndPort;
 
 public class ThriftTransportKeyTest {
+
+  @Before
+  public void setup() throws Exception {
+    System.setProperty("java.security.krb5.realm", "accumulo");
+    System.setProperty("java.security.krb5.kdc", "fake");
+    Configuration conf = new Configuration(false);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
+    UserGroupInformation.setConfiguration(conf);
+  }
 
   @Test(expected = RuntimeException.class)
   public void testSslAndSaslErrors() {
@@ -38,7 +59,7 @@ public class ThriftTransportKeyTest {
     SaslConnectionParams saslParams = createMock(SaslConnectionParams.class);
 
     expect(clientCtx.getClientSslParams()).andReturn(sslParams).anyTimes();
-    expect(clientCtx.getClientSaslParams()).andReturn(saslParams).anyTimes();
+    expect(clientCtx.getSaslParams()).andReturn(saslParams).anyTimes();
 
     // We don't care to verify the sslparam or saslparam mocks
     replay(clientCtx);
@@ -51,20 +72,78 @@ public class ThriftTransportKeyTest {
   }
 
   @Test
-  public void testSaslPrincipalIsSignificant() {
-    SaslConnectionParams saslParams1 = createMock(SaslConnectionParams.class), saslParams2 = createMock(SaslConnectionParams.class);
-    expect(saslParams1.getPrincipal()).andReturn("user1");
-    expect(saslParams2.getPrincipal()).andReturn("user2");
+  public void testConnectionCaching() throws IOException, InterruptedException {
+    UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", new String[0]);
+    final KerberosToken token = EasyMock.createMock(KerberosToken.class);
+    final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    // The primary is the first component of the principal
+    final String primary = "accumulo";
+    clientConf.withSasl(true, primary);
 
-    replay(saslParams1, saslParams2);
+    // A first instance of the SASL cnxn params
+    SaslConnectionParams saslParams1 = user1.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+      @Override
+      public SaslConnectionParams run() throws Exception {
+        return new SaslConnectionParams(clientConf, token);
+      }
+    });
+
+    // A second instance of what should be the same SaslConnectionParams
+    SaslConnectionParams saslParams2 = user1.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+      @Override
+      public SaslConnectionParams run() throws Exception {
+        return new SaslConnectionParams(clientConf, token);
+      }
+    });
+
+    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams1), ttk2 = new ThriftTransportKey(
+        HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams2);
+
+    // Should equals() and hashCode() to make sure we don't throw away thrift cnxns
+    assertEquals(ttk1, ttk2);
+    assertEquals(ttk1.hashCode(), ttk2.hashCode());
+  }
+
+  @Test
+  public void testSaslPrincipalIsSignificant() throws IOException, InterruptedException {
+    UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", new String[0]);
+    final KerberosToken token = EasyMock.createMock(KerberosToken.class);
+    SaslConnectionParams saslParams1 = user1.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+      @Override
+      public SaslConnectionParams run() throws Exception {
+        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+
+        // The primary is the first component of the principal
+        final String primary = "accumulo";
+        clientConf.withSasl(true, primary);
+
+        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+
+        return new SaslConnectionParams(clientConf, token);
+      }
+    });
+
+    UserGroupInformation user2 = UserGroupInformation.createUserForTesting("user2", new String[0]);
+    SaslConnectionParams saslParams2 = user2.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+      @Override
+      public SaslConnectionParams run() throws Exception {
+        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+
+        // The primary is the first component of the principal
+        final String primary = "accumulo";
+        clientConf.withSasl(true, primary);
+
+        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+
+        return new SaslConnectionParams(clientConf, token);
+      }
+    });
 
     ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams1), ttk2 = new ThriftTransportKey(
         HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams2);
 
     assertNotEquals(ttk1, ttk2);
     assertNotEquals(ttk1.hashCode(), ttk2.hashCode());
-
-    verify(saslParams1, saslParams2);
   }
 
   @Test
@@ -72,7 +151,7 @@ public class ThriftTransportKeyTest {
     ClientContext clientCtx = createMock(ClientContext.class);
 
     expect(clientCtx.getClientSslParams()).andReturn(null).anyTimes();
-    expect(clientCtx.getClientSaslParams()).andReturn(null).anyTimes();
+    expect(clientCtx.getSaslParams()).andReturn(null).anyTimes();
 
     replay(clientCtx);
 
