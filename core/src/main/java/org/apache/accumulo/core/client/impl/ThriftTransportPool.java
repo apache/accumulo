@@ -440,7 +440,7 @@ public class ThriftTransportPool {
       int index = random.nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);
 
-      if (!preferCachedConnection) {
+      if (preferCachedConnection) {
         synchronized (this) {
           List<CachedConnection> cachedConnList = getCache().get(ttk);
           if (cachedConnList != null) {
