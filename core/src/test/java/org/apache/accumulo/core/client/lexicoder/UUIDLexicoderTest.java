@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class UUIDLexicoderTest extends LexicoderTest {
+public class UUIDLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
 
     assertSortOrder(new UUIDLexicoder(),
@@ -35,5 +37,10 @@ public class UUIDLexicoderTest extends LexicoderTest {
     }
 
     assertSortOrder(new UUIDLexicoder(), uuids);
+  }
+
+  public void testDecodes() {
+    assertDecodes(new UUIDLexicoder(), UUID.randomUUID());
+
   }
 }

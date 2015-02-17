@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-public class UIntegerLexicoderTest extends LexicoderTest {
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+
+public class UIntegerLexicoderTest extends AbstractLexicoderTest {
   public void testEncoding() {
     UIntegerLexicoder uil = new UIntegerLexicoder();
 
@@ -29,5 +31,13 @@ public class UIntegerLexicoderTest extends LexicoderTest {
     assertEqualsB(uil.encode(0xffff0304), new byte[] {0x06, 0x03, 0x04});
     assertEqualsB(uil.encode(0xffffff04), new byte[] {0x07, 0x04});
     assertEqualsB(uil.encode(-1), new byte[] {0x08});
+  }
+
+  public void testDecode() {
+    assertDecodes(new UIntegerLexicoder(), Integer.MIN_VALUE);
+    assertDecodes(new UIntegerLexicoder(), -1);
+    assertDecodes(new UIntegerLexicoder(), 0);
+    assertDecodes(new UIntegerLexicoder(), 1);
+    assertDecodes(new UIntegerLexicoder(), Integer.MAX_VALUE);
   }
 }

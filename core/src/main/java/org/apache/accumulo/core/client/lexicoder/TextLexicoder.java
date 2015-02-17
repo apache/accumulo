@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -26,7 +27,7 @@ import org.apache.hadoop.io.Text;
  * @since 1.6.0
  */
 
-public class TextLexicoder implements Lexicoder<Text> {
+public class TextLexicoder extends AbstractLexicoder<Text> implements Lexicoder<Text> {
 
   @Override
   public byte[] encode(Text data) {
@@ -34,8 +35,10 @@ public class TextLexicoder implements Lexicoder<Text> {
   }
 
   @Override
-  public Text decode(byte[] data) {
-    return new Text(data);
+  protected Text decodeUnchecked(byte[] data, int offset, int len) {
+    Text text = new Text();
+    text.set(data, offset, len);
+    return text;
   }
 
 }

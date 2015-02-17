@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -41,7 +43,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class StatusCombiner extends TypedValueCombiner<Status> {
   private static final Logger log = Logger.getLogger(StatusCombiner.class);
 
-  public static class StatusEncoder implements Encoder<Status> {
+  public static class StatusEncoder extends AbstractEncoder<Status> implements Encoder<Status> {
     private static final Logger log = Logger.getLogger(StatusEncoder.class);
 
     @Override
@@ -50,9 +52,27 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     }
 
     @Override
-    public Status decode(byte[] b) throws ValueFormatException {
+    public Status decode(byte[] b) {
+      // Override super because it calls decodeUnchecked, which is not as performant
+      Preconditions.checkNotNull(b, "cannot decode null byte array");
       try {
         return Status.parseFrom(b);
+      } catch (InvalidProtocolBufferException e) {
+        log.error("Failed to parse Status protocol buffer", e);
+        throw new ValueFormatException(e);
+      }
+    }
+
+    /**
+     * Makes a copy of the subarray of {@code b}, then passes it through {@link Status#parseFrom(byte[])}
+     */
+    @Override
+    protected Status decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
+      try {
+        // have to make a copy because Status lacks the method to do this efficiently
+        byte[] boundedArr = new byte[len];
+        System.arraycopy(b, offset, boundedArr, 0, len);
+        return Status.parseFrom(boundedArr);
       } catch (InvalidProtocolBufferException e) {
         log.error("Failed to parse Status protocol buffer", e);
         throw new ValueFormatException(e);

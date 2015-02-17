@@ -14,29 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.lexicoder;
+package org.apache.accumulo.core.client.lexicoder.impl;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 
-import java.util.Date;
-
-/**
- * A lexicoder for date objects. It preserves the native Java sort order for Date.
- *
- * @since 1.6.0
- */
-public class DateLexicoder extends AbstractLexicoder<Date> implements Lexicoder<Date> {
-
-  private LongLexicoder longEncoder = new LongLexicoder();
-
-  @Override
-  public byte[] encode(Date data) {
-    return longEncoder.encode(data.getTime());
-  }
-
-  @Override
-  protected Date decodeUnchecked(byte[] data, int offset, int len) {
-    return new Date(longEncoder.decodeUnchecked(data, offset, len));
-  }
-
+public abstract class AbstractLexicoder<T> extends AbstractEncoder<T> implements Lexicoder<T> {
 }

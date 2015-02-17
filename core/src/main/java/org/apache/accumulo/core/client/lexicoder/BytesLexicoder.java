@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 /**
  * For each of the methods, this lexicoder just passes the input through untouched. It is meant to be combined with other lexicoders like the
  * {@link ReverseLexicoder}.
  *
  * @since 1.6.0
  */
-public class BytesLexicoder implements Lexicoder<byte[]> {
+public class BytesLexicoder extends AbstractLexicoder<byte[]> implements Lexicoder<byte[]> {
 
   @Override
   public byte[] encode(byte[] data) {
@@ -31,7 +33,23 @@ public class BytesLexicoder implements Lexicoder<byte[]> {
 
   @Override
   public byte[] decode(byte[] data) {
+    // overrides AbstractLexicoder since this simply returns the array
     return data;
+  }
+
+  /**
+   * If offset == 0 and len == data.length, returns data.  Otherwise, returns a new
+   * byte array with contents starting at data[offset] with length len.
+   */
+  @Override
+  protected byte[] decodeUnchecked(byte[] data, int offset, int len) {
+    if (offset == 0 && len == data.length) {
+      return data;
+    }
+
+    byte[] copy = new byte[len];
+    System.arraycopy(data, offset, copy, 0, len);
+    return copy;
   }
 
 }

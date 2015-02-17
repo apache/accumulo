@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -140,7 +142,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     return true;
   }
 
-  public abstract static class DOSArrayEncoder<V> implements Encoder<List<V>> {
+  public abstract static class DOSArrayEncoder<V> extends AbstractLexicoder<List<V>> implements Encoder<List<V>> {
     public abstract void write(DataOutputStream dos, V v) throws IOException;
 
     public abstract V read(DataInputStream dis) throws IOException;
@@ -161,8 +163,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
 
     @Override
-    public List<V> decode(byte[] b) {
-      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+    protected List<V> decodeUnchecked(byte[] b, int offset, int origLen) {
+      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, origLen));
       try {
         int len = WritableUtils.readVInt(dis);
         List<V> vl = new ArrayList<V>(len);
@@ -200,7 +202,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
   }
 
-  public static class StringArrayEncoder implements Encoder<List<Long>> {
+  public static class StringArrayEncoder extends AbstractEncoder<List<Long>> implements Encoder<List<Long>> {
     @Override
     public byte[] encode(List<Long> la) {
       if (la.size() == 0)
@@ -214,8 +216,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
 
     @Override
-    public List<Long> decode(byte[] b) {
-      String[] longstrs = new String(b, UTF_8).split(",");
+    protected List<Long> decodeUnchecked(byte[] b, int offset, int len) {
+      String[] longstrs = new String(b, offset, len, UTF_8).split(",");
       List<Long> la = new ArrayList<Long>(longstrs.length);
       for (String s : longstrs) {
         if (s.length() == 0)

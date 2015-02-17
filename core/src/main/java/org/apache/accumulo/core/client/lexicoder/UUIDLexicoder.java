@@ -16,21 +16,22 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.iterators.ValueFormatException;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
-import org.apache.accumulo.core.iterators.ValueFormatException;
-
 /**
  * A lexicoder for a UUID that maintains its lexicographic sorting order.
  *
  * @since 1.6.0
  */
-public class UUIDLexicoder implements Lexicoder<UUID> {
+public class UUIDLexicoder extends AbstractLexicoder<UUID> implements Lexicoder<UUID> {
 
   /**
    * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace, "Rules for Lexical Equivalence" in
@@ -54,9 +55,9 @@ public class UUIDLexicoder implements Lexicoder<UUID> {
   }
 
   @Override
-  public UUID decode(byte[] b) throws ValueFormatException {
+  protected UUID decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
     try {
-      DataInputStream in = new DataInputStream(new ByteArrayInputStream(b));
+      DataInputStream in = new DataInputStream(new ByteArrayInputStream(b, offset, len));
       return new UUID(in.readLong() ^ 0x8000000000000000l, in.readLong() ^ 0x8000000000000000l);
     } catch (IOException e) {
       throw new RuntimeException(e);

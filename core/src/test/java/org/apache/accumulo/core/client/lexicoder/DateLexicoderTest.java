@@ -16,36 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
-/**
- * A lexicoder for preserving the native Java sort order of Double values.
- *
- * @since 1.6.0
- */
-public class DoubleLexicoder extends AbstractLexicoder<Double> implements Lexicoder<Double> {
+import java.util.Date;
 
-  private ULongLexicoder longEncoder = new ULongLexicoder();
+public class DateLexicoderTest extends AbstractLexicoderTest {
 
-  @Override
-  public byte[] encode(Double d) {
-    long l = Double.doubleToRawLongBits(d);
-    if (l < 0)
-      l = ~l;
-    else
-      l = l ^ 0x8000000000000000l;
-
-    return longEncoder.encode(l);
+  public void testDecode() throws Exception {
+    assertDecodes(new DateLexicoder(), new Date());
+    assertDecodes(new DateLexicoder(), new Date(0));
+    assertDecodes(new DateLexicoder(), new Date(Long.MAX_VALUE));
   }
-
-  @Override
-  protected Double decodeUnchecked(byte[] data, int offset, int len) {
-    long l = longEncoder.decodeUnchecked(data, offset, len);
-    if (l < 0)
-      l = l ^ 0x8000000000000000l;
-    else
-      l = ~l;
-    return Double.longBitsToDouble(l);
-  }
-
 }

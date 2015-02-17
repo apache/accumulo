@@ -16,19 +16,18 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import junit.framework.TestCase;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import junit.framework.TestCase;
-
-import org.apache.accumulo.core.util.TextUtil;
-import org.apache.hadoop.io.Text;
-
 public abstract class LexicoderTest extends TestCase {
 
-  void assertEqualsB(byte[] ba1, byte[] ba2) {
+  protected void assertEqualsB(byte[] ba1, byte[] ba2) {
     assertEquals(new Text(ba2), new Text(ba1));
   }
 
@@ -59,6 +58,26 @@ public abstract class LexicoderTest extends TestCase {
 
   public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, List<T> data) {
     assertSortOrder(lexicoder, null, data);
+  }
+
+  public static final byte[] START_PAD = "start".getBytes();
+  public static final byte[] END_PAD = "end".getBytes();
+
+  /** Asserts a value can be encoded and decoded back to original value */
+  public static <T> void assertDecodes(Lexicoder<T> lexicoder, T expected) {
+    byte[] encoded = lexicoder.encode(expected);
+
+    // decode full array
+    T result = lexicoder.decode(encoded);
+    assertEquals(expected, result);
+  }
+
+  public void assertDecodesB(Lexicoder<byte[]> lexicoder, byte[] expected) {
+    byte[] encoded = lexicoder.encode(expected);
+
+    // decode full array
+    byte[] result = lexicoder.decode(encoded);
+    assertEqualsB(expected, result);
   }
 
 }

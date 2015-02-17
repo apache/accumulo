@@ -16,14 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import java.util.Arrays;
-
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.ComparablePair;
+
+import java.util.Arrays;
 
 /**
  *
  */
-public class PairLexicoderTest extends LexicoderTest {
+public class PairLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     PairLexicoder<String,String> plexc = new PairLexicoder<String,String>(new StringLexicoder(), new StringLexicoder());
 
@@ -35,5 +36,10 @@ public class PairLexicoderTest extends LexicoderTest {
 
     assertSortOrder(plexc2, Arrays.asList(new ComparablePair<Long,String>(0x100l, "a"), new ComparablePair<Long,String>(0x100l, "ab"),
         new ComparablePair<Long,String>(0xf0l, "a"), new ComparablePair<Long,String>(0xf0l, "ab")));
+  }
+
+  public void testDecodes() {
+    PairLexicoder<String,String> plexc = new PairLexicoder<String,String>(new StringLexicoder(), new StringLexicoder());
+    assertDecodes(plexc, new ComparablePair<String,String>("a", "b"));
   }
 }

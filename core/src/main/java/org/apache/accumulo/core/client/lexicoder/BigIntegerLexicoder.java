@@ -16,21 +16,22 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.iterators.ValueFormatException;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 
-import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
-import org.apache.accumulo.core.iterators.ValueFormatException;
-
 /**
  * A lexicoder to encode/decode a BigInteger to/from bytes that maintain its native Java sort order.
  *
  * @since 1.6.0
  */
-public class BigIntegerLexicoder implements Lexicoder<BigInteger> {
+public class BigIntegerLexicoder extends AbstractLexicoder<BigInteger> implements Lexicoder<BigInteger> {
 
   @Override
   public byte[] encode(BigInteger v) {
@@ -63,15 +64,15 @@ public class BigIntegerLexicoder implements Lexicoder<BigInteger> {
   }
 
   @Override
-  public BigInteger decode(byte[] b) throws ValueFormatException {
+  protected BigInteger decodeUnchecked(byte[] b, int offset, int origLen) throws ValueFormatException {
 
     try {
-      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-      int len = dis.readInt();
-      len = len ^ 0x80000000;
-      len = Math.abs(len);
+      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, origLen));
+      int newLen = dis.readInt();
+      newLen = newLen ^ 0x80000000;
+      newLen = Math.abs(newLen);
 
-      byte[] bytes = new byte[len];
+      byte[] bytes = new byte[newLen];
       dis.readFully(bytes);
 
       bytes[0] = (byte) (0x80 ^ bytes[0]);

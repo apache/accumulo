@@ -29,7 +29,7 @@ public class LongLexicoder extends ULongLexicoder {
   }
 
   @Override
-  public Long decode(byte[] data) {
-    return super.decode(data) ^ 0x8000000000000000l;
+  protected Long decodeUnchecked(byte[] data, int offset, int len) {
+    return super.decodeUnchecked(data, offset, len) ^ 0x8000000000000000l;
   }
 }
