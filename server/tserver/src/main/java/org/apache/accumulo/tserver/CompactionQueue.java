@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.tserver;
 
+import org.apache.htrace.wrappers.TraceRunnable;
+
 import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,14 +31,21 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class CompactionQueue extends AbstractQueue<Runnable> implements BlockingQueue<Runnable> {
 
-  private List<Comparable> task = new LinkedList<Comparable>();
+  private List<TraceRunnable> task = new LinkedList<TraceRunnable>();
+
+  private static final Comparator<TraceRunnable> comparator = new Comparator<TraceRunnable>() {
+    @Override
+    public int compare(TraceRunnable o1, TraceRunnable o2) {
+      return ((Comparable) o1.getRunnable()).compareTo(o2.getRunnable());
+    }
+  };
 
   @Override
   public synchronized Runnable poll() {
     if (task.size() == 0)
       return null;
 
-    Comparable min = Collections.min(task);
+    TraceRunnable min = Collections.min(task, comparator);
     task.remove(min);
     return (Runnable) min;
   }
@@ -45,26 +55,26 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
     if (task.size() == 0)
       return null;
 
-    Comparable min = Collections.min(task);
+    TraceRunnable min = Collections.min(task, comparator);
     return (Runnable) min;
   }
 
   @Override
   public synchronized boolean offer(Runnable e) {
-    task.add((Comparable) e);
+    task.add((TraceRunnable) e);
     notify();
     return true;
   }
 
   @Override
   public synchronized void put(Runnable e) throws InterruptedException {
-    task.add((Comparable) e);
+    task.add((TraceRunnable) e);
     notify();
   }
 
   @Override
   public synchronized boolean offer(Runnable e, long timeout, TimeUnit unit) throws InterruptedException {
-    task.add((Comparable) e);
+    task.add((TraceRunnable) e);
     notify();
     return true;
   }
@@ -102,11 +112,11 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
 
   @Override
   public synchronized int drainTo(Collection<? super Runnable> c, int maxElements) {
-    Collections.sort(task);
+    Collections.sort(task, comparator);
 
     int num = Math.min(task.size(), maxElements);
 
-    Iterator<Comparable> iter = task.iterator();
+    Iterator<TraceRunnable> iter = task.iterator();
     for (int i = 0; i < num; i++) {
       c.add((Runnable) iter.next());
       iter.remove();
@@ -117,9 +127,9 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
 
   @Override
   public synchronized Iterator<Runnable> iterator() {
-    Collections.sort(task);
+    Collections.sort(task, comparator);
 
-    final Iterator<Comparable> iter = task.iterator();
+    final Iterator<TraceRunnable> iter = task.iterator();
 
     return new Iterator<Runnable>() {
 

@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
-import org.htrace.Span;
+import org.apache.htrace.Span;
 
 import com.beust.jcommander.Parameter;
 

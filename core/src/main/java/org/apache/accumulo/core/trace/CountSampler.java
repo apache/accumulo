@@ -16,8 +16,12 @@
  */
 package org.apache.accumulo.core.trace;
 
-public class CountSampler extends org.htrace.impl.CountSampler {
+import org.apache.htrace.HTraceConfiguration;
+
+import java.util.Collections;
+
+public class CountSampler extends org.apache.htrace.impl.CountSampler {
   public CountSampler(long frequency) {
-    super(frequency);
+    super(HTraceConfiguration.fromMap(Collections.singletonMap(CountSampler.SAMPLER_FREQUENCY_CONF_KEY, Long.toString(frequency))));
   }
 }

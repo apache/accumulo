@@ -32,11 +32,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.Span;
+import org.apache.htrace.SpanReceiver;
+import org.apache.htrace.TimelineAnnotation;
 import org.apache.log4j.Logger;
-import org.htrace.HTraceConfiguration;
-import org.htrace.Span;
-import org.htrace.SpanReceiver;
-import org.htrace.TimelineAnnotation;
 
 /**
  * Deliver Span information periodically to a destination.
@@ -49,6 +49,8 @@ import org.htrace.TimelineAnnotation;
 public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanReceiver {
 
   private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
+
+  public static final String SEND_TIMER_MILLIS = "send.timer.millis";
 
   private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
 
@@ -64,11 +66,21 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   Timer timer = new Timer("SpanSender", true);
   protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
 
-  public AsyncSpanReceiver() {
-    this(1000);
-  }
+  // Visible for testing
+  AsyncSpanReceiver() {}
 
-  public AsyncSpanReceiver(long millis) {
+  public AsyncSpanReceiver(HTraceConfiguration conf) {
+    host = conf.get(DistributedTrace.TRACE_HOST_PROPERTY, host);
+    if (host == null) {
+      try {
+        host = InetAddress.getLocalHost().getCanonicalHostName().toString();
+      } catch (UnknownHostException e) {
+        host = "unknown";
+      }
+    }
+    service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
+
+    int millis = conf.getInt(SEND_TIMER_MILLIS, 1000);
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
@@ -156,19 +168,6 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         }
       }
     }
-  }
-
-  @Override
-  public void configure(HTraceConfiguration conf) {
-    host = conf.get(DistributedTrace.TRACE_HOST_PROPERTY, host);
-    if (host == null) {
-      try {
-        host = InetAddress.getLocalHost().getCanonicalHostName().toString();
-      } catch (UnknownHostException e) {
-        host = "unknown";
-      }
-    }
-    service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
   }
 
 }

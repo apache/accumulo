@@ -35,10 +35,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.log4j.Logger;
-import org.htrace.Sampler;
-import org.htrace.Trace;
-import org.htrace.TraceScope;
 
 import com.beust.jcommander.Parameter;
 

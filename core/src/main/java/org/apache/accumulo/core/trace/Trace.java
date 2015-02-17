@@ -19,10 +19,10 @@ package org.apache.accumulo.core.trace;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.trace.wrappers.TraceRunnable;
-import org.htrace.Sampler;
-import org.htrace.TraceInfo;
-import org.htrace.wrappers.TraceProxy;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.TraceInfo;
+import org.apache.htrace.wrappers.TraceProxy;
+import org.apache.htrace.wrappers.TraceRunnable;
 
 /**
  * Utility class for tracing within Accumulo. Not intended for client use!
@@ -40,17 +40,17 @@ public class Trace {
    * Start a trace span with a given description with the given sampler.
    */
   public static <T> Span on(String description, Sampler<T> sampler) {
-    return new Span(org.htrace.Trace.startSpan(description, sampler));
+    return new Span(org.apache.htrace.Trace.startSpan(description, sampler));
   }
 
   /**
    * Finish the current trace.
    */
   public static void off() {
-    org.htrace.Span span = org.htrace.Trace.currentSpan();
+    org.apache.htrace.Span span = org.apache.htrace.Trace.currentSpan();
     if (span != null) {
       span.stop();
-      org.htrace.Tracer.getInstance().continueSpan(null);
+      org.apache.htrace.Tracer.getInstance().continueSpan(null);
     }
   }
 
@@ -66,7 +66,7 @@ public class Trace {
    * Returns whether tracing is currently on.
    */
   public static boolean isTracing() {
-    return org.htrace.Trace.isTracing();
+    return org.apache.htrace.Trace.isTracing();
   }
 
   /**
@@ -76,21 +76,21 @@ public class Trace {
    */
   @Deprecated
   public static Span currentTrace() {
-    return new Span(org.htrace.Trace.currentSpan());
+    return new Span(org.apache.htrace.Trace.currentSpan());
   }
 
   /**
    * Get the trace id of the current span.
    */
   public static long currentTraceId() {
-    return org.htrace.Trace.currentSpan().getTraceId();
+    return org.apache.htrace.Trace.currentSpan().getTraceId();
   }
 
   /**
    * Start a new span with a given name, if already tracing.
    */
   public static Span start(String description) {
-    return new Span(org.htrace.Trace.startSpan(description));
+    return new Span(org.apache.htrace.Trace.startSpan(description));
   }
 
   /**
@@ -101,14 +101,14 @@ public class Trace {
       return Span.NULL_SPAN;
     }
     TraceInfo ti = new TraceInfo(info.traceId, info.parentId);
-    return new Span(org.htrace.Trace.startSpan(description, ti));
+    return new Span(org.apache.htrace.Trace.startSpan(description, ti));
   }
 
   /**
    * Add data to the current span.
    */
   public static void data(String k, String v) {
-    org.htrace.Span span = org.htrace.Trace.currentSpan();
+    org.apache.htrace.Span span = org.apache.htrace.Trace.currentSpan();
     if (span != null)
       span.addKVAnnotation(k.getBytes(UTF_8), v.getBytes(UTF_8));
   }
@@ -118,7 +118,7 @@ public class Trace {
    */
   public static Runnable wrap(Runnable runnable) {
     if (isTracing()) {
-      return new TraceRunnable(org.htrace.Trace.currentSpan(), runnable);
+      return new TraceRunnable(org.apache.htrace.Trace.currentSpan(), runnable);
     } else {
       return runnable;
     }

@@ -27,17 +27,17 @@ import java.util.Map.Entry;
  */
 @Deprecated
 public class Span extends org.apache.accumulo.core.trace.Span implements CloudtraceSpan {
-  public static final long ROOT_SPAN_ID = org.htrace.Span.ROOT_SPAN_ID;
+  public static final long ROOT_SPAN_ID = org.apache.htrace.Span.ROOT_SPAN_ID;
 
   public Span(org.apache.accumulo.core.trace.Span span) {
     super(span.getScope());
   }
 
-  public Span(org.htrace.TraceScope scope) {
+  public Span(org.apache.htrace.TraceScope scope) {
     super(scope);
   }
 
-  public Span(org.htrace.Span span) {
+  public Span(org.apache.htrace.Span span) {
     super(span);
   }
 

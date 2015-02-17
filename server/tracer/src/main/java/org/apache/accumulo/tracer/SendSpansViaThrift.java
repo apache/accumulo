@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Client;
+import org.apache.htrace.HTraceConfiguration;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -39,12 +40,11 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
 
   private static final String THRIFT = "thrift://";
 
-  public SendSpansViaThrift() {
-    super();
-  }
+  // Visible for testing
+  SendSpansViaThrift() {}
 
-  public SendSpansViaThrift(long millis) {
-    super(millis);
+  public SendSpansViaThrift(HTraceConfiguration conf) {
+    super(conf);
   }
 
   @Override

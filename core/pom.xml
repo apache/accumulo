@@ -96,16 +96,16 @@
       <artifactId>hadoop-client</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.htrace</groupId>
+      <artifactId>htrace-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.htrace</groupId>
-      <artifactId>htrace-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

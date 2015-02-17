@@ -16,29 +16,29 @@
  */
 package org.apache.accumulo.core.trace;
 
+import org.apache.htrace.NullScope;
+import org.apache.htrace.TimelineAnnotation;
+import org.apache.htrace.TraceScope;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
 import java.util.Map;
 
-import org.htrace.NullScope;
-import org.htrace.TimelineAnnotation;
-import org.htrace.TraceScope;
-
 /**
  * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent. Not recommended for client use.
  */
-public class Span implements org.htrace.Span {
+public class Span implements org.apache.htrace.Span {
   public static final Span NULL_SPAN = new Span(NullScope.INSTANCE);
   private TraceScope scope = null;
-  protected org.htrace.Span span = null;
+  protected org.apache.htrace.Span span = null;
 
   public Span(TraceScope scope) {
     this.scope = scope;
     this.span = scope.getSpan();
   }
 
-  public Span(org.htrace.Span span) {
+  public Span(org.apache.htrace.Span span) {
     this.span = span;
   }
 
@@ -46,7 +46,7 @@ public class Span implements org.htrace.Span {
     return scope;
   }
 
-  public org.htrace.Span getSpan() {
+  public org.apache.htrace.Span getSpan() {
     return span;
   }
 
@@ -138,6 +138,11 @@ public class Span implements org.htrace.Span {
   @Override
   public String getProcessId() {
     return span.getProcessId();
+  }
+
+  @Override
+  public String toJson() {
+    return span.toJson();
   }
 
   @Override

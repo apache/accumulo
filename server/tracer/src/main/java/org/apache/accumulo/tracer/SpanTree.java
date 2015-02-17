@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.htrace.Span;
+import org.apache.htrace.Span;
 
 public class SpanTree {
   final Map<Long,List<Long>> parentChildren = new HashMap<Long,List<Long>>();

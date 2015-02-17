@@ -38,6 +38,10 @@ import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.tracer.thrift.TestService;
 import org.apache.accumulo.tracer.thrift.TestService.Iface;
 import org.apache.accumulo.tracer.thrift.TestService.Processor;
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.SpanReceiver;
+import org.apache.htrace.wrappers.TraceProxy;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -45,10 +49,6 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.htrace.HTraceConfiguration;
-import org.htrace.Sampler;
-import org.htrace.SpanReceiver;
-import org.htrace.wrappers.TraceProxy;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,8 +81,12 @@ public class TracerTest {
   static class TestReceiver implements SpanReceiver {
     public Map<Long,List<SpanStruct>> traces = new HashMap<Long,List<SpanStruct>>();
 
+    public TestReceiver() {}
+
+    public TestReceiver(HTraceConfiguration conf) {}
+
     @Override
-    public void receiveSpan(org.htrace.Span s) {
+    public void receiveSpan(org.apache.htrace.Span s) {
       long traceId = s.getTraceId();
       SpanStruct span = new SpanStruct(traceId, s.getSpanId(), s.getParentId(), s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(),
           s.getKVAnnotations());
@@ -92,9 +96,6 @@ public class TracerTest {
     }
 
     @Override
-    public void configure(HTraceConfiguration conf) {}
-
-    @Override
     public void close() throws IOException {}
   }
 
@@ -102,7 +103,7 @@ public class TracerTest {
   @Test
   public void testTrace() throws Exception {
     TestReceiver tracer = new TestReceiver();
-    org.htrace.Trace.addReceiver(tracer);
+    org.apache.htrace.Trace.addReceiver(tracer);
 
     assertFalse(Trace.isTracing());
     Trace.start("nop").stop();
@@ -160,7 +161,7 @@ public class TracerTest {
   @Test
   public void testThrift() throws Exception {
     TestReceiver tracer = new TestReceiver();
-    org.htrace.Trace.addReceiver(tracer);
+    org.apache.htrace.Trace.addReceiver(tracer);
 
     ServerSocket socket = new ServerSocket(0);
     TServerSocket transport = new TServerSocket(socket);
