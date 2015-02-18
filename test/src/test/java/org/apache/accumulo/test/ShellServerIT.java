@@ -792,23 +792,29 @@ public class ShellServerIT extends SharedMiniClusterIT {
     int base = countFiles(tableId);
     assertEquals(0, base);
 
+    log.info("Adding 2 splits");
     ts.exec("addsplits row5 row7");
+
+    log.info("Writing 10 records");
     make10();
+
+    log.info("Flushing table");
     ts.exec("flush -w -t " + table);
-    // Might have some cruft here. Check a couple of times.
-    List<String> files = null;
-    boolean found = false;
-    for (int i = 0; i < 50 && !found; i++) {
+    log.info("Table flush completed");
+
+    // One of the tablets we're writing to might migrate inbetween writing data which would create a 2nd file for that tablet
+    // If we notice this, compact and then move on.
+    List<String> files = getFiles(tableId);
+    if (3 < files.size()) {
+      log.info("More than 3 files were found, compacting before proceeding");
+      ts.exec("compact -w -t " + table);
       files = getFiles(tableId);
-      if (3 == files.size()) {
-        found = true;
-      } else {
-        UtilWaitThread.sleep(300);
-      }
+      assertEquals("Expected to only find 3 files after compaction: " + files, 3, files.size());
     }
+
     assertNotNull(files);
     assertEquals("Found the following files: " + files, 3, files.size());
-    ts.exec("deleterows -t " + table + " -b row5 -e row7", true);
+    ts.exec("deleterows -t " + table + " -b row5 -e row7");
     assertEquals(2, countFiles(tableId));
     ts.exec("deletetable -f " + table);
   }
