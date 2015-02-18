@@ -44,6 +44,8 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -160,7 +162,17 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
-    PasswordToken token = new PasswordToken(password);
+    AuthenticationToken token;
+    if (null != context.getSaslParams()) {
+      try {
+        token = new KerberosToken();
+      } catch (IOException e) {
+        log.warn("Failed to create KerberosToken");
+        throw new ThriftSecurityException(e.getMessage(), SecurityErrorCode.DEFAULT_SECURITY_ERROR);
+      }
+    } else {
+      token = new PasswordToken(password);
+    }
     Credentials newUser = new Credentials(principal, token);
     security.createUser(credentials, newUser, new Authorizations());
   }

@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 /**
  * Defines a minimum required set of methods to run an Accumulo cluster.
@@ -76,4 +77,9 @@ public interface AccumuloCluster {
    * @return the {@link FileSystem} in use by this cluster
    */
   FileSystem getFileSystem() throws IOException;
+
+  /**
+   * @return A path on {@link FileSystem} this cluster is running on that can be used for temporary files
+   */
+  Path getTemporaryPath();
 }

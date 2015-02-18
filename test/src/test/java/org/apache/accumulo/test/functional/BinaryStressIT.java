@@ -95,7 +95,7 @@ public class BinaryStressIT extends AccumuloClusterIT {
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     BinaryIT.runTest(c, tableName);
     String id = c.tableOperations().tableIdMap().get(tableName);
-    Set<Text> tablets = new HashSet<Text>();
+    Set<Text> tablets = new HashSet<>();
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(Range.prefix(id));
     for (Entry<Key,Value> entry : s) {

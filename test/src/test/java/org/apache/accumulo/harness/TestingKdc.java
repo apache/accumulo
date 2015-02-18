@@ -16,16 +16,20 @@
  */
 package org.apache.accumulo.harness;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.hadoop.minikdc.MiniKdc;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Creates a {@link MiniKdc} for tests to use to exercise secure Accumulo
@@ -33,9 +37,11 @@ import com.google.common.base.Preconditions;
 public class TestingKdc {
   private static final Logger log = LoggerFactory.getLogger(TestingKdc.class);
 
+  public static final int NUM_USERS = 10;
+
   protected MiniKdc kdc = null;
-  protected File accumuloKeytab = null, clientKeytab = null;
-  protected String accumuloPrincipal = null, clientPrincipal = null;
+  protected ClusterUser accumuloServerUser = null, accumuloAdmin = null;
+  protected List<ClusterUser> clientPrincipals = null;
 
   public final String ORG_NAME = "EXAMPLE", ORG_DOMAIN = "COM";
 
@@ -44,21 +50,46 @@ public class TestingKdc {
   private boolean started = false;
 
   public TestingKdc() throws Exception {
+    this(computeKdcDir(), computeKeytabDir());
+  }
+
+  private static File computeKdcDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
 
-    // Create the directories: target/kerberos/{keytabs,minikdc}
-    File krbDir = new File(targetDir, "kerberos"), kdcDir = new File(krbDir, "minikdc");
-    keytabDir = new File(krbDir, "keytabs");
+    // Create the directories: target/kerberos/minikdc
+    File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");
 
-    keytabDir.mkdirs();
     kdcDir.mkdirs();
 
-    hostname = InetAddress.getLocalHost().getCanonicalHostName();
+    return kdcDir;
+  }
+
+  private static File computeKeytabDir() {
+    File targetDir = new File(System.getProperty("user.dir"), "target");
+    Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
+
+    // Create the directories: target/kerberos/keytabs
+    File keytabDir = new File(new File(targetDir, "kerberos"), "keytabs");
+
+    keytabDir.mkdirs();
+
+    return keytabDir;
+  }
+
+  public TestingKdc(File kdcDir, File keytabDir) throws Exception {
+    checkNotNull(kdcDir, "KDC directory was null");
+    checkNotNull(keytabDir, "Keytab directory was null");
+
+    this.keytabDir = keytabDir;
+    this.hostname = InetAddress.getLocalHost().getCanonicalHostName();
+
+    log.debug("Starting MiniKdc in {} with keytabs in {}", kdcDir, keytabDir);
 
     Properties kdcConf = MiniKdc.createConf();
     kdcConf.setProperty(MiniKdc.ORG_NAME, ORG_NAME);
     kdcConf.setProperty(MiniKdc.ORG_DOMAIN, ORG_DOMAIN);
+    // kdcConf.setProperty(MiniKdc.DEBUG, "true");
     kdc = new MiniKdc(kdcConf, kdcDir);
   }
 
@@ -66,28 +97,45 @@ public class TestingKdc {
    * Starts the KDC and creates the principals and their keytabs
    */
   public synchronized void start() throws Exception {
-    Preconditions.checkArgument(!started, "KDC was already started");
+    checkArgument(!started, "KDC was already started");
     kdc.start();
+    Thread.sleep(1000);
 
-    accumuloKeytab = new File(keytabDir, "accumulo.keytab");
-    clientKeytab = new File(keytabDir, "client.keytab");
-
-    accumuloPrincipal = String.format("accumulo/%s", hostname);
-    clientPrincipal = "client";
+    // Create the identity for accumulo servers
+    File accumuloKeytab = new File(keytabDir, "accumulo.keytab");
+    String accumuloPrincipal = String.format("accumulo/%s", hostname);
 
     log.info("Creating Kerberos principal {} with keytab {}", accumuloPrincipal, accumuloKeytab);
     kdc.createPrincipal(accumuloKeytab, accumuloPrincipal);
-    log.info("Creating Kerberos principal {} with keytab {}", clientPrincipal, clientKeytab);
-    kdc.createPrincipal(clientKeytab, clientPrincipal);
 
-    accumuloPrincipal = qualifyUser(accumuloPrincipal);
-    clientPrincipal = qualifyUser(clientPrincipal);
+    accumuloServerUser = new ClusterUser(qualifyUser(accumuloPrincipal), accumuloKeytab);
+
+    // Create the identity for the "root" user
+    String rootPrincipal = "root";
+    File rootKeytab = new File(keytabDir, rootPrincipal + ".keytab");
+
+    log.info("Creating Kerberos principal {} with keytab {}", rootPrincipal, rootKeytab);
+    kdc.createPrincipal(rootKeytab, rootPrincipal);
+
+    accumuloAdmin = new ClusterUser(qualifyUser(rootPrincipal), rootKeytab);
+
+    clientPrincipals = new ArrayList<>(NUM_USERS);
+    // Create a number of unprivileged users for tests to use
+    for (int i = 1; i <= NUM_USERS; i++) {
+      String clientPrincipal = "client" + i;
+      File clientKeytab = new File(keytabDir, clientPrincipal + ".keytab");
+
+      log.info("Creating Kerberos principal {} with keytab {}", clientPrincipal, clientKeytab);
+      kdc.createPrincipal(clientKeytab, clientPrincipal);
+
+      clientPrincipals.add(new ClusterUser(qualifyUser(clientPrincipal), clientKeytab));
+    }
 
     started = true;
   }
 
   public synchronized void stop() throws Exception {
-    Preconditions.checkArgument(started, "KDC is not started");
+    checkArgument(started, "KDC is not started");
     kdc.stop();
     started = false;
   }
@@ -100,42 +148,38 @@ public class TestingKdc {
   }
 
   /**
-   * A Kerberos keytab for the Accumulo server processes
+   * A {@link ClusterUser} for Accumulo server processes to use
    */
-  public File getAccumuloKeytab() {
-    Preconditions.checkArgument(started, "Accumulo keytab is not initialized, is the KDC started?");
-    return accumuloKeytab;
+  public ClusterUser getAccumuloServerUser() {
+    checkArgument(started, "The KDC is not started");
+    return accumuloServerUser;
   }
 
   /**
-   * The corresponding principal for the Accumulo service keytab
+   * A {@link ClusterUser} which is the Accumulo "root" user
    */
-  public String getAccumuloPrincipal() {
-    Preconditions.checkArgument(started, "Accumulo principal is not initialized, is the KDC started?");
-    return accumuloPrincipal;
+  public ClusterUser getRootUser() {
+    checkArgument(started, "The KDC is not started");
+    return accumuloAdmin;
   }
 
   /**
-   * A Kerberos keytab for client use
+   * The {@link ClusterUser} corresponding to the given offset. Represents an unprivileged user.
+   *
+   * @param offset
+   *          The offset to fetch credentials for, valid through {@link #NUM_USERS}
    */
-  public File getClientKeytab() {
-    Preconditions.checkArgument(started, "Client keytab is not initialized, is the KDC started?");
-    return clientKeytab;
-  }
-
-  /**
-   * The corresponding principal for the client keytab
-   */
-  public String getClientPrincipal() {
-    Preconditions.checkArgument(started, "Client principal is not initialized, is the KDC started?");
-    return clientPrincipal;
+  public ClusterUser getClientPrincipal(int offset) {
+    checkArgument(started, "Client principal is not initialized, is the KDC started?");
+    checkArgument(offset >= 0 && offset < NUM_USERS, "Offset is invalid, must be non-negative and less than " + NUM_USERS);
+    return clientPrincipals.get(offset);
   }
 
   /**
    * @see MiniKdc#createPrincipal(File, String...)
    */
   public void createPrincipal(File keytabFile, String... principals) throws Exception {
-    Preconditions.checkArgument(started, "KDC is not started");
+    checkArgument(started, "KDC is not started");
     kdc.createPrincipal(keytabFile, principals);
   }
 

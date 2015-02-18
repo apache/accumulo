@@ -39,6 +39,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -56,7 +57,8 @@ public class CleanWalIT extends AccumuloClusterIT {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
     cfg.setNumTservers(1);
-    cfg.useMiniDFS(true);
+    // use raw local file system so walogs sync and flush will work
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Before

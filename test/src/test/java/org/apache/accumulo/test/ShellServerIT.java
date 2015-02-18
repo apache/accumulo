@@ -22,7 +22,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,12 +42,17 @@ import java.util.Random;
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -61,6 +68,8 @@ import org.apache.accumulo.test.UserCompactionStrategyIT.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -72,6 +81,7 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -134,14 +144,25 @@ public class ShellServerIT extends SharedMiniClusterIT {
     public StringInputStream input;
     public Shell shell;
 
-    TestShell(String rootPass, String instanceName, String zookeepers, String configFile) throws IOException {
+    TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile) throws IOException {
+      ClientConfiguration clientConf;
+      try {
+        clientConf = new ClientConfiguration(new PropertiesConfiguration(configFile));
+      } catch (ConfigurationException e) {
+        throw new IOException(e);
+      }
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
       PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
       shell = new Shell(new ConsoleReader(input, output), pw);
       shell.setLogErrorsToConsole();
-      shell.config("-u", "root", "-p", rootPass, "-z", instanceName, zookeepers, "--config-file", configFile);
+      if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        // Pull the kerberos principal out when we're using SASL
+        shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
+      } else {
+        shell.config("-u", user, "-p", rootPass, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
+      }
       exec("quit", true);
       shell.start();
       shell.setExit(false);
@@ -235,7 +256,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
 
     traceProcess = getCluster().exec(TraceServer.class);
 
-    Connector conn = getCluster().getConnector("root", getToken());
+    Connector conn = getCluster().getConnector(getPrincipal(), getToken());
     TableOperations tops = conn.tableOperations();
 
     // give the tracer some time to start
@@ -246,8 +267,8 @@ public class ShellServerIT extends SharedMiniClusterIT {
 
   @Before
   public void setupShell() throws Exception {
-    ts = new TestShell(getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(), getCluster().getConfig()
-        .getClientConfFile().getAbsolutePath());
+    ts = new TestShell(getPrincipal(), getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(), getCluster()
+        .getConfig().getClientConfFile());
   }
 
   @AfterClass
@@ -290,11 +311,41 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("addsplits row5", true);
     ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
     ts.exec("offline " + table, true);
-    String export = "file://" + new File(rootPath, "ShellServerIT.export").toString();
-    ts.exec("exporttable -t " + table + " " + export, true);
+    File exportDir = new File(rootPath, "ShellServerIT.export");
+    String exportUri = "file://" + exportDir.toString();
+    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp").toString();
+    ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp();
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
-    cp.run(new String[] {"-f", export + "/distcp.txt", import_});
+    if (getCluster().getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it ourselves by hand.
+      FileSystem fs = getCluster().getFileSystem();
+      FileSystem localFs = FileSystem.getLocal(new Configuration(false));
+
+      // Path on local fs to cp into
+      Path localTmpPath = new Path(localTmp);
+      localFs.mkdirs(localTmpPath);
+
+      // Path in remote fs to importtable from
+      Path importDir = new Path(import_);
+      fs.mkdirs(importDir);
+
+      // Implement a poor-man's DistCp
+      try (BufferedReader reader = new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
+        for (String line; (line = reader.readLine()) != null;) {
+          Path exportedFile = new Path(line);
+          // There isn't a cp on FileSystem??
+          log.info("Copying " + line + " to " + localTmpPath);
+          fs.copyToLocalFile(exportedFile, localTmpPath);
+          Path tmpFile = new Path(localTmpPath, exportedFile.getName());
+          log.info("Moving " + tmpFile + " to the import directory " + importDir);
+          fs.moveFromLocalFile(tmpFile, importDir);
+        }
+      }
+    } else {
+      String[] distCpArgs = new String[] {"-f", exportUri + "/distcp.txt", import_};
+      assertEquals("Failed to run distcp: " + Arrays.toString(distCpArgs), 0, cp.run(distCpArgs));
+    }
     ts.exec("importtable " + table2 + " " + import_, true);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
     ts.exec("getsplits -t " + table2, true, "row5", true);
@@ -403,9 +454,12 @@ public class ShellServerIT extends SharedMiniClusterIT {
   @Test
   public void user() throws Exception {
     final String table = name.getMethodName();
+    final boolean kerberosEnabled = getToken() instanceof KerberosToken;
 
     // createuser, deleteuser, user, users, droptable, grant, revoke
-    ts.input.set("secret\nsecret\n");
+    if (!kerberosEnabled) {
+      ts.input.set("secret\nsecret\n");
+    }
     ts.exec("createuser xyzzy", true);
     ts.exec("users", true, "xyzzy", true);
     String perms = ts.exec("userpermissions -u xyzzy", true);
@@ -413,19 +467,21 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("grant -u xyzzy -s System.CREATE_TABLE", true);
     perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
-    ts.exec("grant -u root -t " + MetadataTable.NAME + " Table.WRITE", true);
-    ts.exec("grant -u root -t " + MetadataTable.NAME + " Table.GOOFY", false);
-    ts.exec("grant -u root -s foo", false);
+    ts.exec("grant -u " + getPrincipal() + " -t " + MetadataTable.NAME + " Table.WRITE", true);
+    ts.exec("grant -u " + getPrincipal() + " -t " + MetadataTable.NAME + " Table.GOOFY", false);
+    ts.exec("grant -u " + getPrincipal() + " -s foo", false);
     ts.exec("grant -u xyzzy -t " + MetadataTable.NAME + " foo", false);
-    ts.input.set("secret\nsecret\n");
-    ts.exec("user xyzzy", true);
-    ts.exec("createtable " + table, true, "xyzzy@", true);
-    ts.exec("insert row1 cf cq 1", true);
-    ts.exec("scan", true, "row1", true);
-    ts.exec("droptable -f " + table, true);
-    ts.exec("deleteuser xyzzy", false, "delete yourself", true);
-    ts.input.set(getRootPassword() + "\n" + getRootPassword() + "\n");
-    ts.exec("user root", true);
+    if (!kerberosEnabled) {
+      ts.input.set("secret\nsecret\n");
+      ts.exec("user xyzzy", true);
+      ts.exec("createtable " + table, true, "xyzzy@", true);
+      ts.exec("insert row1 cf cq 1", true);
+      ts.exec("scan", true, "row1", true);
+      ts.exec("droptable -f " + table, true);
+      ts.input.set(getRootPassword() + "\n" + getRootPassword() + "\n");
+      ts.exec("user root", true);
+    }
+    ts.exec("deleteuser " + getPrincipal(), false, "delete yourself", true);
     ts.exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     ts.exec("revoke -u xyzzy -s System.GOOFY", false);
     ts.exec("revoke -u xyzzy -s foo", false);
@@ -1313,6 +1369,8 @@ public class ShellServerIT extends SharedMiniClusterIT {
 
   @Test
   public void badLogin() throws Exception {
+    // Can't run with Kerberos, can't switch identity in shell presently
+    Assume.assumeTrue(getToken() instanceof PasswordToken);
     ts.input.set(getRootPassword() + "\n");
     String err = ts.exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
@@ -1415,17 +1473,24 @@ public class ShellServerIT extends SharedMiniClusterIT {
 
   @Test
   public void whoami() throws Exception {
-    assertTrue(ts.exec("whoami", true).contains("root"));
-    ts.input.set("secret\nsecret\n");
+    AuthenticationToken token = getToken();
+    assertTrue(ts.exec("whoami", true).contains(getPrincipal()));
+    // Unnecessary with Kerberos enabled, won't prompt for a password
+    if (token instanceof PasswordToken) {
+      ts.input.set("secret\nsecret\n");
+    }
     ts.exec("createuser test_user");
     ts.exec("setauths -u test_user -s 12,3,4");
     String auths = ts.exec("getauths -u test_user");
     assertTrue(auths.contains("3") && auths.contains("12") && auths.contains("4"));
-    ts.input.set("secret\n");
-    ts.exec("user test_user", true);
-    assertTrue(ts.exec("whoami", true).contains("test_user"));
-    ts.input.set(getRootPassword() + "\n");
-    ts.exec("user root", true);
+    // No support to switch users within the shell with Kerberos
+    if (token instanceof PasswordToken) {
+      ts.input.set("secret\n");
+      ts.exec("user test_user", true);
+      assertTrue(ts.exec("whoami", true).contains("test_user"));
+      ts.input.set(getRootPassword() + "\n");
+      ts.exec("user root", true);
+    }
   }
 
   private void make10() throws IOException {

@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -81,9 +82,10 @@ public class StatusCombinerMacIT extends SharedMiniClusterIT {
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
+    ClusterUser user = getAdminUser();
 
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME, TablePermission.WRITE);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     long createTime = System.currentTimeMillis();
     try {

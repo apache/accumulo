@@ -19,7 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -46,7 +46,9 @@ public class DeleteEverythingIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+    cfg.setSiteConfig(siteConfig);
   }
 
   @Override

@@ -219,6 +219,8 @@ public class SecurityOperation {
         if (!authenticator.userExists(toCreds.getPrincipal())) {
           createUser(credentials, toCreds, Authorizations.EMPTY);
         }
+        // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the other user,
+        // we only have our own Kerberos credentials.
       }
 
       return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());

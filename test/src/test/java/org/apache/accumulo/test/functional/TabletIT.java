@@ -19,7 +19,6 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
@@ -46,7 +45,7 @@ public class TabletIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "128M");
     cfg.setDefaultMemory(256, MemoryUnit.MEGABYTE);
     cfg.setSiteConfig(siteConfig);

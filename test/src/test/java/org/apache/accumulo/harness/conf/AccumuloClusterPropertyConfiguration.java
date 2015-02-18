@@ -44,12 +44,14 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   public static final String ACCUMULO_MINI_PREFIX = "accumulo.it.cluster.mini.";
   public static final String ACCUMULO_STANDALONE_PREFIX = "accumulo.it.cluster.standalone.";
 
+  public static final String ACCUMULO_CLUSTER_CLIENT_CONF_KEY = "accumulo.it.cluster.clientconf";
+
   protected ClusterType clusterType;
 
   public static AccumuloClusterPropertyConfiguration get() {
     Properties systemProperties = System.getProperties();
 
-    String clusterTypeValue = null;
+    String clusterTypeValue = null, clientConf = null;
     String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     if (null != propertyFile) {
@@ -78,6 +80,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           }
 
           clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
+          clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
       } else {
         log.debug("Property file ({}) is not a readable file", propertyFile);
@@ -88,6 +91,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     if (null == clusterTypeValue) {
       clusterTypeValue = systemProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
+    }
+
+    if (null == clientConf) {
+      clientConf = systemProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
     }
 
     ClusterType type;
@@ -101,9 +108,17 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     switch (type) {
       case MINI:
+        // we'll let no client conf pass through and expect that the caller will set it after MAC is started
         return new AccumuloMiniClusterConfiguration();
       case STANDALONE:
-        return new StandaloneAccumuloClusterConfiguration();
+        if (null == clientConf) {
+          throw new RuntimeException("Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
+        }
+        File clientConfFile = new File(clientConf);
+        if (!clientConfFile.exists() || !clientConfFile.isFile()) {
+          throw new RuntimeException("Client configuration should be a normal file: " + clientConfFile);
+        }
+        return new StandaloneAccumuloClusterConfiguration(clientConfFile);
       default:
         throw new RuntimeException("Clusters other than MiniAccumuloCluster are not yet implemented");
     }

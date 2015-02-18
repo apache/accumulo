@@ -39,6 +39,8 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -108,11 +110,13 @@ public class ExamplesIT extends AccumuloClusterIT {
   String keepers;
   String user;
   String passwd;
+  String keytab;
   BatchWriter bw;
   IteratorSetting is;
   String dir;
   FileSystem fs;
   Authorizations origAuths;
+  boolean saslEnabled;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopConf) {
@@ -123,13 +127,21 @@ public class ExamplesIT extends AccumuloClusterIT {
   @Before
   public void getClusterInfo() throws Exception {
     c = getConnector();
-    user = getPrincipal();
-    Assume.assumeTrue(getToken() instanceof PasswordToken);
-    passwd = new String(((PasswordToken) getToken()).getPassword(), UTF_8);
+    user = getAdminPrincipal();
+    AuthenticationToken token = getAdminToken();
+    if (token instanceof KerberosToken) {
+      keytab = getAdminUser().getKeytab().getAbsolutePath();
+      saslEnabled = true;
+    } else if (token instanceof PasswordToken) {
+      passwd = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);
+      saslEnabled = false;
+    } else {
+      Assert.fail("Unknown token type: " + token);
+    }
     fs = getCluster().getFileSystem();
     instance = c.getInstance().getInstanceName();
     keepers = c.getInstance().getZooKeepers();
-    dir = getUsableDir();
+    dir = new Path(cluster.getTemporaryPath(), getClass().getName()).toString();
 
     origAuths = c.securityOperations().getUserAuthorizations(user);
     c.securityOperations().changeUserAuthorizations(user, new Authorizations(auths.split(",")));
@@ -138,7 +150,7 @@ public class ExamplesIT extends AccumuloClusterIT {
   @After
   public void resetAuths() throws Exception {
     if (null != origAuths) {
-      getConnector().securityOperations().changeUserAuthorizations(getPrincipal(), origAuths);
+      getConnector().securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
     }
   }
 
@@ -156,16 +168,25 @@ public class ExamplesIT extends AccumuloClusterIT {
       while (!c.tableOperations().exists("trace"))
         UtilWaitThread.sleep(500);
     }
-    Entry<Integer,String> pair = cluster.getClusterControl().execWithStdout(TracingExample.class,
-        new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c"});
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-C", "-D", "-c"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c"};
+    }
+    Entry<Integer,String> pair = cluster.getClusterControl().execWithStdout(TracingExample.class, args);
     Assert.assertEquals("Expected return code of zero. STDOUT=" + pair.getValue(), 0, pair.getKey().intValue());
     String result = pair.getValue();
     Pattern pattern = Pattern.compile("TraceID: ([0-9a-f]+)");
     Matcher matcher = pattern.matcher(result);
     int count = 0;
     while (matcher.find()) {
-      pair = cluster.getClusterControl().execWithStdout(TraceDumpExample.class,
-          new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--traceid", matcher.group(1)});
+      if (saslEnabled) {
+        args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--traceid", matcher.group(1)};
+      } else {
+        args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--traceid", matcher.group(1)};
+      }
+      pair = cluster.getClusterControl().execWithStdout(TraceDumpExample.class, args);
       count++;
     }
     assertTrue(count > 0);
@@ -177,7 +198,6 @@ public class ExamplesIT extends AccumuloClusterIT {
 
   @Test
   public void testClasspath() throws Exception {
-    // Process p = cluster.exec(Main.class, Collections.singletonList(MapReduceIT.hadoopTmpDirArg), "classpath");
     Entry<Integer,String> entry = getCluster().getClusterControl().execWithStdout(Main.class, new String[] {"classpath"});
     assertEquals(0, entry.getKey().intValue());
     String result = entry.getValue();
@@ -198,13 +218,28 @@ public class ExamplesIT extends AccumuloClusterIT {
   public void testDirList() throws Exception {
     String[] names = getUniqueNames(3);
     String dirTable = names[0], indexTable = names[1], dataTable = names[2];
-    Entry<Integer,String> entry = getClusterControl().execWithStdout(
-        Ingest.class,
-        new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable", dataTable,
-            "--vis", visibility, "--chunkSize", Integer.toString(10000), getUsableDir()});
+    Path scratch = new Path(getUsableDir(), getClass().getName());
+    cluster.getFileSystem().delete(scratch, true);
+    cluster.getFileSystem().mkdirs(scratch);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
+          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), scratch.toString()};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
+          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), scratch.toString()};
+    }
+    Entry<Integer,String> entry = getClusterControl().execWithStdout(Ingest.class, args);
     assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0, entry.getKey().intValue());
-    entry = getClusterControl().execWithStdout(QueryUtil.class,
-        new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path", "accumulo-site.xml"});
+
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "--keytab", keytab, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path",
+          "accumulo-site.xml"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path",
+          "accumulo-site.xml"};
+    }
+    entry = getClusterControl().execWithStdout(QueryUtil.class, args);
     if (ClusterType.MINI == getClusterType()) {
       MiniAccumuloClusterImpl impl = (MiniAccumuloClusterImpl) cluster;
       for (LogWriter writer : impl.getLogWriters()) {
@@ -275,21 +310,38 @@ public class ExamplesIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    goodExec(RandomBatchWriter.class, "--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "100000", "--min", "0", "--max",
-        "1000000000", "--size", "50", "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--num", "100000", "--min", "0", "--max",
+          "1000000000", "--size", "50", "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName};
+    } else {
+      args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "100000", "--min", "0", "--max", "1000000000",
+          "--size", "50", "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName};
+    }
+    goodExec(RandomBatchWriter.class, args);
     c.tableOperations().flush(tableName, null, null, true);
     long diff = 0, diff2 = 0;
     // try the speed test a couple times in case the system is loaded with other tests
     for (int i = 0; i < 2; i++) {
       long now = System.currentTimeMillis();
-      goodExec(RandomBatchScanner.class, "--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "10000", "--min", "0", "--max",
-          "1000000000", "--size", "50", "--scanThreads", "4", "-t", tableName);
+      if (saslEnabled) {
+        args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--num", "10000", "--min", "0", "--max",
+            "1000000000", "--size", "50", "--scanThreads", "4", "-t", tableName};
+      } else {
+        args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "10000", "--min", "0", "--max", "1000000000",
+            "--size", "50", "--scanThreads", "4", "-t", tableName};
+      }
+      goodExec(RandomBatchScanner.class, args);
       diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
-      int retCode = getClusterControl().exec(
-          RandomBatchScanner.class,
-          new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "10000", "--min", "0", "--max", "1000000000",
-              "--size", "50", "--scanThreads", "4", "-t", tableName});
+      if (saslEnabled) {
+        args = new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--num", "10000", "--min", "0", "--max",
+            "1000000000", "--size", "50", "--scanThreads", "4", "-t", tableName};
+      } else {
+        args = new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "10000", "--min", "0", "--max", "1000000000",
+            "--size", "50", "--scanThreads", "4", "-t", tableName};
+      }
+      int retCode = getClusterControl().exec(RandomBatchScanner.class, args);
       assertEquals(1, retCode);
       diff2 = System.currentTimeMillis() - now;
       if (diff2 < diff)
@@ -317,11 +369,25 @@ public class ExamplesIT extends AccumuloClusterIT {
         thisFile = true;
     }
     assertTrue(thisFile);
+
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", user, "--keytab", keytab};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", getAdminPrincipal(), "-p", passwd};
+    }
     // create a reverse index
-    goodExec(Reverse.class, "-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", getPrincipal(), "-p", passwd);
+    goodExec(Reverse.class, args);
+
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", user, "--keytab", keytab, "--terms", "5",
+          "--count", "1000"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", user, "-p", passwd, "--terms", "5", "--count",
+          "1000"};
+    }
     // run some queries
-    goodExec(ContinuousQuery.class, "-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", "root", "-p", passwd, "--terms", "5",
-        "--count", "1000");
+    goodExec(ContinuousQuery.class, args);
   }
 
   @Test
@@ -333,6 +399,11 @@ public class ExamplesIT extends AccumuloClusterIT {
     opts.rows = 1;
     opts.cols = 1000;
     opts.setTableName(tableName);
+    if (saslEnabled) {
+      opts.updateKerberosCredentials(cluster.getClientConfig());
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+    }
     try {
       TestIngest.ingest(c, opts, bwOpts);
     } catch (MutationsRejectedException ex) {
@@ -342,6 +413,8 @@ public class ExamplesIT extends AccumuloClusterIT {
 
   @Test
   public void testBulkIngest() throws Exception {
+    // TODO Figure out a way to run M/R with Kerberos
+    Assume.assumeTrue(getAdminToken() instanceof PasswordToken);
     String tableName = getUniqueNames(1)[0];
     FileSystem fs = getFileSystem();
     Path p = new Path(dir, "tmp");
@@ -349,32 +422,70 @@ public class ExamplesIT extends AccumuloClusterIT {
       fs.delete(p, true);
     }
     goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data");
-    goodExec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName);
-    goodExec(BulkIngestExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--inputDir", dir + "/tmp/input",
-        "--workDir", dir + "/tmp");
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName};
+    }
+    goodExec(SetupTable.class, args);
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName, "--inputDir", dir + "/tmp/input", "--workDir",
+          dir + "/tmp"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--inputDir", dir + "/tmp/input", "--workDir",
+          dir + "/tmp"};
+    }
+    goodExec(BulkIngestExample.class, args);
   }
 
   @Test
   public void testTeraSortAndRead() throws Exception {
+    // TODO Figure out a way to run M/R with Kerberos
+    Assume.assumeTrue(getAdminToken() instanceof PasswordToken);
     String tableName = getUniqueNames(1)[0];
-    goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z",
-        keepers, "-u", user, "-p", passwd, "--splits", "4");
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z", keepers,
+          "-u", user, "--keytab", keytab, "--splits", "4"};
+    } else {
+      args = new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z", keepers,
+          "-u", user, "-p", passwd, "--splits", "4"};
+    }
+    goodExec(TeraSortIngest.class, args);
     Path output = new Path(dir, "tmp/nines");
     if (fs.exists(output)) {
       fs.delete(output, true);
     }
-    goodExec(RegexExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--rowRegex", ".*999.*", "--output",
-        output.toString());
-    goodExec(RowHash.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--column", "c:");
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--rowRegex", ".*999.*", "--output",
+          output.toString()};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--rowRegex", ".*999.*", "--output", output.toString()};
+    }
+    goodExec(RegexExample.class, args);
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--column", "c:"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--column", "c:"};
+    }
+    goodExec(RowHash.class, args);
     output = new Path(dir, "tmp/tableFile");
     if (fs.exists(output)) {
       fs.delete(output, true);
     }
-    goodExec(TableToFile.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--output", output.toString());
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--output", output.toString()};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--output", output.toString()};
+    }
+    goodExec(TableToFile.class, args);
   }
 
   @Test
   public void testWordCount() throws Exception {
+    // TODO Figure out a way to run M/R with Kerberos
+    Assume.assumeTrue(getAdminToken() instanceof PasswordToken);
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     is = new IteratorSetting(10, SummingCombiner.class);
@@ -382,47 +493,94 @@ public class ExamplesIT extends AccumuloClusterIT {
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(tableName, is);
     fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README.md"), new Path(dir + "/tmp/wc/README.md"));
-    goodExec(WordCount.class, "-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-u", user, "--keytab", keytab, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName};
+    } else {
+      args = new String[] {"-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName};
+    }
+    goodExec(WordCount.class, args);
   }
 
   @Test
   public void testInsertWithBatchWriterAndReadData() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    goodExec(InsertWithBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName);
-    goodExec(ReadData.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[]{"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName};
+    }
+    goodExec(InsertWithBatchWriter.class, args);
+    goodExec(ReadData.class, args);
   }
 
   @Test
   public void testIsolatedScansWithInterference() throws Exception {
-    goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", getUniqueNames(1)[0], "--iterations", "100000",
-        "--isolated");
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", getUniqueNames(1)[0], "--iterations", "100000", "--isolated"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", getUniqueNames(1)[0], "--iterations", "100000", "--isolated"};
+    }
+    goodExec(InterferenceTest.class, args);
   }
 
   @Test
   public void testScansWithInterference() throws Exception {
-    goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", getUniqueNames(1)[0], "--iterations", "100000");
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", getUniqueNames(1)[0], "--iterations", "100000"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", getUniqueNames(1)[0], "--iterations", "100000"};
+    }
+    goodExec(InterferenceTest.class, args);
   }
 
   @Test
   public void testRowOperations() throws Exception {
-    goodExec(RowOperations.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd};
+    }
+    goodExec(RowOperations.class, args);
   }
 
   @Test
   public void testBatchWriter() throws Exception {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    goodExec(SequentialBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--start", "0", "--num", "100000",
-        "--size", "50", "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--start", "0", "--num", "100000", "--size", "50",
+          "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--start", "0", "--num", "100000", "--size", "50",
+          "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+    }
+    goodExec(SequentialBatchWriter.class, args);
 
   }
 
   @Test
   public void testReadWriteAndDelete() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    goodExec(ReadWriteExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", tableName, "--createtable", "-c",
-        "--debug");
-    goodExec(ReadWriteExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", tableName, "-d", "--debug");
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--auths", auths, "--table", tableName, "--createtable", "-c",
+          "--debug"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", tableName, "--createtable", "-c", "--debug"};
+    }
+    goodExec(ReadWriteExample.class, args);
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--auths", auths, "--table", tableName, "-d", "--debug"};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", tableName, "-d", "--debug"};
+    }
+    goodExec(ReadWriteExample.class, args);
 
   }
 
@@ -430,11 +588,31 @@ public class ExamplesIT extends AccumuloClusterIT {
   public void testRandomBatchesAndFlush() throws Exception {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    goodExec(RandomBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "100000", "--min", "0", "--max",
-        "100000", "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility);
-    goodExec(RandomBatchScanner.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "10000", "--min", "0", "--max",
-        "100000", "--size", "100", "--scanThreads", "4", "--auths", auths);
-    goodExec(Flush.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName);
+    String[] args;
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName, "--num", "100000", "--min", "0", "--max",
+          "100000", "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "100000", "--min", "0", "--max", "100000",
+          "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+    }
+    goodExec(RandomBatchWriter.class, args);
+
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName, "--num", "10000", "--min", "0", "--max",
+          "100000", "--size", "100", "--scanThreads", "4", "--auths", auths};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "10000", "--min", "0", "--max", "100000",
+          "--size", "100", "--scanThreads", "4", "--auths", auths};
+    }
+    goodExec(RandomBatchScanner.class, args);
+
+    if (saslEnabled) {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName};
+    } else {
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName};
+    }
+    goodExec(Flush.class, args);
   }
 
   private void goodExec(Class<?> theClass, String... args) throws InterruptedException, IOException {

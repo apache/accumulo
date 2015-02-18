@@ -17,11 +17,17 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
@@ -43,8 +49,13 @@ public class DeleteIT extends AccumuloClusterIT {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    PasswordToken token = (PasswordToken) getToken();
-    deleteTest(c, getCluster(), new String(token.getPassword(), Charsets.UTF_8), tableName);
+    AuthenticationToken token = getAdminToken();
+    if (token instanceof KerberosToken) {
+      deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName, getAdminUser().getKeytab().getAbsolutePath());
+    } else if (token instanceof PasswordToken) {
+      PasswordToken passwdToken = (PasswordToken) token;
+      deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), Charsets.UTF_8), tableName, null);
+    }
     try {
       getCluster().getClusterControl().adminStopAll();
     } finally {
@@ -52,7 +63,7 @@ public class DeleteIT extends AccumuloClusterIT {
     }
   }
 
-  public static void deleteTest(Connector c, AccumuloCluster cluster, String password, String tableName) throws Exception {
+  public static void deleteTest(Connector c, AccumuloCluster cluster, String user, String password, String tableName, String keytab) throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
     vopts.setTableName(tableName);
@@ -60,12 +71,38 @@ public class DeleteIT extends AccumuloClusterIT {
     vopts.rows = opts.rows = 1000;
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
+
+    if (null != password) {
+      assertNull("Given password, expected null keytab", keytab);
+      Password passwd = new Password(password);
+      opts.setPassword(passwd);
+      opts.setPrincipal(user);
+      vopts.setPassword(passwd);
+      vopts.setPrincipal(user);
+    } else if (null != keytab) {
+      assertNull("Given keytab, expect null password", password);
+      ClientConfiguration clientConfig = cluster.getClientConfig();
+      opts.updateKerberosCredentials(clientConfig);
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      fail("Expected one of password or keytab");
+    }
+
     BatchWriterOpts BWOPTS = new BatchWriterOpts();
     TestIngest.ingest(c, opts, BWOPTS);
-    assertEquals(
-        0,
-        cluster.getClusterControl().exec(TestRandomDeletes.class,
-            new String[] {"-u", "root", "-p", password, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName}));
+
+    String[] args = null;
+    if (null != password) {
+      assertNull("Given password, expected null keytab", keytab);
+      args = new String[] {"-u", user, "-p", password, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName};
+    } else if (null != keytab) {
+      assertNull("Given keytab, expect null password", password);
+      args = new String[] {"-u", user, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName, "--keytab", keytab};
+    } else {
+      fail("Expected one of password or keytab");
+    }
+
+    assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class, args));
     TestIngest.ingest(c, opts, BWOPTS);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }

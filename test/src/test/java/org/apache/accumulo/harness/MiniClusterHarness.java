@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -55,7 +56,7 @@ public class MiniClusterHarness {
       USE_CRED_PROVIDER_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useCredProviderForIT",
       USE_KERBEROS_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useKrbForIT", TRUE = Boolean.toString(true);
 
-  // TODO These are defined in MiniKdc >= 2.6.0
+  // TODO These are defined in MiniKdc >= 2.6.0. Can be removed when minimum Hadoop dependency is increased to that.
   public static final String JAVA_SECURITY_KRB5_CONF = "java.security.krb5.conf", SUN_SECURITY_KRB5_DEBUG = "sun.security.krb5.debug";
 
   /**
@@ -214,13 +215,14 @@ public class MiniClusterHarness {
 
     // Turn on SASL and set the keytab/principal information
     cfg.setProperty(Property.INSTANCE_RPC_SASL_ENABLED, "true");
-    cfg.setProperty(Property.GENERAL_KERBEROS_KEYTAB, kdc.getAccumuloKeytab().getAbsolutePath());
-    cfg.setProperty(Property.GENERAL_KERBEROS_PRINCIPAL, kdc.getAccumuloPrincipal());
+    ClusterUser serverUser = kdc.getAccumuloServerUser();
+    cfg.setProperty(Property.GENERAL_KERBEROS_KEYTAB, serverUser.getKeytab().getAbsolutePath());
+    cfg.setProperty(Property.GENERAL_KERBEROS_PRINCIPAL, serverUser.getPrincipal());
     cfg.setProperty(Property.INSTANCE_SECURITY_AUTHENTICATOR, KerberosAuthenticator.class.getName());
     cfg.setProperty(Property.INSTANCE_SECURITY_AUTHORIZOR, KerberosAuthorizor.class.getName());
     cfg.setProperty(Property.INSTANCE_SECURITY_PERMISSION_HANDLER, KerberosPermissionHandler.class.getName());
     // Piggy-back on the "system user" credential, but use it as a normal KerberosToken, not the SystemToken.
-    cfg.setProperty(Property.TRACE_USER, kdc.getAccumuloPrincipal());
+    cfg.setProperty(Property.TRACE_USER, serverUser.getPrincipal());
     cfg.setProperty(Property.TRACE_TOKEN_TYPE, KerberosToken.CLASS_NAME);
 
     // Pass down some KRB5 debug properties
@@ -232,6 +234,6 @@ public class MiniClusterHarness {
     // Make sure UserGroupInformation will do the correct login
     coreSite.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
 
-    cfg.setRootUserName(kdc.getClientPrincipal());
+    cfg.setRootUserName(kdc.getRootUser().getPrincipal());
   }
 }

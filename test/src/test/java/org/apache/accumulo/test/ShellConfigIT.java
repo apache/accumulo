@@ -19,37 +19,85 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.ShellServerIT.TestShell;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.hadoop.conf.Configuration;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class ShellConfigIT extends ConfigurableMacIT {
+public class ShellConfigIT extends AccumuloClusterIT {
   @Override
   public int defaultTimeoutSeconds() {
     return 30;
   }
 
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.CRYPTO_BLOCK_STREAM_SIZE, "7K");
+  private String origPropValue;
+
+  @Before
+  public void checkProperty() throws Exception {
+    Connector conn = getConnector();
+    // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto properties are not.
+    // This lets us run this test more generically rather than forcibly needing to update some property in accumulo-site.xml
+    origPropValue = conn.instanceOperations().getSystemConfiguration().get(Property.TABLE_VOLUME_CHOOSER.getKey());
+    conn.instanceOperations().setProperty(Property.TABLE_VOLUME_CHOOSER.getKey(), FairVolumeChooser.class.getName());
+  }
+
+  @After
+  public void resetProperty() throws Exception {
+    if (null != origPropValue) {
+      Connector conn = getConnector();
+      conn.instanceOperations().setProperty(Property.TABLE_VOLUME_CHOOSER.getKey(), origPropValue);
+    }
   }
 
   @Test
   public void experimentalPropTest() throws Exception {
     // ensure experimental props do not show up in config output unless set
 
-    TestShell ts = new TestShell(ROOT_PASSWORD, getCluster().getInstanceName(), getCluster().getZooKeepers(), getCluster().getConfig().getClientConfFile()
-        .getAbsolutePath());
+    AuthenticationToken token = getAdminToken();
+    File clientConfFile = null;
+    switch (getClusterType()) {
+      case MINI:
+        MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
+        clientConfFile = mac.getConfig().getClientConfFile();
+        break;
+      case STANDALONE:
+        StandaloneAccumuloClusterConfiguration standaloneConf = (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
+        clientConfFile = standaloneConf.getClientConfFile();
+        break;
+      default:
+        Assert.fail("Unknown cluster type");
+    }
 
-    assertTrue(Property.CRYPTO_BLOCK_STREAM_SIZE.isExperimental());
+    Assert.assertNotNull(clientConfFile);
+
+    TestShell ts = null;
+    if (token instanceof PasswordToken) {
+      String passwd = new String(((PasswordToken) token).getPassword(), StandardCharsets.UTF_8);
+      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
+    } else if (token instanceof KerberosToken) {
+      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
+    } else {
+      Assert.fail("Unknown token type");
+    }
+
+    assertTrue(Property.TABLE_VOLUME_CHOOSER.isExperimental());
     assertTrue(Property.CRYPTO_CIPHER_ALGORITHM_NAME.isExperimental());
 
     String configOutput = ts.exec("config");
 
-    assertTrue(configOutput.contains(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey()));
+    assertTrue(configOutput.contains(Property.TABLE_VOLUME_CHOOSER.getKey()));
     assertFalse(configOutput.contains(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey()));
   }
 }

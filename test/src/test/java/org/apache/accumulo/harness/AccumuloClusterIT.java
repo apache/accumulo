@@ -16,20 +16,31 @@
  */
 package org.apache.accumulo.harness;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
+import org.apache.accumulo.harness.conf.AccumuloMiniClusterConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -48,7 +59,7 @@ import com.google.common.base.Preconditions;
 /**
  * General Integration-Test base class that provides access to an Accumulo instance for testing. This instance could be MAC or a standalone instance.
  */
-public abstract class AccumuloClusterIT extends AccumuloIT implements MiniClusterConfigurationCallback {
+public abstract class AccumuloClusterIT extends AccumuloIT implements MiniClusterConfigurationCallback, ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);
   private static final String TRUE = Boolean.toString(true);
 
@@ -75,6 +86,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
     if (ClusterType.MINI == type && TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
       krb = new TestingKdc();
       krb.start();
+      log.info("MiniKdc started");
     }
 
     initialized = true;
@@ -88,43 +100,10 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   }
 
   /**
-   * {@link TestingKdc#getAccumuloKeytab()}
+   * The {@link TestingKdc} used for this {@link AccumuloCluster}. Might be null.
    */
-  public static File getAccumuloKeytab() {
-    if (null == krb) {
-      throw new RuntimeException("KDC not enabled");
-    }
-    return krb.getAccumuloKeytab();
-  }
-
-  /**
-   * {@link TestingKdc#getAccumuloPrincipal()}
-   */
-  public static String getAccumuloPrincipal() {
-    if (null == krb) {
-      throw new RuntimeException("KDC not enabled");
-    }
-    return krb.getAccumuloPrincipal();
-  }
-
-  /**
-   * {@link TestingKdc#getClientKeytab()}
-   */
-  public static File getClientKeytab() {
-    if (null == krb) {
-      throw new RuntimeException("KDC not enabled");
-    }
-    return krb.getClientKeytab();
-  }
-
-  /**
-   * {@link TestingKdc#getClientPrincipal()}
-   */
-  public static String getClientPrincipal() {
-    if (null == krb) {
-      throw new RuntimeException("KDC not enabled");
-    }
-    return krb.getClientPrincipal();
+  public static TestingKdc getKdc() {
+    return krb;
   }
 
   @Before
@@ -136,15 +115,34 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
       case MINI:
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
         // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and core-site.xml
-        cluster = miniClusterHarness.create(this, getToken(), krb);
+        MiniAccumuloClusterImpl impl = miniClusterHarness.create(this, getAdminToken(), krb);
+        cluster = impl;
+        // MAC makes a ClientConf for us, just set it
+        ((AccumuloMiniClusterConfiguration) clusterConf).setClientConf(impl.getClientConfig());
+        // Login as the "root" user
+        if (null != krb) {
+          ClusterUser rootUser = krb.getRootUser();
+          // Log in the 'client' user
+          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+        }
         break;
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration conf = (StandaloneAccumuloClusterConfiguration) clusterConf;
-        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(conf.getInstance());
+        ClientConfiguration clientConf = conf.getClientConf();
+        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(conf.getInstance(), clientConf, conf.getTmpDirectory(), conf.getUsers());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setAccumuloConfDir(conf.getAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
+
+        // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in as SIMPLE instead of KERBEROS
+        Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
+        if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          UserGroupInformation.setConfiguration(hadoopConfiguration);
+          // Login as the admin user to start the tests
+          UserGroupInformation.loginUserFromKeytab(conf.getAdminPrincipal(), conf.getAdminKeytab().getAbsolutePath());
+        }
+
         // Set the implementation
         cluster = standaloneCluster;
         break;
@@ -154,15 +152,41 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
 
     if (type.isDynamic()) {
       cluster.start();
-      if (null != krb) {
-        // Log in the 'client' user
-        UserGroupInformation.loginUserFromKeytab(getClientPrincipal(), getClientKeytab().getAbsolutePath());
-      }
     } else {
       log.info("Removing tables which appear to be from a previous test run");
       cleanupTables();
       log.info("Removing users which appear to be from a previous test run");
       cleanupUsers();
+    }
+
+    switch (type) {
+      case MINI:
+        if (null != krb) {
+          final String traceTable = Property.TRACE_TABLE.getDefaultValue();
+          final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
+
+          // Login as the trace user
+          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
+
+          // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
+          Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab()));
+
+          // Then, log back in as the "root" user and do the grant
+          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+          conn = getConnector();
+
+          // Create the trace table
+          conn.tableOperations().create(traceTable);
+
+          // Trace user (which is the same kerberos principal as the system user, but using a normal KerberosToken) needs
+          // to have the ability to read, write and alter the trace table
+          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.READ);
+          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.WRITE);
+          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.ALTER_TABLE);
+        }
+        break;
+      default:
+        // do nothing
     }
   }
 
@@ -217,14 +241,50 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
     return type;
   }
 
-  public static String getPrincipal() {
+  public static String getAdminPrincipal() {
     Preconditions.checkState(initialized);
-    return clusterConf.getPrincipal();
+    return clusterConf.getAdminPrincipal();
   }
 
-  public static AuthenticationToken getToken() {
+  public static AuthenticationToken getAdminToken() {
     Preconditions.checkState(initialized);
-    return clusterConf.getToken();
+    return clusterConf.getAdminToken();
+  }
+
+  @Override
+  public ClusterUser getAdminUser() {
+    switch (type) {
+      case MINI:
+        if (null == krb) {
+          PasswordToken passwordToken = (PasswordToken) getAdminToken();
+          return new ClusterUser(getAdminPrincipal(), new String(passwordToken.getPassword(), UTF_8));
+        }
+        return krb.getRootUser();
+      case STANDALONE:
+        return new ClusterUser(getAdminPrincipal(), ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
+      default:
+        throw new RuntimeException("Unknown cluster type");
+    }
+  }
+
+  @Override
+  public ClusterUser getUser(int offset) {
+    switch (type) {
+      case MINI:
+        if (null != krb) {
+          // Defer to the TestingKdc when kerberos is on so we can get the keytab instead of a password
+          return krb.getClientPrincipal(offset);
+        } else {
+          // Come up with a mostly unique name
+          String principal = getClass().getSimpleName() + "_" + testName.getMethodName() + "_" + offset;
+          // Username and password are the same
+          return new ClusterUser(principal, principal);
+        }
+      case STANDALONE:
+        return ((StandaloneAccumuloCluster) cluster).getUser(offset);
+      default:
+        throw new RuntimeException("Unknown cluster type");
+    }
   }
 
   public static FileSystem getFileSystem() throws IOException {
@@ -232,9 +292,17 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
     return cluster.getFileSystem();
   }
 
+  public static AccumuloClusterConfiguration getClusterConfiguration() {
+    Preconditions.checkState(initialized);
+    return clusterConf;
+  }
+
   public Connector getConnector() {
     try {
-      return cluster.getConnector(getPrincipal(), getToken());
+      String princ = getAdminPrincipal();
+      AuthenticationToken token = getAdminToken();
+      log.debug("Creating connector as {} with {}", princ, token);
+      return cluster.getConnector(princ, token);
     } catch (Exception e) {
       log.error("Could not connect to Accumulo", e);
       fail("Could not connect to Accumulo");
@@ -262,17 +330,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
    *
    * @return A directory which can be expected to exist on the Cluster's FileSystem
    */
-  public String getUsableDir() throws IllegalArgumentException, IOException {
-    if (ClusterType.MINI == getClusterType()) {
-      File f = new File(System.getProperty("user.dir"), "target");
-      f.mkdirs();
-      return f.getAbsolutePath();
-    } else if (ClusterType.STANDALONE == getClusterType()) {
-      String path = "/tmp";
-      cluster.getFileSystem().mkdirs(new Path(path));
-      return path;
-    }
-
-    throw new IllegalArgumentException("Cannot determine a usable directory for cluster: " + getClusterType());
+  public Path getUsableDir() throws IllegalArgumentException, IOException {
+    return cluster.getTemporaryPath();
   }
 }

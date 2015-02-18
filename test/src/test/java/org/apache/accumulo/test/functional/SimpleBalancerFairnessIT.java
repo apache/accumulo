@@ -70,6 +70,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     List<String> tservers = c.instanceOperations().getTabletServers();
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = 50000;
+    opts.setPrincipal("root");
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush("test_ingest", null, null, false);
     UtilWaitThread.sleep(45 * 1000);

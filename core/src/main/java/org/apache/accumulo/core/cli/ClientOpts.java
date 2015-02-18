@@ -18,6 +18,8 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,6 +50,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -129,6 +132,26 @@ public class ClientOpts extends Help {
           props.put(loginOption.getKey(), loginOption.getValue());
       }
 
+      // If the user isn't currently logged in with Kerberos, they might have provided a keytab file
+      // instead which can be used to log them in. Check that before constructing the KerberosToken
+      // as it will expect the user is already logged in.
+      if (KerberosToken.CLASS_NAME.equals(tokenClassName)) {
+        if (null != keytabPath) {
+          File keytab = new File(keytabPath);
+          if (!keytab.exists() || !keytab.isFile()) {
+            throw new IllegalArgumentException("Keytab isn't a normal file: " + keytabPath);
+          }
+          if (null == principal) {
+            throw new IllegalArgumentException("Principal must be provided if logging in via Keytab");
+          }
+          try {
+            UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
+          } catch (IOException e) {
+            throw new RuntimeException("Failed to log in with keytab", e);
+          }
+        }
+      }
+
       try {
         AuthenticationToken token = Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
         token.init(props);
@@ -185,6 +208,9 @@ public class ClientOpts extends Help {
   @Parameter(names = "--trace", description = "turn on distributed tracing")
   public boolean trace = false;
 
+  @Parameter(names = "--keytab", description = "Kerberos keytab on the local filesystem")
+  public String keytabPath = null;
+
   public void startTracing(String applicationName) {
     if (trace) {
       Trace.on(applicationName);
@@ -199,7 +225,7 @@ public class ClientOpts extends Help {
    * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
    * specifically.
    */
-  protected void updateKerberosCredentials() {
+  public void updateKerberosCredentials() {
     ClientConfiguration clientConfig;
     try {
       if (clientConfigFile == null)
@@ -209,6 +235,14 @@ public class ClientOpts extends Help {
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
+    updateKerberosCredentials(clientConfig);
+  }
+
+  /**
+   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
+   * specifically.
+   */
+  public void updateKerberosCredentials(ClientConfiguration clientConfig) {
     final boolean clientConfSaslEnabled = Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
     if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
       tokenClassName = KerberosToken.CLASS_NAME;

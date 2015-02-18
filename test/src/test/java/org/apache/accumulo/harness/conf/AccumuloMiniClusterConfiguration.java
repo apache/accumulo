@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.harness.conf;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -29,9 +30,10 @@ import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Extract configuration properties for a MiniAccumuloCluster from Java properties
@@ -47,6 +49,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
 
   private final Map<String,String> conf;
   private final boolean saslEnabled;
+  private ClientConfiguration clientConf;
 
   public AccumuloMiniClusterConfiguration() {
     ClusterType type = getClusterType();
@@ -60,13 +63,9 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
   }
 
   @Override
-  public String getPrincipal() {
+  public String getAdminPrincipal() {
     if (saslEnabled) {
-      try {
-        return new KerberosName(AccumuloClusterIT.getClientPrincipal()).getShortName();
-      } catch (IOException e) {
-        throw new RuntimeException("Could not parse client principal", e);
-      }
+      return AccumuloClusterIT.getKdc().getRootUser().getPrincipal();
     } else {
       String principal = conf.get(ACCUMULO_MINI_PRINCIPAL_KEY);
       if (null == principal) {
@@ -78,18 +77,16 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
   }
 
   @Override
-  public AuthenticationToken getToken() {
+  public AuthenticationToken getAdminToken() {
     if (saslEnabled) {
       // Turn on Kerberos authentication so UGI acts properly
       final Configuration conf = new Configuration(false);
       conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
       UserGroupInformation.setConfiguration(conf);
 
-      File clientKeytab = AccumuloClusterIT.getClientKeytab();
-      String clientPrincipal = AccumuloClusterIT.getClientPrincipal();
+      ClusterUser rootUser = AccumuloClusterIT.getKdc().getRootUser();
       try {
-        UserGroupInformation.loginUserFromKeytab(clientPrincipal, clientKeytab.getAbsolutePath());
-        return new KerberosToken(clientPrincipal);
+        return new KerberosToken(rootUser.getPrincipal(), rootUser.getKeytab());
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -108,4 +105,13 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
     return ClusterType.MINI;
   }
 
+  @Override
+  public ClientConfiguration getClientConf() {
+    return clientConf;
+  }
+
+  public void setClientConf(ClientConfiguration conf) {
+    Preconditions.checkNotNull(conf, "Client configuration was null");
+    this.clientConf = conf;
+  }
 }

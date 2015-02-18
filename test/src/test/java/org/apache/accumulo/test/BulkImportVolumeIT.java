@@ -69,7 +69,7 @@ public class BulkImportVolumeIT extends AccumuloClusterIT {
     TableOperations to = getConnector().tableOperations();
     to.create(tableName);
     FileSystem fs = getFileSystem();
-    String rootPath = getUsableDir();
+    Path rootPath = new Path(cluster.getTemporaryPath(), getClass().getName());
     Path bulk = new Path(rootPath, "bulk");
     log.info("bulk: {}", bulk);
     if (fs.exists(bulk)) {

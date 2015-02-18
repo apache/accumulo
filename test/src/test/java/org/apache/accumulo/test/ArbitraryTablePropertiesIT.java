@@ -17,19 +17,17 @@
 package org.apache.accumulo.test;
 
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
 import org.junit.Test;
 
 public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
@@ -39,11 +37,6 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
   protected int defaultTimeoutSeconds() {
     return 30;
   };
-
-  @Before
-  public void checkNoKerberos() {
-    Assume.assumeFalse(getToken() instanceof KerberosToken);
-  }
 
   // Test set, get, and remove arbitrary table properties on the root account
   @Test
@@ -102,15 +95,15 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
     log.debug("Starting userSetGetRemoveTablePropertyWithPermission test ------------------------");
 
     // Make a test username and password
-    String testUser = makeUserName();
-    PasswordToken testPasswd = new PasswordToken("test_password");
+    ClusterUser user = getUser(0);
+    String testUser = user.getPrincipal();
+    AuthenticationToken testToken = user.getToken();
 
     // Create a root user and create the table
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();
-    c.securityOperations().createLocalUser(testUser, testPasswd);
-    Connector conn = c.getInstance().getConnector(testUser, testPasswd);
+    c.securityOperations().createLocalUser(testUser, (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
     c.tableOperations().create(tableName);
     c.securityOperations().grantTablePermission(testUser, tableName, TablePermission.ALTER_TABLE);
 
@@ -120,12 +113,15 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
 
     // Make sure the property name is valid
     Assert.assertTrue(Property.isValidPropertyKey(propertyName));
+
+    // Getting a fresh token will ensure we're logged in as this user (if necessary)
+    Connector testConn = c.getInstance().getConnector(testUser, user.getToken());
     // Set the property to the desired value
-    conn.tableOperations().setProperty(tableName, propertyName, description1);
+    testConn.tableOperations().setProperty(tableName, propertyName, description1);
 
     // Loop through properties to make sure the new property is added to the list
     int count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
         count++;
     }
@@ -133,22 +129,22 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
 
     // Set the property as something different
     String description2 = "set second";
-    conn.tableOperations().setProperty(tableName, propertyName, description2);
+    testConn.tableOperations().setProperty(tableName, propertyName, description2);
 
     // / Loop through properties to make sure the new property is added to the list
     count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
         count++;
     }
     Assert.assertEquals(count, 1);
 
     // Remove the property and make sure there is no longer a value associated with it
-    conn.tableOperations().removeProperty(tableName, propertyName);
+    testConn.tableOperations().removeProperty(tableName, propertyName);
 
     // / Loop through properties to make sure the new property is added to the list
     count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName))
         count++;
     }
@@ -162,15 +158,15 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
     log.debug("Starting userSetGetTablePropertyWithoutPermission test ------------------------");
 
     // Make a test username and password
-    String testUser = makeUserName();
-    PasswordToken testPasswd = new PasswordToken("test_password");
+    ClusterUser user = getUser(1);
+    String testUser = user.getPrincipal();
+    AuthenticationToken testToken = user.getToken();
 
     // Create a root user and create the table
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();
-    c.securityOperations().createLocalUser(testUser, testPasswd);
-    Connector conn = c.getInstance().getConnector(testUser, testPasswd);
+    c.securityOperations().createLocalUser(testUser, (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
     c.tableOperations().create(tableName);
 
     // Set variables for the property name to use and the initial value
@@ -180,26 +176,22 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
     // Make sure the property name is valid
     Assert.assertTrue(Property.isValidPropertyKey(propertyName));
 
+    // Getting a fresh token will ensure we're logged in as this user (if necessary)
+    Connector testConn = c.getInstance().getConnector(testUser, user.getToken());
+
     // Try to set the property to the desired value.
     // If able to set it, the test fails, since permission was never granted
     try {
-      conn.tableOperations().setProperty(tableName, propertyName, description1);
+      testConn.tableOperations().setProperty(tableName, propertyName, description1);
       Assert.fail("Was able to set property without permissions");
     } catch (AccumuloSecurityException e) {}
 
     // Loop through properties to make sure the new property is not added to the list
     int count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName))
         count++;
     }
     Assert.assertEquals(count, 0);
   }
-
-  static AtomicInteger userId = new AtomicInteger(0);
-
-  static String makeUserName() {
-    return "user_" + userId.getAndIncrement();
-  }
-
 }

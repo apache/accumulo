@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;

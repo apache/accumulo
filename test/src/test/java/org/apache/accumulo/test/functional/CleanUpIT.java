@@ -22,22 +22,15 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
-import org.apache.accumulo.harness.AccumuloIT;
-import org.apache.accumulo.harness.MiniClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.log4j.Logger;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -46,40 +39,12 @@ import org.junit.Test;
  * Because this is destructive across the current context classloader, the normal teardown methods will fail (because they attempt to create a Connector). Until
  * the ZooKeeperInstance and Connector are self-contained WRT resource management, we can't leverage the AccumuloClusterIT.
  */
-public class CleanUpIT extends AccumuloIT {
+public class CleanUpIT extends AccumuloClusterIT {
   private static final Logger log = Logger.getLogger(CleanUpIT.class);
-
-  private MiniAccumuloClusterImpl cluster;
 
   @Override
   protected int defaultTimeoutSeconds() {
     return 30;
-  }
-
-  @Before
-  public void startMiniCluster() throws Exception {
-    MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
-    cluster = miniClusterHarness.create(this, getToken());
-    cluster.start();
-  }
-
-  @After
-  public void stopMiniCluster() throws Exception {
-    if (null != cluster) {
-      cluster.stop();
-    }
-  }
-
-  private AuthenticationToken getToken() {
-    return new PasswordToken("rootPassword");
-  }
-
-  private Connector getConnector() {
-    try {
-      return cluster.getConnector("root", getToken());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Test

@@ -25,6 +25,8 @@ import java.io.FileNotFoundException;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -63,11 +65,21 @@ public class TableIT extends AccumuloClusterIT {
     TableOperations to = c.tableOperations();
     String tableName = getUniqueNames(1)[0];
     to.create(tableName);
+
     TestIngest.Opts opts = new TestIngest.Opts();
+    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    ClientConfiguration clientConfig = getCluster().getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+      vopts.setPrincipal(getAdminPrincipal());
+    }
+
     opts.setTableName(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     to.flush(tableName, null, null, true);
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     String id = to.tableIdMap().get(tableName);

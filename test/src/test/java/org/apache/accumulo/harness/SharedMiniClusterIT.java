@@ -17,12 +17,17 @@
 package org.apache.accumulo.harness;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Random;
 
+import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -39,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation, the actual test classes
  * can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
  */
-public abstract class SharedMiniClusterIT extends AccumuloIT {
+public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterIT.class);
   private static final String TRUE = Boolean.toString(true);
 
@@ -65,10 +70,11 @@ public abstract class SharedMiniClusterIT extends AccumuloIT {
       conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
       UserGroupInformation.setConfiguration(conf);
       // Login as the client
-      UserGroupInformation.loginUserFromKeytab(krb.getClientPrincipal(), krb.getClientKeytab().getAbsolutePath());
+      ClusterUser rootUser = krb.getRootUser();
+      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
       // Get the krb token
-      principal = krb.getClientPrincipal();
-      token = new KerberosToken(principal);
+      principal = rootUser.getPrincipal();
+      token = new KerberosToken(principal, rootUser.getKeytab());
     } else {
       rootPassword = "rootPasswordShared1";
       token = new PasswordToken(rootPassword);
@@ -76,6 +82,29 @@ public abstract class SharedMiniClusterIT extends AccumuloIT {
 
     cluster = harness.create(SharedMiniClusterIT.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token, krb);
     cluster.start();
+
+    if (null != krb) {
+      final String traceTable = Property.TRACE_TABLE.getDefaultValue();
+      final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
+      // Login as the trace user
+      UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
+
+      // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
+      Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab()));
+
+      // Then, log back in as the "root" user and do the grant
+      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+      conn = cluster.getConnector(principal, token);
+
+      // Create the trace table
+      conn.tableOperations().create(traceTable);
+
+      // Trace user (which is the same kerberos principal as the system user, but using a normal KerberosToken) needs
+      // to have the ability to read, write and alter the trace table
+      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.READ);
+      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.WRITE);
+      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.ALTER_TABLE);
+    }
   }
 
   @AfterClass
@@ -101,7 +130,18 @@ public abstract class SharedMiniClusterIT extends AccumuloIT {
   }
 
   public static AuthenticationToken getToken() {
+    if (token instanceof KerberosToken) {
+      try {
+        UserGroupInformation.loginUserFromKeytab(getPrincipal(), krb.getRootUser().getKeytab().getAbsolutePath());
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to login", e);
+      }
+    }
     return token;
+  }
+
+  public static String getPrincipal() {
+    return principal;
   }
 
   public static MiniAccumuloClusterImpl getCluster() {
@@ -117,6 +157,26 @@ public abstract class SharedMiniClusterIT extends AccumuloIT {
       return getCluster().getConnector(principal, getToken());
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public ClusterUser getAdminUser() {
+    if (null == krb) {
+      return new ClusterUser(getPrincipal(), getRootPassword());
+    } else {
+      return krb.getRootUser();
+    }
+  }
+
+  @Override
+  public ClusterUser getUser(int offset) {
+    if (null == krb) {
+      String user = SharedMiniClusterIT.class.getName() + "_" + testName.getMethodName() + "_" + offset;
+      // Password is the username
+      return new ClusterUser(user, user);
+    } else {
+      return krb.getClientPrincipal(offset);
     }
   }
 }

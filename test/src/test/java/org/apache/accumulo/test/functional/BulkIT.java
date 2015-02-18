@@ -26,15 +26,12 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.harness.AccumuloIT;
-import org.apache.accumulo.harness.MiniClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.Opts;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
@@ -42,42 +39,30 @@ import org.junit.Before;
 import org.junit.Test;
 
 // TODO Change test to support bulk ingest on any filesystem, not just the local FS.
-public class BulkIT extends AccumuloIT {
+public class BulkIT extends AccumuloClusterIT {
 
   private static final int N = 100000;
   private static final int COUNT = 5;
   private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
   private static final ScannerOpts SOPTS = new ScannerOpts();
 
-  private MiniAccumuloClusterImpl cluster;
-
-  private AuthenticationToken getToken() {
-    return new PasswordToken("rootPassword1");
-  }
-
-  private Connector getConnector() {
-    try {
-      return cluster.getConnector("root", getToken());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
   }
 
+  private Configuration origConf;
+
   @Before
-  public void startMiniCluster() throws Exception {
-    MiniClusterHarness harness = new MiniClusterHarness();
-    cluster = harness.create(getToken());
-    cluster.start();
+  public void saveConf() {
+    origConf = CachedConfiguration.getInstance();
   }
 
   @After
-  public void stopMiniCluster() throws Exception {
-    cluster.stop();
+  public void restoreConf() {
+    if (null != origConf) {
+      CachedConfiguration.setInstance(origConf);
+    }
   }
 
   @Test
@@ -88,11 +73,17 @@ public class BulkIT extends AccumuloIT {
   static void runTest(Connector c, String tableName, String filePrefix, String dirSuffix) throws AccumuloException, AccumuloSecurityException,
       TableExistsException, IOException, TableNotFoundException, MutationsRejectedException {
     c.tableOperations().create(tableName);
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    String base = "target/accumulo-maven-plugin";
-    String bulkFailures = base + "/testBulkFail_" + dirSuffix;
-    fs.delete(new Path(base + "/testrf"), true);
-    fs.mkdirs(new Path(bulkFailures));
+    FileSystem fs = cluster.getFileSystem();
+    CachedConfiguration.setInstance(fs.getConf());
+
+    Path tempPath = cluster.getTemporaryPath();
+    Path base = new Path(tempPath, "testBulkFail_" + dirSuffix);
+    fs.delete(base, true);
+    fs.mkdirs(base);
+    Path bulkFailures = new Path(base, "failures");
+    Path files = new Path(base, "files");
+    fs.mkdirs(bulkFailures);
+    fs.mkdirs(files);
 
     Opts opts = new Opts();
     opts.timestamp = 1;
@@ -101,9 +92,11 @@ public class BulkIT extends AccumuloIT {
     opts.instance = c.getInstance().getInstanceName();
     opts.cols = 1;
     opts.setTableName(tableName);
-    String fileFormat = "/testrf/" + filePrefix + "rf%02d";
+    opts.conf = CachedConfiguration.getInstance();
+    opts.fs = fs;
+    String fileFormat = filePrefix + "rf%02d";
     for (int i = 0; i < COUNT; i++) {
-      opts.outputFile = base + String.format(fileFormat, i);
+      opts.outputFile = new Path(files, String.format(fileFormat, i)).toString();
       opts.startRow = N * i;
       TestIngest.ingest(c, opts, BWOPTS);
     }
@@ -112,10 +105,11 @@ public class BulkIT extends AccumuloIT {
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, opts, BWOPTS);
-    c.tableOperations().importDirectory(tableName, base + "/testrf", bulkFailures, false);
+    c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(), false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     vopts.random = 56;
+    vopts.setPrincipal(getAdminPrincipal());
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;
       vopts.rows = N;

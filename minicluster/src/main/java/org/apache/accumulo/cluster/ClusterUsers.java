@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.harness.conf;
+package org.apache.accumulo.cluster;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
+import org.apache.accumulo.core.security.SystemPermission;
 
 /**
- * Base functionality that must be provided as configuration to the test
+ * General interface to get user details for an {@link AccumuloCluster}.
  */
-public interface AccumuloClusterConfiguration {
+public interface ClusterUsers {
 
-  ClusterType getClusterType();
+  /**
+   * The "root" user. A user which has administrative permissions {@link SystemPermission#SYSTEM} and the like.
+   */
+  ClusterUser getAdminUser();
 
-  String getAdminPrincipal();
-
-  AuthenticationToken getAdminToken();
-
-  ClientConfiguration getClientConf();
+  /**
+   * Get an unprivileged user. Multiple are created
+   *
+   * @param offset
+   *          the user to return
+   * @return the user denoted by the given offset
+   */
+  ClusterUser getUser(int offset);
 }

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -137,7 +138,7 @@ public class KerberosProxyIT extends AccumuloIT {
         cfg.setNumTservers(1);
         Map<String,String> siteCfg = cfg.getSiteConfig();
         // Allow the proxy to impersonate the client user, but no one else
-        siteCfg.put(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyPrincipal + ".users", kdc.getClientPrincipal());
+        siteCfg.put(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyPrincipal + ".users", kdc.getRootUser().getPrincipal());
         siteCfg.put(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyPrincipal + ".hosts", "*");
         cfg.setSiteConfig(siteCfg);
       }
@@ -176,7 +177,8 @@ public class KerberosProxyIT extends AccumuloIT {
     UserGroupInformation.setConfiguration(conf);
 
     boolean success = false;
-    UserGroupInformation.loginUserFromKeytab(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    ClusterUser rootUser = kdc.getRootUser();
+    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
     for (int i = 0; i < 10 && !success; i++) {
       TSocket socket = new TSocket(hostname, proxyPort);
@@ -223,7 +225,8 @@ public class KerberosProxyIT extends AccumuloIT {
 
   @Test
   public void testProxyClient() throws Exception {
-    UserGroupInformation.loginUserFromKeytab(kdc.getClientPrincipal(), kdc.getClientKeytab().getAbsolutePath());
+    ClusterUser rootUser = kdc.getRootUser();
+    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
 
     TSocket socket = new TSocket(hostname, proxyPort);
@@ -240,7 +243,7 @@ public class KerberosProxyIT extends AccumuloIT {
     Client client = factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
 
     // Will fail if the proxy can impersonate the client
-    ByteBuffer login = client.login(kdc.getClientPrincipal(), Collections.<String,String> emptyMap());
+    ByteBuffer login = client.login(rootUser.getPrincipal(), Collections.<String,String> emptyMap());
 
     // For all of the below actions, the proxy user doesn't have permission to do any of them, but the client user does.
     // The fact that any of them actually run tells us that impersonation is working.
@@ -346,6 +349,7 @@ public class KerberosProxyIT extends AccumuloIT {
 
   @Test
   public void testMismatchPrincipals() throws Exception {
+    ClusterUser rootUser = kdc.getRootUser();
     // Should get an AccumuloSecurityException and the given message
     thrown.expect(AccumuloSecurityException.class);
     thrown.expect(new ThriftExceptionMatchesPattern(ProxyServer.RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG));
@@ -379,7 +383,7 @@ public class KerberosProxyIT extends AccumuloIT {
     // The proxy needs to recognize that the requested principal isn't the same as the SASL principal and fail
     // Accumulo should let this through -- we need to rely on the proxy to dump me before talking to accumulo
     try {
-      client.login(kdc.getClientPrincipal(), Collections.<String,String> emptyMap());
+      client.login(rootUser.getPrincipal(), Collections.<String,String> emptyMap());
     } finally {
       if (null != ugiTransport) {
         ugiTransport.close();
