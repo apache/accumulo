@@ -35,6 +35,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -71,14 +72,14 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
     agitator.start();
     System.out.println("writing");
     final Random random = new Random();
-    for (i = 0; i < 1_000_000; i++) {
+    for (i = 0; i < 1000 * 1000; i++) {
       long randomRow = Math.abs(random.nextLong());
       assertTrue(randomRow >= 0);
       final int table = (int) (randomRow % N);
       final Mutation m = new Mutation(Long.toHexString(randomRow));
       m.put(new byte[0], new byte[0], values[table]);
       writers[table].addMutation(m);
-      if ((i % 10_000) == 0) {
+      if ((i % 10 * 1000) == 0) {
         System.out.println("flushing");
         for (int w = 0; w < N; w++) {
           writers[w].flush();
@@ -103,7 +104,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
       }
       scanner.close();
     }
-    assertEquals(1_000_000, count);
+    assertEquals(1000 * 1000, count);
   }
 
   private Thread agitator(final AtomicBoolean stop) {
@@ -115,7 +116,9 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
           while (!stop.get()) {
             UtilWaitThread.sleep(10 * 1000);
             System.out.println("Restarting");
-            getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+            for (ProcessReference proc : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+              getCluster().killProcess(ServerType.TABLET_SERVER, proc);
+            }
             getCluster().start();
             // read the metadata table to know everything is back up
             for (@SuppressWarnings("unused")
