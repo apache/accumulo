@@ -35,7 +35,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -72,7 +71,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
     agitator.start();
     System.out.println("writing");
     final Random random = new Random();
-    for (i = 0; i < 1000 * 1000; i++) {
+    for (i = 0; i < 1_000_000; i++) {
       long randomRow = Math.abs(random.nextLong());
       assertTrue(randomRow >= 0);
       final int table = (int) (randomRow % N);
@@ -104,7 +103,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
       }
       scanner.close();
     }
-    assertEquals(1000 * 1000, count);
+    assertEquals(1_000_000, count);
   }
 
   private Thread agitator(final AtomicBoolean stop) {
@@ -116,9 +115,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
           while (!stop.get()) {
             UtilWaitThread.sleep(10 * 1000);
             System.out.println("Restarting");
-            for (ProcessReference proc : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
-              getCluster().killProcess(ServerType.TABLET_SERVER, proc);
-            }
+            getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
             getCluster().start();
             // read the metadata table to know everything is back up
             for (@SuppressWarnings("unused")
