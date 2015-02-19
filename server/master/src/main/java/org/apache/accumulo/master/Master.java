@@ -1480,6 +1480,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
   }
 
+<<<<<<< HEAD
   public void waitForBalance(TInfo tinfo) {
     synchronized (balancedNotifier) {
       long eventCounter;
@@ -1530,5 +1531,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
    */
   public boolean delegationTokensAvailable() {
     return delegationTokensAvailable;
+  }
+
+  @Override
+  public Collection<KeyExtent> migrations() {
+    return migrations.keySet();
   }
 }

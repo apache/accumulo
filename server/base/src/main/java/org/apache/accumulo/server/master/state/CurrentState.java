@@ -19,6 +19,8 @@ package org.apache.accumulo.server.master.state;
 import java.util.Collection;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.KeyExtent;
+
 public interface CurrentState {
 
   Set<String> onlineTables();
@@ -27,4 +29,5 @@ public interface CurrentState {
 
   Collection<MergeInfo> merges();
 
+  Collection<KeyExtent> migrations();
 }

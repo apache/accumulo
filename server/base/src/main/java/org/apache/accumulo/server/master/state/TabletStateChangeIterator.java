@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,12 +52,14 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
   private static final String DEBUG_OPTION = "debug";
+  private static final String MIGRATIONS_OPTION = "migrations";
   private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
 
   Set<TServerInstance> current;
   Set<String> onlineTables;
   Map<Text,MergeInfo> merges;
   boolean debug = false;
+  Set<KeyExtent> migrations;
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -65,6 +68,26 @@ public class TabletStateChangeIterator extends SkippingIterator {
     onlineTables = parseTables(options.get(TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
+    migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
+  }
+
+  private Set<KeyExtent> parseMigrations(String migrations) {
+    if (migrations == null)
+      return Collections.emptySet();
+    try {
+      Set<KeyExtent> result = new HashSet<KeyExtent>();
+      DataInputBuffer buffer = new DataInputBuffer();
+      byte[] data = Base64.decodeBase64(migrations.getBytes(UTF_8));
+      buffer.reset(data, data.length);
+      while (buffer.available() > 0) {
+        KeyExtent extent = new KeyExtent();
+        extent.readFields(buffer);
+        result.add(extent);
+      }
+      return result;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   private Set<String> parseTables(String tables) {
@@ -137,6 +160,10 @@ public class TabletStateChangeIterator extends SkippingIterator {
         // could make this smarter by only returning if the tablet is involved in the merge
         return;
       }
+      // always return the informatin for migrating tablets
+      if (migrations.contains(tls.extent)) {
+        return;
+      }
 
       // is the table supposed to be online or offline?
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId().toString());
@@ -199,6 +226,19 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
     String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
+  }
+
+  public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    try {
+      for (KeyExtent  extent : migrations) {
+        extent.write(buffer);
+      }
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+    String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    cfg.addOption(MIGRATIONS_OPTION, encoded);
   }
 
 }
