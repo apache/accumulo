@@ -160,7 +160,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
         // could make this smarter by only returning if the tablet is involved in the merge
         return;
       }
-      // always return the informatin for migrating tablets
+      // always return the information for migrating tablets
       if (migrations.contains(tls.extent)) {
         return;
       }
