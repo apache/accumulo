@@ -79,7 +79,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
       final Mutation m = new Mutation(Long.toHexString(randomRow));
       m.put(new byte[0], new byte[0], values[table]);
       writers[table].addMutation(m);
-      if ((i % 10 * 1000) == 0) {
+      if ((i % (10 * 1000)) == 0) {
         System.out.println("flushing");
         for (int w = 0; w < N; w++) {
           writers[w].flush();
@@ -114,7 +114,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
         try {
           int i = 0;
           while (!stop.get()) {
-            UtilWaitThread.sleep(10 * 1000);
+            UtilWaitThread.sleep(5 * 1000);
             System.out.println("Restarting");
             for (ProcessReference proc : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
               getCluster().killProcess(ServerType.TABLET_SERVER, proc);
