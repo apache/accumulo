@@ -1325,4 +1325,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
+
+  @Override
+  public Collection<KeyExtent> migrations() {
+    return migrations.keySet();
+  }
 }

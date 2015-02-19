@@ -86,6 +86,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
+      TabletStateChangeIterator.setMigrations(tabletChange, state.migrations());
     }
     scanner.addScanIterator(tabletChange);
   }
@@ -98,6 +99,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     this(instance, credentials, range, null, tableName);
   }
 
+  @Override
   public void close() {
     if (iter != null) {
       mdScanner.close();
