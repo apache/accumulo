@@ -77,6 +77,11 @@ public class TestMergeState {
     public Collection<MergeInfo> merges() {
       return Collections.singleton(mergeInfo);
     }
+
+    @Override
+    public Collection<KeyExtent> migrations() {
+      return Collections.emptyList();
+    }
   }
 
   private static void update(Connector c, Mutation m) throws TableNotFoundException, MutationsRejectedException {

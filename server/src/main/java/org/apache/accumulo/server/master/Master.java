@@ -2629,4 +2629,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   public void updateRecoveryInProgress(String file) {
     recoveriesInProgress.add(file);
   }
+
+  @Override
+  public Collection<KeyExtent> migrations() {
+    return migrations.keySet();
+  }
 }

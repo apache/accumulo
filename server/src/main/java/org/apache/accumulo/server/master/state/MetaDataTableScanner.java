@@ -76,6 +76,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
+      TabletStateChangeIterator.setMigrations(tabletChange, state.migrations());
     }
     scanner.addScanIterator(tabletChange);
   }
@@ -91,6 +92,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
   }
 
+  @Override
   protected void finalize() {
     close();
   }
