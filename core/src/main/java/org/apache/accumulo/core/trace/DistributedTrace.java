@@ -130,6 +130,7 @@ public class DistributedTrace {
     }
     org.apache.htrace.Trace.setProcessId(service);
     ShutdownHookManager.get().addShutdownHook(new Runnable() {
+      @Override
       public void run() {
         Trace.off();
         closeReceivers();
@@ -150,7 +151,6 @@ public class DistributedTrace {
       log.info("Already loaded span receivers, enable tracing does not need to be called again");
       return;
     }
-    Class<?> implClass = null;
     String[] receiverNames = conf.getTrimmedStrings(Property.TRACE_SPAN_RECEIVERS.toString());
     if (receiverNames == null || receiverNames.length == 0) {
       return;
