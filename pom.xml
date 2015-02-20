@@ -530,7 +530,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.7.0</version>
+          <version>0.7.1</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -615,7 +615,7 @@
           <!-- Work around MRELEASE-812 -->
           <version>2.5</version>
           <configuration>
-            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2 -Dmavanagaiata.dirtyFlag=false</arguments>
+            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
