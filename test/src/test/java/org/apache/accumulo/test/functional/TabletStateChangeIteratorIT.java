@@ -63,6 +63,11 @@ import com.google.common.collect.Sets;
  */
 public class TabletStateChangeIteratorIT extends SharedMiniClusterIT {
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     String[] tables = getUniqueNames(4);
