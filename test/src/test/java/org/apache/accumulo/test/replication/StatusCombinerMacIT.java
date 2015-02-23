@@ -46,10 +46,12 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
 public class StatusCombinerMacIT extends SharedMiniClusterIT {
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {

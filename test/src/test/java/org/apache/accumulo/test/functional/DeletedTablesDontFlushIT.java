@@ -32,7 +32,12 @@ import org.junit.Test;
 // ACCUMULO-2880
 public class DeletedTablesDontFlushIT extends SharedMiniClusterIT {
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
