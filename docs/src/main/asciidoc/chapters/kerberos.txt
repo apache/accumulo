@@ -210,6 +210,19 @@ The KDC is still the authoritative entity for user management. The previously me
 are provided as they simplify management of users within Accumulo, especially with respect
 to granting Authorizations and Permissions to new users.
 
+===== Accumulo Initialization
+
+Out of the box (without Kerberos enabled), Accumulo has a single user with administrative permissions "root".
+This users is used to "bootstrap" other users, creating less-privileged users for applications using
+the system. In Kerberos, to authenticate with the system, it's required that the client presents Kerberos
+credentials for the principal (user) the client is trying to authenticate as.
+
+Because of this, an administrative user named "root" would be useless in an instance using Kerberos,
+because it is very unlikely to have Kerberos credentials for a principal named `root`. When Kerberos is
+enabled, Accumulo will prompt for the name of a user to grant the same permissions as what the `root`
+user would normally have. The name of the Accumulo user to grant administrative permissions to can
+also be given by the `-u` or `--user` options.
+
 ===== Verifying secure access
 
 To verify that servers have correctly started with Kerberos enabled, ensure that the processes
