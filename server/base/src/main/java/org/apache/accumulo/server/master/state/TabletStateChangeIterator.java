@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -53,13 +54,16 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String MERGES_OPTION = "merges";
   private static final String DEBUG_OPTION = "debug";
   private static final String MIGRATIONS_OPTION = "migrations";
+  private static final String MASTER_STATE_OPTION = "masterState";
+  private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
   private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
 
-  Set<TServerInstance> current;
-  Set<String> onlineTables;
-  Map<Text,MergeInfo> merges;
-  boolean debug = false;
-  Set<KeyExtent> migrations;
+  private Set<TServerInstance> current;
+  private Set<String> onlineTables;
+  private Map<Text,MergeInfo> merges;
+  private boolean debug = false;
+  private Set<KeyExtent> migrations;
+  private MasterState masterState = MasterState.NORMAL;
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -69,6 +73,17 @@ public class TabletStateChangeIterator extends SkippingIterator {
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
     migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
+    try {
+      masterState = MasterState.valueOf(options.get(MASTER_STATE_OPTION));
+    } catch (Exception ex) {
+      if (options.get(MASTER_STATE_OPTION) != null) {
+        log.error("Unable to decode masterState " + options.get(MASTER_STATE_OPTION));
+      }
+    }
+    Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
+    if (current != null && shuttingDown != null) {
+      current.removeAll(shuttingDown);
+    }
   }
 
   private Set<KeyExtent> parseMigrations(String migrations) {
@@ -142,7 +157,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       Key k = getSource().getTopKey();
       Value v = getSource().getTopValue();
 
-      if (onlineTables == null || current == null)
+      if (onlineTables == null || current == null || masterState != MasterState.NORMAL)
         return;
 
       TabletLocationState tls;
@@ -239,6 +254,20 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
     String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MIGRATIONS_OPTION, encoded);
+  }
+
+  public static void setMasterState(IteratorSetting cfg, MasterState state) {
+    cfg.addOption(MASTER_STATE_OPTION, state.toString());
+  }
+
+  public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {
+    if (servers != null) {
+      List<String> serverList = new ArrayList<String>();
+      for (TServerInstance server : servers) {
+        serverList.add(server.toString());
+      }
+      cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
+    }
   }
 
 }

@@ -206,7 +206,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
 
-  synchronized MasterState getMasterState() {
+  @Override
+  public synchronized MasterState getMasterState() {
     return state;
   }
 
@@ -774,7 +775,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              if (tls.getState(onlineTabletServers()).equals(TabletState.HOSTED)) {
+              if (tls.getState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
                 if (tls.chopped)
                   return TabletGoalState.UNASSIGNED;
               } else {
@@ -1535,5 +1536,12 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   @Override
   public Collection<KeyExtent> migrations() {
     return migrations.keySet();
+  }
+
+  @Override
+  public Set<TServerInstance> shutdownServers() {
+    synchronized (serversToShutdown) {
+      return new HashSet<TServerInstance>(serversToShutdown);
+    }
   }
 }

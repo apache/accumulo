@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.master.thrift.MasterState;
 
 public interface CurrentState {
 
@@ -27,7 +28,11 @@ public interface CurrentState {
 
   Set<TServerInstance> onlineTabletServers();
 
+  Set<TServerInstance> shutdownServers();
+
   Collection<MergeInfo> merges();
 
   Collection<KeyExtent> migrations();
+
+  MasterState getMasterState();
 }
