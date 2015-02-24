@@ -43,7 +43,7 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
   public int defaultTimeoutSeconds() {
     return 60;
   }
-  
+
   @Test
   public void test() throws Exception {
     final Connector c = getConnector();
