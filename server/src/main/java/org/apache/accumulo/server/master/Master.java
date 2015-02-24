@@ -2308,8 +2308,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
 
     TCredentials systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)};
+    final TabletStateStore stores[] = {
+        new ZooTabletStateStore(new ZooStore(zroot)),
+        new RootTabletStateStore(instance, systemAuths, this),
+        // ACCUMULO-3580 ACCUMULO-3618 disable metadata table scanning optimizations
+        new MetaDataStateStore(instance, systemAuths, null)
+        };
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
