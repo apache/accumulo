@@ -337,7 +337,13 @@ public class ThriftUtil {
 
         log.trace("Creating SASL connection to {}:{}", address.getHostText(), address.getPort());
 
-        transport = new TSocket(address.getHostText(), address.getPort());
+        // Make sure a timeout is set
+        try {
+          transport = TTimeoutTransport.create(address, timeout);
+        } catch (IOException e) {
+          log.warn("Failed to open transport to {}", address);
+          throw new TTransportException(e);
+        }
 
         try {
           // Log in via UGI, ensures we have logged in with our KRB credentials

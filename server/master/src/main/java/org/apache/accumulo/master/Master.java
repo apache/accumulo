@@ -1535,7 +1535,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   @Override
   public Collection<KeyExtent> migrations() {
-    return migrations.keySet();
+    Set<KeyExtent> migrationKeys = new HashSet<KeyExtent>();
+    synchronized (migrations) {
+      migrationKeys.addAll(migrations.keySet());
+    }
+    return migrationKeys;
   }
 
   @Override
