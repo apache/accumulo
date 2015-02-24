@@ -2310,8 +2310,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     TCredentials systemAuths = SecurityConstants.getSystemCredentials();
     final TabletStateStore stores[] = {
         new ZooTabletStateStore(new ZooStore(zroot)),
-        new RootTabletStateStore(instance, systemAuths, this),
         // ACCUMULO-3580 ACCUMULO-3618 disable metadata table scanning optimizations
+        new RootTabletStateStore(instance, systemAuths, null),
         new MetaDataStateStore(instance, systemAuths, null)
         };
     watchers.add(new TabletGroupWatcher(stores[2], null));
