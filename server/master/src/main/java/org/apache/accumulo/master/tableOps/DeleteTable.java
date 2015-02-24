@@ -99,16 +99,8 @@ class CleanUp extends MasterRepo {
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
 
-    KeyExtent prevExtent = null;
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState locationState = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
-      if (!locationState.extent.isPreviousExtent(prevExtent)) {
-        log.info("Still waiting for table to be deleted: " + tableId + " saw inconsistency " + prevExtent + " " + locationState.extent);
-        done = false;
-        break;
-      }
-      prevExtent = locationState.extent;
-
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
         log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
