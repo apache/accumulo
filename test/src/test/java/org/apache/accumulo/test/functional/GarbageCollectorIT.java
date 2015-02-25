@@ -21,10 +21,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -80,14 +78,13 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> settings = new HashMap<String,String>();
-    settings.put(Property.INSTANCE_SECRET.getKey(), OUR_SECRET);
-    settings.put(Property.GC_CYCLE_START.getKey(), "1");
-    settings.put(Property.GC_CYCLE_DELAY.getKey(), "1");
-    settings.put(Property.GC_PORT.getKey(), "0");
-    settings.put(Property.TSERV_MAXMEM.getKey(), "5K");
-    settings.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
-    cfg.setSiteConfig(settings);
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.INSTANCE_SECRET, OUR_SECRET);
+    cfg.setProperty(Property.GC_CYCLE_START, "1");
+    cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
+    cfg.setProperty(Property.GC_PORT, "0");
+    cfg.setProperty(Property.TSERV_MAXMEM, "5K");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

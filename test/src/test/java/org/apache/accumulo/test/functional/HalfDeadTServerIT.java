@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -49,10 +48,8 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
-    siteConfig.put(Property.GENERAL_RPC_TIMEOUT.getKey(), "5s");
-    cfg.setSiteConfig(siteConfig);
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "5s");
     cfg.useMiniDFS(true);
   }
 

@@ -19,8 +19,6 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -66,11 +64,9 @@ public class RestartIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> props = new HashMap<String,String>();
-    props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
-    props.put(Property.GC_CYCLE_DELAY.getKey(), "1s");
-    props.put(Property.GC_CYCLE_START.getKey(), "1s");
-    cfg.setSiteConfig(props);
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
+    cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.useMiniDFS(true);
   }
 

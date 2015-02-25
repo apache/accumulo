@@ -19,7 +19,6 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -59,10 +58,8 @@ public class SplitIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TSERV_MAXMEM.getKey(), "5K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
-    cfg.setSiteConfig(siteConfig);
+    cfg.setProperty(Property.TSERV_MAXMEM, "5K");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "100ms");
   }
 
   @Override

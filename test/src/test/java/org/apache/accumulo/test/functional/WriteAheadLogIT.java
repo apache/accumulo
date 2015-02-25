@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
@@ -35,14 +32,12 @@ public class WriteAheadLogIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
-    siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");
-    siteConfig.put(Property.GC_CYCLE_START.getKey(), "1");
-    siteConfig.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "4s");
-    cfg.setSiteConfig(siteConfig);
+    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
+    cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
+    cfg.setProperty(Property.GC_CYCLE_START, "1");
+    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "4s");
     cfg.useMiniDFS(true);
   }
 
