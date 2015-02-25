@@ -78,7 +78,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
       final Mutation m = new Mutation(Long.toHexString(randomRow));
       m.put(new byte[0], new byte[0], values[table]);
       writers[table].addMutation(m);
-      if ((i % 10 * 1000) == 0) {
+      if (i % 10_000 == 0) {
         System.out.println("flushing");
         for (int w = 0; w < N; w++) {
           writers[w].flush();
