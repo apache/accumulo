@@ -205,7 +205,6 @@ service TabletClientService extends client.ClientService {
   
   list<ActiveScan> getActiveScans(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
   list<ActiveCompaction> getActiveCompactions(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
-  oneway void removeLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<string> filenames)
   list<string> getActiveLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials)
 }
 

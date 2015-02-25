@@ -161,6 +161,7 @@ class TabletGroupWatcher extends Daemon {
         List<Assignment> assigned = new ArrayList<Assignment>();
         List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
         Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
+        Map<TServerInstance, List<String>> logsForDeadServers = new TreeMap<>();
 
         MasterState masterState = master.getMasterState();
         int[] counts = new int[TabletState.values().length];
@@ -173,6 +174,7 @@ class TabletGroupWatcher extends Daemon {
           if (tls == null) {
             continue;
           }
+          Master.log.debug(store.name() + " location State: " + tls);
           // ignore entries for tables that do not exist in zookeeper
           if (TableManager.getInstance().getTableState(tls.extent.getTableId().toString()) == null)
             continue;
@@ -182,7 +184,7 @@ class TabletGroupWatcher extends Daemon {
 
           // Don't overwhelm the tablet servers with work
           if (unassigned.size() + unloaded > Master.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
-            flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
+            flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, unassigned);
             assignments.clear();
             assigned.clear();
             assignedToDeadServers.clear();
@@ -237,7 +239,7 @@ class TabletGroupWatcher extends Daemon {
                 assignedToDeadServers.add(tls);
                 if (server.equals(this.master.migrations.get(tls.extent)))
                   this.master.migrations.remove(tls.extent);
-                // log.info("Current servers " + currentTServers.keySet());
+                MetadataTableUtil.fetchLogsForDeadServer(master, master.getMasterLock(), tls.extent, tls.futureOrCurrent(), logsForDeadServers);
                 break;
               case UNASSIGNED:
                 // maybe it's a finishing migration
@@ -266,7 +268,7 @@ class TabletGroupWatcher extends Daemon {
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
                 assignedToDeadServers.add(tls);
-                // log.info("Current servers " + currentTServers.keySet());
+                MetadataTableUtil.fetchLogsForDeadServer(master, master.getMasterLock(), tls.extent, tls.futureOrCurrent(), logsForDeadServers);
                 break;
               case HOSTED:
                 TServerConnection conn = this.master.tserverSet.getConnection(server);
@@ -285,7 +287,8 @@ class TabletGroupWatcher extends Daemon {
           counts[state.ordinal()]++;
         }
 
-        flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
+        flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, unassigned);
+        store.markLogsAsUnused(master, logsForDeadServers);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(masterState);
@@ -723,12 +726,19 @@ class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers, List<Assignment> assignments, List<Assignment> assigned,
-      List<TabletLocationState> assignedToDeadServers, Map<KeyExtent,TServerInstance> unassigned) throws DistributedStoreException, TException {
+  private void flushChanges(
+      SortedMap<TServerInstance,TabletServerStatus> currentTServers,
+      List<Assignment> assignments,
+      List<Assignment> assigned,
+      List<TabletLocationState> assignedToDeadServers,
+      Map<TServerInstance, List<String>> logsForDeadServers,
+      Map<KeyExtent,TServerInstance> unassigned)
+          throws DistributedStoreException, TException {
     if (!assignedToDeadServers.isEmpty()) {
       int maxServersToShow = min(assignedToDeadServers.size(), 100);
       Master.log.debug(assignedToDeadServers.size() + " assigned to dead servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
-      store.unassign(assignedToDeadServers);
+      Master.log.debug("logs for dead servers: " + logsForDeadServers);
+      store.unassign(assignedToDeadServers, logsForDeadServers);
       this.master.nextEvent.event("Marked %d tablets as unassigned because they don't have current servers", assignedToDeadServers.size());
     }
 

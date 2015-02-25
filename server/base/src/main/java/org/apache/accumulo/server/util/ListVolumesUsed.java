@@ -61,9 +61,6 @@ public class ListVolumesUsed {
 
   private static void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
     volumes.add(getLogURI(logEntry.filename));
-    for (String logSet : logEntry.logSet) {
-      volumes.add(getLogURI(logSet));
-    }
   }
 
   private static void listZookeeper() throws Exception {

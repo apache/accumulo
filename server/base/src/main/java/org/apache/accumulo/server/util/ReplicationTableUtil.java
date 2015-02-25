@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -176,20 +175,14 @@ public class ReplicationTableUtil {
   /**
    * Write replication ingest entries for each provided file with the given {@link Status}.
    */
-  public static void updateFiles(ClientContext context, KeyExtent extent, Collection<String> files, Status stat) {
+  public static void updateFiles(ClientContext context, KeyExtent extent, String file, Status stat) {
     if (log.isDebugEnabled()) {
-      log.debug("Updating replication status for " + extent + " with " + files + " using " + ProtobufUtil.toString(stat));
+      log.debug("Updating replication status for " + extent + " with " + file + " using " + ProtobufUtil.toString(stat));
     }
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
-    if (files.isEmpty()) {
-      return;
-    }
 
     Value v = ProtobufUtil.toValue(stat);
-    for (String file : files) {
-      // TODO Can preclude this addition if the extent is for a table we don't need to replicate
-      update(context, createUpdateMutation(new Path(file), v, extent), extent);
-    }
+    update(context, createUpdateMutation(new Path(file), v, extent), extent);
   }
 
   static Mutation createUpdateMutation(Path file, Value v, KeyExtent extent) {

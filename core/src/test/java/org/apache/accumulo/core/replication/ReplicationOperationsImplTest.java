@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.replication;
 
-import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -263,13 +262,7 @@ public class ReplicationOperationsImplTest {
     bw.addMutation(m);
     bw.close();
 
-    LogEntry logEntry = new LogEntry();
-    logEntry.extent = new KeyExtent(new Text(tableId1), null, null);
-    logEntry.server = "tserver";
-    logEntry.filename = file1;
-    logEntry.tabletId = 1;
-    logEntry.logSet = Arrays.asList(file1);
-    logEntry.timestamp = System.currentTimeMillis();
+    LogEntry logEntry = new LogEntry(new KeyExtent(new Text(tableId1), null, null), System.currentTimeMillis(), "tserver", file1);
 
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);

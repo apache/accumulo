@@ -181,7 +181,7 @@ public class RootTabletStateStoreTest {
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
-    tstore.unassign(Collections.singletonList(assigned));
+    tstore.unassign(Collections.singletonList(assigned), null);
     count = 0;
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
@@ -209,7 +209,7 @@ public class RootTabletStateStoreTest {
       fail("Unexpected error " + e);
     }
     try {
-      tstore.unassign(Collections.singletonList(broken));
+      tstore.unassign(Collections.singletonList(broken), null);
       Assert.fail("should not get here");
     } catch (IllegalArgumentException ex) {}
   }

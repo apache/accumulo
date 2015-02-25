@@ -21,11 +21,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
 
@@ -84,10 +88,9 @@ public class ZooTabletStateStore extends TabletStateStore {
           for (String entry : store.getChildren(RootTable.ZROOT_TABLET_WALOGS)) {
             byte[] logInfo = store.get(RootTable.ZROOT_TABLET_WALOGS + "/" + entry);
             if (logInfo != null) {
-              LogEntry logEntry = new LogEntry();
-              logEntry.fromBytes(logInfo);
-              logs.add(logEntry.logSet);
-              log.debug("root tablet logSet " + logEntry.logSet);
+              LogEntry logEntry = LogEntry.fromBytes(logInfo);
+              logs.add(Collections.singleton(logEntry.filename));
+              log.debug("root tablet log " + logEntry.filename);
             }
           }
           TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession, currentSession, lastSession, logs, false);
@@ -160,12 +163,28 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<String>> logsForDeadServers) throws DistributedStoreException {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
     if (tls.extent.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
+    if (logsForDeadServers != null) {
+      List<String> logs = logsForDeadServers.get(tls.futureOrCurrent());
+      if (logs != null) {
+        for (String entry : logs) {
+          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(), tls.futureOrCurrent().getLocation().toString(), entry);
+          byte[] value;
+          try {
+            value = logEntry.toBytes();
+          } catch (IOException ex) {
+            throw new DistributedStoreException(ex);
+          }
+          store.put(RootTable.ZROOT_TABLET_WALOGS + "/" + logEntry.getUniqueID(), value);
+          store.remove(RootTable.ZROOT_TABLET_CURRENT_LOGS + "/" + MetadataSchema.CurrentLogsSection.getRowPrefix() + tls.current.toString() + logEntry.getUniqueID());
+        }
+      }
+    }
     store.remove(RootTable.ZROOT_TABLET_LOCATION);
     store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("unassign root tablet location");
@@ -174,6 +193,10 @@ public class ZooTabletStateStore extends TabletStateStore {
   @Override
   public String name() {
     return "Root Table";
+  }
+
+  @Override
+  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<String>> logs) {
   }
 
 }

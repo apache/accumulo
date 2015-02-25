@@ -18,6 +18,8 @@ package org.apache.accumulo.server.master.state;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.server.AccumuloServerContext;
 
@@ -56,10 +58,12 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    *
    * @param tablets
    *          the tablets' current information
+   * @param logsForDeadServers
+   *          a cache of logs in use by servers when they died
    */
-  abstract public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException;
+  abstract public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<String>> logsForDeadServers) throws DistributedStoreException;
 
-  public static void unassign(AccumuloServerContext context, TabletLocationState tls) throws DistributedStoreException {
+  public static void unassign(AccumuloServerContext context, TabletLocationState tls, Map<TServerInstance, List<String>> logsForDeadServers) throws DistributedStoreException {
     TabletStateStore store;
     if (tls.extent.isRootTablet()) {
       store = new ZooTabletStateStore();
@@ -68,7 +72,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     } else {
       store = new MetaDataStateStore(context);
     }
-    store.unassign(Collections.singletonList(tls));
+    store.unassign(Collections.singletonList(tls), logsForDeadServers);
   }
 
   public static void setLocation(AccumuloServerContext context, Assignment assignment) throws DistributedStoreException {
@@ -82,5 +86,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     }
     store.setLocations(Collections.singletonList(assignment));
   }
+
+  abstract public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance, List<String>> logs) throws DistributedStoreException;
 
 }

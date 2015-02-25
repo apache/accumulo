@@ -17,6 +17,9 @@
 package org.apache.accumulo.server.master.state;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -27,7 +30,9 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.hadoop.io.Text;
 
 public class MetaDataStateStore extends TabletStateStore {
 
@@ -59,7 +64,7 @@ public class MetaDataStateStore extends TabletStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state);
+    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state, targetTableName);
   }
 
   @Override
@@ -116,7 +121,7 @@ public class MetaDataStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<String>> logsForDeadServers) throws DistributedStoreException {
 
     BatchWriter writer = createBatchWriter();
     try {
@@ -127,6 +132,15 @@ public class MetaDataStateStore extends TabletStateStore {
         }
         if (tls.future != null) {
           tls.future.clearFutureLocation(m);
+        }
+        if (logsForDeadServers != null) {
+          List<String> logs = logsForDeadServers.get(tls.futureOrCurrent());
+          if (logs != null) {
+            for (String log : logs) {
+              LogEntry entry = new LogEntry(tls.extent, 0, tls.futureOrCurrent().hostPort(), log);
+              m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
+            }
+          }
         }
         writer.addMutation(m);
       }
@@ -144,5 +158,27 @@ public class MetaDataStateStore extends TabletStateStore {
   @Override
   public String name() {
     return "Normal Tablets";
+  }
+
+  @Override
+  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<String>> logs) throws DistributedStoreException {
+    BatchWriter writer = createBatchWriter();
+    try {
+      for (Entry<TServerInstance,List<String>> entry : logs.entrySet()) {
+        Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
+        for (String log : entry.getValue()) {
+          m.put(MetadataSchema.CurrentLogsSection.COLF, new Text(log), MetadataSchema.CurrentLogsSection.UNUSED);
+        }
+        writer.addMutation(m);
+      }
+    } catch (Exception ex) {
+      throw new DistributedStoreException(ex);
+    } finally {
+      try {
+        writer.close();
+      } catch (MutationsRejectedException e) {
+        throw new DistributedStoreException(e);
+      }
+    }
   }
 }

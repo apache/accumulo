@@ -201,10 +201,10 @@ public class ExamplesIT extends AccumuloClusterIT {
     Entry<Integer,String> entry = getClusterControl().execWithStdout(
         Ingest.class,
         new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable", dataTable,
-            "--vis", visibility, "--chunkSize", Integer.toString(10000), getUsableDir()});
+            "--vis", visibility, "--chunkSize", Integer.toString(10000), System.getProperty("user.dir") + "/src/test"});
     assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0, entry.getKey().intValue());
     entry = getClusterControl().execWithStdout(QueryUtil.class,
-        new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path", "accumulo-site.xml"});
+        new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path", "log4j.properties"});
     if (ClusterType.MINI == getClusterType()) {
       MiniAccumuloClusterImpl impl = (MiniAccumuloClusterImpl) cluster;
       for (LogWriter writer : impl.getLogWriters()) {
@@ -214,7 +214,7 @@ public class ExamplesIT extends AccumuloClusterIT {
 
     log.info("result " + entry.getValue());
     assertEquals(0, entry.getKey().intValue());
-    assertTrue(entry.getValue().contains("accumulo-site.xml"));
+    assertTrue(entry.getValue().contains("log4j.properties"));
   }
 
   @Test
