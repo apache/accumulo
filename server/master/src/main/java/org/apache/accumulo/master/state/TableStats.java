@@ -19,6 +19,7 @@ package org.apache.accumulo.master.state;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.Text;
 
@@ -27,6 +28,7 @@ public class TableStats {
   private Map<Text,TableCounts> next;
   private long startScan = 0;
   private long endScan = 0;
+  private MasterState state;
 
   public synchronized void begin() {
     next = new HashMap<Text,TableCounts>();
@@ -42,14 +44,19 @@ public class TableStats {
     counts.counts[state.ordinal()]++;
   }
 
-  public synchronized void end() {
+  public synchronized void end(MasterState state) {
     last = next;
     next = null;
     endScan = System.currentTimeMillis();
+    this.state = state;
   }
 
   public synchronized Map<Text,TableCounts> getLast() {
     return last;
+  }
+
+  public synchronized MasterState getLastMasterState() {
+    return state;
   }
 
   public synchronized TableCounts getLast(Text tableId) {

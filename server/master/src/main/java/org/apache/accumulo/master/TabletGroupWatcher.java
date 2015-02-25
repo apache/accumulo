@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -94,6 +95,7 @@ class TabletGroupWatcher extends Daemon {
   private final Master master;
   final TabletStateStore store;
   final TabletGroupWatcher dependentWatcher;
+  private MasterState masterState;
 
   final TableStats stats = new TableStats();
 
@@ -105,6 +107,11 @@ class TabletGroupWatcher extends Daemon {
 
   Map<Text,TableCounts> getStats() {
     return stats.getLast();
+  }
+
+  // returns the master state under which stats were collected
+  MasterState statsState() {
+    return masterState;
   }
 
   TableCounts getStats(Text tableId) {
@@ -121,6 +128,7 @@ class TabletGroupWatcher extends Daemon {
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       UtilWaitThread.sleep(100);
+      masterState = master.getMasterState();
 
       int totalUnloaded = 0;
       int unloaded = 0;
@@ -154,6 +162,7 @@ class TabletGroupWatcher extends Daemon {
         List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
         Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
 
+        MasterState masterState = master.getMasterState();
         int[] counts = new int[TabletState.values().length];
         stats.begin();
         // Walk through the tablets in our store, and work tablets
@@ -279,7 +288,7 @@ class TabletGroupWatcher extends Daemon {
         flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
-        stats.end();
+        stats.end(masterState);
 
         // Report changes
         for (TabletState state : TabletState.values()) {

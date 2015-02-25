@@ -856,6 +856,28 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   private class StatusThread extends Daemon {
 
+    private boolean goodStats() {
+      int start;
+      switch (getMasterState()) {
+      case UNLOAD_METADATA_TABLETS:
+        start = 1;
+        break;
+      case UNLOAD_ROOT_TABLET:
+        start = 2;
+        break;
+      default:
+        start = 0;
+      }
+      for (int i = start; i < watchers.size(); i++) {
+        TabletGroupWatcher watcher = watchers.get(i);
+        if (watcher.stats.getLastMasterState() != getMasterState()) {
+          log.debug(watcher.getName() + ": " + watcher.stats.getLastMasterState() + " != " + getMasterState());
+          return false;
+        }
+      }
+      return true;
+    }
+
     @Override
     public void run() {
       setName("Status Thread");
@@ -883,27 +905,27 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
                 case SAFE_MODE: {
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
-                  if (count == 0)
+                  if (count == 0 && goodStats())
                     setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
-                  if (count == 0)
+                  if (count == 0 && goodStats())
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
                   break;
                 case UNLOAD_ROOT_TABLET: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
-                  if (count > 0) {
+                  if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   }
                   int root_count = assignedOrHosted(ROOT_TABLE_ID);
-                  if (root_count > 0)
+                  if (root_count > 0 && goodStats())
                     log.debug("The root tablet is still assigned or hosted");
-                  if (count + root_count == 0) {
+                  if (count + root_count == 0 && goodStats()) {
                     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                     log.debug("stopping " + currentServers.size() + " tablet servers");
                     for (TServerInstance server : currentServers) {
