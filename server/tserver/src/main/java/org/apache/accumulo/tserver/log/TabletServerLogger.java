@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,7 +38,9 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -73,8 +76,8 @@ public class TabletServerLogger {
 
   // The current logger
   private DfsLogger currentLog = null;
-  private DfsLogger nextLog = null;
-  private Thread nextLogThread = null;
+  private final AtomicReference<DfsLogger> nextLog = new AtomicReference<>(null);
+  private final ThreadPoolExecutor nextLogMaker = new SimpleThreadPool(1, "WALog creator");
 
   // The current generation of logs.
   // Because multiple threads can be using a log at one time, a log
@@ -194,16 +197,16 @@ public class TabletServerLogger {
     }
 
     try {
-      if (nextLog != null) {
-        log.info("Using next log " + nextLog.getFileName());
-        currentLog = nextLog;
-        nextLog = null;
+      DfsLogger next = nextLog.getAndSet(null);
+      if (next != null) {
+        log.info("Using next log " + next.getFileName());
+        currentLog = next;
       } else {
         DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
         alog.open(tserver.getClientAddressString());
         currentLog = alog;
       }
-      if (nextLog == null) {
+      if (nextLog.get() == null) {
         createNextLog();
       }
       logId.incrementAndGet();
@@ -217,31 +220,30 @@ public class TabletServerLogger {
     }
   }
 
+  // callers are synchronized already
   private void createNextLog() {
-    if (nextLogThread == null) {
-      nextLogThread = new Thread() {
+    if (nextLogMaker.getActiveCount() == 0) {
+      nextLogMaker.submit(new Runnable() {
         @Override
         public void run() {
           try {
-            log.info("Creating next WAL");
-            this.setName("Creating next WAL");
+            log.debug("Creating next WAL");
             DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
             for (Tablet tablet : tserver.getOnlineTablets()) {
-              // TODO
               tserver.addLoggersToMetadata(alog, tablet.getExtent());
             }
-            nextLog = alog;
-
-            log.info("Created next WAL " + alog.getFileName());
+            log.debug("Created next WAL " + alog.getFileName());
+            alog = nextLog.getAndSet(alog);
+            if (alog != null) {
+              log.debug("closing unused next log: " + alog.getFileName());
+              alog.close();
+            }
           } catch (Exception t) {
             log.error(t, t);
-          } finally {
-            nextLogThread = null;
           }
         }
-      };
-      nextLogThread.start();
+      });
     }
   }
 
@@ -317,7 +319,7 @@ public class TabletServerLogger {
               // Need to release
               KeyExtent extent = commitSession.getExtent();
               if (ReplicationConfigurationUtil.isEnabled(extent, tserver.getTableConfiguration(extent))) {
-                Status status = Status.newBuilder().setInfiniteEnd(true).setCreatedTime(System.currentTimeMillis()).build();
+                Status status = StatusUtil.fileCreated(System.currentTimeMillis());
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + copy.getFileName());
                 // Got some new WALs, note this in the metadata table
                 ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(), copy.getFileName(), status);

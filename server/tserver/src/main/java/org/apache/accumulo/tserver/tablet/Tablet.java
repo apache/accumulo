@@ -2377,6 +2377,7 @@ public class Tablet implements TabletCommitter {
 
   private ConcurrentSkipListSet<DfsLogger> currentLogs = new ConcurrentSkipListSet<DfsLogger>();
 
+  // currentLogs may be updated while a tablet is otherwise locked
   public Set<DfsLogger> getCurrentLogFiles() {
     return new HashSet<DfsLogger>(currentLogs);
   }

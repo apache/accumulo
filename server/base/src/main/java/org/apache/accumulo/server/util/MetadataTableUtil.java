@@ -89,6 +89,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -1067,7 +1068,7 @@ public class MetadataTableUtil {
         @Override
         public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
           String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
-          String[] parts = filename.split("/");
+          String[] parts = StringUtils.split(filename, '/');
           String uniqueId = parts[parts.length - 1];
           String path = root + "/" + CurrentLogsSection.getRowPrefix() + tabletSession.toString() + uniqueId;
           rw.putPersistentData(path, filename.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
@@ -1075,7 +1076,7 @@ public class MetadataTableUtil {
       });
     } else {
       Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + tabletSession.toString());
-      m.put("log", filename, new Value(EMPTY_BYTES));
+      m.put(CurrentLogsSection.COLF, new Text(filename), new Value(EMPTY_BYTES));
       String tableName = MetadataTable.NAME;
       if (extent.isMeta()) {
         tableName = RootTable.NAME;
@@ -1095,7 +1096,7 @@ public class MetadataTableUtil {
       @Override
       public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
         String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
-        String[] parts = filename.split("/");
+        String[] parts = StringUtils.split(filename, '/');
         String uniqueId = parts[parts.length - 1];
         String path = root + "/" + CurrentLogsSection.getRowPrefix() + tabletSession.toString() + uniqueId;
         log.debug("Removing entry " + path + " from zookeeper");

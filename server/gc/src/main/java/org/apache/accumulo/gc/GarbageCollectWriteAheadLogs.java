@@ -105,8 +105,8 @@ public class GarbageCollectWriteAheadLogs {
       LiveTServerSet liveServers = new LiveTServerSet(context, new Listener() {
         @Override
         public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
-          log.debug("New tablet server noticed: " + added);
-          log.debug("Tablet server removed: " + deleted);
+          log.debug("New tablet servers noticed: " + added);
+          log.debug("Tablet servers removed: " + deleted);
         }
       });
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();

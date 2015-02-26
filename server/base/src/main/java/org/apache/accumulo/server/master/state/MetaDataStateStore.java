@@ -33,8 +33,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class MetaDataStateStore extends TabletStateStore {
+  private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
 
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
@@ -172,6 +174,7 @@ public class MetaDataStateStore extends TabletStateStore {
         writer.addMutation(m);
       }
     } catch (Exception ex) {
+      log.error("Error marking logs as unused: " + logs);
       throw new DistributedStoreException(ex);
     } finally {
       try {

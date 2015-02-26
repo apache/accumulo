@@ -1715,6 +1715,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       String log = logger.getLogFile();
       return Collections.singletonList(log);
     }
+
+    @Override
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
+      log.warn("Garbage collector is attempting to remove logs through the tablet server");
+    }
   }
 
   private class SplitRunner implements Runnable {

@@ -43,9 +43,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class MetaDataTableScanner implements ClosableIterator<TabletLocationState> {
-  //private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
+  private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
 
   BatchScanner mdScanner = null;
   Iterator<Entry<Key,Value>> iter = null;
@@ -172,7 +173,9 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       }
     }
     if (extent == null) {
-      throw new BadLocationStateException("No prev-row for key extent " + decodedRow, k.getRow());
+      String msg = "No prev-row for key extent " + decodedRow;
+      log.error(msg);
+      throw new BadLocationStateException(msg, k.getRow());
     }
     return new TabletLocationState(extent, future, current, last, walogs, chopped);
   }

@@ -197,6 +197,7 @@ public class ZooTabletStateStore extends TabletStateStore {
 
   @Override
   public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<String>> logs) {
+    // the root table is not replicated, so unassigning the root tablet has removed the current log marker
   }
 
 }

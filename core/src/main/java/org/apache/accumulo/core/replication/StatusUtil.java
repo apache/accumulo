@@ -32,6 +32,7 @@ public class StatusUtil {
   private static final Value INF_END_REPLICATION_STATUS_VALUE, CLOSED_STATUS_VALUE;
 
   private static final Status.Builder CREATED_STATUS_BUILDER;
+  private static final Status.Builder INF_END_REPLICATION_STATUS_BUILDER;
 
   static {
     CREATED_STATUS_BUILDER = Status.newBuilder();
@@ -45,6 +46,7 @@ public class StatusUtil {
     builder.setEnd(0);
     builder.setInfiniteEnd(true);
     builder.setClosed(false);
+    INF_END_REPLICATION_STATUS_BUILDER = builder;
     INF_END_REPLICATION_STATUS = builder.build();
     INF_END_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(INF_END_REPLICATION_STATUS);
 
@@ -148,6 +150,13 @@ public class StatusUtil {
    */
   public static Value fileClosedValue() {
     return CLOSED_STATUS_VALUE;
+  }
+
+  /**
+   * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
+   */
+  public static Status openWithUnknownLength(long timeCreated) {
+    return INF_END_REPLICATION_STATUS_BUILDER.setCreatedTime(timeCreated).build();
   }
 
   /**

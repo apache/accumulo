@@ -87,6 +87,9 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     store.setLocations(Collections.singletonList(assignment));
   }
 
+  /**
+   * When a server fails, its logs must be marked as unused after the log markers are moved to the tablets.
+   */
   abstract public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance, List<String>> logs) throws DistributedStoreException;
 
 }
