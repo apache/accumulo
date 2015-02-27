@@ -465,6 +465,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (instanceName == null) {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
+    if (keepers == null) {
+      keepers = clientConfig.get(ClientProperty.INSTANCE_ZK_HOST);
+    }
     if (instanceName == null || keepers == null) {
       AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
       if (instanceName == null) {
