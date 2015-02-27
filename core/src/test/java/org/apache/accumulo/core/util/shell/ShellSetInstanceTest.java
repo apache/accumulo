@@ -167,6 +167,10 @@ public class ShellSetInstanceTest {
       expect(clientConf.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
     }
 
+    if (!onlyHosts) {
+      expect(clientConf.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn(null);
+    }
+
     mockStatic(ConfigSanityCheck.class);
     ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
     expectLastCall().atLeastOnce();
