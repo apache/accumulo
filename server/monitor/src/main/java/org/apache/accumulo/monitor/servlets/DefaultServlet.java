@@ -258,7 +258,7 @@ public class DefaultServlet extends BasicServlet {
           try {
             // Calculate the amount of space used by Accumulo on the FileSystem
             ContentSummary accumuloSummary = fs.getContentSummary(basePath);
-            long bytesUsedByAcuOnFs = accumuloSummary.getSpaceConsumed();
+            long bytesUsedByAcuOnFs = accumuloSummary.getLength();
             totalAcuBytesUsed += bytesUsedByAcuOnFs;
 
             // Catch the overflow -- this is big data
@@ -270,7 +270,7 @@ public class DefaultServlet extends BasicServlet {
 
             // Calculate the total amount of space used on the FileSystem
             ContentSummary volumeSummary = fs.getContentSummary(new Path("/"));
-            long bytesUsedOnVolume = volumeSummary.getSpaceConsumed();
+            long bytesUsedOnVolume = volumeSummary.getLength();
             totalHdfsBytesUsed += bytesUsedOnVolume;
 
             // Catch the overflow -- this is big data
