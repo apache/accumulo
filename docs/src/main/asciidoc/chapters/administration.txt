@@ -549,9 +549,9 @@ DistributedTrace.disable();
 Once tracing has been enabled, a client can wrap an operation in a trace.
 
 [source,java]
-import org.htrace.Sampler;
-import org.htrace.Trace;
-import org.htrace.TraceScope;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 ...
 TraceScope scope = Trace.startSpan("Client Scan", Sampler.ALWAYS);
 BatchScanner scanner = conn.createBatchScanner(...);
@@ -601,9 +601,10 @@ operations for tracing. As seen below, the CountSampler can be used to
 help enable tracing for 1-in-1000 operations
 
 [source,java]
-import org.htrace.impl.CountSampler;
+import org.apache.htrace.impl.CountSampler;
 ...
-Sampler sampler = new CountSampler(1000);
+Sampler sampler = new CountSampler(HTraceConfiguration.fromMap(
+    Collections.singletonMap(CountSampler.SAMPLER_FREQUENCY_CONF_KEY, "1000")));
 ...
 TraceScope readScope = Trace.startSpan("Read", sampler);
 ...
