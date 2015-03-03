@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.servlets.trace;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -71,12 +73,22 @@ abstract class Basic extends BasicServlet {
 
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+    final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
     String principal = conf.get(Property.TRACE_USER);
     AuthenticationToken at;
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     if (loginMap.isEmpty()) {
-      Property p = Property.TRACE_PASSWORD;
-      at = new PasswordToken(conf.get(p).getBytes(UTF_8));
+      if (saslEnabled) {
+        try {
+          at = new KerberosToken();
+        } catch (IOException e) {
+          throw new AccumuloException("Failed to create KerberosToken", e);
+        }
+        principal = SecurityUtil.getServerPrincipal(principal);
+      } else {
+        Property p = Property.TRACE_PASSWORD;
+        at = new PasswordToken(conf.get(p).getBytes(UTF_8));
+      }
     } else {
       Properties props = new Properties();
       int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
@@ -87,10 +99,6 @@ abstract class Basic extends BasicServlet {
       AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
       token.init(props);
       at = token;
-    }
-
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      principal = SecurityUtil.getServerPrincipal(principal);
     }
 
     String table = conf.get(Property.TRACE_TABLE);
