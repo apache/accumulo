@@ -70,7 +70,8 @@ public class KerberosToken implements AuthenticationToken {
     Preconditions.checkNotNull(principal, "Principal was null");
     Preconditions.checkNotNull(keytab, "Keytab was null");
     Preconditions.checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
-    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
+    UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
     this.principal = ugi.getUserName();
     this.keytab = keytab;
   }

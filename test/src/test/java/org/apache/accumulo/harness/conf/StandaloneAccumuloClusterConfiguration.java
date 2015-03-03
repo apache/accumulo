@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness.conf;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,6 +63,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   public static final String ACCUMULO_STANDALONE_USER_KEY = ACCUMULO_STANDALONE_PREFIX + "users.";
   // Keytabs for the users
   public static final String ACCUMULO_STANDALONE_USER_KEYTABS_KEY = ACCUMULO_STANDALONE_PREFIX + "keytabs.";
+  // Passwords for the users
+  public static final String ACCUMULO_STANDALONE_USER_PASSWORDS_KEY = ACCUMULO_STANDALONE_PREFIX + "password.";
 
   public static final String ACCUMULO_STANDALONE_HOME = ACCUMULO_STANDALONE_PREFIX + "home";
   public static final String ACCUMULO_STANDALONE_CONF = ACCUMULO_STANDALONE_PREFIX + "conf";
@@ -101,7 +105,15 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
         String suffix = key.substring(ACCUMULO_STANDALONE_USER_KEY.length());
         String keytab = conf.get(ACCUMULO_STANDALONE_USER_KEYTABS_KEY + suffix);
         if (null != keytab) {
-          clusterUsers.add(new ClusterUser(entry.getValue(), keytab));
+          File keytabFile = new File(keytab);
+          assertTrue("Keytab doesn't exist: " + keytabFile, keytabFile.exists() && keytabFile.isFile());
+          clusterUsers.add(new ClusterUser(entry.getValue(), keytabFile));
+        } else {
+          String password = conf.get(ACCUMULO_STANDALONE_USER_PASSWORDS_KEY + suffix);
+          if (null == password) {
+            throw new IllegalArgumentException("Missing password or keytab configuration for user with offset " + suffix);
+          }
+          clusterUsers.add(new ClusterUser(entry.getValue(), password));
         }
       }
     }

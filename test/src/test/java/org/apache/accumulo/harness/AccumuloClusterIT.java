@@ -305,7 +305,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
       return cluster.getConnector(princ, token);
     } catch (Exception e) {
       log.error("Could not connect to Accumulo", e);
-      fail("Could not connect to Accumulo");
+      fail("Could not connect to Accumulo: " + e.getMessage());
 
       throw new RuntimeException("Could not connect to Accumulo", e);
     }

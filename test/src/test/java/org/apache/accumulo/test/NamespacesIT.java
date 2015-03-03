@@ -106,6 +106,9 @@ public class NamespacesIT extends AccumuloClusterIT {
 
   @After
   public void swingMjölnir() throws Exception {
+    if (null == c) {
+      return;
+    }
     // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list())
       if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))

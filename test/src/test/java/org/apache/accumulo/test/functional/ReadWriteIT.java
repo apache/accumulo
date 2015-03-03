@@ -25,8 +25,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -39,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -72,6 +75,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -370,7 +374,17 @@ public class ReadWriteIT extends AccumuloClusterIT {
       PrintStream oldOut = System.out;
       try {
         System.setOut(newOut);
-        PrintInfo.main(new String[] {entry.getKey().getColumnQualifier().toString()});
+        List<String> args = new ArrayList<>();
+        args.add(entry.getKey().getColumnQualifier().toString());
+        if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          args.add("--config");
+          StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
+          String hadoopConfDir = sac.getHadoopConfDir();
+          args.add(new Path(hadoopConfDir, "core-site.xml").toString());
+          args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
+        }
+        log.info("Invoking PrintInfo with " + args);
+        PrintInfo.main(args.toArray(new String[args.size()]));
         newOut.flush();
         String stdout = baos.toString();
         assertTrue(stdout.contains("Locality group         : g1"));

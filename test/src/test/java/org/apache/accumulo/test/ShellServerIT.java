@@ -64,7 +64,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.test.UserCompactionStrategyIT.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;

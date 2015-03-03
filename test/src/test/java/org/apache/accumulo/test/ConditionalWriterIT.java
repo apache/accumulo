@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -91,6 +92,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -111,6 +113,18 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     if (l < 0)
       return 0;
     return l;
+  }
+
+  @Before
+  public void deleteUsers() throws Exception {
+    Connector conn = getConnector();
+    Set<String> users = conn.securityOperations().listLocalUsers();
+    for (int i = 0; i < 5; i++) {
+      ClusterUser user = getUser(i);
+      if (users.contains(user.getPrincipal())) {
+        conn.securityOperations().dropLocalUser(user.getPrincipal());
+      }
+    }
   }
 
   @Test
@@ -1054,6 +1068,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     ClientConfiguration clientConf = cluster.getClientConfig();
     final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
 
+    // Create a new user
     ClusterUser user1 = getUser(0);
     user = user1.getPrincipal();
     if (saslEnabled) {
@@ -1065,15 +1080,18 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     String[] tables = getUniqueNames(3);
     String table1 = tables[0], table2 = tables[1], table3 = tables[2];
 
+    // Create three tables
     conn.tableOperations().create(table1);
     conn.tableOperations().create(table2);
     conn.tableOperations().create(table3);
 
+    // Grant R on table1, W on table2, R/W on table3
     conn.securityOperations().grantTablePermission(user, table1, TablePermission.READ);
     conn.securityOperations().grantTablePermission(user, table2, TablePermission.WRITE);
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.READ);
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
 
+    // Login as the user
     Connector conn2 = conn.getInstance().getConnector(user, user1.getToken());
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
@@ -1084,8 +1102,10 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     ConditionalWriter cw2 = conn2.createConditionalWriter(table2, new ConditionalWriterConfig());
     ConditionalWriter cw3 = conn2.createConditionalWriter(table3, new ConditionalWriterConfig());
 
+    // Should be able to conditional-update a table we have R/W on
     Assert.assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
+    // Conditional-update to a table we only have read on should fail
     try {
       Status status = cw1.write(cm1).getStatus();
       Assert.fail("Expected exception writing conditional mutation to table the user doesn't have write access to, Got status: " + status);
@@ -1093,6 +1113,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     }
 
+    // Conditional-update to a table we only have writer on should fail
     try {
       Status status = cw2.write(cm1).getStatus();
       Assert.fail("Expected exception writing conditional mutation to table the user doesn't have read access to. Got status: " + status);
