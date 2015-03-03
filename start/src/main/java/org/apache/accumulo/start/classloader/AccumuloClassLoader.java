@@ -62,13 +62,6 @@ public class AccumuloClassLoader {
           "$HADOOP_PREFIX/share/hadoop/mapreduce/[^.].*.jar,\n" +
           "$HADOOP_PREFIX/share/hadoop/yarn/[^.].*.jar,\n" +
           "$HADOOP_PREFIX/share/hadoop/yarn/lib/jersey.*.jar,\n" +
-          "/usr/hdp/current/hadoop-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-client/lib/(?!slf4j)[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-hdfs-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-mapreduce-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-yarn-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,\n" +
-          "/usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar\n" +
           "/usr/lib/hadoop/[^.].*.jar,\n" +
           "/usr/lib/hadoop/lib/[^.].*.jar,\n" +
           "/usr/lib/hadoop-hdfs/[^.].*.jar,\n" +
