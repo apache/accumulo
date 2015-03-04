@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.security.tokens;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
@@ -40,6 +41,7 @@ public class KerberosToken implements AuthenticationToken {
   private static final int VERSION = 1;
 
   private String principal;
+  private File keytab;
 
   /**
    * Creates a token using the provided principal and the currently logged-in user via {@link UserGroupInformation}.
@@ -53,6 +55,24 @@ public class KerberosToken implements AuthenticationToken {
     Preconditions.checkArgument(ugi.hasKerberosCredentials(), "Subject is not logged in via Kerberos");
     Preconditions.checkArgument(principal.equals(ugi.getUserName()), "Provided principal does not match currently logged-in user");
     this.principal = ugi.getUserName();
+  }
+
+  /**
+   * Creates a token and logs in via {@link UserGroupInformation} using the provided principal and keytab. A key for the principal must exist in the keytab,
+   * otherwise login will fail.
+   *
+   * @param principal
+   *          The Kerberos principal
+   * @param keytab
+   *          A keytab file
+   */
+  public KerberosToken(String principal, File keytab) throws IOException {
+    Preconditions.checkNotNull(principal, "Principal was null");
+    Preconditions.checkNotNull(keytab, "Keytab was null");
+    Preconditions.checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
+    this.principal = ugi.getUserName();
+    this.keytab = keytab;
   }
 
   /**
@@ -94,6 +114,13 @@ public class KerberosToken implements AuthenticationToken {
    */
   public String getPrincipal() {
     return principal;
+  }
+
+  /**
+   * The keytab file used to perform Kerberos login. Optional, may be null.
+   */
+  public File getKeytab() {
+    return keytab;
   }
 
   @Override

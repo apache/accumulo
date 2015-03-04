@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 /**
  * A lexicoder for an unsigned integer. It sorts 0 before -1 and does not preserve the native sort order of a Java integer because Java does not contain an
  * unsigned integer. If Java had an unsigned integer type, this would correspond to its sort order.
  *
  * @since 1.6.0
  */
-public class UIntegerLexicoder implements Lexicoder<Integer> {
+public class UIntegerLexicoder extends AbstractLexicoder<Integer> implements Lexicoder<Integer> {
 
   @Override
   public byte[] encode(Integer i) {
@@ -52,22 +54,22 @@ public class UIntegerLexicoder implements Lexicoder<Integer> {
   }
 
   @Override
-  public Integer decode(byte[] data) {
+  protected Integer decodeUnchecked(byte[] data, int offset, int len) {
 
-    if (data[0] < 0 || data[0] > 8)
-      throw new IllegalArgumentException("Unexpected length " + (0xff & data[0]));
+    if (data[offset] < 0 || data[offset] > 8)
+      throw new IllegalArgumentException("Unexpected length " + (0xff & data[offset]));
 
     int i = 0;
     int shift = 0;
 
-    for (int idx = data.length - 1; idx >= 1; idx--) {
+    for (int idx = (offset + len) - 1; idx >= offset + 1; idx--) {
       i += (data[idx] & 0xffl) << shift;
       shift += 8;
     }
 
     // fill in 0xff prefix
-    if (data[0] > 4)
-      i |= -1 << ((8 - data[0]) << 3);
+    if (data[offset] > 4)
+      i |= -1 << ((8 - data[offset]) << 3);
 
     return i;
   }

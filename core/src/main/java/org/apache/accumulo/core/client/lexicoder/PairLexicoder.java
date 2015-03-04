@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.util.ComparablePair;
+
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.concat;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.split;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
-
-import org.apache.accumulo.core.util.ComparablePair;
 
 /**
  * This class is a lexicoder that sorts a ComparablePair. Each item in the pair is encoded with the given lexicoder and concatenated together. This makes it
@@ -48,7 +49,7 @@ import org.apache.accumulo.core.util.ComparablePair;
  * @since 1.6.0
  */
 
-public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> implements Lexicoder<ComparablePair<A,B>> {
+public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> extends AbstractLexicoder<ComparablePair<A,B>> implements Lexicoder<ComparablePair<A,B>> {
 
   private Lexicoder<A> firstLexicoder;
   private Lexicoder<B> secondLexicoder;
@@ -64,9 +65,9 @@ public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> impl
   }
 
   @Override
-  public ComparablePair<A,B> decode(byte[] data) {
+  protected ComparablePair<A,B> decodeUnchecked(byte[] data, int offset, int len) {
 
-    byte[][] fields = split(data);
+    byte[][] fields = split(data, offset, len);
     if (fields.length != 2) {
       throw new RuntimeException("Data does not have 2 fields, it has " + fields.length);
     }

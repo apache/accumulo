@@ -83,7 +83,7 @@ public class SplitRecoveryIT extends AccumuloClusterIT {
         UtilWaitThread.sleep(200);
 
       // poke a partial split into the metadata table
-      connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+      connector.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME, TablePermission.WRITE);
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
 
       KeyExtent extent = new KeyExtent(new Text(tableId), null, new Text("b"));

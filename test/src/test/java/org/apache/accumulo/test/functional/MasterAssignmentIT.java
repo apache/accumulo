@@ -90,7 +90,7 @@ public class MasterAssignmentIT extends AccumuloClusterIT {
   }
 
   private TabletLocationState getTabletLocationState(Connector c, String tableId) throws FileNotFoundException, ConfigurationException {
-    Credentials creds = new Credentials(getPrincipal(), getToken());
+    Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     ClientContext context = new ClientContext(c.getInstance(), creds, getCluster().getClientConfig());
     MetaDataTableScanner s = new MetaDataTableScanner(context, new Range(KeyExtent.getMetadataEntry(new Text(tableId), null)));
     TabletLocationState tlState = s.next();

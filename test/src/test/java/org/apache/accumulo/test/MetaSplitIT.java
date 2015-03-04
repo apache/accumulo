@@ -23,55 +23,19 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.harness.AccumuloIT;
-import org.apache.accumulo.harness.MiniClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-public class MetaSplitIT extends AccumuloIT {
-
-  private MiniAccumuloClusterImpl cluster;
+public class MetaSplitIT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {
     return 3 * 60;
-  }
-
-  @Before
-  public void startMiniCluster() throws Exception {
-    MiniClusterHarness harness = new MiniClusterHarness();
-    cluster = harness.create(getToken());
-    cluster.getConfig().setNumTservers(1);
-    cluster.start();
-  }
-
-  @After
-  public void stopMiniCluster() throws Exception {
-    if (null != cluster) {
-      cluster.stop();
-    }
-  }
-
-  private Connector getConnector() {
-    try {
-      return cluster.getConnector("root", getToken());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private AuthenticationToken getToken() {
-    return new PasswordToken("rootPassword1");
   }
 
   @Test(expected = AccumuloException.class)

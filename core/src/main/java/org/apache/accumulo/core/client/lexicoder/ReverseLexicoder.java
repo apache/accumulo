@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
 
@@ -27,7 +29,7 @@ import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
  * @since 1.6.0
  */
 
-public class ReverseLexicoder<T> implements Lexicoder<T> {
+public class ReverseLexicoder<T> extends AbstractLexicoder<T> implements Lexicoder<T> {
 
   private Lexicoder<T> lexicoder;
 
@@ -53,11 +55,14 @@ public class ReverseLexicoder<T> implements Lexicoder<T> {
   }
 
   @Override
-  public T decode(byte[] data) {
-    byte ret[] = new byte[data.length - 1];
+  protected T decodeUnchecked(byte[] data, int offset, int len) {
+    byte ret[] = new byte[len - 1];
 
-    for (int i = 0; i < ret.length; i++)
-      ret[i] = (byte) (0xff - (0xff & data[i]));
+    int dataIndex;
+    for (int i = 0; i < ret.length; i++) {
+      dataIndex = offset + i;
+      ret[i] = (byte) (0xff - (0xff & data[dataIndex]));
+    }
 
     return lexicoder.decode(unescape(ret));
   }

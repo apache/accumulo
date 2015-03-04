@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class BloomFilterIT extends AccumuloClusterIT {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setDefaultMemory(1, MemoryUnit.GIGABYTE);
     cfg.setNumTservers(1);
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10M");
     cfg.setSiteConfig(siteConfig);
   }

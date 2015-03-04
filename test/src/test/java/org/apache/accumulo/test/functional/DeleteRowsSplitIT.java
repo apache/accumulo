@@ -28,6 +28,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -64,15 +65,16 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = getUniqueNames(1)[0];
+    final Connector conn = getConnector();
 
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {
       // create a table
       log.info("Test " + test);
-      getConnector().tableOperations().create(tableName);
+      conn.tableOperations().create(tableName);
 
       // put some data in it
-      fillTable(tableName);
+      fillTable(conn, tableName);
 
       // generate a random delete range
       final Text start = new Text();
@@ -87,7 +89,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
           try {
             // split the table
             final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end.toString() + "\0"));
-            getConnector().tableOperations().addSplits(tableName, afterEnd);
+            conn.tableOperations().addSplits(tableName, afterEnd);
           } catch (Exception ex) {
             log.error(ex, ex);
             synchronized (fail) {
@@ -100,7 +102,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
 
       UtilWaitThread.sleep(test * 2);
 
-      getConnector().tableOperations().deleteRows(tableName, start, end);
+      conn.tableOperations().deleteRows(tableName, start, end);
 
       t.join();
       synchronized (fail) {
@@ -108,14 +110,14 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
       }
 
       // scan the table
-      Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
+      Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
       for (Entry<Key,Value> entry : scanner) {
         Text row = entry.getKey().getRow();
         assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
       }
 
       // delete the table
-      getConnector().tableOperations().delete(tableName);
+      conn.tableOperations().delete(tableName);
     }
   }
 
@@ -132,8 +134,8 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
 
   }
 
-  private void fillTable(String table) throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
+  private void fillTable(Connector conn, String table) throws Exception {
+    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     for (String row : ROWS) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "value");

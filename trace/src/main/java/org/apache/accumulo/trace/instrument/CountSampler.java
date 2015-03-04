@@ -21,7 +21,7 @@ import org.apache.htrace.HTraceConfiguration;
 import java.util.Collections;
 
 /**
- * @deprecated since 1.7, use org.htrace.impl.CountSampler instead
+ * @deprecated since 1.7, use org.apache.htrace.impl.CountSampler instead
  */
 @Deprecated
 public class CountSampler extends org.apache.htrace.impl.CountSampler implements Sampler {

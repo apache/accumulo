@@ -115,7 +115,7 @@ public class ReplicationIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run the master replication loop run frequently
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
@@ -1335,7 +1335,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     if (notFound) {
       s = ReplicationTable.getScanner(conn);
       for (Entry<Key,Value> content : s) {
-        log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
+        log.info(content.getKey().toStringNoTruncate() + " => " + ProtobufUtil.toString(Status.parseFrom(content.getValue().get())));
       }
       Assert.assertFalse("Did not find the work entry for the status entry", notFound);
     }

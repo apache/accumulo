@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Connector;
@@ -36,7 +35,7 @@ public class BigRootTabletIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "60m");
     cfg.setSiteConfig(siteConfig);

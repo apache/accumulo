@@ -39,6 +39,7 @@ import javax.crypto.KeyGenerator;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -313,6 +314,29 @@ public class ZooAuthenticationKeyWatcherTest {
     assertEquals(2, secretManager.getKeys().size());
     assertEquals(key1, secretManager.getKeys().get(key1.getKeyId()));
     assertEquals(key2, secretManager.getKeys().get(key2.getKeyId()));
+  }
+
+  @Test
+  public void missingKeyAfterGetChildren() throws Exception {
+    List<String> children = Arrays.asList("1");
+    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey());
+
+    expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
+    // We saw key1
+    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
+    // but it was gone when we tried to access it (master deleted it)
+    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null)).andThrow(new NoNodeException());
+
+    replay(zk, instance);
+
+    // Initialize
+    keyWatcher.updateAuthKeys();
+
+    verify(zk, instance);
+
+    // We should have no auth keys after initializing things
+    assertEquals("Secret manager should be empty after a disconnect", 0, secretManager.getKeys().size());
+    assertNull("Current key should be null", secretManager.getCurrentKey());
   }
 
   private byte[] serialize(AuthenticationKey key) throws IOException {

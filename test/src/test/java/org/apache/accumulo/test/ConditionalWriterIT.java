@@ -37,10 +37,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -196,14 +199,26 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
-    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
-    conn.securityOperations().createLocalUser(user, new PasswordToken("foo"));
+
+    String user= null;
+    ClientConfiguration clientConf = cluster.getClientConfig();
+    final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
+
+    ClusterUser user1 = getUser(0);
+    user = user1.getPrincipal();
+    if (saslEnabled) {
+      // The token is pointless for kerberos
+      conn.securityOperations().createLocalUser(user, null);
+    } else {
+      conn.securityOperations().createLocalUser(user, new PasswordToken(user1.getPassword()));
+    }
 
     Authorizations auths = new Authorizations("A", "B");
 
     conn.securityOperations().changeUserAuthorizations(user, auths);
     conn.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
-    conn = conn.getInstance().getConnector(user, new PasswordToken("foo"));
+
+    conn = conn.getInstance().getConnector(user, user1.getToken());
 
     conn.tableOperations().create(tableName);
 
@@ -288,7 +303,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     Authorizations auths = new Authorizations("A", "B");
 
-    conn.securityOperations().changeUserAuthorizations("root", auths);
+    conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), auths);
 
     Authorizations filteredAuths = new Authorizations("A");
 
@@ -514,7 +529,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     conn.tableOperations().create(tableName);
 
-    conn.securityOperations().changeUserAuthorizations("root", new Authorizations("A", "B"));
+    conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("A", "B"));
 
     ColumnVisibility cvab = new ColumnVisibility("A|B");
 
@@ -698,7 +713,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
     conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
 
-    conn.securityOperations().changeUserAuthorizations("root", new Authorizations("A", "B"));
+    conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("A", "B"));
 
     ColumnVisibility cvaob = new ColumnVisibility("A|B");
     ColumnVisibility cvaab = new ColumnVisibility("A&B");
@@ -1035,9 +1050,17 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     Connector conn = getConnector();
-    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
+    String user = null;
+    ClientConfiguration clientConf = cluster.getClientConfig();
+    final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
 
-    conn.securityOperations().createLocalUser(user, new PasswordToken("u1p"));
+    ClusterUser user1 = getUser(0);
+    user = user1.getPrincipal();
+    if (saslEnabled) {
+      conn.securityOperations().createLocalUser(user, null);
+    } else {
+      conn.securityOperations().createLocalUser(user, new PasswordToken(user1.getPassword()));
+    }
 
     String[] tables = getUniqueNames(3);
     String table1 = tables[0], table2 = tables[1], table3 = tables[2];
@@ -1051,7 +1074,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.READ);
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
 
-    Connector conn2 = getConnector().getInstance().getConnector(user, new PasswordToken("u1p"));
+    Connector conn2 = conn.getInstance().getConnector(user, user1.getToken());
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");

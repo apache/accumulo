@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -27,8 +26,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -38,6 +40,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,14 +54,14 @@ public class RestartStressIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = cfg.getSiteConfig();
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
     opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
     opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
     opts.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
     cfg.setSiteConfig(opts);
-    cfg.useMiniDFS(true);
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Override
@@ -88,12 +91,10 @@ public class RestartStressIT extends AccumuloClusterIT {
     }
   }
 
-  private static final TestIngest.Opts IOPTS;
   private static final VerifyIngest.Opts VOPTS;
   static {
-    IOPTS = new TestIngest.Opts();
     VOPTS = new VerifyIngest.Opts();
-    IOPTS.rows = VOPTS.rows = 10 * 1000;
+    VOPTS.rows = 10 * 1000;
   }
   private static final ScannerOpts SOPTS = new ScannerOpts();
 
@@ -101,17 +102,28 @@ public class RestartStressIT extends AccumuloClusterIT {
   public void test() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
-    final PasswordToken token = (PasswordToken) getToken();
+    final AuthenticationToken token = getAdminToken();
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
     final ClusterControl control = getCluster().getClusterControl();
+    final String[] args;
+    if (token instanceof PasswordToken) {
+      byte[] password = ((PasswordToken) token).getPassword();
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--rows", "" + VOPTS.rows, "--table", tableName};
+    } else if (token instanceof KerberosToken) {
+      ClusterUser rootUser = getAdminUser();
+      args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--rows", "" + VOPTS.rows, "--table", tableName};
+    } else {
+      throw new RuntimeException("Unrecognized token");
+    }
+
     Future<Integer> retCode = svc.submit(new Callable<Integer>() {
       @Override
       public Integer call() {
         try {
-          return control.exec(TestIngest.class,
-              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
-                  cluster.getZooKeepers(), "--rows", "" + IOPTS.rows, "--table", tableName});
+          return control.exec(TestIngest.class, args);
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -126,6 +138,15 @@ public class RestartStressIT extends AccumuloClusterIT {
     }
     assertEquals(0, retCode.get().intValue());
     VOPTS.setTableName(tableName);
+
+    if (token instanceof PasswordToken) {
+      VOPTS.setPrincipal(getAdminPrincipal());
+    } else if (token instanceof KerberosToken) {
+      VOPTS.updateKerberosCredentials(cluster.getClientConfig());
+    } else {
+      throw new RuntimeException("Unrecognized token");
+    }
+
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 

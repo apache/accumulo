@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
+
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -23,9 +26,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 
-import org.junit.Test;
-
-public class ReverseLexicoderTest extends LexicoderTest {
+public class ReverseLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     Comparator<Long> comp = Collections.reverseOrder();
     assertSortOrder(new ReverseLexicoder<Long>(new LongLexicoder()), comp, Arrays.asList(Long.MIN_VALUE, 0xff1234567890abcdl, 0xffff1234567890abl,
@@ -61,5 +62,13 @@ public class ReverseLexicoderTest extends LexicoderTest {
 
     System.out.println(date);
 
+  }
+
+  public void testDecodes() {
+    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), Long.MIN_VALUE);
+    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), -1l);
+    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), 0l);
+    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), 1l);
+    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), Long.MAX_VALUE);
   }
 }

@@ -163,6 +163,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
         assertEquals(0, ingest.waitFor());
         VerifyIngest.Opts vopts = new VerifyIngest.Opts();
         vopts.rows = rows;
+        vopts.setPrincipal("root");
         VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
       } else {
         UtilWaitThread.sleep(5 * 1000);

@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterIT;
@@ -38,7 +39,7 @@ public class ChaoticBalancerIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
     cfg.setSiteConfig(siteConfig);
@@ -68,6 +69,14 @@ public class ChaoticBalancerIT extends AccumuloClusterIT {
     vopts.rows = opts.rows = 20000;
     opts.setTableName(tableName);
     vopts.setTableName(tableName);
+    ClientConfiguration clientConfig = getCluster().getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+      vopts.setPrincipal(getAdminPrincipal());
+    }
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush(tableName, null, null, true);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());

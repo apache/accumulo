@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 import java.util.Date;
 
 /**
@@ -23,7 +25,7 @@ import java.util.Date;
  *
  * @since 1.6.0
  */
-public class DateLexicoder implements Lexicoder<Date> {
+public class DateLexicoder extends AbstractLexicoder<Date> implements Lexicoder<Date> {
 
   private LongLexicoder longEncoder = new LongLexicoder();
 
@@ -33,8 +35,8 @@ public class DateLexicoder implements Lexicoder<Date> {
   }
 
   @Override
-  public Date decode(byte[] data) {
-    return new Date(longEncoder.decode(data));
+  protected Date decodeUnchecked(byte[] data, int offset, int len) {
+    return new Date(longEncoder.decodeUnchecked(data, offset, len));
   }
 
 }

@@ -27,10 +27,15 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -45,6 +50,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,7 +73,7 @@ public class RestartIT extends AccumuloClusterIT {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
-    cfg.useMiniDFS(true);
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   private static final ScannerOpts SOPTS = new ScannerOpts();
@@ -107,16 +113,32 @@ public class RestartIT extends AccumuloClusterIT {
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
     c.tableOperations().create(tableName);
-    final PasswordToken token = (PasswordToken) getToken();
+    final AuthenticationToken token = getAdminToken();
     final ClusterControl control = getCluster().getClusterControl();
+
+    final String[] args;
+    if (token instanceof PasswordToken) {
+      byte[] password = ((PasswordToken) token).getPassword();
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
+      OPTS.setPrincipal(getAdminPrincipal());
+      VOPTS.setPrincipal(getAdminPrincipal());
+    } else if (token instanceof KerberosToken) {
+      ClusterUser rootUser = getAdminUser();
+      args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
+      ClientConfiguration clientConfig = cluster.getClientConfig();
+      OPTS.updateKerberosCredentials(clientConfig);
+      VOPTS.updateKerberosCredentials(clientConfig);
+    } else {
+      throw new RuntimeException("Unknown token");
+    }
 
     Future<Integer> ret = svc.submit(new Callable<Integer>() {
       @Override
       public Integer call() {
         try {
-          return control.exec(TestIngest.class,
-              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
-                  cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName});
+          return control.exec(TestIngest.class, args);
         } catch (IOException e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -137,6 +159,14 @@ public class RestartIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      OPTS.updateKerberosCredentials(clientConfig);
+      VOPTS.updateKerberosCredentials(clientConfig);
+    } else {
+      OPTS.setPrincipal(getAdminPrincipal());
+      VOPTS.setPrincipal(getAdminPrincipal());
+    }
     TestIngest.ingest(c, OPTS, BWOPTS);
     ClusterControl control = getCluster().getClusterControl();
 
@@ -179,18 +209,35 @@ public class RestartIT extends AccumuloClusterIT {
   public void restartMasterSplit() throws Exception {
     Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
-    final PasswordToken token = (PasswordToken) getToken();
+    final AuthenticationToken token = getAdminToken();
     final ClusterControl control = getCluster().getClusterControl();
     VOPTS.setTableName(tableName);
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+
+    final String[] args;
+    if (token instanceof PasswordToken) {
+      byte[] password = ((PasswordToken) token).getPassword();
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
+      OPTS.setPrincipal(getAdminPrincipal());
+      VOPTS.setPrincipal(getAdminPrincipal());
+    } else if (token instanceof KerberosToken) {
+      ClusterUser rootUser = getAdminUser();
+      args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
+      ClientConfiguration clientConfig = cluster.getClientConfig();
+      OPTS.updateKerberosCredentials(clientConfig);
+      VOPTS.updateKerberosCredentials(clientConfig);
+    } else {
+      throw new RuntimeException("Unknown token");
+    }
+
     Future<Integer> ret = svc.submit(new Callable<Integer>() {
       @Override
       public Integer call() {
         try {
-          return control.exec(TestIngest.class,
-              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
-                  cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName});
+          return control.exec(TestIngest.class, args);
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -223,6 +270,14 @@ public class RestartIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      OPTS.updateKerberosCredentials(clientConfig);
+      VOPTS.updateKerberosCredentials(clientConfig);
+    } else {
+      OPTS.setPrincipal(getAdminPrincipal());
+      VOPTS.setPrincipal(getAdminPrincipal());
+    }
     TestIngest.ingest(c, OPTS, BWOPTS);
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -251,6 +306,12 @@ public class RestartIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      OPTS.updateKerberosCredentials(clientConfig);
+    } else {
+      OPTS.setPrincipal(getAdminPrincipal());
+    }
     TestIngest.ingest(c, OPTS, BWOPTS);
     try {
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -265,6 +326,14 @@ public class RestartIT extends AccumuloClusterIT {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     VOPTS.setTableName(tableName);
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      OPTS.updateKerberosCredentials(clientConfig);
+      VOPTS.updateKerberosCredentials(clientConfig);
+    } else {
+      OPTS.setPrincipal(getAdminPrincipal());
+      VOPTS.setPrincipal(getAdminPrincipal());
+    }
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     String splitThreshold = null;
@@ -279,6 +348,11 @@ public class RestartIT extends AccumuloClusterIT {
       c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(tableName);
+      if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        opts.updateKerberosCredentials(clientConfig);
+      } else {
+        opts.setPrincipal(getAdminPrincipal());
+      }
       TestIngest.ingest(c, opts, BWOPTS);
       c.tableOperations().flush(tableName, null, null, false);
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);

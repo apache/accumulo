@@ -795,4 +795,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public MiniAccumuloClusterControl getClusterControl() {
     return clusterControl;
   }
+
+  @Override
+  public Path getTemporaryPath() {
+    if (config.useMiniDFS()) {
+      return new Path("/tmp/");
+    } else {
+      File tmp = new File(config.getDir(), "tmp");
+      tmp.mkdirs();
+      return new Path(tmp.toString());
+    }
+  }
 }

@@ -18,6 +18,8 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
@@ -41,11 +43,26 @@ public class RenameIT extends AccumuloClusterIT {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.createTable = true;
     opts.setTableName(name1);
+
+    final ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+    }
+
     Connector c = getConnector();
     TestIngest.ingest(c, opts, bwOpts);
     c.tableOperations().rename(name1, name2);
     TestIngest.ingest(c, opts, bwOpts);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      vopts.setPrincipal(getAdminPrincipal());
+    }
+
     vopts.setTableName(name2);
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
     c.tableOperations().delete(name1);

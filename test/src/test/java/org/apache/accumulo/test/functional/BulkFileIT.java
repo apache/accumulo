@@ -68,7 +68,7 @@ public class BulkFileIT extends AccumuloClusterIT {
     AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance()).getConfiguration();
     FileSystem fs = getCluster().getFileSystem();
 
-    String rootPath = getUsableDir();
+    String rootPath = cluster.getTemporaryPath().toString();
 
     String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 

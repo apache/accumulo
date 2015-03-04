@@ -388,6 +388,18 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
+   * Construct the {@link ClientConfiguration} given the provided context.
+   *
+   * @param context
+   *          The Job
+   * @return The ClientConfiguration
+   * @since 1.7.0
+   */
+  protected static ClientConfiguration getClientConfiguration(JobContext context) {
+    return InputConfigurator.getClientConfiguration(CLASS, context.getConfiguration());
+  }
+
+  /**
    * An abstract base class to be used to create {@link org.apache.hadoop.mapreduce.RecordReader} instances that convert from Accumulo
    * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to the user's K/V types.
    *
@@ -634,7 +646,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           tl.invalidateCache();
 
           ClientContext clientContext = new ClientContext(getInstance(context), new Credentials(getPrincipal(context), getAuthenticationToken(context)),
-              ClientConfiguration.loadDefault());
+              getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             if (!(instance instanceof MockInstance)) {
               if (!Tables.exists(instance, tableId))

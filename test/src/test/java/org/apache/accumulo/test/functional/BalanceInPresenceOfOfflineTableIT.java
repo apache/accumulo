@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -26,6 +25,8 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -38,10 +39,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.commons.lang.math.NumberUtils;
@@ -64,7 +65,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
     cfg.setSiteConfig(siteConfig);
@@ -121,6 +122,14 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    ClientConfiguration conf = cluster.getClientConfig();
+    if (conf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(cluster.getClientConfig());
+      vopts.updateKerberosCredentials(cluster.getClientConfig());
+    } else {
+      opts.setPrincipal("root");
+      vopts.setPrincipal("root");
+    }
     vopts.rows = opts.rows = 200000;
     opts.setTableName(TEST_TABLE);
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
@@ -133,6 +142,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
     long currentWait = 10 * 1000;
     boolean balancingWorked = false;
 
+    Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     while (!balancingWorked && (System.currentTimeMillis() - startTime) < ((5 * 60 + 15) * 1000)) {
       Thread.sleep(currentWait);
       currentWait *= 2;
@@ -143,8 +153,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
       MasterMonitorInfo stats = null;
       try {
         Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
-        client = MasterClient.getConnectionWithRetry(new ClientContext(instance, SystemCredentials.get(instance), cluster.getClientConfig()));
-        stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
+        client = MasterClient.getConnectionWithRetry(new ClientContext(instance, creds, cluster.getClientConfig()));
+        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);
       } catch (TException exception) {
@@ -176,7 +186,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
         log.debug("We should have > 10 tablets. sleeping for " + currentWait + "ms");
         continue;
       }
-      if ((NumberUtils.min(tabletsPerServer) / ((double) NumberUtils.max(tabletsPerServer))) < 0.5) {
+      long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);
+      log.debug("Min=" + min + ", Max=" + max);
+      if ((min / ((double) max)) < 0.5) {
         log.debug("ratio of min to max tablets per server should be roughly even. sleeping for " + currentWait + "ms");
         continue;
       }

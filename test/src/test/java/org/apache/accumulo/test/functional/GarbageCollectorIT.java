@@ -115,6 +115,8 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows = 10000;
     vopts.cols = opts.cols = 1;
+    opts.setPrincipal("root");
+    vopts.setPrincipal("root");
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().compact("test_ingest", null, null, true, true);
     int before = countFiles();

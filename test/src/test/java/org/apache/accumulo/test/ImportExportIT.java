@@ -17,8 +17,6 @@
 package org.apache.accumulo.test;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -35,14 +33,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
-import org.apache.commons.io.FileUtils;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.io.Files;
 
 /**
  * ImportTable didn't correctly place absolute paths in metadata. This resulted in the imported table only being usable when the actual HDFS directory for
@@ -52,8 +51,7 @@ import com.google.common.io.Files;
  * ACCUMULO-3215
  *
  */
-// TODO Can switch to AccumuloClusterIT when FileSystem access from the Cluster is implemented.
-public class ImportExportIT extends SharedMiniClusterIT {
+public class ImportExportIT extends AccumuloClusterIT {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 
@@ -85,45 +83,48 @@ public class ImportExportIT extends SharedMiniClusterIT {
 
     // Make a directory we can use to throw the export and import directories
     // Must exist on the filesystem the cluster is running.
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests", getClass().getName());
-    baseDir.mkdirs();
-    File exportDir = new File(baseDir, "export");
-    FileUtils.deleteQuietly(exportDir);
-    exportDir.mkdir();
-    File importDir = new File(baseDir, "import");
-    FileUtils.deleteQuietly(importDir);
-    importDir.mkdir();
+    FileSystem fs = cluster.getFileSystem();
+    Path tmp = cluster.getTemporaryPath();
+    Path baseDir = new Path(tmp, getClass().getName());
+    fs.mkdirs(baseDir);
+    Path exportDir = new Path(baseDir, "export");
+    Path importDir = new Path(baseDir, "import");
+    for (Path p : new Path[] {exportDir, importDir}) {
+      fs.delete(p, true);
+      fs.mkdirs(p);
+    }
 
-    log.info("Exporting table to {}", exportDir.getAbsolutePath());
-    log.info("Importing table from {}", importDir.getAbsolutePath());
+    log.info("Exporting table to {}", exportDir);
+    log.info("Importing table from {}", importDir);
 
     // Offline the table
     conn.tableOperations().offline(srcTable, true);
     // Then export it
-    conn.tableOperations().exportTable(srcTable, exportDir.getAbsolutePath());
+    conn.tableOperations().exportTable(srcTable, exportDir.toString());
 
     // Make sure the distcp.txt file that exporttable creates is available
-    File distcp = new File(exportDir, "distcp.txt");
-    Assert.assertTrue("Distcp file doesn't exist", distcp.exists());
-    FileInputStream fis = new FileInputStream(distcp);
-    BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+    Path distcp = new Path(exportDir, "distcp.txt");
+    Assert.assertTrue("Distcp file doesn't exist", fs.exists(distcp));
+    FSDataInputStream is = fs.open(distcp);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
     // Copy each file that was exported to the import directory
     String line;
     while (null != (line = reader.readLine())) {
-      File f = new File(line.substring(5));
-      Assert.assertTrue("File doesn't exist: " + f, f.exists());
-      File dest = new File(importDir, f.getName());
-      Assert.assertFalse("Did not expect " + dest + " to exist", dest.exists());
-      Files.copy(f, dest);
+      Path p = new Path(line.substring(5));
+      Assert.assertTrue("File doesn't exist: " + p, fs.exists(p));
+
+      Path dest = new Path(importDir, p.getName());
+      Assert.assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
+      FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
     }
 
     reader.close();
 
-    log.info("Import dir: {}", Arrays.toString(importDir.list()));
+    log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
 
     // Import the exported data into a new table
-    conn.tableOperations().importTable(destTable, importDir.getAbsolutePath());
+    conn.tableOperations().importTable(destTable, importDir.toString());
 
     // Get the table ID for the table that the importtable command created
     final String tableId = conn.tableOperations().tableIdMap().get(destTable);

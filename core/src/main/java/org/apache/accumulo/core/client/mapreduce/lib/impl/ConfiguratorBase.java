@@ -358,18 +358,40 @@ public class ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
     else if ("ZooKeeperInstance".equals(instanceType)) {
-      String clientConfigString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
-      if (clientConfigString == null) {
-        String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
-        String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
-        return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers));
-      } else {
-        return new ZooKeeperInstance(ClientConfiguration.deserialize(clientConfigString));
-      }
+      return new ZooKeeperInstance(getClientConfiguration(implementingClass, conf));
     } else if (instanceType.isEmpty())
       throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
     else
       throw new IllegalStateException("Unrecognized instance type " + instanceType);
+  }
+
+  /**
+   * Obtain a {@link ClientConfiguration} based on the configuration.
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   *
+   * @return A {@link ClientConfiguration}
+   * @since 1.7.0
+   */
+  public static ClientConfiguration getClientConfiguration(Class<?> implementingClass, Configuration conf) {
+    String clientConfigString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+    if (null != clientConfigString) {
+      return ClientConfiguration.deserialize(clientConfigString);
+    }
+
+    String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
+    String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
+    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    if (null != instanceName) {
+      clientConf.withInstance(instanceName);
+    }
+    if (null != zookeepers) {
+      clientConf.withZkHosts(zookeepers);
+    }
+    return clientConf;
   }
 
   /**
