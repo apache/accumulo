@@ -55,16 +55,19 @@ public class AccumuloClassLoader {
           "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" +
           "$HADOOP_CONF_DIR,\n" +
           "$HADOOP_PREFIX/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/lib/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/common/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,\n" +
+          "$HADOOP_PREFIX/lib/(?!slf4j)[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/common/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/common/lib/(?!slf4j)[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/hdfs/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/mapreduce/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/yarn/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/yarn/lib/jersey.*.jar,\n" +
           "/usr/lib/hadoop/[^.].*.jar,\n" +
           "/usr/lib/hadoop/lib/[^.].*.jar,\n" +
           "/usr/lib/hadoop-hdfs/[^.].*.jar,\n" +
           "/usr/lib/hadoop-mapreduce/[^.].*.jar,\n" +
-          "/usr/lib/hadoop-yarn/[^.].*.jar,\n"
+          "/usr/lib/hadoop-yarn/[^.].*.jar,\n" +
+          "/usr/lib/hadoop-yarn/lib/jersey.*.jar,\n"
           ;
   /* @formatter:on */
 
