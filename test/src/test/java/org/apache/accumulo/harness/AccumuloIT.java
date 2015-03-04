@@ -82,7 +82,10 @@ public class AccumuloIT {
   public Timeout testsShouldTimeout() {
     int waitLonger = 0;
     try {
-      waitLonger = Integer.parseInt(System.getProperty("timeout.factor"));
+      String timeoutString = System.getProperty("timeout.factor");
+      if (timeoutString != null && !timeoutString.isEmpty()) {
+        waitLonger = Integer.parseInt(timeoutString);
+      }
     } catch (NumberFormatException exception) {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }
