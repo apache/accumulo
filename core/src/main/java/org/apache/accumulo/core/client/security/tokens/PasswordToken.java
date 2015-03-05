@@ -103,16 +103,13 @@ public class PasswordToken implements AuthenticationToken {
     return Arrays.hashCode(password);
   }
 
+  /*
+   * Instances of PasswordToken should only be considered equal if they are of the same type. This check is done here to ensure that this class is equal to the
+   * class of the object being checked.
+   */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (!(obj instanceof PasswordToken))
-      return false;
-    PasswordToken other = (PasswordToken) obj;
-    return Arrays.equals(password, other.password);
+    return this == obj || (obj != null && getClass().equals(obj.getClass()) && Arrays.equals(password, ((PasswordToken) obj).password));
   }
 
   @Override

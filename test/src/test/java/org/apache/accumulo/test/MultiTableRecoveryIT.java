@@ -72,7 +72,8 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
     System.out.println("writing");
     final Random random = new Random();
     for (i = 0; i < 1_000_000; i++) {
-      long randomRow = Math.abs(random.nextLong());
+      // make non-negative avoiding Math.abs, because that can still be negative
+      long randomRow = random.nextLong() & Long.MAX_VALUE;
       assertTrue(randomRow >= 0);
       final int table = (int) (randomRow % N);
       final Mutation m = new Mutation(Long.toHexString(randomRow));

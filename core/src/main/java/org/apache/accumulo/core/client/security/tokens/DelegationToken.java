@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -143,19 +142,12 @@ public class DelegationToken extends PasswordToken {
     return super.hashCode() ^ identifier.hashCode();
   }
 
+  /*
+   * We assume we can cast obj to DelegationToken because the super.equals(obj) check ensures obj is of the same type as this
+   */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (!(obj instanceof DelegationToken))
-      return false;
-    DelegationToken other = (DelegationToken) obj;
-    if (!Arrays.equals(getPassword(), other.getPassword())) {
-      return false;
-    }
-    return identifier.equals(other.identifier);
+    return super.equals(obj) && identifier.equals(((DelegationToken) obj).identifier);
   }
 
 }

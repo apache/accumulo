@@ -16,24 +16,8 @@
 -->
 <FindBugsFilter>
     <Match>
-        <Class name="~org\.apache\.accumulo\.core\.client\.impl\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.data\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.gc\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.master\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.security\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.tabletserver\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.replication\.thrift\..*" />
+        <Class name="org.apache.accumulo.test.stress.random.Write" />
+        <Method name="main" params="java.lang.String[]" returns="void" />
+        <Bug code="IL" pattern="IL_INFINITE_LOOP" />
     </Match>
 </FindBugsFilter>

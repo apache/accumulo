@@ -203,6 +203,8 @@ public class SystemCredentialsIT extends ConfigurableMacIT {
 
       };
       creds = new SystemCredentials(inst, "!SYSTEM", new PasswordToken("fake"));
+    } else {
+      throw new RuntimeException("Incorrect usage; expected to be run by test only");
     }
     Instance instance = HdfsZooInstance.getInstance();
     Connector conn;
