@@ -16,21 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -39,7 +26,21 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.MonitorUtil;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Check SSL for the Monitor
@@ -49,9 +50,7 @@ public class MonitorSslIT extends ConfigurableMacIT {
   @BeforeClass
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("SSL");
-    TrustManager[] tm = new TrustManager[]{
-        new TestTrustManager()
-    };
+    TrustManager[] tm = new TrustManager[] {new TestTrustManager()};
     ctx.init(new KeyManager[0], tm, new SecureRandom());
     SSLContext.setDefault(ctx);
     HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
@@ -72,6 +71,7 @@ public class MonitorSslIT extends ConfigurableMacIT {
   }
 
   private static class TestHostnameVerifier implements HostnameVerifier {
+    @Override
     public boolean verify(String hostname, SSLSession session) {
       return true;
     }
@@ -112,7 +112,9 @@ public class MonitorSslIT extends ConfigurableMacIT {
     while (null == monitorLocation) {
       try {
         monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
-      } catch (Exception e) {}
+      } catch (Exception e) {
+        // ignored
+      }
       if (null == monitorLocation) {
         log.debug("Could not fetch monitor HTTP address from zookeeper");
         Thread.sleep(2000);

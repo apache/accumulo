@@ -68,19 +68,25 @@ public class ServerConstantsTest {
     try {
       ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false);
       Assert.fail();
-    } catch (Exception e) {}
+    } catch (Exception e) {
+      // ignored
+    }
   }
 
   private void verifyError(ArrayList<String> paths) {
     try {
       ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true);
       Assert.fail();
-    } catch (Exception e) {}
+    } catch (Exception e) {
+      // ignored
+    }
 
     try {
       ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false);
       Assert.fail();
-    } catch (Exception e) {}
+    } catch (Exception e) {
+      // ignored
+    }
   }
 
   private ArrayList<String> init(File newFile, List<String> uuids, List<Integer> dataVersions) throws IllegalArgumentException, IOException {

@@ -534,9 +534,6 @@ public class SecurityOperation {
 
   public boolean canGrantSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
     authenticate(c);
-    // can't grant GRANT
-    if (sysPerm.equals(SystemPermission.GRANT))
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.GRANT_INVALID);
     return hasSystemPermission(c, SystemPermission.GRANT, false);
   }
 
@@ -565,10 +562,6 @@ public class SecurityOperation {
     // can't modify root user
     if (user.equals(getRootUsername()))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
-    // can't revoke GRANT
-    if (sysPerm.equals(SystemPermission.GRANT))
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.GRANT_INVALID);
 
     return hasSystemPermission(c, SystemPermission.GRANT, false);
   }

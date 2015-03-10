@@ -34,6 +34,9 @@ public interface TabletCommitter {
 
   void commit(CommitSession commitSession, List<Mutation> mutations);
 
+  /**
+   * If this method returns true, the caller must call {@link #finishUpdatingLogsUsed()} to clean up
+   */
   boolean beginUpdatingLogsUsed(InMemoryMap memTable, DfsLogger copy, boolean mincFinish);
 
   void finishUpdatingLogsUsed();

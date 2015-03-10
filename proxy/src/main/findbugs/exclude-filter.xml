@@ -15,7 +15,8 @@
   limitations under the License.
 -->
 <FindBugsFilter>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.proxy\.thrift\..*" />
-    </Match>
+  <Match>
+    <!-- ignore thrift-generated classes -->
+    <Class name="~org\.apache\.accumulo\.proxy\.thrift\..*" />
+  </Match>
 </FindBugsFilter>

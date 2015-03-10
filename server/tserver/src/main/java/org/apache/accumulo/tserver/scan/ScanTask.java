@@ -77,22 +77,38 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     throw new UnsupportedOperationException();
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 
     ArrayBlockingQueue<Object> localRQ = resultQueue;
 
-    if (state.get() == CANCELED)
+    if (isCancelled())
       throw new CancellationException();
 
-    if (localRQ == null && state.get() == ADDED)
-      throw new IllegalStateException("Tried to get result twice");
+    if (localRQ == null) {
+      int st = state.get();
+      String stateStr;
+      switch (st) {
+        case ADDED:
+          stateStr = "ADDED";
+          break;
+        case CANCELED:
+          stateStr = "CANCELED";
+          break;
+        case INITIAL:
+          stateStr = "INITIAL";
+          break;
+        default:
+          stateStr = "UNKONWN";
+          break;
+      }
+      throw new IllegalStateException("Tried to get result twice [state=" + stateStr + "(" + st + ")]");
+    }
 
     Object r = localRQ.poll(timeout, unit);
 
     // could have been canceled while waiting
-    if (state.get() == CANCELED) {
+    if (isCancelled()) {
       if (r != null)
         throw new IllegalStateException("Nothing should have been added when in canceled state");
 
@@ -109,7 +125,9 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
     if (r instanceof Throwable)
       throw new ExecutionException((Throwable) r);
 
-    return (T) r;
+    @SuppressWarnings("unchecked")
+    T rAsT = (T) r;
+    return rAsT;
   }
 
   @Override

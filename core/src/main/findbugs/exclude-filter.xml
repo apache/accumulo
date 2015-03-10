@@ -15,22 +15,53 @@
   limitations under the License.
 -->
 <FindBugsFilter>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.client\.impl\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.data\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.gc\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.master\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.security\.thrift\..*" />
-    </Match>
-    <Match>
-        <Class name="~org\.apache\.accumulo\.core\.tabletserver\.thrift\..*" />
-    </Match>
+  <Match>
+    <!-- ignore thrift-generated files -->
+    <Or>
+      <Class name="~org\.apache\.accumulo\.core\.client\.impl\.thrift\..*" />
+      <Class name="~org\.apache\.accumulo\.core\.data\.thrift\..*" />
+      <Class name="~org\.apache\.accumulo\.core\.gc\.thrift\..*" />
+      <Class name="~org\.apache\.accumulo\.core\.master\.thrift\..*" />
+      <Class name="~org\.apache\.accumulo\.core\.security\.thrift\..*" />
+      <Class name="~org\.apache\.accumulo\.core\.tabletserver\.thrift\..*" />
+      <Class name="~org\.apache\.accumulo\.core\.replication\.thrift\..*" />
+    </Or>
+  </Match>
+  <Match>
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.core.client.impl.TabletLocatorImpl" />
+    <Method name="processInvalidated" params="org.apache.accumulo.core.client.impl.ClientContext,org.apache.accumulo.core.client.impl.TabletLocatorImpl$LockCheckerSession" returns="void" />
+    <Bug code="UL" pattern="UL_UNRELEASED_LOCK" />
+  </Match>
+  <Match>
+    <!-- ignore intentional name shadowing -->
+    <Or>
+      <Package name="org.apache.accumulo.core.iterators.user" />
+      <Package name="org.apache.accumulo.core.iterators" />
+      <Class name="org.apache.accumulo.core.client.mapred.RangeInputSplit" />
+      <Class name="org.apache.accumulo.core.trace.CountSampler" />
+      <Class name="org.apache.accumulo.core.util.AddressUtil" />
+      <Class name="org.apache.accumulo.core.zookeeper.ZooUtil" />
+    </Or>
+    <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
+  </Match>
+  <Match>
+    <!-- bad practice to start a thread in constructor; we should be careful using this class -->
+    <Class name="org.apache.accumulo.core.file.blockfile.cache.LruBlockCache" />
+    <Bug code="SC" pattern="SC_START_IN_CTOR" />
+  </Match>
+  <Match>
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.core.file.blockfile.cache.LruBlockCache$EvictionThread" />
+    <Or>
+      <Bug code="NN" pattern="NN_NAKED_NOTIFY" />
+      <Bug code="UW" pattern="UW_UNCOND_WAIT" />
+    </Or>
+  </Match>
+  <Match>
+    <!-- allowed only for backwards compatibility, but this is generally a pretty bad practice -->
+    <Class name="org.apache.accumulo.core.data.Value" />
+    <Method name="equals" params="java.lang.Object" returns="boolean" />
+    <Bug code="EQ" pattern="EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS" />
+  </Match>
 </FindBugsFilter>

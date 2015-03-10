@@ -17,7 +17,10 @@
 package org.apache.accumulo.monitor.servlets;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -42,6 +45,7 @@ public class OperationServlet extends BasicServlet {
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     String redir = null;
+    List<Cookie> cookiesToSet = Collections.emptyList();
     try {
       String operation = req.getParameter("action");
       redir = req.getParameter("redir");
@@ -57,7 +61,7 @@ public class OperationServlet extends BasicServlet {
           if (t instanceof WebOperation) {
             WebOperation op = (WebOperation) t;
             if (op.getClass().getSimpleName().equalsIgnoreCase(operation + "Operation")) {
-              op.execute(req, resp, log);
+              cookiesToSet = op.execute(req, log);
               break;
             }
           }
@@ -67,9 +71,10 @@ public class OperationServlet extends BasicServlet {
       log.error(t, t);
     } finally {
       try {
-        redir = redir == null ? "" : redir;
-        redir = redir.startsWith("/") ? redir.substring(1) : redir;
-        resp.sendRedirect("/" + redir); // this makes findbugs happy
+        for (Cookie c : cookiesToSet) {
+          resp.addCookie(c);
+        }
+        resp.sendRedirect(sanitizeRedirect(redir));
         resp.flushBuffer();
       } catch (Throwable t) {
         log.error(t, t);
@@ -77,40 +82,50 @@ public class OperationServlet extends BasicServlet {
     }
   }
 
+  private static String sanitizeRedirect(final String url) {
+    if (url == null || url.isEmpty() || url.contains("\r") || url.contains("\n")) {
+      // prevent HTTP response splitting
+      return "/";
+    }
+    return url.startsWith("/") ? url : ("/" + url);
+  }
+
   private interface WebOperation {
-    void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception;
+    List<Cookie> execute(HttpServletRequest req, Logger log) throws Exception;
   }
 
   public static class RefreshOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) {
       String value = req.getParameter("value");
-      BasicServlet.setCookie(resp, "page.refresh.rate", value == null ? "5" : BasicServlet.encode(value));
+      return Collections.singletonList(new Cookie("page.refresh.rate", value == null ? "5" : BasicServlet.encode(value)));
     }
   }
 
   public static class ClearLogOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) {
       LogService.getInstance().clear();
+      return Collections.emptyList();
     }
   }
 
   public static class ClearTableProblemsOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) {
       String table = req.getParameter("table");
       try {
         ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(table);
       } catch (Exception e) {
         log.error("Failed to delete problem reports for table " + table, e);
       }
+      return Collections.emptyList();
     }
   }
 
   public static class ClearProblemOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) {
       String table = req.getParameter("table");
       String resource = req.getParameter("resource");
       String ptype = req.getParameter("ptype");
@@ -119,52 +134,54 @@ public class OperationServlet extends BasicServlet {
       } catch (Exception e) {
         log.error("Failed to delete problem reports for table " + table, e);
       }
+      return Collections.emptyList();
     }
   }
 
   public static class SortTableOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws IOException {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) throws IOException {
       String page = req.getParameter("page");
       String table = req.getParameter("table");
       String asc = req.getParameter("asc");
       String col = req.getParameter("col");
       if (table == null || page == null || (asc == null && col == null))
-        return;
+        return Collections.emptyList();
       page = BasicServlet.encode(page);
       table = BasicServlet.encode(table);
       if (asc == null) {
         col = BasicServlet.encode(col);
-        BasicServlet.setCookie(resp, "tableSort." + page + "." + table + "." + "sortCol", col);
+        return Collections.singletonList(new Cookie("tableSort." + page + "." + table + "." + "sortCol", col));
       } else {
         asc = BasicServlet.encode(asc);
-        BasicServlet.setCookie(resp, "tableSort." + page + "." + table + "." + "sortAsc", asc);
+        return Collections.singletonList(new Cookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
       }
     }
   }
 
   public static class ToggleLegendOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) throws Exception {
       String page = req.getParameter("page");
       String table = req.getParameter("table");
       String show = req.getParameter("show");
       if (table == null || page == null || show == null)
-        return;
+        return Collections.emptyList();
       page = BasicServlet.encode(page);
       table = BasicServlet.encode(table);
       show = BasicServlet.encode(show);
-      BasicServlet.setCookie(resp, "tableLegend." + page + "." + table + "." + "show", show);
+      return Collections.singletonList(new Cookie("tableLegend." + page + "." + table + "." + "show", show));
     }
   }
 
   public static class ClearDeadServerOperation implements WebOperation {
     @Override
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
+    public List<Cookie> execute(HttpServletRequest req, Logger log) {
       String server = req.getParameter("server");
       // a dead server should have a uniq address: a logger or tserver
       DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
       obit.delete(server);
+      return Collections.emptyList();
     }
   }
 }

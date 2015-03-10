@@ -105,6 +105,6 @@ public enum PropertyType {
    * @return true if value is valid or null, or if this type has no regex
    */
   public boolean isValidFormat(String value) {
-    return (regex == null && value == null) ? true : regex.matcher(value).matches();
+    return (regex == null || value == null) ? true : regex.matcher(value).matches();
   }
 }

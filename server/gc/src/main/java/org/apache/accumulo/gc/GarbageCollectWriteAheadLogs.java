@@ -240,7 +240,7 @@ public class GarbageCollectWriteAheadLogs {
       }
       for (Collection<String> wals : state.walogs) {
         for (String wal : wals) {
-          TServerInstance dead = walToDeadServer.get(wal);
+          TServerInstance dead = walToDeadServer.get(new Path(wal));
           if (dead != null) {
             candidates.get(dead).remove(wal);
           }

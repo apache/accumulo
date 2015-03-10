@@ -154,10 +154,8 @@ public class KerberosAuthenticator implements Authenticator {
       throw new UnsupportedOperationException("Expected a KerberosToken but got a " + token.getClass().getSimpleName());
     }
 
-    principal = Base64.encodeBase64String(principal.getBytes(UTF_8));
-
     try {
-      createUserNodeInZk(principal);
+      createUserNodeInZk(Base64.encodeBase64String(principal.getBytes(UTF_8)));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
         log.error("User already exists in ZooKeeper", e);

@@ -107,7 +107,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
       for (TabletLocationState tls : store) {
         if (tls != null && tls.current != null) {
           states.add(tls.current);
-        } else if (tls.extent.equals(new KeyExtent(new Text(ReplicationTable.ID), null, null))) {
+        } else if (tls != null && tls.extent.equals(new KeyExtent(new Text(ReplicationTable.ID), null, null))) {
           replStates.add(tls.current);
         } else {
           allAssigned = false;

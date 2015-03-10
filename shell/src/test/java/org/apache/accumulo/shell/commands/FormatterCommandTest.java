@@ -19,8 +19,10 @@ package org.apache.accumulo.shell.commands;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -49,7 +51,9 @@ public class FormatterCommandTest {
     // Keep the Shell AUDIT log off the test output
     Logger.getLogger(Shell.class).setLevel(Level.WARN);
 
-    final String[] args = new String[] {"--fake", "-u", "root", "-p", ""};
+    File config = Files.createTempFile(null, null).toFile();
+    config.deleteOnExit();
+    final String[] args = new String[] {"--config-file", config.toString(), "--fake", "-u", "root", "-p", ""};
 
     final String[] commands = createCommands();
 

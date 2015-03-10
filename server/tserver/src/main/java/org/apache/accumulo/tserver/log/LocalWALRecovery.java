@@ -52,8 +52,8 @@ public class LocalWALRecovery implements Runnable {
   private static final Logger log = Logger.getLogger(LocalWALRecovery.class);
 
   static {
-    WritableName.addName(LogFileKey.class, org.apache.accumulo.server.logger.LogFileKey.class.getName());
-    WritableName.addName(LogFileValue.class, org.apache.accumulo.server.logger.LogFileValue.class.getName());
+    WritableName.addName(LogFileKey.class, "org.apache.accumulo.server.logger.LogFileKey");
+    WritableName.addName(LogFileValue.class, "org.apache.accumulo.server.logger.LogFileValue");
   }
 
   public static void main(String[] args) throws IOException {

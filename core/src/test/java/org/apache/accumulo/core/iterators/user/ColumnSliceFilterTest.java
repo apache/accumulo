@@ -50,7 +50,7 @@ public class ColumnSliceFilterTest {
   private static final Key KEY_5 = nkv(TEST_DATA, "boo2", "yup", "20080206", "tiger");
   private static final Key KEY_6 = nkv(TEST_DATA, "boo2", "yip", "20080203", "tiger");
 
-  private static IteratorEnvironment iteratorEnvironment;
+  private IteratorEnvironment iteratorEnvironment;
 
   private ColumnSliceFilter columnSliceFilter = new ColumnSliceFilter();
   private IteratorSetting is;

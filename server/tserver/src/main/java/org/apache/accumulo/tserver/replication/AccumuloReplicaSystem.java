@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -667,10 +668,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
 
     @Override
+    public int hashCode() {
+      return Objects.hashCode(sizeInBytes + sizeInRecords + entriesConsumed);
+    }
+
+    @Override
     public boolean equals(Object o) {
-      if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
-        ReplicationStats other = (ReplicationStats) o;
-        return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords && entriesConsumed == other.entriesConsumed;
+      if (o != null) {
+        if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
+          ReplicationStats other = (ReplicationStats) o;
+          return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords && entriesConsumed == other.entriesConsumed;
+        }
       }
       return false;
     }
@@ -706,6 +714,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       super(size, edits.getEditsSize(), entriesConsumed);
       this.walEdits = edits;
       this.numUpdates = numMutations;
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + Objects.hashCode(walEdits) + Objects.hashCode(numUpdates);
     }
 
     @Override

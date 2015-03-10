@@ -862,14 +862,14 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     private boolean goodStats() {
       int start;
       switch (getMasterState()) {
-      case UNLOAD_METADATA_TABLETS:
-        start = 1;
-        break;
-      case UNLOAD_ROOT_TABLET:
-        start = 2;
-        break;
-      default:
-        start = 0;
+        case UNLOAD_METADATA_TABLETS:
+          start = 1;
+          break;
+        case UNLOAD_ROOT_TABLET:
+          start = 2;
+          break;
+        default:
+          start = 0;
       }
       for (int i = start; i < watchers.size(); i++) {
         TabletGroupWatcher watcher = watchers.get(i);
@@ -950,7 +950,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
                   break;
               }
           }
-        }catch(Throwable t) {
+        } catch (Throwable t) {
           log.error("Error occurred reading / switching master goal state. Will continue with attempt to update status", t);
         }
 
@@ -1234,8 +1234,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     replicationWorkDriver.join(remaining(deadline));
     replAddress.server.stop();
     // Signal that we want it to stop, and wait for it to do so.
-    authenticationTokenKeyManager.gracefulStop();
-    authenticationTokenKeyManager.join(remaining(deadline));
+    if (authenticationTokenKeyManager != null) {
+      authenticationTokenKeyManager.gracefulStop();
+      authenticationTokenKeyManager.join(remaining(deadline));
+    }
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop

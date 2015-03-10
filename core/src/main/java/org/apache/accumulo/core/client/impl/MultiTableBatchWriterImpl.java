@@ -220,12 +220,13 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
     String tableId = getId(tableName);
 
-    synchronized (tableWriters) {
-      BatchWriter tbw = tableWriters.get(tableId);
-      if (tbw == null) {
-        tbw = new TableBatchWriter(tableId);
-        tableWriters.put(tableId, tbw);
-      }
+    BatchWriter tbw = tableWriters.get(tableId);
+    if (tbw == null) {
+      tbw = new TableBatchWriter(tableId);
+      BatchWriter current = tableWriters.putIfAbsent(tableId, tbw);
+      // return the current one if another thread created one first
+      return current != null ? current : tbw;
+    } else {
       return tbw;
     }
   }

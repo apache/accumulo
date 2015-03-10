@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 /**
  * When a tablet is assigned, we mark its future location. When the tablet is opened, we set its current location. A tablet should never have both a future and
@@ -33,7 +32,7 @@ import org.apache.log4j.Logger;
  */
 public class TabletLocationState {
 
-  private static final Logger log = Logger.getLogger(TabletLocationState.class);
+  // private static final Logger log = Logger.getLogger(TabletLocationState.class);
 
   static public class BadLocationStateException extends Exception {
     private static final long serialVersionUID = 1L;

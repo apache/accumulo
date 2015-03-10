@@ -238,9 +238,12 @@ public class TabletServerBatchWriter {
 
     checkForFailures();
 
-    while ((totalMemUsed > maxMem || flushing) && !somethingFailed) {
-      waitRTE();
-    }
+    waitRTE(new WaitCondition() {
+      @Override
+      public boolean shouldWait() {
+        return (totalMemUsed > maxMem || flushing) && !somethingFailed;
+      }
+    });
 
     // do checks again since things could have changed while waiting and not holding lock
     if (closed)
@@ -298,8 +301,12 @@ public class TabletServerBatchWriter {
 
       if (flushing) {
         // some other thread is currently flushing, so wait
-        while (flushing && !somethingFailed)
-          waitRTE();
+        waitRTE(new WaitCondition() {
+          @Override
+          public boolean shouldWait() {
+            return flushing && !somethingFailed;
+          }
+        });
 
         checkForFailures();
 
@@ -311,9 +318,12 @@ public class TabletServerBatchWriter {
       startProcessing();
       checkForFailures();
 
-      while (totalMemUsed > 0 && !somethingFailed) {
-        waitRTE();
-      }
+      waitRTE(new WaitCondition() {
+        @Override
+        public boolean shouldWait() {
+          return totalMemUsed > 0 && !somethingFailed;
+        }
+      });
 
       flushing = false;
       this.notifyAll();
@@ -336,9 +346,12 @@ public class TabletServerBatchWriter {
 
       startProcessing();
 
-      while (totalMemUsed > 0 && !somethingFailed) {
-        waitRTE();
-      }
+      waitRTE(new WaitCondition() {
+        @Override
+        public boolean shouldWait() {
+          return totalMemUsed > 0 && !somethingFailed;
+        }
+      });
 
       logStats();
 
@@ -433,9 +446,15 @@ public class TabletServerBatchWriter {
     numBatches++;
   }
 
-  private void waitRTE() {
+  private interface WaitCondition {
+    boolean shouldWait();
+  }
+
+  private void waitRTE(WaitCondition condition) {
     try {
-      wait();
+      while (condition.shouldWait()) {
+        wait();
+      }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }

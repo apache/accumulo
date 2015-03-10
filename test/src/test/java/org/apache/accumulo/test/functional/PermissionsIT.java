@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -101,17 +104,6 @@ public class PermissionsIT extends AccumuloClusterIT {
     // test each permission
     for (SystemPermission perm : SystemPermission.values()) {
       log.debug("Verifying the " + perm + " permission");
-
-      // verify GRANT can't be granted
-      if (perm.equals(SystemPermission.GRANT)) {
-        try {
-          c.securityOperations().grantSystemPermission(principal, perm);
-        } catch (AccumuloSecurityException e) {
-          verifyHasNoSystemPermissions(c, principal, perm);
-          continue;
-        }
-        throw new IllegalStateException("Should NOT be able to grant GRANT");
-      }
 
       // test permission before and after granting it
       String tableNamePrefix = getUniqueNames(1)[0];
@@ -229,11 +221,11 @@ public class PermissionsIT extends AccumuloClusterIT {
           test_user_conn.securityOperations().dropLocalUser(user);
           throw new IllegalStateException("Should NOT be able to delete a user");
         } catch (AccumuloSecurityException e) {
-          AuthenticationToken userToken = testUser.getToken();
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || (userToken instanceof PasswordToken && !root_conn.securityOperations().authenticateUser(user, userToken)))
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().listLocalUsers().contains(user)) {
+            log.info("Failed to authenticate as " + user);
             throw e;
+          }
         }
         break;
       case ALTER_USER:
@@ -321,6 +313,17 @@ public class PermissionsIT extends AccumuloClusterIT {
         ClientConfiguration clientConf = cluster.getClientConfig();
         if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
           // TODO Try to obtain a delegation token without the permission
+        }
+        break;
+      case GRANT:
+        loginAs(testUser);
+        try {
+          test_user_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT);
+          throw new IllegalStateException("Should NOT be able to grant System.GRANT to yourself");
+        } catch (AccumuloSecurityException e) {
+          // Expected
+          loginAs(rootUser);
+          assertFalse(root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
         }
         break;
       default:
@@ -455,7 +458,17 @@ public class PermissionsIT extends AccumuloClusterIT {
           // TODO Try to obtain a delegation token with the permission
         }
         break;
-
+      case GRANT:
+        loginAs(rootUser);
+        root_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT);
+        loginAs(testUser);
+        test_user_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE);
+        loginAs(rootUser);
+        assertTrue("Test user should have CREATE_TABLE",
+            root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE));
+        assertTrue("Test user should have GRANT", root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
+        root_conn.securityOperations().revokeSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE);
+        break;
       default:
         throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
     }

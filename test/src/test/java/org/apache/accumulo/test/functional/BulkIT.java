@@ -67,17 +67,16 @@ public class BulkIT extends AccumuloClusterIT {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
+    runTest(getConnector(), getCluster().getFileSystem(), getCluster().getTemporaryPath(), getAdminPrincipal(), getUniqueNames(1)[0], this.getClass().getName(),
+        testName.getMethodName());
   }
 
-  static void runTest(Connector c, String tableName, String filePrefix, String dirSuffix) throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, IOException, TableNotFoundException, MutationsRejectedException {
+  static void runTest(Connector c, FileSystem fs, Path basePath, String principal, String tableName, String filePrefix, String dirSuffix)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException, MutationsRejectedException {
     c.tableOperations().create(tableName);
-    FileSystem fs = cluster.getFileSystem();
     CachedConfiguration.setInstance(fs.getConf());
 
-    Path tempPath = cluster.getTemporaryPath();
-    Path base = new Path(tempPath, "testBulkFail_" + dirSuffix);
+    Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
     fs.delete(base, true);
     fs.mkdirs(base);
     Path bulkFailures = new Path(base, "failures");
@@ -109,7 +108,7 @@ public class BulkIT extends AccumuloClusterIT {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     vopts.random = 56;
-    vopts.setPrincipal(getAdminPrincipal());
+    vopts.setPrincipal(principal);
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;
       vopts.rows = N;
