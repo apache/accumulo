@@ -37,7 +37,7 @@ if [[ -z "$ZOOKEEPER_HOME" ]] ; then
 fi
 
 ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
-if [[ $(eval $ZOOKEEPER_CMD | wc -l) != "1" ]] ; then
+if [[ $(eval $ZOOKEEPER_CMD | wc -l) -ne 1 ]] ; then
    echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
    exit 1
 fi
