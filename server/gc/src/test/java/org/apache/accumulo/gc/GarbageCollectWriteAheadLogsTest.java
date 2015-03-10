@@ -88,7 +88,6 @@ public class GarbageCollectWriteAheadLogsTest {
   private AccumuloConfiguration systemConfig;
   private VolumeManager volMgr;
   private GarbageCollectWriteAheadLogs gcwal;
-  private AccumuloServerContext context;
   private long modTime;
 
   @Rule
@@ -396,7 +395,7 @@ public class GarbageCollectWriteAheadLogsTest {
     LinkedList<Entry<Key,Value>> replData = new LinkedList<>();
     replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileCreatedValue(System.currentTimeMillis())));
 
-    ReplicationGCWAL replGC = new ReplicationGCWAL(context, volMgr, false, replData);
+    ReplicationGCWAL replGC = new ReplicationGCWAL(null, volMgr, false, replData);
 
     replay(conn);
 

@@ -23,16 +23,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -52,10 +53,39 @@ public class RFileMetricsTest {
     Logger.getLogger(org.apache.hadoop.util.NativeCodeLoader.class).setLevel(Level.OFF);
   }
 
+  private TestRFile trf = null;
+
+  @Before
+  public void makeTestRFile() {
+    trf = new TestRFile();
+  }
+
+  @After
+  public void cleanUpTestRFile() {
+    // do our best to clean up first
+    if (trf != null) {
+      if (trf.writer != null) {
+        try {
+          trf.closeWriter();
+        } catch (IOException e) {
+          // ignore
+        }
+      }
+      if (trf.reader != null) {
+        try {
+          trf.closeReader();
+        } catch (IOException e) {
+          // ignore
+        }
+      }
+    }
+    trf = null;
+  }
+
   public static class TestRFile extends RFileTest.TestRFile {
 
-    public TestRFile(AccumuloConfiguration accumuloConfiguration) {
-      super(accumuloConfiguration);
+    public TestRFile() {
+      super(null);
     }
 
     public VisMetricsGatherer gatherMetrics() throws IOException {
@@ -74,14 +104,9 @@ public class RFileMetricsTest {
     }
   }
 
-  public AccumuloConfiguration conf = null;
-
   @Test
   public void emptyFile() throws IOException {
-
     // test an empty file
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
     trf.closeWriter();
@@ -101,10 +126,7 @@ public class RFileMetricsTest {
 
   @Test
   public void oneEntryDefaultLocGroup() throws IOException {
-
     // test an rfile with one entry in the default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
     trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
@@ -128,10 +150,7 @@ public class RFileMetricsTest {
 
   @Test
   public void twoEntriesDefaultLocGroup() throws IOException {
-
     // test an rfile with two entries in the default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
     trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
@@ -159,10 +178,7 @@ public class RFileMetricsTest {
 
   @Test
   public void oneEntryNonDefaultLocGroup() throws IOException {
-
     // test an rfile with two entries in a non-default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -191,10 +207,7 @@ public class RFileMetricsTest {
 
   @Test
   public void twoEntryNonDefaultLocGroup() throws IOException {
-
     // test an rfile with two entries in a non-default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -226,10 +239,7 @@ public class RFileMetricsTest {
 
   @Test
   public void twoNonDefaultLocGroups() throws IOException {
-
     // test an rfile with two entries in 2 non-default locality groups
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -280,10 +290,7 @@ public class RFileMetricsTest {
 
   @Test
   public void nonDefaultAndDefaultLocGroup() throws IOException {
-
     // test an rfile with 3 entries in a non-default locality group and the default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -332,10 +339,7 @@ public class RFileMetricsTest {
 
   @Test
   public void multiCFNonDefaultAndDefaultLocGroup() throws IOException {
-
     // test an rfile with multiple column families in a non-default locality group and the default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -388,10 +392,7 @@ public class RFileMetricsTest {
 
   @Test
   public void multiBlockDefaultLocGroup() throws IOException {
-
     // test an rfile with four blocks in the default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(20);// Each entry is a block
     trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
@@ -421,10 +422,7 @@ public class RFileMetricsTest {
 
   @Test
   public void multiBlockNonDefaultLocGroup() throws IOException {
-
     // test an rfile with four blocks in a non-default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false, 20);// Each entry is a block
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -459,10 +457,7 @@ public class RFileMetricsTest {
 
   @Test
   public void multiBlockMultiCFNonDefaultAndDefaultLocGroup() throws IOException {
-
     // test an rfile with multiple column families and multiple blocks in a non-default locality group and the default locality group
-
-    TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false, 20);// Each entry is a block
     Set<ByteSequence> lg1 = new HashSet<>();

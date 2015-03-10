@@ -256,7 +256,7 @@ public class TestClientOpts {
 
     @Override
     public AuthenticationToken clone() {
-      return null;
+      return new EmptyToken();
     }
 
     @Override

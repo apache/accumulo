@@ -17,6 +17,7 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class MiniDFSUtil {
@@ -33,6 +34,9 @@ public class MiniDFSUtil {
         String line = bri.readLine();
         p.waitFor();
 
+        if (line == null) {
+          throw new IOException("umask input stream closed prematurely");
+        }
         Short umask = Short.parseShort(line.trim(), 8);
         // Need to set permission to 777 xor umask
         // leading zero makes java interpret as base 8

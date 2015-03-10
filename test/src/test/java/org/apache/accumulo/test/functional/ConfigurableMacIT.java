@@ -144,7 +144,9 @@ public class ConfigurableMacIT extends AccumuloIT {
     if (cluster != null)
       try {
         cluster.stop();
-      } catch (Exception e) {}
+      } catch (Exception e) {
+        // ignored
+      }
   }
 
   protected MiniAccumuloClusterImpl getCluster() {

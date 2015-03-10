@@ -601,31 +601,44 @@ public class TabletLocatorImpl extends TabletLocator {
 
     TabletLocation tl;
 
-    if (lock)
+    if (lock) {
       rLock.lock();
-    try {
-      processInvalidated(context, lcSession);
-      tl = lcSession.checkLock(locateTabletInCache(row));
-    } finally {
-      if (lock)
+      try {
+        tl = processInvalidatedAndCheckLock(context, lcSession, row);
+      } finally {
         rLock.unlock();
+      }
+    } else {
+      tl = processInvalidatedAndCheckLock(context, lcSession, row);
     }
 
     if (tl == null) {
-      if (lock)
+      // not in cache, so obtain info
+      if (lock) {
         wLock.lock();
-      try {
-        // not in cache, so obtain info
-        lookupTabletLocation(context, row, retry, lcSession);
-
-        tl = lcSession.checkLock(locateTabletInCache(row));
-      } finally {
-        if (lock)
+        try {
+          tl = lookupTabletLocationAndCheckLock(context, row, retry, lcSession);
+        } finally {
           wLock.unlock();
+        }
+      } else {
+        tl = lookupTabletLocationAndCheckLock(context, row, retry, lcSession);
       }
     }
 
     return tl;
+  }
+
+  private TabletLocation lookupTabletLocationAndCheckLock(ClientContext context, Text row, boolean retry, LockCheckerSession lcSession)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    lookupTabletLocation(context, row, retry, lcSession);
+    return lcSession.checkLock(locateTabletInCache(row));
+  }
+
+  private TabletLocation processInvalidatedAndCheckLock(ClientContext context, LockCheckerSession lcSession, Text row) throws AccumuloSecurityException,
+      AccumuloException, TableNotFoundException {
+    processInvalidated(context, lcSession);
+    return lcSession.checkLock(locateTabletInCache(row));
   }
 
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession) throws AccumuloSecurityException, AccumuloException,

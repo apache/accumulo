@@ -16,7 +16,9 @@
 -->
 <FindBugsFilter>
   <Match>
-    <!-- ignore thrift-generated classes -->
-    <Class name="~org\.apache\.accumulo\.tracer\.thrift\..*" />
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.tserver.tablet.Tablet" />
+    <Method name="beginUpdatingLogsUsed" params="org.apache.accumulo.tserver.InMemoryMap,java.util.Collection,boolean" returns="boolean" />
+    <Bug code="UL" pattern="UL_UNRELEASED_LOCK" />
   </Match>
 </FindBugsFilter>

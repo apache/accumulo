@@ -2441,6 +2441,7 @@ public class Tablet implements TabletCommitter {
     return currentLogs.size();
   }
 
+  /* don't release the lock if this method returns true for success; instead, the caller should clean up by calling finishUpdatingLogsUsed() */
   @Override
   public boolean beginUpdatingLogsUsed(InMemoryMap memTable, Collection<DfsLogger> more, boolean mincFinish) {
 
@@ -2474,7 +2475,7 @@ public class Tablet implements TabletCommitter {
           // when writing a minc finish event, there is no need to add the log to metadata
           // if nothing has been logged for the tablet since the minor compaction started
           if (currentLogs.size() == 0)
-            return false;
+            return !releaseLock;
         }
 
         int numAdded = 0;
@@ -2507,10 +2508,9 @@ public class Tablet implements TabletCommitter {
 
         if (numAdded > 0 && numContained == 0) {
           releaseLock = false;
-          return true;
         }
 
-        return false;
+        return !releaseLock;
       }
     } finally {
       if (releaseLock)

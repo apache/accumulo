@@ -15,9 +15,16 @@
   limitations under the License.
 -->
 <FindBugsFilter>
-    <Match>
-        <Class name="org.apache.accumulo.test.stress.random.Write" />
-        <Method name="main" params="java.lang.String[]" returns="void" />
-        <Bug code="IL" pattern="IL_INFINITE_LOOP" />
-    </Match>
+  <Match>
+    <!-- ignore intentional infinite loop in stress test main method -->
+    <Class name="org.apache.accumulo.test.stress.random.Write" />
+    <Method name="main" params="java.lang.String[]" returns="void" />
+    <Bug code="IL" pattern="IL_INFINITE_LOOP" />
+  </Match>
+  <Match>
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.harness.TestingKdc" />
+    <Method name="start" params="" returns="void" />
+    <Bug code="SWL" pattern="SWL_SLEEP_WITH_LOCK_HELD" />
+  </Match>
 </FindBugsFilter>

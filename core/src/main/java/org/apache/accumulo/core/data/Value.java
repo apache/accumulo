@@ -217,6 +217,7 @@ public class Value implements WritableComparable<Object> {
 
   @Override
   public boolean equals(Object right_obj) {
+    // compare with byte[] for backwards compatibility, but this is generally a pretty bad practice
     if (right_obj instanceof byte[]) {
       return compareTo((byte[]) right_obj) == 0;
     }

@@ -16,7 +16,8 @@
 -->
 <FindBugsFilter>
   <Match>
-    <!-- ignore thrift-generated classes -->
-    <Class name="~org\.apache\.accumulo\.tracer\.thrift\..*" />
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.master.Master" />
+    <Bug code="UW" pattern="UW_UNCOND_WAIT" />
   </Match>
 </FindBugsFilter>

@@ -16,7 +16,11 @@
 -->
 <FindBugsFilter>
   <Match>
-    <!-- ignore thrift-generated classes -->
-    <Class name="~org\.apache\.accumulo\.tracer\.thrift\..*" />
+    <!-- ignore intentional name shadowing -->
+    <Or>
+      <Package name="org.apache.accumulo.server.zookeeper" />
+      <Package name="org.apache.accumulo.server.cli" />
+    </Or>
+    <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
   </Match>
 </FindBugsFilter>

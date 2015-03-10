@@ -69,6 +69,9 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
       bw = ReplicationTable.getBatchWriter(conn);
+
+      if (bs == null || bw == null)
+        throw new AssertionError("Inconceivable; an exception should have been thrown, but 'bs' or 'bw' was null instead");
     } catch (ReplicationTableOfflineException e) {
       log.debug("Not attempting to remove complete replication records as the table ({}) isn't yet online", ReplicationTable.NAME);
       return;

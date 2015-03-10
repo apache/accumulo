@@ -19,6 +19,7 @@ package org.apache.accumulo.core.volume;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -103,6 +104,11 @@ public class VolumeImpl implements Volume {
    */
   boolean equivalentPaths(Path other) {
     return other.toUri().getPath().startsWith(basePath);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(getFileSystem()) + Objects.hashCode(getBasePath());
   }
 
   @Override
