@@ -81,6 +81,7 @@ public class GarbageCollectWriteAheadLogs {
   private final AccumuloServerContext context;
   private final VolumeManager fs;
   private final boolean useTrash;
+  private final LiveTServerSet liveServers;
 
   /**
    * Creates a new GC WAL object.
@@ -96,24 +97,26 @@ public class GarbageCollectWriteAheadLogs {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
+    this.liveServers = new LiveTServerSet(context, new Listener() {
+      @Override
+      public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
+        log.debug("New tablet servers noticed: " + added);
+        log.debug("Tablet servers removed: " + deleted);
+      }
+    });
+    liveServers.startListeningForTabletServerChanges();
   }
 
   public void collect(GCStatus status) {
 
     Span span = Trace.start("getCandidates");
     try {
-      LiveTServerSet liveServers = new LiveTServerSet(context, new Listener() {
-        @Override
-        public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
-          log.debug("New tablet servers noticed: " + added);
-          log.debug("Tablet servers removed: " + deleted);
-        }
-      });
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
+
 
       status.currentLog.started = System.currentTimeMillis();
 
-      Map<TServerInstance, Set<String> > candidates = new HashMap<>();
+      Map<TServerInstance, Set<Path> > candidates = new HashMap<>();
       long count = getCurrent(candidates, currentServers);
       long fileScanStop = System.currentTimeMillis();
 
@@ -174,15 +177,15 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  private long removeMarkers(Map<TServerInstance,Set<String>> candidates) {
+  private long removeMarkers(Map<TServerInstance,Set<Path>> candidates) {
     long result = 0;
     try {
       BatchWriter root = context.getConnector().createBatchWriter(RootTable.NAME, null);
       BatchWriter meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
-      for (Entry<TServerInstance,Set<String>> entry : candidates.entrySet()) {
-        Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + entry.toString());
-        for (String wal : entry.getValue()) {
-          m.putDelete(CurrentLogsSection.COLF, new Text(wal));
+      for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+        Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
+        for (Path path : entry.getValue()) {
+          m.putDelete(CurrentLogsSection.COLF, new Text(path.toString()));
           result++;
         }
         root.addMutation(m);
@@ -196,11 +199,10 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  private long removeFiles(Map<TServerInstance, Set<String> > candidates, final GCStatus status) {
-    for (Entry<TServerInstance,Set<String>> entry : candidates.entrySet()) {
-      for (String walog : entry.getValue()) {
-        log.debug("Removing WAL for offline server " + entry.getKey() + " log " + walog);
-        Path path = new Path(walog);
+  private long removeFiles(Map<TServerInstance, Set<Path> > candidates, final GCStatus status) {
+    for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+      for (Path path : entry.getValue()) {
+        log.debug("Removing unused WAL for server " + entry.getKey() + " log " + path);
         try {
           if (!useTrash || !fs.moveToTrash(path))
             fs.deleteRecursively(path);
@@ -215,14 +217,14 @@ public class GarbageCollectWriteAheadLogs {
     return status.currentLog.deleted;
   }
 
-  private long removeMetadataEntries(Map<TServerInstance, Set<String> > candidates, GCStatus status, Set<TServerInstance> liveServers) throws IOException, KeeperException,
+  private long removeMetadataEntries(Map<TServerInstance, Set<Path> > candidates, GCStatus status, Set<TServerInstance> liveServers) throws IOException, KeeperException,
       InterruptedException {
 
     // remove any entries if there's a log reference, or a tablet is still assigned to the dead server
 
-    Map<String, TServerInstance> walToDeadServer = new HashMap<>();
-    for (Entry<TServerInstance,Set<String>> entry : candidates.entrySet()) {
-      for (String file : entry.getValue()) {
+    Map<Path, TServerInstance> walToDeadServer = new HashMap<>();
+    for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+      for (Path file : entry.getValue()) {
         walToDeadServer.put(file, entry.getKey());
       }
     }
@@ -248,7 +250,7 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  protected int removeReplicationEntries(Map<TServerInstance, Set<String> > candidates, GCStatus status) throws IOException, KeeperException,
+  protected int removeReplicationEntries(Map<TServerInstance, Set<Path> > candidates, GCStatus status) throws IOException, KeeperException,
   InterruptedException {
     Connector conn;
     try {
@@ -260,13 +262,13 @@ public class GarbageCollectWriteAheadLogs {
 
     int count = 0;
 
-    Iterator<Entry<TServerInstance,Set<String>>> walIter = candidates.entrySet().iterator();
+    Iterator<Entry<TServerInstance,Set<Path>>> walIter = candidates.entrySet().iterator();
 
     while (walIter.hasNext()) {
-      Entry<TServerInstance,Set<String>> wal = walIter.next();
-      Iterator<String> paths = wal.getValue().iterator();
+      Entry<TServerInstance,Set<Path>> wal = walIter.next();
+      Iterator<Path> paths = wal.getValue().iterator();
       while (paths.hasNext()) {
-        String fullPath = paths.next();
+        Path fullPath = paths.next();
         if (neededByReplication(conn, fullPath)) {
           log.debug("Removing WAL from candidate deletion as it is still needed for replication: {}", fullPath);
           // If we haven't already removed it, check to see if this WAL is
@@ -294,7 +296,7 @@ public class GarbageCollectWriteAheadLogs {
    *          The full path (URI)
    * @return True if the WAL is still needed by replication (not a candidate for deletion)
    */
-  protected boolean neededByReplication(Connector conn, String wal) {
+  protected boolean neededByReplication(Connector conn, Path wal) {
     log.info("Checking replication table for " + wal);
 
     Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
@@ -317,7 +319,7 @@ public class GarbageCollectWriteAheadLogs {
     return false;
   }
 
-  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) {
+  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, Path wal) {
     Scanner metaScanner;
     try {
       metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -337,7 +339,7 @@ public class GarbageCollectWriteAheadLogs {
       StatusSection.limit(replScanner);
 
       // Only look for this specific WAL
-      replScanner.setRange(Range.exact(wal));
+      replScanner.setRange(Range.exact(wal.toString()));
 
       return Iterables.concat(metaScanner, replScanner);
     } catch (ReplicationTableOfflineException e) {
@@ -353,19 +355,19 @@ public class GarbageCollectWriteAheadLogs {
   /**
    * Scans log markers. The map passed in is populated with the logs for dead servers.
    *
-   * @param logsForDeadServers
+   * @param unusedLogs
    *          map of dead server to log file entries
    * @return total number of log files
    */
-  private long getCurrent(Map<TServerInstance, Set<String> > logsForDeadServers, Set<TServerInstance> currentServers) throws Exception {
-    Set<String> rootWALs = new HashSet<String>();
+  private long getCurrent(Map<TServerInstance, Set<Path> > unusedLogs, Set<TServerInstance> currentServers) throws Exception {
+    Set<Path> rootWALs = new HashSet<>();
     // Get entries in zookeeper:
     String zpath = ZooUtil.getRoot(context.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     List<String> children = zoo.getChildren(zpath);
     for (String child : children) {
       LogEntry entry = LogEntry.fromBytes(zoo.getData(zpath + "/" + child, null));
-      rootWALs.add(entry.filename);
+      rootWALs.add(new Path(entry.filename));
     }
     long count = 0;
 
@@ -383,12 +385,13 @@ public class GarbageCollectWriteAheadLogs {
       CurrentLogsSection.getTabletServer(entry.getKey(), hostAndPort, sessionId);
       CurrentLogsSection.getPath(entry.getKey(), filename);
       TServerInstance tsi = new TServerInstance(HostAndPort.fromString(hostAndPort.toString()), sessionId.toString());
-      if ((!currentServers.contains(tsi) || entry.getValue().equals(CurrentLogsSection.UNUSED)) && !rootWALs.contains(filename)) {
-        Set<String> logs = logsForDeadServers.get(tsi);
+      Path path = new Path(filename.toString());
+      if ((!currentServers.contains(tsi) || (entry.getValue().equals(CurrentLogsSection.UNUSED)) && !rootWALs.contains(path))) {
+        Set<Path> logs = unusedLogs.get(tsi);
         if (logs == null) {
-          logsForDeadServers.put(tsi, logs = new HashSet<String>());
+          unusedLogs.put(tsi, logs = new HashSet<Path>());
         }
-        if (logs.add(new Path(filename.toString()).toString())) {
+        if (logs.add(path)) {
           count++;
         }
       }

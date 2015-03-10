@@ -3000,9 +3000,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       candidates.removeAll(tablet.getCurrentLogFiles());
     }
     try {
-      Set<String> filenames = new HashSet<>();
+      Set<Path> filenames = new HashSet<>();
       for (DfsLogger candidate : candidates) {
-        filenames.add(candidate.getFileName());
+        filenames.add(candidate.getPath());
       }
       MetadataTableUtil.markLogUnused(this, this.getLock(), this.getTabletSession(), filenames);
       synchronized (closedLogs) {
@@ -3019,7 +3019,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       EnumSet<TabletLevel> set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
       if (set == null || !set.contains(level) || level == TabletLevel.ROOT) {
         log.info("Writing log marker for level " + level + " " + copy.getFileName());
-        MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getFileName(), extent);
+        MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getPath(), extent);
         if (set != null) {
           set.add(level);
         }

@@ -475,7 +475,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   public String getFileName() {
-    return logPath.toString();
+    return logPath;
+  }
+
+  public Path getPath() {
+    return new Path(logPath);
   }
 
   public void close() throws IOException {

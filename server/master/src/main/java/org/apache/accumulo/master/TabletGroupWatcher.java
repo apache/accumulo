@@ -161,7 +161,7 @@ class TabletGroupWatcher extends Daemon {
         List<Assignment> assigned = new ArrayList<Assignment>();
         List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
         Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
-        Map<TServerInstance, List<String>> logsForDeadServers = new TreeMap<>();
+        Map<TServerInstance, List<Path>> logsForDeadServers = new TreeMap<>();
 
         MasterState masterState = master.getMasterState();
         int[] counts = new int[TabletState.values().length];
@@ -204,8 +204,9 @@ class TabletGroupWatcher extends Daemon {
           TabletGoalState goal = this.master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
-          if (Master.log.isTraceEnabled())
-            Master.log.trace("Goal state " + goal + " current " + state);
+          if (Master.log.isTraceEnabled()) {
+            Master.log.trace("Goal state " + goal + " current " + state + " for " + tls.extent);
+          }
           stats.update(tableId, state);
           mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
           sendChopRequest(mergeStats.getMergeInfo(), state, tls);
@@ -308,8 +309,10 @@ class TabletGroupWatcher extends Daemon {
 
         updateMergeState(mergeStatsCache);
 
-        Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
-        eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
+        if (this.master.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
+          Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
+          eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
+        }
       } catch (Exception ex) {
         Master.log.error("Error processing table state for store " + store.name(), ex);
         if (ex.getCause() != null && ex.getCause() instanceof BadLocationStateException) {
@@ -731,7 +734,7 @@ class TabletGroupWatcher extends Daemon {
       List<Assignment> assignments,
       List<Assignment> assigned,
       List<TabletLocationState> assignedToDeadServers,
-      Map<TServerInstance, List<String>> logsForDeadServers,
+      Map<TServerInstance, List<Path>> logsForDeadServers,
       Map<KeyExtent,TServerInstance> unassigned)
           throws DistributedStoreException, TException {
     if (!assignedToDeadServers.isEmpty()) {

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import com.google.common.net.HostAndPort;
@@ -163,17 +164,17 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<String>> logsForDeadServers) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<Path>> logsForDeadServers) throws DistributedStoreException {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
     if (tls.extent.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     if (logsForDeadServers != null) {
-      List<String> logs = logsForDeadServers.get(tls.futureOrCurrent());
+      List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
       if (logs != null) {
-        for (String entry : logs) {
-          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(), tls.futureOrCurrent().getLocation().toString(), entry);
+        for (Path entry : logs) {
+          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(), tls.futureOrCurrent().getLocation().toString(), entry.toString());
           byte[] value;
           try {
             value = logEntry.toBytes();
@@ -196,7 +197,7 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<String>> logs) {
+  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<Path>> logs) {
     // the root table is not replicated, so unassigning the root tablet has removed the current log marker
   }
 

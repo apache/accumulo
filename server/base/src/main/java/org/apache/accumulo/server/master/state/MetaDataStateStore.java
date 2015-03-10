@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -123,7 +124,7 @@ public class MetaDataStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<String>> logsForDeadServers) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance, List<Path>> logsForDeadServers) throws DistributedStoreException {
 
     BatchWriter writer = createBatchWriter();
     try {
@@ -136,10 +137,10 @@ public class MetaDataStateStore extends TabletStateStore {
           tls.future.clearFutureLocation(m);
         }
         if (logsForDeadServers != null) {
-          List<String> logs = logsForDeadServers.get(tls.futureOrCurrent());
+          List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
           if (logs != null) {
-            for (String log : logs) {
-              LogEntry entry = new LogEntry(tls.extent, 0, tls.futureOrCurrent().hostPort(), log);
+            for (Path log : logs) {
+              LogEntry entry = new LogEntry(tls.extent, 0, tls.futureOrCurrent().hostPort(), log.toString());
               m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
             }
           }
@@ -163,13 +164,13 @@ public class MetaDataStateStore extends TabletStateStore {
   }
 
   @Override
-  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<String>> logs) throws DistributedStoreException {
+  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<Path>> logs) throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
     try {
-      for (Entry<TServerInstance,List<String>> entry : logs.entrySet()) {
+      for (Entry<TServerInstance,List<Path>> entry : logs.entrySet()) {
         Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
-        for (String log : entry.getValue()) {
-          m.put(MetadataSchema.CurrentLogsSection.COLF, new Text(log), MetadataSchema.CurrentLogsSection.UNUSED);
+        for (Path log : entry.getValue()) {
+          m.put(MetadataSchema.CurrentLogsSection.COLF, new Text(log.toString()), MetadataSchema.CurrentLogsSection.UNUSED);
         }
         writer.addMutation(m);
       }
