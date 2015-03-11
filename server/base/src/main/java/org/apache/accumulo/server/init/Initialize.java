@@ -88,6 +88,7 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -207,7 +208,7 @@ public class Initialize implements KeywordExecutable {
     }
     initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(ReplicationTable.LOCALITY_GROUPS.keySet()));
     // add formatter to replication table
-    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTable.STATUS_FORMATTER_CLASS_NAME);
+    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationUtil.STATUS_FORMATTER_CLASS_NAME);
   }
 
   static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf) throws IOException {

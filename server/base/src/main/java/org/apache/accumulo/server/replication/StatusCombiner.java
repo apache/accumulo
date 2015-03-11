@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -29,10 +28,11 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.server.replication.proto.Replication.Status.Builder;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**

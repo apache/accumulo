@@ -33,7 +33,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -42,9 +42,6 @@ import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
 public class FinishedWorkUpdaterTest {
 
   @Rule

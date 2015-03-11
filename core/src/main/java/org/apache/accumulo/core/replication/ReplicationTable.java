@@ -54,7 +54,6 @@ public class ReplicationTable {
   public static final String WORK_LG_NAME = WorkSection.NAME.toString();
   public static final Set<Text> WORK_LG_COLFAMS = Collections.singleton(WorkSection.NAME);
   public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
-  public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
   public static Scanner getScanner(Connector conn) throws ReplicationTableOfflineException {
     try {

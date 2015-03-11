@@ -143,7 +143,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
@@ -151,6 +150,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
@@ -162,7 +163,7 @@ import com.google.common.collect.Iterables;
  */
 public class Master extends AccumuloServerContext implements LiveTServerSet.Listener, TableObserver, CurrentState {
 
-  final static Logger log = Logger.getLogger(Master.class);
+  final static Logger log = LoggerFactory.getLogger(Master.class);
 
   final static int ONE_SECOND = 1000;
   final private static Text METADATA_TABLE_ID = new Text(MetadataTable.ID);
@@ -423,7 +424,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
         haveUpgradedZooKeeper = true;
       } catch (Exception ex) {
-        log.fatal("Error performing upgrade", ex);
+        log.error("Error performing upgrade", ex);
         System.exit(1);
       }
     }
@@ -478,7 +479,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
-              log.fatal("Error performing upgrade", ex);
+              log.error("Error performing upgrade", ex);
               System.exit(1);
             }
 
@@ -1000,7 +1001,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           if (connection != null)
             connection.fastHalt(masterLock);
         } catch (TException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         }
         tserverSet.remove(instance);
       }
@@ -1267,7 +1268,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       Halt.halt(-1, new Runnable() {
         @Override
         public void run() {
-          log.fatal("No longer able to monitor master lock node", e);
+          log.error("No longer able to monitor master lock node", e);
         }
       });
 

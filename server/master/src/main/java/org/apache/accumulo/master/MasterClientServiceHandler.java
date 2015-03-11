@@ -18,6 +18,7 @@ package org.apache.accumulo.master;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -44,6 +46,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -55,8 +58,12 @@ import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -74,6 +81,8 @@ import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
@@ -82,10 +91,12 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.slf4j.Logger;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 class MasterClientServiceHandler extends FateServiceHandler implements MasterClientService.Iface {
 
@@ -474,5 +485,104 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     } catch (Exception e) {
       throw new TException(e.getMessage());
     }
+  }
+
+  @Override
+  public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName, Set<String> logsToWatch) throws TException {
+    Connector conn;
+    try {
+      conn = master.getConnector();
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException("Failed to obtain connector", e);
+    }
+
+    final Text tableId = new Text(getTableId(master.getInstance(), tableName));
+
+    log.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
+
+    log.trace("Reading from metadata table");
+    final Set<Range> range = Collections.singleton(new Range(ReplicationSection.getRange()));
+    BatchScanner bs;
+    try {
+      bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Could not read metadata table", e);
+    }
+    bs.setRanges(range);
+    bs.fetchColumnFamily(ReplicationSection.COLF);
+    try {
+      // Return immediately if there are records in metadata for these WALs
+      if (!allReferencesReplicated(bs, tableId, logsToWatch)) {
+        return false;
+      }
+    } finally {
+      bs.close();
+    }
+
+    log.trace("reading from replication table");
+    try {
+      bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Replication table was not found", e);
+    }
+    bs.setRanges(Collections.singleton(new Range()));
+    try {
+      // No records in metadata, check replication table
+      return allReferencesReplicated(bs, tableId, logsToWatch);
+    } finally {
+      bs.close();
+    }
+  }
+
+  protected String getTableId(Instance instance, String tableName) throws ThriftTableOperationException {
+    return ClientServiceHandler.checkTableId(instance, tableName, null);
+  }
+
+  /**
+   * @return return true records are only in place which are fully replicated
+   */
+  protected boolean allReferencesReplicated(BatchScanner bs, Text tableId, Set<String> relevantLogs) {
+    Text rowHolder = new Text(), colfHolder = new Text();
+    for (Entry<Key,Value> entry : bs) {
+      log.trace("Got key {}", entry.getKey().toStringNoTruncate());
+
+      entry.getKey().getColumnQualifier(rowHolder);
+      if (tableId.equals(rowHolder)) {
+        entry.getKey().getRow(rowHolder);
+        entry.getKey().getColumnFamily(colfHolder);
+
+        String file;
+        if (colfHolder.equals(ReplicationSection.COLF)) {
+          file = rowHolder.toString();
+          file = file.substring(ReplicationSection.getRowPrefix().length());
+        } else if (colfHolder.equals(OrderSection.NAME)) {
+          file = OrderSection.getFile(entry.getKey(), rowHolder);
+          long timeClosed = OrderSection.getTimeClosed(entry.getKey(), rowHolder);
+          log.trace("Order section: {} and {}", timeClosed, file);
+        } else {
+          file = rowHolder.toString();
+        }
+
+        // Skip files that we didn't observe when we started (new files/data)
+        if (!relevantLogs.contains(file)) {
+          log.trace("Found file that we didn't care about {}", file);
+          continue;
+        } else {
+          log.trace("Found file that we *do* care about {}", file);
+        }
+
+        try {
+          Status stat = Status.parseFrom(entry.getValue().get());
+          if (!StatusUtil.isFullyReplicated(stat)) {
+            log.trace("{} and {} is not fully replicated", entry.getKey().getRow(), ProtobufUtil.toString(stat));
+            return false;
+          }
+        } catch (InvalidProtocolBufferException e) {
+          log.trace("Could not parse protobuf for {}", entry.getKey(), e);
+        }
+      }
+    }
+
+    return true;
   }
 }

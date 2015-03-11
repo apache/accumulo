@@ -14,19 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.replication;
+package org.apache.accumulo.master;
 
 import java.util.Arrays;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -37,11 +43,16 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -50,9 +61,6 @@ import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class ReplicationOperationsImplTest {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplTest.class);
 
@@ -64,6 +72,39 @@ public class ReplicationOperationsImplTest {
   @Before
   public void setup() {
     inst = new MockInstance(test.getMethodName());
+  }
+
+  /**
+   * Spoof out the Master so we can call the implementation without starting a full instance.
+   */
+  private ReplicationOperationsImpl getReplicationOperations(ClientContext context) throws Exception {
+    Master master = EasyMock.createMock(Master.class);
+    EasyMock.expect(master.getConnector()).andReturn(inst.getConnector("root", new PasswordToken(""))).anyTimes();
+    EasyMock.expect(master.getInstance()).andReturn(inst).anyTimes();
+    EasyMock.replay(master);
+
+    final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
+      @Override
+      protected String getTableId(Instance inst, String tableName) throws ThriftTableOperationException {
+        try {
+          return inst.getConnector("root", new PasswordToken("")).tableOperations().tableIdMap().get(tableName);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+
+    return new ReplicationOperationsImpl(context) {
+      @Override
+      protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds, final String tableName, final Set<String> wals)
+          throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        try {
+          return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
+        } catch (TException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
   }
 
   @Test
@@ -101,7 +142,7 @@ public class ReplicationOperationsImplTest {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -158,8 +199,8 @@ public class ReplicationOperationsImplTest {
     }
 
     // After both metadata and replication
-    Assert.assertTrue(done.get());
-    Assert.assertFalse(exception.get());
+    Assert.assertTrue("Drain never finished", done.get());
+    Assert.assertFalse("Saw unexpectetd exception", exception.get());
   }
 
   @Test
@@ -200,7 +241,9 @@ public class ReplicationOperationsImplTest {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
+
+    final ReplicationOperationsImpl roi = getReplicationOperations(context);
+
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -242,8 +285,8 @@ public class ReplicationOperationsImplTest {
     }
 
     // After both metadata and replication
-    Assert.assertTrue(done.get());
-    Assert.assertFalse(exception.get());
+    Assert.assertTrue("Drain never completed", done.get());
+    Assert.assertFalse("Saw unexpected exception", exception.get());
   }
 
   @Test
@@ -285,7 +328,7 @@ public class ReplicationOperationsImplTest {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -328,8 +371,8 @@ public class ReplicationOperationsImplTest {
     }
 
     // New records, but not fully replicated ones don't cause it to complete
-    Assert.assertFalse(done.get());
-    Assert.assertFalse(exception.get());
+    Assert.assertFalse("Drain somehow finished", done.get());
+    Assert.assertFalse("Saw unexpected exception", exception.get());
   }
 
   @Test
@@ -363,7 +406,7 @@ public class ReplicationOperationsImplTest {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations(context);
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -406,11 +449,11 @@ public class ReplicationOperationsImplTest {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
-      Assert.fail("ReplicationOperatiotns.drain did not complete");
+      Assert.fail("ReplicationOperations.drain did not complete");
     }
 
     // We should pass immediately because we aren't waiting on both files to be deleted (just the one that we did)
-    Assert.assertTrue(done.get());
+    Assert.assertTrue("Drain didn't finish", done.get());
   }
 
 }
