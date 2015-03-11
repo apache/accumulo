@@ -155,7 +155,7 @@ public class StatusUtil {
   /**
    * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
    */
-  public static Status openWithUnknownLength(long timeCreated) {
+  public static synchronized Status openWithUnknownLength(long timeCreated) {
     return INF_END_REPLICATION_STATUS_BUILDER.setCreatedTime(timeCreated).build();
   }
 

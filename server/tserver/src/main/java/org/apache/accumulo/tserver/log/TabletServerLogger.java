@@ -319,7 +319,7 @@ public class TabletServerLogger {
               // Need to release
               KeyExtent extent = commitSession.getExtent();
               if (ReplicationConfigurationUtil.isEnabled(extent, tserver.getTableConfiguration(extent))) {
-                Status status = StatusUtil.fileCreated(System.currentTimeMillis());
+                Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + copy.getFileName());
                 // Got some new WALs, note this in the metadata table
                 ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(), copy.getFileName(), status);
