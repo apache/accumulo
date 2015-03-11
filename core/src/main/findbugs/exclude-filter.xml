@@ -29,10 +29,6 @@
     </Or>
   </Match>
   <Match>
-    <!-- ignore proto-generated files -->
-    <Package name="org.apache.accumulo.core.replication.proto" />
-  </Match>
-  <Match>
     <!-- ignore Writable false positives about closing wrapped DataInput stream -->
     <Or>
       <Class name="org.apache.accumulo.core.bloomfilter.BloomFilter" />

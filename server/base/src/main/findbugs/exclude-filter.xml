@@ -16,6 +16,10 @@
 -->
 <FindBugsFilter>
   <Match>
+    <!-- ignore proto-generated files -->
+    <Package name="org.apache.accumulo.server.replication.proto" />
+  </Match>
+  <Match>
     <!-- ignore intentional name shadowing -->
     <Or>
       <Package name="org.apache.accumulo.server.zookeeper" />
