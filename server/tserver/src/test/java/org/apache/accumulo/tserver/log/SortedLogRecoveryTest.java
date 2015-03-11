@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -67,6 +68,16 @@ public class SortedLogRecoveryTest {
     KeyValue() {
       key = new LogFileKey();
       value = new LogFileValue();
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(key) + Objects.hashCode(value);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj || (obj != null && obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
     }
 
     @Override

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.UUID;
@@ -57,7 +59,7 @@ import com.google.common.collect.Iterables;
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
 
-  private static boolean rootHasWritePermission;
+  private boolean rootHasWritePermission;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -172,7 +174,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
 
     // Write half of the header
     FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
-    wal.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(), 0, DfsLogger.LOG_FILE_HEADER_V3.length() / 2);
+    wal.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8), 0, DfsLogger.LOG_FILE_HEADER_V3.length() / 2);
     wal.close();
 
     Assert.assertTrue("root user did not have write permission to metadata table",

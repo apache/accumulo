@@ -56,7 +56,7 @@ public class TraceRepo<T> implements Repo<T> {
     try {
       Repo<T> result = repo.call(tid, environment);
       if (result == null)
-        return result;
+        return null;
       return new TraceRepo<T>(result);
     } finally {
       span.stop();

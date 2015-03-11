@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -39,10 +41,10 @@ public class MiniAccumuloClusterStartStopTest {
 
   @Before
   public void setupTestCluster() throws IOException {
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     File testDir = new File(baseDir, testName.getMethodName());
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     accumulo = new MiniAccumuloCluster(testDir, "superSecret");
   }
 

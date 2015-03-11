@@ -116,14 +116,16 @@ public class CreateToken implements KeywordExecutable {
       }
       File tf = new File(tokenFile);
       if (!tf.exists()) {
-        tf.createNewFile();
+        if (!tf.createNewFile()) {
+          throw new IOException("Couldn't create " + tf.getCanonicalPath());
+        }
       }
       PrintStream out = new PrintStream(new FileOutputStream(tf, true), true, UTF_8.name());
       String outString = principal + ":" + opts.tokenClassName + ":" + tokenBase64;
       out.println(outString);
       out.close();
       System.out.println("Token written to " + tokenFile + ". Remember to upload it to hdfs.");
-    } catch (Exception e) {
+    } catch (IOException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
   }

@@ -153,10 +153,12 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       // block I/O with some side-channel trickiness
       File trickFile = new File(trickFilename);
       try {
-        trickFile.createNewFile();
+        assertTrue(trickFile.createNewFile());
         UtilWaitThread.sleep(seconds * 1000);
       } finally {
-        trickFile.delete();
+        if (!trickFile.delete()) {
+          log.error("Couldn't delete " + trickFile);
+        }
       }
 
       if (seconds <= 10) {

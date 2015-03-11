@@ -148,7 +148,6 @@ public abstract class TabletLocator {
           }
         }
 
-        tabletLoc = new String(tabletLoc);
         tabletLocs.put(tabletLoc, new WeakReference<String>(tabletLoc));
         return tabletLoc;
       }

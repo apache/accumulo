@@ -414,14 +414,18 @@ public class ThriftUtil {
       if (params.isTrustStoreSet()) {
         tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         KeyStore ts = KeyStore.getInstance(params.getTrustStoreType());
-        ts.load(new FileInputStream(params.getTrustStorePath()), params.getTrustStorePass().toCharArray());
+        try (FileInputStream fis = new FileInputStream(params.getTrustStorePath())) {
+          ts.load(fis, params.getTrustStorePass().toCharArray());
+        }
         tmf.init(ts);
       }
 
       if (params.isKeyStoreSet()) {
         kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         KeyStore ks = KeyStore.getInstance(params.getKeyStoreType());
-        ks.load(new FileInputStream(params.getKeyStorePath()), params.getKeyStorePass().toCharArray());
+        try (FileInputStream fis = new FileInputStream(params.getKeyStorePath())) {
+          ks.load(fis, params.getKeyStorePass().toCharArray());
+        }
         kmf.init(ks, params.getKeyStorePass().toCharArray());
       }
 

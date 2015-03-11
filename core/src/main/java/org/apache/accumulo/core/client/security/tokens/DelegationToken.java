@@ -131,7 +131,7 @@ public class DelegationToken extends PasswordToken {
 
   @Override
   public DelegationToken clone() {
-    DelegationToken copy = new DelegationToken();
+    DelegationToken copy = (DelegationToken) super.clone();
     copy.setPassword(getPassword());
     copy.identifier = new AuthenticationTokenIdentifier(identifier);
     return copy;

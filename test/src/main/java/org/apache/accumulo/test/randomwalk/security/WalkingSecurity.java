@@ -308,7 +308,9 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
       for (TablePermission tp : TablePermission.values())
         try {
           revokeTablePermission(user, getTableName(), tp);
-        } catch (TableNotFoundException e) {}
+        } catch (TableNotFoundException e) {
+          // ignore
+        }
     for (SystemPermission sp : SystemPermission.values())
       revokeSystemPermission(user, sp);
   }

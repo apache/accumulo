@@ -26,7 +26,7 @@ public class TabletServerUpdateMetrics extends AbstractMetricsImpl implements Ta
 
   private static final String METRICS_PREFIX = "tserver.update";
 
-  private static ObjectName OBJECT_NAME = null;
+  private ObjectName OBJECT_NAME = null;
 
   TabletServerUpdateMetrics() {
     super();

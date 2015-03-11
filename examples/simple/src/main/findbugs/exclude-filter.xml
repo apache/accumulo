@@ -15,4 +15,9 @@
   limitations under the License.
 -->
 <FindBugsFilter>
+  <Match>
+    <!-- example classes can call System.exit -->
+    <Class name="org.apache.accumulo.examples.simple.isolation.InterferenceTest$Writer" />
+    <Bug code="DM" pattern="DM_EXIT" />
+  </Match>
 </FindBugsFilter>

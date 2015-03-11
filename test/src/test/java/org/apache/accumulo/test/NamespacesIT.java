@@ -886,7 +886,9 @@ public class NamespacesIT extends AccumuloClusterIT {
     try {
       c.namespaceOperations().testClassLoad(namespace, "dummy", "dummy");
       fail();
-    } catch (NamespaceNotFoundException e) {}
+    } catch (NamespaceNotFoundException e) {
+      // expected, ignore
+    }
   }
 
   @Test

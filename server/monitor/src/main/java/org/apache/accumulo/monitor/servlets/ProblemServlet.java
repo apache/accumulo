@@ -79,7 +79,7 @@ public class ProblemServlet extends BasicServlet {
         row.add(entry.getKey());
         for (ProblemType pt : ProblemType.values()) {
           Integer pcount = entry.getValue().get(pt);
-          row.add(pcount == null ? 0 : pcount);
+          row.add(pcount == null ? Integer.valueOf(0) : pcount);
         }
         row.add(entry.getKey());
         problemSummary.addRow(row);
@@ -124,6 +124,7 @@ public class ProblemServlet extends BasicServlet {
   }
 
   private static class TableProblemLinkType extends StringType<String> {
+    private static final long serialVersionUID = 1L;
     private Map<String,String> tidToNameMap;
 
     public TableProblemLinkType(Map<String,String> tidToNameMap) {
@@ -140,12 +141,13 @@ public class ProblemServlet extends BasicServlet {
   }
 
   private static class ClearTableProblemsLinkType extends StringType<String> {
-    private HttpServletRequest req;
+    private static final long serialVersionUID = 1L;
+    private final String currentPage;
     private Map<String,String> tidToNameMap;
 
     public ClearTableProblemsLinkType(HttpServletRequest req, Map<String,String> tidToNameMap) {
-      this.req = req;
       this.tidToNameMap = tidToNameMap;
+      this.currentPage = currentPage(req);
     }
 
     @Override
@@ -158,16 +160,17 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       String table = String.valueOf(obj);
-      return String.format("<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>", encode(table), currentPage(req),
+      return String.format("<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>", encode(table), currentPage,
           Tables.getPrintableTableNameFromId(tidToNameMap, table));
     }
   }
 
   private static class ClearProblemLinkType extends CellType<ProblemReport> {
-    private HttpServletRequest req;
+    private static final long serialVersionUID = 1L;
+    private final String currentPage;
 
     public ClearProblemLinkType(HttpServletRequest req) {
-      this.req = req;
+      this.currentPage = currentPage(req);
     }
 
     @Override
@@ -181,7 +184,7 @@ public class ProblemServlet extends BasicServlet {
         return "-";
       ProblemReport p = (ProblemReport) obj;
       return String.format("<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>", encode(p.getTableName()),
-          currentPage(req), encode(p.getResource()), encode(p.getProblemType().name()));
+          currentPage, encode(p.getResource()), encode(p.getProblemType().name()));
     }
 
     @Override

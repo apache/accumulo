@@ -40,8 +40,12 @@ import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellTest {
+  private static final Logger log = LoggerFactory.getLogger(ShellTest.class);
+
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -136,7 +140,9 @@ public class ShellTest {
   @After
   public void teardown() {
     if (config.exists()) {
-      config.delete();
+      if (!config.delete()) {
+        log.error("Unable to delete {}", config);
+      }
     }
     shell.shutdown();
   }

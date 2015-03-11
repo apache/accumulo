@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -85,7 +86,7 @@ public class FileUtilTest {
   public void testCleanupIndexOpWithDfsDir() throws IOException {
     // And a "unique" tmp directory for each volume
     File tmp1 = new File(accumuloDir, "tmp");
-    tmp1.mkdirs();
+    assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI());
 
     HashMap<Property,String> testProps = new HashMap<Property,String>();
@@ -102,17 +103,17 @@ public class FileUtilTest {
   @Test
   public void testCleanupIndexOpWithCommonParentVolume() throws IOException {
     File volumeDir = new File(accumuloDir, "volumes");
-    volumeDir.mkdirs();
+    assertTrue(volumeDir.mkdirs() || volumeDir.isDirectory());
 
     // Make some directories to simulate multiple volumes
     File v1 = new File(volumeDir, "v1"), v2 = new File(volumeDir, "v2");
-    v1.mkdirs();
-    v2.mkdirs();
+    assertTrue(v1.mkdirs() || v1.isDirectory());
+    assertTrue(v2.mkdirs() || v2.isDirectory());
 
     // And a "unique" tmp directory for each volume
     File tmp1 = new File(v1, "tmp"), tmp2 = new File(v2, "tmp");
-    tmp1.mkdirs();
-    tmp2.mkdirs();
+    assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
+    assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<Property,String>();
@@ -133,18 +134,18 @@ public class FileUtilTest {
   @Test
   public void testCleanupIndexOpWithCommonParentVolumeWithDepth() throws IOException {
     File volumeDir = new File(accumuloDir, "volumes");
-    volumeDir.mkdirs();
+    assertTrue(volumeDir.mkdirs() || volumeDir.isDirectory());
 
     // Make some directories to simulate multiple volumes
     File v1 = new File(volumeDir, "v1"), v2 = new File(volumeDir, "v2");
-    v1.mkdirs();
-    v2.mkdirs();
+    assertTrue(v1.mkdirs() || v1.isDirectory());
+    assertTrue(v2.mkdirs() || v2.isDirectory());
 
     // And a "unique" tmp directory for each volume
     // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique dirs)
     File tmp1 = new File(new File(v1, "tmp"), "tmp_1"), tmp2 = new File(new File(v2, "tmp"), "tmp_1");
-    tmp1.mkdirs();
-    tmp2.mkdirs();
+    assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
+    assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<Property,String>();
@@ -166,13 +167,13 @@ public class FileUtilTest {
   public void testCleanupIndexOpWithoutCommonParentVolume() throws IOException {
     // Make some directories to simulate multiple volumes
     File v1 = new File(accumuloDir, "v1"), v2 = new File(accumuloDir, "v2");
-    v1.mkdirs();
-    v2.mkdirs();
+    assertTrue(v1.mkdirs() || v1.isDirectory());
+    assertTrue(v2.mkdirs() || v2.isDirectory());
 
     // And a "unique" tmp directory for each volume
     File tmp1 = new File(v1, "tmp"), tmp2 = new File(v2, "tmp");
-    tmp1.mkdirs();
-    tmp2.mkdirs();
+    assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
+    assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<Property,String>();
@@ -194,14 +195,14 @@ public class FileUtilTest {
   public void testCleanupIndexOpWithoutCommonParentVolumeWithDepth() throws IOException {
     // Make some directories to simulate multiple volumes
     File v1 = new File(accumuloDir, "v1"), v2 = new File(accumuloDir, "v2");
-    v1.mkdirs();
-    v2.mkdirs();
+    assertTrue(v1.mkdirs() || v1.isDirectory());
+    assertTrue(v2.mkdirs() || v2.isDirectory());
 
     // And a "unique" tmp directory for each volume
     // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique dirs)
     File tmp1 = new File(new File(v1, "tmp"), "tmp_1"), tmp2 = new File(new File(v2, "tmp"), "tmp_1");
-    tmp1.mkdirs();
-    tmp2.mkdirs();
+    assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
+    assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<Property,String>();

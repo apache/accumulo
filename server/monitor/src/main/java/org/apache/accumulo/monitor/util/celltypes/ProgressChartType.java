@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.util.celltypes;
 
 public class ProgressChartType extends NumberType<Double> {
 
+  private static final long serialVersionUID = 1L;
   private double max;
 
   public ProgressChartType() {

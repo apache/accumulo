@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -43,7 +44,19 @@ class HistData<T> implements Comparable<HistData<T>>, Serializable {
     count = 0;
   }
 
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(bin) + Objects.hashCode(count);
+  }
+
   @SuppressWarnings("unchecked")
+  @Override
+  public boolean equals(Object obj) {
+    return obj == this || (obj != null && obj instanceof HistData && 0 == compareTo((HistData<T>) obj));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
   public int compareTo(HistData<T> o) {
     return ((Comparable<T>) bin).compareTo(o.bin);
   }
@@ -100,6 +113,7 @@ public class Histogram<T> implements Serializable {
     ArrayList<HistData<T>> sortedCounts = new ArrayList<HistData<T>>(counts.values());
 
     Collections.sort(sortedCounts, new Comparator<HistData<T>>() {
+      @Override
       public int compare(HistData<T> o1, HistData<T> o2) {
         if (o1.count < o2.count)
           return -1;

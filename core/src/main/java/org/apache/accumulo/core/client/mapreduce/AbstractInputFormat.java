@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -480,16 +479,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         usesLocalIterators = tableConfig.shouldUseLocalIterators();
       }
 
-      List<IteratorSetting> iterators = split.getIterators();
-      if (null == iterators) {
-        iterators = tableConfig.getIterators();
-      }
-
-      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
-      if (null == columns) {
-        columns = tableConfig.getFetchedColumns();
-      }
-
       try {
         log.debug("Creating connector with user: " + principal);
         log.debug("Creating scanner for table: " + table);
@@ -514,6 +503,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         setupIterators(attempt, scanner, split.getTableName(), split);
       } catch (Exception e) {
         throw new IOException(e);
+      }
+
+      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = tableConfig.getFetchedColumns();
       }
 
       // setup a scanner within the bounds of this split

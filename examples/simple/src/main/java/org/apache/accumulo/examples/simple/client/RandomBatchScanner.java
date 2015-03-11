@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.examples.simple.client.RandomBatchWriter.abs;
 
 import java.util.Arrays;
@@ -63,7 +64,7 @@ class CountingVerifyingReceiver {
     byte expectedValue[] = RandomBatchWriter.createValue(rowid, expectedValueSize);
 
     if (!Arrays.equals(expectedValue, value.get())) {
-      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue) + " got : " + new String(value.get()));
+      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue, UTF_8) + " got : " + new String(value.get(), UTF_8));
     }
 
     if (!expectedRows.containsKey(key.getRow())) {

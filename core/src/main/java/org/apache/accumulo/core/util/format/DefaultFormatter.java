@@ -31,26 +31,26 @@ import org.apache.hadoop.io.Text;
 public class DefaultFormatter implements Formatter {
   private Iterator<Entry<Key,Value>> si;
   private boolean doTimestamps;
+
+  public static class DefaultDateFormat extends DateFormat {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
+      toAppendTo.append(Long.toString(date.getTime()));
+      return toAppendTo;
+    }
+
+    @Override
+    public Date parse(String source, ParsePosition pos) {
+      return new Date(Long.parseLong(source));
+    }
+  }
+
   private static final ThreadLocal<DateFormat> formatter = new ThreadLocal<DateFormat>() {
     @Override
     protected DateFormat initialValue() {
       return new DefaultDateFormat();
-    }
-
-    class DefaultDateFormat extends DateFormat {
-      private static final long serialVersionUID = 1L;
-
-      @Override
-      public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
-        toAppendTo.append(Long.toString(date.getTime()));
-        return toAppendTo;
-      }
-
-      @Override
-      public Date parse(String source, ParsePosition pos) {
-        return new Date(Long.parseLong(source));
-      }
-
     }
   };
 
@@ -61,11 +61,13 @@ public class DefaultFormatter implements Formatter {
     doTimestamps = printTimestamps;
   }
 
+  @Override
   public boolean hasNext() {
     checkState(true);
     return si.hasNext();
   }
 
+  @Override
   public String next() {
     DateFormat timestampFormat = null;
 
@@ -81,6 +83,7 @@ public class DefaultFormatter implements Formatter {
     return formatEntry(si.next(), timestampFormat);
   }
 
+  @Override
   public void remove() {
     checkState(true);
     si.remove();

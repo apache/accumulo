@@ -26,7 +26,7 @@ public class TabletServerScanMetrics extends AbstractMetricsImpl implements Tabl
 
   public static final String METRICS_PREFIX = "tserver.scan";
 
-  static ObjectName OBJECT_NAME = null;
+  ObjectName OBJECT_NAME = null;
 
   TabletServerScanMetrics() {
     super();

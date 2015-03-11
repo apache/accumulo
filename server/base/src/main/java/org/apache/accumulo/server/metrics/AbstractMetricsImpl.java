@@ -38,7 +38,7 @@ import org.apache.commons.lang.time.DateUtils;
 
 public abstract class AbstractMetricsImpl implements Metrics {
 
-  public class Metric {
+  public static class Metric {
 
     private long count = 0;
     private long avg = 0;
@@ -268,11 +268,8 @@ public abstract class AbstractMetricsImpl implements Metrics {
         logWriter.close();
       } catch (Exception e) {
         // do nothing
-      } finally {
-        logWriter = null;
       }
     }
-    logFile = null;
   }
 
 }

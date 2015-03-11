@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -88,7 +89,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes())), Collections.<String,String> emptyMap());
+      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))),
+          Collections.<String,String> emptyMap());
     } catch (NamespaceNotFoundException e) {
       // should not happen
       throw new AssertionError(e);
@@ -110,7 +112,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       throw new NamespaceNotEmptyException(namespaceId, namespace, null);
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
@@ -126,7 +128,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes()), ByteBuffer.wrap(newNamespaceName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)), ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<String,String>();
     doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts);
   }

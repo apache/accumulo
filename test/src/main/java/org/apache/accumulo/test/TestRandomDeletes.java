@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -52,6 +53,17 @@ public class TestRandomDeletes {
       this.timestamp = timestamp;
     }
 
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(row) + Objects.hashCode(column);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj || (obj != null && obj instanceof RowColumn && 0 == compareTo((RowColumn) obj));
+    }
+
+    @Override
     public int compareTo(RowColumn other) {
       int result = row.compareTo(other.row);
       if (result != 0)
@@ -59,6 +71,7 @@ public class TestRandomDeletes {
       return column.compareTo(other.column);
     }
 
+    @Override
     public String toString() {
       return row.toString() + ":" + column.toString();
     }

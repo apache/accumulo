@@ -47,7 +47,7 @@ public class GroupBalancerTest {
 
     @Override
     public String apply(KeyExtent input) {
-      return input.getEndRow().toString().substring(0, 2);
+      return (input == null || input.getEndRow() == null) ? null : input.getEndRow().toString().substring(0, 2);
     }
   };
 

@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.slf4j.LoggerFactory;
 
 public class CacheTestReader {
   public static void main(String[] args) throws Exception {
@@ -42,8 +43,9 @@ public class CacheTestReader {
     ZooCache zc = new ZooCache(keepers, 30000);
 
     while (true) {
-      if (myfile.exists())
-        myfile.delete();
+      if (myfile.exists() && !myfile.delete()) {
+        LoggerFactory.getLogger(CacheTestReader.class).warn("Unable to delete {}", myfile);
+      }
 
       if (zc.get(rootDir + "/die") != null) {
         return;

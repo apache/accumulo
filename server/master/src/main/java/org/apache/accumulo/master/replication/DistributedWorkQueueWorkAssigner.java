@@ -152,6 +152,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     try {
       s = ReplicationTable.getScanner(conn);
     } catch (ReplicationTableOfflineException e) {
+      // no work to do; replication is off
       return;
     }
 

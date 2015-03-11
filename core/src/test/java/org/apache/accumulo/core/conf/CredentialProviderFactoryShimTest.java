@@ -33,11 +33,15 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class CredentialProviderFactoryShimTest {
+
+  private static final Logger log = LoggerFactory.getLogger(CredentialProviderFactoryShimTest.class);
 
   private static final String populatedKeyStoreName = "/accumulo.jceks", emptyKeyStoreName = "/empty.jceks";
   private static File emptyKeyStore, populatedKeyStore;
@@ -144,7 +148,9 @@ public class CredentialProviderFactoryShimTest {
     File targetDir = new File(System.getProperty("user.dir") + "/target");
     File keystoreFile = new File(targetDir, "create.jks");
     if (keystoreFile.exists()) {
-      keystoreFile.delete();
+      if (!keystoreFile.delete()) {
+        log.error("Unable to delete {}", keystoreFile);
+      }
     }
 
     String providerUrl = "jceks://file" + keystoreFile.getAbsolutePath();

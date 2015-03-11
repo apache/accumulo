@@ -50,7 +50,9 @@ public class CertUtilsTest {
     certUtils.createSelfSignedCert(keyStoreFile, "test", PASSWORD);
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    keyStore.load(new FileInputStream(keyStoreFile), PASSWORD_CHARS);
+    try (FileInputStream fis = new FileInputStream(keyStoreFile)) {
+      keyStore.load(fis, PASSWORD_CHARS);
+    }
     Certificate cert = CertUtils.findCert(keyStore);
 
     cert.verify(cert.getPublicKey()); // throws exception if it can't be verified
@@ -65,7 +67,9 @@ public class CertUtilsTest {
     certUtils.createPublicCert(publicKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(), PASSWORD, "");
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    keyStore.load(new FileInputStream(publicKeyStoreFile), new char[0]);
+    try (FileInputStream fis = new FileInputStream(publicKeyStoreFile)) {
+      keyStore.load(fis, new char[0]);
+    }
     try {
       CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS);
       fail("expected not to find private key in keystore");
@@ -85,11 +89,15 @@ public class CertUtilsTest {
     certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD, rootKeyStoreFile.getAbsolutePath(), PASSWORD);
 
     KeyStore rootKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    rootKeyStore.load(new FileInputStream(rootKeyStoreFile), PASSWORD_CHARS);
+    try (FileInputStream fis = new FileInputStream(rootKeyStoreFile)) {
+      rootKeyStore.load(fis, PASSWORD_CHARS);
+    }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
 
     KeyStore signedKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    signedKeyStore.load(new FileInputStream(signedKeyStoreFile), PASSWORD_CHARS);
+    try (FileInputStream fis = new FileInputStream(signedKeyStoreFile)) {
+      signedKeyStore.load(fis, PASSWORD_CHARS);
+    }
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
 
     try {
@@ -117,9 +125,13 @@ public class CertUtilsTest {
     certUtils.createPublicCert(publicSignedKeyStoreFile, "test", signedKeyStoreFile.getAbsolutePath(), PASSWORD, "");
 
     KeyStore rootKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    rootKeyStore.load(new FileInputStream(publicRootKeyStoreFile), new char[0]);
+    try (FileInputStream fis = new FileInputStream(publicRootKeyStoreFile)) {
+      rootKeyStore.load(fis, new char[0]);
+    }
     KeyStore signedKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    signedKeyStore.load(new FileInputStream(publicSignedKeyStoreFile), new char[0]);
+    try (FileInputStream fis = new FileInputStream(publicSignedKeyStoreFile)) {
+      signedKeyStore.load(fis, new char[0]);
+    }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
 
@@ -146,11 +158,15 @@ public class CertUtilsTest {
     certUtils.createSignedCert(signedLeafKeyStoreFile, "test", PASSWORD, signedCaKeyStoreFile.getAbsolutePath(), PASSWORD);
 
     KeyStore caKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    caKeyStore.load(new FileInputStream(signedCaKeyStoreFile), PASSWORD_CHARS);
+    try (FileInputStream fis = new FileInputStream(signedCaKeyStoreFile)) {
+      caKeyStore.load(fis, PASSWORD_CHARS);
+    }
     Certificate caCert = CertUtils.findCert(caKeyStore);
 
     KeyStore leafKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    leafKeyStore.load(new FileInputStream(signedLeafKeyStoreFile), PASSWORD_CHARS);
+    try (FileInputStream fis = new FileInputStream(signedLeafKeyStoreFile)) {
+      leafKeyStore.load(fis, PASSWORD_CHARS);
+    }
     Certificate leafCert = CertUtils.findCert(leafKeyStore);
 
     leafCert.verify(caCert.getPublicKey()); // throws exception if it can't be verified

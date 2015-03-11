@@ -44,7 +44,7 @@ import org.junit.rules.TemporaryFolder;
  */
 public class ZooLockTest {
 
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  private static final TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static MiniAccumuloCluster accumulo;
 

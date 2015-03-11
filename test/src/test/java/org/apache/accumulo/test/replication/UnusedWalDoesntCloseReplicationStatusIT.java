@@ -78,7 +78,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacIT {
     conn.tableOperations().create(tableName);
 
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    final int numericTableId = Integer.valueOf(tableId);
+    final int numericTableId = Integer.parseInt(tableId);
     final int fakeTableId = numericTableId + 1;
 
     Assert.assertNotNull("Did not find table ID", tableId);

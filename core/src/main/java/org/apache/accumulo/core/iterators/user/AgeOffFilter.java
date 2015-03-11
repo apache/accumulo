@@ -59,7 +59,6 @@ public class AgeOffFilter extends Filter {
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
 
     super.init(source, options, env);
-    threshold = -1;
     threshold = Long.parseLong(ttl);
 
     String time = options.get(CURRENT_TIME);

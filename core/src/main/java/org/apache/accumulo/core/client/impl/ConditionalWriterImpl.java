@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.client.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -181,6 +183,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     public int compareTo(Delayed o) {
       QCMutation oqcm = (QCMutation) o;
       return Long.valueOf(resetTime).compareTo(Long.valueOf(oqcm.resetTime));
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode();
     }
 
     @Override
@@ -415,7 +422,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       count++;
 
       if (mut.getConditions().size() == 0)
-        throw new IllegalArgumentException("ConditionalMutation had no conditions " + new String(mut.getRow()));
+        throw new IllegalArgumentException("ConditionalMutation had no conditions " + new String(mut.getRow(), UTF_8));
 
       for (Condition cond : mut.getConditions()) {
         if (!isVisible(cond.getVisibility())) {

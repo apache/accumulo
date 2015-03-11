@@ -101,7 +101,7 @@ public class TableLoadBalancerTest {
   }
 
   // ugh... so wish I had provided mock objects to the LoadBalancer in the master
-  static class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
+  class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
 
     TableLoadBalancer() {
       super();
@@ -157,9 +157,9 @@ public class TableLoadBalancerTest {
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<String,Integer> movedByTable = new HashMap<String,Integer>();
-    movedByTable.put(t1Id, new Integer(0));
-    movedByTable.put(t2Id, new Integer(0));
-    movedByTable.put(t3Id, new Integer(0));
+    movedByTable.put(t1Id, Integer.valueOf(0));
+    movedByTable.put(t2Id, Integer.valueOf(0));
+    movedByTable.put(t3Id, Integer.valueOf(0));
     for (TabletMigration migration : migrationsOut) {
       if (migration.oldServer.equals(svr))
         count++;

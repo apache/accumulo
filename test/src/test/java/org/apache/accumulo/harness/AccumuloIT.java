@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.Random;
 
@@ -44,23 +46,23 @@ public class AccumuloIT {
 
   public static File createSharedTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name != null)
       baseDir = new File(baseDir, name);
     File testDir = new File(baseDir, System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE));
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     return testDir;
   }
 
   public static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name == null)
       return baseDir;
     File testDir = new File(baseDir, name);
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     return testDir;
   }
 

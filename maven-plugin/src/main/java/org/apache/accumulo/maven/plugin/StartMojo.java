@@ -17,6 +17,7 @@
 package org.apache.accumulo.maven.plugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -60,7 +61,8 @@ public class StartMojo extends AbstractAccumuloMojo {
       subdir = subdir.getCanonicalFile();
       if (subdir.exists())
         FileUtils.forceDelete(subdir);
-      subdir.mkdirs();
+      if (!subdir.mkdirs() && !subdir.isDirectory())
+        throw new IOException(subdir + " cannot be created as a directory");
       MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(subdir, rootPassword);
       cfg.setInstanceName(instanceName);
       configureMiniClasspath(cfg, miniClasspath);

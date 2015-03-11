@@ -45,8 +45,11 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AccumuloFileOutputFormatTest {
+  private static final Logger log = LoggerFactory.getLogger(AccumuloFileOutputFormatTest.class);
   private static final String PREFIX = AccumuloFileOutputFormatTest.class.getSimpleName();
   private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
   private static final String BAD_TABLE = PREFIX + "_mapreduce_bad_table";
@@ -160,7 +163,9 @@ public class AccumuloFileOutputFormatTest {
 
   public void handleWriteTests(boolean content) throws Exception {
     File f = folder.newFile("handleWriteTests");
-    f.delete();
+    if (f.delete()) {
+      log.debug("Deleted {}", f);
+    }
     MRTester.main(new String[] {"root", "", content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
     assertTrue(f.exists());
@@ -181,7 +186,9 @@ public class AccumuloFileOutputFormatTest {
   @Test
   public void writeBadVisibility() throws Exception {
     File f = folder.newFile("writeBadVisibility");
-    f.delete();
+    if (f.delete()) {
+      log.debug("Deleted {}", f);
+    }
     MRTester.main(new String[] {"root", "", BAD_TABLE, f.getAbsolutePath()});
     assertNull(e1);
     assertNull(e2);

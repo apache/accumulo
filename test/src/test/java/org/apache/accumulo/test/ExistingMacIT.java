@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -103,7 +105,7 @@ public class ExistingMacIT extends ConfigurableMacIT {
 
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");
     FileUtils.deleteQuietly(hadoopConfDir);
-    hadoopConfDir.mkdirs();
+    assertTrue(hadoopConfDir.mkdirs());
     createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
     createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
 
@@ -144,7 +146,7 @@ public class ExistingMacIT extends ConfigurableMacIT {
 
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
     FileUtils.deleteQuietly(hadoopConfDir);
-    hadoopConfDir.mkdirs();
+    assertTrue(hadoopConfDir.mkdirs());
     createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
     createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
 

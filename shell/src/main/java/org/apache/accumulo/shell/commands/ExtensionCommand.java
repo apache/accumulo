@@ -32,12 +32,13 @@ public class ExtensionCommand extends Command {
 
   protected Option enable, disable, list;
 
-  private static ServiceLoader<ShellExtension> extensions = null;
+  private ServiceLoader<ShellExtension> extensions = null;
 
   private Set<String> loadedHeaders = new HashSet<String>();
   private Set<String> loadedCommands = new HashSet<String>();
   private Set<String> loadedExtensions = new TreeSet<String>();
 
+  @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     if (cl.hasOption(enable.getOpt())) {
       extensions = ServiceLoader.load(ShellExtension.class);
@@ -74,10 +75,12 @@ public class ExtensionCommand extends Command {
     return 0;
   }
 
+  @Override
   public String description() {
     return "Enable, disable, or list shell extensions";
   }
 
+  @Override
   public int numArgs() {
     return 0;
   }

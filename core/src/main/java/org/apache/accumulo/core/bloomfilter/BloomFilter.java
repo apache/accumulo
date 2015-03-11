@@ -212,8 +212,6 @@ public class BloomFilter extends Filter {
     }
 
     if (super.getSerialVersion() == super.getVersion()) {
-      // ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-      // ObjectInputStream ois = new ObjectInputStream(bais);
       ObjectInputStream ois = new ObjectInputStream((DataInputStream) (in));
       try {
         bits = (BitSet) ois.readObject();
@@ -221,7 +219,6 @@ public class BloomFilter extends Filter {
         log.error("BloomFilter tried to deserialize as bitset", e);
         throw new IOException("BloomFilter tried to deserialize as bitset: " + e);
       }
-      // can not close ois, it would close in
 
     } else {
       for (int i = 0, byteIndex = 0, bitIndex = 0; i < vectorSize; i++, bitIndex++) {

@@ -49,7 +49,7 @@ public class MetadataBulkLoadFilter extends Filter {
   @Override
   public boolean accept(Key k, Value v) {
     if (!k.isDeleted() && k.compareColumnFamily(TabletsSection.BulkFileColumnFamily.NAME) == 0) {
-      long txid = Long.valueOf(v.toString());
+      long txid = Long.parseLong(v.toString());
 
       Status status = bulkTxStatusCache.get(txid);
       if (status == null) {

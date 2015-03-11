@@ -47,13 +47,15 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AccumuloFileOutputFormatTest {
+  private static final Logger log = LoggerFactory.getLogger(AccumuloFileOutputFormatTest.class);
   private static final int JOB_VISIBILITY_CACHE_SIZE = 3000;
   private static final String PREFIX = AccumuloFileOutputFormatTest.class.getSimpleName();
   private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
@@ -111,7 +113,7 @@ public class AccumuloFileOutputFormatTest {
             if (index == 2)
               fail();
           } catch (Exception e) {
-            Logger.getLogger(this.getClass()).error(e, e);
+            log.error(e.toString(), e);
             assertEquals(2, index);
           }
         } catch (AssertionError e) {
@@ -173,7 +175,9 @@ public class AccumuloFileOutputFormatTest {
 
   public void handleWriteTests(boolean content) throws Exception {
     File f = folder.newFile("handleWriteTests");
-    f.delete();
+    if (f.delete()) {
+      log.debug("Deleted {}", f);
+    }
     MRTester.main(new String[] {"root", "", content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
     assertTrue(f.exists());
@@ -194,9 +198,10 @@ public class AccumuloFileOutputFormatTest {
   @Test
   public void writeBadVisibility() throws Exception {
     File f = folder.newFile("writeBadVisibility");
-    f.delete();
+    if (f.delete()) {
+      log.debug("Deleted {}", f);
+    }
     MRTester.main(new String[] {"root", "", BAD_TABLE, f.getAbsolutePath()});
-    Logger.getLogger(this.getClass()).error(e1, e1);
     assertNull(e1);
     assertNull(e2);
   }

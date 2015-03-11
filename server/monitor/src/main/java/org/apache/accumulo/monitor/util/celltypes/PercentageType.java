@@ -18,6 +18,8 @@ package org.apache.accumulo.monitor.util.celltypes;
 
 public class PercentageType extends CellType<Double> {
 
+  private static final long serialVersionUID = 1L;
+
   @Override
   public int compare(Double o1, Double o2) {
     return o1.compareTo(o2);

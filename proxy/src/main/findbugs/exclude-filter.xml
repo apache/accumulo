@@ -17,6 +17,11 @@
 <FindBugsFilter>
   <Match>
     <!-- ignore thrift-generated classes -->
-    <Class name="~org\.apache\.accumulo\.proxy\.thrift\..*" />
+    <Package name="org.apache.accumulo.proxy.thrift" />
+  </Match>
+  <Match>
+    <!-- admin classes can call System.exit -->
+    <Class name="org.apache.accumulo.proxy.Proxy" />
+    <Bug code="DM" pattern="DM_EXIT" />
   </Match>
 </FindBugsFilter>

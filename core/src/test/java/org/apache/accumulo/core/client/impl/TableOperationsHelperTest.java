@@ -297,7 +297,9 @@ public class TableOperationsHelperTest {
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (AccumuloException e) {}
+    } catch (AccumuloException e) {
+      // expected, ignore
+    }
     setting.setName("thirdName");
     try {
       t.attachIterator("table", setting);

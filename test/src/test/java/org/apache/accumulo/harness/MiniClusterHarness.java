@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -175,7 +177,7 @@ public class MiniClusterHarness {
     }
 
     File sslDir = new File(folder, "ssl");
-    sslDir.mkdirs();
+    assertTrue(sslDir.mkdirs() || sslDir.isDirectory());
     File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
     File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
     File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");

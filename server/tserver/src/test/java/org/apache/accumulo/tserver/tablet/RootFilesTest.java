@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -57,18 +59,18 @@ public class RootFilesTest {
       this.conf = conf;
 
       rootTabletDir = new File(tempFolder.newFolder(), "accumulo/tables/+r/root_tablet");
-      rootTabletDir.mkdirs();
+      assertTrue(rootTabletDir.mkdirs() || rootTabletDir.isDirectory());
       oldDatafiles = new HashSet<FileRef>();
       for (String filename : inputFiles) {
         File file = new File(rootTabletDir, filename);
-        file.createNewFile();
+        assertTrue(file.createNewFile());
         oldDatafiles.add(new FileRef(file.toURI().toString()));
       }
 
       this.compactName = compactName;
 
       File tmpFile = new File(rootTabletDir, compactName + "_tmp");
-      tmpFile.createNewFile();
+      assertTrue(tmpFile.createNewFile());
       tmpDatafile = new FileRef(tmpFile.toURI().toString());
 
       newDatafile = new FileRef(new File(rootTabletDir, compactName).toURI().toString());

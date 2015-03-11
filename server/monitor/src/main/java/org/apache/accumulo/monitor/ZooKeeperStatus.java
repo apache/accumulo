@@ -19,6 +19,7 @@ package org.apache.accumulo.monitor;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -47,6 +48,16 @@ public class ZooKeeperStatus implements Runnable {
       this.keeper = keeper;
       this.mode = mode;
       this.clients = clients;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(keeper);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == this || (obj != null && obj instanceof ZooKeeperState && 0 == compareTo((ZooKeeperState) obj));
     }
 
     @Override

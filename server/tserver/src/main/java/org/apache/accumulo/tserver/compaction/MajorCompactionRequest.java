@@ -100,4 +100,9 @@ public class MajorCompactionRequest implements Cloneable {
   public int getMaxFilesPerTablet() {
     return tableConfig.getMaxFilesPerTablet();
   }
+
+  @Override
+  public MajorCompactionRequest clone() throws CloneNotSupportedException {
+    return (MajorCompactionRequest) super.clone();
+  }
 }
