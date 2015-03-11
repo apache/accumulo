@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,6 +42,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -97,6 +100,7 @@ import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -129,7 +133,7 @@ public abstract class SimpleProxyBase {
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
   private static String principal = "root";
 
-  private static Map<String,String> properties = Collections.singletonMap("password", secret);
+  private static Map<String,String> properties = new HashMap<>();
   private static ByteBuffer creds = null;
 
   private static final AtomicInteger tableCounter = new AtomicInteger(0);
@@ -163,7 +167,12 @@ public abstract class SimpleProxyBase {
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
     // wait for accumulo to be up and functional
-    ZooKeeperInstance zoo = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+    Map<String,String> map = new HashMap<>();
+    map.put(ClientProperty.INSTANCE_NAME.getKey(), accumulo.getInstanceName());
+    map.put(ClientProperty.INSTANCE_ZK_HOST.getKey(), accumulo.getZooKeepers());
+    MapConfiguration mapCfg = new MapConfiguration(map);
+    ClientConfiguration clientConfig = new ClientConfiguration(mapCfg);
+    ZooKeeperInstance zoo = new ZooKeeperInstance(clientConfig);
     Connector c = zoo.getConnector("root", new PasswordToken(secret.getBytes()));
     for (@SuppressWarnings("unused")
     Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
@@ -173,6 +182,13 @@ public abstract class SimpleProxyBase {
     props.put("instance", accumulo.getConfig().getInstanceName());
     props.put("zookeepers", accumulo.getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
+    // Avoid issues with locally installed client configuration files with custom properties
+    File emptyFile = Files.createTempFile(null, null).toFile();
+    emptyFile.deleteOnExit();
+    props.put("clientConfigurationFile", emptyFile.toString());
+
+    properties.put("password", secret);
+    properties.put("clientConfigurationFile", emptyFile.toString());
 
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;

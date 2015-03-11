@@ -19,7 +19,9 @@ package org.apache.accumulo.proxy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +67,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
     cfg.setNumTservers(1);
   }
 
@@ -77,9 +79,13 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
   public void testDurability() throws Exception {
     Connector c = getConnector();
     Properties props = new Properties();
+    // Avoid issues with locally installed client configuration files with custom properties
+    File emptyFile = Files.createTempFile(null, null).toFile();
+    emptyFile.deleteOnExit();
     props.put("instance", c.getInstance().getInstanceName());
     props.put("zookeepers", c.getInstance().getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
+    props.put("clientConfigurationFile", emptyFile.toString());
 
     TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 

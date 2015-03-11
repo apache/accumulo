@@ -86,6 +86,7 @@ public class BulkImportVolumeIT extends AccumuloClusterIT {
     fs.create(bogus).close();
     log.info("bogus: {}", bogus);
     assertTrue(fs.exists(bogus));
+    log.info("Importing {} into {} with failures directory {}", bulk, tableName, err);
     to.importDirectory(tableName, bulk.toString(), err.toString(), false);
     assertEquals(1, fs.listStatus(err).length);
   }

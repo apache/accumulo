@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -65,12 +66,16 @@ public class CredentialsIT extends AccumuloClusterIT {
     ClusterUser user = getUser(0);
     username = user.getPrincipal();
     saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
-    PasswordToken passwdToken = null;
-    if (!saslEnabled) {
-      password = user.getPassword();
-      passwdToken = new PasswordToken(password);
+    // Create the user if it doesn't exist
+    Set<String> users = conn.securityOperations().listLocalUsers();
+    if (!users.contains(username)) {
+      PasswordToken passwdToken = null;
+      if (!saslEnabled) {
+        password = user.getPassword();
+        passwdToken = new PasswordToken(password);
+      }
+      conn.securityOperations().createLocalUser(username, passwdToken);
     }
-    conn.securityOperations().createLocalUser(username, passwdToken);
   }
 
   @After

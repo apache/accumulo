@@ -146,7 +146,6 @@ public class CloneTestIT extends AccumuloClusterIT {
 
     Key k;
     Text cf = new Text(), cq = new Text();
-    Configuration conf = new Configuration();
     int itemsInspected = 0;
     for (Entry<Key,Value> entry : s) {
       itemsInspected++;
@@ -156,8 +155,7 @@ public class CloneTestIT extends AccumuloClusterIT {
 
       if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
         Path p = new Path(cq.toString());
-        // Will this actually work against HDFS?
-        FileSystem fs = p.getFileSystem(conf);
+        FileSystem fs = cluster.getFileSystem();
         Assert.assertTrue("File does not exist: " + p, fs.exists(p));
       } else if (cf.equals(MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
         Assert.assertEquals("Saw unexpected cq", MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);

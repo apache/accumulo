@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
@@ -39,7 +39,7 @@ import org.junit.Test;
  * Because this is destructive across the current context classloader, the normal teardown methods will fail (because they attempt to create a Connector). Until
  * the ZooKeeperInstance and Connector are self-contained WRT resource management, we can't leverage the AccumuloClusterIT.
  */
-public class CleanUpIT extends AccumuloClusterIT {
+public class CleanUpIT extends SharedMiniClusterIT {
   private static final Logger log = Logger.getLogger(CleanUpIT.class);
 
   @Override

@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.cluster.standalone.StandaloneClusterControl;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -101,8 +102,7 @@ public class ExamplesIT extends AccumuloClusterIT {
   private static final Logger log = Logger.getLogger(ExamplesIT.class);
   private static final BatchWriterOpts bwOpts = new BatchWriterOpts();
   private static final BatchWriterConfig bwc = new BatchWriterConfig();
-  // quoted to make sure the shell doesn't interpret the pipe
-  private static final String visibility = "\"A|B\"";
+  private static final String visibility = "A|B";
   private static final String auths = "A,B";
 
   Connector c;
@@ -218,26 +218,47 @@ public class ExamplesIT extends AccumuloClusterIT {
   public void testDirList() throws Exception {
     String[] names = getUniqueNames(3);
     String dirTable = names[0], indexTable = names[1], dataTable = names[2];
-    Path scratch = new Path(getUsableDir(), getClass().getName());
-    cluster.getFileSystem().delete(scratch, true);
-    cluster.getFileSystem().mkdirs(scratch);
     String[] args;
+    String dirListDirectory;
+    switch (getClusterType()) {
+      case MINI:
+        dirListDirectory = ((MiniAccumuloClusterImpl) getCluster()).getConfig().getDir().getAbsolutePath();
+        break;
+      case STANDALONE:
+        dirListDirectory = ((StandaloneAccumuloCluster) getCluster()).getAccumuloHome();
+        break;
+      default:
+        throw new RuntimeException("Unknown cluster type");
+    }
+    // Index a directory listing on /tmp. If this is running against a standalone cluster, we can't guarantee Accumulo source will be there.
     if (saslEnabled) {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
-          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), scratch.toString()};
+          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), dirListDirectory};
     } else {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
-          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), scratch.toString()};
+          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), dirListDirectory};
     }
     Entry<Integer,String> entry = getClusterControl().execWithStdout(Ingest.class, args);
     assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0, entry.getKey().intValue());
 
+    String expectedFile;
+    switch (getClusterType()) {
+      case MINI:
+        // Should be present in a minicluster dir
+        expectedFile = "accumulo-site.xml";
+        break;
+      case STANDALONE:
+        // Should be in place on standalone installs (not having ot follow symlinks)
+        expectedFile = "LICENSE";
+        break;
+      default:
+        throw new RuntimeException("Unknown cluster type");
+    }
     if (saslEnabled) {
       args = new String[] {"-i", instance, "-z", keepers, "--keytab", keytab, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path",
-          "accumulo-site.xml"};
+          expectedFile};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path",
-          "accumulo-site.xml"};
+      args = new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path", expectedFile};
     }
     entry = getClusterControl().execWithStdout(QueryUtil.class, args);
     if (ClusterType.MINI == getClusterType()) {
@@ -249,7 +270,7 @@ public class ExamplesIT extends AccumuloClusterIT {
 
     log.info("result " + entry.getValue());
     assertEquals(0, entry.getKey().intValue());
-    assertTrue(entry.getValue().contains("accumulo-site.xml"));
+    assertTrue(entry.getValue().contains(expectedFile));
   }
 
   @Test
@@ -507,7 +528,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     String[] args;
     if (saslEnabled) {
-      args = new String[]{"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName};
     } else {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName};
     }

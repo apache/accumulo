@@ -81,6 +81,12 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   public String getHadoopConfDir() {
+    if (null == hadoopConfDir) {
+      hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+    }
+    if (null == hadoopConfDir) {
+      throw new IllegalArgumentException("Cannot determine HADOOP_CONF_DIR for standalone cluster");
+    }
     return hadoopConfDir;
   }
 
@@ -139,13 +145,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   public Configuration getHadoopConfiguration() {
-    String confDir = hadoopConfDir;
-    if (null == confDir) {
-      confDir = System.getenv("HADOOP_CONF_DIR");
-    }
-    if (null == confDir) {
-      throw new IllegalArgumentException("Cannot determine HADOOP_CONF_DIR for standalone cluster");
-    }
+    String confDir = getHadoopConfDir();
     // Using CachedConfiguration will make repeatedly calling this method much faster
     final Configuration conf = CachedConfiguration.getInstance();
     conf.addResource(new Path(confDir, "core-site.xml"));

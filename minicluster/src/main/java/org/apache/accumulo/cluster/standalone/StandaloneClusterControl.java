@@ -97,7 +97,10 @@ public class StandaloneClusterControl implements ClusterControl {
     String[] cmd = new String[2 + args.length];
     cmd[0] = accumuloPath;
     cmd[1] = clz.getName();
-    System.arraycopy(args, 0, cmd, 2, args.length);
+    // Quote the arguments to prevent shell expansion
+    for (int i = 0, j = 2; i < args.length; i++, j++) {
+      cmd[j] = "'" + args[i] + "'";
+    }
     log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
     return exec(master, cmd);
   }

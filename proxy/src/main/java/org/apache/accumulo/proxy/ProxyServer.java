@@ -106,6 +106,8 @@ import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -185,9 +187,21 @@ public class ProxyServer implements AccumuloProxy.Iface {
     String useMock = props.getProperty("useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = new MockInstance();
-    else
-      instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(props.getProperty("instance"))
+    else {
+      ClientConfiguration clientConf;
+      if (props.containsKey("clientConfigurationFile")) {
+        String clientConfFile = props.getProperty("clientConfigurationFile");
+        try {
+          clientConf = new ClientConfiguration(new PropertiesConfiguration(clientConfFile));
+        } catch (ConfigurationException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        clientConf = ClientConfiguration.loadDefault();
+      }
+      instance = new ZooKeeperInstance(clientConf.withInstance(props.getProperty("instance"))
           .withZkHosts(props.getProperty("zookeepers")));
+    }
 
     try {
       String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());

@@ -55,6 +55,8 @@ public class PrintInfo implements KeywordExecutable {
     boolean histogram = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
+    @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
+    List<String> configFiles = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {
@@ -68,16 +70,21 @@ public class PrintInfo implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Configuration conf = new Configuration();
-
-    FileSystem hadoopFs = FileSystem.get(conf);
-    FileSystem localFs = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
     if (opts.files.isEmpty()) {
       System.err.println("No files were given");
       System.exit(-1);
     }
+
+    Configuration conf = new Configuration();
+    for (String confFile : opts.configFiles) {
+      log.debug("Adding Hadoop configuration file " + confFile);
+      conf.addResource(new Path(confFile));
+    }
+
+    FileSystem hadoopFs = FileSystem.get(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
 
     long countBuckets[] = new long[11];
     long sizeBuckets[] = new long[countBuckets.length];
