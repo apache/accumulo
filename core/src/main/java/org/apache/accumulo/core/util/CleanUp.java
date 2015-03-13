@@ -20,14 +20,15 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.fate.zookeeper.ZooSession;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class CleanUp {
 
-  private static final Logger log = Logger.getLogger(CleanUp.class);
+  private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
   /**
    * kills all threads created by internal Accumulo singleton resources. After this method is called, no accumulo client will work in the current classloader.

@@ -34,7 +34,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class iterates over the metadata table returning all key values for a tablet in one chunk. As it scans the metadata table it checks the correctness of
@@ -50,7 +51,7 @@ import org.apache.log4j.Logger;
  */
 public class TabletIterator implements Iterator<Map<Key,Value>> {
 
-  private static final Logger log = Logger.getLogger(TabletIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletIterator.class);
 
   private SortedMap<Key,Value> currentTabletKeys;
 
@@ -110,7 +111,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       Value prevEndRowValue = currentTabletKeys.get(prevEndRowKey);
 
       if (!TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(prevEndRowKey)) {
-        log.debug(currentTabletKeys);
+        log.debug("{}", currentTabletKeys);
         throw new RuntimeException("Unexpected key " + prevEndRowKey);
       }
 

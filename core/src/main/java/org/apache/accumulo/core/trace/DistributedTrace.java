@@ -32,15 +32,16 @@ import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.htrace.HTraceConfiguration;
 import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.SpanReceiverBuilder;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class to enable tracing for Accumulo server processes.
  *
  */
 public class DistributedTrace {
-  private static final Logger log = Logger.getLogger(DistributedTrace.class);
+  private static final Logger log = LoggerFactory.getLogger(DistributedTrace.class);
 
   private static final String HTRACE_CONF_PREFIX = "hadoop.";
 

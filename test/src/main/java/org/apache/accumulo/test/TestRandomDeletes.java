@@ -36,10 +36,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestRandomDeletes {
-  private static final Logger log = Logger.getLogger(TestRandomDeletes.class);
+  private static final Logger log = LoggerFactory.getLogger(TestRandomDeletes.class);
   private static Authorizations auths = new Authorizations("L1", "L2", "G1", "GROUP2");
 
   static private class RowColumn implements Comparable<RowColumn> {

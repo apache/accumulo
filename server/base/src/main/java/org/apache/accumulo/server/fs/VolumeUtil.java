@@ -47,7 +47,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 
@@ -57,7 +58,7 @@ import com.google.common.base.Optional;
 
 public class VolumeUtil {
 
-  private static final Logger log = Logger.getLogger(VolumeUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
   private static final SecureRandom rand = new SecureRandom();
 
   private static boolean isActiveVolume(Path dir) {

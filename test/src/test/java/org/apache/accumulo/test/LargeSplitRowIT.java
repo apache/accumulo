@@ -40,12 +40,13 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LargeSplitRowIT extends ConfigurableMacIT {
-  static private final Logger log = Logger.getLogger(LargeSplitRowIT.class);
+  static private final Logger log = LoggerFactory.getLogger(LargeSplitRowIT.class);
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

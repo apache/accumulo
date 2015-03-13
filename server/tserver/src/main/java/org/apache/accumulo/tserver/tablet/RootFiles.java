@@ -29,14 +29,15 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class RootFiles {
 
-  private static final Logger log = Logger.getLogger(RootFiles.class);
+  private static final Logger log = LoggerFactory.getLogger(RootFiles.class);
 
   public static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
     for (FileRef ref : oldDatafiles) {

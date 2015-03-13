@@ -44,10 +44,11 @@ import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -58,7 +59,7 @@ import com.google.common.net.HostAndPort;
 @AutoService(KeywordExecutable.class)
 public class Proxy implements KeywordExecutable {
 
-  private static final Logger log = Logger.getLogger(Proxy.class);
+  private static final Logger log = LoggerFactory.getLogger(Proxy.class);
 
   public static final String USE_MINI_ACCUMULO_KEY = "useMiniAccumulo";
   public static final String USE_MINI_ACCUMULO_DEFAULT = "false";
@@ -213,13 +214,15 @@ public class Proxy implements KeywordExecutable {
         break;
       case SASL:
         if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey())) {
-          log.fatal("SASL thrift server was requested but it is disabled in client configuration");
+          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
+          log.error("FATAL: SASL thrift server was requested but it is disabled in client configuration");
           throw new RuntimeException("SASL is not enabled in configuration");
         }
 
         // Kerberos needs to be enabled to use it
         if (!UserGroupInformation.isSecurityEnabled()) {
-          log.fatal("Hadoop security is not enabled");
+          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
+          log.error("FATAL: Hadoop security is not enabled");
           throw new RuntimeException();
         }
 
@@ -227,7 +230,8 @@ public class Proxy implements KeywordExecutable {
         final String kerberosPrincipal = properties.getProperty(KERBEROS_PRINCIPAL, ""),
         kerberosKeytab = properties.getProperty(KERBEROS_KEYTAB, "");
         if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
-          log.fatal("Kerberos principal and keytab must be provided");
+          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
+          log.error("FATAL: Kerberos principal and keytab must be provided");
           throw new RuntimeException();
         }
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);

@@ -50,7 +50,8 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -64,7 +65,7 @@ import com.google.common.cache.CacheBuilder;
  */
 public class TabletServerLogger {
 
-  private static final Logger log = Logger.getLogger(TabletServerLogger.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerLogger.class);
 
   private final AtomicLong logSizeEstimate = new AtomicLong();
   private final long maxSize;

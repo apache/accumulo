@@ -26,7 +26,7 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -74,7 +74,7 @@ public class CompactionWatcher implements Runnable {
 
     for (ObservedCompactionInfo oci : copy.values()) {
       if (oci.loggedWarning) {
-        Logger.getLogger(CompactionWatcher.class).info("Compaction of " + oci.compactionInfo.getExtent() + " is no longer stuck");
+        LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of " + oci.compactionInfo.getExtent() + " is no longer stuck");
       }
     }
 
@@ -91,7 +91,7 @@ public class CompactionWatcher implements Runnable {
           StackTraceElement[] trace = compactionThread.getStackTrace();
           Exception e = new Exception("Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
           e.setStackTrace(trace);
-          Logger.getLogger(CompactionWatcher.class).warn(
+          LoggerFactory.getLogger(CompactionWatcher.class).warn(
               "Compaction of " + oci.compactionInfo.getExtent() + " to " + oci.compactionInfo.getOutputFile() + " has not made progress for at least "
                   + (time - oci.firstSeen) + "ms", e);
           oci.loggedWarning = true;

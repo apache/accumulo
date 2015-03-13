@@ -33,14 +33,15 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link SecretKeyEncryptionStrategy} that gets its key from HDFS and caches it for IO.
  */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = Logger.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
+  private static final Logger log = LoggerFactory.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
   @Override
@@ -49,7 +50,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.WRAP_MODE, context);
     } catch (IOException e) {
-      log.error(e);
+      log.error(e.getMessage(),e);
       throw new RuntimeException(e);
     }
     return context;
@@ -61,7 +62,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.UNWRAP_MODE, context);
     } catch (IOException e) {
-      log.error(e);
+      log.error(e.getMessage(),e);
       throw new RuntimeException(e);
     }
     return context;
@@ -73,7 +74,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     try {
       cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getAlgorithmName()));
     } catch (InvalidKeyException e) {
-      log.error(e);
+      log.error(e.getMessage(),e);
       throw new RuntimeException(e);
     }
 
@@ -82,10 +83,10 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
       } catch (InvalidKeyException e) {
-        log.error(e);
+        log.error(e.getMessage(),e);
         throw new RuntimeException(e);
       } catch (NoSuchAlgorithmException e) {
-        log.error(e);
+        log.error(e.getMessage(),e);
         throw new RuntimeException(e);
       }
     } else {
@@ -95,10 +96,10 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         params.setEncryptedKey(encryptedSecretKey);
         params.setOpaqueKeyEncryptionKeyID(secretKeyCache.getPathToKeyName());
       } catch (InvalidKeyException e) {
-        log.error(e);
+        log.error(e.getMessage(),e);
         throw new RuntimeException(e);
       } catch (IllegalBlockSizeException e) {
-        log.error(e);
+        log.error(e.getMessage(), e);
         throw new RuntimeException(e);
       }
 

@@ -80,8 +80,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.wrappers.TraceExecutorService;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Bulk import makes requests of tablet servers, and those requests can take a
@@ -108,7 +109,7 @@ public class BulkImport extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = Logger.getLogger(BulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private String tableId;
   private String sourceDir;
@@ -306,7 +307,7 @@ class CleanUpBulkImport extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = Logger.getLogger(CleanUpBulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
   private String tableId;
   private String source;
@@ -478,7 +479,7 @@ class LoadFiles extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private static ExecutorService threadPool = null;
-  private static final Logger log = Logger.getLogger(BulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private String tableId;
   private String source;

@@ -31,14 +31,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * A Filter that matches entries based on Java regular expressions.
  */
 public class RegExFilter extends Filter {
 
-  private static final Logger log = Logger.getLogger(RegExFilter.class);
+  private static final Logger log = LoggerFactory.getLogger(RegExFilter.class);
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {

@@ -109,8 +109,9 @@ import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -124,7 +125,7 @@ import com.google.common.cache.RemovalNotification;
  */
 public class ProxyServer implements AccumuloProxy.Iface {
 
-  public static final Logger logger = Logger.getLogger(ProxyServer.class);
+  public static final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
   public static final String RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG = "RPC principal did not match requested Accumulo principal";
   protected Instance instance;
 
@@ -149,7 +150,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
           throw value.exception;
         notification.getValue().writer.close();
       } catch (MutationsRejectedException e) {
-        logger.warn(e, e);
+        logger.warn("MutationsRejectedException", e);
       }
     }
 

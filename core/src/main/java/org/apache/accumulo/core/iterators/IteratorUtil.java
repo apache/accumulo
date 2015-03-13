@@ -43,17 +43,18 @@ import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class IteratorUtil {
 
-  private static final Logger log = Logger.getLogger(IteratorUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(IteratorUtil.class);
 
   public static enum IteratorScope {
     majc, minc, scan;

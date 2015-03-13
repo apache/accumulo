@@ -27,13 +27,14 @@ import java.util.List;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class ZooTabletStateStore extends TabletStateStore {
 
-  private static final Logger log = Logger.getLogger(ZooTabletStateStore.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
   final private DistributedStore store;
 
   public ZooTabletStateStore(DistributedStore store) {

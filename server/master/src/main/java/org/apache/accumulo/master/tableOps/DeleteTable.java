@@ -55,11 +55,12 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CleanUp extends MasterRepo {
 
-  final private static Logger log = Logger.getLogger(CleanUp.class);
+  final private static Logger log = LoggerFactory.getLogger(CleanUp.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -212,7 +213,7 @@ class CleanUp extends MasterRepo {
     Utils.unreserveTable(tableId, tid, true);
     Utils.unreserveNamespace(namespaceId, tid, false);
 
-    Logger.getLogger(CleanUp.class).debug("Deleted table " + tableId);
+    LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
     return null;
   }

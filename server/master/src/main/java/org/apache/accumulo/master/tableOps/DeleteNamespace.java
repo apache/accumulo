@@ -23,11 +23,12 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class NamespaceCleanUp extends MasterRepo {
 
-  final private static Logger log = Logger.getLogger(CleanUp.class);
+  final private static Logger log = LoggerFactory.getLogger(CleanUp.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -62,7 +63,7 @@ class NamespaceCleanUp extends MasterRepo {
 
     Utils.unreserveNamespace(namespaceId, id, true);
 
-    Logger.getLogger(CleanUp.class).debug("Deleted namespace " + namespaceId);
+    LoggerFactory.getLogger(CleanUp.class).debug("Deleted namespace " + namespaceId);
 
     return null;
   }

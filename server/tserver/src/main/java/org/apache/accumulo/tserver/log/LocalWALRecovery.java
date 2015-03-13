@@ -37,7 +37,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.WritableName;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -49,7 +50,7 @@ import com.google.common.annotations.VisibleForTesting;
  */
 @SuppressWarnings("deprecation")
 public class LocalWALRecovery implements Runnable {
-  private static final Logger log = Logger.getLogger(LocalWALRecovery.class);
+  private static final Logger log = LoggerFactory.getLogger(LocalWALRecovery.class);
 
   static {
     WritableName.addName(LogFileKey.class, "org.apache.accumulo.server.logger.LogFileKey");

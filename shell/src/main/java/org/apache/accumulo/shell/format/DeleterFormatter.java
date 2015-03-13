@@ -28,11 +28,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.shell.Shell;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleterFormatter extends DefaultFormatter {
 
-  private static final Logger log = Logger.getLogger(DeleterFormatter.class);
+  private static final Logger log = LoggerFactory.getLogger(DeleterFormatter.class);
   private BatchWriter writer;
   private Shell shellState;
   private boolean printTimestamps;

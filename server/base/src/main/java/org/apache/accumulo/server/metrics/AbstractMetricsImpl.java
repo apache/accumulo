@@ -91,7 +91,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
   }
 
-  static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(AbstractMetricsImpl.class);
+  static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AbstractMetricsImpl.class);
 
   private static ConcurrentHashMap<String,Metric> registry = new ConcurrentHashMap<String,Metric>();
 

@@ -41,11 +41,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
-  private static final Logger log = Logger.getLogger(ScannerIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(ScannerIterator.class);
 
   // scanner options
   private Text tableId;
@@ -90,29 +91,14 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
           synchQ.add(currentBatch);
           return;
         }
-      } catch (IsolationException e) {
-        synchQ.add(e);
-        log.trace(e, e);
-      } catch (ScanTimedOutException e) {
-        synchQ.add(e);
-        log.trace(e, e);
-      } catch (AccumuloException e) {
-        synchQ.add(e);
-        log.trace(e, e);
-      } catch (AccumuloSecurityException e) {
-        log.trace(e, e);
-        synchQ.add(e);
-      } catch (TableDeletedException e) {
-        log.trace(e, e);
-        synchQ.add(e);
-      } catch (TableOfflineException e) {
-        log.trace(e, e);
+      } catch (IsolationException | ScanTimedOutException | AccumuloException | AccumuloSecurityException | TableDeletedException | TableOfflineException e) {
+        log.trace(e.getMessage(), e);
         synchQ.add(e);
       } catch (TableNotFoundException e) {
-        log.warn(e, e);
+        log.warn(e.getMessage(), e);
         synchQ.add(e);
       } catch (Exception e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
         synchQ.add(e);
       }
     }

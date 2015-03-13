@@ -41,16 +41,17 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableManager {
   private static SecurityPermission TABLE_MANAGER_PERMISSION = new SecurityPermission("tableManagerPermission");
 
-  private static final Logger log = Logger.getLogger(TableManager.class);
+  private static final Logger log = LoggerFactory.getLogger(TableManager.class);
   private static final Set<TableObserver> observers = Collections.synchronizedSet(new HashSet<TableObserver>());
   private static final Map<String,TableState> tableStateCache = Collections.synchronizedMap(new HashMap<String,TableState>());
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
@@ -165,7 +166,8 @@ public class TableManager {
         }
       });
     } catch (Exception e) {
-      log.fatal("Failed to transition table to state " + newState);
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compability
+      log.error("FATAL Failed to transition table to state " + newState);
       throw new RuntimeException(e);
     }
   }
@@ -244,9 +246,9 @@ public class TableManager {
   private class TableStateWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
-      if (log.isTraceEnabled())
-        log.trace(event);
-
+      if (log.isTraceEnabled()) {
+        log.trace("{}", event);
+      }
       final String zPath = event.getPath();
       final EventType zType = event.getType();
 

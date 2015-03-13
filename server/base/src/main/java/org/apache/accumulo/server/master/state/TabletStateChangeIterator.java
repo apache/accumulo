@@ -43,7 +43,8 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 
@@ -56,7 +57,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MASTER_STATE_OPTION = "masterState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
-  private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletStateChangeIterator.class);
 
   private Set<TServerInstance> current;
   private Set<String> onlineTables;
@@ -246,7 +247,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
   public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
     DataOutputBuffer buffer = new DataOutputBuffer();
     try {
-      for (KeyExtent  extent : migrations) {
+      for (KeyExtent extent : migrations) {
         extent.write(buffer);
       }
     } catch (Exception ex) {

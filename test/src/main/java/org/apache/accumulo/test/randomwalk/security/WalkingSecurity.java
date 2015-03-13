@@ -50,7 +50,8 @@ import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -58,7 +59,7 @@ import org.apache.log4j.Logger;
 public class WalkingSecurity extends SecurityOperation implements Authorizor, Authenticator, PermissionHandler {
   State state = null;
   Environment env = null;
-  private static final Logger log = Logger.getLogger(WalkingSecurity.class);
+  private static final Logger log = LoggerFactory.getLogger(WalkingSecurity.class);
 
   private static final String tableName = "SecurityTableName";
   private static final String namespaceName = "SecurityNamespaceName";

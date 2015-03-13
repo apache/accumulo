@@ -34,7 +34,8 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset of those options preferred for a particular table. Defaults
@@ -42,7 +43,7 @@ import org.apache.log4j.Logger;
  * separated list of {@link Volume} URIs. Note that both the property name and the format of its value are specific to this particular implementation.
  */
 public class PreferredVolumeChooser extends RandomVolumeChooser implements VolumeChooser {
-  private static final Logger log = Logger.getLogger(PreferredVolumeChooser.class);
+  private static final Logger log = LoggerFactory.getLogger(PreferredVolumeChooser.class);
 
   public static final String PREFERRED_VOLUMES_CUSTOM_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "preferredVolumes";
   // TODO ACCUMULO-3417 replace this with the ability to retrieve by String key.

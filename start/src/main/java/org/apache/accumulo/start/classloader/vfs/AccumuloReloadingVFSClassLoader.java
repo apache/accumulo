@@ -33,7 +33,8 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for changes in any of the files/directories that are in the
@@ -42,7 +43,7 @@ import org.apache.log4j.Logger;
  */
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
 
-  private static final Logger log = Logger.getLogger(AccumuloReloadingVFSClassLoader.class);
+  private static final Logger log = LoggerFactory.getLogger(AccumuloReloadingVFSClassLoader.class);
 
   // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking the name node for info too frequently.
   private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;

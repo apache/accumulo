@@ -25,10 +25,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Scanner {
-  private static final Logger log = Logger.getLogger(Scanner.class);
+  private static final Logger log = LoggerFactory.getLogger(Scanner.class);
 
   private final Tablet tablet;
   private final ScanOptions options;

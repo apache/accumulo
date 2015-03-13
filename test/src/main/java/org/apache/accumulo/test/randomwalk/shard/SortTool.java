@@ -28,10 +28,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.util.Tool;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SortTool extends Configured implements Tool {
-  protected final Logger log = Logger.getLogger(this.getClass());
+  protected final Logger log = LoggerFactory.getLogger(this.getClass());
   private String outputDir;
   private String seqFile;
   private String splitFile;

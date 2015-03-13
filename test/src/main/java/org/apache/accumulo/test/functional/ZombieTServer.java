@@ -46,8 +46,9 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -93,7 +94,7 @@ public class ZombieTServer {
 
   }
 
-  private static final Logger log = Logger.getLogger(ZombieTServer.class);
+  private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
     Random random = new Random(System.currentTimeMillis() % 1000);
@@ -119,7 +120,7 @@ public class ZombieTServer {
         try {
           tch.halt(Tracer.traceInfo(), null, null);
         } catch (Exception ex) {
-          log.error(ex, ex);
+          log.error("Exception", ex);
           System.exit(1);
         }
       }
@@ -129,7 +130,7 @@ public class ZombieTServer {
         try {
           tch.halt(Tracer.traceInfo(), null, null);
         } catch (Exception ex) {
-          log.error(ex, ex);
+          log.error("Exception", ex);
           System.exit(1);
         }
       }

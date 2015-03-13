@@ -37,8 +37,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitIT extends AccumuloClusterIT {
@@ -48,7 +49,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
     return 4 * 60;
   }
 
-  private static final Logger log = Logger.getLogger(DeleteRowsSplitIT.class);
+  private static final Logger log = LoggerFactory.getLogger(DeleteRowsSplitIT.class);
 
   private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz";
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
@@ -91,7 +92,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterIT {
             final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end.toString() + "\0"));
             conn.tableOperations().addSplits(tableName, afterEnd);
           } catch (Exception ex) {
-            log.error(ex, ex);
+            log.error("Exception", ex);
             synchronized (fail) {
               fail[0] = true;
             }

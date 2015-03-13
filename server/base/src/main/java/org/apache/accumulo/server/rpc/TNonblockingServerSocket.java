@@ -29,10 +29,11 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper around ServerSocketChannel.
@@ -41,7 +42,7 @@ import org.apache.thrift.transport.TTransportException;
  * addition of the {@link #getPort()} method to retrieve the port used by the ServerSocket.
  */
 public class TNonblockingServerSocket extends TNonblockingServerTransport {
-  private static final Logger log = Logger.getLogger(TNonblockingServerTransport.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(TNonblockingServerTransport.class.getName());
 
   /**
    * This channel is where all the nonblocking magic happens.

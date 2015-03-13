@@ -30,7 +30,8 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.replication.proto.Replication.Status.Builder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -41,10 +42,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * Messages that are "closed", stay closed. "Begin" and "end" always choose the maximum of the two.
  */
 public class StatusCombiner extends TypedValueCombiner<Status> {
-  private static final Logger log = Logger.getLogger(StatusCombiner.class);
+  private static final Logger log = LoggerFactory.getLogger(StatusCombiner.class);
 
   public static class StatusEncoder extends AbstractEncoder<Status> implements Encoder<Status> {
-    private static final Logger log = Logger.getLogger(StatusEncoder.class);
+    private static final Logger log = LoggerFactory.getLogger(StatusEncoder.class);
 
     @Override
     public byte[] encode(Status v) {

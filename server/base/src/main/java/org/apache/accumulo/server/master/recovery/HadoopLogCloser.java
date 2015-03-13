@@ -29,11 +29,12 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HadoopLogCloser implements LogCloser {
 
-  private static final Logger log = Logger.getLogger(HadoopLogCloser.class);
+  private static final Logger log = LoggerFactory.getLogger(HadoopLogCloser.class);
 
   @Override
   public long close(AccumuloConfiguration conf, VolumeManager fs, Path source) throws IOException {

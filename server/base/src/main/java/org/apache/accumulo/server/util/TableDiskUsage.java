@@ -49,14 +49,15 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
 
 public class TableDiskUsage {
 
-  private static final Logger log = Logger.getLogger(Logger.class);
+  private static final Logger log = LoggerFactory.getLogger(Logger.class);
   private int nextInternalId = 0;
   private Map<String,Integer> internalIds = new HashMap<String,Integer>();
   private Map<Integer,String> externalIds = new HashMap<Integer,String>();

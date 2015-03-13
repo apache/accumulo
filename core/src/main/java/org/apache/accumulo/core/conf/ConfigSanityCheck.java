@@ -18,14 +18,15 @@ package org.apache.accumulo.core.conf;
 
 import java.util.Map.Entry;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A utility class for validating {@link AccumuloConfiguration} instances.
  */
 public class ConfigSanityCheck {
 
-  private static final Logger log = Logger.getLogger(ConfigSanityCheck.class);
+  private static final Logger log = LoggerFactory.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
   @SuppressWarnings("deprecation")
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
@@ -128,7 +129,8 @@ public class ConfigSanityCheck {
   }
 
   private static void fatal(String msg) {
-    log.fatal(msg);
+    // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j compatibility
+    log.error("FATAL: {}", msg);
     throw new SanityCheckException(msg);
   }
 }

@@ -43,11 +43,12 @@ import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LookupTask extends ScanTask<MultiScanResult> {
 
-  private static final Logger log = Logger.getLogger(LookupTask.class);
+  private static final Logger log = LoggerFactory.getLogger(LookupTask.class);
 
   private final long scanID;
 

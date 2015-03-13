@@ -27,13 +27,15 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * An input stream that reads file data stored in one or more Accumulo values. Used by {@link ChunkInputFormat} to present input streams to a mapper.
  */
 public class ChunkInputStream extends InputStream {
-  private static final Logger log = Logger.getLogger(ChunkInputStream.class);
+  private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
 
   protected PeekingIterator<Entry<Key,Value>> source;
   protected Key currentKey;

@@ -44,7 +44,8 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
@@ -59,7 +60,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
   public static class CMapper extends Mapper<Key,Value,LongWritable,VLongWritable> {
 
-    private static final Logger log = Logger.getLogger(CMapper.class);
+    private static final Logger log = LoggerFactory.getLogger(CMapper.class);
     private LongWritable row = new LongWritable();
     private LongWritable ref = new LongWritable();
     private VLongWritable vrow = new VLongWritable();

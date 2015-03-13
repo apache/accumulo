@@ -36,11 +36,12 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableLoadBalancer extends TabletBalancer {
 
-  private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
+  private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);
 
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
 

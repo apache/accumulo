@@ -60,7 +60,8 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -71,7 +72,7 @@ import com.google.common.net.HostAndPort;
 
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
-  private static final Logger log = Logger.getLogger(Admin.class);
+  private static final Logger log = LoggerFactory.getLogger(Admin.class);
 
   static class AdminOpts extends ClientOpts {
     @Parameter(names = {"-f", "--force"}, description = "force the given server to stop by removing its lock")
@@ -253,13 +254,13 @@ public class Admin implements KeywordExecutable {
       if (rc != 0)
         System.exit(rc);
     } catch (AccumuloException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       System.exit(2);
     } catch (Exception e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       System.exit(3);
     }
   }

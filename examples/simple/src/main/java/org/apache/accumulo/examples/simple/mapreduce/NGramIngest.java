@@ -34,7 +34,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -43,7 +44,7 @@ import com.beust.jcommander.Parameter;
  */
 public class NGramIngest extends Configured implements Tool {
 
-  private static final Logger log = Logger.getLogger(NGramIngest.class);
+  private static final Logger log = LoggerFactory.getLogger(NGramIngest.class);
 
   static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--input", required = true)

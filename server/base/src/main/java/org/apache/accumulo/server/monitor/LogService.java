@@ -33,10 +33,11 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketNode;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hijack log4j and capture log events for display.
@@ -44,7 +45,7 @@ import org.apache.zookeeper.KeeperException;
  */
 public class LogService extends org.apache.log4j.AppenderSkeleton {
 
-  private static final Logger log = Logger.getLogger(LogService.class);
+  private static final Logger log = LoggerFactory.getLogger(LogService.class);
 
   /**
    * Read logging events forward to us over the net.
@@ -76,7 +77,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
           t.start();
         }
       } catch (IOException io) {
-        log.error(io, io);
+        log.error(io.getMessage(), io);
       }
     }
   }

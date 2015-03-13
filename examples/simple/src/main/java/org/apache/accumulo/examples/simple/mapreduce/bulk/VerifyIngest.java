@@ -29,12 +29,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
 public class VerifyIngest {
-  private static final Logger log = Logger.getLogger(VerifyIngest.class);
+  private static final Logger log = LoggerFactory.getLogger(VerifyIngest.class);
 
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names = "--start-row")

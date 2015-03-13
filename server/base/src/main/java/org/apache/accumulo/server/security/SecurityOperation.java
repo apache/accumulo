@@ -58,13 +58,14 @@ import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for performing various security operations with the appropriate checks
  */
 public class SecurityOperation {
-  private static final Logger log = Logger.getLogger(SecurityOperationsImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(SecurityOperationsImpl.class);
 
   protected Authorizor authorizor;
   protected Authenticator authenticator;
@@ -192,7 +193,7 @@ public class SecurityOperation {
           throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
         }
       } catch (AccumuloSecurityException e) {
-        log.debug(e);
+        log.debug("AccumuloSecurityException",e);
         throw e.asThriftException();
       }
     }

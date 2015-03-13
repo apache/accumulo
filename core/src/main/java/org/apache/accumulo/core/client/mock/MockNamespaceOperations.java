@@ -31,11 +31,12 @@ import org.apache.accumulo.core.client.impl.NamespaceOperationsHelper;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MockNamespaceOperations extends NamespaceOperationsHelper {
 
-  private static final Logger log = Logger.getLogger(MockNamespaceOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(MockNamespaceOperations.class);
 
   final private MockAccumulo acu;
   final private String username;

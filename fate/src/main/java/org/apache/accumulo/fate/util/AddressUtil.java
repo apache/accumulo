@@ -20,11 +20,13 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.Security;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class AddressUtil {
 
-  private static final Logger log = Logger.getLogger(AddressUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(AddressUtil.class);
 
   /**
    * Fetch the security value that determines how long DNS failures are cached. Looks up the security property 'networkaddress.cache.negative.ttl'. Should that

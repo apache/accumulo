@@ -32,14 +32,15 @@ import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A utility to administer FATE operations
  */
 public class AdminUtil<T> {
-  private static final Logger log = Logger.getLogger(AdminUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(AdminUtil.class);
 
   private boolean exitOnError = false;
 
@@ -110,7 +111,7 @@ public class AdminUtil<T> {
             tables.add(lda[0].charAt(0) + ":" + id);
 
           } catch (Exception e) {
-            log.error(e);
+            log.error(e.getMessage(),e);
           }
           pos++;
         }

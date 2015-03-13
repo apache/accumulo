@@ -35,7 +35,8 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class implements the {@link CryptoModule} interface, defining how calling applications can receive encrypted input and output streams. While the default
@@ -50,7 +51,7 @@ public class DefaultCryptoModule implements CryptoModule {
 
   private static final String ENCRYPTION_HEADER_MARKER_V1 = "---Log File Encrypted (v1)---";
   private static final String ENCRYPTION_HEADER_MARKER_V2 = "---Log File Encrypted (v2)---";
-  private static final Logger log = Logger.getLogger(DefaultCryptoModule.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultCryptoModule.class);
 
   public DefaultCryptoModule() {}
 

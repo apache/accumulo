@@ -44,17 +44,18 @@ import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for testing. Tests using these typically do very disruptive things
  * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterIT} instead.
  */
 public class ConfigurableMacIT extends AccumuloIT {
-  public static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
+  public static final Logger log = LoggerFactory.getLogger(ConfigurableMacIT.class);
 
   protected MiniAccumuloClusterImpl cluster;
 

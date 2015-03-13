@@ -424,7 +424,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
         haveUpgradedZooKeeper = true;
       } catch (Exception ex) {
-        log.error("Error performing upgrade", ex);
+        // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+        log.error("FATAL: Error performing upgrade", ex);
         System.exit(1);
       }
     }
@@ -479,7 +480,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
-              log.error("Error performing upgrade", ex);
+              // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+              log.error("FATAL: Error performing upgrade", ex);
               System.exit(1);
             }
 
@@ -1265,10 +1267,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     @Override
     public void unableToMonitorLockNode(final Throwable e) {
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       Halt.halt(-1, new Runnable() {
         @Override
         public void run() {
-          log.error("No longer able to monitor master lock node", e);
+          log.error("FATAL: No longer able to monitor master lock node", e);
         }
       });
 

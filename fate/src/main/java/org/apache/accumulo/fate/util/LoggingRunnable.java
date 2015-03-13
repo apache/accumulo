@@ -18,7 +18,8 @@ package org.apache.accumulo.fate.util;
 
 import java.util.Date;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+
 
 public class LoggingRunnable implements Runnable {
   private Runnable runnable;

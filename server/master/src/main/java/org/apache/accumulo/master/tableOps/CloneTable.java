@@ -36,7 +36,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CloneInfo implements Serializable {
 
@@ -84,7 +84,7 @@ class FinishCloneTable extends MasterRepo {
 
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName, cloneInfo.srcTableId);
 
-    Logger.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
+    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
 
     return null;
   }
@@ -110,7 +110,7 @@ class CloneMetadata extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    Logger.getLogger(CloneMetadata.class).info(
+    LoggerFactory.getLogger(CloneMetadata.class).info(
         String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName, cloneInfo.tableId, cloneInfo.srcTableId));
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
@@ -198,7 +198,7 @@ class ClonePermissions extends MasterRepo {
         AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
             cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
-        Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
+        LoggerFactory.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;
       }
     }

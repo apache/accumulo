@@ -20,10 +20,12 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class FormatterFactory {
-  private static final Logger log = Logger.getLogger(FormatterFactory.class);
+  private static final Logger log = LoggerFactory.getLogger(FormatterFactory.class);
 
   public static Formatter getFormatter(Class<? extends Formatter> formatterClass, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     Formatter formatter = null;

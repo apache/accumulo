@@ -16,16 +16,12 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+
+import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -45,11 +41,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class ChunkInputStreamTest {
-  private static final Logger log = Logger.getLogger(ChunkInputStream.class);
+public class ChunkInputStreamTest extends TestCase {
+  private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
   List<Entry<Key,Value>> data;
   List<Entry<Key,Value>> baddata;
   List<Entry<Key,Value>> multidata;

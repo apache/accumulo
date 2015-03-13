@@ -47,12 +47,13 @@ import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecoveryManager {
 
-  private static final Logger log = Logger.getLogger(RecoveryManager.class);
+  private static final Logger log = LoggerFactory.getLogger(RecoveryManager.class);
 
   private Map<String,Long> recoveryDelay = new HashMap<String,Long>();
   private Set<String> closeTasksQueued = new HashSet<String>();
@@ -70,7 +71,7 @@ public class RecoveryManager {
       List<String> workIDs = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
-      log.warn(e, e);
+      log.warn(e.getMessage(), e);
     }
   }
 

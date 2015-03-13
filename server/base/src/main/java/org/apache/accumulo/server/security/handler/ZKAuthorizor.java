@@ -40,11 +40,12 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZKAuthorizor implements Authorizor {
-  private static final Logger log = Logger.getLogger(ZKAuthorizor.class);
+  private static final Logger log = LoggerFactory.getLogger(ZKAuthorizor.class);
   private static Authorizor zkAuthorizorInstance = null;
 
   private final String ZKUserAuths = "/Authorizations";
@@ -101,10 +102,10 @@ public class ZKAuthorizor implements Authorizor {
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
     } catch (KeeperException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -115,10 +116,10 @@ public class ZKAuthorizor implements Authorizor {
     try {
       zoo.putPersistentData(ZKUserPath + "/" + user, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -132,10 +133,10 @@ public class ZKAuthorizor implements Authorizor {
         zooCache.clear(ZKUserPath + "/" + user);
       }
     } catch (InterruptedException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (KeeperException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       if (e.code().equals(KeeperException.Code.NONODE))
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -152,10 +153,10 @@ public class ZKAuthorizor implements Authorizor {
             NodeExistsPolicy.OVERWRITE);
       }
     } catch (KeeperException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }

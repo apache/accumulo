@@ -54,7 +54,8 @@ import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
@@ -62,7 +63,7 @@ import com.google.common.collect.Multimap;
 
 public class VolumeManagerImpl implements VolumeManager {
 
-  private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(VolumeManagerImpl.class);
 
   private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<String>();
 
@@ -177,7 +178,7 @@ public class VolumeManagerImpl implements VolumeManager {
     try {
       return fs.create(logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
     } catch (Exception ex) {
-      log.debug(ex, ex);
+      log.debug("Exception", ex);
       return fs.create(logPath, true, bufferSize, replication, blockSize);
     }
   }
@@ -205,7 +206,8 @@ public class VolumeManagerImpl implements VolumeManager {
         // This is a sign that someone is writing bad configuration.
         if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true)) {
           String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " not be configured as false. " + ticketMessage;
-          log.fatal(msg);
+          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+          log.error("FATAL {}", msg);
           throw new RuntimeException(msg);
         }
 

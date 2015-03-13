@@ -37,14 +37,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * A demonstration of reading entire rows and deleting entire rows.
  */
 public class RowOperations {
 
-  private static final Logger log = Logger.getLogger(RowOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(RowOperations.class);
 
   private static Connector connector;
   private static String table = "example";

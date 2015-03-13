@@ -30,7 +30,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * This iterator wraps another iterator. It automatically aggregates.
@@ -49,7 +51,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   private Key aggrKey;
   private Value aggrValue;
   // private boolean propogateDeletes;
-  private static final Logger log = Logger.getLogger(AggregatingIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(AggregatingIterator.class);
 
   @Override
   public AggregatingIterator deepCopy(IteratorEnvironment env) {

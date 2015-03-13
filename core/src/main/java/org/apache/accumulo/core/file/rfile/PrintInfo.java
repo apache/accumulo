@@ -34,7 +34,8 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -42,7 +43,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class PrintInfo implements KeywordExecutable {
 
-  private static final Logger log = Logger.getLogger(PrintInfo.class);
+  private static final Logger log = LoggerFactory.getLogger(PrintInfo.class);
 
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")

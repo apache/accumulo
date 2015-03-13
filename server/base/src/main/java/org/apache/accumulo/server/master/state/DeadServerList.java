@@ -26,12 +26,13 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeadServerList {
-  private static final Logger log = Logger.getLogger(DeadServerList.class);
+  private static final Logger log = LoggerFactory.getLogger(DeadServerList.class);
   private final String path;
 
   public DeadServerList(String path) {
@@ -66,7 +67,7 @@ public class DeadServerList {
         }
       }
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error(ex.getMessage(), ex);
     }
     return result;
   }
@@ -76,7 +77,7 @@ public class DeadServerList {
     try {
       zoo.recursiveDelete(path + "/" + server, NodeMissingPolicy.SKIP);
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error("delete failed with exception", ex);
     }
   }
 
@@ -85,7 +86,7 @@ public class DeadServerList {
     try {
       zoo.putPersistentData(path + "/" + server, cause.getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error("post failed with exception", ex);
     }
   }
 }

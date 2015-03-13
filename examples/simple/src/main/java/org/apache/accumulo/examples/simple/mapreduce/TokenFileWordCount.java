@@ -31,7 +31,9 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this. This version does not use the ClientOpts
@@ -40,7 +42,7 @@ import org.apache.log4j.Logger;
  */
 public class TokenFileWordCount extends Configured implements Tool {
 
-  private static final Logger log = Logger.getLogger(TokenFileWordCount.class);
+  private static final Logger log = LoggerFactory.getLogger(TokenFileWordCount.class);
 
   public static class MapClass extends Mapper<LongWritable,Text,Text,Mutation> {
     @Override

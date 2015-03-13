@@ -31,7 +31,8 @@ import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed to constructor(s) and all other configurations are optional.
@@ -39,7 +40,7 @@ import org.apache.log4j.Logger;
  * @since 1.6.0
  */
 public class MiniAccumuloConfigImpl {
-  private static final Logger log = Logger.getLogger(MiniAccumuloConfigImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
 
   private File dir = null;

@@ -26,7 +26,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -35,13 +36,13 @@ public class RandomWriter {
   private static String table_name = "test_write_table";
   private static int num_columns_per_row = 1;
   private static int num_payload_bytes = 1024;
-  private static final Logger log = Logger.getLogger(RandomWriter.class);
+  private static final Logger log = LoggerFactory.getLogger(RandomWriter.class);
 
   public static class RandomMutationGenerator implements Iterable<Mutation>, Iterator<Mutation> {
     private long max_mutations;
     private int mutations_so_far = 0;
     private Random r = new Random();
-    private static final Logger log = Logger.getLogger(RandomMutationGenerator.class);
+    private static final Logger log = LoggerFactory.getLogger(RandomMutationGenerator.class);
 
     public RandomMutationGenerator(long num_mutations) {
       max_mutations = num_mutations;
@@ -103,7 +104,7 @@ public class RandomWriter {
       bw.addMutations(new RandomMutationGenerator(opts.count));
       bw.close();
     } catch (Exception e) {
-      log.error(e);
+      log.error(e.getMessage(), e);
       throw e;
     }
     long stop = System.currentTimeMillis();

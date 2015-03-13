@@ -37,12 +37,13 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
 public class ReplicationTable {
-  private static final Logger log = Logger.getLogger(ReplicationTable.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
   public static final String ID = "+rep";
   public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".replication";

@@ -26,7 +26,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class generates documentation to inform users of the available configuration properties in a presentable form.
@@ -294,7 +295,7 @@ class ConfigurationDocGen {
     }
   }
 
-  private static final Logger log = Logger.getLogger(ConfigurationDocGen.class);
+  private static final Logger log = LoggerFactory.getLogger(ConfigurationDocGen.class);
 
   private PrintStream doc;
 
@@ -333,7 +334,7 @@ class ConfigurationDocGen {
         try {
           data.close();
         } catch (IOException ex) {
-          log.error(ex, ex);
+          log.error(ex.getMessage(), ex);
         }
       }
     }

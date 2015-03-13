@@ -35,13 +35,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
 public class VerifyIngest {
 
-  private static final Logger log = Logger.getLogger(VerifyIngest.class);
+  private static final Logger log = LoggerFactory.getLogger(VerifyIngest.class);
 
   public static int getRow(Key k) {
     return Integer.parseInt(k.getRow().toString().split("_")[1]);

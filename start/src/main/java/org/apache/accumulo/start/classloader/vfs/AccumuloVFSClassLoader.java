@@ -42,7 +42,8 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.commons.vfs2.provider.FileReplicator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class builds a hierarchy of Classloaders in the form of:
@@ -97,7 +98,7 @@ public class AccumuloVFSClassLoader {
 
   private static ContextManager contextManager;
 
-  private static final Logger log = Logger.getLogger(AccumuloVFSClassLoader.class);
+  private static final Logger log = LoggerFactory.getLogger(AccumuloVFSClassLoader.class);
 
   static {
     // Register the shutdown hook
@@ -396,7 +397,7 @@ public class AccumuloVFSClassLoader {
             ((UniqueFileReplicator) replicator).close();
           }
         } catch (FileSystemException e) {
-          log.error(e, e);
+          log.error("FileSystemException", e);
         }
         ref.close();
       }
@@ -404,7 +405,7 @@ public class AccumuloVFSClassLoader {
     try {
       FileUtils.deleteDirectory(computeTopCacheDir());
     } catch (IOException e) {
-      log.error(e, e);
+      log.error("IOException", e);
     }
   }
 }

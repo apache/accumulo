@@ -45,7 +45,6 @@ import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
@@ -54,6 +53,8 @@ import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -63,7 +64,7 @@ public class LiveTServerSet implements Watcher {
     void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added);
   }
 
-  private static final Logger log = Logger.getLogger(LiveTServerSet.class);
+  private static final Logger log = LoggerFactory.getLogger(LiveTServerSet.class);
 
   private final Listener cback;
   private final ClientContext context;
@@ -264,7 +265,7 @@ public class LiveTServerSet implements Watcher {
       if (!doomed.isEmpty() || !updates.isEmpty())
         this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error(ex.getMessage(), ex);
     }
   }
 
@@ -350,7 +351,7 @@ public class LiveTServerSet implements Watcher {
             if (!doomed.isEmpty() || !updates.isEmpty())
               this.cback.update(this, doomed, updates);
           } catch (Exception ex) {
-            log.error(ex, ex);
+            log.error("Exception", ex);
           }
         }
       }
@@ -402,7 +403,8 @@ public class LiveTServerSet implements Watcher {
       ZooReaderWriter.getInstance().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {
       String msg = "error removing tablet server lock";
-      log.fatal(msg, e);
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+      log.error("FATAL: {}", msg, e);
       Halt.halt(msg, -1);
     }
     getZooCache().clear(fullpath);

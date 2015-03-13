@@ -39,11 +39,12 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BatchScanSplitIT extends AccumuloClusterIT {
-  private static final Logger log = Logger.getLogger(BatchScanSplitIT.class);
+  private static final Logger log = LoggerFactory.getLogger(BatchScanSplitIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

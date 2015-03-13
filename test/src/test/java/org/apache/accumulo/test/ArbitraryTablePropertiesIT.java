@@ -26,12 +26,13 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
-  private static final Logger log = Logger.getLogger(ArbitraryTablePropertiesIT.class);
+  private static final Logger log = LoggerFactory.getLogger(ArbitraryTablePropertiesIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {

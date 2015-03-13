@@ -58,9 +58,9 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -167,7 +167,7 @@ class CompactionDriver extends MasterRepo {
         if (server != null)
           server.compact(master.getMasterLock(), tableId, startRow, endRow);
       } catch (TException ex) {
-        Logger.getLogger(CompactionDriver.class).error(ex.toString());
+        LoggerFactory.getLogger(CompactionDriver.class).error(ex.toString());
       }
     }
 
