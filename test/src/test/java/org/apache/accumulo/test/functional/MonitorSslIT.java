@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -85,7 +86,8 @@ public class MonitorSslIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    configureForSsl(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
+    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
+    configureForSsl(cfg, createSslDir(baseDir));
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.MONITOR_SSL_KEYSTORE.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey()));
     siteConfig.put(Property.MONITOR_SSL_KEYSTOREPASS.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey()));

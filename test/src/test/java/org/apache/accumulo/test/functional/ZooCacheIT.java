@@ -17,12 +17,14 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,7 +40,9 @@ public class ZooCacheIT extends ConfigurableMacIT {
 
   @BeforeClass
   public static void createTestDirectory() {
-    testDir = createSharedTestDir(ZooCacheIT.class.getName() + pathName);
+    testDir = new File(createTestDir(ZooCacheIT.class.getName()), pathName);
+    FileUtils.deleteQuietly(testDir);
+    assertTrue(testDir.mkdir());
   }
 
   @Test

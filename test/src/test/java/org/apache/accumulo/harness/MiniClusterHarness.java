@@ -118,7 +118,8 @@ public class MiniClusterHarness {
       rootPasswd = UUID.randomUUID().toString();
     }
 
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName), rootPasswd);
+    File baseDir = AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName);
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, rootPasswd);
 
     // Enable native maps by default
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
@@ -127,7 +128,7 @@ public class MiniClusterHarness {
     Configuration coreSite = new Configuration(false);
 
     // Setup SSL and credential providers if the properties request such
-    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSharedTestDir(this.getClass().getName() + "-ssl"), coreSite, kdc);
+    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSslDir(baseDir), coreSite, kdc);
 
     // Invoke the callback for tests to configure MAC before it starts
     configCallback.configureMiniCluster(cfg, coreSite);
