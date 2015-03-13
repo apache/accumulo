@@ -64,7 +64,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   // Keytabs for the users
   public static final String ACCUMULO_STANDALONE_USER_KEYTABS_KEY = ACCUMULO_STANDALONE_PREFIX + "keytabs.";
   // Passwords for the users
-  public static final String ACCUMULO_STANDALONE_USER_PASSWORDS_KEY = ACCUMULO_STANDALONE_PREFIX + "password.";
+  public static final String ACCUMULO_STANDALONE_USER_PASSWORDS_KEY = ACCUMULO_STANDALONE_PREFIX + "passwords.";
 
   public static final String ACCUMULO_STANDALONE_HOME = ACCUMULO_STANDALONE_PREFIX + "home";
   public static final String ACCUMULO_STANDALONE_CONF = ACCUMULO_STANDALONE_PREFIX + "conf";
