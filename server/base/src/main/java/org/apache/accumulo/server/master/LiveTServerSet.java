@@ -80,12 +80,27 @@ public class LiveTServerSet implements Watcher {
       return mlock.getLockID().serialize(ZooUtil.getRoot(context.getInstance()) + Constants.ZMASTER_LOCK);
     }
 
+    private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent) throws TException {
+      client.loadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
+    }
+
     public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
-      try {
-        client.loadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
-      } finally {
-        ThriftUtil.returnClient(client);
+      if (extent.isMeta()) {
+        // see ACCUMULO-3597
+        TTransport transport = ThriftUtil.createTransport(address, context);
+        try {
+          TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
+          loadTablet(client, lock, extent);
+        } finally {
+          transport.close();
+        }
+      } else {
+        TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+        try {
+          loadTablet(client, lock, extent);
+        } finally {
+          ThriftUtil.returnClient(client);
+        }
       }
     }
 
