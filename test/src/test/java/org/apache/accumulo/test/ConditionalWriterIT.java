@@ -119,11 +119,9 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
   public void deleteUsers() throws Exception {
     Connector conn = getConnector();
     Set<String> users = conn.securityOperations().listLocalUsers();
-    for (int i = 0; i < 5; i++) {
-      ClusterUser user = getUser(i);
-      if (users.contains(user.getPrincipal())) {
-        conn.securityOperations().dropLocalUser(user.getPrincipal());
-      }
+    ClusterUser user = getUser(0);
+    if (users.contains(user.getPrincipal())) {
+      conn.securityOperations().dropLocalUser(user.getPrincipal());
     }
   }
 
