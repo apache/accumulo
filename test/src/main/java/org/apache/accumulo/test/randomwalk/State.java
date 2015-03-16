@@ -28,7 +28,7 @@ public class State {
   /**
    * Creates new empty state.
    */
-  State() {}
+  public State() {}
 
   /**
    * Sets a state object.

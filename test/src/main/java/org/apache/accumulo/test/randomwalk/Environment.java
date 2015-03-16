@@ -83,7 +83,7 @@ public class Environment {
    * @throws NullPointerException
    *           if p is null
    */
-  Environment(Properties p) {
+  public Environment(Properties p) {
     checkNotNull(p);
     this.p = p;
   }
