@@ -44,19 +44,16 @@ public class AccumuloIT {
   }
 
   /**
-   * Creates a directory for holding generated ssl files with the same name as the provided directory, but with the suffix "-ssl" appended.
+   * Determines an appropriate directory name for holding generated ssl files for a test. The directory returned will have the same name as the provided
+   * directory, but with the suffix "-ssl" appended. This new directory is not created here, but is expected to be created as needed.
    *
-   * @param dir
+   * @param baseDir
    *          the original directory, which the new directory will be created next to; it should exist
-   * @return the new directory, after it is created as a new empty directory; old contents, if any, are removed first
+   * @return the new directory (is not created)
    */
-  public static File createSslDir(File dir) {
-    String suffix = "-ssl";
-    assertTrue(dir.exists() && dir.isDirectory());
-    File testDir = new File(dir.getParentFile(), dir.getName() + suffix);
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-    return testDir;
+  public static File getSslDir(File baseDir) {
+    assertTrue(baseDir.exists() && baseDir.isDirectory());
+    return new File(baseDir.getParentFile(), baseDir.getName() + "-ssl");
   }
 
   public static File createTestDir(String name) {
