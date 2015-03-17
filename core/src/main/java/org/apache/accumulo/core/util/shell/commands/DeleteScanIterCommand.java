@@ -32,6 +32,7 @@ public class DeleteScanIterCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    Shell.log.warn("Deprecated, use " + new DeleteShellIterCommand().getName());
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     if (cl.hasOption(allOpt.getOpt())) {
