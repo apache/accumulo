@@ -95,8 +95,6 @@ public class VolumeIT extends ConfigurableMacIT {
     volDirBase = new File(baseDir, "volumes");
     File v1f = new File(volDirBase, "v1");
     File v2f = new File(volDirBase, "v2");
-    assertTrue(v1f.mkdir() || v1f.isDirectory());
-    assertTrue(v2f.mkdir() || v2f.isDirectory());
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
 
