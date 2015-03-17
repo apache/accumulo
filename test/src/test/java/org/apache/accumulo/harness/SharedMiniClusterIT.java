@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
@@ -57,7 +59,7 @@ public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterU
   @BeforeClass
   public static void startMiniCluster() throws Exception {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
 
     // Make a shared MAC instance instead of spinning up one per test method
     MiniClusterHarness harness = new MiniClusterHarness();

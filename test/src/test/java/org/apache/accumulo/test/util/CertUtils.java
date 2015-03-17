@@ -223,13 +223,17 @@ public class CertUtils {
       throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, KeyStoreException, UnrecoverableKeyException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = rootKeystorePassword.toCharArray();
-    signerKeystore.load(new FileInputStream(rootKeystorePath), signerPasswordArray);
+    try (FileInputStream fis = new FileInputStream(rootKeystorePath)) {
+      signerKeystore.load(fis, signerPasswordArray);
+    }
     Certificate rootCert = findCert(signerKeystore);
 
     KeyStore keystore = KeyStore.getInstance(keystoreType);
     keystore.load(null, null);
     keystore.setCertificateEntry(keyName + "Cert", rootCert);
-    keystore.store(new FileOutputStream(targetKeystoreFile), truststorePassword.toCharArray());
+    try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
+      keystore.store(fos, truststorePassword.toCharArray());
+    }
   }
 
   public void createSignedCert(File targetKeystoreFile, String keyName, String keystorePassword, String signerKeystorePath, String signerKeystorePassword)
@@ -237,7 +241,9 @@ public class CertUtils {
       UnrecoverableKeyException, NoSuchProviderException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = signerKeystorePassword.toCharArray();
-    signerKeystore.load(new FileInputStream(signerKeystorePath), signerPasswordArray);
+    try (FileInputStream fis = new FileInputStream(signerKeystorePath)) {
+      signerKeystore.load(fis, signerPasswordArray);
+    }
     Certificate signerCert = findCert(signerKeystore);
     PrivateKey signerKey = findPrivateKey(signerKeystore, signerPasswordArray);
 
@@ -249,7 +255,9 @@ public class CertUtils {
     keystore.load(null, null);
     keystore.setCertificateEntry(keyName + "Cert", cert);
     keystore.setKeyEntry(keyName + "Key", kp.getPrivate(), password, new Certificate[] {cert, signerCert});
-    keystore.store(new FileOutputStream(targetKeystoreFile), password);
+    try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
+      keystore.store(fos, password);
+    }
   }
 
   public void createSelfSignedCert(File targetKeystoreFile, String keyName, String keystorePassword) throws KeyStoreException, CertificateException,
@@ -267,7 +275,9 @@ public class CertUtils {
     keystore.load(null, null);
     keystore.setCertificateEntry(keyName + "Cert", cert);
     keystore.setKeyEntry(keyName + "Key", kp.getPrivate(), password, new Certificate[] {cert});
-    keystore.store(new FileOutputStream(targetKeystoreFile), password);
+    try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
+      keystore.store(fos, password);
+    }
   }
 
   private KeyPair generateKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {

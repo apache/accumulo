@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 public class TabletServerMBeanImpl extends AbstractMetricsImpl implements TabletServerMBean {
   private static final Logger log = Logger.getLogger(TabletServerMBeanImpl.class);
   private static final String METRICS_PREFIX = "tserver";
-  private static ObjectName OBJECT_NAME = null;
+  private ObjectName OBJECT_NAME = null;
 
   private final TabletServerMetricsUtil util;
 

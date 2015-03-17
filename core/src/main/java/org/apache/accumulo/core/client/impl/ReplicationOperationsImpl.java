@@ -32,33 +32,25 @@ import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.PeerExistsException;
 import org.apache.accumulo.core.client.replication.PeerNotFoundException;
-import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
-/**
- *
- */
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
 
@@ -67,14 +59,6 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public ReplicationOperationsImpl(ClientContext context) {
     checkNotNull(context);
     this.context = context;
-  }
-
-  @Override
-  public void addPeer(String name, Class<? extends ReplicaSystem> system) throws AccumuloException, AccumuloSecurityException, PeerExistsException {
-    checkNotNull(name);
-    checkNotNull(system);
-
-    addPeer(name, system.getName());
   }
 
   @Override
@@ -100,95 +84,36 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   }
 
   @Override
-  public void drain(String tableName, Set<String> wals) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void drain(final String tableName, final Set<String> wals) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkNotNull(tableName);
 
-    Connector conn = context.getConnector();
-    Text tableId = getTableId(conn, tableName);
+    final TInfo tinfo = Tracer.traceInfo();
+    final TCredentials rpcCreds = context.rpcCreds();
 
-    log.info("Waiting for {} to be replicated for {}", wals, tableId);
+    // Ask the master if the table is fully replicated given these WALs, but don't poll inside the master
+    boolean drained = false;
+    while (!drained) {
+      drained = getMasterDrain(tinfo, rpcCreds, tableName, wals);
 
-    log.info("Reading from metadata table");
-    boolean allMetadataRefsReplicated = false;
-    final Set<Range> range = Collections.singleton(new Range(ReplicationSection.getRange()));
-    while (!allMetadataRefsReplicated) {
-      BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-      bs.setRanges(range);
-      bs.fetchColumnFamily(ReplicationSection.COLF);
-      try {
-        allMetadataRefsReplicated = allReferencesReplicated(bs, tableId, wals);
-      } finally {
-        bs.close();
-      }
-
-      if (!allMetadataRefsReplicated) {
-        UtilWaitThread.sleep(1000);
-      }
-    }
-
-    log.info("reading from replication table");
-    boolean allReplicationRefsReplicated = false;
-    while (!allReplicationRefsReplicated) {
-      BatchScanner bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
-      bs.setRanges(Collections.singleton(new Range()));
-      try {
-        allReplicationRefsReplicated = allReferencesReplicated(bs, tableId, wals);
-      } finally {
-        bs.close();
-      }
-
-      if (!allReplicationRefsReplicated) {
-        UtilWaitThread.sleep(1000);
+      if (!drained) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Thread interrupted", e);
+        }
       }
     }
   }
 
-  /**
-   * @return return true records are only in place which are fully replicated
-   */
-  protected boolean allReferencesReplicated(BatchScanner bs, Text tableId, Set<String> relevantLogs) {
-    Text rowHolder = new Text(), colfHolder = new Text();
-    for (Entry<Key,Value> entry : bs) {
-      log.info("Got key {}", entry.getKey().toStringNoTruncate());
-
-      entry.getKey().getColumnQualifier(rowHolder);
-      if (tableId.equals(rowHolder)) {
-        entry.getKey().getRow(rowHolder);
-        entry.getKey().getColumnFamily(colfHolder);
-
-        String file;
-        if (colfHolder.equals(ReplicationSection.COLF)) {
-          file = rowHolder.toString();
-          file = file.substring(ReplicationSection.getRowPrefix().length());
-        } else if (colfHolder.equals(OrderSection.NAME)) {
-          file = OrderSection.getFile(entry.getKey(), rowHolder);
-          long timeClosed = OrderSection.getTimeClosed(entry.getKey(), rowHolder);
-          log.debug("Order section: {} and {}", timeClosed, file);
-        } else {
-          file = rowHolder.toString();
-        }
-
-        // Skip files that we didn't observe when we started (new files/data)
-        if (!relevantLogs.contains(file)) {
-          log.debug("Found file that we didn't care about {}", file);
-          continue;
-        } else {
-          log.debug("Found file that we *do* care about {}", file);
-        }
-
-        try {
-          Status stat = Status.parseFrom(entry.getValue().get());
-          if (!StatusUtil.isFullyReplicated(stat)) {
-            log.trace("{} and {} is not fully replicated", entry.getKey().getRow(), ProtobufUtil.toString(stat));
-            return false;
-          }
-        } catch (InvalidProtocolBufferException e) {
-          log.warn("Could not parse protobuf for {}", entry.getKey(), e);
-        }
+  protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds, final String tableName, final Set<String> wals) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    return MasterClient.execute(context, new ClientExecReturn<Boolean,Client>() {
+      @Override
+      public Boolean execute(Client client) throws Exception {
+        return client.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
       }
-    }
-
-    return true;
+    });
   }
 
   protected Text getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {

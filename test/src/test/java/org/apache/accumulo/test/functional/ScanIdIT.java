@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -83,7 +84,7 @@ public class ScanIdIT extends AccumuloClusterIT {
 
   private static final ExecutorService pool = Executors.newFixedThreadPool(NUM_SCANNERS);
 
-  private static volatile boolean testInProgress = true;
+  private static final AtomicBoolean testInProgress = new AtomicBoolean(true);
 
   private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<Integer,Value>();
 
@@ -121,14 +122,14 @@ public class ScanIdIT extends AccumuloClusterIT {
     }
 
     // wait for scanners to report a result.
-    while (testInProgress) {
+    while (testInProgress.get()) {
 
       if (resultsByWorker.size() < NUM_SCANNERS) {
         log.trace("Results reported {}", resultsByWorker.size());
         UtilWaitThread.sleep(750);
       } else {
         // each worker has reported at least one result.
-        testInProgress = false;
+        testInProgress.set(false);
 
         log.debug("Final result count {}", resultsByWorker.size());
 
@@ -218,7 +219,7 @@ public class ScanIdIT extends AccumuloClusterIT {
       for (Map.Entry<Key,Value> entry : scanner) {
 
         // exit when success condition is met.
-        if (!testInProgress) {
+        if (!testInProgress.get()) {
           scanner.clearScanIterators();
           scanner.close();
 

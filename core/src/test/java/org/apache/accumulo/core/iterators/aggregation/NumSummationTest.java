@@ -16,16 +16,20 @@
  */
 package org.apache.accumulo.core.iterators.aggregation;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
 /**
  * @deprecated since 1.4
  */
 @Deprecated
-public class NumSummationTest extends TestCase {
+public class NumSummationTest {
 
   private static final Logger log = Logger.getLogger(NumSummationTest.class);
 
@@ -36,6 +40,7 @@ public class NumSummationTest extends TestCase {
     return b;
   }
 
+  @Test
   public void test1() {
     try {
       long[] la = {1l, 2l, 3l};
@@ -51,6 +56,7 @@ public class NumSummationTest extends TestCase {
     }
   }
 
+  @Test
   public void test2() {
     try {
       NumArraySummation nas = new NumArraySummation();
@@ -73,6 +79,7 @@ public class NumSummationTest extends TestCase {
     }
   }
 
+  @Test
   public void test3() {
     try {
       NumArraySummation nas = new NumArraySummation();
@@ -92,6 +99,7 @@ public class NumSummationTest extends TestCase {
     }
   }
 
+  @Test
   public void test4() {
     try {
       long l = 5l;
@@ -104,6 +112,7 @@ public class NumSummationTest extends TestCase {
     }
   }
 
+  @Test
   public void test5() {
     try {
       NumSummation ns = new NumSummation();
@@ -132,8 +141,8 @@ public class NumSummationTest extends TestCase {
       ns.reset();
       l = NumSummation.bytesToLong(ns.aggregate().get());
       assertTrue("l was " + l, l == 0);
-    } catch (Exception e) {
-      assertTrue(false);
+    } catch (IOException | RuntimeException e) {
+      fail();
     }
   }
 }

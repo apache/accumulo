@@ -17,6 +17,7 @@
 package org.apache.accumulo.minicluster;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Collections;
@@ -61,10 +62,10 @@ public class MiniAccumuloClusterTest {
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, "superSecret").setJDWPEnabled(true);
     config.setZooKeeperPort(0);

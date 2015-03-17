@@ -37,8 +37,6 @@ import com.google.gson.Gson;
 public class JSONServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
 
-  private Gson gson = new Gson();
-
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "JSON Report";
@@ -96,7 +94,7 @@ public class JSONServlet extends BasicServlet {
     }
 
     results.put("servers", servers);
-    sb.append(gson.toJson(results));
+    sb.append(new Gson().toJson(results));
   }
 
   @Override

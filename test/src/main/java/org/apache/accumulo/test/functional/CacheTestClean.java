@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -35,9 +36,9 @@ public class CacheTestClean {
       zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
     }
 
-    if (reportDir.exists()) {
-      FileUtils.deleteDirectory(reportDir);
+    FileUtils.deleteQuietly(reportDir);
+    if (!reportDir.mkdirs()) {
+      throw new IOException("Unable to (re-)create " + reportDir);
     }
-    reportDir.mkdirs();
   }
 }

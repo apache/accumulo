@@ -16,8 +16,12 @@
 -->
 <FindBugsFilter>
   <Match>
-    <!-- ignore intentional infinite loop in stress test main method -->
-    <Class name="org.apache.accumulo.test.stress.random.Write" />
+    <!-- ignore intentional infinite loop in test main methods -->
+    <Or>
+      <Class name="org.apache.accumulo.test.continuous.ContinuousQuery" />
+      <Class name="org.apache.accumulo.test.continuous.ContinuousScanner" />
+      <Class name="org.apache.accumulo.test.stress.random.Write" />
+    </Or>
     <Method name="main" params="java.lang.String[]" returns="void" />
     <Bug code="IL" pattern="IL_INFINITE_LOOP" />
   </Match>
@@ -26,5 +30,22 @@
     <Class name="org.apache.accumulo.harness.TestingKdc" />
     <Method name="start" params="" returns="void" />
     <Bug code="SWL" pattern="SWL_SLEEP_WITH_LOCK_HELD" />
+  </Match>
+  <Match>
+    <!-- test classes can call System.exit -->
+    <Or>
+      <Package name="org.apache.accumulo.test.functional" />
+      <Package name="org.apache.accumulo.test.scalability" />
+      <Package name="org.apache.accumulo.test.performance" />
+    </Or>
+    <Bug code="DM" pattern="DM_EXIT" />
+  </Match>
+  <Match>
+    <!-- test classes can force garbage collection -->
+    <Or>
+      <Class name="org.apache.accumulo.test.performance.scan.CollectTabletStats" />
+      <Class name="org.apache.accumulo.test.MemoryUsageTest" />
+    </Or>
+    <Bug code="DM" pattern="DM_GC" />
   </Match>
 </FindBugsFilter>

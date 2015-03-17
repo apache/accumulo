@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,7 +33,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NewTableConfiguration;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -46,6 +47,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
+import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -85,10 +87,10 @@ public class CyclicReplicationIT {
 
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     File testDir = new File(baseDir, this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     return testDir;
   }
 
@@ -156,7 +158,7 @@ public class CyclicReplicationIT {
       master1Cfg.setInstanceName("master1");
 
       // Set up SSL if needed
-      ConfigurableMacIT.configureForEnvironment(master1Cfg, this.getClass(), ConfigurableMacIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
+      ConfigurableMacIT.configureForEnvironment(master1Cfg, this.getClass(), ConfigurableMacIT.createSslDir(master1Dir));
 
       master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
       master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");

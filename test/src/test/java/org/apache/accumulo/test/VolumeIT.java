@@ -95,8 +95,8 @@ public class VolumeIT extends ConfigurableMacIT {
     volDirBase = new File(baseDir, "volumes");
     File v1f = new File(volDirBase, "v1");
     File v2f = new File(volDirBase, "v2");
-    v1f.mkdir();
-    v2f.mkdir();
+    assertTrue(v1f.mkdir() || v1f.isDirectory());
+    assertTrue(v2f.mkdir() || v2f.isDirectory());
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
 
@@ -276,7 +276,7 @@ public class VolumeIT extends ConfigurableMacIT {
     conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
 
     File v3f = new File(volDirBase, "v3");
-    v3f.mkdir();
+    assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString() + "," + v3.toString());
@@ -319,7 +319,7 @@ public class VolumeIT extends ConfigurableMacIT {
     conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
 
     File v3f = new File(volDirBase, "v3");
-    v3f.mkdir();
+    assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString() + "," + v3.toString());

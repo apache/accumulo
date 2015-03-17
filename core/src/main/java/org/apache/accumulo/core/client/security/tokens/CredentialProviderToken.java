@@ -84,7 +84,7 @@ public class CredentialProviderToken extends PasswordToken {
 
   @Override
   public CredentialProviderToken clone() {
-    CredentialProviderToken clone = new CredentialProviderToken();
+    CredentialProviderToken clone = (CredentialProviderToken) super.clone();
     clone.setPassword(this.getPassword());
     return clone;
   }

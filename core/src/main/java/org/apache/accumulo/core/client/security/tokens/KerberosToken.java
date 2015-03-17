@@ -89,8 +89,11 @@ public class KerberosToken implements AuthenticationToken {
   @Override
   public KerberosToken clone() {
     try {
-      return new KerberosToken(principal);
-    } catch (IOException e) {
+      KerberosToken clone = (KerberosToken) super.clone();
+      clone.principal = principal;
+      clone.keytab = keytab == null ? keytab : keytab.getCanonicalFile();
+      return clone;
+    } catch (CloneNotSupportedException | IOException e) {
       throw new RuntimeException(e);
     }
   }

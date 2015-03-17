@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -93,6 +94,16 @@ public class DefaultLoadBalancer extends TabletBalancer {
       this.count = count;
       this.server = server;
       this.status = status;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(server) + count;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == this || (obj != null && obj instanceof ServerCounts && 0 == compareTo((ServerCounts) obj));
     }
 
     @Override

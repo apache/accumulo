@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.tserver.log;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -49,10 +51,10 @@ public class TestUpgradePathForWALogs {
   @BeforeClass
   public static void createTestDirectory() {
     File baseDir = new File(System.getProperty("user.dir") + "/target/upgrade-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     testDir = new File(baseDir, TestUpgradePathForWALogs.class.getName());
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir() || testDir.isDirectory());
   }
 
   @Rule

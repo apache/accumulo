@@ -176,4 +176,7 @@ service MasterClientService extends FateService {
 
   // Delegation token request
   security.TDelegationToken getDelegationToken(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:security.TDelegationTokenConfig cfg) throws (1:client.ThriftSecurityException sec)
+
+  // Determine when all provided logs are replicated
+  bool drainReplicationTable(1:trace.TInfo tfino, 2:security.TCredentials credentials, 3:string tableName, 4:set<string> logsToWatch)
 }

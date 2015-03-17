@@ -309,6 +309,11 @@ public class TabletServerResourceManager {
     public long getMinorCompactingMemTableSize() {
       return mcmts;
     }
+
+    @Override
+    public TabletStateImpl clone() throws CloneNotSupportedException {
+      return (TabletStateImpl) super.clone();
+    }
   }
 
   private class MemoryManagementFramework {

@@ -310,7 +310,9 @@ public class Admin implements KeywordExecutable {
             try {
               conn.tableOperations().flush(table, null, null, false);
               flushesStarted.incrementAndGet();
-            } catch (TableNotFoundException e) {}
+            } catch (TableNotFoundException e) {
+              // ignore
+            }
           }
         } catch (Exception e) {
           log.warn("Failed to intiate flush " + e.getMessage());
@@ -325,13 +327,17 @@ public class Admin implements KeywordExecutable {
     long start = System.currentTimeMillis();
     try {
       flusher.join(3000);
-    } catch (InterruptedException e) {}
+    } catch (InterruptedException e) {
+      // ignore
+    }
 
     while (flusher.isAlive() && System.currentTimeMillis() - start < 15000) {
       int flushCount = flushesStarted.get();
       try {
         flusher.join(1000);
-      } catch (InterruptedException e) {}
+      } catch (InterruptedException e) {
+        // ignore
+      }
 
       if (flushCount == flushesStarted.get()) {
         // no progress was made while waiting for join... maybe its stuck, stop waiting on it
@@ -454,7 +460,9 @@ public class Admin implements KeywordExecutable {
       if (null == p)
         return defaultValue;
       defaultValue = defaultConfig.get(p);
-    } catch (IllegalArgumentException e) {}
+    } catch (IllegalArgumentException e) {
+      // ignore
+    }
     return defaultValue;
   }
 

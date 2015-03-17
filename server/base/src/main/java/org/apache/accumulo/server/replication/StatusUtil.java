@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.replication;
+package org.apache.accumulo.server.replication;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.server.replication.proto.Replication.Status.Builder;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 

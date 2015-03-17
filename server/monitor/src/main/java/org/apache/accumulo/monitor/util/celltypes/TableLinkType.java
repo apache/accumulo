@@ -24,6 +24,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class TableLinkType extends CellType<String> {
 
+  private static final long serialVersionUID = 1L;
   private Map<String,String> tidToNameMap;
 
   public TableLinkType() {

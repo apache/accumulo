@@ -92,7 +92,7 @@ public class MetadataConstraints implements Constraint {
 
   static private ArrayList<Short> addIfNotPresent(ArrayList<Short> lst, int intViolation) {
     if (lst == null)
-      return addViolation(lst, intViolation);
+      return addViolation(null, intViolation);
     short violation = (short) intViolation;
     if (!lst.contains(violation))
       return addViolation(lst, intViolation);

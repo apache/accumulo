@@ -18,7 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -72,6 +72,7 @@ public class DeleteIT extends AccumuloClusterIT {
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
 
+    assertTrue("Expected one of password or keytab", null != password || null != keytab);
     if (null != password) {
       assertNull("Given password, expected null keytab", keytab);
       Password passwd = new Password(password);
@@ -79,27 +80,27 @@ public class DeleteIT extends AccumuloClusterIT {
       opts.setPrincipal(user);
       vopts.setPassword(passwd);
       vopts.setPrincipal(user);
-    } else if (null != keytab) {
+    }
+    if (null != keytab) {
       assertNull("Given keytab, expect null password", password);
       ClientConfiguration clientConfig = cluster.getClientConfig();
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
-    } else {
-      fail("Expected one of password or keytab");
     }
 
     BatchWriterOpts BWOPTS = new BatchWriterOpts();
     TestIngest.ingest(c, opts, BWOPTS);
 
     String[] args = null;
+
+    assertTrue("Expected one of password or keytab", null != password || null != keytab);
     if (null != password) {
       assertNull("Given password, expected null keytab", keytab);
       args = new String[] {"-u", user, "-p", password, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName};
-    } else if (null != keytab) {
+    }
+    if (null != keytab) {
       assertNull("Given keytab, expect null password", password);
       args = new String[] {"-u", user, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName, "--keytab", keytab};
-    } else {
-      fail("Expected one of password or keytab");
     }
 
     assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class, args));

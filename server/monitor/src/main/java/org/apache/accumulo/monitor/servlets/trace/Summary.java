@@ -78,6 +78,7 @@ public class Summary extends Basic {
 
   private static class ShowTypeLink extends StringType<String> {
 
+    private static final long serialVersionUID = 1L;
     int minutes;
 
     public ShowTypeLink(int minutes) {
@@ -95,6 +96,8 @@ public class Summary extends Basic {
   }
 
   static private class HistogramType extends StringType<Stats> {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public String format(Object obj) {
       Stats stat = (Stats) obj;

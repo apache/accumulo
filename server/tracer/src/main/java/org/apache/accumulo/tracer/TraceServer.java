@@ -212,7 +212,7 @@ public class TraceServer implements Watcher {
         }
         connector.tableOperations().setProperty(table, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
-      } catch (Exception ex) {
+      } catch (RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
         UtilWaitThread.sleep(1000);
       }

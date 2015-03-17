@@ -74,7 +74,6 @@ import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -409,17 +408,13 @@ class CopyFailed extends MasterRepo {
     HashMap<FileRef,String> failures = new HashMap<FileRef,String>();
     HashMap<FileRef,String> loadedFailures = new HashMap<FileRef,String>();
 
-    FSDataInputStream failFile = fs.open(new Path(error, BulkImport.FAILURES_TXT));
-    BufferedReader in = new BufferedReader(new InputStreamReader(failFile, UTF_8));
-    try {
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
       String line = null;
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
         if (!fs.exists(new Path(error, path.getName())))
           failures.put(new FileRef(line, path), line);
       }
-    } finally {
-      failFile.close();
     }
 
     /*

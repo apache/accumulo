@@ -26,7 +26,7 @@ public class TabletServerMinCMetrics extends AbstractMetricsImpl implements Tabl
 
   private static final String METRICS_PREFIX = "tserver.minc";
 
-  private static ObjectName OBJECT_NAME = null;
+  private ObjectName OBJECT_NAME = null;
 
   TabletServerMinCMetrics() {
     super();

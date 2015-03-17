@@ -17,6 +17,6 @@
 <FindBugsFilter>
   <Match>
     <!-- ignore thrift-generated classes -->
-    <Class name="~org\.apache\.accumulo\.tracer\.thrift\..*" />
+    <Package name="org.apache.accumulo.tracer.thrift" />
   </Match>
 </FindBugsFilter>

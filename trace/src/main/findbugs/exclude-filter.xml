@@ -21,6 +21,9 @@
       <Package name="org.apache.accumulo.trace.instrument" />
       <Package name="org.apache.accumulo.trace.thrift" />
     </Or>
-    <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
+    <Or>
+      <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
+      <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+    </Or>
   </Match>
 </FindBugsFilter>

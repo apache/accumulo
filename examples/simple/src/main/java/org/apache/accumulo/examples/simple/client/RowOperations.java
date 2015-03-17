@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -79,20 +81,20 @@ public class RowOperations {
     Text col4 = new Text("4");
 
     // Now we'll add them to the mutations
-    mut1.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut1.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut1.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut1.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
+    mut1.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
 
-    mut2.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut2.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut2.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut2.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
+    mut2.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
 
-    mut3.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut3.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut3.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-    mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
+    mut3.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
 
     // Now we'll make a Batch Writer
     bw = connector.createBatchWriter(table, bwOpts.getBatchWriterConfig());

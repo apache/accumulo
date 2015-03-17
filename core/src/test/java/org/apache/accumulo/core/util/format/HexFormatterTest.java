@@ -82,6 +82,6 @@ public class HexFormatterTest {
     data.put(new Key("", "", "", now), new Value());
     formatter.initialize(data.entrySet(), true);
     String entry = formatter.next().split("\\s+")[2];
-    assertEquals(now, Long.valueOf(entry).longValue());
+    assertEquals(now, Long.parseLong(entry));
   }
 }

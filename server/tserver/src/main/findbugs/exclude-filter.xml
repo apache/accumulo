@@ -21,4 +21,10 @@
     <Method name="beginUpdatingLogsUsed" params="org.apache.accumulo.tserver.InMemoryMap,org.apache.accumulo.tserver.log.DfsLogger,boolean" returns="boolean" />
     <Bug code="UL" pattern="UL_UNRELEASED_LOCK" />
   </Match>
+  <Match>
+    <!-- false positive about forced garbage collection in resource manager -->
+    <Class name="org.apache.accumulo.tserver.TabletServerResourceManager" />
+    <Method name="&lt;init&gt;" params="org.apache.accumulo.tserver.TabletServer,org.apache.accumulo.server.fs.VolumeManager" returns="void" />
+    <Bug code="DM" pattern="DM_GC" />
+  </Match>
 </FindBugsFilter>

@@ -124,7 +124,7 @@ import com.google.common.net.HostAndPort;
  */
 public abstract class SimpleProxyBase {
 
-  public static File macTestFolder = new File(System.getProperty("user.dir") + "/target/" + SimpleProxyBase.class.getName());
+  public static final File macTestFolder = new File(System.getProperty("user.dir") + "/target/" + SimpleProxyBase.class.getName());
 
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
@@ -162,7 +162,7 @@ public abstract class SimpleProxyBase {
 
   public static void setupMiniCluster(TProtocolFactory protocol) throws Exception {
     FileUtils.deleteQuietly(macTestFolder);
-    macTestFolder.mkdirs();
+    assertTrue(macTestFolder.mkdirs() || macTestFolder.isDirectory());
     MiniAccumuloConfig config = new MiniAccumuloConfig(macTestFolder, secret).setNumTservers(1);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
@@ -1155,13 +1155,14 @@ public abstract class SimpleProxyBase {
     // copy files to a new location
     FileSystem fs = FileSystem.get(new Configuration());
     FSDataInputStream is = fs.open(new Path(dir + "/distcp.txt"));
-    BufferedReader r = new BufferedReader(new InputStreamReader(is));
-    while (true) {
-      String line = r.readLine();
-      if (line == null)
-        break;
-      Path srcPath = new Path(line);
-      FileUtils.copyFile(new File(srcPath.toUri().getPath()), new File(destDir, srcPath.getName()));
+    try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
+      while (true) {
+        String line = r.readLine();
+        if (line == null)
+          break;
+        Path srcPath = new Path(line);
+        FileUtils.copyFile(new File(srcPath.toUri().getPath()), new File(destDir, srcPath.getName()));
+      }
     }
     client.deleteTable(creds, TABLE_TEST);
     client.importTable(creds, "testify", destDir.getAbsolutePath());

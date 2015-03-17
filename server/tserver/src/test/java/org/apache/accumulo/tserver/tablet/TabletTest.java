@@ -73,11 +73,11 @@ public class TabletTest {
 
     EasyMock.verify(tableConf, plan, writeParams);
 
-    Assert.assertEquals(hdfsBlockSize, Long.valueOf(aConf.get(Property.TABLE_FILE_BLOCK_SIZE)).longValue());
-    Assert.assertEquals(blockSize, Long.valueOf(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)).longValue());
-    Assert.assertEquals(indexBlockSize, Long.valueOf(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)).longValue());
+    Assert.assertEquals(hdfsBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_BLOCK_SIZE)));
+    Assert.assertEquals(blockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
+    Assert.assertEquals(indexBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)));
     Assert.assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    Assert.assertEquals(replication, Integer.valueOf(aConf.get(Property.TABLE_FILE_REPLICATION)).intValue());
+    Assert.assertEquals(replication, Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION)));
   }
 
 }

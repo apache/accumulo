@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.PriorityQueue;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -61,6 +62,17 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       this.seekColfams = Collections.<ByteSequence> singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
 
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(iter.getTopKey().getColumnQualifier());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == this || (obj != null && obj instanceof TermSource && 0 == compareTo((TermSource) obj));
+    }
+
+    @Override
     public int compareTo(TermSource o) {
       // NOTE: If your implementation can have more than one row in a tablet,
       // you must compare row key here first, then column qualifier.

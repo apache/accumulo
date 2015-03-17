@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
-import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
@@ -42,25 +43,30 @@ public class AccumuloIT {
     return names;
   }
 
-  public static File createSharedTestDir(String name) {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
-    if (name != null)
-      baseDir = new File(baseDir, name);
-    File testDir = new File(baseDir, System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE));
+  /**
+   * Creates a directory for holding generated ssl files with the same name as the provided directory, but with the suffix "-ssl" appended.
+   *
+   * @param dir
+   *          the original directory, which the new directory will be created next to; it should exist
+   * @return the new directory, after it is created as a new empty directory; old contents, if any, are removed first
+   */
+  public static File createSslDir(File dir) {
+    String suffix = "-ssl";
+    assertTrue(dir.exists() && dir.isDirectory());
+    File testDir = new File(dir.getParentFile(), dir.getName() + suffix);
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     return testDir;
   }
 
   public static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name == null)
       return baseDir;
     File testDir = new File(baseDir, name);
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     return testDir;
   }
 

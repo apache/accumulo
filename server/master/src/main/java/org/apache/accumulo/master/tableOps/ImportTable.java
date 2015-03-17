@@ -595,15 +595,10 @@ public class ImportTable extends MasterRepo {
 
   public void checkVersions(Master env) throws ThriftTableOperationException {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Integer exportVersion = null;
+    Integer dataVersion = null;
 
-    ZipInputStream zis = null;
-
-    try {
-      zis = new ZipInputStream(env.getFileSystem().open(path));
-
-      Integer exportVersion = null;
-      Integer dataVersion = null;
-
+    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(path))) {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -617,34 +612,22 @@ public class ImportTable extends MasterRepo {
               dataVersion = Integer.parseInt(sa[1]);
             }
           }
-
           break;
         }
       }
-
-      zis.close();
-      zis = null;
-
-      if (exportVersion == null || exportVersion > ExportTable.VERSION)
-        throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Incompatible export version " + exportVersion);
-
-      if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
-        throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Incompatible data version " + exportVersion);
-
     } catch (IOException ioe) {
       log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Failed to read export metadata " + ioe.getMessage());
-    } finally {
-      if (zis != null)
-        try {
-          zis.close();
-        } catch (IOException ioe) {
-          log.warn(ioe.getMessage(), ioe);
-        }
     }
+
+    if (exportVersion == null || exportVersion > ExportTable.VERSION)
+      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Incompatible export version " + exportVersion);
+
+    if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
+      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER, "Incompatible data version "
+          + exportVersion);
   }
 
   @Override

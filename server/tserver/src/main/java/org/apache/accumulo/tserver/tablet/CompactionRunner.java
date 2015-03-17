@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import java.util.Objects;
+
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 
 final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
@@ -56,6 +58,16 @@ final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
   // See ACCUMULO-1110.
   private int getNumFiles() {
     return tablet.getDatafileManager().getNumFiles();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(reason) + Objects.hashCode(queued) + getNumFiles();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj || (obj != null && obj instanceof CompactionRunner && 0 == compareTo((CompactionRunner) obj));
   }
 
   @Override

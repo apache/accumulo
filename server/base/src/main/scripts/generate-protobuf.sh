@@ -34,7 +34,7 @@ fail() {
 
 # Test to see if we have thrift installed
 VERSION=$(protoc --version 2>/dev/null | grep -F "${REQUIRED_PROTOC_VERSION}" |  wc -l)
-if [[ $VERSION != 1 ]] ; then
+if [[ $VERSION -ne 1 ]] ; then
   # Nope: bail
   echo "****************************************************"
   echo "*** protoc is not available"
@@ -83,8 +83,8 @@ EOF
 done
 
 # For every generated java file, compare it with the version-controlled one, and copy the ones that have changed into place
-SDIR="${BUILD_DIR}/org/apache/accumulo/core/replication/proto"
-DDIR="${FINAL_DIR}/java/org/apache/accumulo/core/replication/proto"
+SDIR="${BUILD_DIR}/org/apache/accumulo/server/replication/proto"
+DDIR="${FINAL_DIR}/java/org/apache/accumulo/server/replication/proto"
 FILE_SUFFIX=(.java)
 mkdir -p "$DDIR"
 for file in "${FILE_SUFFIX[@]}"; do

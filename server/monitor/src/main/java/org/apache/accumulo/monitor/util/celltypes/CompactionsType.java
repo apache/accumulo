@@ -21,6 +21,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 
 public class CompactionsType extends CellType<TableInfo> {
 
+  private static final long serialVersionUID = 1L;
   private String fieldName;
 
   public CompactionsType(String which) {

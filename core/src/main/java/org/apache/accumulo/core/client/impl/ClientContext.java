@@ -130,13 +130,13 @@ public class ClientContext {
       if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), defaultVal)) {
         return null;
       }
-      return new SaslConnectionParams(clientConf, creds.getToken());
+      return new SaslConnectionParams(clientConf, getCredentials().getToken());
     }
     AccumuloConfiguration conf = getConfiguration();
     if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return null;
     }
-    return new SaslConnectionParams(conf, creds.getToken());
+    return new SaslConnectionParams(conf, getCredentials().getToken());
   }
 
   /**

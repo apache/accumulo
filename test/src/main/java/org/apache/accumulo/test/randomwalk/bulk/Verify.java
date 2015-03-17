@@ -83,7 +83,7 @@ public class Verify extends Test {
         if (rowText == null)
           rowText = entry.getKey().getRow();
 
-        long curr = Long.valueOf(entry.getKey().getColumnQualifier().toString());
+        long curr = Long.parseLong(entry.getKey().getColumnQualifier().toString());
 
         if (curr - 1 != prev)
           throw new Exception("Bad marker count " + entry.getKey() + " " + entry.getValue() + " " + prev);

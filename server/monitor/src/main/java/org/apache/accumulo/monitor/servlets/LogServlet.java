@@ -91,6 +91,8 @@ public class LogServlet extends BasicServlet {
   }
 
   private static class LogLevelType extends StringType<Level> {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public String alignment() {
       return "center";

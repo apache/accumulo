@@ -38,7 +38,7 @@ import org.apache.log4j.Logger;
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
 
-  private static AccumuloConfiguration parent = null;
+  private AccumuloConfiguration parent = null;
   private static SiteConfiguration instance = null;
 
   private static Configuration xmlConfig;
@@ -47,7 +47,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
    * Not for consumers. Call {@link SiteConfiguration#getInstance(AccumuloConfiguration)} instead
    */
   SiteConfiguration(AccumuloConfiguration parent) {
-    SiteConfiguration.parent = parent;
+    this.parent = parent;
   }
 
   /**

@@ -80,7 +80,10 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
-    new File(cfg.getConfDir(), "auditLog.xml").delete();
+    File f = new File(cfg.getConfDir(), "auditLog.xml");
+    if (f.delete()) {
+      log.debug("Deleted " + f);
+    }
   }
 
   // Must be static to survive Junit re-initialising the class every time.
@@ -317,7 +320,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
     // Now do a Directory (bulk) import of the same data.
     auditConnector.tableOperations().create(THIRD_TEST_TABLE_NAME);
     File failDir = new File(exportDir + "/tmp");
-    failDir.mkdirs();
+    assertTrue(failDir.mkdirs() || failDir.isDirectory());
     auditConnector.tableOperations().importDirectory(THIRD_TEST_TABLE_NAME, exportDir.toString(), failDir.toString(), false);
     auditConnector.tableOperations().online(OLD_TEST_TABLE_NAME);
 

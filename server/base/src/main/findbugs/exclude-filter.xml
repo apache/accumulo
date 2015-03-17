@@ -16,11 +16,23 @@
 -->
 <FindBugsFilter>
   <Match>
+    <!-- ignore proto-generated files -->
+    <Package name="org.apache.accumulo.server.replication.proto" />
+  </Match>
+  <Match>
     <!-- ignore intentional name shadowing -->
     <Or>
       <Package name="org.apache.accumulo.server.zookeeper" />
       <Package name="org.apache.accumulo.server.cli" />
     </Or>
     <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
+  </Match>
+  <Match>
+    <!-- admin classes can call System.exit -->
+    <Or>
+      <Class name="org.apache.accumulo.server.util.Admin" />
+      <Class name="org.apache.accumulo.server.init.Initialize" />
+    </Or>
+    <Bug code="DM" pattern="DM_EXIT" />
   </Match>
 </FindBugsFilter>

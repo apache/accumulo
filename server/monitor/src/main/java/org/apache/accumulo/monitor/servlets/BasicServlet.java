@@ -48,9 +48,9 @@ abstract public class BasicServlet extends HttpServlet {
   private static final long serialVersionUID = 1L;
   protected static final Logger log = Logger.getLogger(BasicServlet.class);
   static String cachedInstanceName = null;
-  private static String bannerText;
-  private static String bannerColor;
-  private static String bannerBackground;
+  private String bannerText;
+  private String bannerColor;
+  private String bannerBackground;
 
   abstract protected String getTitle(HttpServletRequest req);
 

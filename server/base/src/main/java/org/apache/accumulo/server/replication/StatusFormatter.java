@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.replication;
+package org.apache.accumulo.server.replication;
 
 import java.text.DateFormat;
-import java.text.FieldPosition;
-import java.text.ParsePosition;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
@@ -32,10 +30,11 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.core.util.format.DefaultFormatter.DefaultDateFormat;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,22 +66,6 @@ public class StatusFormatter implements Formatter {
     @Override
     protected DateFormat initialValue() {
       return new DefaultDateFormat();
-    }
-
-    class DefaultDateFormat extends DateFormat {
-      private static final long serialVersionUID = 1L;
-
-      @Override
-      public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
-        toAppendTo.append(Long.toString(date.getTime()));
-        return toAppendTo;
-      }
-
-      @Override
-      public Date parse(String source, ParsePosition pos) {
-        return new Date(Long.parseLong(source));
-      }
-
     }
   };
 

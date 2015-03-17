@@ -140,7 +140,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
         int keyEncryptionKeyLength = in.readInt();
         keyEncryptionKey = new byte[keyEncryptionKeyLength];
-        in.read(keyEncryptionKey);
+        in.readFully(keyEncryptionKey);
 
         initialized = true;
 

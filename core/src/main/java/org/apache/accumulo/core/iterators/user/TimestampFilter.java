@@ -90,14 +90,14 @@ public class TimestampFilter extends Filter {
       if (hasStart) {
         String s = options.get(START);
         if (s.startsWith(LONG_PREFIX))
-          start = Long.valueOf(s.substring(LONG_PREFIX.length()));
+          start = Long.parseLong(s.substring(LONG_PREFIX.length()));
         else
           start = dateParser.parse(s).getTime();
       }
       if (hasEnd) {
         String s = options.get(END);
         if (s.startsWith(LONG_PREFIX))
-          end = Long.valueOf(s.substring(LONG_PREFIX.length()));
+          end = Long.parseLong(s.substring(LONG_PREFIX.length()));
         else
           end = dateParser.parse(s).getTime();
       }

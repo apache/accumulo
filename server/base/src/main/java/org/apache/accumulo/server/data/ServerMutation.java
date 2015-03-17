@@ -42,6 +42,7 @@ public class ServerMutation extends Mutation {
 
   public ServerMutation() {}
 
+  @Override
   protected void droppingOldTimestamp(long ts) {
     this.systemTime = ts;
   }
@@ -80,17 +81,7 @@ public class ServerMutation extends Mutation {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
-      return true;
-    }
-    if (o == null || o.getClass() != ServerMutation.class) {
-      return false;
-    }
-    ServerMutation sm = (ServerMutation) o;
-    if (sm.systemTime != systemTime) {
-      return false;
-    }
-    return super.equals(o);
+    return o == this || (o != null && o instanceof ServerMutation && systemTime == ((ServerMutation) o).systemTime && super.equals(o));
   }
 
   @Override

@@ -70,8 +70,14 @@ public class PermissionsIT extends AccumuloClusterIT {
   }
 
   @Before
-  public void limitToMini() {
+  public void limitToMini() throws Exception {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
+    Connector c = getConnector();
+    Set<String> users = c.securityOperations().listLocalUsers();
+    ClusterUser user = getUser(0);
+    if (users.contains(user.getPrincipal())) {
+      c.securityOperations().dropLocalUser(user.getPrincipal());
+    }
   }
 
   private void loginAs(ClusterUser user) throws IOException {
@@ -499,7 +505,7 @@ public class PermissionsIT extends AccumuloClusterIT {
   @Test
   public void tablePermissionTest() throws Exception {
     // create the test user
-    ClusterUser testUser = getUser(1), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
 
     String principal = testUser.getPrincipal();
     AuthenticationToken token = testUser.getToken();

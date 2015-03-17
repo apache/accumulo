@@ -34,6 +34,8 @@ import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.ParameterException;
 
@@ -42,6 +44,7 @@ public class ShellConfigTest {
   Shell shell;
   PrintStream out;
   File config;
+  private static final Logger log = LoggerFactory.getLogger(ShellConfigTest.class);
 
   @Before
   public void setUp() throws Exception {
@@ -62,7 +65,9 @@ public class ShellConfigTest {
     output.clear();
     System.setOut(out);
     if (config.exists()) {
-      config.delete();
+      if (!config.delete()) {
+        log.error("Unable to delete {}", config);
+      }
     }
   }
 

@@ -80,17 +80,32 @@ typically a fixed file per standalone cluster you want to run the tests against.
 The following properties can be used to configure a standalone cluster:
 
 - `accumulo.it.cluster.type`, Required: The type of cluster is being defined (valid options: MINI and STANDALONE)
-- `accumulo.it.cluster.standalone.principal`, Required: Standalone cluster principal (user)
-- `accumulo.it.cluster.standalone.password`, Required: Password for the principal
+- `accumulo.it.cluster.standalone.admin.principal`, Required: Standalone cluster principal (user) with all System permissions
+- `accumulo.it.cluster.standalone.admin.password`, Required: Password for the principal (only valid w/o Kerberos)
+- `accumulo.it.cluster.standalone.admin.keytab`, Required: Keytab for the principal (only valid w/ Kerberos)
 - `accumulo.it.cluster.standalone.zookeepers`, Required: ZooKeeper quorum used by the standalone cluster
 - `accumulo.it.cluster.standalone.instance.name`, Required: Accumulo instance name for the cluster
+- `accumulo.it.cluster.standalone.hadoop.conf`, Required: `HADOOP_CONF_DIR`
 - `accumulo.it.cluster.standalone.home`, Optional: `ACCUMULO_HOME`
 - `accumulo.it.cluster.standalone.conf`, Optional: `ACCUMULO_CONF_DIR`
-- `accumulo.it.cluster.standalone.hadoop.conf`, Optional: `HADOOP_CONF_DIR`
+
+Additionally, when running with Kerberos enabled, it is required that Kerberos principals already exist
+for the tests to use. As such, a number of properties exist to allow users to be passed down for tests
+to use. When Kerberos is enabled, these are principal/username and a path to a keytab file pairs. For "unsecure"
+installations, these are just principal/username and password pairs. It is not required to create the users
+in Accumulo -- the provided admin user will be used to create the user accounts in Accumulo when necessary.
+
+Setting 5 users should be sufficient for all of the integration test's purposes. Each property is suffixed
+with an integer which groups the keytab or password with the username.
+
+- `accumulo.it.cluster.standalone.users.$x` The principal name
+- `accumulo.it.cluster.standalone.passwords.$x` The password for the user
+- `accumulo.it.cluster.standalone.keytabs.$x` The path to the keytab for the user
 
 Each of the above properties can be set on the commandline (-Daccumulo.it.cluster.standalone.principal=root), or the
-collection can be placed into a properties file and referenced using "accumulo.it.cluster.properties".  For example, the
-following might be similar to what is executed for a standalone cluster.
+collection can be placed into a properties file and referenced using "accumulo.it.cluster.properties". Properties
+specified on the command line override properties set in a file.  For example, the following might be similar to
+what is executed for a standalone cluster.
 
   `mvn verify -Daccumulo.it.properties=/home/user/my_cluster.properties`
 
@@ -98,7 +113,8 @@ For the optional properties, each of them will be extracted from the environment
 Specifically, `ACCUMULO_HOME` and `ACCUMULO_CONF_DIR` are used to ensure the correct version of the bundled
 Accumulo scripts are invoked and, in the event that multiple Accumulo processes exist on the same physical machine,
 but for different instances, the correct version is terminated. `HADOOP_CONF_DIR` is used to ensure that the necessary
-files to construct the FileSystem object for the cluster can be constructed (e.g. core-site.xml and hdfs-site.xml).
+files to construct the FileSystem object for the cluster can be constructed (e.g. core-site.xml and hdfs-site.xml),
+which is typically required to interact with HDFS.
 
 # Manual Distributed Testing
 

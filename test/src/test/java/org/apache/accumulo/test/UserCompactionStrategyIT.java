@@ -52,6 +52,11 @@ import com.google.common.collect.ImmutableSet;
 
 public class UserCompactionStrategyIT extends AccumuloClusterIT {
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 3 * 60;
+  }
+
   @Test
   public void testDropA() throws Exception {
     Connector c = getConnector();

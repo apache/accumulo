@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.Locale;
 
 public class DateTimeType extends CellType<Long> {
+  private static final long serialVersionUID = 1L;
   private SimpleDateFormat simple;
   private int dateFormat;
   private int timeFormat;

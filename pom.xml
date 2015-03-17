@@ -528,7 +528,7 @@
             <effort>Max</effort>
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
-            <maxRank>14</maxRank>
+            <maxRank>16</maxRank>
             <excludeFilterFile>src/main/findbugs/exclude-filter.xml</excludeFilterFile>
           </configuration>
         </plugin>

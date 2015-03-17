@@ -807,6 +807,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
+    // Ensure compaction iterators exist on a tabletserver
+    final String skviName = SortedKeyValueIterator.class.getName();
+    for (IteratorSetting setting : config.getIterators()) {
+      String iteratorClass = setting.getIteratorClass();
+      if (!testClassLoad(tableName, iteratorClass, skviName)) {
+        throw new AccumuloException("TabletServer could not load iterator class " + iteratorClass);
+      }
+    }
+
+    // Make sure the specified compaction strategy exists on a tabletserver
+    final String compactionStrategyName = config.getCompactionStrategy().getClassName();
+    if (!CompactionStrategyConfigUtil.DEFAULT_STRATEGY.getClassName().equals(compactionStrategyName)) {
+      if (!testClassLoad(tableName, compactionStrategyName, "org.apache.accumulo.tserver.compaction.CompactionStrategy")) {
+        throw new AccumuloException("TabletServer could not load CompactionStrategy class " + compactionStrategyName);
+      }
+    }
+
     String tableId = Tables.getTableId(context.getInstance(), tableName);
 
     Text start = config.getStartRow();

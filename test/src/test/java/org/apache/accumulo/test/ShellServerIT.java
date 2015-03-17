@@ -1080,11 +1080,11 @@ public class ShellServerIT extends SharedMiniClusterIT {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     File importDir = new File(rootPath, "import");
-    importDir.mkdir();
+    assertTrue(importDir.mkdir());
     String even = new File(importDir, "even.rf").toString();
     String odd = new File(importDir, "odd.rf").toString();
     File errorsDir = new File(rootPath, "errors");
-    errorsDir.mkdir();
+    assertTrue(errorsDir.mkdir());
     fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
     FileSKVWriter evenWriter = FileOperations.getInstance().openWriter(even, fs, conf, aconf);

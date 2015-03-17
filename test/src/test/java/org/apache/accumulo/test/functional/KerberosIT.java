@@ -171,8 +171,8 @@ public class KerberosIT extends AccumuloIT {
   public void testNewUser() throws Exception {
     String newUser = testName.getMethodName();
     final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
-    if (newUserKeytab.exists()) {
-      newUserKeytab.delete();
+    if (newUserKeytab.exists() && !newUserKeytab.delete()) {
+      log.warn("Unable to delete {}", newUserKeytab);
     }
 
     // Create a new user
@@ -217,8 +217,8 @@ public class KerberosIT extends AccumuloIT {
   public void testUserPrivilegesThroughGrant() throws Exception {
     String user1 = testName.getMethodName();
     final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
-    if (user1Keytab.exists()) {
-      user1Keytab.delete();
+    if (user1Keytab.exists() && !user1Keytab.delete()) {
+      log.warn("Unable to delete {}", user1Keytab);
     }
 
     // Create some new users
@@ -266,8 +266,8 @@ public class KerberosIT extends AccumuloIT {
   public void testUserPrivilegesForTable() throws Exception {
     String user1 = testName.getMethodName();
     final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
-    if (user1Keytab.exists()) {
-      user1Keytab.delete();
+    if (user1Keytab.exists() && !user1Keytab.delete()) {
+      log.warn("Unable to delete {}", user1Keytab);
     }
 
     // Create some new users -- cannot contain realm
@@ -421,8 +421,8 @@ public class KerberosIT extends AccumuloIT {
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName.getMethodName();
     final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
-    if (newUserKeytab.exists()) {
-      newUserKeytab.delete();
+    if (newUserKeytab.exists() && !newUserKeytab.delete()) {
+      log.warn("Unable to delete {}", newUserKeytab);
     }
 
     // Create a new user

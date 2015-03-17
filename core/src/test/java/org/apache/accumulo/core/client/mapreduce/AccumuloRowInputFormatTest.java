@@ -57,13 +57,13 @@ public class AccumuloRowInputFormatTest {
   private static final String ROW2 = "row2";
   private static final String ROW3 = "row3";
   private static final String COLF1 = "colf1";
-  private static List<Entry<Key,Value>> row1;
-  private static List<Entry<Key,Value>> row2;
-  private static List<Entry<Key,Value>> row3;
+  private static final List<Entry<Key,Value>> row1;
+  private static final List<Entry<Key,Value>> row2;
+  private static final List<Entry<Key,Value>> row3;
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
 
-  public AccumuloRowInputFormatTest() {
+  static {
     row1 = new ArrayList<Entry<Key,Value>>();
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq1"), "v1".getBytes()));
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq2"), "v2".getBytes()));

@@ -20,6 +20,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
 public class TServerLinkType extends CellType<TabletServerStatus> {
 
+  private static final long serialVersionUID = 1L;
+
   @Override
   public String format(Object obj) {
     if (obj == null)

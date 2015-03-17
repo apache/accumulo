@@ -18,6 +18,7 @@ package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -60,7 +61,7 @@ public class TestingKdc {
     // Create the directories: target/kerberos/minikdc
     File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");
 
-    kdcDir.mkdirs();
+    assertTrue(kdcDir.mkdirs() || kdcDir.isDirectory());
 
     return kdcDir;
   }
@@ -72,7 +73,7 @@ public class TestingKdc {
     // Create the directories: target/kerberos/keytabs
     File keytabDir = new File(new File(targetDir, "kerberos"), "keytabs");
 
-    keytabDir.mkdirs();
+    assertTrue(keytabDir.mkdirs() || keytabDir.isDirectory());
 
     return keytabDir;
   }
@@ -190,7 +191,7 @@ public class TestingKdc {
     return ORG_NAME;
   }
 
-    /**
+  /**
    * @return the domain for the realm
    */
   public String getOrgDomain() {

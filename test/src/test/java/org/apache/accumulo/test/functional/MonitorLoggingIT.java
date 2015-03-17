@@ -89,7 +89,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
       IteratorSetting cfg = new IteratorSetting(100, "incorrect", "java.lang.String");
       s.addScanIterator(cfg);
       s.iterator().next();
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       // expected, the iterator was bad
     }
 

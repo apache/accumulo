@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.servlets.trace;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -31,7 +32,7 @@ public class NullKeyValueIterator implements Iterator<Entry<Key,Value>> {
 
   @Override
   public Entry<Key,Value> next() {
-    return null;
+    throw new NoSuchElementException(getClass().getName() + " contains no elements");
   }
 
   @Override

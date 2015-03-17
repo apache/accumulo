@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -116,7 +118,8 @@ public class MiniClusterHarness {
       rootPasswd = UUID.randomUUID().toString();
     }
 
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName), rootPasswd);
+    File baseDir = AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName);
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, rootPasswd);
 
     // Enable native maps by default
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
@@ -125,7 +128,7 @@ public class MiniClusterHarness {
     Configuration coreSite = new Configuration(false);
 
     // Setup SSL and credential providers if the properties request such
-    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSharedTestDir(this.getClass().getName() + "-ssl"), coreSite, kdc);
+    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSslDir(baseDir), coreSite, kdc);
 
     // Invoke the callback for tests to configure MAC before it starts
     configCallback.configureMiniCluster(cfg, coreSite);
@@ -175,7 +178,7 @@ public class MiniClusterHarness {
     }
 
     File sslDir = new File(folder, "ssl");
-    sslDir.mkdirs();
+    assertTrue(sslDir.mkdirs() || sslDir.isDirectory());
     File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
     File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
     File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");

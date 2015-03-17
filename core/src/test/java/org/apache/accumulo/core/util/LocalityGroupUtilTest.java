@@ -54,7 +54,9 @@ public class LocalityGroupUtilTest {
       conf.set("table.groups.enabled", "lg1,lg2");
       LocalityGroupUtil.getLocalityGroups(conf);
       fail();
-    } catch (LocalityGroupConfigurationError err) {}
+    } catch (LocalityGroupConfigurationError err) {
+      // expected, ignore
+    }
   }
 
   @Test
