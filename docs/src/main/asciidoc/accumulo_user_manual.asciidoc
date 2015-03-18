@@ -41,6 +41,8 @@ include::chapters/development_clients.txt[]
 
 include::chapters/table_configuration.txt[]
 
+include::chapters/iterator_design.txt[]
+
 include::chapters/table_design.txt[]
 
 include::chapters/high_speed_ingest.txt[]

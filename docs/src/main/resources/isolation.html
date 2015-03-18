@@ -48,4 +48,4 @@ memory on the server side. If a row is too big, it may crash a tablet server.
 The <code>IsolatedScanner</code> buffers rows on the client side so a large row will not crash a tablet server.
 
 <h3>Iterators</h3>
-<p>When writing server side iterators for accumulo isolation is something to be aware of. A scan time iterator in accumulo reads from a set of data sources. While an iterator is reading data it has an isolated view. However, after it returns a key/value it is possible that accumulo may switch data sources and re-seek the iterator. This is done so that resources may be reclaimed. When the user does not request isolation this can occur after any key is returned. When a user request isolation this will only occur after a new row is returned, in which case it will re-seek to the very beginning of the next possible row.
+<p>See the user manual's chapter on iterator design for more information on considerations when Isolation is enabled.
