@@ -19,7 +19,7 @@ Apache Accumulo User Manual Version 1.7
 :email: dev@accumulo.apache.org
 :toc2:
 :toclevels: 4
-:toc-title: Apache Accumulo 1.6
+:toc-title: Apache Accumulo 1.7
 :numbered:
 :website: http://accumulo.apache.org/
 
