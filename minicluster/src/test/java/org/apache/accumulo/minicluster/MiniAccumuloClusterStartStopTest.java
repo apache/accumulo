@@ -23,16 +23,17 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MiniAccumuloClusterStartStopTest {
 
-  private static final Logger log = Logger.getLogger(MiniAccumuloClusterStartStopTest.class);
+  private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterStartStopTest.class);
   private File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
   private MiniAccumuloCluster accumulo;
 

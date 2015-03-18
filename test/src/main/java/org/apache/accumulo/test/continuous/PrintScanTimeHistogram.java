@@ -24,11 +24,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PrintScanTimeHistogram {
 
-  private static final Logger log = Logger.getLogger(PrintScanTimeHistogram.class);
+  private static final Logger log = LoggerFactory.getLogger(PrintScanTimeHistogram.class);
 
   public static void main(String[] args) throws Exception {
     Histogram<String> srqHist = new Histogram<String>();
@@ -39,12 +40,12 @@ public class PrintScanTimeHistogram {
     StringBuilder report = new StringBuilder();
     report.append(String.format("%n *** Single row queries histogram *** %n"));
     srqHist.print(report);
-    log.info(report);
+    log.info("{}", report);
 
     report = new StringBuilder();
     report.append(String.format("%n *** Find start rows histogram *** %n"));
     fsrHist.print(report);
-    log.info(report);
+    log.info("{}",report);
   }
 
   private static void processFile(InputStream ins, Histogram<String> srqHist, Histogram<String> fsrHist) throws FileNotFoundException, IOException {

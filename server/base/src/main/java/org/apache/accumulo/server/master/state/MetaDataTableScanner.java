@@ -43,10 +43,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetaDataTableScanner implements ClosableIterator<TabletLocationState> {
-  private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
+  private static final Logger log = LoggerFactory.getLogger(MetaDataTableScanner.class);
 
   BatchScanner mdScanner = null;
   Iterator<Entry<Key,Value>> iter = null;

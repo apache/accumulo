@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * This store removes Repos, in the store it wraps, that are in a finished or new state for more than a configurable time period.
@@ -38,7 +40,7 @@ public class AgeOffStore<T> implements TStore<T> {
     long currentTimeMillis();
   }
 
-  final private static Logger log = Logger.getLogger(AgeOffStore.class);
+  final private static Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
   private TStore<T> store;
   private Map<Long,Long> candidates;

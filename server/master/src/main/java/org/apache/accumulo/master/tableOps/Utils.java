@@ -38,8 +38,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
@@ -68,14 +69,14 @@ public class Utils {
       });
       return new String(nid, UTF_8);
     } catch (Exception e1) {
-      Logger.getLogger(CreateTable.class).error("Failed to assign tableId to " + tableName, e1);
+      LoggerFactory.getLogger(CreateTable.class).error("Failed to assign tableId to " + tableName, e1);
       throw new ThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
 
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
-  private static final Logger log = Logger.getLogger(Utils.class);
+  private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   public static long reserveTable(String tableId, long tid, boolean writeLock, boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(tableId, tid, writeLock).tryLock()) {

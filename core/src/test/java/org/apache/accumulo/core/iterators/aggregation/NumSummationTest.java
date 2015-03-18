@@ -22,16 +22,16 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.log4j.Logger;
 import org.junit.Test;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * @deprecated since 1.4
  */
 @Deprecated
 public class NumSummationTest {
 
-  private static final Logger log = Logger.getLogger(NumSummationTest.class);
+  private static final Logger log = LoggerFactory.getLogger(NumSummationTest.class);
 
   public byte[] init(int n) {
     byte[] b = new byte[n];
@@ -74,7 +74,7 @@ public class NumSummationTest {
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
       assertTrue(la.length == 0);
     } catch (Exception e) {
-      log.error(e);
+      log.error(e.getMessage(),e);
       assertTrue(false);
     }
   }

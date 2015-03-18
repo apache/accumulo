@@ -25,8 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.accumulo.fate.zookeeper.ZooLock.AsyncLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -110,8 +108,6 @@ public class ZooLockTest {
   public static void setupMiniCluster() throws Exception {
 
     folder.create();
-
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
     accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
 

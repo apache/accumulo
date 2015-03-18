@@ -35,8 +35,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * XXX As a part of verifying lossy recovery via inserting an empty rfile, this test deletes test table tablets. This will require write access to the backing
@@ -46,7 +47,7 @@ import org.junit.Test;
  * make sure the test user doesn't have write access to the HDFS files of any colocated live Accumulo instance or any important local filesystem files..
  */
 public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
-  private static final Logger log = Logger.getLogger(RecoveryWithEmptyRFileIT.class);
+  private static final Logger log = LoggerFactory.getLogger(RecoveryWithEmptyRFileIT.class);
 
   static final int ROWS = 200000;
   static final int COLS = 1;

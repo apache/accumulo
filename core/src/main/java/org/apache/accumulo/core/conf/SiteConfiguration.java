@@ -22,7 +22,9 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
@@ -36,7 +38,7 @@ import org.apache.log4j.Logger;
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
 public class SiteConfiguration extends AccumuloConfiguration {
-  private static final Logger log = Logger.getLogger(SiteConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
   private AccumuloConfiguration parent = null;
   private static SiteConfiguration instance = null;

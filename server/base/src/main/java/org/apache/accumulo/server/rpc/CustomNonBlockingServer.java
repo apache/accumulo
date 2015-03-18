@@ -21,13 +21,14 @@ import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class implements a custom non-blocking thrift server, incorporating the {@link THsHaServer} features, and overriding the underlying
@@ -53,7 +54,7 @@ import org.apache.thrift.transport.TTransportException;
  */
 public class CustomNonBlockingServer extends THsHaServer {
 
-  private static final Logger LOGGER = Logger.getLogger(CustomNonBlockingServer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CustomNonBlockingServer.class);
   private SelectAcceptThread selectAcceptThread_;
   private volatile boolean stopped_ = false;
 

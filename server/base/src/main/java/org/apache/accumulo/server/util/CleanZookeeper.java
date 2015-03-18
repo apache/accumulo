@@ -26,17 +26,19 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
 public class CleanZookeeper {
 
-  private static final Logger log = Logger.getLogger(CleanZookeeper.class);
+  private static final Logger log = LoggerFactory.getLogger(CleanZookeeper.class);
 
   static class Opts extends Help {
-    @Parameter(names = {"-z", "--keepers"}, description = "Comma-separated list of zookeeper hosts, if different than instance.zookeeper.host in accumulo-site.xml")
+    @Parameter(names = {"-z", "--keepers"},
+        description = "Comma-separated list of zookeeper hosts, if different than instance.zookeeper.host in accumulo-site.xml")
     String keepers = "localhost:2181";
     @Parameter(names = {"--password"}, description = "The system secret, if different than instance.secret in accumulo-site.xml", password = true)
     String auth;

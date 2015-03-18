@@ -20,7 +20,9 @@ import java.security.Security;
 
 import junit.framework.TestCase;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Test the AddressUtil class.
@@ -28,7 +30,7 @@ import org.apache.log4j.Logger;
  */
 public class AddressUtilTest extends TestCase {
 
-  private static final Logger log = Logger.getLogger(AddressUtilTest.class);
+  private static final Logger log = LoggerFactory.getLogger(AddressUtilTest.class);
 
   public void testGetNegativeTtl() {
     log.info("Checking that we can get the ttl on dns failures.");

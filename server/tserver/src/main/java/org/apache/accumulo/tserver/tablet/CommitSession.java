@@ -22,11 +22,12 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CommitSession {
 
-  private static final Logger log = Logger.getLogger(CommitSession.class);
+  private static final Logger log = LoggerFactory.getLogger(CommitSession.class);
 
   private final int seq;
   private final InMemoryMap memTable;
@@ -67,7 +68,7 @@ public class CommitSession {
       try {
         committer.wait(50);
       } catch (InterruptedException e) {
-        log.warn(e, e);
+        log.warn("InterruptedException", e);
       }
     }
   }

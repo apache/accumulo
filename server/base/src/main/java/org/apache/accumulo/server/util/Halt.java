@@ -18,15 +18,17 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Halt {
-  static private final Logger log = Logger.getLogger(Halt.class);
+  static private final Logger log = LoggerFactory.getLogger(Halt.class);
 
   public static void halt(final String msg) {
+    //ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
     halt(0, new Runnable() {
       public void run() {
-        log.fatal(msg);
+        log.error("FATAL {}", msg);
       }
     });
   }
@@ -34,7 +36,7 @@ public class Halt {
   public static void halt(final String msg, int status) {
     halt(status, new Runnable() {
       public void run() {
-        log.fatal(msg);
+        log.error("FATAL {}", msg);
       }
     });
   }

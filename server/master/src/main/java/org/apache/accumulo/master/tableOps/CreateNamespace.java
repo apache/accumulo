@@ -32,7 +32,7 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class NamespaceInfo implements Serializable {
 
@@ -67,7 +67,7 @@ class FinishCreateNamespace extends MasterRepo {
 
     env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 
-    Logger.getLogger(FinishCreateNamespace.class).debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);
+    LoggerFactory.getLogger(FinishCreateNamespace.class).debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);
 
     return null;
   }
@@ -146,7 +146,7 @@ class SetupNamespacePermissions extends MasterRepo {
       try {
         security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user, namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
-        Logger.getLogger(FinishCreateNamespace.class).error(e.getMessage(), e);
+        LoggerFactory.getLogger(FinishCreateNamespace.class).error(e.getMessage(), e);
         throw e;
       }
     }

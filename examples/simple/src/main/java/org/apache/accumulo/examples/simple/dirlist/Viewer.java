@@ -37,7 +37,8 @@ import javax.swing.tree.TreePath;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.examples.simple.filedata.FileDataQuery;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -46,7 +47,7 @@ import com.beust.jcommander.Parameter;
  */
 @SuppressWarnings("serial")
 public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansionListener {
-  private static final Logger log = Logger.getLogger(Viewer.class);
+  private static final Logger log = LoggerFactory.getLogger(Viewer.class);
 
   JTree tree;
   DefaultTreeModel treeModel;

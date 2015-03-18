@@ -28,10 +28,11 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SecurityHelper {
-  private static final Logger log = Logger.getLogger(SecurityHelper.class);
+  private static final Logger log = LoggerFactory.getLogger(SecurityHelper.class);
 
   private static final String tableName = "secTableName";
   private static final String masterName = "sysUserName";

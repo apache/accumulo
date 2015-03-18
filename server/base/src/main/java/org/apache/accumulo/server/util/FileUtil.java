@@ -54,7 +54,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 
@@ -78,7 +79,7 @@ public class FileUtil {
     }
   }
 
-  private static final Logger log = Logger.getLogger(FileUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
     String accumuloDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris());
@@ -164,7 +165,7 @@ public class FileUtil {
           if (reader != null)
             reader.close();
         } catch (IOException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         }
 
         for (SortedKeyValueIterator<Key,Value> r : iters)
@@ -173,13 +174,13 @@ public class FileUtil {
               ((FileSKVIterator) r).close();
           } catch (IOException e) {
             // continue closing
-            log.error(e, e);
+            log.error(e.getMessage(), e);
           }
 
         try {
           writer.close();
         } catch (IOException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
           throw e;
         }
       }
@@ -373,7 +374,7 @@ public class FileUtil {
           r.close();
       } catch (IOException e) {
         // okay, try to close the rest anyway
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       }
     }
 
@@ -419,7 +420,7 @@ public class FileUtil {
           if (reader != null)
             reader.close();
         } catch (IOException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         }
       }
 
@@ -494,7 +495,7 @@ public class FileUtil {
           if (reader != null)
             reader.close();
         } catch (IOException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         }
       }
     }
@@ -541,7 +542,7 @@ public class FileUtil {
           index.close();
       } catch (IOException e) {
         // continue with next file
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       }
     }
 

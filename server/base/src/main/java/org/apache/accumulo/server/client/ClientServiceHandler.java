@@ -64,11 +64,12 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientServiceHandler implements ClientService.Iface {
-  private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
   private final AccumuloServerContext context;
   private final Instance instance;
@@ -133,7 +134,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       return security.authenticateUser(credentials, credentials);
     } catch (ThriftSecurityException e) {
-      log.error(e);
+      log.error("ThriftSecurityException",e);
       throw e;
     }
   }
@@ -143,7 +144,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       return security.authenticateUser(credentials, toAuth);
     } catch (ThriftSecurityException e) {
-      log.error(e);
+      log.error("ThriftSecurityException",e);
       throw e;
     }
   }

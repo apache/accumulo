@@ -27,10 +27,11 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableConfiguration extends ObservableConfiguration {
-  private static final Logger log = Logger.getLogger(TableConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(TableConfiguration.class);
 
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<PropCacheKey,ZooCache>();
 

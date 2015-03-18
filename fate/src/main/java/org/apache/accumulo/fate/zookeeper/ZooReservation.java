@@ -20,11 +20,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
 
@@ -60,7 +60,7 @@ public class ZooReservation {
       zooData = zk.getData(path, null);
     } catch (NoNodeException e) {
       // Just logging a warning, if data is gone then our work here is done.
-      Logger.getLogger(ZooReservation.class).debug("Node does not exist " + path);
+      LoggerFactory.getLogger(ZooReservation.class).debug("Node does not exist " + path);
       return;
     }
 

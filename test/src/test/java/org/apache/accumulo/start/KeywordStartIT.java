@@ -57,12 +57,13 @@ import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tracer.TracerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KeywordStartIT {
 
-  private final Logger log = Logger.getLogger(getClass());
+  private final Logger log = LoggerFactory.getLogger(getClass());
 
   @Test
   public void testKeywordsMatch() throws IOException {

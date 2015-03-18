@@ -40,13 +40,14 @@ import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.MultiReader;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 public class LogReader {
-  private static final Logger log = Logger.getLogger(LogReader.class);
+  private static final Logger log = LoggerFactory.getLogger(LogReader.class);
 
   static class Opts extends Help {
     @Parameter(names = "-r", description = "print only mutations associated with the given row")

@@ -23,7 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -34,7 +35,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  *
  */
 public class SimpleTimer {
-  private static final Logger log = Logger.getLogger(SimpleTimer.class);
+  private static final Logger log = LoggerFactory.getLogger(SimpleTimer.class);
 
   private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
     public void uncaughtException(Thread t, Throwable e) {

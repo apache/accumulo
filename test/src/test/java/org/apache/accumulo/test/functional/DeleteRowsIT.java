@@ -36,8 +36,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleteRowsIT extends AccumuloClusterIT {
 
@@ -46,7 +47,7 @@ public class DeleteRowsIT extends AccumuloClusterIT {
     return 10 * 60;
   }
 
-  private static final Logger log = Logger.getLogger(DeleteRowsIT.class);
+  private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
 
   private static final int ROWS_PER_TABLET = 10;
   private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",

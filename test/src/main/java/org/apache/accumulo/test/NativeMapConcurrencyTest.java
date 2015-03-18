@@ -27,14 +27,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 public class NativeMapConcurrencyTest {
 
-  private static final Logger log = Logger.getLogger(NativeMapConcurrencyTest.class);
+  private static final Logger log = LoggerFactory.getLogger(NativeMapConcurrencyTest.class);
 
   private static final byte ROW_PREFIX[] = new byte[] {'r'};
   private static final byte COL_PREFIX[] = new byte[] {'c'};

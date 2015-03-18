@@ -44,11 +44,12 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MergeStats {
-  final static private Logger log = Logger.getLogger(MergeStats.class);
+  final static private Logger log = LoggerFactory.getLogger(MergeStats.class);
   MergeInfo info;
   int hosted = 0;
   int unassigned = 0;
@@ -196,7 +197,7 @@ public class MergeStats {
       try {
         tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       } catch (BadLocationStateException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
         return false;
       }
       log.debug("consistency check: " + tls + " walogs " + tls.walogs.size());

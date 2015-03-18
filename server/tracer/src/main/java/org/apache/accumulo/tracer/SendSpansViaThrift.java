@@ -36,7 +36,7 @@ import org.apache.thrift.transport.TTransport;
  */
 public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
 
-  private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(SendSpansViaThrift.class);
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SendSpansViaThrift.class);
 
   private static final String THRIFT = "thrift://";
 
@@ -63,7 +63,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       TProtocol prot = new TBinaryProtocol(transport);
       return new Client(prot);
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error(ex.getMessage(), ex);
       return null;
     }
   }

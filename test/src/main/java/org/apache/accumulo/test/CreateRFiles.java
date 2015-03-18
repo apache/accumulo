@@ -21,13 +21,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
 public class CreateRFiles {
 
-  private static final Logger log = Logger.getLogger(CreateRFiles.class);
+  private static final Logger log = LoggerFactory.getLogger(CreateRFiles.class);
 
   static class Opts extends Help {
 

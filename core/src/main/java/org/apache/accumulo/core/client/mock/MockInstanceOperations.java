@@ -26,10 +26,11 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MockInstanceOperations implements InstanceOperations {
-  private static final Logger log = Logger.getLogger(MockInstanceOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(MockInstanceOperations.class);
   MockAccumulo acu;
 
   public MockInstanceOperations(MockAccumulo acu) {

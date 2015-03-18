@@ -30,7 +30,8 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -60,7 +61,7 @@ import com.google.common.io.Files;
  * @since 1.6.0
  */
 public class MiniAccumuloRunner {
-  private static final Logger log = Logger.getLogger(MiniAccumuloRunner.class);
+  private static final Logger log = LoggerFactory.getLogger(MiniAccumuloRunner.class);
 
   private static final String ROOT_PASSWORD_PROP = "rootPassword";
   private static final String SHUTDOWN_PORT_PROP = "shutdownPort";

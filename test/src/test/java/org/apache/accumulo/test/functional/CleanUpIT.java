@@ -29,9 +29,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling CleanUp.shutdown().
@@ -40,7 +41,7 @@ import org.junit.Test;
  * the ZooKeeperInstance and Connector are self-contained WRT resource management, we can't leverage the AccumuloClusterIT.
  */
 public class CleanUpIT extends SharedMiniClusterIT {
-  private static final Logger log = Logger.getLogger(CleanUpIT.class);
+  private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {

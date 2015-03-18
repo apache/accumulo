@@ -64,10 +64,11 @@ import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Compactor implements Callable<CompactionStats> {
-  private static final Logger log = Logger.getLogger(Compactor.class);
+  private static final Logger log = LoggerFactory.getLogger(Compactor.class);
   private static final AtomicLong nextCompactorID = new AtomicLong(0);
 
   public static class CompactionCanceledException extends Exception {
@@ -233,10 +234,10 @@ public class Compactor implements Callable<CompactionStats> {
       majCStats.setFileSize(fileFactory.getFileSize(outputFile.path().toString(), ns, ns.getConf(), acuTableConf));
       return majCStats;
     } catch (IOException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw e;
     } catch (RuntimeException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       throw e;
     } finally {
       Thread.currentThread().setName(oldThreadName);
@@ -257,9 +258,9 @@ public class Compactor implements Callable<CompactionStats> {
           }
         }
       } catch (IOException e) {
-        log.warn(e, e);
+        log.warn(e.getMessage(), e);
       } catch (RuntimeException exception) {
-        log.warn(exception, exception);
+        log.warn(exception.getMessage(), exception);
       }
     }
   }
@@ -368,7 +369,7 @@ public class Compactor implements Callable<CompactionStats> {
             try {
               mfw.close();
             } catch (IOException e) {
-              log.error(e, e);
+              log.error(e.getMessage(), e);
             }
             fs.deleteRecursively(outputFile.path());
           } catch (Exception e) {

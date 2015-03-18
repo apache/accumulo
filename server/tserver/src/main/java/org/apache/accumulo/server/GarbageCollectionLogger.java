@@ -24,10 +24,11 @@ import java.util.List;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.Halt;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GarbageCollectionLogger {
-  private static final Logger log = Logger.getLogger(GarbageCollectionLogger.class);
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
 
   private final HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private long lastMemorySize = 0;

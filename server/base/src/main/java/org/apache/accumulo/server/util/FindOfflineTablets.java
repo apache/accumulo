@@ -43,10 +43,11 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FindOfflineTablets {
-  private static final Logger log = Logger.getLogger(FindOfflineTablets.class);
+  private static final Logger log = LoggerFactory.getLogger(FindOfflineTablets.class);
 
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();

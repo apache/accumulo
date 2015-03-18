@@ -76,7 +76,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -86,6 +85,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellServerIT extends SharedMiniClusterIT {
   public static class TestOutputStream extends OutputStream {
@@ -105,7 +106,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     }
   }
 
-  private static final Logger log = Logger.getLogger(ShellServerIT.class);
+  private static final Logger log = LoggerFactory.getLogger(ShellServerIT.class);
 
   public static class StringInputStream extends InputStream {
     private String source = "";

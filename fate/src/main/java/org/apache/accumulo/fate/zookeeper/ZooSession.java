@@ -25,12 +25,13 @@ import java.util.Map;
 
 import org.apache.accumulo.fate.util.AddressUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooSession {
 
@@ -40,7 +41,7 @@ public class ZooSession {
 
   }
 
-  private static final Logger log = Logger.getLogger(ZooSession.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooSession.class);
 
   private static class ZooSessionInfo {
     public ZooSessionInfo(ZooKeeper zooKeeper, ZooWatcher watcher) {

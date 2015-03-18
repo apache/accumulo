@@ -37,7 +37,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -45,7 +46,7 @@ import com.beust.jcommander.Parameter;
  * Internal class used to verify validity of data read.
  */
 class CountingVerifyingReceiver {
-  private static final Logger log = Logger.getLogger(CountingVerifyingReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
 
   long count = 0;
   int expectedValueSize = 0;
@@ -81,7 +82,7 @@ class CountingVerifyingReceiver {
  * Simple example for reading random batches of data from Accumulo. See docs/examples/README.batch for instructions.
  */
 public class RandomBatchScanner {
-  private static final Logger log = Logger.getLogger(CountingVerifyingReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
 
   /**
    * Generate a number of ranges, each covering a single random row.

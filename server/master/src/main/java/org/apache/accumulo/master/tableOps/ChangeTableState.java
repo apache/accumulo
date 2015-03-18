@@ -22,7 +22,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChangeTableState extends MasterRepo {
 
@@ -55,7 +55,7 @@ public class ChangeTableState extends MasterRepo {
     TableManager.getInstance().transitionTableState(tableId, ts);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
-    Logger.getLogger(ChangeTableState.class).debug("Changed table state " + tableId + " " + ts);
+    LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state " + tableId + " " + ts);
     env.getEventCoordinator().event("Set table state of %s to %s", tableId, ts);
     return null;
   }

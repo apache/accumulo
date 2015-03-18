@@ -32,7 +32,8 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The test environment that is available for randomwalk tests. This includes configuration properties that are available to any randomwalk test and facilities
@@ -68,7 +69,7 @@ public class Environment {
    */
   public static final String KEY_NUM_THREADS = "NUM_THREADS";
 
-  private static final Logger log = Logger.getLogger(Environment.class);
+  private static final Logger log = LoggerFactory.getLogger(Environment.class);
 
   private final Properties p;
   private Instance instance = null;
@@ -83,7 +84,7 @@ public class Environment {
    * @throws NullPointerException
    *           if p is null
    */
-  Environment(Properties p) {
+  public Environment(Properties p) {
     checkNotNull(p);
     this.p = p;
   }

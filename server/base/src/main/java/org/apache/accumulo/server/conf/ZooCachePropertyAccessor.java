@@ -25,13 +25,14 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A helper object for accessing properties in a {@link ZooCache}.
  */
 public class ZooCachePropertyAccessor {
-  private static final Logger log = Logger.getLogger(ZooCachePropertyAccessor.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooCachePropertyAccessor.class);
 
   static class PropCacheKey {
     final String instanceId;

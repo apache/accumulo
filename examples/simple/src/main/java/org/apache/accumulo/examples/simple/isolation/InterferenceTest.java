@@ -31,7 +31,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -49,7 +50,7 @@ public class InterferenceTest {
 
   private static final int NUM_ROWS = 500;
   private static final int NUM_COLUMNS = 113; // scanner batches 1000 by default, so make num columns not a multiple of 10
-  private static final Logger log = Logger.getLogger(InterferenceTest.class);
+  private static final Logger log = LoggerFactory.getLogger(InterferenceTest.class);
 
   static class Writer implements Runnable {
 
@@ -85,7 +86,7 @@ public class InterferenceTest {
       try {
         bw.close();
       } catch (MutationsRejectedException e) {
-        log.error(e, e);
+        log.error("Mutation was rejected on BatchWriter close.", e);
       }
     }
   }

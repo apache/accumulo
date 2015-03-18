@@ -52,15 +52,16 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.net.HostAndPort;
 
 public class VerifyTabletAssignments {
-  private static final Logger log = Logger.getLogger(VerifyTabletAssignments.class);
+  private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
 
   static class Opts extends ClientOpts {
     @Parameter(names = {"-v", "--verbose"}, description = "verbose mode (prints locations of tablets)")

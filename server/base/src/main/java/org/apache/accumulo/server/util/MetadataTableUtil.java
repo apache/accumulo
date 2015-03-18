@@ -92,8 +92,9 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 
@@ -106,7 +107,7 @@ public class MetadataTableUtil {
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static Map<Credentials,Writer> root_tables = new HashMap<Credentials,Writer>();
   private static Map<Credentials,Writer> metadata_tables = new HashMap<Credentials,Writer>();
-  private static final Logger log = Logger.getLogger(MetadataTableUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(MetadataTableUtil.class);
 
   private MetadataTableUtil() {}
 
@@ -152,15 +153,15 @@ public class MetadataTableUtil {
         t.update(m);
         return;
       } catch (AccumuloException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       } catch (AccumuloSecurityException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       } catch (ConstraintViolationException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
         throw new RuntimeException(e);
       } catch (TableNotFoundException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       }
       UtilWaitThread.sleep(1000);
     }
@@ -264,12 +265,8 @@ public class MetadataTableUtil {
           op.run(zoo);
         }
         break;
-      } catch (KeeperException e) {
-        log.error(e, e);
-      } catch (InterruptedException e) {
-        log.error(e, e);
-      } catch (IOException e) {
-        log.error(e, e);
+      } catch (Exception e) {
+        log.error("Unexpected exception {}", e.getMessage(), e);
       }
       UtilWaitThread.sleep(1000);
     }

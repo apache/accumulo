@@ -36,11 +36,12 @@ import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MinorCompactor extends Compactor {
 
-  private static final Logger log = Logger.getLogger(MinorCompactor.class);
+  private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
   private static final Map<FileRef,DataFileValue> EMPTY_MAP = Collections.emptyMap();
 

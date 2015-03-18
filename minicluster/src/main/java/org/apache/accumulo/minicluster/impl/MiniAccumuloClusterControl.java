@@ -36,8 +36,9 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -46,7 +47,7 @@ import com.google.common.collect.Maps;
  *
  */
 public class MiniAccumuloClusterControl implements ClusterControl {
-  private static final Logger log = Logger.getLogger(MiniAccumuloClusterControl.class);
+  private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterControl.class);
 
   protected MiniAccumuloClusterImpl cluster;
 

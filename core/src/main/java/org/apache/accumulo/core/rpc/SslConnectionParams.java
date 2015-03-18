@@ -24,11 +24,12 @@ import java.util.Arrays;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SslConnectionParams {
-  private static final Logger log = Logger.getLogger(SslConnectionParams.class);
+  private static final Logger log = LoggerFactory.getLogger(SslConnectionParams.class);
 
   private boolean useJsse = false;
   private boolean clientAuth = false;

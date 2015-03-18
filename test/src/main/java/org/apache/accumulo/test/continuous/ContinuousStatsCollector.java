@@ -55,11 +55,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContinuousStatsCollector {
 
-  private static final Logger log = Logger.getLogger(ContinuousStatsCollector.class);
+  private static final Logger log = LoggerFactory.getLogger(ContinuousStatsCollector.class);
 
   static class StatsCollectionTask extends TimerTask {
 

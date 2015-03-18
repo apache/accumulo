@@ -59,7 +59,6 @@ import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.Span;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -73,10 +72,12 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TraceServer implements Watcher {
 
-  final private static Logger log = Logger.getLogger(TraceServer.class);
+  final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
   final private ServerConfigurationFactory serverConfiguration;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
@@ -330,7 +331,7 @@ public class TraceServer implements Watcher {
         if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
           return;
       } catch (Exception ex) {
-        log.error(ex, ex);
+        log.error(ex.getMessage(), ex);
       }
       log.warn("Trace server unable to reset watch on zookeeper registration");
       server.stop();

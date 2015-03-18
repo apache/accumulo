@@ -19,7 +19,9 @@ package org.apache.accumulo.core.iterators.aggregation;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.SummingCombiner} with
@@ -27,7 +29,7 @@ import org.apache.log4j.Logger;
  */
 @Deprecated
 public class LongSummation implements Aggregator {
-  private static final Logger log = Logger.getLogger(LongSummation.class);
+  private static final Logger log = LoggerFactory.getLogger(LongSummation.class);
   long sum = 0;
 
   public Value aggregate() {

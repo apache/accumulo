@@ -36,7 +36,8 @@ import org.apache.htrace.HTraceConfiguration;
 import org.apache.htrace.Span;
 import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.TimelineAnnotation;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Deliver Span information periodically to a destination.
@@ -48,7 +49,7 @@ import org.apache.log4j.Logger;
  */
 public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanReceiver {
 
-  private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(AsyncSpanReceiver.class);
 
   public static final String SEND_TIMER_MILLIS = "send.timer.millis";
 

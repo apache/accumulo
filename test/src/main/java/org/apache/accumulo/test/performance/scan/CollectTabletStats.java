@@ -75,13 +75,14 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.net.HostAndPort;
 
 public class CollectTabletStats {
-  private static final Logger log = Logger.getLogger(CollectTabletStats.class);
+  private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
   static class CollectOptions extends ClientOnRequiredTable {
     @Parameter(names = "--iterations", description = "number of iterations")

@@ -33,7 +33,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class MetricsConfiguration {
 
-  private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(MetricsConfiguration.class);
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MetricsConfiguration.class);
 
   private static final String metricsFileName = "accumulo-metrics.xml";
 

@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Apache Accumulo User Manual Version 1.6
+Apache Accumulo User Manual Version 1.7
 =======================================
 :author: Apache Accumulo Project
 :email: dev@accumulo.apache.org
 :toc2:
 :toclevels: 4
-:toc-title: Apache Accumulo 1.6
+:toc-title: Apache Accumulo 1.7
 :numbered:
 :website: http://accumulo.apache.org/
 
@@ -40,6 +40,8 @@ include::chapters/clients.txt[]
 include::chapters/development_clients.txt[]
 
 include::chapters/table_configuration.txt[]
+
+include::chapters/iterator_design.txt[]
 
 include::chapters/table_design.txt[]
 

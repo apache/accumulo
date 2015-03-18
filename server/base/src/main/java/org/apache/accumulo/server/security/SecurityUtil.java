@@ -22,13 +22,14 @@ import java.net.InetAddress;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class SecurityUtil {
-  private static final Logger log = Logger.getLogger(SecurityUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(SecurityUtil.class);
   public static boolean usingKerberos = false;
 
   /**

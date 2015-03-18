@@ -54,15 +54,16 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // This test verifies the default permissions so a clean instance must be used. A shared instance might
 // not be representative of a fresh installation.
 public class PermissionsIT extends AccumuloClusterIT {
-  private static final Logger log = Logger.getLogger(PermissionsIT.class);
+  private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
 
   @Override
   public int defaultTimeoutSeconds() {

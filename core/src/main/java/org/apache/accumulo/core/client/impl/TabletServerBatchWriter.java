@@ -65,11 +65,12 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -98,7 +99,7 @@ import com.google.common.net.HostAndPort;
 
 public class TabletServerBatchWriter {
 
-  private static final Logger log = Logger.getLogger(TabletServerBatchWriter.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
 
   // basic configuration
   private final ClientContext context;

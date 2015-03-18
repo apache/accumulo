@@ -38,7 +38,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -53,7 +54,7 @@ public class Merge {
     }
   };
 
-  private static final Logger log = Logger.getLogger(Merge.class);
+  private static final Logger log = LoggerFactory.getLogger(Merge.class);
 
   protected void message(String format, Object... args) {
     log.info(String.format(format, args));

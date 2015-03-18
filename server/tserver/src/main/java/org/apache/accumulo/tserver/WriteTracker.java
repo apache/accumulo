@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This little class keeps track of writes in progress and allows readers to wait for writes that started before the read. It assumes that the operation ids are
@@ -35,7 +36,7 @@ import org.apache.log4j.Logger;
  *
  */
 class WriteTracker {
-  private static final Logger log = Logger.getLogger(WriteTracker.class);
+  private static final Logger log = LoggerFactory.getLogger(WriteTracker.class);
 
   private static final AtomicLong operationCounter = new AtomicLong(1);
   private final Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<TabletType,TreeSet<Long>>(TabletType.class);
@@ -77,7 +78,7 @@ class WriteTracker {
       try {
         this.wait();
       } catch (InterruptedException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       }
     }
   }

@@ -22,11 +22,12 @@ import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MaxRowCommand extends ScanCommand {
 
-  private static final Logger log = Logger.getLogger(MaxRowCommand.class);
+  private static final Logger log = LoggerFactory.getLogger(MaxRowCommand.class);
 
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);

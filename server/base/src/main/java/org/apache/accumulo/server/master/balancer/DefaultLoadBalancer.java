@@ -33,11 +33,12 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultLoadBalancer extends TabletBalancer {
 
-  private static final Logger log = Logger.getLogger(DefaultLoadBalancer.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultLoadBalancer.class);
 
   Iterator<TServerInstance> assignments;
   // if tableToBalance is set, then only balance the given table

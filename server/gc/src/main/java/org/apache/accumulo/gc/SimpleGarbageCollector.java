@@ -102,8 +102,9 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Function;
@@ -130,7 +131,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    */
   static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
-  private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
+  private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
   private VolumeManager fs;
   private Opts opts = new Opts();
@@ -414,7 +415,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 putMarkerDeleteMutation(delete, finalWriter);
               }
             } catch (Exception e) {
-              log.error(e, e);
+              log.error(e.getMessage(), e);
             }
 
           }
@@ -429,7 +430,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
       } catch (InterruptedException e1) {
-        log.error(e1, e1);
+        log.error(e1.getMessage(), e1);
       }
 
       if (writer != null) {
@@ -512,7 +513,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     try {
       getZooLock(startStatsService());
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error(ex.getMessage(), ex);
       System.exit(1);
     }
 
@@ -521,7 +522,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       log.debug("Sleeping for " + delay + " milliseconds before beginning garbage collection cycles");
       Thread.sleep(delay);
     } catch (InterruptedException e) {
-      log.warn(e, e);
+      log.warn(e.getMessage(), e);
       return;
     }
 
@@ -550,7 +551,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         status.current = new GcCycleStats();
 
       } catch (Exception e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       }
 
       tStop = System.currentTimeMillis();
@@ -574,7 +575,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       } finally {
         waLogs.stop();
       }
@@ -586,7 +587,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
         connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
-        log.warn(e, e);
+        log.warn(e.getMessage(), e);
       }
 
       Trace.off();
@@ -595,7 +596,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
-        log.warn(e, e);
+        log.warn(e.getMessage(), e);
         return;
       }
     }
@@ -685,11 +686,12 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       @Override
       public void unableToMonitorLockNode(final Throwable e) {
+        // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
         Halt.halt(-1, new Runnable() {
 
           @Override
           public void run() {
-            log.fatal("No longer able to monitor lock node ", e);
+            log.error("FATAL: No longer able to monitor lock node ", e);
           }
         });
 
@@ -724,7 +726,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       return TServerUtils.startTServer(getConfiguration(), result, getThriftServerType(), processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(), getSaslParams(), 0).address;
     } catch (Exception ex) {
-      log.fatal(ex, ex);
+      // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
+      log.error("FATAL:", ex);
       throw new RuntimeException(ex);
     }
   }

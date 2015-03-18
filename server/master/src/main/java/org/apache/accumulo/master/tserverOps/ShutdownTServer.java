@@ -31,13 +31,14 @@ import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShutdownTServer extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private static final Logger log = Logger.getLogger(ShutdownTServer.class);
+  private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
   private TServerInstance server;
   private boolean force;
 

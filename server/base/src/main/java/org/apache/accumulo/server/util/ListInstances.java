@@ -33,13 +33,14 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
 public class ListInstances {
 
-  private static final Logger log = Logger.getLogger(ListInstances.class);
+  private static final Logger log = LoggerFactory.getLogger(ListInstances.class);
 
   private static final int NAME_WIDTH = 20;
   private static final int UUID_WIDTH = 37;
@@ -220,7 +221,7 @@ public class ListInstances {
 
   private static void handleException(Exception e, boolean printErrors) {
     if (printErrors) {
-      log.error(e);
+      log.error(e.getMessage(), e);
     }
 
     errors++;

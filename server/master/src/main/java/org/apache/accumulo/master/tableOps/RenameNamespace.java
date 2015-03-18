@@ -28,7 +28,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RenameNamespace extends MasterRepo {
 
@@ -80,7 +80,7 @@ public class RenameNamespace extends MasterRepo {
       Utils.unreserveNamespace(namespaceId, id, true);
     }
 
-    Logger.getLogger(RenameNamespace.class).debug("Renamed namespace " + namespaceId + " " + oldName + " " + newName);
+    LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace " + namespaceId + " " + oldName + " " + newName);
 
     return null;
   }

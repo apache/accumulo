@@ -24,11 +24,12 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.NullCipher;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCryptoModuleUtils {
 
-  private static final Logger log = Logger.getLogger(DefaultCryptoModuleUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultCryptoModuleUtils.class);
 
   public static SecureRandom getSecureRandom(String secureRNG, String secureRNGProvider) {
     SecureRandom secureRandom = null;

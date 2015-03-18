@@ -21,11 +21,12 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DiscardCloseOutputStream extends FilterOutputStream {
 
-  private static final Logger log = Logger.getLogger(DiscardCloseOutputStream.class);
+  private static final Logger log = LoggerFactory.getLogger(DiscardCloseOutputStream.class);
 
   public DiscardCloseOutputStream(OutputStream out) {
     super(out);

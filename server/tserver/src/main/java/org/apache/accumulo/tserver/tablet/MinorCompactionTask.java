@@ -24,11 +24,12 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MinorCompactionTask implements Runnable {
 
-  private static final Logger log = Logger.getLogger(MinorCompactionTask.class);
+  private static final Logger log = LoggerFactory.getLogger(MinorCompactionTask.class);
 
   private final Tablet tablet;
   private long queued;

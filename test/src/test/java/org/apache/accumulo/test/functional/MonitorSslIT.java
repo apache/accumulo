@@ -87,7 +87,7 @@ public class MonitorSslIT extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
-    configureForSsl(cfg, createSslDir(baseDir));
+    configureForSsl(cfg, getSslDir(baseDir));
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.MONITOR_SSL_KEYSTORE.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey()));
     siteConfig.put(Property.MONITOR_SSL_KEYSTOREPASS.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey()));

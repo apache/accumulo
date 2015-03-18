@@ -31,14 +31,15 @@ import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
 
   private ArrayList<Constraint> constrains;
-  private static final Logger log = Logger.getLogger(ConstraintChecker.class);
+  private static final Logger log = LoggerFactory.getLogger(ConstraintChecker.class);
 
   private ClassLoader loader;
   private TableConfiguration conf;

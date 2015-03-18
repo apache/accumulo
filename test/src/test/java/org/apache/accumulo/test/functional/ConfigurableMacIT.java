@@ -42,18 +42,20 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for testing. Tests using these typically do very disruptive things
  * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterIT} instead.
  */
 public class ConfigurableMacIT extends AccumuloIT {
-  public static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
+  public static final Logger log = LoggerFactory.getLogger(ConfigurableMacIT.class);
 
   protected MiniAccumuloClusterImpl cluster;
 
@@ -72,15 +74,18 @@ public class ConfigurableMacIT extends AccumuloIT {
     }
   }
 
-  protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
+  protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File sslDir) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       // already enabled; don't mess with it
       return;
     }
 
-    File sslDir = new File(folder, "ssl");
+    // create parent directories, and ensure sslDir is empty
     assertTrue(sslDir.mkdirs() || sslDir.isDirectory());
+    FileUtils.deleteQuietly(sslDir);
+    assertTrue(sslDir.mkdir());
+
     File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
     File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
     File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
@@ -128,7 +133,7 @@ public class ConfigurableMacIT extends AccumuloIT {
     Configuration coreSite = new Configuration(false);
     configure(cfg, coreSite);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, getClass(), createSslDir(baseDir));
+    configureForEnvironment(cfg, getClass(), getSslDir(baseDir));
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
       File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");

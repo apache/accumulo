@@ -38,7 +38,7 @@ public class SslIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    configureForSsl(cfg, createSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
+    configureForSsl(cfg, getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
   }
 
   @Test

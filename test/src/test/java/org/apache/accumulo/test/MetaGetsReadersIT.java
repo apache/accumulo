@@ -66,7 +66,7 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
             }
           }
         } catch (Exception ex) {
-          log.trace(ex, ex);
+          log.trace(ex.getMessage(), ex);
           stop.set(true);
         }
       }

@@ -89,11 +89,12 @@ import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
@@ -101,7 +102,7 @@ import com.google.common.collect.Iterables;
  *
  */
 public class ConditionalWriterIT extends AccumuloClusterIT {
-  private static final Logger log = Logger.getLogger(ConditionalWriterIT.class);
+  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -212,7 +213,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
 
-    String user= null;
+    String user = null;
     ClientConfiguration clientConf = cluster.getClientConfig();
     final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
 
@@ -973,7 +974,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
         }
 
       } catch (Exception e) {
-        log.error(e);
+        log.error(e.getMessage(), e);
         failed.set(true);
       }
     }

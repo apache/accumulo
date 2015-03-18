@@ -35,7 +35,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -46,7 +47,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   public static final long DEFAULT_CACHE_TIME = 200;
   public static final TimeUnit DEFAULT_CACHE_TIME_UNIT = TimeUnit.MILLISECONDS;
 
-  private static final Logger log = Logger.getLogger(MultiTableBatchWriterImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(MultiTableBatchWriterImpl.class);
   private AtomicBoolean closed;
   private AtomicLong cacheLastState;
 
