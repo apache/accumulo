@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Apache Accumulo User Manual Version 1.6
+Apache Accumulo User Manual Version 1.7
 =======================================
 :author: Apache Accumulo Project
 :email: dev@accumulo.apache.org
