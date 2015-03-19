@@ -18,7 +18,6 @@ package org.apache.accumulo.proxy;
 
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.junit.BeforeClass;
 
 /**
  *
@@ -26,11 +25,6 @@ import org.junit.BeforeClass;
 public class TCompactProxyIT extends SimpleProxyBase {
 
   private static final TCompactProtocol.Factory factory = new TCompactProtocol.Factory();
-
-  @BeforeClass
-  public static void setup() throws Exception {
-    setupMiniCluster(factory);
-  }
 
   @Override
   public TProtocolFactory getProtocol() {
