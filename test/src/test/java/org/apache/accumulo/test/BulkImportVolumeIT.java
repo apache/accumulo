@@ -27,6 +27,7 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
@@ -84,6 +85,8 @@ public class BulkImportVolumeIT extends AccumuloClusterIT {
     fs.create(bogus).close();
     log.info("bogus: {}", bogus);
     assertTrue(fs.exists(bogus));
+    FsShell fsShell = new FsShell(fs.getConf());
+    assertEquals("Failed to chmod " + rootPath, 0, fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}));
     log.info("Importing {} into {} with failures directory {}", bulk, tableName, err);
     to.importDirectory(tableName, bulk.toString(), err.toString(), false);
     assertEquals(1, fs.listStatus(err).length);

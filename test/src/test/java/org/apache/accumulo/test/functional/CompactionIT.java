@@ -114,6 +114,7 @@ public class CompactionIT extends AccumuloClusterIT {
     Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
     Path testrf = new Path(root, "testrf");
     FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
+
     FunctionalTestUtils.bulkImport(c, fs, tableName, testrf.toString());
     int beforeCount = countFiles(c);
 
