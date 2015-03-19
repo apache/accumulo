@@ -112,6 +112,19 @@ public class Mutation implements Writable {
    * Creates a new mutation. A defensive copy is made.
    *
    * @param row
+   *          row ID
+   * @param initialBufferSize
+   *          the initial size, in bytes, of the internal buffer for serializing
+   * @since 1.7.0
+   */
+  public Mutation(byte[] row, int initialBufferSize) {
+    this(row, 0, row.length, initialBufferSize);
+  }
+
+  /**
+   * Creates a new mutation. A defensive copy is made.
+   *
+   * @param row
    *          byte array containing row ID
    * @param start
    *          starting index of row ID in byte array
@@ -122,9 +135,28 @@ public class Mutation implements Writable {
    * @since 1.5.0
    */
   public Mutation(byte[] row, int start, int length) {
+    this(row, start, length, 64);
+  }
+
+  /**
+   * Creates a new mutation. A defensive copy is made.
+   *
+   * @param row
+   *          byte array containing row ID
+   * @param start
+   *          starting index of row ID in byte array
+   * @param length
+   *          length of row ID in byte array
+   * @param initialBufferSize
+   *          the initial size, in bytes, of the internal buffer for serializing
+   * @throws IndexOutOfBoundsException
+   *           if start or length is invalid
+   * @since 1.7.0
+   */
+  public Mutation(byte[] row, int start, int length, int initialBufferSize) {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
-    buffer = new UnsynchronizedBuffer.Writer();
+    buffer = new UnsynchronizedBuffer.Writer(initialBufferSize);
   }
 
   /**
@@ -138,6 +170,19 @@ public class Mutation implements Writable {
   }
 
   /**
+   * Creates a new mutation. A defensive copy is made.
+   *
+   * @param row
+   *          row ID
+   * @param initialBufferSize
+   *          the initial size, in bytes, of the internal buffer for serializing
+   * @since 1.7.0
+   */
+  public Mutation(Text row, int initialBufferSize) {
+    this(row.getBytes(), 0, row.getLength(), initialBufferSize);
+  }
+
+  /**
    * Creates a new mutation.
    *
    * @param row
@@ -145,6 +190,19 @@ public class Mutation implements Writable {
    */
   public Mutation(CharSequence row) {
     this(new Text(row.toString()));
+  }
+
+  /**
+   * Creates a new mutation.
+   *
+   * @param row
+   *          row ID
+   * @param initialBufferSize
+   *          the initial size, in bytes, of the internal buffer for serializing
+   * @since 1.7.0
+   */
+  public Mutation(CharSequence row, int initialBufferSize) {
+    this(new Text(row.toString()), initialBufferSize);
   }
 
   /**
