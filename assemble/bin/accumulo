@@ -113,7 +113,8 @@ esac
 
 XML_FILES="${ACCUMULO_CONF_DIR}"
 LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
-CLASSPATH="${XML_FILES}:${START_JAR}:${LOG4J_JAR}"
+SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-log4j12.jar"
+CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
 
 if [ -z "${JAVA_HOME}" -o ! -d "${JAVA_HOME}" ]; then
    echo "JAVA_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
