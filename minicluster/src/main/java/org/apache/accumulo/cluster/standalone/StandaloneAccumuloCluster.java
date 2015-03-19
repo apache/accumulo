@@ -52,16 +52,18 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private String accumuloHome, accumuloConfDir, hadoopConfDir;
   private Path tmp;
   private List<ClusterUser> users;
+  private String serverUser;
 
-  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users) {
-    this(new ZooKeeperInstance(clientConf), clientConf, tmp, users);
+  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
+    this(new ZooKeeperInstance(clientConf), clientConf, tmp, users, serverUser);
   }
 
-  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users) {
+  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
     this.instance = instance;
     this.clientConf = clientConf;
     this.tmp = tmp;
     this.users = users;
+    this.serverUser = serverUser;
   }
 
   public String getAccumuloHome() {
@@ -116,7 +118,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public StandaloneClusterControl getClusterControl() {
-    return new StandaloneClusterControl(null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
+    return new StandaloneClusterControl(serverUser, null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
         null == accumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : accumuloConfDir);
   }
 

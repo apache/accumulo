@@ -88,6 +88,7 @@ The following properties can be used to configure a standalone cluster:
 - `accumulo.it.cluster.standalone.hadoop.conf`, Required: `HADOOP_CONF_DIR`
 - `accumulo.it.cluster.standalone.home`, Optional: `ACCUMULO_HOME`
 - `accumulo.it.cluster.standalone.conf`, Optional: `ACCUMULO_CONF_DIR`
+- `accumulo.it.cluster.standalone.server.user`, Optional: The user Accumulo is running as (used to sudo when starting/stopping Accumulo). Default "accumulo"
 
 Additionally, when running with Kerberos enabled, it is required that Kerberos principals already exist
 for the tests to use. As such, a number of properties exist to allow users to be passed down for tests

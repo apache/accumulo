@@ -129,7 +129,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration conf = (StandaloneAccumuloClusterConfiguration) clusterConf;
         ClientConfiguration clientConf = conf.getClientConf();
-        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(conf.getInstance(), clientConf, conf.getTmpDirectory(), conf.getUsers());
+        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(conf.getInstance(), clientConf, conf.getTmpDirectory(), conf.getUsers(), conf.getAccumuloServerUser());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setAccumuloConfDir(conf.getAccumuloConfDir());

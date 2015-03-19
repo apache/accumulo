@@ -58,6 +58,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   public static final String ACCUMULO_STANDALONE_INSTANCE_NAME_DEFAULT = "accumulo";
   public static final String ACCUMULO_STANDALONE_TMP_DIR_KEY = ACCUMULO_STANDALONE_PREFIX + "tmpdir";
   public static final String ACCUMULO_STANDALONE_TMP_DIR_DEFAULT = "/tmp";
+  public static final String ACCUMULO_STANDALONE_SERVER_USER = ACCUMULO_STANDALONE_PREFIX + "server.user";
+  public static final String ACCUMULO_STANDALONE_SERVER_USER_DEFAULT = "accumulo";
 
   // A set of users we can use to connect to this instances
   public static final String ACCUMULO_STANDALONE_USER_KEY = ACCUMULO_STANDALONE_PREFIX + "users.";
@@ -71,6 +73,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   public static final String ACCUMULO_STANDALONE_HADOOP_CONF = ACCUMULO_STANDALONE_PREFIX + "hadoop.conf";
 
   private Map<String,String> conf;
+  private String serverUser;
   private File clientConfFile;
   private ClientConfiguration clientConf;
   private List<ClusterUser> clusterUsers;
@@ -96,6 +99,12 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     // Update zookeeper hosts if not already set
     if (!clientConf.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
       clientConf.withZkHosts(getZooKeepers());
+    }
+
+    // The user Accumulo is running as
+    serverUser = conf.get(ACCUMULO_STANDALONE_SERVER_USER);
+    if (null == serverUser) {
+      serverUser = ACCUMULO_STANDALONE_SERVER_USER_DEFAULT;
     }
 
     clusterUsers = new ArrayList<>();
@@ -229,5 +238,12 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public List<ClusterUser> getUsers() {
     return Collections.unmodifiableList(clusterUsers);
+  }
+
+  /**
+   * @return The user Accumulo is running as
+   */
+  public String getAccumuloServerUser() {
+    return serverUser;
   }
 }

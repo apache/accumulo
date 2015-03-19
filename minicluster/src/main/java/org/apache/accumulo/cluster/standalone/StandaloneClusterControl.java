@@ -45,20 +45,23 @@ import com.google.common.collect.Maps;
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
+  private static final String SUDO_CMD = "sudo";
   private static final String START_SERVER_SCRIPT = "start-server.sh", ACCUMULO_SCRIPT = "accumulo", TOOL_SCRIPT = "tool.sh";
   private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "slaves", TRACER_HOSTS_FILE = "tracers",
       MONITOR_HOSTS_FILE = "monitor";
 
+  protected String user;
   protected String accumuloHome, accumuloConfDir;
   protected RemoteShellOptions options;
 
   protected String startServerPath, accumuloPath, toolPath;
 
-  public StandaloneClusterControl() {
-    this(System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"));
+  public StandaloneClusterControl(String user) {
+    this(user, System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"));
   }
 
-  public StandaloneClusterControl(String accumuloHome, String accumuloConfDir) {
+  public StandaloneClusterControl(String user, String accumuloHome, String accumuloConfDir) {
+    this.user = user;
     this.options = new RemoteShellOptions();
     this.accumuloHome = accumuloHome;
     this.accumuloConfDir = accumuloConfDir;
@@ -132,7 +135,7 @@ public class StandaloneClusterControl implements ClusterControl {
   public void adminStopAll() throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[] {accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, accumuloPath, Admin.class.getName(), "stopAll"};
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
@@ -185,7 +188,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void start(ServerType server, String hostname) throws IOException {
-    String[] cmd = new String[] {startServerPath, hostname, getProcessString(server)};
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, startServerPath, hostname, getProcessString(server)};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
       throw new IOException("Start " + server + " on " + hostname + " failed for execute successfully");
@@ -252,9 +255,9 @@ public class StandaloneClusterControl implements ClusterControl {
 
     String[] stopCmd;
     if (isSignalNumber) {
-      stopCmd = new String[] {"kill", "-" + signal, pid};
+      stopCmd = new String[] {SUDO_CMD, "-u", user, "kill", "-" + signal, pid};
     } else {
-      stopCmd = new String[] {"kill", "-s", signal, pid};
+      stopCmd = new String[] {SUDO_CMD, "-u", user, "kill", "-s", signal, pid};
     }
 
     Entry<Integer,String> pair = exec(hostname, stopCmd);
