@@ -56,11 +56,6 @@ public class DeleteIT extends AccumuloClusterIT {
       PasswordToken passwdToken = (PasswordToken) token;
       deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), Charsets.UTF_8), tableName, null);
     }
-    try {
-      getCluster().getClusterControl().adminStopAll();
-    } finally {
-      getCluster().start();
-    }
   }
 
   public static void deleteTest(Connector c, AccumuloCluster cluster, String user, String password, String tableName, String keytab) throws Exception {
