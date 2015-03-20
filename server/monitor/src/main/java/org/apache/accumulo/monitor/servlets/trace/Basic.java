@@ -19,6 +19,8 @@ package org.apache.accumulo.monitor.servlets.trace;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+import java.util.AbstractMap;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +43,7 @@ import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.TraceFormatter;
+import org.apache.hadoop.security.UserGroupInformation;
 
 abstract class Basic extends BasicServlet {
 
@@ -71,37 +74,77 @@ abstract class Basic extends BasicServlet {
     return TraceFormatter.formatDate(new Date(millis));
   }
 
-  protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
+  protected Entry<Scanner,UserGroupInformation> getScanner(final StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
-    String principal = conf.get(Property.TRACE_USER);
-    AuthenticationToken at;
+    UserGroupInformation traceUgi = null;
+    final String principal;
+    final AuthenticationToken at;
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
-    if (loginMap.isEmpty()) {
-      if (saslEnabled) {
-        try {
-          at = new KerberosToken();
-        } catch (IOException e) {
-          throw new AccumuloException("Failed to create KerberosToken", e);
-        }
-        principal = SecurityUtil.getServerPrincipal(principal);
-      } else {
-        Property p = Property.TRACE_PASSWORD;
-        at = new PasswordToken(conf.get(p).getBytes(UTF_8));
+    // May be null
+    String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
+
+    if (saslEnabled && null != keytab) {
+      principal = SecurityUtil.getServerPrincipal(conf.get(Property.TRACE_USER));
+      try {
+        traceUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to login as trace user", e);
       }
     } else {
-      Properties props = new Properties();
-      int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
-      for (Entry<String,String> entry : loginMap.entrySet()) {
-        props.put(entry.getKey().substring(prefixLength), entry.getValue());
-      }
-
-      AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
-      token.init(props);
-      at = token;
+      principal = conf.get(Property.TRACE_USER);
     }
 
-    String table = conf.get(Property.TRACE_TABLE);
+    if (!saslEnabled) {
+      if (loginMap.isEmpty()) {
+        Property p = Property.TRACE_PASSWORD;
+        at = new PasswordToken(conf.get(p).getBytes(UTF_8));
+      } else {
+        Properties props = new Properties();
+        int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
+        for (Entry<String,String> entry : loginMap.entrySet()) {
+          props.put(entry.getKey().substring(prefixLength), entry.getValue());
+        }
+
+        AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
+        token.init(props);
+        at = token;
+      }
+    } else {
+      at = null;
+    }
+
+    final String table = conf.get(Property.TRACE_TABLE);
+    Scanner scanner;
+    if (null != traceUgi) {
+      try {
+        scanner = traceUgi.doAs(new PrivilegedExceptionAction<Scanner>() {
+
+          @Override
+          public Scanner run() throws Exception {
+            // Make the KerberosToken inside the doAs
+            AuthenticationToken token = at;
+            if (null == token) {
+              token = new KerberosToken();
+            }
+            return getScanner(table, principal, token, sb);
+          }
+
+        });
+      } catch (IOException | InterruptedException e) {
+        throw new RuntimeException("Failed to obtain scanner", e);
+      }
+    } else {
+      if (null == at) {
+        throw new AssertionError("AuthenticationToken should not be null");
+      }
+      scanner = getScanner(table, principal, at, sb);
+    }
+
+    return new AbstractMap.SimpleEntry<Scanner,UserGroupInformation>(scanner, traceUgi);
+  }
+
+  private Scanner getScanner(String table, String principal, AuthenticationToken at, StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {

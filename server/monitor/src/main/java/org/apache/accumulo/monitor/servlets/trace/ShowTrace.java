@@ -20,6 +20,7 @@ import static java.lang.Math.min;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
+import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -39,6 +40,7 @@ import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 
 public class ShowTrace extends Basic {
 
@@ -58,24 +60,38 @@ public class ShowTrace extends Basic {
     return "Trace ID " + id;
   }
 
+  private long addSpans(Scanner scanner, SpanTree tree, long start) {
+    for (Entry<Key,Value> entry : scanner) {
+      RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
+      tree.addNode(span);
+      start = min(start, span.start);
+    }
+    return start;
+  }
+
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb) throws Exception {
     String id = getTraceId(req);
     if (id == null) {
       return;
     }
-    Scanner scanner = getScanner(sb);
+    Entry<Scanner,UserGroupInformation> entry = getScanner(sb);
+    final Scanner scanner = entry.getKey();
     if (scanner == null) {
       return;
     }
     Range range = new Range(new Text(id));
     scanner.setRange(range);
-    SpanTree tree = new SpanTree();
-    long start = Long.MAX_VALUE;
-    for (Entry<Key,Value> entry : scanner) {
-      RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-      tree.addNode(span);
-      start = min(start, span.start);
+    final SpanTree tree = new SpanTree();
+    long start;
+    if (null != entry.getValue()) {
+      start = entry.getValue().doAs(new PrivilegedAction<Long>() {
+         public Long run() {
+           return addSpans(scanner, tree, Long.MAX_VALUE);
+         }
+      });
+    } else {
+      start = addSpans(scanner, tree, Long.MAX_VALUE);
     }
     sb.append("<style>\n");
     sb.append(" td.right { text-align: right }\n");
