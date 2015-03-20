@@ -45,6 +45,7 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -120,6 +121,9 @@ public class UserCompactionStrategyIT extends AccumuloClusterIT {
 
   @Test
   public void testPerTableClasspath() throws Exception {
+    // Can't assume that a test-resource will be on the server's classpath
+    Assume.assumeTrue(ClusterType.MINI == getClusterType());
+
     // test pertable classpath + user specified compaction strat
 
     final Connector c = getConnector();

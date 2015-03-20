@@ -35,17 +35,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -61,8 +57,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
@@ -100,121 +96,79 @@ import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
-import org.junit.AfterClass;
-import org.junit.Rule;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
 
+import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
 /**
  * Call every method on the proxy and try to verify that it works.
  */
-public abstract class SimpleProxyBase {
+public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
-  public static final File macTestFolder = new File(System.getProperty("user.dir") + "/target/" + SimpleProxyBase.class.getName());
+  private TServer proxyServer;
+  private int proxyPort;
+  private org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
 
-  private static MiniAccumuloCluster accumulo;
-  private static String secret = "superSecret";
-  private static TServer proxyServer;
-  private static int proxyPort;
-  private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
-  private static String principal = "root";
+  private Map<String,String> properties = new HashMap<>();
+  private ByteBuffer creds = null;
 
-  private static Map<String,String> properties = new HashMap<>();
-  private static ByteBuffer creds = null;
-
-  private static final AtomicInteger tableCounter = new AtomicInteger(0);
-
-  private static String makeTableName() {
-    return "test" + tableCounter.getAndIncrement();
+  private void waitForAccumulo(Connector c) throws Exception {
+    Iterators.cycle(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
   }
 
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(macTestFolder);
-
-  @Rule
-  public TestName testName = new TestName();
-
-  @Rule
-  public Timeout testsShouldTimeout() {
-    int waitLonger;
-    try {
-      waitLonger = Integer.parseInt(System.getProperty("timeout.factor"));
-    } catch (NumberFormatException e) {
-      waitLonger = 1;
-    }
-
-    return new Timeout(waitLonger * 60 * 1000);
-  }
-
-  public static void setupMiniCluster(TProtocolFactory protocol) throws Exception {
-    FileUtils.deleteQuietly(macTestFolder);
-    assertTrue(macTestFolder.mkdirs() || macTestFolder.isDirectory());
-    MiniAccumuloConfig config = new MiniAccumuloConfig(macTestFolder, secret).setNumTservers(1);
-    accumulo = new MiniAccumuloCluster(config);
-    accumulo.start();
-    // wait for accumulo to be up and functional
-    Map<String,String> map = new HashMap<>();
-    map.put(ClientProperty.INSTANCE_NAME.getKey(), accumulo.getInstanceName());
-    map.put(ClientProperty.INSTANCE_ZK_HOST.getKey(), accumulo.getZooKeepers());
-    MapConfiguration mapCfg = new MapConfiguration(map);
-    ClientConfiguration clientConfig = new ClientConfiguration(mapCfg);
-    ZooKeeperInstance zoo = new ZooKeeperInstance(clientConfig);
-    Connector c = zoo.getConnector("root", new PasswordToken(secret.getBytes()));
-    for (@SuppressWarnings("unused")
-    Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-      ;
+  @Before
+  public void setUpProxy() throws Exception {
+    Connector c = SharedMiniClusterIT.getConnector();
+    Instance inst = c.getInstance();
+    waitForAccumulo(c);
 
     Properties props = new Properties();
-    props.put("instance", accumulo.getConfig().getInstanceName());
-    props.put("zookeepers", accumulo.getZooKeepers());
+    props.put("instance", inst.getInstanceName());
+    props.put("zookeepers", inst.getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
     // Avoid issues with locally installed client configuration files with custom properties
     File emptyFile = Files.createTempFile(null, null).toFile();
     emptyFile.deleteOnExit();
     props.put("clientConfigurationFile", emptyFile.toString());
 
-    properties.put("password", secret);
+    properties.put("password", SharedMiniClusterIT.getRootPassword());
     properties.put("clientConfigurationFile", emptyFile.toString());
 
     proxyPort = PortUtils.getRandomFreePort();
-    proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
+    TProtocolFactory factory = getProtocol();
+    proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), factory, props).server;
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
-    client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
-    creds = client.login(principal, properties);
+    client = new TestProxyClient("localhost", proxyPort, factory).proxy();
+    creds = client.login("root", properties);
   }
 
-  @AfterClass
-  public static void tearDownMiniCluster() throws Exception {
+  @After
+  public void tearDownProxy() throws Exception {
     if (null != proxyServer) {
       proxyServer.stop();
     }
-    accumulo.stop();
-    FileUtils.deleteQuietly(macTestFolder);
   }
 
   public abstract TProtocolFactory getProtocol();
 
   @Test
   public void security() throws Exception {
-    client.createLocalUser(creds, "user", s2bb(secret));
+    client.createLocalUser(creds, "user", s2bb(SharedMiniClusterIT.getRootPassword()));
     ByteBuffer badLogin = client.login("user", properties);
     client.dropLocalUser(creds, "user");
-    final String table = makeTableName();
+    final String table = getUniqueNames(1)[0];
     client.createTable(creds, table, false, TimeType.MILLIS);
 
     final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
@@ -355,7 +309,7 @@ public abstract class SimpleProxyBase {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
-      client.authenticateUser(badLogin, "root", s2pp(secret));
+      client.authenticateUser(badLogin, "root", s2pp(SharedMiniClusterIT.getRootPassword()));
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -432,7 +386,7 @@ public abstract class SimpleProxyBase {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
-      final String TABLE_TEST = makeTableName();
+      final String TABLE_TEST = getUniqueNames(1)[0];
       client.cloneTable(badLogin, table, TABLE_TEST, false, null, null);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
@@ -461,9 +415,13 @@ public abstract class SimpleProxyBase {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
-      File importDir = tempFolder.newFolder("importDir");
-      File failuresDir = tempFolder.newFolder("failuresDir");
-      client.importDirectory(badLogin, table, importDir.getAbsolutePath(), failuresDir.getAbsolutePath(), true);
+      MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+      Path base = cluster.getTemporaryPath();
+      Path importDir = new Path(base, "importDir");
+      Path failuresDir = new Path(base, "failuresDir");
+      assertTrue(cluster.getFileSystem().mkdirs(importDir));
+      assertTrue(cluster.getFileSystem().mkdirs(failuresDir));
+      client.importDirectory(badLogin, table, importDir.toString(), failuresDir.toString(), true);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -513,7 +471,7 @@ public abstract class SimpleProxyBase {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      final String TABLE_TEST = makeTableName();
+      final String TABLE_TEST = getUniqueNames(1)[0];
       client.cloneTable(creds, doesNotExist, TABLE_TEST, false, null, null);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
@@ -574,9 +532,13 @@ public abstract class SimpleProxyBase {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      File importDir = tempFolder.newFolder("importDir");
-      File failuresDir = tempFolder.newFolder("failuresDir");
-      client.importDirectory(creds, doesNotExist, importDir.getAbsolutePath(), failuresDir.getAbsolutePath(), true);
+      MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+      Path base = cluster.getTemporaryPath();
+      Path importDir = new Path(base, "importDir");
+      Path failuresDir = new Path(base, "failuresDir");
+      assertTrue(cluster.getFileSystem().mkdirs(importDir));
+      assertTrue(cluster.getFileSystem().mkdirs(failuresDir));
+      client.importDirectory(creds, doesNotExist, importDir.toString(), failuresDir.toString(), true);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
@@ -664,7 +626,7 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testUnknownScanner() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    final String TABLE_TEST = getUniqueNames(1)[0];
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
 
@@ -702,7 +664,7 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testUnknownWriter() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    final String TABLE_TEST = getUniqueNames(1)[0];
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
 
@@ -735,7 +697,7 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testDelete() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    final String TABLE_TEST = getUniqueNames(1)[0];
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.updateAndFlush(creds, TABLE_TEST, mutation("row0", "cf", "cq", "value"));
@@ -771,8 +733,9 @@ public abstract class SimpleProxyBase {
     assertTrue(tservers > 0);
 
     // get something we know is in the site config
+    MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
     Map<String,String> cfg = client.getSiteConfiguration(creds);
-    assertTrue(cfg.get("instance.dfs.dir").startsWith(macTestFolder.getPath()));
+    assertTrue(cfg.get("instance.dfs.dir").startsWith(cluster.getConfig().getAccumuloDir().getAbsolutePath()));
 
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
@@ -922,10 +885,10 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testSecurityOperations() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    final String TABLE_TEST = getUniqueNames(1)[0];
 
     // check password
-    assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
+    assertTrue(client.authenticateUser(creds, "root", s2pp(SharedMiniClusterIT.getRootPassword())));
     assertFalse(client.authenticateUser(creds, "root", s2pp("")));
 
     // create a user
@@ -1005,7 +968,7 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testBatchWriter() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    final String TABLE_TEST = getUniqueNames(1)[0];
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
@@ -1053,14 +1016,16 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testTableOperations() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    String names[] = getUniqueNames(2);
+    final String TABLE_TEST = names[0];
+    final String TABLE_TEST2 = names[1];
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
     assertEquals(2, client.listConstraints(creds, TABLE_TEST).size());
 
-    UtilWaitThread.sleep(2000);
+    UtilWaitThread.sleep(5 * 1000);
 
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
 
@@ -1114,7 +1079,6 @@ public abstract class SimpleProxyBase {
     }
     assertScan(expected, TABLE_TEST);
     // clone
-    final String TABLE_TEST2 = makeTableName();
     client.cloneTable(creds, TABLE_TEST, TABLE_TEST2, true, null, null);
     assertScan(expected, TABLE_TEST2);
     client.deleteTable(creds, TABLE_TEST2);
@@ -1136,8 +1100,8 @@ public abstract class SimpleProxyBase {
     client.createTable(creds, "foo", true, TimeType.MILLIS);
     List<DiskUsage> diskUsage = (client.getDiskUsage(creds, tablesToScan));
     assertEquals(2, diskUsage.size());
-    assertEquals(1, diskUsage.get(0).getTables().size());
-    assertEquals(2, diskUsage.get(1).getTables().size());
+    assertEquals(2, diskUsage.get(0).getTables().size());
+    assertEquals(1, diskUsage.get(1).getTables().size());
     client.compactTable(creds, TABLE_TEST2, null, null, null, true, true, null);
     diskUsage = (client.getDiskUsage(creds, tablesToScan));
     assertEquals(3, diskUsage.size());
@@ -1148,30 +1112,34 @@ public abstract class SimpleProxyBase {
     client.deleteTable(creds, TABLE_TEST2);
 
     // export/import
-    File dir = tempFolder.newFolder("test");
-    File destDir = tempFolder.newFolder("test_dest");
+    MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+    FileSystem fs = cluster.getFileSystem();
+    Path base = cluster.getTemporaryPath();
+    Path dir = new Path(base, "test");
+    assertTrue(fs.mkdirs(dir));
+    Path destDir = new Path(base, "test_dest");
+    assertTrue(fs.mkdirs(destDir));
     client.offlineTable(creds, TABLE_TEST, false);
-    client.exportTable(creds, TABLE_TEST, dir.getAbsolutePath());
+    client.exportTable(creds, TABLE_TEST, dir.toString());
     // copy files to a new location
-    FileSystem fs = FileSystem.get(new Configuration());
-    FSDataInputStream is = fs.open(new Path(dir + "/distcp.txt"));
+    FSDataInputStream is = fs.open(new Path(dir, "distcp.txt"));
     try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
       while (true) {
         String line = r.readLine();
         if (line == null)
           break;
         Path srcPath = new Path(line);
-        FileUtils.copyFile(new File(srcPath.toUri().getPath()), new File(destDir, srcPath.getName()));
+        FileUtil.copy(fs, srcPath, fs, destDir, false, fs.getConf());
       }
     }
     client.deleteTable(creds, TABLE_TEST);
-    client.importTable(creds, "testify", destDir.getAbsolutePath());
+    client.importTable(creds, "testify", destDir.toString());
     assertScan(expected, "testify");
     client.deleteTable(creds, "testify");
 
     try {
       // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the files
-      client.importTable(creds, "testify2", destDir.getAbsolutePath());
+      client.importTable(creds, "testify2", destDir.toString());
       fail();
     } catch (Exception e) {}
 
@@ -1255,11 +1223,12 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testConditionalWriter() throws Exception {
-    final String TABLE_TEST = makeTableName();
+    final String TABLE_TEST = getUniqueNames(1)[0];
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
 
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+    UtilWaitThread.sleep(5*1000);
 
     String cwid = client.createConditionalWriter(creds, TABLE_TEST, new ConditionalWriterOptions());
 
@@ -1592,7 +1561,7 @@ public abstract class SimpleProxyBase {
 
   @Test
   public void testCompactionStrategy() throws Exception {
-    final String tableName = makeTableName();
+    final String tableName = getUniqueNames(1)[0];
 
     client.createTable(creds, tableName, true, TimeType.MILLIS);
 

@@ -16,16 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
@@ -33,12 +26,13 @@ import org.apache.accumulo.test.TestIngest.Opts;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-// TODO Change test to support bulk ingest on any filesystem, not just the local FS.
 public class BulkIT extends AccumuloClusterIT {
 
   private static final int N = 100000;
@@ -67,12 +61,11 @@ public class BulkIT extends AccumuloClusterIT {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getCluster().getFileSystem(), getCluster().getTemporaryPath(), getAdminPrincipal(), getUniqueNames(1)[0], this.getClass().getName(),
-        testName.getMethodName());
+    runTest(getConnector(), getCluster().getFileSystem(), getCluster().getTemporaryPath(), getAdminPrincipal(), getUniqueNames(1)[0],
+        this.getClass().getName(), testName.getMethodName());
   }
 
-  static void runTest(Connector c, FileSystem fs, Path basePath, String principal, String tableName, String filePrefix, String dirSuffix)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException, MutationsRejectedException {
+  static void runTest(Connector c, FileSystem fs, Path basePath, String principal, String tableName, String filePrefix, String dirSuffix) throws Exception {
     c.tableOperations().create(tableName);
     CachedConfiguration.setInstance(fs.getConf());
 
@@ -104,6 +97,11 @@ public class BulkIT extends AccumuloClusterIT {
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, opts, BWOPTS);
+
+    // Make sure the server can modify the files
+    FsShell fsShell = new FsShell(fs.getConf());
+    Assert.assertEquals("Failed to chmod " + base.toString(), 0, fsShell.run(new String[] {"-chmod", "-R", "777", base.toString()}));
+
     c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(), false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);

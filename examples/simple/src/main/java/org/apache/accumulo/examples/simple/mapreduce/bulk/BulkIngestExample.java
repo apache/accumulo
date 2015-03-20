@@ -32,6 +32,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -144,6 +145,9 @@ public class BulkIngestExample extends Configured implements Tool {
       Path failures = new Path(opts.workDir, "failures");
       fs.delete(failures, true);
       fs.mkdirs(new Path(opts.workDir, "failures"));
+      // With HDFS permissions on, we need to make sure the Accumulo user can read/move the rfiles
+      FsShell fsShell = new FsShell(conf);
+      fsShell.run(new String[] {"-chmod", "-R", "777", opts.workDir});
       connector.tableOperations().importDirectory(opts.getTableName(), opts.workDir + "/files", opts.workDir + "/failures", false);
 
     } catch (Exception e) {

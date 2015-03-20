@@ -51,8 +51,11 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScanIteratorIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(ScanIteratorIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -85,6 +88,10 @@ public class ScanIteratorIT extends AccumuloClusterIT {
     } else {
       userToken = new PasswordToken(clusterUser.getPassword());
       saslEnabled = false;
+    }
+    if (connector.securityOperations().listLocalUsers().contains(user)) {
+      log.info("Dropping {}", user);
+      connector.securityOperations().dropLocalUser(user);
     }
     connector.securityOperations().createLocalUser(user, userToken);
     connector.securityOperations().grantTablePermission(user, tableName, TablePermission.READ);

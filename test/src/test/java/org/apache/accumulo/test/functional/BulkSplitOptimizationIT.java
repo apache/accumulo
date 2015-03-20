@@ -95,6 +95,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
     Path testDir = new Path(getUsableDir(), "testmf");
     FunctionalTestUtils.createRFiles(c, fs, testDir.toString(), ROWS, SPLITS, 8);
     FileStatus[] stats = fs.listStatus(testDir);
+
     System.out.println("Number of generated files: " + stats.length);
     FunctionalTestUtils.bulkImport(c, fs, tableName, testDir.toString());
     FunctionalTestUtils.checkSplits(c, tableName, 0, 0);

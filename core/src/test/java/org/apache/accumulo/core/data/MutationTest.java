@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -518,6 +519,47 @@ public class MutationTest {
     verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
     verifyColumnUpdate(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
     verifyColumnUpdate(m2.getUpdates().get(3), "cf2", "big", "", 0l, false, false, bigVal.toString());
+  }
+
+  // populate for testInitialBufferSizesEquals method
+  private static void populate(Mutation... muts) {
+    for (Mutation m : muts) {
+      m.put("cf1", "cq1", "v1");
+      m.put("cf1", "cq1", new ColumnVisibility("A&B"), "v2");
+      m.put("cf1", "cq1", 3, "v3");
+      m.put("cf1", "cq1", new ColumnVisibility("A&B&C"), 4, "v4");
+      m.putDelete("cf2", "cf3");
+      m.putDelete("cf2", "cf4", 3);
+      m.putDelete("cf2", "cf4", new ColumnVisibility("A&B&C"), 3);
+    }
+  }
+
+  @Test
+  public void testInitialBufferSizesEquals() {
+    // m1 uses CharSequence constructor
+    Mutation m1 = new Mutation("r1");
+    // m2 uses a different buffer size
+    Mutation m2 = new Mutation("r1", 4242);
+    // m3 uses Text constructor
+    Mutation m3 = new Mutation(new Text("r1"));
+    // m4 uses a different buffer size
+    Mutation m4 = new Mutation(new Text("r1"), 4242);
+    // m5 uses bytes constructor with offset/length
+    byte[] r1Bytes = "r1".getBytes(UTF_8);
+    Mutation m5 = new Mutation(r1Bytes);
+    // m6 uses a different buffer size
+    Mutation m6 = new Mutation(r1Bytes, 4242);
+    // m7 uses bytes constructor with offset/length
+    Mutation m7 = new Mutation(r1Bytes, 0, r1Bytes.length);
+    // m8 uses a different buffer size
+    Mutation m8 = new Mutation(r1Bytes, 0, r1Bytes.length, 4242);
+
+    Mutation[] muts = new Mutation[] {m1, m2, m3, m4, m5, m6, m7, m8};
+    populate(muts);
+
+    for (Mutation m : muts) {
+      assertEquals(m1, m);
+    }
   }
 
   @Test

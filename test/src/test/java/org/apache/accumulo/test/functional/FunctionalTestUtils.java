@@ -46,8 +46,10 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 
 public class FunctionalTestUtils {
 
@@ -100,6 +102,11 @@ public class FunctionalTestUtils {
     Path failPath = new Path(failDir);
     fs.delete(failPath, true);
     fs.mkdirs(failPath);
+
+    // Ensure server can read/modify files
+    FsShell fsShell = new FsShell(fs.getConf());
+    Assert.assertEquals("Failed to chmod " + dir, 0, fsShell.run(new String[] {"-chmod", "-R", "777", dir}));
+    Assert.assertEquals("Failed to chmod " + failDir, 0, fsShell.run(new String[] {"-chmod", "-R", "777", failDir}));
 
     c.tableOperations().importDirectory(table, dir, failDir, false);
 
