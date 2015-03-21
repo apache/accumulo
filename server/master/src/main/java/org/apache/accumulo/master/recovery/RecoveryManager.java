@@ -71,7 +71,7 @@ public class RecoveryManager {
       List<String> workIDs = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
-      log.warn(e.getMessage(), e);
+      log.warn("{}", e.getMessage(), e);
     }
   }
 

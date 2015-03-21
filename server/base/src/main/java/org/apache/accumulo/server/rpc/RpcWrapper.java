@@ -47,11 +47,11 @@ public class RpcWrapper {
           return super.invoke(obj, method, args);
         } catch (RuntimeException e) {
           String msg = e.getMessage();
-          log.error(msg, e);
+          log.error("{}", msg, e);
           throw new TException(msg);
         } catch (Error e) {
           String msg = e.getMessage();
-          log.error(msg, e);
+          log.error("{}", msg, e);
           throw new TException(msg);
         }
       }

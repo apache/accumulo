@@ -62,7 +62,7 @@ public class MetadataBulkLoadFilter extends Filter {
           }
         } catch (Exception e) {
           status = Status.ACTIVE;
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
 
         bulkTxStatusCache.put(txid, status);

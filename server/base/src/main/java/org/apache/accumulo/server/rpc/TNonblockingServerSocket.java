@@ -140,7 +140,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
       try {
         serverSocket_.close();
       } catch (IOException iox) {
-        log.warn("WARNING: Could not close server socket: " + iox.getMessage());
+        log.warn("WARNING: Could not close server socket: {}", iox.getMessage());
       }
       serverSocket_ = null;
     }

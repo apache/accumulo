@@ -221,7 +221,7 @@ public class ListInstances {
 
   private static void handleException(Exception e, boolean printErrors) {
     if (printErrors) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     }
 
     errors++;

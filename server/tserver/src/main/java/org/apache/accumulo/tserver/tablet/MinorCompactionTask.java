@@ -72,7 +72,7 @@ class MinorCompactionTask implements Runnable {
           tablet.getTabletServer().minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
           break;
         } catch (IOException e) {
-          log.warn("Failed to write to write ahead log " + e.getMessage(), e);
+          log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
         }
       }
       span.stop();

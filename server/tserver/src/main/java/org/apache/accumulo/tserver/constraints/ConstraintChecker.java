@@ -102,7 +102,7 @@ public class ConstraintChecker {
 
       return currentLoader != loader;
     } catch (Exception e) {
-      log.debug("Failed to check " + e.getMessage());
+      log.debug("Failed to check {}", e.getMessage());
       return true;
     }
   }
@@ -138,7 +138,7 @@ public class ConstraintChecker {
           }
         }
       } catch (Throwable throwable) {
-        log.warn("CONSTRAINT FAILED : " + throwable.getMessage(), throwable);
+        log.warn("CONSTRAINT FAILED : {}", throwable.getMessage(), throwable);
 
         // constraint failed in some way, do not allow mutation to pass
         short vcode;

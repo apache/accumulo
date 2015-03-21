@@ -683,9 +683,9 @@ public enum Property {
         if (annotationType.isInstance(a))
           return true;
     } catch (SecurityException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     } catch (NoSuchFieldException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     }
     return false;
   }

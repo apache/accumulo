@@ -63,7 +63,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       TProtocol prot = new TBinaryProtocol(transport);
       return new Client(prot);
     } catch (Exception ex) {
-      log.error(ex.getMessage(), ex);
+      log.error("{}", ex.getMessage(), ex);
       return null;
     }
   }

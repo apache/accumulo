@@ -207,7 +207,7 @@ class CleanUp extends MasterRepo {
     try {
       AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     }
 
     Utils.unreserveTable(tableId, tid, true);
