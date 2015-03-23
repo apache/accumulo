@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -264,6 +265,11 @@ class TabletGroupWatcher extends Daemon {
           } else {
             switch (state) {
               case UNASSIGNED:
+                TServerInstance dest = this.master.migrations.get(tls.extent);
+                TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId().toString());
+                if (dest != null && tableState == TableState.OFFLINE) {
+                  this.master.migrations.remove(tls.extent);
+                }
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
                 assignedToDeadServers.add(tls);
