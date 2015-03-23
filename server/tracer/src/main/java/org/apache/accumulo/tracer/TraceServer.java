@@ -18,6 +18,7 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -58,6 +59,7 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.htrace.Span;
 import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
@@ -296,8 +298,35 @@ public class TraceServer implements Watcher {
     zoo.exists(path, this);
   }
 
+  private static void loginTracer(AccumuloConfiguration acuConf) {
+    Map<String,String> loginMap = acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
+    if (keyTab == null || keyTab.length() == 0) {
+      keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
+    }
+    if (keyTab == null || keyTab.length() == 0)
+      return;
+
+    String principalConfig = acuConf.get(Property.TRACE_USER);
+    if (principalConfig == null || principalConfig.length() == 0)
+      return;
+
+    log.info("Attempting to login as {} with {}", principalConfig, keyTab);
+    if (SecurityUtil.login(principalConfig, keyTab)) {
+      try {
+        // This spawns a thread to periodically renew the logged in (trace) user
+        UserGroupInformation.getLoginUser();
+        return;
+      } catch (IOException io) {
+        log.error("Error starting up renewal thread. This shouldn't be happening.", io);
+      }
+    }
+
+    throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
+  }
+
   public static void main(String[] args) throws Exception {
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    loginTracer(SiteConfiguration.getInstance());
     ServerOpts opts = new ServerOpts();
     final String app = "tracer";
     opts.parseArgs(app, args);
