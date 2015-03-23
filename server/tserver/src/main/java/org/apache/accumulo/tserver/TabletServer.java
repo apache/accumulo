@@ -357,7 +357,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       long diff = now - lastMemoryCheckTime;
-      if (diff > keepAliveTimeout) {
+      if (diff > keepAliveTimeout + 1000) {
         log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
             TIME_BETWEEN_GC_CHECKS / 1000., diff / 1000.));
       }
