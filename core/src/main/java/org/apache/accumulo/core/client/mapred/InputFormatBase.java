@@ -24,7 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -315,7 +315,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected void setupIterators(JobConf job, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapred.RangeInputSplit split) {
+    protected void setupIterators(JobConf job, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split) {
       List<IteratorSetting> iterators = null;
 
       if (null == split) {
@@ -338,7 +338,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
+    protected void setupIterators(List<IteratorSetting> iterators, ScannerBase scanner) {
       for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
       }
@@ -353,7 +353,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the scanner to configure
      */
     @Deprecated
-    protected void setupIterators(JobConf job, Scanner scanner) {
+    protected void setupIterators(JobConf job, ScannerBase scanner) {
       setupIterators(getIterators(job), scanner);
     }
   }

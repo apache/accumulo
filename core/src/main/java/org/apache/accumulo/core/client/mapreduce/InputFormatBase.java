@@ -24,7 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -323,7 +323,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @since 1.6.0
      */
     @Override
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split) {
       setupIterators(context, scanner, split);
     }
 
@@ -336,14 +336,14 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the scanner to configure
      */
     @Deprecated
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner) {
       setupIterators(context, scanner, null);
     }
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split) {
       List<IteratorSetting> iterators = null;
       if (null == split) {
         iterators = getIterators(context);

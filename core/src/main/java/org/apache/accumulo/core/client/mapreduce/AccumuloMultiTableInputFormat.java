@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
@@ -86,7 +86,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
       }
 
       @Override
-      protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {
+      protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
         List<IteratorSetting> iterators = split.getIterators();
         if (null == iterators) {
           iterators = getInputTableConfig(context, tableName).getIterators();

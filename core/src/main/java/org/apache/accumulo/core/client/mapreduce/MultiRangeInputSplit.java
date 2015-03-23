@@ -25,6 +25,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,11 +52,11 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Level;
 
 /**
- * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
+ * The Class MultiRangeInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs.
  */
-public class RangeInputSplit extends InputSplit implements Writable, AccumuloInputSplit {
-  private Range range;
-  private String[] locations;
+public class MultiRangeInputSplit extends InputSplit implements Writable, AccumuloInputSplit {
+  private Collection<Range> ranges;
+  private String location;
   private String tableId, tableName, instanceName, zooKeepers, principal;
   private TokenSource tokenSource;
   private String tokenFile;
@@ -65,30 +66,31 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
   private Level level;
+  private int scanThreads;
 
-  public RangeInputSplit() {
-    range = new Range();
-    locations = new String[0];
+  public MultiRangeInputSplit() {
+    ranges = Collections.emptyList();
+    location = "";
     tableName = "";
     tableId = "";
   }
 
-  public RangeInputSplit(RangeInputSplit split) throws IOException {
-    this.setRange(split.getRange());
+  public MultiRangeInputSplit(MultiRangeInputSplit split) throws IOException {
+    this.setRanges(split.getRanges());
     this.setLocations(split.getLocations());
     this.setTableName(split.getTableName());
     this.setTableId(split.getTableId());
   }
 
-  protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
-    this.range = range;
-    setLocations(locations);
+  protected MultiRangeInputSplit(String table, String tableId, Collection<Range> ranges, String location) {
+    this.ranges = ranges;
+    setLocation(location);
     this.tableName = table;
     this.tableId = tableId;
   }
 
-  public Range getRange() {
-    return range;
+  public Collection<Range> getRanges() {
+    return ranges;
   }
 
   private static byte[] extractBytes(ByteSequence seq, int numBytes) {
@@ -114,27 +116,28 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
   public float getProgress(Key currentKey) {
     if (currentKey == null)
       return 0f;
-    if (range.getStartKey() != null && range.getEndKey() != null) {
-      if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
-        // just look at the row progress
-        return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
-      } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
-        // just look at the column family progress
-        return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-      } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
-        // just look at the column qualifier progress
-        return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+    for (Range range : ranges) {
+      if (range.contains(currentKey)) {
+        // find the current range and report as if that is the single range
+        if (range.getStartKey() != null && range.getEndKey() != null) {
+          if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
+            // just look at the row progress
+            return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
+          } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
+            // just look at the column family progress
+            return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+          } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+            // just look at the column qualifier progress
+            return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+          }
+        }
       }
     }
     // if we can't figure it out, then claim no progress
     return 0f;
   }
 
-  /**
-   * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
-   */
-  @Override
-  public long getLength() throws IOException {
+  private long getRangeLength(Range range) {
     Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE}) : range.getStartKey().getRow();
     Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE}) : range.getEndKey().getRow();
     int maxCommon = Math.min(7, Math.min(startRow.getLength(), stopRow.getLength()));
@@ -153,35 +156,40 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
     return diff + 1;
   }
 
+  /**
+   * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
+   */
+  @Override
+  public long getLength() throws IOException {
+    long sum = 0;
+    for (Range range : ranges)
+      sum += getRangeLength(range);
+    return sum;
+  }
+
   @Override
   public String[] getLocations() throws IOException {
-    return Arrays.copyOf(locations, locations.length);
+    return new String[]{location};
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    range.readFields(in);
+    int numRanges = in.readInt();
+
+    ranges = new ArrayList<Range>(numRanges);
+    for (int i = 0; i < numRanges; ++i){
+      Range r = new Range();
+      r.readFields(in);
+      ranges.add(r);
+    }
+
     tableName = in.readUTF();
     tableId = in.readUTF();
-    int numLocs = in.readInt();
-    locations = new String[numLocs];
-    for (int i = 0; i < numLocs; ++i)
-      locations[i] = in.readUTF();
+    location = in.readUTF();
+    scanThreads = in.readInt();
 
     if (in.readBoolean()) {
-      isolatedScan = in.readBoolean();
-    }
-
-    if (in.readBoolean()) {
-      offline = in.readBoolean();
-    }
-
-    if (in.readBoolean()) {
-      localIterators = in.readBoolean();
-    }
-
-    if (in.readBoolean()) {
-      mockInstance = in.readBoolean();
+       mockInstance = in.readBoolean();
     }
 
     if (in.readBoolean()) {
@@ -248,31 +256,17 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
 
   @Override
   public void write(DataOutput out) throws IOException {
-    range.write(out);
+    out.writeInt(ranges.size());
+    for (Range r: ranges)
+      r.write(out);
     out.writeUTF(tableName);
     out.writeUTF(tableId);
-    out.writeInt(locations.length);
-    for (int i = 0; i < locations.length; ++i)
-      out.writeUTF(locations[i]);
-
-    out.writeBoolean(null != isolatedScan);
-    if (null != isolatedScan) {
-      out.writeBoolean(isolatedScan);
-    }
-
-    out.writeBoolean(null != offline);
-    if (null != offline) {
-      out.writeBoolean(offline);
-    }
-
-    out.writeBoolean(null != localIterators);
-    if (null != localIterators) {
-      out.writeBoolean(localIterators);
-    }
+    out.writeUTF(location);
+    out.writeInt(scanThreads);
 
     out.writeBoolean(null != mockInstance);
     if (null != mockInstance) {
-      out.writeBoolean(mockInstance);
+       out.writeBoolean(mockInstance);
     }
 
     out.writeBoolean(null != fetchedColumns);
@@ -335,8 +329,8 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(256);
-    sb.append("Range: ").append(range);
-    sb.append(" Locations: ").append(Arrays.asList(locations));
+    sb.append("Location: ").append(location);
+    sb.append(" Ranges: ").append(Arrays.asList(ranges));
     sb.append(" Table: ").append(tableName);
     sb.append(" TableID: ").append(tableId);
     sb.append(" InstanceName: ").append(instanceName);
@@ -346,10 +340,6 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
     sb.append(" authenticationToken: ").append(token);
     sb.append(" authenticationTokenFile: ").append(tokenFile);
     sb.append(" Authorizations: ").append(auths);
-    sb.append(" offlineScan: ").append(offline);
-    sb.append(" mockInstance: ").append(mockInstance);
-    sb.append(" isolatedScan: ").append(isolatedScan);
-    sb.append(" localIterators: ").append(localIterators);
     sb.append(" fetchColumns: ").append(fetchedColumns);
     sb.append(" iterators: ").append(iterators);
     sb.append(" logLevel: ").append(level);
@@ -442,32 +432,33 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
     this.tokenFile = tokenFile;
   }
 
-  public Boolean isOffline() {
-    return offline;
+  public int getScanThreads() {
+     return scanThreads;
   }
 
-  public void setOffline(Boolean offline) {
-    this.offline = offline;
+  public void setScanThreads(int count) {
+     scanThreads = count;
+  }
+
+  public void setLocation(String location) {
+    this.location = location;
   }
 
   public void setLocations(String[] locations) {
-    this.locations = Arrays.copyOf(locations, locations.length);
+    if (locations.length == 0)
+      this.location = "";
+    else if (locations.length == 1)
+      this.location = locations[0];
+    else
+      throw new IllegalArgumentException("At most one location is allowed for MultiRangeInputSplit");
   }
 
   public Boolean isMockInstance() {
-    return mockInstance;
+     return mockInstance;
   }
 
   public void setMockInstance(Boolean mockInstance) {
-    this.mockInstance = mockInstance;
-  }
-
-  public Boolean isIsolatedScan() {
-    return isolatedScan;
-  }
-
-  public void setIsolatedScan(Boolean isolatedScan) {
-    this.isolatedScan = isolatedScan;
+     this.mockInstance = mockInstance;
   }
 
   public Authorizations getAuths() {
@@ -478,16 +469,8 @@ public class RangeInputSplit extends InputSplit implements Writable, AccumuloInp
     this.auths = auths;
   }
 
-  public void setRange(Range range) {
-    this.range = range;
-  }
-
-  public Boolean usesLocalIterators() {
-    return localIterators;
-  }
-
-  public void setUsesLocalIterators(Boolean localIterators) {
-    this.localIterators = localIterators;
+  public void setRanges(Collection<Range> ranges) {
+    this.ranges = ranges;
   }
 
   public Set<Pair<Text,Text>> getFetchedColumns() {

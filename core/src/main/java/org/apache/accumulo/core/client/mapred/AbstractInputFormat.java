@@ -36,6 +36,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -372,7 +374,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   protected abstract static class AbstractRecordReader<K,V> implements RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
-    protected RangeInputSplit split;
+    protected org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split;
 
     /**
      * Configures the iterators on a scanner for the given table name.
@@ -385,15 +387,14 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.6.0
      */
-    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split);
+    protected abstract void setupIterators(JobConf job, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
-      Scanner scanner;
-      split = (RangeInputSplit) inSplit;
-      log.debug("Initializing input split: " + split.getRange());
+      split = (org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit) inSplit;
+      log.debug("Initializing input split: " + split.toString());
 
       Instance instance = split.getInstance();
       if (null == instance) {
@@ -421,21 +422,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, split.getTableName());
 
-      Boolean isOffline = split.isOffline();
-      if (null == isOffline) {
-        isOffline = tableConfig.isOfflineScan();
-      }
-
-      Boolean isIsolated = split.isIsolatedScan();
-      if (null == isIsolated) {
-        isIsolated = tableConfig.shouldUseIsolatedScanners();
-      }
-
-      Boolean usesLocalIterators = split.usesLocalIterators();
-      if (null == usesLocalIterators) {
-        usesLocalIterators = tableConfig.shouldUseLocalIterators();
-      }
-
       List<IteratorSetting> iterators = split.getIterators();
       if (null == iterators) {
         iterators = tableConfig.getIterators();
@@ -446,48 +432,99 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         columns = tableConfig.getFetchedColumns();
       }
 
-      try {
-        log.debug("Creating connector with user: " + principal);
-        log.debug("Creating scanner for table: " + table);
-        log.debug("Authorizations are: " + authorizations);
-        if (isOffline) {
-          scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
-        } else if (instance instanceof MockInstance) {
-          scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
-        } else {
-          ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
-          scanner = new ScannerImpl(context, split.getTableId(), authorizations);
-        }
-        if (isIsolated) {
-          log.info("Creating isolated scanner");
-          scanner = new IsolatedScanner(scanner);
-        }
-        if (usesLocalIterators) {
-          log.info("Using local iterators");
-          scanner = new ClientSideIteratorScanner(scanner);
-        }
-        setupIterators(job, scanner, split.getTableName(), split);
-      } catch (Exception e) {
-        throw new IOException(e);
-      }
+      log.debug("Creating connector with user: " + principal);
+      log.debug("Creating scanner for table: " + table);
+      log.debug("Authorizations are: " + authorizations);
 
-      // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : columns) {
-        if (c.getSecond() != null) {
-          log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
-          scanner.fetchColumn(c.getFirst(), c.getSecond());
-        } else {
-          log.debug("Fetching column family " + c.getFirst());
-          scanner.fetchColumnFamily(c.getFirst());
-        }
-      }
+      if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
+        org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
 
-      scanner.setRange(split.getRange());
+        Boolean isOffline = rangeSplit.isOffline();
+        if (null == isOffline) {
+          isOffline = tableConfig.isOfflineScan();
+        }
+
+        Boolean isIsolated = rangeSplit.isIsolatedScan();
+        if (null == isIsolated) {
+          isIsolated = tableConfig.shouldUseIsolatedScanners();
+        }
+
+        Boolean usesLocalIterators = rangeSplit.usesLocalIterators();
+        if (null == usesLocalIterators) {
+          usesLocalIterators = tableConfig.shouldUseLocalIterators();
+        }
+
+        Scanner scanner;
+
+        try {
+          if (isOffline) {
+            scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+          } else if (instance instanceof MockInstance) {
+            scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
+          } else {
+            scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+          }
+          if (isIsolated) {
+            log.info("Creating isolated scanner");
+            scanner = new IsolatedScanner(scanner);
+          }
+          if (usesLocalIterators) {
+            log.info("Using local iterators");
+            scanner = new ClientSideIteratorScanner(scanner);
+          }
+          setupIterators(job, scanner, split.getTableName(), split);
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+
+        // setup a scanner within the bounds of this split
+        for (Pair<Text, Text> c : columns) {
+          if (c.getSecond() != null) {
+            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
+            scanner.fetchColumn(c.getFirst(), c.getSecond());
+          } else {
+            log.debug("Fetching column family " + c.getFirst());
+            scanner.fetchColumnFamily(c.getFirst());
+          }
+        }
+
+        scanner.setRange(rangeSplit.getRange());
+
+        // do this last after setting all scanner options
+        scannerIterator = scanner.iterator();
+
+      } else if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
+        BatchScanner scanner;
+        org.apache.accumulo.core.client.mapreduce.MultiRangeInputSplit multiRangeSplit = (org.apache.accumulo.core.client.mapreduce.MultiRangeInputSplit) split;
+
+        try{
+          int scanThreads = multiRangeSplit.getScanThreads();
+          scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(), authorizations, scanThreads);
+          setupIterators(job, scanner, split.getTableName(), split);
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+
+        // setup a scanner within the bounds of this split
+        for (Pair<Text,Text> c : columns) {
+          if (c.getSecond() != null) {
+            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
+            scanner.fetchColumn(c.getFirst(), c.getSecond());
+          } else {
+            log.debug("Fetching column family " + c.getFirst());
+            scanner.fetchColumnFamily(c.getFirst());
+          }
+        }
+
+        scanner.setRanges(multiRangeSplit.getRanges());
+
+        // do this last after setting all scanner options
+        scannerIterator = scanner.iterator();
+      } else {
+        throw new IllegalArgumentException("Can not initialize from " + split.getClass().toString());
+      }
 
       numKeysRead = 0;
-
-      // do this last after setting all scanner options
-      scannerIterator = scanner.iterator();
     }
 
     @Override
@@ -554,6 +591,12 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
 
+      boolean batchScan =  InputConfigurator.isBatchScan(CLASS, job);
+      boolean supportBatchScan =
+        !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+      if (batchScan && !supportBatchScan)
+        log.warn("BatchScanner optimization available for offline scan, isolated or local iterators");
+
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
@@ -612,32 +655,52 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         }
         for (Map.Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
           Range ke = extentRanges.getKey().toDataRange();
-          for (Range r : extentRanges.getValue()) {
-            if (autoAdjust) {
-              // divide ranges into smaller ranges, based on the tablets
-              RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
+          if (batchScan && supportBatchScan) {
+            // group ranges by tablet to be read by a BatchScanner
+            ArrayList<Range> clippedRanges = new ArrayList<Range>();
+            for(Range r: extentRanges.getValue())
+              clippedRanges.add(ke.clip(r));
 
-              split.setOffline(tableConfig.isOfflineScan());
-              split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
-              split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-              split.setMockInstance(mockInstance);
-              split.setFetchedColumns(tableConfig.getFetchedColumns());
-              split.setPrincipal(principal);
-              split.setToken(token);
-              split.setInstanceName(instance.getInstanceName());
-              split.setZooKeepers(instance.getZooKeepers());
-              split.setAuths(auths);
-              split.setIterators(tableConfig.getIterators());
-              split.setLogLevel(logLevel);
+            MultiRangeInputSplit split = new MultiRangeInputSplit(tableName, tableId, clippedRanges, location);
+            split.setFetchedColumns(tableConfig.getFetchedColumns());
+            split.setPrincipal(principal);
+            split.setToken(token);
+            split.setInstanceName(instance.getInstanceName());
+            split.setZooKeepers(instance.getZooKeepers());
+            split.setAuths(auths);
+            split.setIterators(tableConfig.getIterators());
+            split.setLogLevel(logLevel);
 
-              splits.add(split);
-            } else {
-              // don't divide ranges
-              ArrayList<String> locations = splitsToAdd.get(r);
-              if (locations == null)
-                locations = new ArrayList<String>(1);
-              locations.add(location);
-              splitsToAdd.put(r, locations);
+            splits.add(split);
+          } else {
+            // not grouping by tablet
+            for (Range r : extentRanges.getValue()) {
+              if (autoAdjust) {
+                // divide ranges into smaller ranges, based on the tablets
+                RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
+
+                split.setOffline(tableConfig.isOfflineScan());
+                split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+                split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+                split.setMockInstance(mockInstance);
+                split.setFetchedColumns(tableConfig.getFetchedColumns());
+                split.setPrincipal(principal);
+                split.setToken(token);
+                split.setInstanceName(instance.getInstanceName());
+                split.setZooKeepers(instance.getZooKeepers());
+                split.setAuths(auths);
+                split.setIterators(tableConfig.getIterators());
+                split.setLogLevel(logLevel);
+
+                splits.add(split);
+              } else {
+                // don't divide ranges
+                ArrayList<String> locations = splitsToAdd.get(r);
+                if (locations == null)
+                  locations = new ArrayList<String>(1);
+                locations.add(location);
+                splitsToAdd.put(r, locations);
+              }
             }
           }
         }
