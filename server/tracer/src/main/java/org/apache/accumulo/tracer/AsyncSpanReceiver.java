@@ -66,6 +66,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   Timer timer = new Timer("SpanSender", true);
   protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  int maxQueueSize = 5000;
 
   // Visible for testing
   AsyncSpanReceiver() {}
@@ -80,6 +81,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       }
     }
     service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
+    maxQueueSize = conf.getInt(DistributedTrace.TRACE_QUEUE_SIZE_PROPERTY, maxQueueSize);
 
     int millis = conf.getInt(SEND_TIMER_MILLIS, 1000);
     timer.schedule(new TimerTask() {
@@ -149,9 +151,13 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   @Override
   public void receiveSpan(Span s) {
     Map<ByteBuffer,ByteBuffer> data = convertToByteBuffers(s.getKVAnnotations());
+
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
       List<Annotation> annotations = convertToAnnotations(s.getTimelineAnnotations());
+      if (sendQueue.size() > maxQueueSize) {
+         return;
+      }
       sendQueue.add(new RemoteSpan(host, service == null ? s.getProcessId() : service, s.getTraceId(), s.getSpanId(), s.getParentId(), s.getStartTimeMillis(),
           s.getStopTimeMillis(), s.getDescription(), data, annotations));
     }
