@@ -37,6 +37,6 @@ public class DistributedTrace {
         address = "unknown";
       }
     }
-    Tracer.getInstance().addReceiver(new ZooTraceClient(zoo, path, address, application, 1000));
+    Tracer.getInstance().addReceiver(new ZooTraceClient(zoo, path, address, application, 1000, 5000));
   }
 }

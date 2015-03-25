@@ -51,10 +51,12 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   Timer timer = new Timer("SpanSender", true);
   final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  final int maxQueueSize;
 
-  public AsyncSpanReceiver(String host, String service, long millis) {
+  public AsyncSpanReceiver(String host, String service, long millis, int maxQueueSize) {
     this.host = host;
     this.service = service;
+    this.maxQueueSize = maxQueueSize;
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
@@ -72,13 +74,6 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     while (!sendQueue.isEmpty()) {
       boolean sent = false;
       RemoteSpan s = sendQueue.peek();
-      if (s.stop - s.start < 1) {
-        synchronized (sendQueue) {
-          sendQueue.remove();
-          sendQueue.notifyAll();
-        }
-        continue;
-      }
       SpanKey dest = getSpanKey(s.data);
       Destination client = clients.get(dest);
       if (client == null) {
@@ -107,6 +102,10 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   @Override
   public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
+
+    if (sendQueue.size() > maxQueueSize) {
+      return;
+    }
 
     SpanKey dest = getSpanKey(data);
     if (dest != null) {

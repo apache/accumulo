@@ -46,8 +46,8 @@ public class ZooSpanClient extends SendSpansViaThrift {
   final Random random = new Random();
   final List<String> hosts = new ArrayList<String>();
 
-  public ZooSpanClient(String keepers, final String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
-    super(host, service, millis);
+  public ZooSpanClient(String keepers, final String path, String host, String service, long millis, int maxQueueSize) throws IOException, KeeperException, InterruptedException {
+    super(host, service, millis, maxQueueSize);
     this.path = path;
     zoo = new ZooKeeper(keepers, 30 * 1000, new Watcher() {
       @Override

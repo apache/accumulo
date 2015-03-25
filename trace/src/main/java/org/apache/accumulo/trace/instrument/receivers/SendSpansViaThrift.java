@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.trace.instrument.receivers;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Map;
@@ -36,8 +37,8 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
 
   private static final String THRIFT = "thrift://";
 
-  public SendSpansViaThrift(String host, String service, long millis) {
-    super(host, service, millis);
+  public SendSpansViaThrift(String host, String service, long millis, int maxQueueSize) {
+    super(host, service, millis, maxQueueSize);
   }
 
   @Override
@@ -55,6 +56,9 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       TTransport transport = new TSocket(sock);
       TProtocol prot = new TBinaryProtocol(transport);
       return new Client(prot);
+    } catch (IOException ex) {
+      log.trace(ex, ex);
+      return null;
     } catch (Exception ex) {
       log.error(ex, ex);
       return null;
@@ -73,6 +77,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
     }
   }
 
+  @Override
   protected String getSpanKey(Map<String,String> data) {
     String dest = data.get("dest");
     if (dest != null && dest.startsWith(THRIFT)) {
