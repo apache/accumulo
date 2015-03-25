@@ -165,9 +165,18 @@ public class SecurityOperation {
     Credentials creds = Credentials.fromThrift(credentials);
 
     if (isSystemUser(credentials)) {
-      if (!(context.getCredentials().equals(creds))) {
-        log.debug("Provided credentials did not match server's expected credentials. Expected " + context.getCredentials() + " but got " + creds);
-        throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+      if (isKerberos) {
+        // Don't need to re-check the principal as TCredentialsUpdatingInvocationHandler will check the provided against
+        // the credentials provided on the wire.
+        if (!context.getCredentials().getToken().equals(creds.getToken())) {
+          log.debug("With SASL enabled, System AuthenticationTokens did not match.");
+          throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+        }
+      } else {
+        if (!(context.getCredentials().equals(creds))) {
+          log.debug("Provided credentials did not match server's expected credentials. Expected " + context.getCredentials() + " but got " + creds);
+          throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+        }
       }
     } else {
       // Not the system user
