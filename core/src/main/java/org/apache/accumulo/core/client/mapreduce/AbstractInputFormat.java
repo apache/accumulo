@@ -404,6 +404,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   protected abstract static class AbstractRecordReader<K,V> extends RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
+    protected ScannerBase scannerBase;
     protected AccumuloInputSplit split;
 
     /**
@@ -523,6 +524,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
         // do this last after setting all scanner options
         scannerIterator = scanner.iterator();
+        scannerBase = scanner;
 
       } else if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
         BatchScanner scanner;
@@ -550,6 +552,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
         // do this last after setting all scanner options
         scannerIterator = scanner.iterator();
+        scannerBase = scanner;
+
       } else {
         throw new IllegalArgumentException("Can not initialize from " + split.getClass().toString());
       }
@@ -558,7 +562,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+      if (null != scannerBase) {
+        scannerBase.close();
+      }
+    }
 
     @Override
     public float getProgress() throws IOException {

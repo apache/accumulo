@@ -375,6 +375,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split;
+    protected ScannerBase scannerBase;
 
     /**
      * Configures the iterators on a scanner for the given table name.
@@ -492,6 +493,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         // do this last after setting all scanner options
         scannerIterator = scanner.iterator();
+        scannerBase = scanner;
 
       } else if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
         BatchScanner scanner;
@@ -520,6 +522,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         // do this last after setting all scanner options
         scannerIterator = scanner.iterator();
+        scannerBase = scanner;
+
       } else {
         throw new IllegalArgumentException("Can not initialize from " + split.getClass().toString());
       }
@@ -528,7 +532,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+      if (null != scannerBase) {
+        scannerBase.close();
+      }
+    }
 
     @Override
     public long getPos() throws IOException {
