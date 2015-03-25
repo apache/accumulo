@@ -595,7 +595,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       boolean supportBatchScan =
         !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
-        log.warn("BatchScanner optimization available for offline scan, isolated or local iterators");
+        throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();

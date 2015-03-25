@@ -648,7 +648,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       boolean supportBatchScan =
         !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
-        log.warn("BatchScanner optimization available for offline scan, isolated or local iterators");
+        throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
       int scanThreads = InputConfigurator.getBatchScanThreads(CLASS, context.getConfiguration());
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
