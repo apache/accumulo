@@ -972,6 +972,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+    // zookeeper propagation time
+    UtilWaitThread.sleep(5 * 1000);
 
     WriterOptions writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
@@ -1025,6 +1027,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
     assertEquals(2, client.listConstraints(creds, TABLE_TEST).size());
 
+    // zookeeper propagation time
     UtilWaitThread.sleep(5 * 1000);
 
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));

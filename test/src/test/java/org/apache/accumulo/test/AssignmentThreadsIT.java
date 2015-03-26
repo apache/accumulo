@@ -61,24 +61,30 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     // make a table with a lot of splits
     String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
+    log.info("Creating table");
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
-    for (int i = 0; i < 4000; i++) {
+    for (int i = 0; i < 1000; i++) {
       splits.add(new Text(randomHex(8)));
     }
+    log.info("Adding splits");
     c.tableOperations().addSplits(tableName, splits);
+    log.info("Taking table offline");
     c.tableOperations().offline(tableName, true);
     // time how long it takes to load
+    log.info("Bringing the table online");
     long now = System.currentTimeMillis();
     c.tableOperations().online(tableName, true);
     long diff = System.currentTimeMillis() - now;
-    log.debug("Loaded " + splits.size() + " tablets in " + diff + " ms");
+    log.info("Loaded " + splits.size() + " tablets in " + diff + " ms");
     c.instanceOperations().setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "20");
     now = System.currentTimeMillis();
+    log.info("Taking table offline, again");
     c.tableOperations().offline(tableName, true);
     // wait >10 seconds for thread pool to update
     UtilWaitThread.sleep(Math.max(0, now + 11 * 1000 - System.currentTimeMillis()));
     now = System.currentTimeMillis();
+    log.info("Bringing table back online");
     c.tableOperations().online(tableName, true);
     long diff2 = System.currentTimeMillis() - now;
     log.debug("Loaded " + splits.size() + " tablets in " + diff2 + " ms");

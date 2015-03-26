@@ -1096,6 +1096,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     bw.close();
+    conn.tableOperations().flush(table1, null, null, true);
 
     String tableId = conn.tableOperations().tableIdMap().get(table1);
     Assert.assertNotNull("Table ID was null", tableId);
@@ -1407,6 +1408,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     bw.close();
+    conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure the replication table exists at this point
     boolean online = ReplicationTable.isOnline(conn);
