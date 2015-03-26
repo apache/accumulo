@@ -52,6 +52,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   Timer timer = new Timer("SpanSender", true);
   final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
   final int maxQueueSize;
+  long lastNotificationOfDroppedSpans = 0;
 
   public AsyncSpanReceiver(String host, String service, long millis, int maxQueueSize) {
     this.host = host;
@@ -104,6 +105,12 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
 
     if (sendQueue.size() > maxQueueSize) {
+      long now = System.currentTimeMillis();
+      if (now - lastNotificationOfDroppedSpans > 60 * 1000) {
+        log.warn("Tracing spans are being dropped because there are already " + maxQueueSize + " spans queued for delivery.\n" +
+            "This does not affect performance, security or data integrity, but distributed tracing information is being lost.");
+        lastNotificationOfDroppedSpans = now;
+      }
       return;
     }
 
