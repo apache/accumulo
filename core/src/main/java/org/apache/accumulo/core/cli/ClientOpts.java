@@ -132,26 +132,7 @@ public class ClientOpts extends Help {
           props.put(loginOption.getKey(), loginOption.getValue());
       }
 
-      // If the user isn't currently logged in with Kerberos, they might have provided a keytab file
-      // instead which can be used to log them in. Check that before constructing the KerberosToken
-      // as it will expect the user is already logged in.
-      if (KerberosToken.CLASS_NAME.equals(tokenClassName)) {
-        if (null != keytabPath) {
-          File keytab = new File(keytabPath);
-          if (!keytab.exists() || !keytab.isFile()) {
-            throw new IllegalArgumentException("Keytab isn't a normal file: " + keytabPath);
-          }
-          if (null == principal) {
-            throw new IllegalArgumentException("Principal must be provided if logging in via Keytab");
-          }
-          try {
-            UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-          } catch (IOException e) {
-            throw new RuntimeException("Failed to log in with keytab", e);
-          }
-        }
-      }
-
+      // It's expected that the user is already logged in via UserGroupInformation or external to this program (kinit).
       try {
         AuthenticationToken token = Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
         token.init(props);
@@ -159,7 +140,6 @@ public class ClientOpts extends Help {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-
     }
 
     if (securePassword != null)
@@ -246,6 +226,22 @@ public class ClientOpts extends Help {
     final boolean clientConfSaslEnabled = Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
     if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
       tokenClassName = KerberosToken.CLASS_NAME;
+      // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce Job is going to make a copy of the current user (UGI)
+      // when it is instantiated.
+      if (null != keytabPath) {
+        File keytab = new File(keytabPath);
+        if (!keytab.exists() || !keytab.isFile()) {
+          throw new IllegalArgumentException("Keytab isn't a normal file: " + keytabPath);
+        }
+        if (null == principal) {
+          throw new IllegalArgumentException("Principal must be provided if logging in via Keytab");
+        }
+        try {
+          UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
+        } catch (IOException e) {
+          throw new RuntimeException("Failed to log in with keytab", e);
+        }
+      }
     }
   }
 
