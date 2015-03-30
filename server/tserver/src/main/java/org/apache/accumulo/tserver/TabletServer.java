@@ -1381,7 +1381,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private void checkPermission(TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
       boolean fatal = false;
       try {
-        log.debug("Got " + request + " message from user: " + credentials.getPrincipal());
+        log.trace("Got " + request + " message from user: " + credentials.getPrincipal());
         if (!security.canPerformSystemActions(credentials)) {
           log.warn("Got " + request + " message from user: " + credentials.getPrincipal());
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);

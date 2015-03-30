@@ -24,7 +24,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.master.EventCoordinator.Listener;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -40,7 +39,7 @@ public class ShutdownTServer extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
   private TServerInstance server;
-  private boolean force;
+  private boolean force, requestedShutdown;
 
   public ShutdownTServer(TServerInstance server, boolean force) {
     this.server = server;
@@ -48,7 +47,43 @@ public class ShutdownTServer extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Master master) throws Exception {
+    // suppress assignment of tablets to the server
+    if (force) {
+      return 0;
+    }
+
+    // Inform the master that we want this server to shutdown
+    // We don't want to spam the master with shutdown requests, so
+    // only send this request once
+    if (!requestedShutdown) {
+      master.shutdownTServer(server);
+    }
+
+    if (master.onlineTabletServers().contains(server)) {
+      TServerConnection connection = master.getConnection(server);
+      if (connection != null) {
+        try {
+          TabletServerStatus status = connection.getTableMap(false);
+          if (status.tableMap != null && status.tableMap.isEmpty()) {
+            log.info("tablet server hosts no tablets " + server);
+            connection.halt(master.getMasterLock());
+            log.info("tablet server asked to halt " + server);
+            return 0;
+          }
+        } catch (TTransportException ex) {
+          // expected
+        } catch (Exception ex) {
+          log.error("Error talking to tablet server " + server + ": " + ex);
+        }
+
+        // If the connection was non-null and we could coomunicate with it
+        // give the master some more time to tell it to stop and for the
+        // tserver to ack the request and stop itself.
+        return 1000;
+      }
+    }
+
     return 0;
   }
 
@@ -61,30 +96,6 @@ public class ShutdownTServer extends MasterRepo {
       path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + server.getLocation();
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-      return null;
-    }
-
-    // TODO move this to isReady() and drop while loop? - ACCUMULO-1259
-    Listener listener = master.getEventCoordinator().getListener();
-    master.shutdownTServer(server);
-    while (master.onlineTabletServers().contains(server)) {
-      TServerConnection connection = master.getConnection(server);
-      if (connection != null) {
-        try {
-          TabletServerStatus status = connection.getTableMap(false);
-          if (status.tableMap != null && status.tableMap.isEmpty()) {
-            log.info("tablet server hosts no tablets " + server);
-            connection.halt(master.getMasterLock());
-            log.info("tablet server asked to halt " + server);
-            break;
-          }
-        } catch (TTransportException ex) {
-          // expected
-        } catch (Exception ex) {
-          log.error("Error talking to tablet server " + server + ": " + ex);
-        }
-      }
-      listener.waitForEvents(1000);
     }
 
     return null;

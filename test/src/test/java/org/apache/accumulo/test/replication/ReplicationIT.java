@@ -994,6 +994,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Write some data to table1
     writeSomeData(conn, table1, 2000, 50);
+    conn.tableOperations().flush(table1, null, null, true);
 
     String tableId = conn.tableOperations().tableIdMap().get(table1);
     Assert.assertNotNull("Table ID was null", tableId);
@@ -1254,6 +1255,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Write some data to table1
     writeSomeData(conn, table1, 2000, 50);
+    conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure the replication table exists at this point
     boolean online = ReplicationTable.isOnline(conn);
@@ -1413,7 +1415,7 @@ public class ReplicationIT extends ConfigurableMacIT {
      */
 
     int recordsFound = 0;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 30; i++) {
       s = ReplicationTable.getScanner(conn);
       recordsFound = 0;
       for (Entry<Key,Value> entry : s) {

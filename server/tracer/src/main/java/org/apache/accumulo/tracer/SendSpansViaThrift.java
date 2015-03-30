@@ -18,6 +18,7 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -62,6 +63,9 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       TTransport transport = new TSocket(sock);
       TProtocol prot = new TBinaryProtocol(transport);
       return new Client(prot);
+    } catch (IOException ex) {
+      log.trace("{}", ex, ex);
+      return null;
     } catch (Exception ex) {
       log.error(ex.getMessage(), ex);
       return null;
@@ -82,6 +86,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
 
   private static final ByteBuffer DEST = ByteBuffer.wrap("dest".getBytes(UTF_8));
 
+  @Override
   protected String getSpanKey(Map<ByteBuffer,ByteBuffer> data) {
     String dest = new String(data.get(DEST).array());
     if (dest != null && dest.startsWith(THRIFT)) {

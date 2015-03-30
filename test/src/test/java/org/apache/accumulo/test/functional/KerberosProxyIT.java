@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -178,9 +179,18 @@ public class KerberosProxyIT extends AccumuloIT {
 
     boolean success = false;
     ClusterUser rootUser = kdc.getRootUser();
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
     for (int i = 0; i < 10 && !success; i++) {
+
+      UserGroupInformation ugi;
+      try {
+        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+        ugi = UserGroupInformation.getCurrentUser();
+      } catch (IOException ex) {
+        log.info("Login as root is failing", ex);
+        Thread.sleep(1000);
+        continue;
+      }
+
       TSocket socket = new TSocket(hostname, proxyPort);
       log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
       TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, hostname, Collections.singletonMap("javax.security.sasl.qop",

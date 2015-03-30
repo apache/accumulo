@@ -30,7 +30,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
@@ -141,7 +140,6 @@ public class DurabilityIT extends ConfigurableMacIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
-    UtilWaitThread.sleep(1000);
     writeSome(tableName, N);
     restartTServer();
     assertTrue(N > readSome(tableName));

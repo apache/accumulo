@@ -49,6 +49,8 @@ import org.junit.Test;
 
 public class ClassLoaderIT extends AccumuloClusterIT {
 
+  private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
@@ -81,7 +83,7 @@ public class ClassLoaderIT extends AccumuloClusterIT {
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
     c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
-    UtilWaitThread.sleep(5000);
+    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
     scanCheck(c, tableName, "TestX");
     fs.delete(jarPath, true);
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerY.jar"), jarPath);
