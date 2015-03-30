@@ -1555,7 +1555,7 @@ public class ReplicationIT extends ConfigurableMacIT {
      */
 
     int recordsFound = 0;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 30; i++) {
       s = ReplicationTable.getScanner(conn);
       recordsFound = 0;
       for (Entry<Key,Value> entry : s) {
