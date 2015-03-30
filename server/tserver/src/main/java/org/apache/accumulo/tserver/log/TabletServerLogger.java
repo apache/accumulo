@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,7 +78,7 @@ public class TabletServerLogger {
 
   // The current logger
   private DfsLogger currentLog = null;
-  private final AtomicReference<DfsLogger> nextLog = new AtomicReference<>(null);
+  private final SynchronousQueue<DfsLogger> nextLog = new SynchronousQueue<>();
   private final ThreadPoolExecutor nextLogMaker = new SimpleThreadPool(1, "WALog creator");
 
   // The current generation of logs.
@@ -149,6 +150,7 @@ public class TabletServerLogger {
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
+    startLogMaker();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -198,18 +200,9 @@ public class TabletServerLogger {
     }
 
     try {
-      DfsLogger next = nextLog.getAndSet(null);
-      if (next != null) {
-        log.info("Using next log " + next.getFileName());
-        currentLog = next;
-      } else {
-        DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
-        alog.open(tserver.getClientAddressString());
-        currentLog = alog;
-      }
-      if (nextLog.get() == null) {
-        createNextLog();
-      }
+      DfsLogger next = nextLog.take();
+      log.info("Using next log " + next.getFileName());
+      currentLog = next;
       logId.incrementAndGet();
       return;
     } catch (Exception t) {
@@ -221,12 +214,11 @@ public class TabletServerLogger {
     }
   }
 
-  // callers are synchronized already
-  private void createNextLog() {
-    if (nextLogMaker.getActiveCount() == 0) {
-      nextLogMaker.submit(new Runnable() {
-        @Override
-        public void run() {
+  private void startLogMaker() {
+    nextLogMaker.submit(new Runnable() {
+      @Override
+      public void run() {
+        while (!nextLogMaker.isShutdown()) {
           try {
             log.debug("Creating next WAL");
             DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
@@ -235,17 +227,15 @@ public class TabletServerLogger {
               tserver.addLoggersToMetadata(alog, tablet.getExtent());
             }
             log.debug("Created next WAL " + alog.getFileName());
-            alog = nextLog.getAndSet(alog);
-            if (alog != null) {
-              log.debug("closing unused next log: " + alog.getFileName());
-              alog.close();
+            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
+              log.info("Our WAL was not used for 12 hours: " + alog.getFileName());
             }
           } catch (Exception t) {
             log.error("{}", t.getMessage(), t);
           }
         }
-      });
-    }
+      }
+    });
   }
 
   public void resetLoggers() throws IOException {

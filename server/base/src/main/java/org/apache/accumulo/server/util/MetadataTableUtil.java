@@ -1112,6 +1112,7 @@ public class MetadataTableUtil {
   }
 
   public static void markLogUnused(ClientContext context, ZooLock lock, TServerInstance tabletSession, Set<Path> all) throws AccumuloException {
+    // There could be a marker at the meta and/or root level, mark them both as unused
     try {
       BatchWriter root = null;
       BatchWriter meta = null;

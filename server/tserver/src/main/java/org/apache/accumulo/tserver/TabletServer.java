@@ -2988,7 +2988,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   // avoid unnecessary redundant markings to meta
-  ConcurrentHashMap<DfsLogger, EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
+  final ConcurrentHashMap<DfsLogger, EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
+  final Object levelLocks[] = new Object[TabletLevel.values().length];
+  {
+    for (int i = 0; i < levelLocks.length; i++) {
+      levelLocks[i] = new Object();
+    }
+  }
+
 
   // remove any meta entries after a rolled log is no longer referenced
   Set<DfsLogger> closedLogs = new HashSet<>();
@@ -3018,14 +3025,19 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public void addLoggersToMetadata(DfsLogger copy, KeyExtent extent) {
     TabletLevel level = TabletLevel.getLevel(extent);
     // serialize the updates to the metadata per level: avoids updating the level more than once
-    synchronized (level) {
-      EnumSet<TabletLevel> set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
+    // updating one level, may cause updates to other levels, so we need to release the lock on metadataTableLogs
+    synchronized (levelLocks[level.ordinal()]) {
+      EnumSet<TabletLevel> set = null;
+      synchronized (metadataTableLogs) {
+        set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
+      }
       if (set == null || !set.contains(level) || level == TabletLevel.ROOT) {
         log.info("Writing log marker for level " + level + " " + copy.getFileName());
         MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getPath(), extent);
-        if (set != null) {
-          set.add(level);
-        }
+      }
+      synchronized (metadataTableLogs) {
+        set = metadataTableLogs.get(copy);
+        set.add(level);
       }
     }
   }

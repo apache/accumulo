@@ -60,6 +60,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -122,6 +123,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     for (String table: new String[] { tableName, MetadataTable.NAME, RootTable.NAME} ) {
       c.tableOperations().flush(table, null, null, true);
     }
+    UtilWaitThread.sleep(1000);
     // rolled WAL is no longer in use, but needs to be GC'd
     Map<String,Boolean> walsAfterflush = getWals(c, zoo);
     assertEquals(walsAfterflush.toString(), 3, walsAfterflush.size());
@@ -151,6 +153,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
 
     // put some data in the WAL
     assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
+    verifySomeData(c, tableName, 1000 * 50 + 1);
     writeSomeData(c, tableName, 100, 100);
 
     Map<String,Boolean> walsAfterRestart = getWals(c, zoo);
@@ -161,6 +164,13 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     Map<String,Boolean> walsAfterRestartAndGC = getWals(c, zoo);
     assertEquals("wals left should be 2", 2, walsAfterRestartAndGC.size());
     assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
+  }
+
+  private void verifySomeData(Connector c, String tableName, int expected) throws Exception {
+    Scanner scan = c.createScanner(tableName, EMPTY);
+    int result = Iterators.size(scan.iterator());
+    scan.close();
+    Assert.assertEquals(expected, result);
   }
 
   private void writeSomeData(Connector conn, String tableName, int row, int col) throws Exception {

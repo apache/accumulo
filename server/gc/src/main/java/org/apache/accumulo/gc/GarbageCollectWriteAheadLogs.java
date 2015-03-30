@@ -50,9 +50,12 @@ import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
@@ -63,7 +66,9 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.Span;
 import org.apache.zookeeper.KeeperException;
@@ -406,6 +411,35 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
 
+    // scan HDFS for logs for dead servers
+    for (Volume volume : VolumeManagerImpl.get().getVolumes()) {
+      RemoteIterator<LocatedFileStatus> iter =  volume.getFileSystem().listFiles(volume.prefixChild(ServerConstants.WAL_DIR), true);
+      while (iter.hasNext()) {
+        LocatedFileStatus next = iter.next();
+        // recursive listing returns directories, too
+        if (next.isDirectory()) {
+          continue;
+        }
+        // make sure we've waited long enough for zookeeper propagation
+        if (System.currentTimeMillis() - next.getModificationTime() < context.getConnector().getInstance().getZooKeepersSessionTimeOut()) {
+          continue;
+        }
+        Path path = next.getPath();
+        String hostPlusPort = path.getParent().getName();
+        // server is still alive, or has a replacement
+        TServerInstance instance = liveServers.find(hostPlusPort);
+        if (instance != null) {
+          continue;
+        }
+        TServerInstance fake = new TServerInstance(hostPlusPort, 0L);
+        Set<Path> paths = unusedLogs.get(fake);
+        if (paths == null) {
+          paths = new HashSet<>();
+        }
+        paths.add(path);
+        unusedLogs.put(fake, paths);
+      }
+    }
     return count;
   }
 
