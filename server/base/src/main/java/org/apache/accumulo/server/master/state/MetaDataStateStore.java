@@ -132,18 +132,18 @@ public class MetaDataStateStore extends TabletStateStore {
         Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
           tls.current.clearLocation(m);
+          if (logsForDeadServers != null) {
+            List<Path> logs = logsForDeadServers.get(tls.current);
+            if (logs != null) {
+              for (Path log : logs) {
+                LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
+                m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
+              }
+            }
+          }
         }
         if (tls.future != null) {
           tls.future.clearFutureLocation(m);
-        }
-        if (logsForDeadServers != null) {
-          List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
-          if (logs != null) {
-            for (Path log : logs) {
-              LogEntry entry = new LogEntry(tls.extent, 0, tls.futureOrCurrent().hostPort(), log.toString());
-              m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
-            }
-          }
         }
         writer.addMutation(m);
       }

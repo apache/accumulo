@@ -262,17 +262,19 @@ public class TabletServerLogger {
       throw new IllegalStateException("close should be called with write lock held!");
     }
     try {
-      try {
-        currentLog.close();
-      } catch (DfsLogger.LogClosedException ex) {
-        // ignore
-      } catch (Throwable ex) {
-        log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
-      } finally {
-        this.tserver.walogClosed(currentLog);
+      if (null != currentLog) {
+        try {
+          currentLog.close();
+        } catch (DfsLogger.LogClosedException ex) {
+          // ignore
+        } catch (Throwable ex) {
+          log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
+        } finally {
+          this.tserver.walogClosed(currentLog);
+        }
+        currentLog = null;
+        logSizeEstimate.set(0);
       }
-      currentLog = null;
-      logSizeEstimate.set(0);
     } catch (Throwable t) {
       throw new IOException(t);
     }

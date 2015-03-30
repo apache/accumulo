@@ -933,8 +933,8 @@ public class Tablet implements TabletCommitter {
 
     long count = 0;
 
+    String oldName = Thread.currentThread().getName();
     try {
-      String oldName = Thread.currentThread().getName();
       Thread.currentThread().setName("Minor compacting " + this.extent);
       Span span = Trace.start("write");
       CompactionStats stats;
@@ -956,7 +956,6 @@ public class Tablet implements TabletCommitter {
             commitSession, flushId);
       } finally {
         span.stop();
-        Thread.currentThread().setName(oldName);
       }
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     } catch (Exception e) {
@@ -967,6 +966,7 @@ public class Tablet implements TabletCommitter {
       failed = true;
       throw new RuntimeException(e);
     } finally {
+      Thread.currentThread().setName(oldName);
       try {
         getTabletMemory().finalizeMinC();
       } catch (Throwable t) {

@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.metadata;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
@@ -28,12 +29,19 @@ public class MetadataTableSchemaTest {
 
   @Test
   public void testGetTabletServer() throws Exception {
-    Key key = new Key("~wal:host:43861[14a7df0e6420003]", "log", "hdfs://localhost:50514/accumulo/wal/host:43861/70c27ab3-6662-40ab-80fb-01c1f1a59df3");
+    Key key = new Key("~wal+host:43861[14a7df0e6420003]", "log", "hdfs://localhost:50514/accumulo/wal/host:43861/70c27ab3-6662-40ab-80fb-01c1f1a59df3");
     Text hostPort = new Text();
     Text session = new Text();
     CurrentLogsSection.getTabletServer(key, hostPort, session);
     assertEquals("host:43861", hostPort.toString());
     assertEquals("14a7df0e6420003", session.toString());
+    try {
+      Key bogus = new Key("~wal/host:43861[14a7df0e6420003]", "log", "hdfs://localhost:50514/accumulo/wal/host:43861/70c27ab3-6662-40ab-80fb-01c1f1a59df3");
+      CurrentLogsSection.getTabletServer(bogus, hostPort, session);
+      fail("bad argument not thrown");
+    } catch (IllegalArgumentException ex) {
+
+    }
   }
 
 }

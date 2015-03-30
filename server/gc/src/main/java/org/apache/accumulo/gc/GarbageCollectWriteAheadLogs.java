@@ -180,19 +180,28 @@ public class GarbageCollectWriteAheadLogs {
   private long removeMarkers(Map<TServerInstance,Set<Path>> candidates) {
     long result = 0;
     try {
-      BatchWriter root = context.getConnector().createBatchWriter(RootTable.NAME, null);
-      BatchWriter meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
-      for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
-        Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
-        for (Path path : entry.getValue()) {
-          m.putDelete(CurrentLogsSection.COLF, new Text(path.toString()));
-          result++;
+      BatchWriter root = null;
+      BatchWriter meta = null;
+      try {
+        root = context.getConnector().createBatchWriter(RootTable.NAME, null);
+        meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
+        for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+          Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
+          for (Path path : entry.getValue()) {
+            m.putDelete(CurrentLogsSection.COLF, new Text(path.toString()));
+            result++;
+          }
+          root.addMutation(m);
+          meta.addMutation(m);
         }
-        root.addMutation(m);
-        meta.addMutation(m);
+      } finally  {
+        if (meta != null) {
+          meta.close();
+        }
+        if (root != null) {
+          root.close();
+        }
       }
-      meta.close();
-      root.close();
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -386,7 +395,7 @@ public class GarbageCollectWriteAheadLogs {
       CurrentLogsSection.getPath(entry.getKey(), filename);
       TServerInstance tsi = new TServerInstance(HostAndPort.fromString(hostAndPort.toString()), sessionId.toString());
       Path path = new Path(filename.toString());
-      if ((!currentServers.contains(tsi) || (entry.getValue().equals(CurrentLogsSection.UNUSED)) && !rootWALs.contains(path))) {
+      if (!currentServers.contains(tsi) || entry.getValue().equals(CurrentLogsSection.UNUSED) && !rootWALs.contains(path)) {
         Set<Path> logs = unusedLogs.get(tsi);
         if (logs == null) {
           unusedLogs.put(tsi, logs = new HashSet<Path>());

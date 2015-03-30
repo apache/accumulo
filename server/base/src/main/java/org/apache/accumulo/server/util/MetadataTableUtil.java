@@ -1065,8 +1065,12 @@ public class MetadataTableUtil {
         public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
           String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
           String uniqueId = filename.getName();
-          String path = root + "/" + CurrentLogsSection.getRowPrefix() + tabletSession.toString() + uniqueId;
-          rw.putPersistentData(path, filename.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+          StringBuilder path = new StringBuilder(root);
+          path.append("/");
+          path.append(CurrentLogsSection.getRowPrefix());
+          path.append(tabletSession.toString());
+          path.append(uniqueId);
+          rw.putPersistentData(path.toString(), filename.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
         }
       });
     } else {
@@ -1076,12 +1080,20 @@ public class MetadataTableUtil {
       if (extent.isMeta()) {
         tableName = RootTable.NAME;
       }
+      BatchWriter bw = null;
       try {
-        BatchWriter bw = context.getConnector().createBatchWriter(tableName, null);
+        bw = context.getConnector().createBatchWriter(tableName, null);
         bw.addMutation(m);
-        bw.close();
       } catch (Exception e) {
         throw new RuntimeException(e);
+      } finally {
+        if (bw != null) {
+          try {
+            bw.close();
+          } catch (Exception e2) {
+            throw new RuntimeException(e2);
+          }
+        }
       }
     }
   }
@@ -1101,21 +1113,30 @@ public class MetadataTableUtil {
 
   public static void markLogUnused(ClientContext context, ZooLock lock, TServerInstance tabletSession, Set<Path> all) throws AccumuloException {
     try {
-      BatchWriter root = context.getConnector().createBatchWriter(RootTable.NAME, null);
-      BatchWriter meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
-      for (Path fname : all) {
-        Text tname = new Text(fname.toString());
-        Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString());
-        m.putDelete(MetadataSchema.CurrentLogsSection.COLF, tname);
-        root.addMutation(m);
-        log.debug("deleting " + MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString() + " log:" + fname);
-        m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString());
-        m.put(MetadataSchema.CurrentLogsSection.COLF, tname, MetadataSchema.CurrentLogsSection.UNUSED);
-        meta.addMutation(m);
-        removeCurrentRootLogMarker(context, lock, tabletSession, fname);
+      BatchWriter root = null;
+      BatchWriter meta = null;
+      try {
+        root = context.getConnector().createBatchWriter(RootTable.NAME, null);
+        meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
+        for (Path fname : all) {
+          Text tname = new Text(fname.toString());
+          Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString());
+          m.putDelete(MetadataSchema.CurrentLogsSection.COLF, tname);
+          root.addMutation(m);
+          log.debug("deleting " + MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString() + " log:" + fname);
+          m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString());
+          m.put(MetadataSchema.CurrentLogsSection.COLF, tname, MetadataSchema.CurrentLogsSection.UNUSED);
+          meta.addMutation(m);
+          removeCurrentRootLogMarker(context, lock, tabletSession, fname);
+        }
+      } finally {
+        if (root != null) {
+          root.close();
+        }
+        if (meta != null) {
+          meta.close();
+        }
       }
-      root.close();
-      meta.close();
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
@@ -1150,8 +1171,12 @@ public class MetadataTableUtil {
       Scanner scanner = context.getConnector().createScanner(table, Authorizations.EMPTY);
       scanner.setRange(new Range(MetadataSchema.CurrentLogsSection.getRowPrefix() + server.toString()));
       List<Path> logs = new ArrayList<>();
+      Text path = new Text();
       for (Entry<Key,Value> entry : scanner) {
-        logs.add(new Path(entry.getKey().getColumnQualifier().toString()));
+        MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
+        if (!entry.getValue().equals(MetadataSchema.CurrentLogsSection.UNUSED)) {
+          logs.add(new Path(path.toString()));
+        }
       }
       logsForDeadServers.put(server, logs);
     }

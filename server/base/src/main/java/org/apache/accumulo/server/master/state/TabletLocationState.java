@@ -32,8 +32,6 @@ import org.apache.hadoop.io.Text;
  */
 public class TabletLocationState {
 
-  // private static final Logger log = Logger.getLogger(TabletLocationState.class);
-
   static public class BadLocationStateException extends Exception {
     private static final long serialVersionUID = 1L;
     private Text metadataTableEntry;

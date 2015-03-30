@@ -322,7 +322,7 @@ public class MetadataSchema {
 
       Text row = new Text();
       k.getRow(row);
-      if (row.getLength() < section.getRowPrefix().length()) {
+      if (!row.toString().startsWith(section.getRowPrefix())) {
         throw new IllegalArgumentException("Bad key " + k.toString());
       }
       for (int sessionStart = section.getRowPrefix().length(); sessionStart < row.getLength() - 1; sessionStart++) {

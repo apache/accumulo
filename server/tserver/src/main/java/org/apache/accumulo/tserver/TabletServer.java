@@ -1719,6 +1719,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     @Override
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       log.warn("Garbage collector is attempting to remove logs through the tablet server");
+      log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" +
+          "Restart your file Garbage Collector.");
     }
   }
 
@@ -3015,6 +3017,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public void addLoggersToMetadata(DfsLogger copy, KeyExtent extent) {
     TabletLevel level = TabletLevel.getLevel(extent);
+    // serialize the updates to the metadata per level: avoids updating the level more than once
     synchronized (level) {
       EnumSet<TabletLevel> set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
       if (set == null || !set.contains(level) || level == TabletLevel.ROOT) {

@@ -313,6 +313,8 @@ class TabletGroupWatcher extends Daemon {
         if (this.master.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
+        } else {
+          Master.log.info("Detected change in current tserver set, re-running state machine.");
         }
       } catch (Exception ex) {
         Master.log.error("Error processing table state for store " + store.name(), ex);

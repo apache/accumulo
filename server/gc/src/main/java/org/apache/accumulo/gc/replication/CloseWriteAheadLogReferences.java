@@ -247,8 +247,6 @@ public class CloseWriteAheadLogReferences implements Runnable {
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), replFileText);
         String replFile = replFileText.toString();
         boolean isReferenced = referencedWals.contains(replFile);
-        log.debug("replFile " + replFile);
-        log.debug("referencedWals " + referencedWals);
 
         // We only want to clean up WALs (which is everything but rfiles) and only when
         // metadata doesn't have a reference to the given WAL

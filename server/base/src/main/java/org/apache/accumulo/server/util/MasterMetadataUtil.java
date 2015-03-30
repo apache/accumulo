@@ -267,7 +267,7 @@ public class MasterMetadataUtil {
       while (true) {
         try {
           if (zk.exists(zpath)) {
-            log.debug("Removing " + zpath);
+            log.debug("Removing WAL reference for root table " + zpath);
             zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
           }
           break;
