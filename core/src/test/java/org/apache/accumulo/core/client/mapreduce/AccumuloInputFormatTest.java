@@ -232,8 +232,8 @@ public class AccumuloInputFormatTest {
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 5) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <instanceName> <inputFormatClass>");
+      if (args.length != 5 && args.length != 6) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <instanceName> <inputFormatClass> [<batchScan>]");
       }
 
       String user = args[0];
@@ -242,6 +242,10 @@ public class AccumuloInputFormatTest {
 
       String instanceName = args[3];
       String inputFormatClassName = args[4];
+      Boolean batchScan = false;
+      if (args.length == 6)
+        batchScan = Boolean.parseBoolean(args[5]);
+
       @SuppressWarnings("unchecked")
       Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
@@ -253,6 +257,7 @@ public class AccumuloInputFormatTest {
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setMockInstance(job, instanceName);
+      AccumuloInputFormat.setBatchScan(job, batchScan);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -290,6 +295,27 @@ public class AccumuloInputFormatTest {
     bw.close();
 
     Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_1, INSTANCE_NAME, AccumuloInputFormat.class.getCanonicalName()}));
+    assertNull(e1);
+    assertNull(e2);
+  }
+
+  @Test
+  public void testMapWithBatchScanner() throws Exception {
+    final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
+    final String TEST_TABLE_2 = PREFIX + "_mapreduce_table_2";
+
+    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
+    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
+    c.tableOperations().create(TEST_TABLE_2);
+    BatchWriter bw = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
+    for (int i = 0; i < 100; i++) {
+      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      bw.addMutation(m);
+    }
+    bw.close();
+
+    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_2, INSTANCE_NAME, AccumuloInputFormat.class.getCanonicalName(), "True"}));
     assertNull(e1);
     assertNull(e2);
   }
