@@ -426,7 +426,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
-      split = (AccumuloInputSplit) inSplit;
+      split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
       Instance instance = split.getInstance();
@@ -469,8 +469,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
-      if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
-        RangeInputSplit rangeSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+
+      if (split instanceof RangeInputSplit) {
+        RangeInputSplit rangeSplit = (RangeInputSplit) split;
+
+        Scanner scanner;
 
         Boolean isOffline = rangeSplit.isOffline();
         if (null == isOffline) {
@@ -487,14 +490,14 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           usesLocalIterators = tableConfig.shouldUseLocalIterators();
         }
 
-        Scanner scanner;
         try {
           if (isOffline) {
             scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
           } else if (instance instanceof MockInstance) {
             scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
-            scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+            ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
+            scanner = new ScannerImpl(context, split.getTableId(), authorizations);            
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -510,54 +513,37 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           throw new IOException(e);
         }
 
-        // setup a scanner within the bounds of this split
-        for (Pair<Text,Text> c : columns) {
-          if (c.getSecond() != null) {
-            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
-            scanner.fetchColumn(c.getFirst(), c.getSecond());
-          } else {
-            log.debug("Fetching column family " + c.getFirst());
-            scanner.fetchColumnFamily(c.getFirst());
-          }
-        }
         scanner.setRange(rangeSplit.getRange());
-
-        // do this last after setting all scanner options
-        scannerIterator = scanner.iterator();
         scannerBase = scanner;
 
-      } else if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
+      } else  if (split instanceof BatchInputSplit) {
+        BatchInputSplit batchSplit = (BatchInputSplit) split;
+
         BatchScanner scanner;
-        MultiRangeInputSplit multiRangeSplit = (org.apache.accumulo.core.client.mapreduce.MultiRangeInputSplit) split;
         try{
-          int scanThreads = multiRangeSplit.getScanThreads();
+          int scanThreads = batchSplit.getScanThreads();
           scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(), authorizations, scanThreads);
           setupIterators(attempt, scanner, split.getTableName(), split);
         } catch (Exception e) {
           throw new IOException(e);
         }
 
-        // setup a scanner within the bounds of this split
-        for (Pair<Text,Text> c : columns) {
-          if (c.getSecond() != null) {
-            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
-            scanner.fetchColumn(c.getFirst(), c.getSecond());
-          } else {
-            log.debug("Fetching column family " + c.getFirst());
-            scanner.fetchColumnFamily(c.getFirst());
-          }
-        }
-
-        scanner.setRanges(multiRangeSplit.getRanges());
-
-        // do this last after setting all scanner options
-        scannerIterator = scanner.iterator();
+        scanner.setRanges(batchSplit.getRanges());
         scannerBase = scanner;
-
-      } else {
-        throw new IllegalArgumentException("Can not initialize from " + split.getClass().toString());
       }
 
+      // setup a scanner within the bounds of this split
+      for (Pair<Text,Text> c : columns) {
+        if (c.getSecond() != null) {
+          log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
+          scannerBase.fetchColumn(c.getFirst(), c.getSecond());
+        } else {
+          log.debug("Fetching column family " + c.getFirst());
+          scannerBase.fetchColumnFamily(c.getFirst());
+        }
+      }
+
+      scannerIterator = scannerBase.iterator();
       numKeysRead = 0;
     }
 
@@ -725,7 +711,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             ArrayList<Range> clippedRanges = new ArrayList<Range>();
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
-            MultiRangeInputSplit split = new MultiRangeInputSplit(tableName, tableId, clippedRanges, location);
+            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             split.setMockInstance(mockInstance);
             split.setFetchedColumns(tableConfig.getFetchedColumns());
             split.setPrincipal(principal);

@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.mapreduce.BatchInputSplit;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -394,7 +395,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
-      split = (org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit) inSplit;
+      split = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
       Instance instance = split.getInstance();
@@ -463,7 +464,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           } else if (instance instanceof MockInstance) {
             scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
-            scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+            ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
+            scanner = new ScannerImpl(context, split.getTableId(), authorizations);            
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -495,9 +497,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         scannerIterator = scanner.iterator();
         scannerBase = scanner;
 
-      } else if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
+      } else if (split instanceof BatchInputSplit) {
         BatchScanner scanner;
-        org.apache.accumulo.core.client.mapreduce.MultiRangeInputSplit multiRangeSplit = (org.apache.accumulo.core.client.mapreduce.MultiRangeInputSplit) split;
+        BatchInputSplit multiRangeSplit = (BatchInputSplit) split;
 
         try{
           int scanThreads = multiRangeSplit.getScanThreads();
@@ -669,7 +671,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
-            MultiRangeInputSplit split = new MultiRangeInputSplit(tableName, tableId, clippedRanges, location);
+            org.apache.accumulo.core.client.mapred.BatchInputSplit split = new org.apache.accumulo.core.client.mapred.BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             split.setFetchedColumns(tableConfig.getFetchedColumns());
             split.setPrincipal(principal);
             split.setToken(token);

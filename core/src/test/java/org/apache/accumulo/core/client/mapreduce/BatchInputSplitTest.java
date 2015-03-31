@@ -39,18 +39,18 @@ import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class MultiRangeInputSplitTest {
+public class BatchInputSplitTest {
 
   @Test
   public void testSimpleWritable() throws IOException {
     Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    MultiRangeInputSplit split = new MultiRangeInputSplit("table", "1", Arrays.asList(ranges), "localhost");
+    BatchInputSplit split = new BatchInputSplit("table", "1", Arrays.asList(ranges), new String[] {"localhost"});
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     split.write(dos);
 
-    MultiRangeInputSplit newSplit = new MultiRangeInputSplit();
+    BatchInputSplit newSplit = new BatchInputSplit();
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
@@ -65,7 +65,7 @@ public class MultiRangeInputSplitTest {
   @Test
   public void testAllFieldsWritable() throws IOException {
     Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    MultiRangeInputSplit split = new MultiRangeInputSplit("table", "1", Arrays.asList(ranges), "localhost");
+    BatchInputSplit split = new BatchInputSplit("table", "1", Arrays.asList(ranges), new String[] {"localhost"});
 
     Set<Pair<Text,Text>> fetchedColumns = new HashSet<Pair<Text,Text>>();
 
@@ -98,7 +98,7 @@ public class MultiRangeInputSplitTest {
     DataOutputStream dos = new DataOutputStream(baos);
     split.write(dos);
 
-    MultiRangeInputSplit newSplit = new MultiRangeInputSplit();
+    BatchInputSplit newSplit = new BatchInputSplit();
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
