@@ -436,16 +436,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, split.getTableName());
 
-      List<IteratorSetting> iterators = split.getIterators();
-      if (null == iterators) {
-        iterators = tableConfig.getIterators();
-      }
-
-      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
-      if (null == columns) {
-        columns = tableConfig.getFetchedColumns();
-      }
-
       log.debug("Creating connector with user: " + principal);
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
@@ -492,17 +482,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           throw new IOException(e);
         }
 
-        // setup a scanner within the bounds of this split
-        for (Pair<Text, Text> c : columns) {
-          if (c.getSecond() != null) {
-            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
-            scanner.fetchColumn(c.getFirst(), c.getSecond());
-          } else {
-            log.debug("Fetching column family " + c.getFirst());
-            scanner.fetchColumnFamily(c.getFirst());
-          }
-        }
-
         scanner.setRange(rangeSplit.getRange());
 
         // do this last after setting all scanner options
@@ -521,27 +500,30 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           throw new IOException(e);
         }
 
-        // setup a scanner within the bounds of this split
-        for (Pair<Text,Text> c : columns) {
-          if (c.getSecond() != null) {
-            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
-            scanner.fetchColumn(c.getFirst(), c.getSecond());
-          } else {
-            log.debug("Fetching column family " + c.getFirst());
-            scanner.fetchColumnFamily(c.getFirst());
-          }
-        }
-
         scanner.setRanges(multiRangeSplit.getRanges());
-
-        // do this last after setting all scanner options
-        scannerIterator = scanner.iterator();
         scannerBase = scanner;
 
       } else {
         throw new IllegalArgumentException("Can not initialize from " + split.getClass().toString());
       }
 
+      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = tableConfig.getFetchedColumns();
+      }
+
+      // setup a scanner within the bounds of this split
+      for (Pair<Text, Text> c : columns) {
+        if (c.getSecond() != null) {
+          log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
+          scannerBase.fetchColumn(c.getFirst(), c.getSecond());
+        } else {
+          log.debug("Fetching column family " + c.getFirst());
+          scannerBase.fetchColumnFamily(c.getFirst());
+        }
+      }
+      // do this last after setting all scanner options
+      scannerIterator = scannerBase.iterator();
       numKeysRead = 0;
     }
 
