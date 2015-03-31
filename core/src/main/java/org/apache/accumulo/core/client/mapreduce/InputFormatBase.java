@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -293,6 +294,65 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   protected static boolean isOfflineScan(JobContext context) {
     return InputConfigurator.isOfflineScan(CLASS, context.getConfiguration());
+  }
+
+  /**
+   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
+   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
+   *
+   * <p>
+   * By default, this feature is <b>disabled</b>.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param enableFeature
+   *          the feature is enabled if true, disabled otherwise
+   * @since 1.7.0
+   */
+  public static void setBatchScan(Job job, boolean enableFeature) {
+    InputConfigurator.setBatchScan(CLASS, job.getConfiguration(), enableFeature);
+  }
+
+  /**
+   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner} feature enabled.
+   *
+   * @param context
+   *          the Hadoop context for the configured job
+   * @since 1.7.0
+   * @see #setBatchScan(Job, boolean)
+   */
+  protected static boolean isBatchScan(JobContext context) {
+    return InputConfigurator.isIsolated(CLASS, context.getConfiguration());
+  }
+
+  /**
+   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
+   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
+   *
+   * <p>
+   * By default, this feature is <b>disabled</b>.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param threads
+   *          number of threads to use with BatchScanner
+   * @since 1.7.0
+   */
+  public static void setBatchScanThreads(Job job, int threads) {
+    InputConfigurator.setBatchScanThreads(CLASS, job.getConfiguration(), threads);
+  }
+
+  /**
+   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner} feature enabled.
+   *
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return true if the feature is enabled, false otherwise
+   * @since 1.7.0
+   * @see #setBatchScanThreads(Job, int)
+   */
+  public static int getBatchScanThreads(JobContext context) {
+    return InputConfigurator.getBatchScanThreads(CLASS, context.getConfiguration());
   }
 
   /**

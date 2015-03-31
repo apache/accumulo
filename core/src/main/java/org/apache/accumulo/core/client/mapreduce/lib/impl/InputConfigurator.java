@@ -529,7 +529,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
-   * @since 1.6.3
+   * @since 1.7.0
    */
   public static void setBatchScan(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.BATCH_SCANNER), enableFeature);
@@ -543,7 +543,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the feature is enabled, false otherwise
-   * @since 1.6.3
+   * @since 1.7.0
    * @see #setBatchScan(Class, Configuration, boolean)
    */
   public static Boolean isBatchScan(Class<?> implementingClass, Configuration conf) {
@@ -563,7 +563,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param count
    *          number of threads to use with BatchScanner
-   * @since 1.6.3
+   * @since 1.7.0
    */
   public static void setBatchScanThreads(Class<?> implementingClass, Configuration conf, int count) {
     conf.setInt(enumToConfKey(implementingClass, Features.BATCH_SCANNER_THREADS), count);
@@ -576,8 +576,8 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @return true if the feature is enabled, false otherwise
-   * @since 1.6.3
+   * @return Number of threads to use with BatchScanner
+   * @since 1.7.0
    * @see #setBatchScanThreads(Class, Configuration, int)
    */
   public static int getBatchScanThreads(Class<?> implementingClass, Configuration conf) {
