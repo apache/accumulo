@@ -18,14 +18,17 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -38,16 +41,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -67,6 +75,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -100,8 +109,8 @@ public class ReadWriteIT extends AccumuloClusterIT {
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
-    ingest(connector, ROWS, COLS, 50, 0, tableName);
-    verify(connector, ROWS, COLS, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
       monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
@@ -136,11 +145,13 @@ public class ReadWriteIT extends AccumuloClusterIT {
     cluster.start();
   }
 
-  public static void ingest(Connector connector, int rows, int cols, int width, int offset, String tableName) throws Exception {
-    ingest(connector, rows, cols, width, offset, COLF, tableName);
+  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String tableName)
+      throws Exception {
+    ingest(connector, clientConfig, principal, rows, cols, width, offset, COLF, tableName);
   }
 
-  public static void ingest(Connector connector, int rows, int cols, int width, int offset, String colf, String tableName) throws Exception {
+  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String colf,
+      String tableName) throws Exception {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = rows;
     opts.cols = cols;
@@ -149,15 +160,22 @@ public class ReadWriteIT extends AccumuloClusterIT {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(principal);
+    }
 
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
 
-  public static void verify(Connector connector, int rows, int cols, int width, int offset, String tableName) throws Exception {
-    verify(connector, rows, cols, width, offset, COLF, tableName);
+  public static void verify(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String tableName)
+      throws Exception {
+    verify(connector, clientConfig, principal, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(Connector connector, int rows, int cols, int width, int offset, String colf, String tableName) throws Exception {
+  private static void verify(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String colf,
+      String tableName) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
@@ -166,6 +184,12 @@ public class ReadWriteIT extends AccumuloClusterIT {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(principal);
+    }
+
     VerifyIngest.verifyIngest(connector, opts, scannerOpts);
   }
 
@@ -185,10 +209,25 @@ public class ReadWriteIT extends AccumuloClusterIT {
       @Override
       public Integer call() {
         try {
+          ClientConfiguration clientConf = cluster.getClientConfig();
+          // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
+          // Need to pass along the keytab because of that.
+          if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+            String principal = getAdminPrincipal();
+            AuthenticationToken token = getAdminToken();
+            assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
+            KerberosToken kt = (KerberosToken) token;
+            assertNotNull("Expected keytab in token", kt.getKeytab());
+            return control.exec(
+                TestMultiTableIngest.class,
+                args("--count", Integer.toString(ROWS), "-i", instance, "-z", keepers, "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(),
+                    "-u", principal));
+          }
+
           return control.exec(
               TestMultiTableIngest.class,
-              args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", new String(((PasswordToken) getToken()).getPassword(),
-                  Charsets.UTF_8), "--tablePrefix", prefix));
+              args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance, "-z", keepers, "-p", new String(
+                  ((PasswordToken) getAdminToken()).getPassword(), Charsets.UTF_8), "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;
@@ -199,10 +238,25 @@ public class ReadWriteIT extends AccumuloClusterIT {
       @Override
       public Integer call() {
         try {
+          ClientConfiguration clientConf = cluster.getClientConfig();
+          // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
+          // Need to pass along the keytab because of that.
+          if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+            String principal = getAdminPrincipal();
+            AuthenticationToken token = getAdminToken();
+            assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
+            KerberosToken kt = (KerberosToken) token;
+            assertNotNull("Expected keytab in token", kt.getKeytab());
+            return control.exec(
+                TestMultiTableIngest.class,
+                args("--count", Integer.toString(ROWS), "--readonly", "-i", instance, "-z", keepers, "--tablePrefix", prefix, "--keytab", kt.getKeytab()
+                    .getAbsolutePath(), "-u", principal));
+          }
+
           return control.exec(
               TestMultiTableIngest.class,
-              args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", new String(
-                  ((PasswordToken) getToken()).getPassword(), Charsets.UTF_8), "--tablePrefix", prefix));
+              args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i", instance, "-z", keepers, "-p", new String(
+                  ((PasswordToken) getAdminToken()).getPassword(), Charsets.UTF_8), "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;
@@ -222,8 +276,8 @@ public class ReadWriteIT extends AccumuloClusterIT {
     // write a few large values
     Connector connector = getConnector();
     String table = getUniqueNames(1)[0];
-    ingest(connector, 2, 1, 500000, 0, table);
-    verify(connector, 2, 1, 500000, 0, table);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2, 1, 500000, 0, table);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2, 1, 500000, 0, table);
   }
 
   @Test
@@ -237,7 +291,7 @@ public class ReadWriteIT extends AccumuloClusterIT {
   static void interleaveTest(final Connector connector, final String tableName) throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
-    ingest(connector, CHUNKSIZE, 1, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, 0, tableName);
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
@@ -245,18 +299,18 @@ public class ReadWriteIT extends AccumuloClusterIT {
         @Override
         public void run() {
           try {
-            verify(connector, CHUNKSIZE, 1, 50, start, tableName);
+            verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, start, tableName);
           } catch (Exception ex) {
             fail.set(true);
           }
         }
       };
       verify.start();
-      ingest(connector, CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
       verify.join();
       assertFalse(fail.get());
     }
-    verify(connector, CHUNKSIZE, 1, 50, i, tableName);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i, tableName);
   }
 
   public static Text t(String s) {
@@ -277,7 +331,7 @@ public class ReadWriteIT extends AccumuloClusterIT {
     connector.tableOperations().create(tableName);
     connector.tableOperations().setProperty(tableName, "table.group.g1", "colf");
     connector.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-    ingest(connector, 2000, 1, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().compact(tableName, null, null, true, true);
     BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
@@ -305,8 +359,8 @@ public class ReadWriteIT extends AccumuloClusterIT {
     Map<String,Set<Text>> groups = new TreeMap<String,Set<Text>>();
     groups.put("g1", Collections.singleton(t("colf")));
     connector.tableOperations().setLocalityGroups(tableName, groups);
-    ingest(connector, 2000, 1, 50, 0, tableName);
-    verify(connector, 2000, 1, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().flush(tableName, null, null, true);
     BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
     String tableId = connector.tableOperations().tableIdMap().get(tableName);
@@ -320,7 +374,17 @@ public class ReadWriteIT extends AccumuloClusterIT {
       PrintStream oldOut = System.out;
       try {
         System.setOut(newOut);
-        PrintInfo.main(new String[] {entry.getKey().getColumnQualifier().toString()});
+        List<String> args = new ArrayList<>();
+        args.add(entry.getKey().getColumnQualifier().toString());
+        if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          args.add("--config");
+          StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
+          String hadoopConfDir = sac.getHadoopConfDir();
+          args.add(new Path(hadoopConfDir, "core-site.xml").toString());
+          args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
+        }
+        log.info("Invoking PrintInfo with " + args);
+        PrintInfo.main(args.toArray(new String[args.size()]));
         newOut.flush();
         String stdout = baos.toString();
         assertTrue(stdout.contains("Locality group         : g1"));
@@ -345,9 +409,9 @@ public class ReadWriteIT extends AccumuloClusterIT {
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups(table, getGroups(cfg));
-      ingest(connector, ROWS * (i + 1), 1, 50, ROWS * i, table);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * (i + 1), 1, 50, ROWS * i, table);
       to.flush(table, null, null, true);
-      verify(connector, 0, 1, 50, ROWS * (i + 1), table);
+      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 0, 1, 50, ROWS * (i + 1), table);
       i++;
     }
     to.delete(table);
@@ -355,12 +419,12 @@ public class ReadWriteIT extends AccumuloClusterIT {
     config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
     i = 1;
     for (String cfg : config) {
-      ingest(connector, ROWS * i, 1, 50, 0, table);
-      ingest(connector, ROWS * i, 1, 50, 0, "xyz", table);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
       to.setLocalityGroups(table, getGroups(cfg));
       to.flush(table, null, null, true);
-      verify(connector, ROWS * i, 1, 50, 0, table);
-      verify(connector, ROWS * i, 1, 50, 0, "xyz", table);
+      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
+      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
       i++;
     }
   }

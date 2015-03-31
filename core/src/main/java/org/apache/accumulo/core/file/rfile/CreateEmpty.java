@@ -27,7 +27,8 @@ import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
@@ -37,7 +38,7 @@ import com.beust.jcommander.ParameterException;
  * Create an empty RFile for use in recovering from data loss where Accumulo still refers internally to a path.
  */
 public class CreateEmpty {
-  private static final Logger log = Logger.getLogger(CreateEmpty.class);
+  private static final Logger log = LoggerFactory.getLogger(CreateEmpty.class);
 
   public static class NamedLikeRFile implements IParameterValidator {
     @Override

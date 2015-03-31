@@ -111,7 +111,7 @@ public class TestClientOpts {
   public void testVolumes() throws IOException {
     File instanceId = tmpDir.newFolder("instance_id");
     File uuid = new File(instanceId, UUID.randomUUID().toString());
-    uuid.createNewFile();
+    assertTrue(uuid.createNewFile());
     // document the defaults
     ClientOpts args = new ClientOpts();
     File siteXml = tmpDir.newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
@@ -137,9 +137,9 @@ public class TestClientOpts {
   @Test
   public void testInstanceDir() throws IOException {
     File instanceId = tmpDir.newFolder("instance_id");
-    instanceId.mkdir();
+    assertTrue(instanceId.mkdir() || instanceId.isDirectory());
     File uuid = new File(instanceId, UUID.randomUUID().toString());
-    uuid.createNewFile();
+    assertTrue(uuid.createNewFile());
     // document the defaults
     ClientOpts args = new ClientOpts();
     File siteXml = tmpDir.newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
@@ -256,7 +256,7 @@ public class TestClientOpts {
 
     @Override
     public AuthenticationToken clone() {
-      return null;
+      return new EmptyToken();
     }
 
     @Override

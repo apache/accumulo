@@ -80,7 +80,7 @@ public class RowFilterTest {
         rowIterator.next();
       }
 
-      rowIterator.seek(new Range(firstKey.getRow(), false, null, true), new HashSet<ByteSequence>(), false);
+      rowIterator.seek(new Range(firstKey == null ? null : firstKey.getRow(), false, null, true), new HashSet<ByteSequence>(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();

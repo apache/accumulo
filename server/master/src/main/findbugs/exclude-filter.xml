@@ -1,0 +1,43 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<FindBugsFilter>
+  <Match>
+    <!-- locking is confusing, but probably correct -->
+    <Class name="org.apache.accumulo.master.Master" />
+    <Bug code="UW" pattern="UW_UNCOND_WAIT" />
+  </Match>
+  <Match>
+    <!-- shouldn't close the given I/O streams, because they are just wrapped -->
+    <Class name="org.apache.accumulo.master.tableOps.ImportTable" />
+    <Method name="checkVersions" params="org.apache.accumulo.master.Master" returns="void" />
+    <Bug code="OS" pattern="OS_OPEN_STREAM" />
+  </Match>
+  <Match>
+    <!-- shouldn't close the given I/O streams, because they are just wrapped -->
+    <Class name="org.apache.accumulo.master.tableOps.WriteExportFiles" />
+    <Method name="exportTable" params="org.apache.accumulo.server.fs.VolumeManager,org.apache.accumulo.server.AccumuloServerContext,java.lang.String,java.lang.String,java.lang.String" returns="void" />
+    <Bug code="OS" pattern="OS_OPEN_STREAM" />
+  </Match>
+  <Match>
+    <!-- admin classes can call System.exit -->
+    <Or>
+      <Class name="org.apache.accumulo.master.Master" />
+      <Class name="org.apache.accumulo.master.Master$2" />
+    </Or>
+    <Bug code="DM" pattern="DM_EXIT" />
+  </Match>
+</FindBugsFilter>

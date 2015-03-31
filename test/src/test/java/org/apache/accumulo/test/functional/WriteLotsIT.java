@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
@@ -42,6 +44,7 @@ public class WriteLotsIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     List<Thread> threads = new ArrayList<Thread>();
+    final ClientConfiguration clientConfig = getCluster().getClientConfig();
     for (int i = 0; i < 10; i++) {
       final int index = i;
       Thread t = new Thread() {
@@ -52,6 +55,11 @@ public class WriteLotsIT extends AccumuloClusterIT {
             opts.startRow = index * 10000;
             opts.rows = 10000;
             opts.setTableName(tableName);
+            if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+              opts.updateKerberosCredentials(clientConfig);
+            } else {
+              opts.setPrincipal(getAdminPrincipal());
+            }
             TestIngest.ingest(c, opts, new BatchWriterOpts());
           } catch (Exception ex) {
             ref.set(ex);
@@ -70,6 +78,11 @@ public class WriteLotsIT extends AccumuloClusterIT {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = 10000 * 10;
     vopts.setTableName(tableName);
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      vopts.setPrincipal(getAdminPrincipal());
+    }
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 

@@ -28,10 +28,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooConfiguration extends AccumuloConfiguration {
-  private static final Logger log = Logger.getLogger(ZooConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooConfiguration.class);
 
   private final String instanceId;
   private final ZooCache propCache;

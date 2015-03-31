@@ -58,13 +58,14 @@ import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for performing various security operations with the appropriate checks
  */
 public class SecurityOperation {
-  private static final Logger log = Logger.getLogger(SecurityOperationsImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(SecurityOperationsImpl.class);
 
   protected Authorizor authorizor;
   protected Authenticator authenticator;
@@ -164,9 +165,18 @@ public class SecurityOperation {
     Credentials creds = Credentials.fromThrift(credentials);
 
     if (isSystemUser(credentials)) {
-      if (!(context.getCredentials().equals(creds))) {
-        log.debug("Provided credentials did not match server's expected credentials. Expected " + context.getCredentials() + " but got " + creds);
-        throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+      if (isKerberos) {
+        // Don't need to re-check the principal as TCredentialsUpdatingInvocationHandler will check the provided against
+        // the credentials provided on the wire.
+        if (!context.getCredentials().getToken().equals(creds.getToken())) {
+          log.debug("With SASL enabled, System AuthenticationTokens did not match.");
+          throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+        }
+      } else {
+        if (!(context.getCredentials().equals(creds))) {
+          log.debug("Provided credentials did not match server's expected credentials. Expected " + context.getCredentials() + " but got " + creds);
+          throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+        }
       }
     } else {
       // Not the system user
@@ -192,7 +202,7 @@ public class SecurityOperation {
           throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
         }
       } catch (AccumuloSecurityException e) {
-        log.debug(e);
+        log.debug("AccumuloSecurityException",e);
         throw e.asThriftException();
       }
     }
@@ -219,6 +229,8 @@ public class SecurityOperation {
         if (!authenticator.userExists(toCreds.getPrincipal())) {
           createUser(credentials, toCreds, Authorizations.EMPTY);
         }
+        // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the other user,
+        // we only have our own Kerberos credentials.
       }
 
       return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());
@@ -532,9 +544,6 @@ public class SecurityOperation {
 
   public boolean canGrantSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
     authenticate(c);
-    // can't grant GRANT
-    if (sysPerm.equals(SystemPermission.GRANT))
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.GRANT_INVALID);
     return hasSystemPermission(c, SystemPermission.GRANT, false);
   }
 
@@ -563,10 +572,6 @@ public class SecurityOperation {
     // can't modify root user
     if (user.equals(getRootUsername()))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
-    // can't revoke GRANT
-    if (sysPerm.equals(SystemPermission.GRANT))
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.GRANT_INVALID);
 
     return hasSystemPermission(c, SystemPermission.GRANT, false);
   }

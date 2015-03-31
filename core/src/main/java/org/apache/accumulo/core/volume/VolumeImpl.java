@@ -19,18 +19,21 @@ package org.apache.accumulo.core.volume;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Basic Volume implementation that contains a FileSystem and a base path that should be used within that filesystem.
  */
 public class VolumeImpl implements Volume {
-  private static final Logger log = Logger.getLogger(VolumeImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(VolumeImpl.class);
 
   protected final FileSystem fs;
   protected final String basePath;
@@ -103,6 +106,11 @@ public class VolumeImpl implements Volume {
    */
   boolean equivalentPaths(Path other) {
     return other.toUri().getPath().startsWith(basePath);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(getFileSystem()) + Objects.hashCode(getBasePath());
   }
 
   @Override

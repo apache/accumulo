@@ -16,11 +16,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterIT;
@@ -29,21 +28,20 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
 public class WriteAheadLogIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
-    siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");
-    siteConfig.put(Property.GC_CYCLE_START.getKey(), "1");
-    siteConfig.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "4s");
-    cfg.setSiteConfig(siteConfig);
-    cfg.useMiniDFS(true);
+    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
+    cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
+    cfg.setProperty(Property.GC_CYCLE_START, "1");
+    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "4s");
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Override
@@ -58,9 +56,19 @@ public class WriteAheadLogIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.setTableName(tableName);
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    opts.setTableName(tableName);
+
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+      vopts.setPrincipal(getAdminPrincipal());
+    }
+
+    TestIngest.ingest(c, opts, new BatchWriterOpts());
     vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);

@@ -16,20 +16,22 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.concat;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.split;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each encoded element sorts lexicographically.
  *
  * @since 1.6.0
  */
-public class ListLexicoder<LT> implements Lexicoder<List<LT>> {
+public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> implements Lexicoder<List<LT>> {
 
   private Lexicoder<LT> lexicoder;
 
@@ -53,9 +55,9 @@ public class ListLexicoder<LT> implements Lexicoder<List<LT>> {
   }
 
   @Override
-  public List<LT> decode(byte[] b) {
+  protected List<LT> decodeUnchecked(byte[] b, int offset, int len) {
 
-    byte[][] escapedElements = split(b);
+    byte[][] escapedElements = split(b, offset, len);
     ArrayList<LT> ret = new ArrayList<LT>(escapedElements.length);
 
     for (byte[] escapedElement : escapedElements) {

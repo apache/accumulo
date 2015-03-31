@@ -61,8 +61,6 @@ import com.google.common.collect.Sets;
 
 public class TableOperationsIT extends AccumuloClusterIT {
 
-  static final String ROOT = "root";
-
   static TabletClientService.Client client;
 
   private Connector connector;
@@ -86,7 +84,7 @@ public class TableOperationsIT extends AccumuloClusterIT {
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
 
-    connector.securityOperations().revokeTablePermission(ROOT, tableName, TablePermission.READ);
+    connector.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName, TablePermission.READ);
     try {
       connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
       fail("Should throw securityexception");

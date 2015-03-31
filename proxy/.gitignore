@@ -26,3 +26,4 @@
 
 # python ignores
 *.pyc
+/bin/

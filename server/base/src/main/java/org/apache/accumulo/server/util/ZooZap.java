@@ -29,13 +29,14 @@ import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 public class ZooZap {
-  private static final Logger log = Logger.getLogger(ZooZap.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooZap.class);
 
   private static void message(String msg, Opts opts) {
     if (opts.verbose)
@@ -100,7 +101,7 @@ public class ZooZap {
           }
         }
       } catch (Exception e) {
-        log.error(e);
+        log.error(e.getMessage(), e);
       }
     }
 

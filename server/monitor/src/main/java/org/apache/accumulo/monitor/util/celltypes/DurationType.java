@@ -19,6 +19,7 @@ package org.apache.accumulo.monitor.util.celltypes;
 import org.apache.accumulo.core.util.Duration;
 
 public class DurationType extends NumberType<Long> {
+  private static final long serialVersionUID = 1L;
   private Long errMin;
   private Long errMax;
 

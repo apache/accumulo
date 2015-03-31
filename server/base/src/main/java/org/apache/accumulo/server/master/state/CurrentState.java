@@ -19,12 +19,20 @@ package org.apache.accumulo.server.master.state;
 import java.util.Collection;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.master.thrift.MasterState;
+
 public interface CurrentState {
 
   Set<String> onlineTables();
 
   Set<TServerInstance> onlineTabletServers();
 
+  Set<TServerInstance> shutdownServers();
+
   Collection<MergeInfo> merges();
 
+  Collection<KeyExtent> migrations();
+
+  MasterState getMasterState();
 }

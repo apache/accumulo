@@ -17,6 +17,8 @@
 package org.apache.accumulo.monitor.util.celltypes;
 
 public class StringType<T> extends CellType<T> {
+  private static final long serialVersionUID = 1L;
+
   @Override
   public String format(Object obj) {
     return obj == null ? "-" : obj.toString();

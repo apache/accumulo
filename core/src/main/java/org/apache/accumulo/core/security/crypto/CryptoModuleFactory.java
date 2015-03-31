@@ -23,7 +23,8 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This factory module exists to assist other classes in loading crypto modules.
@@ -32,7 +33,7 @@ import org.apache.log4j.Logger;
  */
 public class CryptoModuleFactory {
 
-  private static final Logger log = Logger.getLogger(CryptoModuleFactory.class);
+  private static final Logger log = LoggerFactory.getLogger(CryptoModuleFactory.class);
   private static final Map<String,CryptoModule> cryptoModulesCache = new HashMap<String,CryptoModule>();
   private static final Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache = new HashMap<String,SecretKeyEncryptionStrategy>();
 
@@ -106,12 +107,12 @@ public class CryptoModuleFactory {
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.", e.getCause().getClass()
             .getName(), cryptoModuleClassname));
-        log.warn(e.getCause());
+        log.warn("InstantiationException",e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
         log.warn(String.format("Got illegal access exception when trying to instantiate crypto module \"%s\".  No encryption will be used.",
             cryptoModuleClassname));
-        log.warn(e);
+        log.warn("IllegalAccessException",e);
         return new NullCryptoModule();
       }
     }
@@ -183,12 +184,12 @@ public class CryptoModuleFactory {
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.", e
             .getCause().getClass().getName(), className));
-        log.warn(e.getCause());
+        log.warn("InstantiationException",e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
         log.warn(String.format("Got illegal access exception when trying to instantiate secret key encryption strategy \"%s\".  No encryption will be used.",
             className));
-        log.warn(e);
+        log.warn("IllegalAccessException",e);
         return new NullSecretKeyEncryptionStrategy();
       }
     }

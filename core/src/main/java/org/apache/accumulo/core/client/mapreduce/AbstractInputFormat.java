@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -390,6 +389,18 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
+   * Construct the {@link ClientConfiguration} given the provided context.
+   *
+   * @param context
+   *          The Job
+   * @return The ClientConfiguration
+   * @since 1.7.0
+   */
+  protected static ClientConfiguration getClientConfiguration(JobContext context) {
+    return InputConfigurator.getClientConfiguration(CLASS, context.getConfiguration());
+  }
+
+  /**
    * An abstract base class to be used to create {@link org.apache.hadoop.mapreduce.RecordReader} instances that convert from Accumulo
    * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to the user's K/V types.
    *
@@ -455,29 +466,32 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
 
-      List<IteratorSetting> iterators = split.getIterators();
-      if (null == iterators) {
-        iterators = tableConfig.getIterators();
+      Boolean isOffline = split.isOffline();
+      if (null == isOffline) {
+        isOffline = tableConfig.isOfflineScan();
       }
 
-      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
-      if (null == columns) {
-        columns = tableConfig.getFetchedColumns();
+      Boolean isIsolated = split.isIsolatedScan();
+      if (null == isIsolated) {
+        isIsolated = tableConfig.shouldUseIsolatedScanners();
       }
 
-      log.debug("Creating connector with user: " + principal);
-      log.debug("Creating scanner for table: " + table);
-      log.debug("Authorizations are: " + authorizations);
+      Boolean usesLocalIterators = split.usesLocalIterators();
+      if (null == usesLocalIterators) {
+        usesLocalIterators = tableConfig.shouldUseLocalIterators();
+      }
 
-
-      if (split instanceof RangeInputSplit) {
-        RangeInputSplit rangeSplit = (RangeInputSplit) split;
-
-        Scanner scanner;
-
-        Boolean isOffline = rangeSplit.isOffline();
-        if (null == isOffline) {
-          isOffline = tableConfig.isOfflineScan();
+      try {
+        log.debug("Creating connector with user: " + principal);
+        log.debug("Creating scanner for table: " + table);
+        log.debug("Authorizations are: " + authorizations);
+        if (isOffline) {
+          scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+        } else if (instance instanceof MockInstance) {
+          scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
+        } else {
+          ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
+          scanner = new ScannerImpl(context, split.getTableId(), authorizations);
         }
 
         Boolean isIsolated = rangeSplit.isIsolatedScan();
@@ -530,6 +544,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
         scanner.setRanges(batchSplit.getRanges());
         scannerBase = scanner;
+      }
+
+      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = tableConfig.getFetchedColumns();
       }
 
       // setup a scanner within the bounds of this split
@@ -670,7 +689,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           tl.invalidateCache();
 
           ClientContext clientContext = new ClientContext(getInstance(context), new Credentials(getPrincipal(context), getAuthenticationToken(context)),
-              ClientConfiguration.loadDefault());
+              getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             if (!(instance instanceof MockInstance)) {
               if (!Tables.exists(instance, tableId))

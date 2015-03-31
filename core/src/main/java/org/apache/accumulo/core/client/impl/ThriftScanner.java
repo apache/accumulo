@@ -196,6 +196,12 @@ public class ThriftScanner {
 
   }
 
+  private static long pause(long millis) throws InterruptedException {
+    Thread.sleep(millis);
+    // wait 2 * last time, with +-10% random jitter
+    return (long)(Math.max(millis * 2, 3000) * (.9 + Math.random() / 5));
+  }
+
   public static List<KeyValue> scan(ClientContext context, ScanState scanState, int timeOut) throws ScanTimedOutException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     TabletLocation loc = null;
@@ -204,6 +210,7 @@ public class ThriftScanner {
     String lastError = null;
     String error = null;
     int tooManyFilesCount = 0;
+    long sleepMillis = 100;
 
     List<KeyValue> results = null;
 
@@ -238,7 +245,7 @@ public class ThriftScanner {
               else if (log.isTraceEnabled())
                 log.trace(error);
               lastError = error;
-              Thread.sleep(100);
+              sleepMillis = pause(sleepMillis);
             } else {
               // when a tablet splits we do want to continue scanning the low child
               // of the split if we are already passed it
@@ -266,7 +273,7 @@ public class ThriftScanner {
               log.trace(error);
 
             lastError = error;
-            Thread.sleep(100);
+            sleepMillis = pause(sleepMillis);
           } finally {
             locateSpan.stop();
           }
@@ -301,7 +308,7 @@ public class ThriftScanner {
           if (scanState.isolated)
             throw new IsolationException();
 
-          Thread.sleep(100);
+          sleepMillis = pause(sleepMillis);
         } catch (NoSuchScanIDException e) {
           error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
           if (!error.equals(lastError))
@@ -336,7 +343,7 @@ public class ThriftScanner {
           if (scanState.isolated)
             throw new IsolationException();
 
-          Thread.sleep(100);
+          sleepMillis = pause(sleepMillis);
         } catch (TException e) {
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context.getInstance(), loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
@@ -354,7 +361,7 @@ public class ThriftScanner {
           if (scanState.isolated)
             throw new IsolationException();
 
-          Thread.sleep(100);
+          sleepMillis = pause(sleepMillis);
         } finally {
           scanLocation.stop();
         }

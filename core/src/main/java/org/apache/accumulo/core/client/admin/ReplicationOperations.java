@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.replication.PeerExistsException;
 import org.apache.accumulo.core.client.replication.PeerNotFoundException;
-import org.apache.accumulo.core.client.replication.ReplicaSystem;
 
 /**
  * Supports replication configuration
@@ -33,22 +32,12 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 public interface ReplicationOperations {
 
   /**
-   * Defines a cluster with the given name using the given {@link ReplicaSystem} implementation.
-   *
-   * @param name
-   *          Name of the cluster, used for configuring replication on tables
-   * @param system
-   *          Type of system to be replicated to
-   */
-  public void addPeer(String name, Class<? extends ReplicaSystem> system) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
-
-  /**
    * Defines a cluster with the given name and the given name system.
    *
    * @param name
    *          Unique name for the cluster
    * @param replicaType
-   *          {@link ReplicaSystem} class name to use to replicate the data
+   *          Class name to use to replicate the data
    */
   public void addPeer(String name, String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
 

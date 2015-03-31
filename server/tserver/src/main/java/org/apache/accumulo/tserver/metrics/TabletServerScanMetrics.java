@@ -22,11 +22,11 @@ import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 
 public class TabletServerScanMetrics extends AbstractMetricsImpl implements TabletServerScanMetricsMBean {
 
-  static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(TabletServerScanMetrics.class);
+  static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TabletServerScanMetrics.class);
 
   public static final String METRICS_PREFIX = "tserver.scan";
 
-  static ObjectName OBJECT_NAME = null;
+  ObjectName OBJECT_NAME = null;
 
   TabletServerScanMetrics() {
     super();

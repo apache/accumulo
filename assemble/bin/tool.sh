@@ -37,7 +37,7 @@ if [[ -z "$ZOOKEEPER_HOME" ]] ; then
 fi
 
 ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
-if [[ $(eval $ZOOKEEPER_CMD | wc -l) != "1" ]] ; then
+if [[ $(eval $ZOOKEEPER_CMD | wc -l) -ne 1 ]] ; then
    echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
    exit 1
 fi
@@ -51,6 +51,7 @@ TRACE_LIB="$LIB/accumulo-trace.jar"
 JCOMMANDER_LIB="$LIB/jcommander.jar"
 COMMONS_VFS_LIB="$LIB/commons-vfs2.jar"
 GUAVA_LIB="$LIB/guava.jar"
+HTRACE_LIB="$LIB/htrace-core.jar"
 
 USERJARS=" "
 for arg in "$@"; do
@@ -71,8 +72,8 @@ for arg in "$@"; do
    fi
 done
 
-LIB_JARS="$THRIFT_LIB,$CORE_LIB,$FATE_LIB,$ZOOKEEPER_LIB,$TRACE_LIB,$JCOMMANDER_LIB,$COMMONS_VFS_LIB,$GUAVA_LIB"
-H_JARS="$THRIFT_LIB:$CORE_LIB:$FATE_LIB:$ZOOKEEPER_LIB:$TRACE_LIB:$JCOMMANDER_LIB:$COMMONS_VFS_LIB:$GUAVA_LIB"
+LIB_JARS="$THRIFT_LIB,$CORE_LIB,$FATE_LIB,$ZOOKEEPER_LIB,$TRACE_LIB,$JCOMMANDER_LIB,$COMMONS_VFS_LIB,$GUAVA_LIB,$HTRACE_LIB"
+H_JARS="$THRIFT_LIB:$CORE_LIB:$FATE_LIB:$ZOOKEEPER_LIB:$TRACE_LIB:$JCOMMANDER_LIB:$COMMONS_VFS_LIB:$GUAVA_LIB:$HTRACE_LIB"
 
 for jar in $USERJARS; do
    LIB_JARS="$LIB_JARS,$jar"

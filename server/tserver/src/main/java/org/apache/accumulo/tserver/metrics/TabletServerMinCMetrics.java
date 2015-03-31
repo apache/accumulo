@@ -22,11 +22,11 @@ import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 
 public class TabletServerMinCMetrics extends AbstractMetricsImpl implements TabletServerMinCMetricsMBean {
 
-  static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(TabletServerMinCMetrics.class);
+  static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TabletServerMinCMetrics.class);
 
   private static final String METRICS_PREFIX = "tserver.minc";
 
-  private static ObjectName OBJECT_NAME = null;
+  private ObjectName OBJECT_NAME = null;
 
   TabletServerMinCMetrics() {
     super();

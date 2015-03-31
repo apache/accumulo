@@ -19,6 +19,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import java.util.Objects;
+
 /**
  * Represents an entry in the {@link LruBlockCache}.
  *
@@ -79,10 +81,22 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     }
   }
 
+  @Override
   public long heapSize() {
     return size;
   }
 
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(accessTime);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj || (obj != null && obj instanceof CachedBlock && 0 == compareTo((CachedBlock) obj));
+  }
+
+  @Override
   public int compareTo(CachedBlock that) {
     if (this.accessTime == that.accessTime)
       return 0;

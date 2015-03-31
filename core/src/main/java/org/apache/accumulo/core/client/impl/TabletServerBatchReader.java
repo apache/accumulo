@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -29,10 +30,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
-  private static final Logger log = Logger.getLogger(TabletServerBatchReader.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReader.class);
 
   private String table;
   private int numThreads;

@@ -34,7 +34,8 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -42,7 +43,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class PrintInfo implements KeywordExecutable {
 
-  private static final Logger log = Logger.getLogger(PrintInfo.class);
+  private static final Logger log = LoggerFactory.getLogger(PrintInfo.class);
 
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
@@ -55,6 +56,8 @@ public class PrintInfo implements KeywordExecutable {
     boolean histogram = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
+    @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
+    List<String> configFiles = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {
@@ -68,16 +71,21 @@ public class PrintInfo implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    Configuration conf = new Configuration();
-
-    FileSystem hadoopFs = FileSystem.get(conf);
-    FileSystem localFs = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
     if (opts.files.isEmpty()) {
       System.err.println("No files were given");
       System.exit(-1);
     }
+
+    Configuration conf = new Configuration();
+    for (String confFile : opts.configFiles) {
+      log.debug("Adding Hadoop configuration file " + confFile);
+      conf.addResource(new Path(confFile));
+    }
+
+    FileSystem hadoopFs = FileSystem.get(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
 
     long countBuckets[] = new long[11];
     long sizeBuckets[] = new long[countBuckets.length];

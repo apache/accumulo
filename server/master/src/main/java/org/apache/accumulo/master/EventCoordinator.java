@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.master;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EventCoordinator {
 
-  private static final Logger log = Logger.getLogger(EventCoordinator.class);
+  private static final Logger log = LoggerFactory.getLogger(EventCoordinator.class);
   long eventCounter = 0;
 
   synchronized long waitForEvents(long millis, long lastEvent) {

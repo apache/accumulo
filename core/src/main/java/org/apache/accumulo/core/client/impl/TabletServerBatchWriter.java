@@ -65,11 +65,12 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
@@ -98,7 +99,7 @@ import com.google.common.net.HostAndPort;
 
 public class TabletServerBatchWriter {
 
-  private static final Logger log = Logger.getLogger(TabletServerBatchWriter.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
 
   // basic configuration
   private final ClientContext context;
@@ -238,9 +239,12 @@ public class TabletServerBatchWriter {
 
     checkForFailures();
 
-    while ((totalMemUsed > maxMem || flushing) && !somethingFailed) {
-      waitRTE();
-    }
+    waitRTE(new WaitCondition() {
+      @Override
+      public boolean shouldWait() {
+        return (totalMemUsed > maxMem || flushing) && !somethingFailed;
+      }
+    });
 
     // do checks again since things could have changed while waiting and not holding lock
     if (closed)
@@ -298,8 +302,12 @@ public class TabletServerBatchWriter {
 
       if (flushing) {
         // some other thread is currently flushing, so wait
-        while (flushing && !somethingFailed)
-          waitRTE();
+        waitRTE(new WaitCondition() {
+          @Override
+          public boolean shouldWait() {
+            return flushing && !somethingFailed;
+          }
+        });
 
         checkForFailures();
 
@@ -311,9 +319,12 @@ public class TabletServerBatchWriter {
       startProcessing();
       checkForFailures();
 
-      while (totalMemUsed > 0 && !somethingFailed) {
-        waitRTE();
-      }
+      waitRTE(new WaitCondition() {
+        @Override
+        public boolean shouldWait() {
+          return totalMemUsed > 0 && !somethingFailed;
+        }
+      });
 
       flushing = false;
       this.notifyAll();
@@ -336,9 +347,12 @@ public class TabletServerBatchWriter {
 
       startProcessing();
 
-      while (totalMemUsed > 0 && !somethingFailed) {
-        waitRTE();
-      }
+      waitRTE(new WaitCondition() {
+        @Override
+        public boolean shouldWait() {
+          return totalMemUsed > 0 && !somethingFailed;
+        }
+      });
 
       logStats();
 
@@ -433,9 +447,15 @@ public class TabletServerBatchWriter {
     numBatches++;
   }
 
-  private void waitRTE() {
+  private interface WaitCondition {
+    boolean shouldWait();
+  }
+
+  private void waitRTE(WaitCondition condition) {
     try {
-      wait();
+      while (condition.shouldWait()) {
+        wait();
+      }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }

@@ -30,7 +30,8 @@ import org.apache.commons.vfs2.provider.FileReplicator;
 import org.apache.commons.vfs2.provider.UriParser;
 import org.apache.commons.vfs2.provider.VfsComponent;
 import org.apache.commons.vfs2.provider.VfsComponentContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -38,7 +39,7 @@ import org.apache.log4j.Logger;
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   private static final char[] TMP_RESERVED_CHARS = new char[] {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
-  private static final Logger log = Logger.getLogger(UniqueFileReplicator.class);
+  private static final Logger log = LoggerFactory.getLogger(UniqueFileReplicator.class);
 
   private File tempDir;
   private VfsComponentContext context;

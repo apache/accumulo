@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.examples.simple.client.RandomBatchWriter.abs;
 
 import java.util.Arrays;
@@ -36,7 +37,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -44,7 +46,7 @@ import com.beust.jcommander.Parameter;
  * Internal class used to verify validity of data read.
  */
 class CountingVerifyingReceiver {
-  private static final Logger log = Logger.getLogger(CountingVerifyingReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
 
   long count = 0;
   int expectedValueSize = 0;
@@ -63,7 +65,7 @@ class CountingVerifyingReceiver {
     byte expectedValue[] = RandomBatchWriter.createValue(rowid, expectedValueSize);
 
     if (!Arrays.equals(expectedValue, value.get())) {
-      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue) + " got : " + new String(value.get()));
+      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue, UTF_8) + " got : " + new String(value.get(), UTF_8));
     }
 
     if (!expectedRows.containsKey(key.getRow())) {
@@ -80,7 +82,7 @@ class CountingVerifyingReceiver {
  * Simple example for reading random batches of data from Accumulo. See docs/examples/README.batch for instructions.
  */
 public class RandomBatchScanner {
-  private static final Logger log = Logger.getLogger(CountingVerifyingReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
 
   /**
    * Generate a number of ranges, each covering a single random row.

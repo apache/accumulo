@@ -30,11 +30,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.test.continuous.ContinuousIngest;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Ingest extends ScaleTest {
 
-  private static final Logger log = Logger.getLogger(Ingest.class);
+  private static final Logger log = LoggerFactory.getLogger(Ingest.class);
 
   @Override
   public void setup() {
@@ -81,6 +82,7 @@ public class Ingest extends ScaleTest {
           .setMaxWriteThreads(maxWriteThreads));
     } catch (TableNotFoundException e) {
       log.error("Table '" + tableName + "' not found.", e);
+      System.exit(-1);
     }
 
     // configure writing

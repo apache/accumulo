@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.security.tokens;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
@@ -40,6 +41,7 @@ public class KerberosToken implements AuthenticationToken {
   private static final int VERSION = 1;
 
   private String principal;
+  private File keytab;
 
   /**
    * Creates a token using the provided principal and the currently logged-in user via {@link UserGroupInformation}.
@@ -56,6 +58,25 @@ public class KerberosToken implements AuthenticationToken {
   }
 
   /**
+   * Creates a token and logs in via {@link UserGroupInformation} using the provided principal and keytab. A key for the principal must exist in the keytab,
+   * otherwise login will fail.
+   *
+   * @param principal
+   *          The Kerberos principal
+   * @param keytab
+   *          A keytab file
+   */
+  public KerberosToken(String principal, File keytab) throws IOException {
+    Preconditions.checkNotNull(principal, "Principal was null");
+    Preconditions.checkNotNull(keytab, "Keytab was null");
+    Preconditions.checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
+    UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    this.principal = ugi.getUserName();
+    this.keytab = keytab;
+  }
+
+  /**
    * Creates a token using the login user as returned by {@link UserGroupInformation#getCurrentUser()}
    *
    * @throws IOException
@@ -68,8 +89,11 @@ public class KerberosToken implements AuthenticationToken {
   @Override
   public KerberosToken clone() {
     try {
-      return new KerberosToken(principal);
-    } catch (IOException e) {
+      KerberosToken clone = (KerberosToken) super.clone();
+      clone.principal = principal;
+      clone.keytab = keytab == null ? keytab : keytab.getCanonicalFile();
+      return clone;
+    } catch (CloneNotSupportedException | IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -94,6 +118,13 @@ public class KerberosToken implements AuthenticationToken {
    */
   public String getPrincipal() {
     return principal;
+  }
+
+  /**
+   * The keytab file used to perform Kerberos login. Optional, may be null.
+   */
+  public File getKeytab() {
+    return keytab;
   }
 
   @Override

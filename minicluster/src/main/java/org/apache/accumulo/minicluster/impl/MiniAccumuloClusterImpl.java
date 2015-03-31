@@ -287,8 +287,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
       argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
     }
-    argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", "-Dapple.awt.UIElement=true",
-        "-Djava.net.preferIPv4Stack=true", Main.class.getName(), className));
+    argList.addAll(Arrays.asList(
+        "-XX:+UseConcMarkSweepGC",
+        "-XX:CMSInitiatingOccupancyFraction=75",
+        "-Dapple.awt.UIElement=true",
+        "-Djava.net.preferIPv4Stack=true",
+        "-XX:+PerfDisableSharedMem",
+        "-XX:+AlwaysPreTouch",
+        Main.class.getName(), className));
     argList.addAll(Arrays.asList(args));
 
     ProcessBuilder builder = new ProcessBuilder(argList);
@@ -360,24 +366,24 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     this.config = config.initialize();
 
-    config.getConfDir().mkdirs();
-    config.getLogDir().mkdirs();
-    config.getLibDir().mkdirs();
-    config.getLibExtDir().mkdirs();
+    mkdirs(config.getConfDir());
+    mkdirs(config.getLogDir());
+    mkdirs(config.getLibDir());
+    mkdirs(config.getLibExtDir());
 
     if (!config.useExistingInstance()) {
-      config.getZooKeeperDir().mkdirs();
-      config.getWalogDir().mkdirs();
-      config.getAccumuloDir().mkdirs();
+      mkdirs(config.getZooKeeperDir());
+      mkdirs(config.getWalogDir());
+      mkdirs(config.getAccumuloDir());
     }
 
     if (config.useMiniDFS()) {
       File nn = new File(config.getAccumuloDir(), "nn");
-      nn.mkdirs();
+      mkdirs(nn);
       File dn = new File(config.getAccumuloDir(), "dn");
-      dn.mkdirs();
+      mkdirs(dn);
       File dfs = new File(config.getAccumuloDir(), "dfs");
-      dfs.mkdirs();
+      mkdirs(dfs);
       Configuration conf = new Configuration();
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nn.getAbsolutePath());
       conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.getAbsolutePath());
@@ -447,6 +453,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     clusterControl = new MiniAccumuloClusterControl(this);
+  }
+
+  private static void mkdirs(File dir) {
+    if (!dir.mkdirs()) {
+      log.warn("Unable to create {}", dir);
+    }
   }
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
@@ -794,5 +806,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public MiniAccumuloClusterControl getClusterControl() {
     return clusterControl;
+  }
+
+  @Override
+  public Path getTemporaryPath() {
+    if (config.useMiniDFS()) {
+      return new Path("/tmp/");
+    } else {
+      File tmp = new File(config.getDir(), "tmp");
+      mkdirs(tmp);
+      return new Path(tmp.toString());
+    }
   }
 }

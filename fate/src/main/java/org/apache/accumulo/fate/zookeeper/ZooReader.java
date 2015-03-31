@@ -17,11 +17,10 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -29,9 +28,11 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooReader implements IZooReader {
-  private static final Logger log = Logger.getLogger(ZooReader.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
   protected String keepers;
   protected int timeout;
@@ -221,21 +222,15 @@ public class ZooReader implements IZooReader {
   @Override
   public void sync(final String path) throws KeeperException, InterruptedException {
     final AtomicInteger rc = new AtomicInteger();
-    final AtomicBoolean waiter = new AtomicBoolean(false);
+    final CountDownLatch waiter = new CountDownLatch(1);
     getZooKeeper().sync(path, new VoidCallback() {
       @Override
       public void processResult(int code, String arg1, Object arg2) {
         rc.set(code);
-        synchronized (waiter) {
-          waiter.set(true);
-          waiter.notifyAll();
-        }
+        waiter.countDown();
       }
     }, null);
-    synchronized (waiter) {
-      while (!waiter.get())
-        waiter.wait();
-    }
+    waiter.await();
     Code code = Code.get(rc.get());
     if (code != KeeperException.Code.OK) {
       throw KeeperException.create(code);

@@ -39,15 +39,16 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BloomFilterLayerLookupTest {
 
-  private static final Logger LOG = Logger.getLogger(BloomFilterLayerLookupTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
   private static Random random = new Random();
 
   @Rule

@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+
 import java.math.BigInteger;
 import java.util.Arrays;
 
 /**
  *
  */
-public class BigIntegerLexicoderTest extends LexicoderTest {
+public class BigIntegerLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     assertSortOrder(new BigIntegerLexicoder(), Arrays.asList(new BigInteger("-1"), new BigInteger("0"), new BigInteger("1"), new BigInteger("-257"),
         new BigInteger("-256"), new BigInteger("-255"), new BigInteger("255"), new BigInteger("256"), new BigInteger("257"), new BigInteger("65534"),
@@ -32,5 +34,13 @@ public class BigIntegerLexicoderTest extends LexicoderTest {
         new BigInteger("32767"), new BigInteger("-32768"), new BigInteger("-32769"), new BigInteger("-32767"), new BigInteger("126"), new BigInteger("127"),
         new BigInteger("128"), new BigInteger("129"), new BigInteger("-126"), new BigInteger("-127"), new BigInteger("-128"), new BigInteger("-129")));
 
+  }
+
+  public void testDecode() {
+    assertDecodes(new BigIntegerLexicoder(), new BigInteger("-2147483649"));
+    assertDecodes(new BigIntegerLexicoder(), new BigInteger("-1"));
+    assertDecodes(new BigIntegerLexicoder(), BigInteger.ZERO);
+    assertDecodes(new BigIntegerLexicoder(), BigInteger.ONE);
+    assertDecodes(new BigIntegerLexicoder(), new BigInteger("2147483647"));
   }
 }

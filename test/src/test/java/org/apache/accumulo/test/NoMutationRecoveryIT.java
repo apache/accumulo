@@ -42,11 +42,17 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // Verify that a recovery of a log without any mutations removes the log reference
 public class NoMutationRecoveryIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(NoMutationRecoveryIT.class);
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -55,14 +61,31 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  }
+
+  @Before
+  public void takeTraceTableOffline() throws Exception {
+    Connector conn = getConnector();
+    if (conn.tableOperations().exists("trace")) {
+      conn.tableOperations().offline("trace", true);
+    }
+  }
+
+  @After
+  public void takeTraceTableOnline() throws Exception {
+    Connector conn = getConnector();
+    if (conn.tableOperations().exists("trace")) {
+      conn.tableOperations().online("trace", true);
+    }
   }
 
   public boolean equals(Entry<Key,Value> a, Entry<Key,Value> b) {
     // comparison, without timestamp
     Key akey = a.getKey();
     Key bkey = b.getKey();
+    log.info("Comparing {} to {}", akey.toStringNoTruncate(), bkey.toStringNoTruncate());
     return akey.compareTo(bkey, PartialKey.ROW_COLFAM_COLQUAL_COLVIS) == 0 && a.getValue().equals(b.getValue());
   }
 
@@ -72,13 +95,33 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     final String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
     String tableId = conn.tableOperations().tableIdMap().get(table);
+
+    log.info("Created {} with id {}", table, tableId);
+
+    // Add a record to the table
     update(conn, table, new Text("row"), new Text("cf"), new Text("cq"), new Value("value".getBytes()));
+
+    // Get the WAL reference used by the table we just added the update to
     Entry<Key,Value> logRef = getLogRef(conn, MetadataTable.NAME);
+
+    log.info("Log reference in metadata table {} {}", logRef.getKey().toStringNoTruncate(), logRef.getValue());
+
+    // Flush the record to disk
     conn.tableOperations().flush(table, null, null, true);
-    assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME, Range.prefix(tableId))));
+
+    Range range = Range.prefix(tableId);
+    log.info("Fetching WAL references over " + table);
+    assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME, range)));
+
+    // Grant permission to the admin user to write to the Metadata table
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+
+    // Add the wal record back to the metadata table
     update(conn, MetadataTable.NAME, logRef);
+
+    // Assert that we can get the bogus update back out again
     assertTrue(equals(logRef, getLogRef(conn, MetadataTable.NAME)));
+
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 
@@ -86,6 +129,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     control.stopAllServers(ServerType.TABLET_SERVER);
     control.startAllServers(ServerType.TABLET_SERVER);
 
+    // Verify that we can read the original record we wrote
     Scanner s = conn.createScanner(table, Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> e : s) {
@@ -96,8 +140,10 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
       count++;
     }
     assertEquals(1, count);
+
+    // Verify that the bogus log reference we wrote it gone
     for (Entry<Key,Value> ref : getLogRefs(conn, MetadataTable.NAME)) {
-      assertFalse(equals(ref, logRef));
+      assertFalse("Unexpected found reference to bogus log entry: " + ref.getKey().toStringNoTruncate() + " " + ref.getValue(), equals(ref, logRef));
     }
   }
 

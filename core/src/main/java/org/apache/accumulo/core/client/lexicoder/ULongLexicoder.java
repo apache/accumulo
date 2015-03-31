@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 /**
  * Unsigned long lexicoder. The lexicographic encoding sorts first 0l and -1l last. This encoding does not correspond to the sort of Long because it does not
  * consider the sign bit. If Java had an unsigned long type, this encoder would correspond to its sort order.
  *
  * @since 1.6.0
  */
-public class ULongLexicoder implements Lexicoder<Long> {
+public class ULongLexicoder extends AbstractLexicoder<Long> implements Lexicoder<Long> {
 
   @Override
   public byte[] encode(Long l) {
@@ -52,22 +54,22 @@ public class ULongLexicoder implements Lexicoder<Long> {
   }
 
   @Override
-  public Long decode(byte[] data) {
+  protected Long decodeUnchecked(byte[] data, int offset, int len) {
 
     long l = 0;
     int shift = 0;
 
-    if (data[0] < 0 || data[0] > 16)
-      throw new IllegalArgumentException("Unexpected length " + (0xff & data[0]));
+    if (data[offset] < 0 || data[offset] > 16)
+      throw new IllegalArgumentException("Unexpected length " + (0xff & data[offset]));
 
-    for (int i = data.length - 1; i >= 1; i--) {
+    for (int i = (offset + len) - 1; i >= offset + 1; i--) {
       l += (data[i] & 0xffl) << shift;
       shift += 8;
     }
 
     // fill in 0xff prefix
-    if (data[0] > 8)
-      l |= -1l << ((16 - data[0]) << 3);
+    if (data[offset] > 8)
+      l |= -1l << ((16 - data[offset]) << 3);
 
     return l;
   }

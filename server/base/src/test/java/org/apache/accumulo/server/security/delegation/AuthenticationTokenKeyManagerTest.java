@@ -114,11 +114,28 @@ public class AuthenticationTokenKeyManagerTest {
     assertEquals(authKey.getKeyId(), keyManager.getIdSeq());
   }
 
+  private static class MockManager extends AuthenticationTokenKeyManager {
+
+    CountDownLatch latch;
+
+    public MockManager() {
+      super(null, null, 0, 0);
+    }
+
+    @Override
+    public void run() {
+      log.info("Thread running");
+      latch.countDown();
+      super.run();
+    }
+
+  }
+
   @Test(timeout = 30 * 1000)
   public void testStopLoop() throws InterruptedException {
-    final AuthenticationTokenKeyManager keyManager = EasyMock.createMockBuilder(AuthenticationTokenKeyManager.class).addMockedMethod("_run")
-        .addMockedMethod("updateStateFromCurrentKeys").createMock();
-    final CountDownLatch latch = new CountDownLatch(1);
+    final MockManager keyManager = EasyMock.createMockBuilder(MockManager.class).addMockedMethod("_run").addMockedMethod("updateStateFromCurrentKeys")
+        .createMock();
+    keyManager.latch = new CountDownLatch(1);
 
     // Mock out the _run and updateStateFromCurrentKeys method so we just get the logic from "run()"
     keyManager._run(EasyMock.anyLong());
@@ -132,20 +149,13 @@ public class AuthenticationTokenKeyManagerTest {
 
     // Wrap another Runnable around our KeyManager so we know when the thread is actually run as it's "async" when the method will actually be run after we call
     // thread.start()
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        log.info("Thread running");
-        latch.countDown();
-        keyManager.run();
-      }
-    });
+    Thread t = new Thread(keyManager);
 
     log.info("Starting thread");
     t.start();
 
     // Wait for the thread to start
-    latch.await();
+    keyManager.latch.await();
     log.info("Latch fired");
 
     // Wait a little bit to let the first call to _run() happen (avoid exiting the loop before any calls to _run())

@@ -25,7 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Fault tolerant executor
@@ -40,7 +42,7 @@ public class Fate<T> {
   private static final String EXCEPTION_PROP = "exception";
   private static final String RETURN_PROP = "return";
 
-  final private static Logger log = Logger.getLogger(Fate.class);
+  final private static Logger log = LoggerFactory.getLogger(Fate.class);
 
   private TStore<T> store;
   private T environment;

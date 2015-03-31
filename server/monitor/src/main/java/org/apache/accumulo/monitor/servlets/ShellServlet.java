@@ -40,8 +40,22 @@ import org.apache.accumulo.shell.Shell;
 
 public class ShellServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
-  private Map<String,ShellExecutionThread> userShells = new HashMap<String,ShellExecutionThread>();
-  private ExecutorService service = Executors.newCachedThreadPool();
+  private transient volatile Map<String,ShellExecutionThread> userShells = null;
+  private transient volatile ExecutorService service = null;
+
+  private synchronized Map<String,ShellExecutionThread> userShells() {
+    if (userShells == null) {
+      userShells = new HashMap<String,ShellExecutionThread>();
+    }
+    return userShells;
+  }
+
+  private synchronized ExecutorService service() {
+    if (service == null) {
+      service = Executors.newCachedThreadPool();
+    }
+    return service;
+  }
 
   public static final String CSRF_KEY = "csrf_token";
 
@@ -80,8 +94,8 @@ public class ShellServlet extends BasicServlet {
       try {
         // get a new shell for this user
         ShellExecutionThread shellThread = new ShellExecutionThread(user, pass, mock);
-        service.submit(shellThread);
-        userShells.put(session.getId(), shellThread);
+        service().submit(shellThread);
+        userShells().put(session.getId(), shellThread);
       } catch (IOException e) {
         // error validating user, reauthenticate
         sb.append("<div id='loginError'>Invalid user/password</div>" + authenticationForm(req.getRequestURI(), CSRF_TOKEN));
@@ -89,13 +103,13 @@ public class ShellServlet extends BasicServlet {
       }
       session.setAttribute("user", user);
     }
-    if (!userShells.containsKey(session.getId())) {
+    if (!userShells().containsKey(session.getId())) {
       // no existing shell for this user, re-authenticate
       sb.append(authenticationForm(req.getRequestURI(), UUID.randomUUID().toString()));
       return;
     }
 
-    ShellExecutionThread shellThread = userShells.get(session.getId());
+    ShellExecutionThread shellThread = userShells().get(session.getId());
     shellThread.getOutput();
     shellThread.printInfo();
     sb.append("<div id='shell'>\n");
@@ -171,7 +185,7 @@ public class ShellServlet extends BasicServlet {
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     final HttpSession session = req.getSession(true);
     String user = (String) session.getAttribute("user");
-    if (user == null || !userShells.containsKey(session.getId())) {
+    if (user == null || !userShells().containsKey(session.getId())) {
       // no existing shell for user, re-authenticate
       doGet(req, resp);
       return;
@@ -181,7 +195,7 @@ public class ShellServlet extends BasicServlet {
       // no csrf token, need to re-auth
       doGet(req, resp);
     }
-    ShellExecutionThread shellThread = userShells.get(session.getId());
+    ShellExecutionThread shellThread = userShells().get(session.getId());
     String cmd = req.getParameter("cmd");
     if (cmd == null) {
       // the command is null, just print prompt
@@ -193,7 +207,7 @@ public class ShellServlet extends BasicServlet {
     shellThread.waitUntilReady();
     if (shellThread.isDone()) {
       // the command was exit, invalidate session
-      userShells.remove(session.getId());
+      userShells().remove(session.getId());
       session.invalidate();
       return;
     }
@@ -302,7 +316,9 @@ public class ShellServlet extends BasicServlet {
         cmdIndex = 0;
         try {
           shell.execCommand(tcmd, false, true);
-        } catch (IOException e) {}
+        } catch (IOException e) {
+          // ignored
+        }
         this.notifyAll();
       }
       done = true;

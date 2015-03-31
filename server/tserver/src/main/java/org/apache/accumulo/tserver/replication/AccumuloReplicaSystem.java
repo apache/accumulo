@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -35,17 +36,13 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
-import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
@@ -60,6 +57,10 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.replication.ReplicaSystem;
+import org.apache.accumulo.server.replication.ReplicaSystemHelper;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
@@ -74,9 +75,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
-/**
- *
- */
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
@@ -667,10 +665,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
 
     @Override
+    public int hashCode() {
+      return Objects.hashCode(sizeInBytes + sizeInRecords + entriesConsumed);
+    }
+
+    @Override
     public boolean equals(Object o) {
-      if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
-        ReplicationStats other = (ReplicationStats) o;
-        return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords && entriesConsumed == other.entriesConsumed;
+      if (o != null) {
+        if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
+          ReplicationStats other = (ReplicationStats) o;
+          return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords && entriesConsumed == other.entriesConsumed;
+        }
       }
       return false;
     }
@@ -706,6 +711,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       super(size, edits.getEditsSize(), entriesConsumed);
       this.walEdits = edits;
       this.numUpdates = numMutations;
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + Objects.hashCode(walEdits) + Objects.hashCode(numUpdates);
     }
 
     @Override

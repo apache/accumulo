@@ -45,7 +45,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.util.PreAllocatedArray;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid pauses caused by Java GC.
@@ -58,7 +59,7 @@ import org.apache.log4j.Logger;
 
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
-  private static final Logger log = Logger.getLogger(NativeMap.class);
+  private static final Logger log = LoggerFactory.getLogger(NativeMap.class);
   private static AtomicBoolean loadedNativeLibraries = new AtomicBoolean(false);
 
   // Load native library

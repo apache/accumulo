@@ -48,10 +48,15 @@ public class ReplicationServlet extends BasicServlet {
 
   private static final long serialVersionUID = 1L;
 
-  private ReplicationUtil replicationUtil;
+  // transient because it's not serializable and servlets are serializable
+  private transient volatile ReplicationUtil replicationUtil = null;
 
-  public ReplicationServlet() {
-    replicationUtil = new ReplicationUtil(Monitor.getContext());
+  private synchronized ReplicationUtil getReplicationUtil() {
+    // make transient replicationUtil available as needed
+    if (replicationUtil == null) {
+      replicationUtil = new ReplicationUtil(Monitor.getContext());
+    }
+    return replicationUtil;
   }
 
   @Override
@@ -65,7 +70,7 @@ public class ReplicationServlet extends BasicServlet {
     final MasterMonitorInfo mmi = Monitor.getMmi();
 
     // The total number of "slots" we have to replicate data
-    int totalWorkQueueSize = replicationUtil.getMaxReplicationThreads(mmi);
+    int totalWorkQueueSize = getReplicationUtil().getMaxReplicationThreads(mmi);
 
     TableOperations tops = conn.tableOperations();
     if (!ReplicationTable.isOnline(conn)) {
@@ -80,16 +85,16 @@ public class ReplicationServlet extends BasicServlet {
     replicationStats.addSortableColumn("ReplicaSystem Type");
     replicationStats.addSortableColumn("Files needing replication", new NumberType<Long>(), null);
 
-    Map<String,String> peers = replicationUtil.getPeers();
+    Map<String,String> peers = getReplicationUtil().getPeers();
 
     // The total set of configured targets
-    Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets();
+    Set<ReplicationTarget> allConfiguredTargets = getReplicationUtil().getReplicationTargets();
 
     // Number of files per target we have to replicate
-    Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications();
+    Map<ReplicationTarget,Long> targetCounts = getReplicationUtil().getPendingReplications();
 
     Map<String,String> tableNameToId = tops.tableIdMap();
-    Map<String,String> tableIdToName = replicationUtil.invert(tableNameToId);
+    Map<String,String> tableIdToName = getReplicationUtil().invert(tableNameToId);
 
     long filesPendingOverAllTargets = 0l;
     for (ReplicationTarget configuredTarget : allConfiguredTargets) {
@@ -146,8 +151,8 @@ public class ReplicationServlet extends BasicServlet {
         String filename = queueKeyPair.getKey();
         ReplicationTarget target = queueKeyPair.getValue();
 
-        String path = replicationUtil.getAbsolutePath(conn, workQueuePath, queueKey);
-        String progress = replicationUtil.getProgress(conn, path, target);
+        String path = getReplicationUtil().getAbsolutePath(conn, workQueuePath, queueKey);
+        String progress = getReplicationUtil().getProgress(conn, path, target);
 
         // Add a row in the table
         replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(),

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.servlets.trace;
 
+import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -35,6 +36,7 @@ import org.apache.accumulo.monitor.util.celltypes.StringType;
 import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 
 public class Summary extends Basic {
 
@@ -78,6 +80,7 @@ public class Summary extends Basic {
 
   private static class ShowTypeLink extends StringType<String> {
 
+    private static final long serialVersionUID = 1L;
     int minutes;
 
     public ShowTypeLink(int minutes) {
@@ -95,6 +98,8 @@ public class Summary extends Basic {
   }
 
   static private class HistogramType extends StringType<Stats> {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public String format(Object obj) {
       Stats stat = (Stats) obj;
@@ -141,17 +146,7 @@ public class Summary extends Basic {
     return new Range(new Text("start:" + startHexTime), new Text("start:" + endHexTime));
   }
 
-  @Override
-  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
-    int minutes = getMinutes(req);
-
-    Scanner scanner = getScanner(sb);
-    if (scanner == null) {
-      return;
-    }
-    Range range = getRangeForTrace(minutes);
-    scanner.setRange(range);
-    Map<String,Stats> summary = new TreeMap<String,Stats>();
+  private void parseSpans(Scanner scanner, Map<String,Stats> summary) {
     for (Entry<Key,Value> entry : scanner) {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
       Stats stats = summary.get(span.description);
@@ -159,6 +154,30 @@ public class Summary extends Basic {
         summary.put(span.description, stats = new Stats());
       }
       stats.addSpan(span);
+    }
+  }
+
+  @Override
+  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+    int minutes = getMinutes(req);
+
+    Entry<Scanner,UserGroupInformation> pair = getScanner(sb);
+    final Scanner scanner = pair.getKey();
+    if (scanner == null) {
+      return;
+    }
+    Range range = getRangeForTrace(minutes);
+    scanner.setRange(range);
+    final Map<String,Stats> summary = new TreeMap<String,Stats>();
+    if (null != pair.getValue()) {
+      pair.getValue().doAs(new PrivilegedAction<Void>() {
+        public Void run() {
+          parseSpans(scanner, summary);
+          return null;
+        }
+      });
+    } else {
+      parseSpans(scanner, summary);
     }
     Table trace = new Table("traceSummary", "All Traces");
     trace.addSortableColumn("Type", new ShowTypeLink(minutes), "Trace Type");

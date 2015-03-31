@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.server.cli.ClientOnDefaultTable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -101,13 +101,13 @@ public class TestIngest {
     @Parameter(names = {"-cv", "--columnVisibility"}, description = "place columns in this column family", converter = VisibilityConverter.class)
     public ColumnVisibility columnVisibility = new ColumnVisibility();
 
+    public Configuration conf = null;
+    public FileSystem fs = null;
+
     public Opts() {
       super("test_ingest");
     }
   }
-
-  @SuppressWarnings("unused")
-  private static final Logger log = Logger.getLogger(TestIngest.class);
 
   public static void createTable(Connector conn, Opts args) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     if (args.createTable) {

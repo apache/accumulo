@@ -30,12 +30,13 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MonitorLoggingIT extends ConfigurableMacIT {
-  private static final Logger log = Logger.getLogger(MonitorLoggingIT.class);
+  private static final Logger log = LoggerFactory.getLogger(MonitorLoggingIT.class);
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
@@ -89,7 +90,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
       IteratorSetting cfg = new IteratorSetting(100, "incorrect", "java.lang.String");
       s.addScanIterator(cfg);
       s.iterator().next();
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       // expected, the iterator was bad
     }
 

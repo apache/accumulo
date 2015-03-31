@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.servlets.trace;
 
+import java.security.PrivilegedAction;
 import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +32,7 @@ import org.apache.accumulo.monitor.util.celltypes.StringType;
 import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 
 public class ListType extends Basic {
 
@@ -46,27 +48,43 @@ public class ListType extends Basic {
 
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
-    String type = getType(req);
+    final String type = getType(req);
     int minutes = getMinutes(req);
     long endTime = System.currentTimeMillis();
     long startTime = endTime - minutes * 60 * 1000;
-    Scanner scanner = getScanner(sb);
+    Entry<Scanner,UserGroupInformation> entry = getScanner(sb);
+    final Scanner scanner = entry.getKey();
     if (scanner == null) {
       return;
     }
     Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
     scanner.setRange(range);
-    Table trace = new Table("trace", "Traces for " + getType(req));
+    final Table trace = new Table("trace", "Traces for " + getType(req));
     trace.addSortableColumn("Start", new ShowTraceLinkType(), "Start Time");
     trace.addSortableColumn("ms", new DurationType(), "Span time");
     trace.addUnsortableColumn("Source", new StringType<String>(), "Service and location");
+
+    if (null != entry.getValue()) {
+      entry.getValue().doAs(new PrivilegedAction<Void>() {
+        public Void run() {
+          addRows(scanner, type, trace);
+          return null;
+        }
+      });
+    } else {
+      addRows(scanner, type, trace);
+    }
+
+    trace.generate(req, sb);
+  }
+
+  private void addRows(Scanner scanner, String type, Table trace) {
     for (Entry<Key,Value> entry : scanner) {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
       if (span.description.equals(type)) {
         trace.addRow(span, Long.valueOf(span.stop - span.start), span.svc + ":" + span.sender);
       }
     }
-    trace.generate(req, sb);
   }
 
   @Override

@@ -123,7 +123,7 @@
     <forkCount>1</forkCount>
     <!-- overwritten in hadoop profiles -->
     <hadoop.version>2.2.0</hadoop.version>
-    <htrace.version>3.0.4</htrace.version>
+    <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>3.1</httpclient.version>
     <jetty.version>9.1.5.v20140505</jetty.version>
     <maven.compiler.source>1.7</maven.compiler.source>
@@ -380,6 +380,11 @@
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-core</artifactId>
+        <version>${htrace.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
         <version>4.3.1</version>
@@ -475,11 +480,6 @@
         <version>${jetty.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.htrace</groupId>
-        <artifactId>htrace-core</artifactId>
-        <version>${htrace.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
         <version>${powermock.version}</version>
@@ -528,7 +528,8 @@
             <effort>Max</effort>
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
-            <maxRank>6</maxRank>
+            <maxRank>16</maxRank>
+            <excludeFilterFile>src/main/findbugs/exclude-filter.xml</excludeFilterFile>
           </configuration>
         </plugin>
         <plugin>
@@ -553,7 +554,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.7.0</version>
+          <version>0.7.1</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -640,7 +641,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2 -Dmavanagaiata.dirtyFlag=false</arguments>
+            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>

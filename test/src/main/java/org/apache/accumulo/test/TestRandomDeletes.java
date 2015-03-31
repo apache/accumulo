@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -35,10 +36,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestRandomDeletes {
-  private static final Logger log = Logger.getLogger(TestRandomDeletes.class);
+  private static final Logger log = LoggerFactory.getLogger(TestRandomDeletes.class);
   private static Authorizations auths = new Authorizations("L1", "L2", "G1", "GROUP2");
 
   static private class RowColumn implements Comparable<RowColumn> {
@@ -52,6 +54,17 @@ public class TestRandomDeletes {
       this.timestamp = timestamp;
     }
 
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(row) + Objects.hashCode(column);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj || (obj != null && obj instanceof RowColumn && 0 == compareTo((RowColumn) obj));
+    }
+
+    @Override
     public int compareTo(RowColumn other) {
       int result = row.compareTo(other.row);
       if (result != 0)
@@ -59,6 +72,7 @@ public class TestRandomDeletes {
       return column.compareTo(other.column);
     }
 
+    @Override
     public String toString() {
       return row.toString() + ":" + column.toString();
     }

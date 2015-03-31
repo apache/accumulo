@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,10 +61,10 @@ public class MiniAccumuloClusterImplTest {
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     testDir = new File(baseDir, MiniAccumuloClusterImplTest.class.getName());
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
 
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes

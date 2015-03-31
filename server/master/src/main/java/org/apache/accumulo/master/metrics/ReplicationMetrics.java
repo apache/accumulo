@@ -28,13 +28,14 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JMX bindings to expose 'high-level' metrics about Replication
  */
 public class ReplicationMetrics extends AbstractMetricsImpl implements ReplicationMetricsMBean {
-  private static final Logger log = Logger.getLogger(ReplicationMetrics.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
   private static final String METRICS_PREFIX = "replication";
 
   private Master master;

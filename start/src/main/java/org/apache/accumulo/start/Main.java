@@ -30,11 +30,12 @@ import java.util.jar.JarFile;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main {
 
-  private static final Logger log = Logger.getLogger(Main.class);
+  private static final Logger log = LoggerFactory.getLogger(Main.class);
   private static ClassLoader classLoader;
   private static Class<?> vfsClassLoader;
   private static Map<String,KeywordExecutable> servicesMap;

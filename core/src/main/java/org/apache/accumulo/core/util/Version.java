@@ -58,12 +58,12 @@ public class Version implements KeywordExecutable {
 
     if (parser.group(1) != null)
       package_ = parser.group(2);
-    major = Integer.valueOf(parser.group(3));
+    major = Integer.parseInt(parser.group(3));
     minor = 0;
     if (parser.group(5) != null)
-      minor = Integer.valueOf(parser.group(5));
+      minor = Integer.parseInt(parser.group(5));
     if (parser.group(7) != null)
-      release = Integer.valueOf(parser.group(7));
+      release = Integer.parseInt(parser.group(7));
     if (parser.group(9) != null)
       etcetera = parser.group(9);
 

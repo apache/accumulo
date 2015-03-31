@@ -57,7 +57,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     Instance instance = conn.getInstance();
     ClientConfiguration clientConf = ClientConfiguration.loadDefault();
     clientConf.withInstance(instance.getInstanceName()).withZkHosts(instance.getZooKeepers());
-    ClientContext context = new ClientContext(instance, new Credentials(getPrincipal(), getToken()), clientConf);
+    ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
     long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers

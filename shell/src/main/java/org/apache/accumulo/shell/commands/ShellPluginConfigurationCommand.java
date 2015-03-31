@@ -32,7 +32,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ShellPluginConfigurationCommand extends Command {
   private Option removePluginOption, pluginClassOption, listPluginOption;
@@ -113,16 +113,16 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           CommandLine cl = new BasicParser().parse(o, args);
           pluginClazz = shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
         } catch (ClassNotFoundException e) {
-          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Class not found" + e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Class not found" + e.getMessage());
           return null;
         } catch (ParseException e) {
-          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Error parsing table: " + Arrays.toString(args) + e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Error parsing table: " + Arrays.toString(args) + e.getMessage());
           return null;
         } catch (TableNotFoundException e) {
-          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Table not found: " + tableName + e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Table not found: " + tableName + e.getMessage());
           return null;
         } catch (Exception e) {
-          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Error: " + e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Error: " + e.getMessage());
           return null;
         }
 

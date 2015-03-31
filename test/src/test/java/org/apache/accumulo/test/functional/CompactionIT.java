@@ -16,19 +16,23 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -40,6 +44,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,11 +56,12 @@ public class CompactionIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> map = new HashMap<String,String>();
-    map.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "4");
-    map.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
-    map.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
-    cfg.setSiteConfig(map);
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN, "4");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
+    cfg.setProperty(Property.TSERV_MAJC_MAXCONCURRENT, "1");
+    // use raw local file system so walogs sync and flush will work
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Override
@@ -105,13 +111,15 @@ public class CompactionIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     FileSystem fs = getFileSystem();
-    String root = getUsableDir();
+    Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
     Path testrf = new Path(root, "testrf");
     FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
+
     FunctionalTestUtils.bulkImport(c, fs, tableName, testrf.toString());
     int beforeCount = countFiles(c);
 
     final AtomicBoolean fail = new AtomicBoolean(false);
+    final ClientConfiguration clientConf = cluster.getClientConfig();
     for (int count = 0; count < 5; count++) {
       List<Thread> threads = new ArrayList<Thread>();
       final int span = 500000 / 59;
@@ -128,6 +136,13 @@ public class CompactionIT extends AccumuloClusterIT {
               opts.dataSize = 50;
               opts.cols = 1;
               opts.setTableName(tableName);
+              if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+                opts.updateKerberosCredentials(clientConf);
+              } else {
+                opts.setPrincipal(getAdminPrincipal());
+                PasswordToken passwordToken = (PasswordToken) getAdminToken();
+                opts.setPassword(new Password(new String(passwordToken.getPassword(), UTF_8)));
+              }
               VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
             } catch (Exception ex) {
               log.warn("Got exception verifying data", ex);

@@ -30,11 +30,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.log4j.Logger;
+import org.apache.htrace.HTraceConfiguration;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.htrace.HTraceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -42,7 +43,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * Find a Span collector via zookeeper and push spans there via Thrift RPC
  */
 public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
-  private static final Logger log = Logger.getLogger(ZooTraceClient.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooTraceClient.class);
 
   private static final int DEFAULT_TIMEOUT = 30 * 1000;
 
@@ -53,15 +54,22 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   final List<String> hosts = new ArrayList<String>();
   long retryPause = 5000l;
 
-  public ZooTraceClient() {
-    super();
+  // Visible for testing
+  ZooTraceClient() {}
+
+  public ZooTraceClient(HTraceConfiguration conf) {
+    super(conf);
+
+    String keepers = conf.get(DistributedTrace.TRACER_ZK_HOST);
+    if (keepers == null)
+      throw new IllegalArgumentException("Must configure " + DistributedTrace.TRACER_ZK_HOST);
+    int timeout = conf.getInt(DistributedTrace.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
+    zoo = new ZooReader(keepers, timeout);
+    path = conf.get(DistributedTrace.TRACER_ZK_PATH, Constants.ZTRACERS);
+    setInitialTraceHosts();
   }
 
-  public ZooTraceClient(long millis) {
-    super(millis);
-  }
-
-  // Visibile for testing
+  // Visible for testing
   protected void setRetryPause(long pause) {
     retryPause = pause;
   }
@@ -73,18 +81,6 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       return host;
     }
     return null;
-  }
-
-  @Override
-  public void configure(HTraceConfiguration conf) {
-    super.configure(conf);
-    String keepers = conf.get(DistributedTrace.TRACER_ZK_HOST);
-    if (keepers == null)
-      throw new IllegalArgumentException("Must configure " + DistributedTrace.TRACER_ZK_HOST);
-    int timeout = conf.getInt(DistributedTrace.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
-    zoo = new ZooReader(keepers, timeout);
-    path = conf.get(DistributedTrace.TRACER_ZK_PATH, Constants.ZTRACERS);
-    setInitialTraceHosts();
   }
 
   @Override

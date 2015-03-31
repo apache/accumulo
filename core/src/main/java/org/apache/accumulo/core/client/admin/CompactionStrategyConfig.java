@@ -73,6 +73,11 @@ public class CompactionStrategyConfig {
   }
 
   @Override
+  public int hashCode() {
+    return className.hashCode() + options.hashCode();
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (o instanceof CompactionStrategyConfig) {
       CompactionStrategyConfig ocsc = (CompactionStrategyConfig) o;

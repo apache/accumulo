@@ -28,24 +28,26 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
-import org.apache.log4j.Logger;
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.SpanReceiver;
+import org.apache.htrace.SpanReceiverBuilder;
 import org.apache.zookeeper.KeeperException;
-import org.htrace.HTraceConfiguration;
-import org.htrace.SpanReceiver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class to enable tracing for Accumulo server processes.
  *
  */
 public class DistributedTrace {
-  private static final Logger log = Logger.getLogger(DistributedTrace.class);
+  private static final Logger log = LoggerFactory.getLogger(DistributedTrace.class);
 
   private static final String HTRACE_CONF_PREFIX = "hadoop.";
 
   public static final String TRACE_HOST_PROPERTY = "trace.host";
   public static final String TRACE_SERVICE_PROPERTY = "trace.service";
+  public static final String TRACE_QUEUE_SIZE_PROPERTY = "trace.queue.size";
 
   public static final String TRACER_ZK_HOST = "tracer.zookeeper.host";
   public static final String TRACER_ZK_TIMEOUT = "tracer.zookeeper.timeout";
@@ -128,8 +130,9 @@ public class DistributedTrace {
     if (service != null) {
       setProperty(conf, TRACE_SERVICE_PROPERTY, service);
     }
-    org.htrace.Trace.setProcessId(service);
+    org.apache.htrace.Trace.setProcessId(service);
     ShutdownHookManager.get().addShutdownHook(new Runnable() {
+      @Override
       public void run() {
         Trace.off();
         closeReceivers();
@@ -150,42 +153,23 @@ public class DistributedTrace {
       log.info("Already loaded span receivers, enable tracing does not need to be called again");
       return;
     }
-    Class<?> implClass = null;
     String[] receiverNames = conf.getTrimmedStrings(Property.TRACE_SPAN_RECEIVERS.toString());
     if (receiverNames == null || receiverNames.length == 0) {
       return;
     }
     for (String className : receiverNames) {
-      try {
-        implClass = Class.forName(className);
-        receivers.add(loadInstance(implClass, conf));
+      SpanReceiverBuilder builder = new SpanReceiverBuilder(wrapHadoopConf(conf));
+      SpanReceiver rcvr = builder.spanReceiverClass(className.trim()).build();
+      if (rcvr == null) {
+        log.warn("Failed to load SpanReceiver " + className);
+      } else {
+        receivers.add(rcvr);
         log.info("SpanReceiver " + className + " was loaded successfully.");
-      } catch (ClassNotFoundException e) {
-        log.warn("Class " + className + " cannot be found.", e);
-      } catch (IOException e) {
-        log.warn("Load SpanReceiver " + className + " failed.", e);
       }
     }
     for (SpanReceiver rcvr : receivers) {
-      org.htrace.Trace.addReceiver(rcvr);
+      org.apache.htrace.Trace.addReceiver(rcvr);
     }
-  }
-
-  private static SpanReceiver loadInstance(Class<?> implClass, Configuration conf) throws IOException {
-    SpanReceiver impl;
-    try {
-      Object o = ReflectionUtils.newInstance(implClass, conf);
-      impl = (SpanReceiver) o;
-      impl.configure(wrapHadoopConf(conf));
-    } catch (SecurityException e) {
-      throw new IOException(e);
-    } catch (IllegalArgumentException e) {
-      throw new IOException(e);
-    } catch (RuntimeException e) {
-      throw new IOException(e);
-    }
-
-    return impl;
   }
 
   private static void setProperty(Configuration conf, String key, String value) {

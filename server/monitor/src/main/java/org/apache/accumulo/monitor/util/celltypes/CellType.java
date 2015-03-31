@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.monitor.util.celltypes;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
-public abstract class CellType<T> implements Comparator<T> {
+public abstract class CellType<T> implements Comparator<T>, Serializable {
+
+  private static final long serialVersionUID = 1L;
   private boolean sortable = true;
 
   abstract public String alignment();

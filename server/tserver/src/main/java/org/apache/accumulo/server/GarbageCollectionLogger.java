@@ -24,10 +24,11 @@ import java.util.List;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.Halt;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GarbageCollectionLogger {
-  private static final Logger log = Logger.getLogger(GarbageCollectionLogger.class);
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
 
   private final HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private long lastMemorySize = 0;
@@ -96,7 +97,7 @@ public class GarbageCollectionLogger {
     final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       final long diff = now - lastMemoryCheckTime;
-      if (diff > keepAliveTimeout) {
+      if (diff > keepAliveTimeout + 1000) {
         log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
             keepAliveTimeout / 1000., diff / 1000.));
       }

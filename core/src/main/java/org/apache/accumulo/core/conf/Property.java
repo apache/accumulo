@@ -37,7 +37,9 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public enum Property {
   // Crypto-related properties
@@ -355,9 +357,11 @@ public enum Property {
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH, "The keystore for enabling monitor SSL."),
   @Sensitive
   MONITOR_SSL_KEYSTOREPASS("monitor.ssl.keyStorePassword", "", PropertyType.STRING, "The keystore password for enabling monitor SSL."),
+  MONITOR_SSL_KEYSTORETYPE("monitor.ssl.keyStoreType", "", PropertyType.STRING, "Type of SSL keystore"),
   MONITOR_SSL_TRUSTSTORE("monitor.ssl.trustStore", "", PropertyType.PATH, "The truststore for enabling monitor SSL."),
   @Sensitive
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
+  MONITOR_SSL_TRUSTSTORETYPE("monitor.ssl.trustStoreType", "", PropertyType.STRING, "Type of SSL truststore"),
   MONITOR_SSL_INCLUDE_CIPHERS("monitor.ssl.include.ciphers", "", PropertyType.STRING,
       "A comma-separated list of allows SSL Ciphers, see monitor.ssl.exclude.ciphers to disallow ciphers"),
   MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING,
@@ -556,7 +560,7 @@ public enum Property {
 
   private String key, defaultValue, description;
   private PropertyType type;
-  private static final Logger log = Logger.getLogger(Property.class);
+  private static final Logger log = LoggerFactory.getLogger(Property.class);
 
   private Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;
@@ -673,15 +677,15 @@ public enum Property {
   }
 
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
-    Logger log = Logger.getLogger(getClass());
+    Logger log = LoggerFactory.getLogger(getClass());
     try {
       for (Annotation a : getClass().getField(name()).getAnnotations())
         if (annotationType.isInstance(a))
           return true;
     } catch (SecurityException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
     } catch (NoSuchFieldException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
     }
     return false;
   }

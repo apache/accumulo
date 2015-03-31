@@ -143,7 +143,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
@@ -151,6 +150,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
@@ -162,7 +163,7 @@ import com.google.common.collect.Iterables;
  */
 public class Master extends AccumuloServerContext implements LiveTServerSet.Listener, TableObserver, CurrentState {
 
-  final static Logger log = Logger.getLogger(Master.class);
+  final static Logger log = LoggerFactory.getLogger(Master.class);
 
   final static int ONE_SECOND = 1000;
   final private static Text METADATA_TABLE_ID = new Text(MetadataTable.ID);
@@ -206,7 +207,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
 
-  synchronized MasterState getMasterState() {
+  @Override
+  public synchronized MasterState getMasterState() {
     return state;
   }
 
@@ -422,7 +424,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
         haveUpgradedZooKeeper = true;
       } catch (Exception ex) {
-        log.fatal("Error performing upgrade", ex);
+        // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+        log.error("FATAL: Error performing upgrade", ex);
         System.exit(1);
       }
     }
@@ -477,7 +480,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
-              log.fatal("Error performing upgrade", ex);
+              // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+              log.error("FATAL: Error performing upgrade", ex);
               System.exit(1);
             }
 
@@ -774,7 +778,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              if (tls.getState(onlineTabletServers()).equals(TabletState.HOSTED)) {
+              if (tls.getState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
                 if (tls.chopped)
                   return TabletGoalState.UNASSIGNED;
               } else {
@@ -855,6 +859,28 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   private class StatusThread extends Daemon {
 
+    private boolean goodStats() {
+      int start;
+      switch (getMasterState()) {
+        case UNLOAD_METADATA_TABLETS:
+          start = 1;
+          break;
+        case UNLOAD_ROOT_TABLET:
+          start = 2;
+          break;
+        default:
+          start = 0;
+      }
+      for (int i = start; i < watchers.size(); i++) {
+        TabletGroupWatcher watcher = watchers.get(i);
+        if (watcher.stats.getLastMasterState() != getMasterState()) {
+          log.debug(watcher.getName() + ": " + watcher.stats.getLastMasterState() + " != " + getMasterState());
+          return false;
+        }
+      }
+      return true;
+    }
+
     @Override
     public void run() {
       setName("Status Thread");
@@ -882,27 +908,27 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
                 case SAFE_MODE: {
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
-                  if (count == 0)
+                  if (count == 0 && goodStats())
                     setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
-                  if (count == 0)
+                  if (count == 0 && goodStats())
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
                   break;
                 case UNLOAD_ROOT_TABLET: {
                   int count = assignedOrHosted(METADATA_TABLE_ID);
-                  if (count > 0) {
+                  if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   }
                   int root_count = assignedOrHosted(ROOT_TABLE_ID);
-                  if (root_count > 0)
+                  if (root_count > 0 && goodStats())
                     log.debug("The root tablet is still assigned or hosted");
-                  if (count + root_count == 0) {
+                  if (count + root_count == 0 && goodStats()) {
                     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                     log.debug("stopping " + currentServers.size() + " tablet servers");
                     for (TServerInstance server : currentServers) {
@@ -924,7 +950,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
                   break;
               }
           }
-        }catch(Throwable t) {
+        } catch (Throwable t) {
           log.error("Error occurred reading / switching master goal state. Will continue with attempt to update status", t);
         }
 
@@ -977,7 +1003,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           if (connection != null)
             connection.fastHalt(masterLock);
         } catch (TException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         }
         tserverSet.remove(instance);
       }
@@ -1208,8 +1234,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     replicationWorkDriver.join(remaining(deadline));
     replAddress.server.stop();
     // Signal that we want it to stop, and wait for it to do so.
-    authenticationTokenKeyManager.gracefulStop();
-    authenticationTokenKeyManager.join(remaining(deadline));
+    if (authenticationTokenKeyManager != null) {
+      authenticationTokenKeyManager.gracefulStop();
+      authenticationTokenKeyManager.join(remaining(deadline));
+    }
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop
@@ -1239,10 +1267,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     @Override
     public void unableToMonitorLockNode(final Throwable e) {
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       Halt.halt(-1, new Runnable() {
         @Override
         public void run() {
-          log.fatal("No longer able to monitor master lock node", e);
+          log.error("FATAL: No longer able to monitor master lock node", e);
         }
       });
 
@@ -1530,5 +1559,21 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
    */
   public boolean delegationTokensAvailable() {
     return delegationTokensAvailable;
+  }
+
+  @Override
+  public Collection<KeyExtent> migrations() {
+    Set<KeyExtent> migrationKeys = new HashSet<KeyExtent>();
+    synchronized (migrations) {
+      migrationKeys.addAll(migrations.keySet());
+    }
+    return migrationKeys;
+  }
+
+  @Override
+  public Set<TServerInstance> shutdownServers() {
+    synchronized (serversToShutdown) {
+      return new HashSet<TServerInstance>(serversToShutdown);
+    }
   }
 }

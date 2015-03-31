@@ -36,15 +36,16 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 public abstract class TabletBalancer {
 
-  private static final Logger log = Logger.getLogger(TabletBalancer.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);
 
   protected ServerConfigurationFactory configuration;
 

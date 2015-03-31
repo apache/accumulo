@@ -38,10 +38,11 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionManager {
-  private static final Logger log = Logger.getLogger(SessionManager.class);
+  private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
   private final SecureRandom random = new SecureRandom();
   private final Map<Long,Session> sessions = new HashMap<Long,Session>();

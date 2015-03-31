@@ -53,11 +53,12 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileManager {
 
-  private static final Logger log = Logger.getLogger(FileManager.class);
+  private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 
   int maxOpen;
 
@@ -364,7 +365,7 @@ public class FileManager {
         try {
           reader.closeDeepCopies();
         } catch (IOException e) {
-          log.warn(e, e);
+          log.warn(e.getMessage(), e);
           sawIOException = true;
         }
       }

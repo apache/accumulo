@@ -45,7 +45,11 @@ public class NullToken implements AuthenticationToken {
 
   @Override
   public NullToken clone() {
-    return new NullToken();
+    try {
+      return (NullToken) super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new AssertionError("Inconceivable", e);
+    }
   }
 
   @Override

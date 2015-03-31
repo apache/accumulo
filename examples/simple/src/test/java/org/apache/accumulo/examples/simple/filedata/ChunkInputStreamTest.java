@@ -41,10 +41,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChunkInputStreamTest extends TestCase {
-  private static final Logger log = Logger.getLogger(ChunkInputStream.class);
+  private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
   List<Entry<Key,Value>> data;
   List<Entry<Key,Value>> baddata;
   List<Entry<Key,Value>> multidata;
@@ -103,6 +105,7 @@ public class ChunkInputStreamTest extends TestCase {
     data.add(new KeyValue(new Key(new Text(row), new Text(cf), chunkCQ, new Text(vis)), value.getBytes()));
   }
 
+  @Test
   public void testExceptionOnMultipleSetSourceWithoutClose() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
@@ -110,13 +113,14 @@ public class ChunkInputStreamTest extends TestCase {
     cis.setSource(pi);
     try {
       cis.setSource(pi);
-      assertNotNull(null);
+      fail();
     } catch (IOException e) {
       assertNull(null);
     }
     cis.close();
   }
 
+  @Test
   public void testExceptionOnGetVisBeforeClose() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
@@ -132,6 +136,7 @@ public class ChunkInputStreamTest extends TestCase {
     cis.getVisibilities();
   }
 
+  @Test
   public void testReadIntoBufferSmallerThanChunks() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[5];
@@ -183,6 +188,7 @@ public class ChunkInputStreamTest extends TestCase {
     assertFalse(pi.hasNext());
   }
 
+  @Test
   public void testReadIntoBufferLargerThanChunks() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
@@ -221,6 +227,7 @@ public class ChunkInputStreamTest extends TestCase {
     assertFalse(pi.hasNext());
   }
 
+  @Test
   public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
     Connector conn = new MockInstance().getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
@@ -275,24 +282,25 @@ public class ChunkInputStreamTest extends TestCase {
 
   private static void assumeExceptionOnRead(ChunkInputStream cis, byte[] b) {
     try {
-      cis.read(b);
-      assertNotNull(null);
+      assertEquals(0, cis.read(b));
+      fail();
     } catch (IOException e) {
       log.debug("EXCEPTION " + e.getMessage());
-      assertNull(null);
+      // expected, ignore
     }
   }
 
   private static void assumeExceptionOnClose(ChunkInputStream cis) {
     try {
       cis.close();
-      assertNotNull(null);
+      fail();
     } catch (IOException e) {
       log.debug("EXCEPTION " + e.getMessage());
-      assertNull(null);
+      // expected, ignore
     }
   }
 
+  @Test
   public void testBadData() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
@@ -329,9 +337,9 @@ public class ChunkInputStreamTest extends TestCase {
 
     try {
       cis.setSource(pi);
-      assertNotNull(null);
+      fail();
     } catch (IOException e) {
-      assertNull(null);
+      // expected, ignore
     }
     assumeExceptionOnClose(cis);
     assertEquals(cis.getVisibilities().toString(), "[K]");
@@ -348,6 +356,7 @@ public class ChunkInputStreamTest extends TestCase {
     assumeExceptionOnClose(cis);
   }
 
+  @Test
   public void testBadDataWithoutClosing() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
@@ -380,9 +389,9 @@ public class ChunkInputStreamTest extends TestCase {
 
     try {
       cis.setSource(pi);
-      assertNotNull(null);
+      fail();
     } catch (IOException e) {
-      assertNull(null);
+      // expected, ignore
     }
     assertEquals(cis.getVisibilities().toString(), "[K]");
 
@@ -398,6 +407,7 @@ public class ChunkInputStreamTest extends TestCase {
     assumeExceptionOnClose(cis);
   }
 
+  @Test
   public void testMultipleChunkSizes() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
@@ -426,6 +436,7 @@ public class ChunkInputStreamTest extends TestCase {
     assertFalse(pi.hasNext());
   }
 
+  @Test
   public void testSingleByteRead() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());

@@ -70,7 +70,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 
@@ -118,7 +119,7 @@ class FinishImportTable extends MasterRepo {
 
     env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
 
-    Logger.getLogger(FinishImportTable.class).debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
+    LoggerFactory.getLogger(FinishImportTable.class).debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
 
     return null;
   }
@@ -416,7 +417,7 @@ class MapImportFileNames extends MasterRepo {
 }
 
 class CreateImportDir extends MasterRepo {
-  private static final Logger log = Logger.getLogger(CreateImportDir.class);
+  private static final Logger log = LoggerFactory.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 
   private ImportedTableInfo tableInfo;
@@ -537,7 +538,7 @@ class ImportSetupPermissions extends MasterRepo {
       try {
         security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
-        Logger.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
+        LoggerFactory.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
         throw e;
       }
     }
@@ -595,15 +596,10 @@ public class ImportTable extends MasterRepo {
 
   public void checkVersions(Master env) throws ThriftTableOperationException {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Integer exportVersion = null;
+    Integer dataVersion = null;
 
-    ZipInputStream zis = null;
-
-    try {
-      zis = new ZipInputStream(env.getFileSystem().open(path));
-
-      Integer exportVersion = null;
-      Integer dataVersion = null;
-
+    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(path))) {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -617,34 +613,22 @@ public class ImportTable extends MasterRepo {
               dataVersion = Integer.parseInt(sa[1]);
             }
           }
-
           break;
         }
       }
-
-      zis.close();
-      zis = null;
-
-      if (exportVersion == null || exportVersion > ExportTable.VERSION)
-        throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Incompatible export version " + exportVersion);
-
-      if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
-        throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Incompatible data version " + exportVersion);
-
     } catch (IOException ioe) {
       log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Failed to read export metadata " + ioe.getMessage());
-    } finally {
-      if (zis != null)
-        try {
-          zis.close();
-        } catch (IOException ioe) {
-          log.warn(ioe.getMessage(), ioe);
-        }
     }
+
+    if (exportVersion == null || exportVersion > ExportTable.VERSION)
+      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Incompatible export version " + exportVersion);
+
+    if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
+      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER, "Incompatible data version "
+          + exportVersion);
   }
 
   @Override

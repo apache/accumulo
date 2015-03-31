@@ -38,7 +38,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Accumulo Reservation System : An example reservation system using Accumulo. Supports atomic reservations of a resource at a date. Wait list are also
@@ -53,7 +55,7 @@ import org.apache.log4j.Logger;
 
 public class ARS {
 
-  private static final Logger log = Logger.getLogger(ARS.class);
+  private static final Logger log = LoggerFactory.getLogger(ARS.class);
 
   private Connector conn;
   private String rTable;

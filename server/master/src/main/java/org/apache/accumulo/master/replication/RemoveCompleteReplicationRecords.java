@@ -41,8 +41,8 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +69,9 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
       bw = ReplicationTable.getBatchWriter(conn);
+
+      if (bs == null || bw == null)
+        throw new AssertionError("Inconceivable; an exception should have been thrown, but 'bs' or 'bw' was null instead");
     } catch (ReplicationTableOfflineException e) {
       log.debug("Not attempting to remove complete replication records as the table ({}) isn't yet online", ReplicationTable.NAME);
       return;

@@ -65,7 +65,9 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterIT {
         public void run() {
           try {
             getConnector().tableOperations().addSplits(finalName, splits);
-          } catch (TableNotFoundException ex) {} catch (Exception ex) {
+          } catch (TableNotFoundException ex) {
+            // expected, ignore
+          } catch (Exception ex) {
             throw new RuntimeException(finalName, ex);
           }
         }

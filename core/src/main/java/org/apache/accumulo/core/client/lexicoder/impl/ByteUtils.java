@@ -90,19 +90,26 @@ public class ByteUtils {
    * Splits a byte array by 0x00
    */
   public static byte[][] split(byte[] data) {
+    return split(data, 0, data.length);
+  }
+
+  /**
+   * Splits a byte array by 0x00
+   */
+  public static byte[][] split(byte[] data, int dataOffset, int len) {
     ArrayList<Integer> offsets = new ArrayList<Integer>();
 
-    for (int i = 0; i < data.length; i++) {
+    for (int i = dataOffset; i < (dataOffset + len); i++) {
       if (data[i] == 0x00) {
         offsets.add(i);
       }
     }
 
-    offsets.add(data.length);
+    offsets.add(dataOffset + len);
 
     byte[][] ret = new byte[offsets.size()][];
 
-    int index = 0;
+    int index = dataOffset;
     for (int i = 0; i < offsets.size(); i++) {
       ret[i] = new byte[offsets.get(i) - index];
       System.arraycopy(data, index, ret[i], 0, ret[i].length);

@@ -19,12 +19,14 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -47,6 +49,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -59,10 +62,8 @@ public class SplitIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TSERV_MAXMEM.getKey(), "5K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
-    cfg.setSiteConfig(siteConfig);
+    cfg.setProperty(Property.TSERV_MAXMEM, "5K");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "100ms");
   }
 
   @Override
@@ -74,9 +75,7 @@ public class SplitIT extends AccumuloClusterIT {
 
   @Before
   public void alterConfig() throws Exception {
-    if (ClusterType.MINI == getClusterType()) {
-      return;
-    }
+    Assume.assumeTrue(ClusterType.MINI == getClusterType());
 
     InstanceOperations iops = getConnector().instanceOperations();
     Map<String,String> config = iops.getSystemConfiguration();
@@ -129,10 +128,20 @@ public class SplitIT extends AccumuloClusterIT {
     c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
     c.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
     TestIngest.Opts opts = new TestIngest.Opts();
+    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     opts.rows = 100000;
     opts.setTableName(table);
+
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConfig);
+      vopts.updateKerberosCredentials(clientConfig);
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+      vopts.setPrincipal(getAdminPrincipal());
+    }
+
     TestIngest.ingest(c, opts, new BatchWriterOpts());
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows;
     vopts.setTableName(table);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
@@ -152,13 +161,21 @@ public class SplitIT extends AccumuloClusterIT {
         shortened++;
       count++;
     }
+
     assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
     assertTrue("Count should be cgreater than 10: " + count, count > 10);
-    PasswordToken token = (PasswordToken) getToken();
-    assertEquals(
-        0,
-        getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
-            new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-z", cluster.getZooKeepers()}));
+
+    String[] args;
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      ClusterUser rootUser = getAdminUser();
+      args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z",
+          cluster.getZooKeepers()};
+    } else {
+      PasswordToken token = (PasswordToken) getAdminToken();
+      args = new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-z", cluster.getZooKeepers()};
+    }
+
+    assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class, args));
   }
 
   @Test
@@ -185,9 +202,15 @@ public class SplitIT extends AccumuloClusterIT {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    PasswordToken token = (PasswordToken) getToken();
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    DeleteIT.deleteTest(c, getCluster(), new String(token.getPassword(), Charsets.UTF_8), tableName);
+    ClientConfiguration clientConfig = getCluster().getClientConfig();
+    String password = null, keytab = null;
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      keytab = getAdminUser().getKeytab().getAbsolutePath();
+    } else {
+      password = new String(((PasswordToken) getAdminToken()).getPassword(), Charsets.UTF_8);
+    }
+    DeleteIT.deleteTest(c, getCluster(), getAdminPrincipal(), password, tableName, keytab);
     c.tableOperations().flush(tableName, null, null, true);
     for (int i = 0; i < 5; i++) {
       UtilWaitThread.sleep(10 * 1000);

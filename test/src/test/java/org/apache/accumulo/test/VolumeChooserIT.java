@@ -91,9 +91,6 @@ public class VolumeChooserIT extends ConfigurableMacIT {
     File v2f = new File(volDirBase, "v2");
     File v3f = new File(volDirBase, "v3");
     File v4f = new File(volDirBase, "v4");
-    v1f.mkdir();
-    v2f.mkdir();
-    v4f.mkdir();
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
     v3 = new Path("file://" + v3f.getAbsolutePath());

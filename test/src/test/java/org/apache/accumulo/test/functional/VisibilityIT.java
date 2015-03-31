@@ -45,6 +45,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class VisibilityIT extends AccumuloClusterIT {
@@ -52,6 +54,22 @@ public class VisibilityIT extends AccumuloClusterIT {
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
+  }
+
+  Authorizations origAuths = null;
+
+  @Before
+  public void emptyAuths() throws Exception {
+    Connector c = getConnector();
+    origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
+  }
+
+  @After
+  public void resetAuths() throws Exception {
+    Connector c = getConnector();
+    if (null != origAuths) {
+      c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
+    }
   }
 
   @Test
@@ -205,7 +223,7 @@ public class VisibilityIT extends AccumuloClusterIT {
 
   private void queryData(Connector c, String tableName, Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
 
-    c.securityOperations().changeUserAuthorizations("root", new Authorizations(nbas(userAuths)));
+    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations(nbas(userAuths)));
 
     ArrayList<Set<String>> combos = new ArrayList<Set<String>>();
     uniqueCombos(combos, nss(), allAuths);
@@ -232,7 +250,7 @@ public class VisibilityIT extends AccumuloClusterIT {
     Scanner scanner;
 
     // should return no records
-    c.securityOperations().changeUserAuthorizations("root", new Authorizations("BASE", "DEFLABEL"));
+    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("BASE", "DEFLABEL"));
     scanner = getConnector().createScanner(tableName, new Authorizations());
     verifyDefault(scanner, 0);
 

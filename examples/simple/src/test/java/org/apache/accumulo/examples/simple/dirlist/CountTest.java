@@ -37,11 +37,13 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class CountTest extends TestCase {
 
-  private static final Logger log = Logger.getLogger(CountTest.class);
+  private static final Logger log = LoggerFactory.getLogger(CountTest.class);
 
   {
     try {

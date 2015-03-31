@@ -139,7 +139,7 @@ kadmin.local -q "xst -k accumulo.service.keytab -glob accumulo*"
 
 To ensure that the SASL handshake can occur from clients to servers and servers to servers,
 all Accumulo servers must share the same instance and realm principal components as the
-"client" must know these to setup the connection with the "server".
+"client" needs to know these to set up the connection with the "server".
 
 ===== Server Configuration
 
@@ -209,6 +209,19 @@ users which have, at one point in time, authenticated with Accumulo using their 
 The KDC is still the authoritative entity for user management. The previously mentioned methods
 are provided as they simplify management of users within Accumulo, especially with respect
 to granting Authorizations and Permissions to new users.
+
+===== Accumulo Initialization
+
+Out of the box (without Kerberos enabled), Accumulo has a single user with administrative permissions "root".
+This users is used to "bootstrap" other users, creating less-privileged users for applications using
+the system. In Kerberos, to authenticate with the system, it's required that the client presents Kerberos
+credentials for the principal (user) the client is trying to authenticate as.
+
+Because of this, an administrative user named "root" would be useless in an instance using Kerberos,
+because it is very unlikely to have Kerberos credentials for a principal named `root`. When Kerberos is
+enabled, Accumulo will prompt for the name of a user to grant the same permissions as what the `root`
+user would normally have. The name of the Accumulo user to grant administrative permissions to can
+also be given by the `-u` or `--user` options.
 
 ===== Verifying secure access
 
@@ -325,7 +338,6 @@ Three items need to be set to enable access to Accumulo:
 
 * +instance.rpc.sasl.enabled+=_true_
 * +kerberos.server.primary+=_accumulo_
-* +kerberos.server.realm+=_EXAMPLE.COM_
 
 The second and third properties *must* match the configuration of the accumulo servers; this is
 required to set up the SASL transport.

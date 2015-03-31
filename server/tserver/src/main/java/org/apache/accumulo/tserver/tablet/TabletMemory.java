@@ -25,10 +25,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TabletMemory implements Closeable {
-  static private final Logger log = Logger.getLogger(TabletMemory.class);
+  static private final Logger log = LoggerFactory.getLogger(TabletMemory.class);
 
   private final TabletCommitter tablet;
   private InMemoryMap memTable;
@@ -136,7 +137,7 @@ class TabletMemory implements Closeable {
       try {
         tablet.wait(50);
       } catch (InterruptedException e) {
-        log.warn(e, e);
+        log.warn(e.getMessage(), e);
       }
     }
   }

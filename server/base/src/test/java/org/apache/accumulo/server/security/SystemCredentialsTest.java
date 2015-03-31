@@ -44,14 +44,14 @@ public class SystemCredentialsTest {
     File testInstanceId = new File(new File(new File(new File("target"), "instanceTest"), ServerConstants.INSTANCE_ID_DIR), UUID.fromString(
         "00000000-0000-0000-0000-000000000000").toString());
     if (!testInstanceId.exists()) {
-      testInstanceId.getParentFile().mkdirs();
-      testInstanceId.createNewFile();
+      assertTrue(testInstanceId.getParentFile().mkdirs() || testInstanceId.getParentFile().isDirectory());
+      assertTrue(testInstanceId.createNewFile());
     }
 
     File testInstanceVersion = new File(new File(new File(new File("target"), "instanceTest"), ServerConstants.VERSION_DIR), ServerConstants.DATA_VERSION + "");
     if (!testInstanceVersion.exists()) {
-      testInstanceVersion.getParentFile().mkdirs();
-      testInstanceVersion.createNewFile();
+      assertTrue(testInstanceVersion.getParentFile().mkdirs() || testInstanceVersion.getParentFile().isDirectory());
+      assertTrue(testInstanceVersion.createNewFile());
     }
   }
 

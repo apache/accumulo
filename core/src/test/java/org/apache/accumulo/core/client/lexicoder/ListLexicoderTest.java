@@ -16,35 +16,40 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.util.TextUtil;
-import org.apache.hadoop.io.Text;
+public class ListLexicoderTest extends AbstractLexicoderTest {
 
-public class ListLexicoderTest extends LexicoderTest {
-  public void testSortOrder() {
-    List<Long> data1 = new ArrayList<Long>();
+  private List<Long> data1 = new ArrayList<Long>();
+  private List<Long> data2 = new ArrayList<Long>();
+  private List<Long> data3 = new ArrayList<Long>();
+  private List<Long> data4 = new ArrayList<Long>();
+  private List<Long> data5 = new ArrayList<Long>();
+
+  public void setUp() {
+
     data1.add(1l);
     data1.add(2l);
 
-    List<Long> data2 = new ArrayList<Long>();
     data2.add(1l);
 
-    List<Long> data3 = new ArrayList<Long>();
     data3.add(1l);
     data3.add(3l);
 
-    List<Long> data4 = new ArrayList<Long>();
     data4.add(1l);
     data4.add(2l);
     data4.add(3l);
 
-    List<Long> data5 = new ArrayList<Long>();
     data5.add(2l);
     data5.add(1l);
-
+  }
+  public void testSortOrder() {
     List<List<Long>> data = new ArrayList<List<Long>>();
 
     // add list in expected sort order
@@ -70,5 +75,13 @@ public class ListLexicoderTest extends LexicoderTest {
 
     assertEquals(data, unenc);
 
+  }
+
+  public void testDecodes() {
+    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data1);
+    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data2);
+    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data3);
+    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data4);
+    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data5);
   }
 }

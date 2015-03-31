@@ -20,6 +20,7 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -444,6 +445,11 @@ public class LruBlockCache implements BlockCache, HeapSize {
       if (this.overflow() == that.overflow())
         return 0;
       return this.overflow() > that.overflow() ? 1 : -1;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(overflow());
     }
 
     @Override

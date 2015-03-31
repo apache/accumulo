@@ -57,7 +57,7 @@ public class RowHash extends Configured implements Tool {
 
   private static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--column", required = true)
-    String column = null;
+    String column;
   }
 
   @Override

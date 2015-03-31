@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.trace;
 
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.htrace.Span;
+import org.apache.htrace.Span;
 
 public class Tracer {
   private static final TInfo DONT_TRACE = new TInfo(0, 0);
@@ -26,7 +26,7 @@ public class Tracer {
    * Obtain {@link org.apache.accumulo.core.trace.thrift.TInfo} for the current span.
    */
   public static TInfo traceInfo() {
-    Span span = org.htrace.Trace.currentSpan();
+    Span span = org.apache.htrace.Trace.currentSpan();
     if (span != null) {
       return new TInfo(span.getTraceId(), span.getSpanId());
     }

@@ -88,6 +88,7 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -104,9 +105,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -119,7 +121,7 @@ import com.google.common.base.Optional;
  */
 @AutoService(KeywordExecutable.class)
 public class Initialize implements KeywordExecutable {
-  private static final Logger log = Logger.getLogger(Initialize.class);
+  private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
 
@@ -207,7 +209,7 @@ public class Initialize implements KeywordExecutable {
     }
     initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(ReplicationTable.LOCALITY_GROUPS.keySet()));
     // add formatter to replication table
-    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTable.STATUS_FORMATTER_CLASS_NAME);
+    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationUtil.STATUS_FORMATTER_CLASS_NAME);
   }
 
   static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf) throws IOException {
@@ -220,7 +222,8 @@ public class Initialize implements KeywordExecutable {
     log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
-      log.fatal("Zookeeper needs to be up and running in order to init. Exiting ...");
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+      log.error("FATAL Zookeeper needs to be up and running in order to init. Exiting ...");
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
@@ -254,22 +257,25 @@ public class Initialize implements KeywordExecutable {
     @SuppressWarnings("deprecation")
     Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
     String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
-    log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
+    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+    log.error("FATAL It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
         + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
     String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
 
+    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+
     if (!instanceVolumes.isEmpty()) {
-      log.fatal("Change the property " + Property.INSTANCE_VOLUMES + " to use different filesystems,");
+      log.error("FATAL: Change the property " + Property.INSTANCE_VOLUMES + " to use different filesystems,");
     } else if (!instanceDfsDir.isEmpty()) {
-      log.fatal("Change the property " + INSTANCE_DFS_URI + " to use a different filesystem,");
+      log.error("FATAL: Change the property " + INSTANCE_DFS_URI + " to use a different filesystem,");
     } else {
-      log.fatal("You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_VOLUMES + " to use a different filesystem,");
+      log.error("FATAL: You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_VOLUMES + " to use a different filesystem,");
     }
-    log.fatal("or change the property " + INSTANCE_DFS_DIR + " to use a different directory.");
-    log.fatal("The current value of " + INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
-    log.fatal("The current value of " + INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
-    log.fatal("The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
+    log.error("FATAL: or change the property " + INSTANCE_DFS_DIR + " to use a different directory.");
+    log.error("FATAL: The current value of " + INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
+    log.error("FATAL: The current value of " + INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
+    log.error("FATAL: The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
   }
 
   public boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
@@ -283,7 +289,7 @@ public class Initialize implements KeywordExecutable {
     try {
       instanceNamePath = getInstanceNamePath(opts);
     } catch (Exception e) {
-      log.fatal("Failed to talk to zookeeper", e);
+      log.error("FATAL: Failed to talk to zookeeper", e);
       return false;
     }
 
@@ -291,7 +297,7 @@ public class Initialize implements KeywordExecutable {
     try {
       rootUser = getRootUserName(opts);
     } catch (Exception e) {
-      log.fatal("Failed to obtain user for administrative privileges");
+      log.error("FATAL: Failed to obtain user for administrative privileges");
       return false;
     }
 
@@ -317,14 +323,14 @@ public class Initialize implements KeywordExecutable {
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir);
     } catch (Exception e) {
-      log.fatal("Failed to initialize zookeeper", e);
+      log.error("FATAL: Failed to initialize zookeeper", e);
       return false;
     }
 
     try {
       initFileSystem(opts, fs, uuid, rootTabletDir);
     } catch (Exception e) {
-      log.fatal("Failed to initialize filesystem", e);
+      log.error("FATAL Failed to initialize filesystem", e);
 
       if (SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES).trim().equals("")) {
         Configuration fsConf = CachedConfiguration.getInstance();
@@ -334,8 +340,8 @@ public class Initialize implements KeywordExecutable {
 
         // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
-          log.fatal("Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '" + defaultFsUri + "' was found in the Hadoop configuration");
-          log.fatal("Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
+          log.error("FATAL: Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '" + defaultFsUri + "' was found in the Hadoop configuration");
+          log.error("FATAL: Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
         }
       }
 
@@ -356,7 +362,7 @@ public class Initialize implements KeywordExecutable {
 
           // Fail if the site configuration doesn't contain appropriate credentials to login as servers
           if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
-            log.fatal("No Kerberos credentials provided, and Accumulo is not properly configured for server login");
+            log.error("FATAL: No Kerberos credentials provided, and Accumulo is not properly configured for server login");
             return false;
           }
 
@@ -367,7 +373,7 @@ public class Initialize implements KeywordExecutable {
         }
       }
     } catch (IOException e) {
-      log.fatal("Failed to get the Kerberos user", e);
+      log.error("FATAL: Failed to get the Kerberos user", e);
       return false;
     }
 
@@ -375,7 +381,7 @@ public class Initialize implements KeywordExecutable {
       AccumuloServerContext context = new AccumuloServerContext(confFactory);
       initSecurity(context, opts, uuid.toString(), rootUser);
     } catch (Exception e) {
-      log.fatal("Failed to initialize security", e);
+      log.error("FATAL: Failed to initialize security", e);
       return false;
     }
     return true;
@@ -487,13 +493,13 @@ public class Initialize implements KeywordExecutable {
       try {
         FileStatus fstat = fs.getFileStatus(dir);
         if (!fstat.isDirectory()) {
-          log.fatal("location " + dir + " exists but is not a directory");
+          log.error("FATAL: location " + dir + " exists but is not a directory");
           return;
         }
       } catch (FileNotFoundException fnfe) {
         // attempt to create directory, since it doesn't exist
         if (!fs.mkdirs(dir)) {
-          log.fatal("unable to create directory " + dir);
+          log.error("FATAL: unable to create directory " + dir);
           return;
         }
       }
@@ -654,7 +660,7 @@ public class Initialize implements KeywordExecutable {
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
     } catch (Exception e) {
-      log.fatal("Error talking to ZooKeeper", e);
+      log.error("FATAL: Error talking to ZooKeeper", e);
       throw new IOException(e);
     }
   }
@@ -750,7 +756,7 @@ public class Initialize implements KeywordExecutable {
           opts.rootpass = getRootPassword(opts, rootUser);
           initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID(), rootUser);
         } else {
-          log.fatal("Attempted to reset security on accumulo before it was initialized");
+          log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
         }
       }
 
@@ -762,7 +768,7 @@ public class Initialize implements KeywordExecutable {
         if (!doInit(opts, conf, fs))
           System.exit(-1);
     } catch (Exception e) {
-      log.fatal(e, e);
+      log.error("Fatal exception", e);
       throw new RuntimeException(e);
     }
   }

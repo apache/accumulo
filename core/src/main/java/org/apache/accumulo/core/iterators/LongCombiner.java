@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;
@@ -117,7 +118,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and WritableUtils.readVLong for encoding and decoding.
    */
-  public static class VarLenEncoder implements Encoder<Long> {
+  public static class VarLenEncoder extends AbstractLexicoder<Long> implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -133,8 +134,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
 
     @Override
-    public Long decode(byte[] b) {
-      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+    protected Long decodeUnchecked(byte[] b, int offset, int len) {
+      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, len));
       try {
         return WritableUtils.readVLong(dis);
       } catch (IOException e) {
@@ -146,7 +147,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses an 8-byte encoding for Longs.
    */
-  public static class FixedLenEncoder implements Encoder<Long> {
+  public static class FixedLenEncoder extends AbstractLexicoder<Long> implements Encoder<Long> {
     @Override
     public byte[] encode(Long l) {
       byte[] b = new byte[8];
@@ -162,31 +163,39 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
 
     @Override
-    public Long decode(byte[] b) {
-      return decode(b, 0);
+    protected Long decodeUnchecked(byte[] b, int offset, int len) {
+      return decodeStatic(b, offset, len);
     }
 
+    // refactor?  it's public, so cannot remove
     public static long decode(byte[] b, int offset) {
       if (b.length < offset + 8)
         throw new ValueFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
       return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
           + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
     }
+
+    public static long decodeStatic(byte[] b, int offset, int len) {
+      if (b.length < offset + 8 || len < 8)
+        throw new ValueFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + len);
+      return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
+              + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
+    }
   }
 
   /**
    * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
    */
-  public static class StringEncoder implements Encoder<Long> {
+  public static class StringEncoder extends AbstractLexicoder<Long> implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
       return Long.toString(v).getBytes(UTF_8);
     }
 
     @Override
-    public Long decode(byte[] b) {
+    protected Long decodeUnchecked(byte[] b, int offset, int len) {
       try {
-        return Long.parseLong(new String(b, UTF_8));
+        return Long.parseLong(new String(b, offset, len, UTF_8));
       } catch (NumberFormatException nfe) {
         throw new ValueFormatException(nfe);
       }

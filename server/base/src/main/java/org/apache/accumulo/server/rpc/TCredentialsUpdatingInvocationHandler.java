@@ -144,8 +144,9 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
       }
       typedClz = clz.asSubclass(AuthenticationToken.class);
     }
-    TOKEN_CLASS_CACHE.putIfAbsent(tokenClassName, typedClz);
-    return typedClz;
+    // return the current one and throw away the one we just created if some other thread created it first
+    Class<? extends AuthenticationToken> current = TOKEN_CLASS_CACHE.putIfAbsent(tokenClassName, typedClz);
+    return current != null ? current : typedClz;
   }
 
   private Object invokeMethod(Method method, Object[] args) throws Throwable {

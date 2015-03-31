@@ -17,10 +17,13 @@
 package org.apache.accumulo.examples.simple.filedata;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -173,21 +176,25 @@ public class ChunkInputFormatTest {
           e0 = e;
         }
         try {
-          value.read(b);
+          assertFalse(value.read(b) > 0);
           try {
-            assertTrue(false);
+            fail();
           } catch (AssertionError e) {
             e1 = e;
           }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+          // expected, ignore
+        }
         try {
           value.close();
           try {
-            assertTrue(false);
+            fail();
           } catch (AssertionError e) {
             e2 = e;
           }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+          // expected, ignore
+        }
       }
     }
 
@@ -228,7 +235,9 @@ public class ChunkInputFormatTest {
     }
 
     public static int main(String... args) throws Exception {
-      return ToolRunner.run(new Configuration(), new CIFTester(), args);
+      Configuration conf = new Configuration();
+      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      return ToolRunner.run(conf, new CIFTester(), args);
     }
   }
 

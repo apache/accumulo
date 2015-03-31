@@ -69,7 +69,8 @@ import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MemKeyComparator implements Comparator<Key>, Serializable {
 
@@ -189,7 +190,7 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
 public class InMemoryMap {
   private SimpleMap map = null;
 
-  private static final Logger log = Logger.getLogger(InMemoryMap.class);
+  private static final Logger log = LoggerFactory.getLogger(InMemoryMap.class);
 
   private volatile String memDumpFile = null;
   private final String memDumpDir;
@@ -646,7 +647,7 @@ public class InMemoryMap {
             if (mds.reader != null)
               mds.reader.close();
           } catch (IOException e) {
-            log.warn(e, e);
+            log.warn(e.getMessage(), e);
           }
         }
       }

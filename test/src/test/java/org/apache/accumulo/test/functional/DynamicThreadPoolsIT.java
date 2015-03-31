@@ -18,9 +18,11 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.fail;
 
-import java.util.Collections;
+import java.util.Map;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -46,7 +48,9 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
+    cfg.setSiteConfig(siteConfig);
   }
 
   @Override
@@ -82,12 +86,18 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
     opts.rows = 500 * 1000;
     opts.createTable = true;
     opts.setTableName(firstTable);
+    ClientConfiguration clientConf = cluster.getClientConfig();
+    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      opts.updateKerberosCredentials(clientConf);
+    } else {
+      opts.setPrincipal(getAdminPrincipal());
+    }
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush(firstTable, null, null, true);
     for (int i = 1; i < tables.length; i++)
       c.tableOperations().clone(firstTable, tables[i], true, null, null);
     UtilWaitThread.sleep(11 * 1000); // time between checks of the thread pool sizes
-    Credentials creds = new Credentials(getPrincipal(), getToken());
+    Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     for (int i = 1; i < tables.length; i++)
       c.tableOperations().compact(tables[i], null, null, true, false);
     for (int i = 0; i < 30; i++) {
@@ -95,7 +105,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
       try {
-        client = MasterClient.getConnectionWithRetry(new ClientContext(c.getInstance(), creds, getCluster().getClientConfig()));
+        client = MasterClient.getConnectionWithRetry(new ClientContext(c.getInstance(), creds, clientConf));
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

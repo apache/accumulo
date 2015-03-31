@@ -33,12 +33,13 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 //TODO ACCUMULO-2530 Update properties to use a URI instead of a relative path to secret key
 public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = Logger.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
+  private static final Logger log = LoggerFactory.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params, String pathToKeyName, Path pathToKey, FileSystem fs)
       throws IOException {
@@ -82,7 +83,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       try {
         cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
       } catch (InvalidKeyException e) {
-        log.error(e);
+        log.error(e.getMessage(),e);
         throw new RuntimeException(e);
       }
 
@@ -91,10 +92,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
           Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
           params.setPlaintextKey(plaintextKey.getEncoded());
         } catch (InvalidKeyException e) {
-          log.error(e);
+          log.error(e.getMessage(),e);
           throw new RuntimeException(e);
         } catch (NoSuchAlgorithmException e) {
-          log.error(e);
+          log.error(e.getMessage(),e);
           throw new RuntimeException(e);
         }
       } else {
@@ -104,10 +105,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
           params.setEncryptedKey(encryptedSecretKey);
           params.setOpaqueKeyEncryptionKeyID(pathToKeyName);
         } catch (InvalidKeyException e) {
-          log.error(e);
+          log.error(e.getMessage(),e);
           throw new RuntimeException(e);
         } catch (IllegalBlockSizeException e) {
-          log.error(e);
+          log.error(e.getMessage(),e);
           throw new RuntimeException(e);
         }
 
@@ -158,7 +159,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       doKeyEncryptionOperation(Cipher.WRAP_MODE, params, fullPath, pathToKey, fs);
 
     } catch (IOException e) {
-      log.error(e);
+      log.error(e.getMessage(),e);
       throw new RuntimeException(e);
     }
 
@@ -182,7 +183,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       doKeyEncryptionOperation(Cipher.UNWRAP_MODE, params, pathToKeyName, pathToKey, fs);
 
     } catch (IOException e) {
-      log.error(e);
+      log.error(e.getMessage(),e);
       throw new RuntimeException(e);
     }
 

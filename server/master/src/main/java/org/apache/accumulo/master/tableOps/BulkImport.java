@@ -60,7 +60,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.trace.wrappers.TraceExecutorService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -75,14 +74,15 @@ import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Bulk import makes requests of tablet servers, and those requests can take a
@@ -109,7 +109,7 @@ public class BulkImport extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = Logger.getLogger(BulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private String tableId;
   private String sourceDir;
@@ -307,7 +307,7 @@ class CleanUpBulkImport extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = Logger.getLogger(CleanUpBulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
   private String tableId;
   private String source;
@@ -409,17 +409,13 @@ class CopyFailed extends MasterRepo {
     HashMap<FileRef,String> failures = new HashMap<FileRef,String>();
     HashMap<FileRef,String> loadedFailures = new HashMap<FileRef,String>();
 
-    FSDataInputStream failFile = fs.open(new Path(error, BulkImport.FAILURES_TXT));
-    BufferedReader in = new BufferedReader(new InputStreamReader(failFile, UTF_8));
-    try {
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
       String line = null;
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
         if (!fs.exists(new Path(error, path.getName())))
           failures.put(new FileRef(line, path), line);
       }
-    } finally {
-      failFile.close();
     }
 
     /*
@@ -483,7 +479,7 @@ class LoadFiles extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private static ExecutorService threadPool = null;
-  private static final Logger log = Logger.getLogger(BulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private String tableId;
   private String source;

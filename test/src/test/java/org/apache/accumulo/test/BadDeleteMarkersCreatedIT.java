@@ -41,15 +41,16 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // Accumulo3047
 public class BadDeleteMarkersCreatedIT extends AccumuloClusterIT {
-  private static final Logger log = Logger.getLogger(BadDeleteMarkersCreatedIT.class);
+  private static final Logger log = LoggerFactory.getLogger(BadDeleteMarkersCreatedIT.class);
 
   @Override
   public int defaultTimeoutSeconds() {

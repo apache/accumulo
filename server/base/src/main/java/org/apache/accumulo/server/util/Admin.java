@@ -60,7 +60,8 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -71,7 +72,7 @@ import com.google.common.net.HostAndPort;
 
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
-  private static final Logger log = Logger.getLogger(Admin.class);
+  private static final Logger log = LoggerFactory.getLogger(Admin.class);
 
   static class AdminOpts extends ClientOpts {
     @Parameter(names = {"-f", "--force"}, description = "force the given server to stop by removing its lock")
@@ -253,13 +254,13 @@ public class Admin implements KeywordExecutable {
       if (rc != 0)
         System.exit(rc);
     } catch (AccumuloException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       System.exit(2);
     } catch (Exception e) {
-      log.error(e, e);
+      log.error(e.getMessage(), e);
       System.exit(3);
     }
   }
@@ -310,7 +311,9 @@ public class Admin implements KeywordExecutable {
             try {
               conn.tableOperations().flush(table, null, null, false);
               flushesStarted.incrementAndGet();
-            } catch (TableNotFoundException e) {}
+            } catch (TableNotFoundException e) {
+              // ignore
+            }
           }
         } catch (Exception e) {
           log.warn("Failed to intiate flush " + e.getMessage());
@@ -325,13 +328,17 @@ public class Admin implements KeywordExecutable {
     long start = System.currentTimeMillis();
     try {
       flusher.join(3000);
-    } catch (InterruptedException e) {}
+    } catch (InterruptedException e) {
+      // ignore
+    }
 
     while (flusher.isAlive() && System.currentTimeMillis() - start < 15000) {
       int flushCount = flushesStarted.get();
       try {
         flusher.join(1000);
-      } catch (InterruptedException e) {}
+      } catch (InterruptedException e) {
+        // ignore
+      }
 
       if (flushCount == flushesStarted.get()) {
         // no progress was made while waiting for join... maybe its stuck, stop waiting on it
@@ -454,7 +461,9 @@ public class Admin implements KeywordExecutable {
       if (null == p)
         return defaultValue;
       defaultValue = defaultConfig.get(p);
-    } catch (IllegalArgumentException e) {}
+    } catch (IllegalArgumentException e) {
+      // ignore
+    }
     return defaultValue;
   }
 

@@ -19,8 +19,8 @@ package org.apache.accumulo.test.replication;
 import java.io.PrintStream;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.replication.PrintReplicationRecords;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.server.replication.PrintReplicationRecords;
 
 /**
  *

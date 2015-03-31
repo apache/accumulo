@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.harness;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
-import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
@@ -42,25 +43,27 @@ public class AccumuloIT {
     return names;
   }
 
-  public static File createSharedTestDir(String name) {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
-    if (name != null)
-      baseDir = new File(baseDir, name);
-    File testDir = new File(baseDir, System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE));
-    FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
-    return testDir;
+  /**
+   * Determines an appropriate directory name for holding generated ssl files for a test. The directory returned will have the same name as the provided
+   * directory, but with the suffix "-ssl" appended. This new directory is not created here, but is expected to be created as needed.
+   *
+   * @param baseDir
+   *          the original directory, which the new directory will be created next to; it should exist
+   * @return the new directory (is not created)
+   */
+  public static File getSslDir(File baseDir) {
+    assertTrue(baseDir.exists() && baseDir.isDirectory());
+    return new File(baseDir.getParentFile(), baseDir.getName() + "-ssl");
   }
 
   public static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    baseDir.mkdirs();
+    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name == null)
       return baseDir;
     File testDir = new File(baseDir, name);
     FileUtils.deleteQuietly(testDir);
-    testDir.mkdir();
+    assertTrue(testDir.mkdir());
     return testDir;
   }
 
@@ -82,7 +85,10 @@ public class AccumuloIT {
   public Timeout testsShouldTimeout() {
     int waitLonger = 0;
     try {
-      waitLonger = Integer.parseInt(System.getProperty("timeout.factor"));
+      String timeoutString = System.getProperty("timeout.factor");
+      if (timeoutString != null && !timeoutString.isEmpty()) {
+        waitLonger = Integer.parseInt(timeoutString);
+      }
     } catch (NumberFormatException exception) {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }

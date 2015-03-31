@@ -308,6 +308,18 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     return InputConfigurator.getTabletLocator(CLASS, job, tableId);
   }
 
+  /**
+   * Fetch the client configuration from the job.
+   *
+   * @param job
+   *          The job
+   * @return The client configuration for the job
+   * @since 1.7.0
+   */
+  protected static ClientConfiguration getClientConfiguration(JobConf job) {
+    return InputConfigurator.getClientConfiguration(CLASS, job);
+  }
+
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo {@link InputFormat}.
@@ -631,7 +643,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           tl.invalidateCache();
 
           ClientContext context = new ClientContext(getInstance(job), new Credentials(getPrincipal(job), getAuthenticationToken(job)),
-              ClientConfiguration.loadDefault());
+              getClientConfiguration(job));
           while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
             if (!(instance instanceof MockInstance)) {
               if (!Tables.exists(instance, tableId))

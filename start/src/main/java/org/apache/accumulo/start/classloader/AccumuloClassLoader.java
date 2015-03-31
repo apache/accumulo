@@ -35,7 +35,8 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -55,16 +56,26 @@ public class AccumuloClassLoader {
           "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" +
           "$HADOOP_CONF_DIR,\n" +
           "$HADOOP_PREFIX/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/lib/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/common/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,\n" +
+          "$HADOOP_PREFIX/lib/(?!slf4j)[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/common/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/common/lib/(?!slf4j)[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/hdfs/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/mapreduce/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/yarn/[^.].*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/yarn/lib/jersey.*.jar,\n" +
+          "/usr/hdp/current/hadoop-client/[^.].*.jar,\n" +
+          "/usr/hdp/current/hadoop-client/lib/(?!slf4j)[^.].*.jar,\n" +
+          "/usr/hdp/current/hadoop-hdfs-client/[^.].*.jar,\n" +
+          "/usr/hdp/current/hadoop-mapreduce-client/[^.].*.jar,\n" +
+          "/usr/hdp/current/hadoop-yarn-client/[^.].*.jar,\n" +
+          "/usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,\n" +
+          "/usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar\n" +
           "/usr/lib/hadoop/[^.].*.jar,\n" +
           "/usr/lib/hadoop/lib/[^.].*.jar,\n" +
           "/usr/lib/hadoop-hdfs/[^.].*.jar,\n" +
           "/usr/lib/hadoop-mapreduce/[^.].*.jar,\n" +
-          "/usr/lib/hadoop-yarn/[^.].*.jar,\n"
+          "/usr/lib/hadoop-yarn/[^.].*.jar,\n" +
+          "/usr/lib/hadoop-yarn/lib/jersey.*.jar,\n"
           ;
   /* @formatter:on */
 
@@ -75,7 +86,7 @@ public class AccumuloClassLoader {
 
   private static URLClassLoader classloader;
 
-  private static final Logger log = Logger.getLogger(AccumuloClassLoader.class);
+  private static final Logger log = LoggerFactory.getLogger(AccumuloClassLoader.class);
 
   static {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");

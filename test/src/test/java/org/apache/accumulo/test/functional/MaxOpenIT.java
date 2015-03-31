@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,6 +24,8 @@ import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -48,7 +49,7 @@ public class MaxOpenIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> conf = new HashMap<String,String>();
+    Map<String,String> conf = cfg.getSiteConfig();
     conf.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "4");
     conf.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     conf.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "2");
@@ -92,6 +93,7 @@ public class MaxOpenIT extends AccumuloClusterIT {
   public void run() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
+    final ClientConfiguration clientConf = cluster.getClientConfig();
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
     c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
@@ -105,6 +107,11 @@ public class MaxOpenIT extends AccumuloClusterIT {
       opts.cols = 1;
       opts.random = i;
       opts.setTableName(tableName);
+      if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        opts.updateKerberosCredentials(clientConf);
+      } else {
+        opts.setPrincipal(getAdminPrincipal());
+      }
       TestIngest.ingest(c, opts, new BatchWriterOpts());
 
       c.tableOperations().flush(tableName, null, null, true);

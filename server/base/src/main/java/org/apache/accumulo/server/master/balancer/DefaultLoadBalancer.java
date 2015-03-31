@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -32,11 +33,12 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultLoadBalancer extends TabletBalancer {
 
-  private static final Logger log = Logger.getLogger(DefaultLoadBalancer.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultLoadBalancer.class);
 
   Iterator<TServerInstance> assignments;
   // if tableToBalance is set, then only balance the given table
@@ -93,6 +95,16 @@ public class DefaultLoadBalancer extends TabletBalancer {
       this.count = count;
       this.server = server;
       this.status = status;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(server) + count;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == this || (obj != null && obj instanceof ServerCounts && 0 == compareTo((ServerCounts) obj));
     }
 
     @Override

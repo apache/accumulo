@@ -29,7 +29,9 @@ import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class VisibilityFilter extends Filter {
   protected VisibilityEvaluator ve;
@@ -38,7 +40,7 @@ public class VisibilityFilter extends Filter {
   protected Text tmpVis;
   protected Authorizations authorizations;
 
-  private static final Logger log = Logger.getLogger(VisibilityFilter.class);
+  private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
   public VisibilityFilter() {}
 

@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 /**
  * A lexicoder for preserving the native Java sort order of Double values.
  *
  * @since 1.6.0
  */
-public class DoubleLexicoder implements Lexicoder<Double> {
+public class DoubleLexicoder extends AbstractLexicoder<Double> implements Lexicoder<Double> {
 
   private ULongLexicoder longEncoder = new ULongLexicoder();
 
@@ -37,8 +39,8 @@ public class DoubleLexicoder implements Lexicoder<Double> {
   }
 
   @Override
-  public Double decode(byte[] data) {
-    long l = longEncoder.decode(data);
+  protected Double decodeUnchecked(byte[] data, int offset, int len) {
+    long l = longEncoder.decodeUnchecked(data, offset, len);
     if (l < 0)
       l = l ^ 0x8000000000000000l;
     else

@@ -18,6 +18,7 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -25,6 +26,7 @@ import java.util.Map;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Client;
+import org.apache.htrace.HTraceConfiguration;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -35,16 +37,15 @@ import org.apache.thrift.transport.TTransport;
  */
 public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
 
-  private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(SendSpansViaThrift.class);
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SendSpansViaThrift.class);
 
   private static final String THRIFT = "thrift://";
 
-  public SendSpansViaThrift() {
-    super();
-  }
+  // Visible for testing
+  SendSpansViaThrift() {}
 
-  public SendSpansViaThrift(long millis) {
-    super(millis);
+  public SendSpansViaThrift(HTraceConfiguration conf) {
+    super(conf);
   }
 
   @Override
@@ -62,8 +63,11 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       TTransport transport = new TSocket(sock);
       TProtocol prot = new TBinaryProtocol(transport);
       return new Client(prot);
+    } catch (IOException ex) {
+      log.trace("{}", ex, ex);
+      return null;
     } catch (Exception ex) {
-      log.error(ex, ex);
+      log.error(ex.getMessage(), ex);
       return null;
     }
   }
@@ -82,6 +86,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
 
   private static final ByteBuffer DEST = ByteBuffer.wrap("dest".getBytes(UTF_8));
 
+  @Override
   protected String getSpanKey(Map<ByteBuffer,ByteBuffer> data) {
     String dest = new String(data.get(DEST).array());
     if (dest != null && dest.startsWith(THRIFT)) {

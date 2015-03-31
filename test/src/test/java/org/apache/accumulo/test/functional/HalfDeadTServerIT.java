@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -49,10 +48,8 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
-    siteConfig.put(Property.GENERAL_RPC_TIMEOUT.getKey(), "5s");
-    cfg.setSiteConfig(siteConfig);
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "5s");
     cfg.useMiniDFS(true);
   }
 
@@ -83,7 +80,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
           output.append("\n");
         }
       } catch (IOException ex) {
-        log.error(ex, ex);
+        log.error("IOException", ex);
       }
     }
 
@@ -156,16 +153,19 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       // block I/O with some side-channel trickiness
       File trickFile = new File(trickFilename);
       try {
-        trickFile.createNewFile();
+        assertTrue(trickFile.createNewFile());
         UtilWaitThread.sleep(seconds * 1000);
       } finally {
-        trickFile.delete();
+        if (!trickFile.delete()) {
+          log.error("Couldn't delete " + trickFile);
+        }
       }
 
       if (seconds <= 10) {
         assertEquals(0, ingest.waitFor());
         VerifyIngest.Opts vopts = new VerifyIngest.Opts();
         vopts.rows = rows;
+        vopts.setPrincipal("root");
         VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
       } else {
         UtilWaitThread.sleep(5 * 1000);

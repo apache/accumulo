@@ -24,6 +24,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import javax.crypto.SecretKey;
 
@@ -98,15 +99,7 @@ public class AuthenticationKey implements Writable {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null || !(obj instanceof AuthenticationKey)) {
-      return false;
-    }
-    AuthenticationKey other = (AuthenticationKey) obj;
-    // authKey might be null due to writable nature
-    if (null == authKey && null != other.authKey) {
-      return false;
-    }
-    return authKey.equals(other.authKey);
+    return obj != null && obj instanceof AuthenticationKey && Objects.equals(authKey, ((AuthenticationKey) obj).authKey);
   }
 
   @Override

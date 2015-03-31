@@ -35,14 +35,15 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extract Mutations for a tablet from a set of logs that have been sorted by operation and tablet.
  *
  */
 public class SortedLogRecovery {
-  private static final Logger log = Logger.getLogger(SortedLogRecovery.class);
+  private static final Logger log = LoggerFactory.getLogger(SortedLogRecovery.class);
 
   static class EmptyMapFileException extends Exception {
     private static final long serialVersionUID = 1L;

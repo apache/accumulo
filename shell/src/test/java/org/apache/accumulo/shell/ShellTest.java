@@ -19,11 +19,13 @@ package org.apache.accumulo.shell;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -38,8 +40,12 @@ import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellTest {
+  private static final Logger log = LoggerFactory.getLogger(ShellTest.class);
+
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -78,6 +84,7 @@ public class ShellTest {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
+  private File config;
 
   void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings) throws IOException {
     exec(cmd);
@@ -123,14 +130,20 @@ public class ShellTest {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
     input = new StringInputStream();
+    config = Files.createTempFile(null, null).toFile();
     PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
     shell = new Shell(new ConsoleReader(input, output), pw);
     shell.setLogErrorsToConsole();
-    shell.config("--fake", "-u", "test", "-p", "secret");
+    shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret");
   }
 
   @After
   public void teardown() {
+    if (config.exists()) {
+      if (!config.delete()) {
+        log.error("Unable to delete {}", config);
+      }
+    }
     shell.shutdown();
   }
 
@@ -262,7 +275,7 @@ public class ShellTest {
   @Test
   public void execFileTest() throws IOException {
     Shell.log.debug("Starting exec file test --------------------------");
-    shell.config("--fake", "-u", "test", "-p", "secret", "-f", "src/test/resources/shelltest.txt");
+    shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret", "-f", "src/test/resources/shelltest.txt");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }

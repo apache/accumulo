@@ -38,7 +38,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /***
  *
@@ -49,7 +51,7 @@ public class CachableBlockFile {
 
   private CachableBlockFile() {};
 
-  private static final Logger log = Logger.getLogger(CachableBlockFile.class);
+  private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 
   public static class Writer implements BlockFileWriter {
     private BCFile.Writer _bc;

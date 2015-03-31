@@ -26,7 +26,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The LargestFirstMemoryManager attempts to keep memory between 80% and 90% full. It adapts over time the point at which it should start a compaction based on
@@ -36,7 +37,7 @@ import org.apache.log4j.Logger;
  */
 public class LargestFirstMemoryManager implements MemoryManager {
 
-  private static final Logger log = Logger.getLogger(LargestFirstMemoryManager.class);
+  private static final Logger log = LoggerFactory.getLogger(LargestFirstMemoryManager.class);
   private static final long ZERO_TIME = System.currentTimeMillis();
   private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   private static final double MAX_FLUSH_AT_ONCE_PERCENT = 0.20;

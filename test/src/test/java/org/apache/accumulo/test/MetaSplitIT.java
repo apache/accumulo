@@ -18,6 +18,9 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -26,21 +29,20 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.harness.AccumuloIT;
-import org.apache.accumulo.harness.MiniClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class MetaSplitIT extends AccumuloIT {
+public class MetaSplitIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(MetaSplitIT.class);
 
-  private MiniAccumuloClusterImpl cluster;
+  private Collection<Text> metadataSplits = null;
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -48,30 +50,28 @@ public class MetaSplitIT extends AccumuloIT {
   }
 
   @Before
-  public void startMiniCluster() throws Exception {
-    MiniClusterHarness harness = new MiniClusterHarness();
-    cluster = harness.create(getToken());
-    cluster.getConfig().setNumTservers(1);
-    cluster.start();
+  public void saveMetadataSplits() throws Exception {
+    if (ClusterType.STANDALONE == getClusterType()) {
+      Connector conn = getConnector();
+      Collection<Text> splits = conn.tableOperations().listSplits(MetadataTable.NAME);
+      // We expect a single split
+      if (!splits.equals(Arrays.asList(new Text("~")))) {
+        log.info("Existing splits on metadata table. Saving them, and applying single original split of '~'");
+        metadataSplits = splits;
+        conn.tableOperations().merge(MetadataTable.NAME, null, null);
+        conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<Text>(Collections.singleton(new Text("~"))));
+      }
+    }
   }
 
   @After
-  public void stopMiniCluster() throws Exception {
-    if (null != cluster) {
-      cluster.stop();
+  public void restoreMetadataSplits() throws Exception {
+    if (null != metadataSplits) {
+      log.info("Restoring split on metadata table");
+      Connector conn = getConnector();
+      conn.tableOperations().merge(MetadataTable.NAME, null, null);
+      conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<Text>(metadataSplits));
     }
-  }
-
-  private Connector getConnector() {
-    try {
-      return cluster.getConnector("root", getToken());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private AuthenticationToken getToken() {
-    return new PasswordToken("rootPassword1");
   }
 
   @Test(expected = AccumuloException.class)
@@ -130,7 +130,8 @@ public class MetaSplitIT extends AccumuloIT {
       }
       Thread.sleep(2000);
     }
-    assertEquals(numSplits, opts.listSplits(MetadataTable.NAME).size());
+    Collection<Text> splits = opts.listSplits(MetadataTable.NAME);
+    assertEquals("Actual metadata table splits: " + splits, numSplits, splits.size());
   }
 
 }

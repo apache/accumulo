@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -35,10 +36,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -46,10 +47,12 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
 public class StatusCombinerMacIT extends SharedMiniClusterIT {
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {
@@ -79,9 +82,10 @@ public class StatusCombinerMacIT extends SharedMiniClusterIT {
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
+    ClusterUser user = getAdminUser();
 
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME, TablePermission.WRITE);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     long createTime = System.currentTimeMillis();
     try {

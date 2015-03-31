@@ -78,8 +78,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -103,6 +101,8 @@ import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
@@ -146,6 +146,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  *
@@ -461,10 +462,7 @@ public class Tablet implements TabletCommitter {
     if (null == tblConf) {
       Tables.clearCache(tabletServer.getInstance());
       tblConf = tabletServer.getTableConfiguration(extent);
-      if (null == tblConf) {
-        // Not guaranteed to be non-null, but should be. A failed load will be re-assigned though..
-        log.warn("Could not get table configuration for " + extent.getTableId().toString());
-      }
+      Preconditions.checkNotNull(tblConf, "Could not get table configuration for " + extent.getTableId().toString());
     }
 
     this.tableConfiguration = tblConf;
@@ -1757,7 +1755,7 @@ public class Tablet implements TabletCommitter {
         Key first = pair.getFirst();
         Key last = pair.getSecond();
         // If first and last are null, it's an empty file. Add it to the compact set so it goes away.
-        if ((first == null && last == null) || !extent.contains(first.getRow()) || !extent.contains(last.getRow())) {
+        if ((first == null && last == null) || (first != null && !extent.contains(first.getRow())) || (last != null && !extent.contains(last.getRow()))) {
           result.add(file);
         }
       }
@@ -2443,6 +2441,7 @@ public class Tablet implements TabletCommitter {
     return currentLogs.size();
   }
 
+  /* don't release the lock if this method returns true for success; instead, the caller should clean up by calling finishUpdatingLogsUsed() */
   @Override
   public boolean beginUpdatingLogsUsed(InMemoryMap memTable, Collection<DfsLogger> more, boolean mincFinish) {
 
@@ -2476,7 +2475,7 @@ public class Tablet implements TabletCommitter {
           // when writing a minc finish event, there is no need to add the log to metadata
           // if nothing has been logged for the tablet since the minor compaction started
           if (currentLogs.size() == 0)
-            return false;
+            return !releaseLock;
         }
 
         int numAdded = 0;
@@ -2509,10 +2508,9 @@ public class Tablet implements TabletCommitter {
 
         if (numAdded > 0 && numContained == 0) {
           releaseLock = false;
-          return true;
         }
 
-        return false;
+        return !releaseLock;
       }
     } finally {
       if (releaseLock)

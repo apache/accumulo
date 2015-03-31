@@ -37,12 +37,13 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
 public class ReplicationTable {
-  private static final Logger log = Logger.getLogger(ReplicationTable.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
   public static final String ID = "+rep";
   public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".replication";
@@ -54,7 +55,6 @@ public class ReplicationTable {
   public static final String WORK_LG_NAME = WorkSection.NAME.toString();
   public static final Set<Text> WORK_LG_COLFAMS = Collections.singleton(WorkSection.NAME);
   public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
-  public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
   public static Scanner getScanner(Connector conn) throws ReplicationTableOfflineException {
     try {

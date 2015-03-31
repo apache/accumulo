@@ -22,6 +22,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.xml.DOMConfigurator;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Encapsulate calls to PropertyConfigurator or DOMConfigurator to set up logging
  */
@@ -33,7 +35,8 @@ public class Log4jConfiguration {
   private final String auditConfig;
 
   public Log4jConfiguration(String filename) {
-    usingProperties = (filename != null && filename.endsWith(".properties"));
+    Preconditions.checkNotNull(filename, "log4j configuration filename must not be null");
+    usingProperties = filename.endsWith(".properties");
     this.filename = filename;
     log4jFile = new File(filename);
 

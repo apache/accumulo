@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -25,7 +27,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * @since 1.6.0
  */
 
-public class StringLexicoder implements Lexicoder<String> {
+public class StringLexicoder extends AbstractLexicoder<String> implements Lexicoder<String> {
 
   @Override
   public byte[] encode(String data) {
@@ -33,8 +35,8 @@ public class StringLexicoder implements Lexicoder<String> {
   }
 
   @Override
-  public String decode(byte[] data) {
-    return new String(data, UTF_8);
+  protected String decodeUnchecked(byte[] data, int offset, int len) {
+    return new String(data, offset, len, UTF_8);
   }
 
 }

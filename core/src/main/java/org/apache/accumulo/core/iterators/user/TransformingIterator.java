@@ -50,7 +50,9 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.collections.BufferOverflowException;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * The TransformingIterator allows portions of a key (except for the row) to be transformed. This iterator handles the details that come with modifying keys
@@ -83,7 +85,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
 
-  protected Logger log = Logger.getLogger(getClass());
+  protected Logger log = LoggerFactory.getLogger(getClass());
 
   protected ArrayList<Pair<Key,Value>> keys = new ArrayList<Pair<Key,Value>>();
   protected int keyPos = -1;

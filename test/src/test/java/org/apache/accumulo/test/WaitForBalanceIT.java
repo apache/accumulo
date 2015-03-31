@@ -39,7 +39,12 @@ import org.junit.Test;
 
 public class WaitForBalanceIT extends ConfigurableMacIT {
 
-  @Test(timeout = 30 * 1000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void test() throws Exception {
     final Connector c = getConnector();
     // ensure the metadata table is online

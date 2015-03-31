@@ -21,13 +21,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Chooses whether or not an operation should be queued based on the current thread pool queue length and the number of available TServers.
  */
 public class SelectiveQueueing {
-  private static final Logger log = Logger.getLogger(SelectiveQueueing.class);
+  private static final Logger log = LoggerFactory.getLogger(SelectiveQueueing.class);
 
   public static boolean shouldQueueOperation(State state, Environment env) throws Exception {
     final ThreadPoolExecutor pool = (ThreadPoolExecutor) state.get("pool");

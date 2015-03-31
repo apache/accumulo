@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -34,6 +35,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -56,7 +58,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -75,20 +76,17 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
-import org.apache.accumulo.harness.AccumuloIT;
-import org.apache.accumulo.harness.MiniClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 // Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
 // Punt on this for now and just let it use a minicluster.
-public class NamespacesIT extends AccumuloIT {
+public class NamespacesIT extends AccumuloClusterIT {
 
-  private static MiniAccumuloClusterImpl cluster;
   private Connector c;
   private String namespace;
 
@@ -97,28 +95,10 @@ public class NamespacesIT extends AccumuloIT {
     return 60;
   }
 
-  private static AuthenticationToken getToken() {
-    return new PasswordToken("rootPassword1");
-  }
-
-  private Connector getConnector() {
-    try {
-      return cluster.getConnector("root", getToken());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @BeforeClass
-  public static void setupMiniCluster() throws Exception {
-    MiniClusterHarness harness = new MiniClusterHarness();
-    cluster = harness.create(getToken());
-    cluster.getConfig().setNumTservers(1);
-    cluster.start();
-  }
-
   @Before
   public void setupConnectorAndNamespace() throws Exception {
+    Assume.assumeTrue(ClusterType.MINI == getClusterType());
+
     // prepare a unique namespace and get a new root connector for each test
     c = getConnector();
     namespace = "ns_" + getUniqueNames(1)[0];
@@ -126,6 +106,9 @@ public class NamespacesIT extends AccumuloIT {
 
   @After
   public void swingMjölnir() throws Exception {
+    if (null == c) {
+      return;
+    }
     // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list())
       if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))
@@ -136,7 +119,7 @@ public class NamespacesIT extends AccumuloIT {
         c.namespaceOperations().delete(n);
     assertEquals(2, c.namespaceOperations().list().size());
     for (String u : c.securityOperations().listLocalUsers())
-      if (!"root".equals(u))
+      if (!getAdminPrincipal().equals(u))
         c.securityOperations().dropLocalUser(u);
     assertEquals(1, c.securityOperations().listLocalUsers().size());
   }
@@ -587,15 +570,20 @@ public class NamespacesIT extends AccumuloIT {
     assertFalse(c.tableOperations().exists(t5));
   }
 
+  private void loginAs(ClusterUser user) throws IOException {
+    user.getToken();
+  }
+
   /**
    * Tests new Namespace permissions as well as modifications to Table permissions because of namespaces. Checks each permission to first make sure the user
    * doesn't have permission to perform the action, then root grants them the permission and we check to make sure they could perform the action.
    */
   @Test
   public void testPermissions() throws Exception {
-    String u1 = "u1";
-    String u2 = "u2";
-    PasswordToken pass = new PasswordToken("pass");
+    ClusterUser user1 = getUser(0), user2 = getUser(1), root = getAdminUser();
+    String u1 = user1.getPrincipal();
+    String u2 = user2.getPrincipal();
+    PasswordToken pass = (null != user1.getPassword() ? new PasswordToken(user1.getPassword()) : null);
 
     String n1 = namespace;
     String t1 = n1 + ".1";
@@ -604,12 +592,14 @@ public class NamespacesIT extends AccumuloIT {
 
     String n2 = namespace + "_2";
 
+    loginAs(root);
     c.namespaceOperations().create(n1);
     c.tableOperations().create(t1);
 
     c.securityOperations().createLocalUser(u1, pass);
 
-    Connector user1Con = c.getInstance().getConnector(u1, pass);
+    loginAs(user1);
+    Connector user1Con = c.getInstance().getConnector(u1, user1.getToken());
 
     try {
       user1Con.tableOperations().create(t2);
@@ -618,11 +608,15 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
+    loginAs(user1);
     user1Con.tableOperations().create(t2);
+    loginAs(root);
     assertTrue(c.tableOperations().list().contains(t2));
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
 
+    loginAs(user1);
     try {
       user1Con.tableOperations().delete(t1);
       fail();
@@ -630,8 +624,11 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
+    loginAs(user1);
     user1Con.tableOperations().delete(t1);
+    loginAs(root);
     assertTrue(!c.tableOperations().list().contains(t1));
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
 
@@ -642,6 +639,7 @@ public class NamespacesIT extends AccumuloIT {
     bw.addMutation(m);
     bw.close();
 
+    loginAs(user1);
     Iterator<Entry<Key,Value>> i = user1Con.createScanner(t3, new Authorizations()).iterator();
     try {
       i.next();
@@ -651,6 +649,7 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied((AccumuloSecurityException) e.getCause());
     }
 
+    loginAs(user1);
     m = new Mutation(u1);
     m.put("cf", "cq", "turtles");
     bw = user1Con.createBatchWriter(t3, null);
@@ -669,19 +668,25 @@ public class NamespacesIT extends AccumuloIT {
       }
     }
 
+    loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.READ);
+    loginAs(user1);
     i = user1Con.createScanner(t3, new Authorizations()).iterator();
     assertTrue(i.hasNext());
+    loginAs(root);
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.READ);
-
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.WRITE);
+
+    loginAs(user1);
     m = new Mutation(u1);
     m.put("cf", "cq", "turtles");
     bw = user1Con.createBatchWriter(t3, null);
     bw.addMutation(m);
     bw.close();
+    loginAs(root);
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.WRITE);
 
+    loginAs(user1);
     try {
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
       fail();
@@ -689,11 +694,15 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+    loginAs(user1);
     user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
     user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
+    loginAs(root);
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
 
+    loginAs(user1);
     try {
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55");
       fail();
@@ -701,12 +710,17 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
+    loginAs(user1);
     user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
     user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+    loginAs(root);
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
 
-    c.securityOperations().createLocalUser(u2, pass);
+    loginAs(root);
+    c.securityOperations().createLocalUser(u2, (root.getPassword() == null ? null : new PasswordToken(user2.getPassword())));
+    loginAs(user1);
     try {
       user1Con.securityOperations().grantNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
       fail();
@@ -714,11 +728,15 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.GRANT);
+    loginAs(user1);
     user1Con.securityOperations().grantNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
     user1Con.securityOperations().revokeNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
+    loginAs(root);
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.GRANT);
 
+    loginAs(user1);
     try {
       user1Con.namespaceOperations().create(n2);
       fail();
@@ -726,11 +744,15 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
+    loginAs(user1);
     user1Con.namespaceOperations().create(n2);
+    loginAs(root);
     c.securityOperations().revokeSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
 
     c.securityOperations().revokeNamespacePermission(u1, n2, NamespacePermission.DROP_NAMESPACE);
+    loginAs(user1);
     try {
       user1Con.namespaceOperations().delete(n2);
       fail();
@@ -738,10 +760,14 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
+    loginAs(user1);
     user1Con.namespaceOperations().delete(n2);
+    loginAs(root);
     c.securityOperations().revokeSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
 
+    loginAs(user1);
     try {
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
       fail();
@@ -749,9 +775,12 @@ public class NamespacesIT extends AccumuloIT {
       expectPermissionDenied(e);
     }
 
+    loginAs(root);
     c.securityOperations().grantSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
+    loginAs(user1);
     user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
     user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+    loginAs(root);
     c.securityOperations().revokeSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
   }
 
@@ -857,7 +886,9 @@ public class NamespacesIT extends AccumuloIT {
     try {
       c.namespaceOperations().testClassLoad(namespace, "dummy", "dummy");
       fail();
-    } catch (NamespaceNotFoundException e) {}
+    } catch (NamespaceNotFoundException e) {
+      // expected, ignore
+    }
   }
 
   @Test

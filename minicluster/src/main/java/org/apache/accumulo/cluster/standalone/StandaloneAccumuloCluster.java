@@ -16,10 +16,14 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -44,14 +48,22 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
   private Instance instance;
+  private ClientConfiguration clientConf;
   private String accumuloHome, accumuloConfDir, hadoopConfDir;
+  private Path tmp;
+  private List<ClusterUser> users;
+  private String serverUser;
 
-  public StandaloneAccumuloCluster(String instanceName, String zookeepers) {
-    this(new ZooKeeperInstance(instanceName, zookeepers));
+  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
+    this(new ZooKeeperInstance(clientConf), clientConf, tmp, users, serverUser);
   }
 
-  public StandaloneAccumuloCluster(Instance instance) {
+  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
     this.instance = instance;
+    this.clientConf = clientConf;
+    this.tmp = tmp;
+    this.users = users;
+    this.serverUser = serverUser;
   }
 
   public String getAccumuloHome() {
@@ -71,6 +83,12 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   public String getHadoopConfDir() {
+    if (null == hadoopConfDir) {
+      hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+    }
+    if (null == hadoopConfDir) {
+      throw new IllegalArgumentException("Cannot determine HADOOP_CONF_DIR for standalone cluster");
+    }
     return hadoopConfDir;
   }
 
@@ -95,12 +113,12 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public ClientConfiguration getClientConfig() {
-    return ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers());
+    return clientConf;
   }
 
   @Override
   public StandaloneClusterControl getClusterControl() {
-    return new StandaloneClusterControl(null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
+    return new StandaloneClusterControl(serverUser, null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
         null == accumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : accumuloConfDir);
   }
 
@@ -128,20 +146,29 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     }
   }
 
-  @Override
-  public FileSystem getFileSystem() throws IOException {
-    String confDir = hadoopConfDir;
-    if (null == confDir) {
-      confDir = System.getenv("HADOOP_CONF_DIR");
-    }
-    if (null == confDir) {
-      throw new IllegalArgumentException("Cannot determine HADOOP_CONF_DIR for standalone cluster");
-    }
+  public Configuration getHadoopConfiguration() {
+    String confDir = getHadoopConfDir();
     // Using CachedConfiguration will make repeatedly calling this method much faster
     final Configuration conf = CachedConfiguration.getInstance();
     conf.addResource(new Path(confDir, "core-site.xml"));
     // Need hdfs-site.xml for NN HA
     conf.addResource(new Path(confDir, "hdfs-site.xml"));
+    return conf;
+  }
+
+  @Override
+  public FileSystem getFileSystem() throws IOException {
+    Configuration conf = getHadoopConfiguration();
     return FileSystem.get(conf);
+  }
+
+  @Override
+  public Path getTemporaryPath() {
+    return tmp;
+  }
+
+  public ClusterUser getUser(int offset) {
+    checkArgument(offset >= 0 && offset < users.size(), "Invalid offset, should be non-negative and less than " + users.size());
+    return users.get(offset);
   }
 }

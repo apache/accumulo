@@ -21,7 +21,9 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class TransactionWatcher {
 
@@ -31,7 +33,7 @@ public class TransactionWatcher {
     boolean transactionComplete(String type, long tid) throws Exception;
   }
 
-  private static final Logger log = Logger.getLogger(TransactionWatcher.class);
+  private static final Logger log = LoggerFactory.getLogger(TransactionWatcher.class);
   final private Map<Long,AtomicInteger> counts = new HashMap<Long,AtomicInteger>();
   final private Arbitrator arbitrator;
 

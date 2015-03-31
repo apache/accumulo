@@ -28,7 +28,9 @@ import java.util.concurrent.locks.Lock;
 
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 // A ReadWriteLock that can be implemented in ZooKeeper.  Features the ability to store data
 // with the lock, and recover the lock using that data to find the lock.
@@ -96,7 +98,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     long addEntry(byte[] data);
   }
 
-  private static final Logger log = Logger.getLogger(DistributedReadWriteLock.class);
+  private static final Logger log = LoggerFactory.getLogger(DistributedReadWriteLock.class);
 
   static class ReadLock implements Lock {
 

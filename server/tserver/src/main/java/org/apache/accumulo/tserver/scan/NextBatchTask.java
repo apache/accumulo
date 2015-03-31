@@ -25,11 +25,12 @@ import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NextBatchTask extends ScanTask<ScanBatch> {
 
-  private static final Logger log = Logger.getLogger(TabletServer.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
 
   private final long scanID;
 

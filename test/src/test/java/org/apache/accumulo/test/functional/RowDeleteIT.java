@@ -45,7 +45,9 @@ public class RowDeleteIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "50ms"));
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
+    cfg.setSiteConfig(siteConfig);
   }
 
   @Override

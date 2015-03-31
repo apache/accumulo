@@ -33,7 +33,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RenameTable extends MasterRepo {
 
@@ -97,7 +97,7 @@ public class RenameTable extends MasterRepo {
       Utils.unreserveNamespace(namespaceId, tid, false);
     }
 
-    Logger.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
+    LoggerFactory.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
 
     return null;
   }

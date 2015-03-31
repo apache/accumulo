@@ -55,11 +55,12 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CleanUp extends MasterRepo {
 
-  final private static Logger log = Logger.getLogger(CleanUp.class);
+  final private static Logger log = LoggerFactory.getLogger(CleanUp.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -99,16 +100,8 @@ class CleanUp extends MasterRepo {
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
 
-    KeyExtent prevExtent = null;
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState locationState = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
-      if (!locationState.extent.isPreviousExtent(prevExtent)) {
-        log.info("Still waiting for table to be deleted: " + tableId + " saw inconsistency " + prevExtent + " " + locationState.extent);
-        done = false;
-        break;
-      }
-      prevExtent = locationState.extent;
-
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
         log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
@@ -220,7 +213,7 @@ class CleanUp extends MasterRepo {
     Utils.unreserveTable(tableId, tid, true);
     Utils.unreserveNamespace(namespaceId, tid, false);
 
-    Logger.getLogger(CleanUp.class).debug("Deleted table " + tableId);
+    LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
     return null;
   }

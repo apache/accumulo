@@ -48,15 +48,16 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class LogSorter {
 
-  private static final Logger log = Logger.getLogger(LogSorter.class);
+  private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
   VolumeManager fs;
   AccumuloConfiguration conf;
 
@@ -158,7 +159,7 @@ public class LogSorter {
         } catch (IOException e) {
           log.error("Error creating failed flag file " + name, e);
         }
-        log.error(t, t);
+        log.error("Caught throwable", t);
       } finally {
         Thread.currentThread().setName(formerThreadName);
         try {

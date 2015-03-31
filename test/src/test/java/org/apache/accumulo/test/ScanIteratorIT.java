@@ -17,20 +17,23 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -44,13 +47,15 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.AuthsIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScanIteratorIT extends AccumuloClusterIT {
-
-  private static final String USER = "authsItrUser";
+  private static final Logger log = LoggerFactory.getLogger(ScanIteratorIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -64,6 +69,8 @@ public class ScanIteratorIT extends AccumuloClusterIT {
 
   private Connector connector;
   private String tableName;
+  private String user;
+  private boolean saslEnabled;
 
   @Before
   public void setup() throws Exception {
@@ -71,40 +78,55 @@ public class ScanIteratorIT extends AccumuloClusterIT {
     tableName = getUniqueNames(1)[0];
 
     connector.tableOperations().create(tableName);
-    connector.securityOperations().createLocalUser(USER, new PasswordToken(""));
-    connector.securityOperations().grantTablePermission(USER, tableName, TablePermission.READ);
-    connector.securityOperations().grantTablePermission(USER, tableName, TablePermission.WRITE);
-    connector.securityOperations().changeUserAuthorizations(USER, AuthsIterator.AUTHS);
+    ClientConfiguration clientConfig = cluster.getClientConfig();
+    ClusterUser clusterUser = getUser(0);
+    user = clusterUser.getPrincipal();
+    PasswordToken userToken;
+    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      userToken = null;
+      saslEnabled = true;
+    } else {
+      userToken = new PasswordToken(clusterUser.getPassword());
+      saslEnabled = false;
+    }
+    if (connector.securityOperations().listLocalUsers().contains(user)) {
+      log.info("Dropping {}", user);
+      connector.securityOperations().dropLocalUser(user);
+    }
+    connector.securityOperations().createLocalUser(user, userToken);
+    connector.securityOperations().grantTablePermission(user, tableName, TablePermission.READ);
+    connector.securityOperations().grantTablePermission(user, tableName, TablePermission.WRITE);
+    connector.securityOperations().changeUserAuthorizations(user, AuthsIterator.AUTHS);
   }
 
   @After
   public void tearDown() throws Exception {
-    connector.securityOperations().dropLocalUser(USER);
+    if (null != user) {
+      if (saslEnabled) {
+        ClusterUser rootUser = getAdminUser();
+        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+      }
+      connector.securityOperations().dropLocalUser(user);
+    }
   }
 
   @Test
-  public void testAuthsPresentInIteratorEnvironment()
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException, TableExistsException, InterruptedException {
-
+  public void testAuthsPresentInIteratorEnvironment() throws Exception {
     runTest(AuthsIterator.AUTHS, false);
   }
 
   @Test
-  public void testAuthsNotPresentInIteratorEnvironment()
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException, TableExistsException, InterruptedException {
-
+  public void testAuthsNotPresentInIteratorEnvironment() throws Exception {
     runTest(new Authorizations("B"), true);
   }
 
   @Test
-  public void testEmptyAuthsInIteratorEnvironment()
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException, TableExistsException, InterruptedException {
-
+  public void testEmptyAuthsInIteratorEnvironment() throws Exception {
     runTest(Authorizations.EMPTY, true);
   }
 
-  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException {
     int count = 0;
     for (Map.Entry<Key,Value> entry : scanner) {
       assertEquals(shouldFail ? AuthsIterator.FAIL : AuthsIterator.SUCCESS, entry.getKey().getRow().toString());
@@ -114,8 +136,9 @@ public class ScanIteratorIT extends AccumuloClusterIT {
     assertEquals(1, count);
   }
 
-  private void runTest(Authorizations auths, boolean shouldFail) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    Connector userC = getCluster().getConnector(USER, new PasswordToken(("")));
+  private void runTest(Authorizations auths, boolean shouldFail) throws Exception {
+    ClusterUser clusterUser = getUser(0);
+    Connector userC = getCluster().getConnector(clusterUser.getPrincipal(), clusterUser.getToken());
     writeTestMutation(userC);
 
     IteratorSetting setting = new IteratorSetting(10, AuthsIterator.class);

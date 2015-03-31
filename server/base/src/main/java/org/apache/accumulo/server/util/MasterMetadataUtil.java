@@ -56,15 +56,16 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class MasterMetadataUtil {
 
-  private static final Logger log = Logger.getLogger(MasterMetadataUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
   public static void addNewTablet(ClientContext context, KeyExtent extent, String path, TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
       Map<FileRef,Long> bulkLoadedFiles, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
@@ -188,9 +189,9 @@ public class MasterMetadataUtil {
       try {
         return new TServerInstance(address, zooLock.getSessionId());
       } catch (KeeperException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       } catch (InterruptedException e) {
-        log.error(e, e);
+        log.error(e.getMessage(), e);
       }
       UtilWaitThread.sleep(1000);
     }
@@ -279,9 +280,9 @@ public class MasterMetadataUtil {
           }
           break;
         } catch (KeeperException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         } catch (InterruptedException e) {
-          log.error(e, e);
+          log.error(e.getMessage(), e);
         }
         UtilWaitThread.sleep(1000);
       }

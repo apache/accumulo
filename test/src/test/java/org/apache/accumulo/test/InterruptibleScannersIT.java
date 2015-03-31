@@ -73,7 +73,7 @@ public class InterruptibleScannersIT extends AccumuloClusterIT {
             while (iter.hasNext()) {
               ActiveScan scan = iter.next();
               // Remove scans not against our table and not owned by us
-              if (!"root".equals(scan.getUser()) || !tableName.equals(scan.getTable())) {
+              if (!getAdminPrincipal().equals(scan.getUser()) || !tableName.equals(scan.getTable())) {
                 iter.remove();
               }
             }

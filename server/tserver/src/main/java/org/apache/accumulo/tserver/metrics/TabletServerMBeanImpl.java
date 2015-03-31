@@ -22,12 +22,13 @@ import javax.management.StandardMBean;
 
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TabletServerMBeanImpl extends AbstractMetricsImpl implements TabletServerMBean {
-  private static final Logger log = Logger.getLogger(TabletServerMBeanImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerMBeanImpl.class);
   private static final String METRICS_PREFIX = "tserver";
-  private static ObjectName OBJECT_NAME = null;
+  private ObjectName OBJECT_NAME = null;
 
   private final TabletServerMetricsUtil util;
 

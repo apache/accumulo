@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -61,9 +60,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.replication.StatusFormatter;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -76,7 +72,11 @@ import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
+import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusCombiner;
+import org.apache.accumulo.server.replication.StatusFormatter;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
@@ -113,6 +113,7 @@ public class ReplicationIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run the master replication loop run frequently
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
@@ -1095,6 +1096,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     bw.close();
+    conn.tableOperations().flush(table1, null, null, true);
 
     String tableId = conn.tableOperations().tableIdMap().get(table1);
     Assert.assertNotNull("Table ID was null", tableId);
@@ -1406,6 +1408,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     bw.close();
+    conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure the replication table exists at this point
     boolean online = ReplicationTable.isOnline(conn);
@@ -1466,7 +1469,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     if (notFound) {
       s = ReplicationTable.getScanner(conn);
       for (Entry<Key,Value> content : s) {
-        log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
+        log.info(content.getKey().toStringNoTruncate() + " => " + ProtobufUtil.toString(Status.parseFrom(content.getValue().get())));
       }
       Assert.assertFalse("Did not find the work entry for the status entry", notFound);
     }
@@ -1552,7 +1555,7 @@ public class ReplicationIT extends ConfigurableMacIT {
      */
 
     int recordsFound = 0;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 30; i++) {
       s = ReplicationTable.getScanner(conn);
       recordsFound = 0;
       for (Entry<Key,Value> entry : s) {

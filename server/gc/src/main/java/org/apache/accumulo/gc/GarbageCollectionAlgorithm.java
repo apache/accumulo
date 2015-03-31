@@ -38,13 +38,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -54,7 +55,7 @@ import com.google.common.collect.PeekingIterator;
  */
 public class GarbageCollectionAlgorithm {
 
-  private static final Logger log = Logger.getLogger(GarbageCollectionAlgorithm.class);
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
   private String makeRelative(String path, int expectedLen) {
     String relPath = path;

@@ -337,7 +337,13 @@ public class ThriftUtil {
 
         log.trace("Creating SASL connection to {}:{}", address.getHostText(), address.getPort());
 
-        transport = new TSocket(address.getHostText(), address.getPort());
+        // Make sure a timeout is set
+        try {
+          transport = TTimeoutTransport.create(address, timeout);
+        } catch (IOException e) {
+          log.warn("Failed to open transport to {}", address);
+          throw new TTransportException(e);
+        }
 
         try {
           // Log in via UGI, ensures we have logged in with our KRB credentials
@@ -408,14 +414,18 @@ public class ThriftUtil {
       if (params.isTrustStoreSet()) {
         tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         KeyStore ts = KeyStore.getInstance(params.getTrustStoreType());
-        ts.load(new FileInputStream(params.getTrustStorePath()), params.getTrustStorePass().toCharArray());
+        try (FileInputStream fis = new FileInputStream(params.getTrustStorePath())) {
+          ts.load(fis, params.getTrustStorePass().toCharArray());
+        }
         tmf.init(ts);
       }
 
       if (params.isKeyStoreSet()) {
         kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         KeyStore ks = KeyStore.getInstance(params.getKeyStoreType());
-        ks.load(new FileInputStream(params.getKeyStorePath()), params.getKeyStorePass().toCharArray());
+        try (FileInputStream fis = new FileInputStream(params.getKeyStorePath())) {
+          ks.load(fis, params.getKeyStorePass().toCharArray());
+        }
         kmf.init(ks, params.getKeyStorePass().toCharArray());
       }
 

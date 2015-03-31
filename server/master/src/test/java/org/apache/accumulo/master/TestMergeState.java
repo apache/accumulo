@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -79,6 +80,21 @@ public class TestMergeState {
     @Override
     public Collection<MergeInfo> merges() {
       return Collections.singleton(mergeInfo);
+    }
+
+    @Override
+    public Collection<KeyExtent> migrations() {
+      return Collections.emptyList();
+    }
+
+    @Override
+    public MasterState getMasterState() {
+      return MasterState.NORMAL;
+    }
+
+    @Override
+    public Set<TServerInstance> shutdownServers() {
+      return Collections.emptySet();
     }
   }
 

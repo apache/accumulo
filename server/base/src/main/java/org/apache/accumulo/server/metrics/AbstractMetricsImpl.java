@@ -38,7 +38,7 @@ import org.apache.commons.lang.time.DateUtils;
 
 public abstract class AbstractMetricsImpl implements Metrics {
 
-  public class Metric {
+  public static class Metric {
 
     private long count = 0;
     private long avg = 0;
@@ -91,7 +91,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
   }
 
-  static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(AbstractMetricsImpl.class);
+  static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AbstractMetricsImpl.class);
 
   private static ConcurrentHashMap<String,Metric> registry = new ConcurrentHashMap<String,Metric>();
 
@@ -268,11 +268,8 @@ public abstract class AbstractMetricsImpl implements Metrics {
         logWriter.close();
       } catch (Exception e) {
         // do nothing
-      } finally {
-        logWriter = null;
       }
     }
-    logFile = null;
   }
 
 }

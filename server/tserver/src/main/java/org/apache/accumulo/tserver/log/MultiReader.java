@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -68,6 +69,16 @@ public class MultiReader {
       if (!cached && reader.next(key, value)) {
         cached = true;
       }
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(key);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj || (obj != null && obj instanceof Index && 0 == compareTo((Index) obj));
     }
 
     @Override

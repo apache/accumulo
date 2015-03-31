@@ -33,8 +33,12 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KerberosTokenTest {
+
+  private static final Logger log = LoggerFactory.getLogger(KerberosTokenTest.class);
 
   @Rule
   public TestName testName = new TestName();
@@ -65,8 +69,8 @@ public class KerberosTokenTest {
   public void test() throws Exception {
     String user = testName.getMethodName();
     File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
-    if (userKeytab.exists()) {
-      userKeytab.delete();
+    if (userKeytab.exists() && !userKeytab.delete()) {
+      log.warn("Unable to delete {}", userKeytab);
     }
 
     kdc.createPrincipal(userKeytab, user);
@@ -88,8 +92,8 @@ public class KerberosTokenTest {
   public void testDestroy() throws Exception {
     String user = testName.getMethodName();
     File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
-    if (userKeytab.exists()) {
-      userKeytab.delete();
+    if (userKeytab.exists() && !userKeytab.delete()) {
+      log.warn("Unable to delete {}", userKeytab);
     }
 
     kdc.createPrincipal(userKeytab, user);

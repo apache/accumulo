@@ -46,14 +46,15 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetadataConstraints implements Constraint {
 
   private ZooCache zooCache = null;
   private String zooRoot = null;
 
-  private static final Logger log = Logger.getLogger(MetadataConstraints.class);
+  private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
 
   private static boolean[] validTableNameChars = new boolean[256];
 
@@ -92,7 +93,7 @@ public class MetadataConstraints implements Constraint {
 
   static private ArrayList<Short> addIfNotPresent(ArrayList<Short> lst, int intViolation) {
     if (lst == null)
-      return addViolation(lst, intViolation);
+      return addViolation(null, intViolation);
     short violation = (short) intViolation;
     if (!lst.contains(violation))
       return addViolation(lst, intViolation);

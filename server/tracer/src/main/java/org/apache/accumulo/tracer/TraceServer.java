@@ -18,6 +18,7 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -58,7 +59,8 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.htrace.Span;
 import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -72,11 +74,12 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.htrace.Span;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TraceServer implements Watcher {
 
-  final private static Logger log = Logger.getLogger(TraceServer.class);
+  final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
   final private ServerConfigurationFactory serverConfiguration;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
@@ -212,7 +215,7 @@ public class TraceServer implements Watcher {
         }
         connector.tableOperations().setProperty(table, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
-      } catch (Exception ex) {
+      } catch (RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
         UtilWaitThread.sleep(1000);
       }
@@ -295,8 +298,35 @@ public class TraceServer implements Watcher {
     zoo.exists(path, this);
   }
 
+  private static void loginTracer(AccumuloConfiguration acuConf) {
+    Map<String,String> loginMap = acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
+    if (keyTab == null || keyTab.length() == 0) {
+      keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
+    }
+    if (keyTab == null || keyTab.length() == 0)
+      return;
+
+    String principalConfig = acuConf.get(Property.TRACE_USER);
+    if (principalConfig == null || principalConfig.length() == 0)
+      return;
+
+    log.info("Attempting to login as {} with {}", principalConfig, keyTab);
+    if (SecurityUtil.login(principalConfig, keyTab)) {
+      try {
+        // This spawns a thread to periodically renew the logged in (trace) user
+        UserGroupInformation.getLoginUser();
+        return;
+      } catch (IOException io) {
+        log.error("Error starting up renewal thread. This shouldn't be happening.", io);
+      }
+    }
+
+    throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
+  }
+
   public static void main(String[] args) throws Exception {
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    loginTracer(SiteConfiguration.getInstance());
     ServerOpts opts = new ServerOpts();
     final String app = "tracer";
     opts.parseArgs(app, args);
@@ -330,7 +360,7 @@ public class TraceServer implements Watcher {
         if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
           return;
       } catch (Exception ex) {
-        log.error(ex, ex);
+        log.error(ex.getMessage(), ex);
       }
       log.warn("Trace server unable to reset watch on zookeeper registration");
       server.stop();

@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.test;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,17 +39,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.tserver.compaction.CompactionPlan;
-import org.apache.accumulo.tserver.compaction.CompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -58,83 +53,9 @@ import com.google.common.collect.ImmutableSet;
 
 public class UserCompactionStrategyIT extends AccumuloClusterIT {
 
-  public static class SizeCompactionStrategy extends CompactionStrategy {
-
-    private long size = 0;
-
-    @Override
-    public void init(Map<String,String> options) {
-      size = Long.parseLong(options.get("size"));
-    }
-
-    @Override
-    public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
-
-      for (DataFileValue dfv : request.getFiles().values())
-        if (dfv.getSize() < size)
-          return true;
-
-      return false;
-    }
-
-    @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
-      CompactionPlan plan = new CompactionPlan();
-
-      for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet())
-        if (entry.getValue().getSize() < size)
-          plan.inputFiles.add(entry.getKey());
-
-      return plan;
-    }
-
-  }
-
-  public static class TestCompactionStrategy extends CompactionStrategy {
-
-    private String inputPrefix = "Z";
-    private String dropPrefix = "Z";
-    private boolean shouldCompact = false;
-
-    @Override
-    public void init(Map<String,String> options) {
-      if (options.containsKey("inputPrefix"))
-        inputPrefix = options.get("inputPrefix");
-      if (options.containsKey("dropPrefix"))
-        dropPrefix = options.get("dropPrefix");
-      if (options.containsKey("shouldCompact"))
-        shouldCompact = Boolean.parseBoolean(options.get("shouldCompact"));
-    }
-
-    @Override
-    public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
-      if (shouldCompact)
-        return true;
-
-      for (FileRef fref : request.getFiles().keySet()) {
-        if (fref.path().getName().startsWith(inputPrefix))
-          return true;
-        if (fref.path().getName().startsWith(dropPrefix))
-          return true;
-      }
-
-      return false;
-    }
-
-    @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
-      CompactionPlan plan = new CompactionPlan();
-
-      for (FileRef fref : request.getFiles().keySet()) {
-        if (fref.path().getName().startsWith(dropPrefix)) {
-          plan.deleteFiles.add(fref);
-        } else if (fref.path().getName().startsWith(inputPrefix)) {
-          plan.inputFiles.add(fref);
-        }
-      }
-
-      return plan;
-    }
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 3 * 60;
   }
 
   @Test
@@ -200,6 +121,9 @@ public class UserCompactionStrategyIT extends AccumuloClusterIT {
 
   @Test
   public void testPerTableClasspath() throws Exception {
+    // Can't assume that a test-resource will be on the server's classpath
+    Assume.assumeTrue(ClusterType.MINI == getClusterType());
+
     // test pertable classpath + user specified compaction strat
 
     final Connector c = getConnector();

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
@@ -105,7 +107,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Assert.assertEquals(clazz1, clazz1_5);
 
-    new File(folder1.getRoot(), "HelloWorld.jar").delete();
+    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
@@ -157,7 +159,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Assert.assertEquals(clazz1, clazz1_5);
 
-    new File(folder1.getRoot(), "HelloWorld.jar").delete();
+    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
     // Update the class
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
@@ -206,7 +208,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     // file
     Thread.sleep(1000);
 
-    new File(folder1.getRoot(), "HelloWorld.jar").delete();
+    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
     // Update the class
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld2.jar"), folder1.newFile("HelloWorld.jar"));

@@ -39,7 +39,12 @@ import org.junit.Test;
 // ACCUMULO-2862
 public class SplitCancelsMajCIT extends SharedMiniClusterIT {
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();

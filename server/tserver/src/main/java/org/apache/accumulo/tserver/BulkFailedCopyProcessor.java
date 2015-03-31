@@ -28,14 +28,15 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Copy failed bulk imports.
  */
 public class BulkFailedCopyProcessor implements Processor {
 
-  private static final Logger log = Logger.getLogger(BulkFailedCopyProcessor.class);
+  private static final Logger log = LoggerFactory.getLogger(BulkFailedCopyProcessor.class);
 
   @Override
   public Processor newProcessor() {

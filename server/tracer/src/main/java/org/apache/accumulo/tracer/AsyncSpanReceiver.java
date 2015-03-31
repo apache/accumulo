@@ -32,11 +32,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.apache.log4j.Logger;
-import org.htrace.HTraceConfiguration;
-import org.htrace.Span;
-import org.htrace.SpanReceiver;
-import org.htrace.TimelineAnnotation;
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.Span;
+import org.apache.htrace.SpanReceiver;
+import org.apache.htrace.TimelineAnnotation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Deliver Span information periodically to a destination.
@@ -48,7 +49,9 @@ import org.htrace.TimelineAnnotation;
  */
 public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanReceiver {
 
-  private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(AsyncSpanReceiver.class);
+
+  public static final String SEND_TIMER_MILLIS = "send.timer.millis";
 
   private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
 
@@ -63,12 +66,25 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   Timer timer = new Timer("SpanSender", true);
   protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  int maxQueueSize = 5000;
+  long lastNotificationOfDroppedSpans = 0;
 
-  public AsyncSpanReceiver() {
-    this(1000);
-  }
+  // Visible for testing
+  AsyncSpanReceiver() {}
 
-  public AsyncSpanReceiver(long millis) {
+  public AsyncSpanReceiver(HTraceConfiguration conf) {
+    host = conf.get(DistributedTrace.TRACE_HOST_PROPERTY, host);
+    if (host == null) {
+      try {
+        host = InetAddress.getLocalHost().getCanonicalHostName().toString();
+      } catch (UnknownHostException e) {
+        host = "unknown";
+      }
+    }
+    service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
+    maxQueueSize = conf.getInt(DistributedTrace.TRACE_QUEUE_SIZE_PROPERTY, maxQueueSize);
+
+    int millis = conf.getInt(SEND_TIMER_MILLIS, 1000);
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
@@ -136,9 +152,19 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   @Override
   public void receiveSpan(Span s) {
     Map<ByteBuffer,ByteBuffer> data = convertToByteBuffers(s.getKVAnnotations());
+
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
       List<Annotation> annotations = convertToAnnotations(s.getTimelineAnnotations());
+      if (sendQueue.size() > maxQueueSize) {
+        long now = System.currentTimeMillis();
+        if (now - lastNotificationOfDroppedSpans > 60 * 1000) {
+          log.warn("Tracing spans are being dropped because there are already " + maxQueueSize + " spans queued for delivery.\n" +
+              "This does not affect performance, security or data integrity, but distributed tracing information is being lost.");
+          lastNotificationOfDroppedSpans = now;
+        }
+        return;
+      }
       sendQueue.add(new RemoteSpan(host, service == null ? s.getProcessId() : service, s.getTraceId(), s.getSpanId(), s.getParentId(), s.getStartTimeMillis(),
           s.getStopTimeMillis(), s.getDescription(), data, annotations));
     }
@@ -156,19 +182,6 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         }
       }
     }
-  }
-
-  @Override
-  public void configure(HTraceConfiguration conf) {
-    host = conf.get(DistributedTrace.TRACE_HOST_PROPERTY, host);
-    if (host == null) {
-      try {
-        host = InetAddress.getLocalHost().getCanonicalHostName().toString();
-      } catch (UnknownHostException e) {
-        host = "unknown";
-      }
-    }
-    service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
   }
 
 }

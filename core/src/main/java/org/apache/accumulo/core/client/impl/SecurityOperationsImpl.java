@@ -105,11 +105,17 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void createLocalUser(final String principal, final PasswordToken password) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
-    checkArgument(password != null, "password is null");
+    if (null == context.getSaslParams()) {
+      checkArgument(password != null, "password is null");
+    }
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.createLocalUser(Tracer.traceInfo(), context.rpcCreds(), principal, ByteBuffer.wrap(password.getPassword()));
+        if (null == context.getSaslParams()) {
+          client.createLocalUser(Tracer.traceInfo(), context.rpcCreds(), principal, ByteBuffer.wrap(password.getPassword()));
+        } else {
+          client.createLocalUser(Tracer.traceInfo(), context.rpcCreds(), principal, ByteBuffer.wrap(new byte[0]));
+        }
       }
     });
   }

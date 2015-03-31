@@ -18,11 +18,12 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
 
-import java.util.Collections;
-
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -35,7 +36,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
-import org.junit.Assume;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +48,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1s");
   }
 
   @Override
@@ -94,6 +95,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
     Path testDir = new Path(getUsableDir(), "testmf");
     FunctionalTestUtils.createRFiles(c, fs, testDir.toString(), ROWS, SPLITS, 8);
     FileStatus[] stats = fs.listStatus(testDir);
+
     System.out.println("Number of generated files: " + stats.length);
     FunctionalTestUtils.bulkImport(c, fs, tableName, testDir.toString());
     FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
@@ -109,8 +111,6 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
       UtilWaitThread.sleep(500);
     }
 
-    Assume.assumeTrue(getToken() instanceof PasswordToken);
-    PasswordToken token = (PasswordToken) getToken();
     FunctionalTestUtils.checkSplits(c, tableName, 50, 100);
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.timestamp = 1;
@@ -119,8 +119,20 @@ public class BulkSplitOptimizationIT extends AccumuloClusterIT {
     opts.rows = 100000;
     opts.startRow = 0;
     opts.cols = 1;
-    opts.setPassword(new Password(new String(token.getPassword(), UTF_8)));
     opts.setTableName(tableName);
+
+    AuthenticationToken adminToken = getAdminToken();
+    if (adminToken instanceof PasswordToken) {
+      PasswordToken token = (PasswordToken) getAdminToken();
+      opts.setPassword(new Password(new String(token.getPassword(), UTF_8)));
+      opts.setPrincipal(getAdminPrincipal());
+    } else if (adminToken instanceof KerberosToken) {
+      ClientConfiguration clientConf = cluster.getClientConfig();
+      opts.updateKerberosCredentials(clientConf);
+    } else {
+      Assert.fail("Unknown token type");
+    }
+
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
 
     // ensure each tablet does not have all map files, should be ~2.5 files per tablet

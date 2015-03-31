@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -37,10 +38,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -85,10 +89,12 @@ import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
@@ -96,7 +102,7 @@ import com.google.common.collect.Iterables;
  *
  */
 public class ConditionalWriterIT extends AccumuloClusterIT {
-  private static final Logger log = Logger.getLogger(ConditionalWriterIT.class);
+  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -108,6 +114,16 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     if (l < 0)
       return 0;
     return l;
+  }
+
+  @Before
+  public void deleteUsers() throws Exception {
+    Connector conn = getConnector();
+    Set<String> users = conn.securityOperations().listLocalUsers();
+    ClusterUser user = getUser(0);
+    if (users.contains(user.getPrincipal())) {
+      conn.securityOperations().dropLocalUser(user.getPrincipal());
+    }
   }
 
   @Test
@@ -196,14 +212,26 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
-    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
-    conn.securityOperations().createLocalUser(user, new PasswordToken("foo"));
+
+    String user = null;
+    ClientConfiguration clientConf = cluster.getClientConfig();
+    final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
+
+    ClusterUser user1 = getUser(0);
+    user = user1.getPrincipal();
+    if (saslEnabled) {
+      // The token is pointless for kerberos
+      conn.securityOperations().createLocalUser(user, null);
+    } else {
+      conn.securityOperations().createLocalUser(user, new PasswordToken(user1.getPassword()));
+    }
 
     Authorizations auths = new Authorizations("A", "B");
 
     conn.securityOperations().changeUserAuthorizations(user, auths);
     conn.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
-    conn = conn.getInstance().getConnector(user, new PasswordToken("foo"));
+
+    conn = conn.getInstance().getConnector(user, user1.getToken());
 
     conn.tableOperations().create(tableName);
 
@@ -288,7 +316,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     Authorizations auths = new Authorizations("A", "B");
 
-    conn.securityOperations().changeUserAuthorizations("root", auths);
+    conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), auths);
 
     Authorizations filteredAuths = new Authorizations("A");
 
@@ -514,7 +542,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     conn.tableOperations().create(tableName);
 
-    conn.securityOperations().changeUserAuthorizations("root", new Authorizations("A", "B"));
+    conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("A", "B"));
 
     ColumnVisibility cvab = new ColumnVisibility("A|B");
 
@@ -698,7 +726,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
     conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
 
-    conn.securityOperations().changeUserAuthorizations("root", new Authorizations("A", "B"));
+    conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("A", "B"));
 
     ColumnVisibility cvaob = new ColumnVisibility("A|B");
     ColumnVisibility cvaab = new ColumnVisibility("A&B");
@@ -946,7 +974,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
         }
 
       } catch (Exception e) {
-        log.error(e);
+        log.error(e.getMessage(), e);
         failed.set(true);
       }
     }
@@ -1035,23 +1063,35 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     Connector conn = getConnector();
-    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
+    String user = null;
+    ClientConfiguration clientConf = cluster.getClientConfig();
+    final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
 
-    conn.securityOperations().createLocalUser(user, new PasswordToken("u1p"));
+    // Create a new user
+    ClusterUser user1 = getUser(0);
+    user = user1.getPrincipal();
+    if (saslEnabled) {
+      conn.securityOperations().createLocalUser(user, null);
+    } else {
+      conn.securityOperations().createLocalUser(user, new PasswordToken(user1.getPassword()));
+    }
 
     String[] tables = getUniqueNames(3);
     String table1 = tables[0], table2 = tables[1], table3 = tables[2];
 
+    // Create three tables
     conn.tableOperations().create(table1);
     conn.tableOperations().create(table2);
     conn.tableOperations().create(table3);
 
+    // Grant R on table1, W on table2, R/W on table3
     conn.securityOperations().grantTablePermission(user, table1, TablePermission.READ);
     conn.securityOperations().grantTablePermission(user, table2, TablePermission.WRITE);
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.READ);
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
 
-    Connector conn2 = getConnector().getInstance().getConnector(user, new PasswordToken("u1p"));
+    // Login as the user
+    Connector conn2 = conn.getInstance().getConnector(user, user1.getToken());
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
@@ -1061,8 +1101,10 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     ConditionalWriter cw2 = conn2.createConditionalWriter(table2, new ConditionalWriterConfig());
     ConditionalWriter cw3 = conn2.createConditionalWriter(table3, new ConditionalWriterConfig());
 
+    // Should be able to conditional-update a table we have R/W on
     Assert.assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
+    // Conditional-update to a table we only have read on should fail
     try {
       Status status = cw1.write(cm1).getStatus();
       Assert.fail("Expected exception writing conditional mutation to table the user doesn't have write access to, Got status: " + status);
@@ -1070,6 +1112,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     }
 
+    // Conditional-update to a table we only have writer on should fail
     try {
       Status status = cw2.write(cm1).getStatus();
       Assert.fail("Expected exception writing conditional mutation to table the user doesn't have read access to. Got status: " + status);

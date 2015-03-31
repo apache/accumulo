@@ -44,6 +44,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -57,6 +59,11 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setNumTservers(1);
   }
 
   @Before
@@ -74,8 +81,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     conn.tableOperations().create(table);
     insertData(table, currentTimeMillis());
 
-    ClientConfiguration clientConf = new ClientConfiguration().withInstance(conn.getInstance().getInstanceName()).withZkHosts(
-        conn.getInstance().getZooKeepers());
+    ClientConfiguration clientConf = cluster.getClientConfig();
     AccumuloConfiguration clusterClientConf = new ConfigurationCopy(new DefaultConfiguration());
 
     // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
@@ -95,7 +101,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     Job job = Job.getInstance();
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
-    AccumuloInputFormat.setConnectorInfo(job, getPrincipal(), getToken());
+    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
 
     // split table
     TreeSet<Text> splitsToAdd = new TreeSet<Text>();

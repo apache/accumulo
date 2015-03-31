@@ -20,6 +20,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -62,18 +64,18 @@ public class DistributedReadWriteLockTest {
 
   // some data that is probably not going to update atomically
   static class SomeData {
-    volatile int[] data = new int[100];
-    volatile int counter;
+    private AtomicIntegerArray data = new AtomicIntegerArray(100);
+    private AtomicInteger counter = new AtomicInteger();
 
     void read() {
-      for (int i = 0; i < data.length; i++)
-        assertEquals(counter, data[i]);
+      for (int i = 0; i < data.length(); i++)
+        assertEquals(counter.get(), data.get(i));
     }
 
     void write() {
-      ++counter;
-      for (int i = data.length - 1; i >= 0; i--)
-        data[i] = counter;
+      int nextCount = counter.incrementAndGet();
+      for (int i = data.length() - 1; i >= 0; i--)
+        data.set(i, nextCount);
     }
   }
 
@@ -99,6 +101,7 @@ public class DistributedReadWriteLockTest {
     for (int i = 0; i < threads.length; i++) {
       final int which = i;
       threads[i] = new Thread() {
+        @Override
         public void run() {
           if (which % 2 == 0) {
             final Lock wl = locker.writeLock();

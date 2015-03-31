@@ -29,13 +29,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -43,7 +44,7 @@ import com.google.common.annotations.VisibleForTesting;
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
 public class ZooCache {
-  private static final Logger log = Logger.getLogger(ZooCache.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
   private ZCacheWatcher watcher = new ZCacheWatcher();
   private Watcher externalWatcher = null;
@@ -63,7 +64,7 @@ public class ZooCache {
     public void process(WatchedEvent event) {
 
       if (log.isTraceEnabled())
-        log.trace(event);
+        log.trace("{}", event);
 
       switch (event.getType()) {
         case NodeDataChanged:

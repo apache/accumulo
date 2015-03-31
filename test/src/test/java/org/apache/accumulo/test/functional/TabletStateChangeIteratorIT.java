@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -62,6 +63,11 @@ import com.google.common.collect.Sets;
  * the tablet (see ACCUMULO-3580)
  */
 public class TabletStateChangeIteratorIT extends SharedMiniClusterIT {
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
 
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
@@ -165,6 +171,22 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterIT {
     public Collection<MergeInfo> merges() {
       return Collections.emptySet();
     }
+
+    @Override
+    public Collection<KeyExtent> migrations() {
+      return Collections.emptyList();
+    }
+
+    @Override
+    public MasterState getMasterState() {
+      return MasterState.NORMAL;
+    }
+
+    @Override
+    public Set<TServerInstance> shutdownServers() {
+      return Collections.emptySet();
+    }
+
   }
 
 }

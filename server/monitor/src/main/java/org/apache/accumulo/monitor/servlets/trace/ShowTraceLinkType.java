@@ -26,6 +26,8 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
  *
  */
 public class ShowTraceLinkType extends StringType<RemoteSpan> {
+  private static final long serialVersionUID = 1L;
+
   @Override
   public String format(Object obj) {
     if (obj == null)

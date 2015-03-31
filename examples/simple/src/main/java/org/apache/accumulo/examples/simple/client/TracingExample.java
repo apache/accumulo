@@ -35,10 +35,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.log4j.Logger;
-import org.htrace.Sampler;
-import org.htrace.Trace;
-import org.htrace.TraceScope;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -47,7 +48,7 @@ import com.beust.jcommander.Parameter;
  *
  */
 public class TracingExample {
-  private static final Logger log = Logger.getLogger(TracingExample.class);
+  private static final Logger log = LoggerFactory.getLogger(TracingExample.class);
   private static final String DEFAULT_TABLE_NAME = "test";
 
   static class Opts extends ClientOnDefaultTable {

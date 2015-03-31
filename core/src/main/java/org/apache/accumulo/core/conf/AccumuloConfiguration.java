@@ -29,7 +29,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * A configuration object.
@@ -83,7 +85,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
-  private static final Logger log = Logger.getLogger(AccumuloConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
   /**
    * Gets a property value from this configuration.

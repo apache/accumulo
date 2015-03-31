@@ -85,13 +85,13 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
       {
         int len = din.readInt();
         cq = new byte[len];
-        din.read(cq);
+        din.readFully(cq);
       }
       // read the col visibility
       {
         int len = din.readInt();
         cv = new byte[len];
-        din.read(cv);
+        din.readFully(cv);
       }
       // read the timestamp
       long timestamp = din.readLong();
@@ -99,7 +99,7 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
       {
         int len = din.readInt();
         valBytes = new byte[len];
-        din.read(valBytes);
+        din.readFully(valBytes);
       }
       map.put(new Key(rowKey.getRowData().toArray(), rowKey.getColumnFamilyData().toArray(), cq, cv, timestamp, false, false), new Value(valBytes, false));
     }

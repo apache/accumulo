@@ -29,7 +29,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 
 public class MockNamespace {
 
-  final Map<String,String> settings;
+  final HashMap<String,String> settings;
   Map<String,EnumSet<NamespacePermission>> userPermissions = new HashMap<String,EnumSet<NamespacePermission>>();
 
   public MockNamespace() {

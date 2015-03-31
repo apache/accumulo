@@ -33,7 +33,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class MetricsConfiguration {
 
-  private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(MetricsConfiguration.class);
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MetricsConfiguration.class);
 
   private static final String metricsFileName = "accumulo-metrics.xml";
 
@@ -53,7 +53,7 @@ public class MetricsConfiguration {
 
   private final Object lock = new Object();
 
-  private boolean needsReloading = false;
+  private volatile boolean needsReloading = false;
 
   private long lastCheckTime = 0;
 
@@ -76,6 +76,7 @@ public class MetricsConfiguration {
   private class MetricsConfigWatcher extends Daemon {
     public MetricsConfigWatcher() {}
 
+    @Override
     public void run() {
       while (this.isAlive()) {
         try {
@@ -92,6 +93,7 @@ public class MetricsConfiguration {
    * ConfigurationListener that sets a flag to reload the XML config file
    */
   private class MetricsConfigListener implements ConfigurationListener {
+    @Override
     public void configurationChanged(ConfigurationEvent event) {
       if (event.getType() == AbstractFileConfiguration.EVENT_RELOAD)
         needsReloading = true;
@@ -134,7 +136,7 @@ public class MetricsConfiguration {
         notFoundCount++;
       }
     }
-    if (null == config || needsReloading)
+    if (null == config || needsReloading) {
       synchronized (lock) {
         if (needsReloading) {
           loadConfiguration();
@@ -143,6 +145,7 @@ public class MetricsConfiguration {
         }
         needsReloading = false;
       }
+    }
     return config;
   }
 

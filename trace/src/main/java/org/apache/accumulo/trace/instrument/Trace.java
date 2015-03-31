@@ -42,7 +42,7 @@ public class Trace extends org.apache.accumulo.core.trace.Trace {
 
   // If we are tracing, return the current span, else null
   public static Span currentTrace() {
-    return new Span(org.htrace.Trace.currentSpan());
+    return new Span(org.apache.htrace.Trace.currentSpan());
   }
 
   // Create a new time span, if tracing is on
@@ -57,14 +57,14 @@ public class Trace extends org.apache.accumulo.core.trace.Trace {
 
   // Initiate a trace in this thread, starting now
   public static Span startThread(Span parent, String description) {
-    return new Span(org.htrace.Trace.startSpan(description, parent.getSpan()));
+    return new Span(org.apache.htrace.Trace.startSpan(description, parent.getSpan()));
   }
 
   // Stop a trace in this thread, starting now
   public static void endThread(Span span) {
     if (span != null) {
       span.stop();
-      org.htrace.Tracer.getInstance().continueSpan(null);
+      org.apache.htrace.Tracer.getInstance().continueSpan(null);
     }
   }
 

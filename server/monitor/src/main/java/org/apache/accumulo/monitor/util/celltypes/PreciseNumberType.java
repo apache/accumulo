@@ -18,6 +18,8 @@ package org.apache.accumulo.monitor.util.celltypes;
 
 public class PreciseNumberType extends NumberType<Integer> {
 
+  private static final long serialVersionUID = 1L;
+
   public PreciseNumberType(int warnMin, int warnMax, int errMin, int errMax) {
     super(warnMin, warnMax, errMin, errMax);
   }
