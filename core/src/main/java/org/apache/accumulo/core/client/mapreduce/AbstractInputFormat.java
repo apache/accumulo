@@ -466,32 +466,17 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
 
-      Boolean isOffline = split.isOffline();
-      if (null == isOffline) {
-        isOffline = tableConfig.isOfflineScan();
-      }
+      log.debug("Creating connector with user: " + principal);
+      log.debug("Creating scanner for table: " + table);
+      log.debug("Authorizations are: " + authorizations);
 
-      Boolean isIsolated = split.isIsolatedScan();
-      if (null == isIsolated) {
-        isIsolated = tableConfig.shouldUseIsolatedScanners();
-      }
+      if (split instanceof RangeInputSplit) {        
+        RangeInputSplit rangeSplit = (RangeInputSplit) split;
+        Scanner scanner;
 
-      Boolean usesLocalIterators = split.usesLocalIterators();
-      if (null == usesLocalIterators) {
-        usesLocalIterators = tableConfig.shouldUseLocalIterators();
-      }
-
-      try {
-        log.debug("Creating connector with user: " + principal);
-        log.debug("Creating scanner for table: " + table);
-        log.debug("Authorizations are: " + authorizations);
-        if (isOffline) {
-          scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
-        } else if (instance instanceof MockInstance) {
-          scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
-        } else {
-          ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
-          scanner = new ScannerImpl(context, split.getTableId(), authorizations);
+        Boolean isOffline = rangeSplit.isOffline();
+        if (null == isOffline) {
+          isOffline = tableConfig.isOfflineScan();
         }
 
         Boolean isIsolated = rangeSplit.isIsolatedScan();
