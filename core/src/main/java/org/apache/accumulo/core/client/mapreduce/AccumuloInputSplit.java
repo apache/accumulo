@@ -73,7 +73,7 @@ public abstract class AccumuloInputSplit extends InputSplit implements Writable 
   public AccumuloInputSplit() {
     locations = new String[0];
     tableName = "";
-    tableId = "";    
+    tableId = "";
   }
 
   public AccumuloInputSplit(AccumuloInputSplit split) throws IOException {

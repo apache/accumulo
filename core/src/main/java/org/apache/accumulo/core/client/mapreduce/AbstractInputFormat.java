@@ -437,7 +437,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
-      split = (RangeInputSplit) inSplit;
+      split = (AccumuloInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
       Instance instance = split.getInstance();
@@ -470,7 +470,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
-      if (split instanceof RangeInputSplit) {        
+      if (split instanceof RangeInputSplit) {
         RangeInputSplit rangeSplit = (RangeInputSplit) split;
         Scanner scanner;
 
@@ -496,7 +496,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
-            scanner = new ScannerImpl(context, split.getTableId(), authorizations);            
+            scanner = new ScannerImpl(context, split.getTableId(), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");

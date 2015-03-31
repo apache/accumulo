@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -32,7 +30,7 @@ import org.apache.accumulo.core.data.Range;
 public class RangeInputSplit extends AccumuloInputSplit  {
   private Range range;
   private Boolean offline, isolatedScan, localIterators;
-  
+
   public RangeInputSplit() {
     range = new Range();
   }
@@ -44,7 +42,7 @@ public class RangeInputSplit extends AccumuloInputSplit  {
 
   protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
     super(table, tableId, locations);
-    this.range = range;    
+    this.range = range;
   }
 
   public float getProgress(Key currentKey) {
@@ -68,7 +66,7 @@ public class RangeInputSplit extends AccumuloInputSplit  {
     // if we can't figure it out, then claim no progress
     return 0f;
   }
-  
+
   /**
    * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
    */

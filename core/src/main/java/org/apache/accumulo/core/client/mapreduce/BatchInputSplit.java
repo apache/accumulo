@@ -29,7 +29,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 
 /**
- * The Class MultiRangeInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs.
+ * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs.
+ * Can contain several Ranges per split.
  */
 public class BatchInputSplit extends AccumuloInputSplit {
   private Collection<Range> ranges;
@@ -77,7 +78,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
    * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
    */
   @Override
-  public long getLength() throws IOException {    
+  public long getLength() throws IOException {
     long sum = 0;
     for (Range range : ranges)
       sum += getRangeLength(range);
