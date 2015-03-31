@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.BatchInputSplit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -146,6 +147,22 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     AccumuloInputFormat.setAutoAdjustRanges(job, false);
     splits = inputFormat.getSplits(job);
     assertEquals(ranges.size(), splits.size());
+
+    //BatchScan not available for offline scans
+    AccumuloInputFormat.setBatchScan(job, true);
+    try {
+      inputFormat.getSplits(job);
+      fail("An exception should have been thrown");
+    } catch (Exception e) {}
+
+    //Check we are getting back correct type pf split
+    conn.tableOperations().online(table);
+    AccumuloInputFormat.setOfflineTableScan(job, false);
+    splits = inputFormat.getSplits(job);
+    assert(splits.get(0) instanceof BatchInputSplit);
+
+    //We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job, true)`
+    assertEquals(2, splits.size());
   }
 
   private void insertData(String tableName, long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
