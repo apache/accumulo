@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -229,7 +230,9 @@ public class ChunkInputFormatTest {
     }
 
     public static int main(String... args) throws Exception {
-      return ToolRunner.run(new Configuration(), new CIFTester(), args);
+      Configuration conf = new Configuration();
+      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      return ToolRunner.run(conf, new CIFTester(), args);
     }
   }
 

@@ -131,6 +131,7 @@ public class TokenFileTest {
     public static void main(String[] args) throws Exception {
       Configuration conf = CachedConfiguration.getInstance();
       conf.set("hadoop.tmp.dir", new File(args[1]).getParent());
+      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
