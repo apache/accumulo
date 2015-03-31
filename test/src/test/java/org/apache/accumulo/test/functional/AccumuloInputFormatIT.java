@@ -159,7 +159,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     conn.tableOperations().online(table);
     AccumuloInputFormat.setOfflineTableScan(job, false);
     splits = inputFormat.getSplits(job);
-    assert(splits.get(0) instanceof BatchInputSplit);
+    for (InputSplit split: splits)
+      assert(split instanceof BatchInputSplit);
 
     //We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job, true)`
     assertEquals(2, splits.size());
