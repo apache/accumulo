@@ -407,7 +407,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
-      split = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
+      split = (org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
       Instance instance = split.getInstance();
@@ -477,7 +477,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
-            scanner = new ScannerImpl(context, split.getTableId(), authorizations);            
+            scanner = new ScannerImpl(context, split.getTableId(), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");

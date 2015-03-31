@@ -23,7 +23,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.mapred.InputSplit;
 
 /**
- * The Class MultiRangeInputSplit. Encapsulates Accumulo ranges for use in Map Reduce jobs.
+ * The Class BatchInputSplit. Encapsulates Accumulo ranges for use in Map Reduce jobs.
+ * Can contain several Ranges per InputSplit.
  */
 public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.BatchInputSplit implements InputSplit {
 
@@ -31,7 +32,7 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.B
     super();
   }
 
-  public BatchInputSplit(org.apache.accumulo.core.client.mapred.BatchInputSplit split) throws IOException {
+  public BatchInputSplit(BatchInputSplit split) throws IOException {
     super(split);
   }
 
