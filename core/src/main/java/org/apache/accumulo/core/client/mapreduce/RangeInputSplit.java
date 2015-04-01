@@ -388,7 +388,15 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return tableId;
   }
 
+  /**
+   * @see #getInstance(ClientConfiguration)
+   */
+  @Deprecated
   public Instance getInstance() {
+    return getInstance(ClientConfiguration.loadDefault());
+  }
+
+  public Instance getInstance(ClientConfiguration base) {
     if (null == instanceName) {
       return null;
     }
@@ -401,7 +409,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       return null;
     }
 
-    return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
+    return new ZooKeeperInstance(base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
   }
 
   public String getInstanceName() {

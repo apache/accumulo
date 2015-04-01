@@ -407,7 +407,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
 
-      Instance instance = split.getInstance();
+      Instance instance = split.getInstance(getClientConfiguration(job));
       if (null == instance) {
         instance = getInstance(job);
       }
@@ -467,7 +467,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         } else if (instance instanceof MockInstance) {
           scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
         } else {
-          ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
+          ClientConfiguration clientConf = getClientConfiguration(job);
+          ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
           scanner = new ScannerImpl(context, split.getTableId(), authorizations);
         }
         if (isIsolated) {
