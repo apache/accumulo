@@ -440,7 +440,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       split = (AccumuloInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
-      Instance instance = split.getInstance();
+      Instance instance = split.getInstance(getClientConfiguration(attempt));
       if (null == instance) {
         instance = getInstance(attempt);
       }

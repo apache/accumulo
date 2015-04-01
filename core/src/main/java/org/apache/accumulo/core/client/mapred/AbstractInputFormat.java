@@ -409,7 +409,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       split = (org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
-      Instance instance = split.getInstance();
+      Instance instance = split.getInstance(getClientConfiguration(job));
       if (null == instance) {
         instance = getInstance(job);
       }
