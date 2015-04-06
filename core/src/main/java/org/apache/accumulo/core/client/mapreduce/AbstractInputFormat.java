@@ -429,9 +429,23 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      *          the scanner for which to configure the iterators
      * @param tableName
      *          the table name for which the scanner is configured
-     * @since 1.6.0
+     * @since 1.7.0
      */
     protected abstract void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split);
+
+    /**
+     * Configures the iterators on a scanner for the given table name.
+     *
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner for which to configure the iterators
+     * @param tableName
+     *          the table name for which the scanner is configured
+     * @since 1.6.0
+     */
+    @Deprecated
+    protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, AccumuloInputSplit split);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.

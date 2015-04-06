@@ -317,7 +317,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected void setupIterators(JobConf job, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split) {
+    protected void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
       List<IteratorSetting> iterators = null;
 
       if (null == split) {
@@ -330,6 +330,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       }
 
       setupIterators(iterators, scanner);
+    }
+
+    @Deprecated
+    protected void setupIterators(JobConf job, Scanner scanner, String tableName, AccumuloInputSplit split) {
+      setupIterators(job, (ScannerBase) scanner, tableName, split);
     }
 
     /**
@@ -346,6 +351,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       }
     }
 
+    @Deprecated
+    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
+      setupIterators(iterators, (ScannerBase) scanner);
+    }
+
     /**
      * Apply the configured iterators from the configuration to the scanner.
      *
@@ -355,7 +365,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the scanner to configure
      */
     @Deprecated
-    protected void setupIterators(JobConf job, ScannerBase scanner) {
+    protected void setupIterators(JobConf job, Scanner scanner) {
       setupIterators(getIterators(job), scanner);
     }
   }

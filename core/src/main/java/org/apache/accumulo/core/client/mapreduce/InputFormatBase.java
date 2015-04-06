@@ -381,10 +381,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the Hadoop context for the configured job
      * @param scanner
      *          the scanner to configure
-     * @since 1.6.0
+     * @since 1.7.0
      */
     @Override
-    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split) {
+    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
       setupIterators(context, scanner, split);
     }
 
@@ -404,7 +404,15 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
-    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split) {
+    @Deprecated
+    void setupIterators(TaskAttemptContext context, Scanner scanner, AccumuloInputSplit split) {
+      setupIterators(context, (ScannerBase) scanner, split);
+    }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     */
+    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, AccumuloInputSplit split) {
       List<IteratorSetting> iterators = null;
       if (null == split) {
         iterators = getIterators(context);
