@@ -34,8 +34,12 @@ public class StopMojo extends AbstractAccumuloMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
+    if (shouldSkip()) {
+      return;
+    }
+
     for (MiniAccumuloClusterImpl mac : StartMojo.runningClusters) {
-      System.out.println("Stopping MiniAccumuloCluster: " + mac.getInstanceName());
+      getLog().info("Stopping MiniAccumuloCluster: " + mac.getInstanceName());
       try {
         mac.stop();
         for (LogWriter log : mac.getLogWriters())

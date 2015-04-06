@@ -32,6 +32,16 @@ public abstract class AbstractAccumuloMojo extends AbstractMojo {
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
 
+  @Parameter(defaultValue = "false", alias = "skip", property = "accumulo.skip", required = true)
+  private boolean skip;
+
+  protected boolean shouldSkip() {
+    if (skip) {
+      getLog().info("Skipping execution of accumulo-maven-plugin");
+    }
+    return skip;
+  }
+
   void configureMiniClasspath(MiniAccumuloConfigImpl macConfig, String miniClasspath) throws MalformedURLException {
     ArrayList<String> classpathItems = new ArrayList<String>();
     if (miniClasspath == null && project != null) {
