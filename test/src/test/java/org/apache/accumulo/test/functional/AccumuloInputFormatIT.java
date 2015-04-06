@@ -150,14 +150,32 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
 
     //BatchScan not available for offline scans
     AccumuloInputFormat.setBatchScan(job, true);
+
+    AccumuloInputFormat.setOfflineTableScan(job, true);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
     } catch (Exception e) {}
+    AccumuloInputFormat.setOfflineTableScan(job, false);
+
+    //BatchScan not available with isolated iterators
+    AccumuloInputFormat.setScanIsolation(job, true);
+    try {
+      inputFormat.getSplits(job);
+      fail("An exception should have been thrown");
+    } catch (Exception e) {}
+    AccumuloInputFormat.setScanIsolation(job, false);
+
+    //BatchScan not available with local iterators
+    AccumuloInputFormat.setLocalIterators(job, true);
+    try {
+      inputFormat.getSplits(job);
+      fail("An exception should have been thrown");
+    } catch (Exception e) {}
+    AccumuloInputFormat.setLocalIterators(job, false);
 
     //Check we are getting back correct type pf split
     conn.tableOperations().online(table);
-    AccumuloInputFormat.setOfflineTableScan(job, false);
     splits = inputFormat.getSplits(job);
     for (InputSplit split: splits)
       assert(split instanceof BatchInputSplit);
