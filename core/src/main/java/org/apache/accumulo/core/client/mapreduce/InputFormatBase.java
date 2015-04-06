@@ -388,30 +388,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       setupIterators(context, scanner, split);
     }
 
-    /**
-     * Apply the configured iterators from the configuration to the scanner.
-     *
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner to configure
-     */
-    @Deprecated
-    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner) {
-      setupIterators(context, scanner, null);
-    }
-
-    /**
-     * Initialize a scanner over the given input split using this task attempt configuration.
-     */
-    @Deprecated
-    void setupIterators(TaskAttemptContext context, Scanner scanner, AccumuloInputSplit split) {
-      setupIterators(context, (ScannerBase) scanner, split);
-    }
-
-    /**
-     * Initialize a scanner over the given input split using this task attempt configuration.
-     */
     protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, AccumuloInputSplit split) {
       List<IteratorSetting> iterators = null;
       if (null == split) {
@@ -424,6 +400,40 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       }
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
+    }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner for the specified table name
+     *
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner to configure
+     * @since 1.6.0
+     */
+    @Override @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+      setupIterators(context, scanner, split);
+    }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner.
+     *
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner to configure
+     */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+      setupIterators(context, scanner, null);
+    }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     */
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+      setupIterators(context, (ScannerBase) scanner, (AccumuloInputSplit) split);
     }
   }
 

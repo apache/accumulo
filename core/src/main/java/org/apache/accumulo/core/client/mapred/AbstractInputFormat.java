@@ -415,7 +415,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @since 1.6.0
      */
     @Deprecated
-    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName, AccumuloInputSplit split);
+    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
