@@ -46,8 +46,9 @@ import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.BatchInputSplit;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
+import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
+import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -386,8 +387,21 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   protected abstract static class AbstractRecordReader<K,V> implements RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
-    protected org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split;
+    protected org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit split;
     protected ScannerBase scannerBase;
+
+    /**
+     * Configures the iterators on a scanner for the given table name.
+     *
+     * @param job
+     *          the Hadoop job configuration
+     * @param scanner
+     *          the scanner for which to configure the iterators
+     * @param tableName
+     *          the table name for which the scanner is configured
+     * @since 1.7.0
+     */
+    protected abstract void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split);
 
     /**
      * Configures the iterators on a scanner for the given table name.
@@ -400,13 +414,14 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.6.0
      */
-    protected abstract void setupIterators(JobConf job, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit split);
+    @Deprecated
+    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName, AccumuloInputSplit split);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
-      split = (org.apache.accumulo.core.client.mapreduce.AccumuloInputSplit) inSplit;
+      split = (AccumuloInputSplit) inSplit;
       log.debug("Initializing input split: " + split.toString());
 
       Instance instance = split.getInstance(getClientConfiguration(job));
@@ -662,7 +677,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
-            org.apache.accumulo.core.client.mapred.BatchInputSplit split = new org.apache.accumulo.core.client.mapred.BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
+            org.apache.accumulo.core.client.mapred.impl.BatchInputSplit split = new org.apache.accumulo.core.client.mapred.impl.BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             split.setFetchedColumns(tableConfig.getFetchedColumns());
             split.setPrincipal(principal);
             split.setToken(token);

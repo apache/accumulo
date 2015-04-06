@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapreduce.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -53,8 +53,8 @@ import org.apache.log4j.Level;
  * Abstracts over configurations common to all InputSplits. Specifically it leaves out methods
  * related to number of ranges and locations per InputSplit as those vary by implementation.
  *
- * @see RangeInputSplit
- * @see BatchInputSplit
+ * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
+ * @see org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit
  */
 public abstract class AccumuloInputSplit extends InputSplit implements Writable {
   protected String[] locations;

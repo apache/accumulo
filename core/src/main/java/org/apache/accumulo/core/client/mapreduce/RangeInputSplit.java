@@ -20,6 +20,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
+
+import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -27,7 +29,7 @@ import org.apache.accumulo.core.data.Range;
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
  */
-public class RangeInputSplit extends AccumuloInputSplit  {
+public class RangeInputSplit extends AccumuloInputSplit {
   private Range range;
   private Boolean offline, isolatedScan, localIterators;
 
