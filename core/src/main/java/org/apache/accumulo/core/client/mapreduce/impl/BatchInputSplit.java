@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Range;
 public class BatchInputSplit extends AccumuloInputSplit {
   private Collection<Range> ranges;
   private int scanThreads;
+  private Float[] rangeProgress = null;
 
   public BatchInputSplit() {
     ranges = Collections.emptyList();
@@ -50,28 +51,42 @@ public class BatchInputSplit extends AccumuloInputSplit {
     this.ranges = ranges;
   }
 
+  /**
+   * Save progress on each call to this function, implied by value of currentKey, and return average ranges in the split
+   */
   public float getProgress(Key currentKey) {
-    if (currentKey == null)
-      return 0f;
-    for (Range range : ranges) {
-      if (range.contains(currentKey)) {
-        // find the current range and report as if that is the single range
-        if (range.getStartKey() != null && range.getEndKey() != null) {
-          if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
-            // just look at the row progress
-            return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
-          } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
-            // just look at the column family progress
-            return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-          } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
-            // just look at the column qualifier progress
-            return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+    if (null == rangeProgress)
+      rangeProgress = new Float[ranges.size()];
+
+    float total = 0; // progress per range could be on different scales, this number is "fuzzy"
+
+    if (currentKey == null) {
+      for (float progress : rangeProgress)
+        total += progress;
+    } else {
+      int i = 0;
+      for (Range range : ranges) {
+        if (range.contains(currentKey)) {
+          // find the current range and report as if that is the single range
+          if (range.getStartKey() != null && range.getEndKey() != null) {
+            if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
+              // just look at the row progress
+              rangeProgress[i] = getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
+            } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
+              // just look at the column family progress
+              rangeProgress[i] = getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+            } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+              // just look at the column qualifier progress
+              rangeProgress[i] = getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+            }
           }
+          total += rangeProgress[i];
         }
+        i++;
       }
     }
-    // if we can't figure it out, then claim no progress
-    return 0f;
+
+    return total / ranges.size();
   }
 
   /**
