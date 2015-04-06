@@ -45,7 +45,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
     this.setRanges(split.getRanges());
   }
 
-  protected BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] locations) {
+  public BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] locations) {
     super(table, tableId, locations);
     this.ranges = ranges;
   }
