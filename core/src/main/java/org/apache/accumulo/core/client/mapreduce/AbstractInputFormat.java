@@ -443,7 +443,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      * @since 1.6.0
      */
     @Deprecated
-    protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split);
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {
+      setupIterators(context, (ScannerBase) scanner, tableName, (AccumuloInputSplit) split);
+    }
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.

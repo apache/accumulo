@@ -46,8 +46,8 @@ import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.mapred.impl.BatchInputSplit;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
-import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
 import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -415,7 +415,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @since 1.6.0
      */
     @Deprecated
-    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split);
+    protected void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split) {
+      setupIterators(job, (ScannerBase) scanner, tableName, (AccumuloInputSplit) split);
+    }
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
@@ -676,7 +678,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
-            BatchInputSplit split = new org.apache.accumulo.core.client.mapred.impl.BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
+            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
             split.setScanThreads(scanThreads);
 

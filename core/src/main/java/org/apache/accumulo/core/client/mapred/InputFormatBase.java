@@ -350,11 +350,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       }
     }
 
-    @Override
-    protected void setupIterators(JobConf job, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapred.RangeInputSplit split) {
-      setupIterators(job, scanner, split);
-    }
-
     /**
      * Apply the configured iterators to the scanner.
      *
