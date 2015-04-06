@@ -676,7 +676,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
-            org.apache.accumulo.core.client.mapred.impl.BatchInputSplit split = new org.apache.accumulo.core.client.mapred.impl.BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
+            BatchInputSplit split = new org.apache.accumulo.core.client.mapred.impl.BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
             split.setScanThreads(scanThreads);
 
