@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -86,6 +87,25 @@ public abstract class AccumuloInputSplit extends InputSplit implements Writable 
     setLocations(locations);
     this.tableName = table;
     this.tableId = tableId;
+  }
+
+  /**
+   * Central place to set common split configuration not handled by split constructors.
+   * The intention is to make it harder to miss optional setters in future refactor.
+   */
+  public static void updateSplit(AccumuloInputSplit split,  Instance instance, InputTableConfig tableConfig,
+                                  String principal, AuthenticationToken token, Authorizations auths, Level logLevel) {
+    split.setInstanceName(instance.getInstanceName());
+    split.setZooKeepers(instance.getZooKeepers());
+    split.setMockInstance(instance instanceof MockInstance);
+
+    split.setPrincipal(principal);
+    split.setToken(token);
+    split.setAuths(auths);
+
+    split.setFetchedColumns(tableConfig.getFetchedColumns());
+    split.setIterators(tableConfig.getIterators());
+    split.setLogLevel(logLevel);
   }
 
   private static byte[] extractBytes(ByteSequence seq, int numBytes) {

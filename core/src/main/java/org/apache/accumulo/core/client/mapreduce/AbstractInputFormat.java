@@ -640,19 +640,16 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
       Instance instance = getInstance(context);
-      boolean mockInstance;
       String tableId;
       // resolve table name to id once, and use id from this point forward
       if (instance instanceof MockInstance) {
         tableId = "";
-        mockInstance = true;
       } else {
         try {
           tableId = Tables.getTableId(instance, tableName);
         } catch (TableNotFoundException e) {
           throw new IOException(e);
         }
-        mockInstance = false;
       }
 
       Authorizations auths = getScanAuthorizations(context);
@@ -733,15 +730,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
-            split.setMockInstance(mockInstance);
-            split.setFetchedColumns(tableConfig.getFetchedColumns());
-            split.setPrincipal(principal);
-            split.setToken(token);
-            split.setInstanceName(instance.getInstanceName());
-            split.setZooKeepers(instance.getZooKeepers());
-            split.setAuths(auths);
-            split.setIterators(tableConfig.getIterators());
-            split.setLogLevel(logLevel);
+            AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
             split.setScanThreads(scanThreads);
 
             splits.add(split);
@@ -751,19 +740,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
                 RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
-
+                AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-                split.setMockInstance(mockInstance);
-                split.setFetchedColumns(tableConfig.getFetchedColumns());
-                split.setPrincipal(principal);
-                split.setToken(token);
-                split.setInstanceName(instance.getInstanceName());
-                split.setZooKeepers(instance.getZooKeepers());
-                split.setAuths(auths);
-                split.setIterators(tableConfig.getIterators());
-                split.setLogLevel(logLevel);
 
                 splits.add(split);
               } else {
@@ -782,19 +762,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0]));
-
+          AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-          split.setMockInstance(mockInstance);
-          split.setFetchedColumns(tableConfig.getFetchedColumns());
-          split.setPrincipal(principal);
-          split.setToken(token);
-          split.setInstanceName(instance.getInstanceName());
-          split.setZooKeepers(instance.getZooKeepers());
-          split.setAuths(auths);
-          split.setIterators(tableConfig.getIterators());
-          split.setLogLevel(logLevel);
 
           splits.add(split);
         }
