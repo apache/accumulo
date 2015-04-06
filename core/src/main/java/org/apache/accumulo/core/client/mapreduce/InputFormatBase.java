@@ -322,8 +322,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.7.0
    * @see #setBatchScan(Job, boolean)
    */
-  protected static boolean isBatchScan(JobContext context) {
-    return InputConfigurator.isIsolated(CLASS, context.getConfiguration());
+  public static boolean isBatchScan(JobContext context) {
+    return InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
   }
 
   /**
