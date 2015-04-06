@@ -483,9 +483,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         }
 
         scanner.setRange(rangeSplit.getRange());
-
-        // do this last after setting all scanner options
-        scannerIterator = scanner.iterator();
         scannerBase = scanner;
 
       } else if (split instanceof BatchInputSplit) {
@@ -513,7 +510,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       }
 
       // setup a scanner within the bounds of this split
-      for (Pair<Text, Text> c : columns) {
+      for (Pair<Text,Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scannerBase.fetchColumn(c.getFirst(), c.getSecond());
@@ -522,7 +519,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           scannerBase.fetchColumnFamily(c.getFirst());
         }
       }
-      // do this last after setting all scanner options
+
       scannerIterator = scannerBase.iterator();
       numKeysRead = 0;
     }
