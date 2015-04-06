@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Range;
 public class BatchInputSplit extends AccumuloInputSplit {
   private Collection<Range> ranges;
   private int scanThreads;
-  private Float[] rangeProgress = null;
+  private float[] rangeProgress = null;
 
   public BatchInputSplit() {
     ranges = Collections.emptyList();
@@ -56,7 +56,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
    */
   public float getProgress(Key currentKey) {
     if (null == rangeProgress)
-      rangeProgress = new Float[ranges.size()];
+      rangeProgress = new float[ranges.size()];
 
     float total = 0; // progress per range could be on different scales, this number is "fuzzy"
 
