@@ -30,6 +30,12 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "${bin}"/config.sh
 
+CLEAN_EXIT="Clean Exit"
+UNEXPECTED_EXCEPTION="Unexpected exception"
+OOM_EXCEPTION="Out of memory exception"
+ZKLOCK_LOST="ZKLock lost"
+UNKNOWN_ERROR="Unknown error"
+
 ERRFILE=${ACCUMULO_LOG_DIR}/${process}_${LOGHOST}.err
 OUTFILE=${ACCUMULO_LOG_DIR}/${process}_${LOGHOST}.out
 DEBUGLOG=${ACCUMULO_LOG_DIR}/${process}_$(hostname).debug.log
@@ -43,9 +49,9 @@ do
   exit=$?
   unset cause
   if [ "$exit" -eq 0 ]; then
-    potentialStopRunning="Clean Exit"
+    potentialStopRunning=$CLEAN_EXIT
   elif [ "$exit" -eq 1 ]; then
-    potentialStopRunning="Unexpected error"
+    potentialStopRunning=$UNEXPECTED_EXCEPTION
   elif [ "$exit" -eq 130 ]; then
     stopRunning="Control C detected, exiting"
   elif [ "$exit" -eq 143 ]; then
@@ -58,52 +64,52 @@ do
 
     if [ $exit -eq 1 ]; then
       source="exit code"
-      cause="Unexpected Exception"
+      cause=$UNEXPECTED_EXCEPTION
     elif tail -n50 $OUTFILE | grep "java.lang.OutOfMemoryError:" > /dev/null; then
       source="logs"
-      cause="Out of memory exception"
+      cause=$OOM_EXCEPTION
     elif [ "$process" = "tserver" ]; then
       if tail -n50 $DEBUGLOG | grep "ERROR: Lost tablet server lock (reason =" > /dev/null ; then
         source="logs"
-        cause="ZKLock lost"
+        cause=$ZKLOCK_LOST
       fi
     elif [ "$process" = "master" ]; then
       if tail -n50 $DEBUGLOG | grep "ERROR: Master lock in zookeeper lost (reason =" > /dev/null ; then
         source="logs"
-        cause="ZKLock lost"
+        cause=$ZKLOCK_LOST
       fi
     elif [ "$process" = "gc" ]; then
       if tail -n50 $DEBUGLOG | grep "FATAL: GC lock in zookeeper lost (reason =" > /dev/null ; then
         source="logs"
-        cause="ZKLock lost"
+        cause=$ZKLOCK_LOST
       fi
     elif [ "$process" = "monitor" ]; then
       if tail -n50 $DEBUGLOG | grep "ERROR:  Monitor lock in zookeeper lost (reason =" > /dev/null ; then
         source="logs"
-        cause="ZKLock lost"
+        cause=$ZKLOCK_LOST
       fi
     elif [ $exit -ne 0 ]; then
       source="exit code"
-      cause="Unknown error"
+      cause=$UNKNOWN_ERROR
     fi
     case $cause in
       #Unknown exit code
-      "Unknown error")
+      "$UNKNOWN_ERROR")
         #window doesn't matter when retries = 0
         RETRIES=0
         ;;
 
-      "Unexpected Exception")
+      "$UNEXPECTED_EXCEPTION")
         WINDOW=$UNEXPECTED_TIMESPAN
         RETRIES=$UNEXPECTED_RETRIES
         ;;
 
-      "Out of memory exception") 
+      "$OOM_EXCEPTION") 
         WINDOW=$OOM_TIMESPAN
         RETRIES=$OOM_RETRIES
         ;;
 
-      "ZKLock lost")
+      "$ZLOCK_LOST")
         WINDOW=$ZKLOCK_TIMESPAN
         RETRIES=$ZKLOCK_RETRIES
         ;;
