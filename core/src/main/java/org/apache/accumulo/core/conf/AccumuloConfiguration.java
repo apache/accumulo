@@ -32,7 +32,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * A configuration object.
  */
@@ -407,7 +406,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return maxFilesPerTablet;
   }
 
-  // overridden in ZooConfiguration
+  /**
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this configuration.
+   */
   public void invalidateCache() {}
 
   /**

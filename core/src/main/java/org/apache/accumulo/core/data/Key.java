@@ -755,14 +755,6 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return result;
   }
 
-  /**
-   * Compares this key with another.
-   *
-   * @param other
-   *          key to compare to
-   * @return comparison result
-   * @see #compareTo(Key, PartialKey)
-   */
   @Override
   public int compareTo(Key other) {
     return compareTo(other, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
@@ -1057,11 +1049,6 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return new TKey(ByteBuffer.wrap(row), ByteBuffer.wrap(colFamily), ByteBuffer.wrap(colQualifier), ByteBuffer.wrap(colVisibility), timestamp);
   }
 
-  /**
-   * Performs a deep copy of this key.
-   *
-   * @return cloned key
-   */
   @Override
   public Object clone() throws CloneNotSupportedException {
     Key r = (Key) super.clone();

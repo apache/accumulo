@@ -53,6 +53,7 @@ public class ScriptCommand extends Command {
   protected Option list, engine, script, file, args, out, function, object;
   private static final String DEFAULT_ENGINE = "rhino";
 
+  @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
 
     boolean invoke = false;
@@ -172,10 +173,12 @@ public class ScriptCommand extends Command {
     return 0;
   }
 
+  @Override
   public String description() {
     return "execute JSR-223 scripts";
   }
 
+  @Override
   public int numArgs() {
     return 0;
   }

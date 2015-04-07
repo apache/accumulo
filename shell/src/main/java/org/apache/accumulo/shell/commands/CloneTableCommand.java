@@ -79,6 +79,7 @@ public class CloneTableCommand extends Command {
     return "clones a table";
   }
 
+  @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }

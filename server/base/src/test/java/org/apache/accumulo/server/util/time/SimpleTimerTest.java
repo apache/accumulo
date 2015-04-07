@@ -45,6 +45,7 @@ public class SimpleTimerTest {
       canceled = false;
     }
 
+    @Override
     public void run() {
       if (canceled) {
         return;
@@ -60,6 +61,7 @@ public class SimpleTimerTest {
   private static class Thrower implements Runnable {
     boolean wasRun = false;
 
+    @Override
     public void run() {
       wasRun = true;
       throw new IllegalStateException("You shall not pass");

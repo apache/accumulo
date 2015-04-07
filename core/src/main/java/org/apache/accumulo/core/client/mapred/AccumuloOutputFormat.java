@@ -40,9 +40,9 @@ import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -436,8 +436,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     }
 
     /**
-     * Push a mutation into a table. If table is null, the defaultTable will be used. If canCreateTable is set, the table will be created if it does not exist.
-     * The table name must only contain alphanumerics and underscore.
+     * Push a mutation into a table. If table is null, the defaultTable will be used. If {@link AccumuloOutputFormat#canCreateTables(JobConf)} is set, the table
+     * will be created if it does not exist. The table name must only contain alphanumerics and underscore.
      */
     @Override
     public void write(Text table, Mutation mutation) throws IOException {

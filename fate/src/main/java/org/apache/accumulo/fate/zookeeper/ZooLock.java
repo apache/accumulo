@@ -258,6 +258,7 @@ public class ZooLock implements Watcher {
           asyncLock = null;
         }
 
+        @Override
         public void process(WatchedEvent event) {
           synchronized (ZooLock.this) {
             if (lock != null && event.getType() == EventType.NodeDeleted && event.getPath().equals(path + "/" + lock)) {

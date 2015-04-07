@@ -33,13 +33,14 @@ public class BytesLexicoder extends AbstractLexicoder<byte[]> implements Lexicod
 
   @Override
   public byte[] decode(byte[] data) {
-    // overrides AbstractLexicoder since this simply returns the array
+    // overrides AbstractLexicoder since this simply returns the array; this is more flexible than the superclass behavior, since it can return null
     return data;
   }
 
   /**
-   * If offset == 0 and len == data.length, returns data.  Otherwise, returns a new
-   * byte array with contents starting at data[offset] with length len.
+   * If offset == 0 and len == data.length, returns data. Otherwise, returns a new byte array with contents starting at data[offset] with length len.
+   *
+   * {@inheritDoc}
    */
   @Override
   protected byte[] decodeUnchecked(byte[] data, int offset, int len) {

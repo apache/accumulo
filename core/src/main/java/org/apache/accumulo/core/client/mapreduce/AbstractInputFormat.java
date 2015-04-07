@@ -428,9 +428,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      */
     protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split);
 
-    /**
-     * Initialize a scanner over the given input split using this task attempt configuration.
-     */
     @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
@@ -575,10 +572,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Gets the splits of the tables that have been set on the job.
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for the specified ranges.
    *
-   * @param context
-   *          the configuration of the job
    * @return the splits from the tables based on the ranges.
    * @throws java.io.IOException
    *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator

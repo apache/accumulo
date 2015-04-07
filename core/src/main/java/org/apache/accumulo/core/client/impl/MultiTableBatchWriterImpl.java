@@ -138,9 +138,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     bw.close();
   }
 
-  /**
-   * Warning: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
-   */
+  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
   @Override
   protected void finalize() {
     if (!closed.get()) {

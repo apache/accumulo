@@ -25,6 +25,7 @@ import org.apache.commons.cli.CommandLine;
 
 public class DebugCommand extends Command {
 
+  @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     Set<String> lines = new TreeSet<String>();
     lines.add("This is a test");
@@ -32,10 +33,12 @@ public class DebugCommand extends Command {
     return 0;
   }
 
+  @Override
   public String description() {
     return "prints a message to test extension feature";
   }
 
+  @Override
   public int numArgs() {
     return 0;
   }

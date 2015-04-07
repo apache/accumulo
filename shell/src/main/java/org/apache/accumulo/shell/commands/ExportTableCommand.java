@@ -68,6 +68,7 @@ public class ExportTableCommand extends Command {
     return "exports a table";
   }
 
+  @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }

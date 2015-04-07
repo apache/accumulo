@@ -53,6 +53,7 @@ public class CompactCommand extends TableOperation {
         + "concurrent user initiated compactions specify iterators or a compaction strategy, then all but one will fail to start.";
   }
 
+  @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     // compact the tables
 

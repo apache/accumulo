@@ -32,6 +32,7 @@ public class AgeOffStoreTest {
   private static class TestTimeSource implements TimeSource {
     long time = 0;
 
+    @Override
     public long currentTimeMillis() {
       return time;
     }

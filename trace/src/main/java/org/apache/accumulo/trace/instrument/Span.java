@@ -46,30 +46,37 @@ public class Span extends org.apache.accumulo.core.trace.Span implements Cloudtr
     return new Span(span.child(s));
   }
 
+  @Override
   public void start() {
     throw new UnsupportedOperationException("can't start span");
   }
 
+  @Override
   public long accumulatedMillis() {
     return getAccumulatedMillis();
   }
 
+  @Override
   public boolean running() {
     return isRunning();
   }
 
+  @Override
   public String description() {
     return getDescription();
   }
 
+  @Override
   public long spanId() {
     return getSpanId();
   }
 
+  @Override
   public Span parent() {
     throw new UnsupportedOperationException("can't get parent");
   }
 
+  @Override
   public long parentId() {
     return getParentId();
   }

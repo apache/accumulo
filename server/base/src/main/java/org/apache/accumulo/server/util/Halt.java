@@ -25,8 +25,9 @@ public class Halt {
   static private final Logger log = LoggerFactory.getLogger(Halt.class);
 
   public static void halt(final String msg) {
-    //ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
+    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
     halt(0, new Runnable() {
+      @Override
       public void run() {
         log.error("FATAL {}", msg);
       }
@@ -35,6 +36,7 @@ public class Halt {
 
   public static void halt(final String msg, int status) {
     halt(status, new Runnable() {
+      @Override
       public void run() {
         log.error("FATAL {}", msg);
       }
@@ -45,6 +47,7 @@ public class Halt {
     try {
       // give ourselves a little time to try and do something
       new Daemon() {
+        @Override
         public void run() {
           UtilWaitThread.sleep(100);
           Runtime.getRuntime().halt(status);

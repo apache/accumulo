@@ -74,6 +74,7 @@ public class MockShell extends Shell {
     instance = new MockInstance();
   }
 
+  @Override
   public int start() throws IOException {
     String input;
     if (isVerbose())

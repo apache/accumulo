@@ -1009,6 +1009,8 @@
                   <property name="allowThrowsTagsForSubclasses" value="true" />
                 </module>
                 <module name="SingleLineJavadoc" />
+                <module name="MissingOverrideCheck" />
+                <module name="AnnotationLocation" />
               </module>
             </module>
           </checkstyleRules>

@@ -65,7 +65,10 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
 
   /**
    * Adds a column family to the list of columns that will be fetched by this scanner. By default when no columns have been added the scanner fetches all
-   * columns.
+   * columns. To fetch multiple column families call this function multiple times.
+   *
+   * <p>
+   * This can help limit which locality groups are read on the server side.
    *
    * @param col
    *          the column family to be fetched
@@ -97,19 +100,24 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime, so setting options will have no effect
    * on existing iterators.
    *
+   * <p>
    * Keys returned by the iterator are not guaranteed to be in sorted order.
    *
    * @return an iterator over Key,Value pairs which meet the restrictions set on the scanner
    */
+  @Override
   Iterator<Entry<Key,Value>> iterator();
 
   /**
-   * This setting determines how long a scanner will automatically retry when a failure occurs. By default a scanner will retry forever.
+   * This setting determines how long a scanner will automatically retry when a failure occurs. By default, a scanner will retry forever.
    *
-   * Setting to zero or Long.MAX_VALUE and TimeUnit.MILLISECONDS means to retry forever.
+   * <p>
+   * Setting the timeout to zero (with any time unit) or {@link Long#MAX_VALUE} (with {@link TimeUnit#MILLISECONDS}) means no timeout.
    *
+   * @param timeOut
+   *          the length of the timeout
    * @param timeUnit
-   *          determines how timeout is interpreted
+   *          the units of the timeout
    * @since 1.5.0
    */
   void setTimeout(long timeOut, TimeUnit timeUnit);
@@ -131,9 +139,9 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
 
   /**
    * Returns the authorizations that have been set on the scanner
+   *
    * @since 1.7.0
-   * @return
-   *       The authorizations set on the scanner instance
+   * @return The authorizations set on the scanner instance
    */
   Authorizations getAuthorizations();
 }

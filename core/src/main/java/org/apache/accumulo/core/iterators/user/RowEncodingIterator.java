@@ -70,9 +70,6 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
    */
   public abstract Value rowEncoder(List<Key> keys, List<Value> values) throws IOException;
 
-  /**
-   * Implement deepCopy. Ensure sourceIter is copied appropriately.
-   */
   @Override
   public abstract SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env);
 

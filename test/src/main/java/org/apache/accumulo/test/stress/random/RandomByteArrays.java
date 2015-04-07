@@ -26,6 +26,7 @@ public class RandomByteArrays extends Stream<byte[]> {
     this.random_arrays = random_arrays;
   }
 
+  @Override
   public byte[] next() {
     return random_arrays.next_bytes();
   }

@@ -316,9 +316,6 @@ public final class Utils {
       return (Short.SIZE + Short.SIZE) / Byte.SIZE;
     }
 
-    /**
-     * Return a string representation of the version.
-     */
     @Override
     public String toString() {
       return new StringBuilder("v").append(major).append(".").append(minor).toString();
@@ -335,9 +332,6 @@ public final class Utils {
       return major == other.major;
     }
 
-    /**
-     * Compare this version with another version.
-     */
     @Override
     public int compareTo(Version that) {
       if (major != that.major) {

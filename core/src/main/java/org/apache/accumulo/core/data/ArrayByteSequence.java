@@ -154,6 +154,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     return copy;
   }
 
+  @Override
   public String toString() {
     return new String(data, offset, length, UTF_8);
   }

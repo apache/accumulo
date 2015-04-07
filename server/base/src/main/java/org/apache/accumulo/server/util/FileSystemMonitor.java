@@ -91,6 +91,7 @@ public class FileSystemMonitor {
           checkMounts(procFile);
         } catch (final Exception e) {
           Halt.halt(-42, new Runnable() {
+            @Override
             public void run() {
               log.fatal("Exception while checking mount points, halting process", e);
             }

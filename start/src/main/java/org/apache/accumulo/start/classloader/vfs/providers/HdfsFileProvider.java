@@ -47,26 +47,16 @@ public class HdfsFileProvider extends AbstractOriginatingFileProvider {
     this.setFileNameParser(HttpFileNameParser.getInstance());
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider#doCreateFileSystem(org.apache.commons.vfs2.FileName,
-   *      org.apache.commons.vfs2.FileSystemOptions)
-   */
   @Override
   protected FileSystem doCreateFileSystem(final FileName rootName, final FileSystemOptions fileSystemOptions) throws FileSystemException {
     return new HdfsFileSystem(rootName, fileSystemOptions);
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.FileProvider#getCapabilities()
-   */
   @Override
   public Collection<Capability> getCapabilities() {
     return CAPABILITIES;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileProvider#getConfigBuilder()
-   */
   @Override
   public FileSystemConfigBuilder getConfigBuilder() {
     return HdfsFileSystemConfigBuilder.getInstance();

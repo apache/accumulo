@@ -106,14 +106,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence> {
     return bs1.length() - bs2.length();
   }
 
-  /**
-   * Compares this byte sequence to another.
-   *
-   * @param obs
-   *          byte sequence to compare
-   * @return comparison result
-   * @see #compareBytes(ByteSequence, ByteSequence)
-   */
+  @Override
   public int compareTo(ByteSequence obs) {
     if (isBackedByArray() && obs.isBackedByArray()) {
       return WritableComparator.compareBytes(getBackingArray(), offset(), length(), obs.getBackingArray(), obs.offset(), obs.length());

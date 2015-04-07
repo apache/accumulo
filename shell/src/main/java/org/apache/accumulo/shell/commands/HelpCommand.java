@@ -34,6 +34,7 @@ public class HelpCommand extends Command {
   private Option disablePaginationOpt;
   private Option noWrapOpt;
 
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ShellCommandException, IOException {
     int numColumns = shellState.getReader().getTerminal().getWidth();
     if (cl.hasOption(noWrapOpt.getOpt())) {
@@ -99,10 +100,12 @@ public class HelpCommand extends Command {
     return 0;
   }
 
+  @Override
   public String description() {
     return "provides information about the available commands";
   }
 
+  @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForCommands(root, special);
   }

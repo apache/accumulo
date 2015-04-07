@@ -291,7 +291,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *          block name
    * @return buffer of specified block name, or null if not in cache
    */
-
   @Override
   public CachedBlock getBlock(String blockName) {
     CachedBlock cb = map.get(blockName);
@@ -460,11 +459,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
   }
 
-  /**
-   * Get the maximum size of this cache.
-   *
-   * @return max size in bytes
-   */
   @Override
   public long getMaxSize() {
     return this.maxSize;

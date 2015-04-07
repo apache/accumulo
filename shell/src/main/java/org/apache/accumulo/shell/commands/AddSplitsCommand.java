@@ -31,6 +31,7 @@ import org.apache.hadoop.io.Text;
 public class AddSplitsCommand extends Command {
   private Option optSplitsFile, base64Opt;
 
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     final boolean decode = cl.hasOption(base64Opt.getOpt());

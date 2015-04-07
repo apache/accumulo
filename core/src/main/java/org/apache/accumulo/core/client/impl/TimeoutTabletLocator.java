@@ -92,10 +92,6 @@ public class TimeoutTabletLocator extends TabletLocator {
     }
   }
 
-  /**
-   *
-   */
-
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {

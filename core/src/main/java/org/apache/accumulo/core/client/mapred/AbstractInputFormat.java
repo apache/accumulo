@@ -532,7 +532,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Read the metadata table to get tablets and match up ranges to them.
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {

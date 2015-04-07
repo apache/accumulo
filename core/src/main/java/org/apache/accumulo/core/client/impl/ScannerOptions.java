@@ -57,10 +57,6 @@ public class ScannerOptions implements ScannerBase {
     setOptions(this, so);
   }
 
-  /**
-   * Adds server-side scan iterators.
-   *
-   */
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
@@ -105,9 +101,6 @@ public class ScannerOptions implements ScannerBase {
     serverSideIteratorOptions.remove(iteratorName);
   }
 
-  /**
-   * Override any existing options on the given named iterator
-   */
   @Override
   public synchronized void updateScanIteratorOption(String iteratorName, String key, String value) {
     checkArgument(iteratorName != null, "iteratorName is null");
@@ -124,12 +117,6 @@ public class ScannerOptions implements ScannerBase {
     }
     opts.put(key, value);
   }
-
-  /**
-   * Limit a scan to the specified column family. This can limit which locality groups are read on the server side.
-   *
-   * To fetch multiple column families call this function multiple times.
-   */
 
   @Override
   public synchronized void fetchColumnFamily(Text col) {
@@ -160,9 +147,6 @@ public class ScannerOptions implements ScannerBase {
     return fetchedColumns;
   }
 
-  /**
-   * Clears scan iterators prior to returning a scanner to the pool.
-   */
   @Override
   public synchronized void clearScanIterators() {
     serverSideIteratorList = Collections.emptyList();

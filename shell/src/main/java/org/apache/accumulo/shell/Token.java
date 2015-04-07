@@ -131,6 +131,7 @@ public class Token {
     }
   }
 
+  @Override
   public String toString() {
     return this.command.toString();
   }

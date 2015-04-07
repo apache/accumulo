@@ -43,6 +43,9 @@ import org.slf4j.LoggerFactory;
 /**
  * A chaotic load balancer used for testing. It constantly shuffles tablets, preventing them from resting in a single location for very long. This is not
  * designed for performance, do not use on production systems. I'm calling it the LokiLoadBalancer.
+ *
+ * <p>
+ * Will balance randomly, maintaining distribution
  */
 public class ChaoticLoadBalancer extends TabletBalancer {
   private static final Logger log = LoggerFactory.getLogger(ChaoticLoadBalancer.class);
@@ -83,9 +86,6 @@ public class ChaoticLoadBalancer extends TabletBalancer {
 
   protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
 
-  /**
-   * Will balance randomly, maintaining distribution
-   */
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();

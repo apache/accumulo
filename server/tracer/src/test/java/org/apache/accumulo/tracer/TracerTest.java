@@ -170,6 +170,7 @@ public class TracerTest {
     args.processor(new Processor<Iface>(TraceWrap.service(new Service())));
     final TServer tserver = new TThreadPoolServer(args);
     Thread t = new Thread() {
+      @Override
       public void run() {
         tserver.serve();
       }

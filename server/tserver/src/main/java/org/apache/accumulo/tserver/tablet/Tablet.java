@@ -2115,11 +2115,6 @@ public class Tablet implements TabletCommitter {
     return majCStats;
   }
 
-  /**
-   * Returns a KeyExtent object representing this tablet's key range.
-   *
-   * @return extent
-   */
   @Override
   public KeyExtent getExtent() {
     return extent;
@@ -2441,7 +2436,7 @@ public class Tablet implements TabletCommitter {
     return currentLogs.size();
   }
 
-  /* don't release the lock if this method returns true for success; instead, the caller should clean up by calling finishUpdatingLogsUsed() */
+  // don't release the lock if this method returns true for success; instead, the caller should clean up by calling finishUpdatingLogsUsed()
   @Override
   public boolean beginUpdatingLogsUsed(InMemoryMap memTable, Collection<DfsLogger> more, boolean mincFinish) {
 

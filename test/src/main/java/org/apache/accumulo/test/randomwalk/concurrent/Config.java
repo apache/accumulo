@@ -53,7 +53,7 @@ public class Config extends Test {
     return new Setting(property, min, max);
   }
 
-  /* @formatter:off */
+  // @formatter:off
   Setting[] settings = {
       s(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT, 1, 10),
       s(Property.TSERV_BULK_PROCESS_THREADS, 1, 10),
@@ -102,8 +102,7 @@ public class Config extends Test {
       s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, 10 * 1024, 10 * 1024 * 1024L),
       s(Property.TABLE_FILE_REPLICATION, 0, 5),
       s(Property.TABLE_FILE_MAX, 2, 50),};
-
-  /* @formatter:on */
+  // @formatter:on
 
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {

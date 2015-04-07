@@ -50,6 +50,7 @@ public class ColumnQualifierFilter extends Filter {
     this.scanColumns = scanColumns;
   }
 
+  @Override
   public boolean accept(Key key, Value v) {
     if (!scanColumns)
       return true;

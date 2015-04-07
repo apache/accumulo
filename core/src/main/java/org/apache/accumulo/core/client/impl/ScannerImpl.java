@@ -91,16 +91,13 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     return size;
   }
 
-  /**
-   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
-   * Scanner object will have no effect on existing iterators.
-   */
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     return new ScannerIterator(context, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
 
-  @Override public Authorizations getAuthorizations() {
+  @Override
+  public Authorizations getAuthorizations() {
     return authorizations;
   }
 

@@ -29,6 +29,7 @@ public class TabletMigration {
     this.newServer = after;
   }
 
+  @Override
   public String toString() {
     return tablet + ": " + oldServer + " -> " + newServer;
   }

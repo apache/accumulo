@@ -64,6 +64,7 @@ public class MergeCommand extends Command {
     } else {
       final boolean finalVerbose = verbose;
       final Merge merge = new Merge() {
+        @Override
         protected void message(String fmt, Object... args) {
           if (finalVerbose) {
             try {
