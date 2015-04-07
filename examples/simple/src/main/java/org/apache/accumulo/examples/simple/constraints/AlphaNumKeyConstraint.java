@@ -18,7 +18,9 @@ package org.apache.accumulo.examples.simple.constraints;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -33,9 +35,13 @@ import org.apache.accumulo.core.data.Mutation;
 
 public class AlphaNumKeyConstraint implements Constraint {
 
-  private static final short NON_ALPHA_NUM_ROW = 1;
-  private static final short NON_ALPHA_NUM_COLF = 2;
-  private static final short NON_ALPHA_NUM_COLQ = 3;
+  static final short NON_ALPHA_NUM_ROW = 1;
+  static final short NON_ALPHA_NUM_COLF = 2;
+  static final short NON_ALPHA_NUM_COLQ = 3;
+
+  static final String ROW_VIOLATION_MESSAGE = "Row was not alpha numeric";
+  static final String COLF_VIOLATION_MESSAGE = "Column family was not alpha numeric";
+  static final String COLQ_VIOLATION_MESSAGE = "Column qualifier was not alpha numeric";
 
   private boolean isAlphaNum(byte bytes[]) {
     for (byte b : bytes) {
@@ -47,9 +53,9 @@ public class AlphaNumKeyConstraint implements Constraint {
     return true;
   }
 
-  private List<Short> addViolation(List<Short> violations, short violation) {
+  private Set<Short> addViolation(Set<Short> violations, short violation) {
     if (violations == null) {
-      violations = new ArrayList<Short>();
+      violations = new LinkedHashSet<Short>();
       violations.add(violation);
     } else if (!violations.contains(violation)) {
       violations.add(violation);
@@ -59,7 +65,7 @@ public class AlphaNumKeyConstraint implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    List<Short> violations = null;
+    Set<Short> violations = null;
 
     if (!isAlphaNum(mutation.getRow()))
       violations = addViolation(violations, NON_ALPHA_NUM_ROW);
@@ -73,7 +79,7 @@ public class AlphaNumKeyConstraint implements Constraint {
         violations = addViolation(violations, NON_ALPHA_NUM_COLQ);
     }
 
-    return violations;
+    return null == violations ? null : new ArrayList<>(violations);
   }
 
   @Override
@@ -81,11 +87,11 @@ public class AlphaNumKeyConstraint implements Constraint {
 
     switch (violationCode) {
       case NON_ALPHA_NUM_ROW:
-        return "Row was not alpha numeric";
+        return ROW_VIOLATION_MESSAGE;
       case NON_ALPHA_NUM_COLF:
-        return "Column family was not alpha numeric";
+        return COLF_VIOLATION_MESSAGE;
       case NON_ALPHA_NUM_COLQ:
-        return "Column qualifier was not alpha numeric";
+        return COLQ_VIOLATION_MESSAGE;
     }
 
     return null;
