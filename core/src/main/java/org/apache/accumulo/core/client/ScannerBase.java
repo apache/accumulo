@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -85,6 +86,15 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          the column qualifier of the column to be fetched
    */
   void fetchColumn(Text colFam, Text colQual);
+
+  /**
+   * Adds a column to the list of columns that will be fetch by this scanner.
+   *
+   * @param column
+   *          the {@link Column} to fetch
+   * @since 1.7.0
+   */
+  void fetchColumn(Column column);
 
   /**
    * Clears the columns to be fetched (useful for resetting the scanner for reuse). Once cleared, the scanner will fetch all columns.

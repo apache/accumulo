@@ -19,9 +19,13 @@ package org.apache.accumulo.core.client.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.SortedSet;
+
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 /**
@@ -53,5 +57,25 @@ public class ScannerOptionsTest {
       options.addScanIterator(new IteratorSetting(1, "NAME2", DebugIterator.class));
       fail();
     } catch (IllegalArgumentException e) {}
+  }
+
+  @Test
+  public void testFetchColumn() {
+    ScannerOptions options = new ScannerOptions();
+    assertEquals(0, options.getFetchedColumns().size());
+    IteratorSetting.Column col = new IteratorSetting.Column(new Text("family"), new Text("qualifier"));
+    options.fetchColumn(col);
+    SortedSet<Column> fetchedColumns = options.getFetchedColumns();
+    assertEquals(1, fetchedColumns.size());
+    Column fetchCol = fetchedColumns.iterator().next();
+    assertEquals(col.getColumnFamily(), new Text(fetchCol.getColumnFamily()));
+    assertEquals(col.getColumnQualifier(), new Text(fetchCol.getColumnQualifier()));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testFetchNullColumn() {
+    ScannerOptions options = new ScannerOptions();
+    // Require a non-null instance of Column
+    options.fetchColumn((IteratorSetting.Column) null);
   }
 }
