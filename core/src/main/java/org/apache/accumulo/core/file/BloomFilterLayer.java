@@ -240,7 +240,7 @@ public class BloomFilterLayer {
             if (!closed)
               LOG.warn("Can't open BloomFilter", ioe);
             else
-              LOG.debug("Can't open BloomFilter, file closed : " + ioe.getMessage());
+              LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
 
             bloomFilter = null;
           } catch (ClassNotFoundException e) {

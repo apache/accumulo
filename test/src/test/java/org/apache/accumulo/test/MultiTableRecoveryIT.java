@@ -125,7 +125,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacIT {
           }
           System.out.println("Restarted " + i + " times");
         } catch (Exception ex) {
-          log.error(ex.getMessage(), ex);
+          log.error("{}", ex.getMessage(), ex);
         }
       }
     };

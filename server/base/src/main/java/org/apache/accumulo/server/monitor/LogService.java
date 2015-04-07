@@ -77,7 +77,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
           t.start();
         }
       } catch (IOException io) {
-        log.error(io.getMessage(), io);
+        log.error("{}", io.getMessage(), io);
       }
     }
   }

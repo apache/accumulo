@@ -196,10 +196,10 @@ public class ZKPermHandler implements PermissionHandler {
         }
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -222,10 +222,10 @@ public class ZKPermHandler implements PermissionHandler {
         }
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -248,10 +248,10 @@ public class ZKPermHandler implements PermissionHandler {
         }
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -275,10 +275,10 @@ public class ZKPermHandler implements PermissionHandler {
         }
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -303,10 +303,10 @@ public class ZKPermHandler implements PermissionHandler {
               NodeExistsPolicy.OVERWRITE);
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -331,10 +331,10 @@ public class ZKPermHandler implements PermissionHandler {
               NodeExistsPolicy.OVERWRITE);
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -349,10 +349,10 @@ public class ZKPermHandler implements PermissionHandler {
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, NodeMissingPolicy.SKIP);
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException("unknownUser", SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -367,10 +367,10 @@ public class ZKPermHandler implements PermissionHandler {
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace, NodeMissingPolicy.SKIP);
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException("unknownUser", SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -404,10 +404,10 @@ public class ZKPermHandler implements PermissionHandler {
       for (Entry<String,Set<NamespacePermission>> entry : namespacePerms.entrySet())
         createNamespacePerm(rootuser, entry.getKey(), entry.getValue());
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -420,10 +420,10 @@ public class ZKPermHandler implements PermissionHandler {
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms, new byte[0], NodeExistsPolicy.SKIP);
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -461,10 +461,10 @@ public class ZKPermHandler implements PermissionHandler {
         zooCache.clear(ZKUserPath + "/" + user);
       }
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       if (e.code().equals(KeeperException.Code.NONODE))
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);

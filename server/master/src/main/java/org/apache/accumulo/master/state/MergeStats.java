@@ -196,7 +196,7 @@ public class MergeStats {
       try {
         tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       } catch (BadLocationStateException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         return false;
       }
       log.debug("consistency check: " + tls + " walogs " + tls.walogs.size());

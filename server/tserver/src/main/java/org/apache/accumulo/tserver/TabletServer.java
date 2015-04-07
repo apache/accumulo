@@ -425,7 +425,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           try {
             importTablet.importMapFiles(tid, fileRefMap, setTime);
           } catch (IOException ioe) {
-            log.info("files " + fileMap.keySet() + " not imported to " + new KeyExtent(tke) + ": " + ioe.getMessage());
+            log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke), ioe.getMessage());
             failures.add(tke);
           }
         }
@@ -1565,7 +1565,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             flushID = tablet.getFlushID();
           } catch (NoNodeException e) {
             // table was probably deleted
-            log.info("Asked to flush table that has no flush id " + ke + " " + e.getMessage());
+            log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
             return;
           }
         }
@@ -1588,7 +1588,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           tablet.flush(tablet.getFlushID());
         } catch (NoNodeException nne) {
-          log.info("Asked to flush tablet that has no flush id " + new KeyExtent(textent) + " " + nne.getMessage());
+          log.info("Asked to flush tablet that has no flush id {} {}", new KeyExtent(textent), nne.getMessage());
         }
       }
     }
@@ -1683,7 +1683,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           try {
             compactionInfo = tablet.getCompactionID();
           } catch (NoNodeException e) {
-            log.info("Asked to compact table with no compaction id " + ke + " " + e.getMessage());
+            log.info("Asked to compact table with no compaction id {} {}", ke, e.getMessage());
             return;
           }
         tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
@@ -1906,10 +1906,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     } catch (IOException e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
-      log.error("split failed: " + e.getMessage() + " for tablet " + tablet.getExtent(), e);
+      log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
     } catch (Exception e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
-      log.error("Unknown error on split: " + e, e);
+      log.error("Unknown error on split: {}", e, e);
     }
   }
 
@@ -2011,9 +2011,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
-          log.debug("Failed to unload tablet " + extent + "... it was alread closing or closed : " + e.getMessage());
+          log.debug("Failed to unload tablet {} ... it was alread closing or closed : {}", extent, e.getMessage());
         } else {
-          log.error("Failed to close tablet " + extent + "... Aborting migration", e);
+          log.error("Failed to close tablet {}... Aborting migration", extent, e);
           enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
         }
         return;
@@ -2185,9 +2185,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         tablet = null; // release this reference
         successful = true;
       } catch (Throwable e) {
-        log.warn("exception trying to assign tablet " + extent + " " + locationToOpen, e);
-        if (e.getMessage() != null)
-          log.warn(e.getMessage());
+        log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
+
+        if (e.getMessage() != null) {
+          log.warn("{}", e.getMessage());
+        }
+
         String table = extent.getTableId().toString();
         ProblemReports.getInstance(TabletServer.this).report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
       } finally {
@@ -2582,7 +2585,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       log.debug("Closing filesystem");
       fs.close();
     } catch (IOException e) {
-      log.warn("Failed to close filesystem : " + e.getMessage(), e);
+      log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
     gcLogger.logGCInfo(getConfiguration());
@@ -2818,7 +2821,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(contexts);
         } catch (IOException e) {
-          log.warn(e.getMessage(), e);
+          log.warn("{}", e.getMessage(), e);
         }
       }
     };

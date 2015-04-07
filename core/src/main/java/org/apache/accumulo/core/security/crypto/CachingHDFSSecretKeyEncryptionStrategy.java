@@ -50,7 +50,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.WRAP_MODE, context);
     } catch (IOException e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       throw new RuntimeException(e);
     }
     return context;
@@ -62,7 +62,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.UNWRAP_MODE, context);
     } catch (IOException e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       throw new RuntimeException(e);
     }
     return context;
@@ -74,7 +74,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     try {
       cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getAlgorithmName()));
     } catch (InvalidKeyException e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       throw new RuntimeException(e);
     }
 
@@ -83,10 +83,10 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
       } catch (InvalidKeyException e) {
-        log.error(e.getMessage(),e);
+        log.error("{}", e.getMessage(),e);
         throw new RuntimeException(e);
       } catch (NoSuchAlgorithmException e) {
-        log.error(e.getMessage(),e);
+        log.error("{}", e.getMessage(),e);
         throw new RuntimeException(e);
       }
     } else {
@@ -96,10 +96,10 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         params.setEncryptedKey(encryptedSecretKey);
         params.setOpaqueKeyEncryptionKeyID(secretKeyCache.getPathToKeyName());
       } catch (InvalidKeyException e) {
-        log.error(e.getMessage(),e);
+        log.error("{}", e.getMessage(),e);
         throw new RuntimeException(e);
       } catch (IllegalBlockSizeException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         throw new RuntimeException(e);
       }
 

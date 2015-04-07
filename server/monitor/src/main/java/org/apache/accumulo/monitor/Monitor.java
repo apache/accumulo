@@ -494,7 +494,7 @@ public class Monitor {
           try {
             Monitor.fetchData();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
 
           UtilWaitThread.sleep(333);
@@ -510,7 +510,7 @@ public class Monitor {
           try {
             Monitor.fetchScans();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
           UtilWaitThread.sleep(5000);
         }

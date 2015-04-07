@@ -273,7 +273,7 @@ public class BulkImport extends MasterRepo {
               fs.rename(fileStatus.getPath(), newPath);
               log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
             } catch (IOException E1) {
-              log.error("Could not move: " + fileStatus.getPath().toString() + " " + E1.getMessage());
+              log.error("Could not move: {} {}", fileStatus.getPath().toString(), E1.getMessage());
             }
 
           } catch (Exception ex) {

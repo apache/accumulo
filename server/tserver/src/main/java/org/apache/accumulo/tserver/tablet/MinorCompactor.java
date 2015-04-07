@@ -105,13 +105,13 @@ public class MinorCompactor extends Compactor {
 
           return ret;
         } catch (IOException e) {
-          log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...");
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(),getOutputFile());
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
           // minor compaction would succeed
-          log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...", e);
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile(), e);
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
@@ -131,7 +131,7 @@ public class MinorCompactor extends Compactor {
             getFileSystem().deleteRecursively(new Path(getOutputFile()));
           }
         } catch (IOException e) {
-          log.warn("Failed to delete failed MinC file " + getOutputFile() + " " + e.getMessage());
+          log.warn("Failed to delete failed MinC file {} {}", getOutputFile(), e.getMessage());
         }
 
         if (isTableDeleting())

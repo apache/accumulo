@@ -67,7 +67,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       log.trace("{}", ex, ex);
       return null;
     } catch (Exception ex) {
-      log.error(ex.getMessage(), ex);
+      log.error("{}", ex.getMessage(), ex);
       return null;
     }
   }

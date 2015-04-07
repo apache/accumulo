@@ -91,7 +91,7 @@ public class VersioningIteratorTest {
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       assertFalse(true);
     }
   }
@@ -127,7 +127,7 @@ public class VersioningIteratorTest {
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       assertFalse(true);
     }
   }
@@ -176,7 +176,7 @@ public class VersioningIteratorTest {
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       assertFalse(true);
     }
   }
@@ -204,7 +204,7 @@ public class VersioningIteratorTest {
       } catch (IOException e) {
         assertFalse(true);
       } catch (Exception e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         assertFalse(true);
       }
     }

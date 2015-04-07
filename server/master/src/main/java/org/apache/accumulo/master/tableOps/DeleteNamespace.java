@@ -58,7 +58,7 @@ class NamespaceCleanUp extends MasterRepo {
     try {
       AuditedSecurityOperation.getInstance(master).deleteNamespace(master.rpcCreds(), namespaceId);
     } catch (ThriftSecurityException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     }
 
     Utils.unreserveNamespace(namespaceId, id, true);

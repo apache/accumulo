@@ -409,7 +409,7 @@ public class TabletServerResourceManager {
           mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {
-          log.error("Memory manager failed " + t.getMessage(), t);
+          log.error("Memory manager failed {}", t.getMessage(), t);
         }
 
         try {

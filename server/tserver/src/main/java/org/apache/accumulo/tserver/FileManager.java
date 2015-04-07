@@ -237,7 +237,7 @@ public class FileManager {
       try {
         reader.close();
       } catch (Exception e) {
-        log.error("Failed to close file " + e.getMessage(), e);
+        log.error("Failed to close file {}", e.getMessage(), e);
       }
     }
   }
@@ -327,7 +327,7 @@ public class FileManager {
           if (!tablet.isMeta()) {
             filePermits.release(1);
           }
-          log.warn("Failed to open file " + file + " " + e.getMessage() + " continuing...");
+          log.warn("Failed to open file {} {}  continuing...", file, e.getMessage());
         } else {
           // close whatever files were opened
           closeReaders(reservedFiles);
@@ -336,7 +336,7 @@ public class FileManager {
             filePermits.release(files.size());
           }
 
-          log.error("Failed to open file " + file + " " + e.getMessage());
+          log.error("Failed to open file {} {}", file, e.getMessage());
           throw new IOException("Failed to open " + file, e);
         }
       }
@@ -365,7 +365,7 @@ public class FileManager {
         try {
           reader.closeDeepCopies();
         } catch (IOException e) {
-          log.warn(e.getMessage(), e);
+          log.warn("{}", e.getMessage(), e);
           sawIOException = true;
         }
       }

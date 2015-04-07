@@ -83,7 +83,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       try {
         cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
       } catch (InvalidKeyException e) {
-        log.error(e.getMessage(),e);
+        log.error("{}", e.getMessage(),e);
         throw new RuntimeException(e);
       }
 
@@ -92,10 +92,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
           Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
           params.setPlaintextKey(plaintextKey.getEncoded());
         } catch (InvalidKeyException e) {
-          log.error(e.getMessage(),e);
+          log.error("{}", e.getMessage(),e);
           throw new RuntimeException(e);
         } catch (NoSuchAlgorithmException e) {
-          log.error(e.getMessage(),e);
+          log.error("{}", e.getMessage(),e);
           throw new RuntimeException(e);
         }
       } else {
@@ -105,10 +105,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
           params.setEncryptedKey(encryptedSecretKey);
           params.setOpaqueKeyEncryptionKeyID(pathToKeyName);
         } catch (InvalidKeyException e) {
-          log.error(e.getMessage(),e);
+          log.error("{}", e.getMessage(),e);
           throw new RuntimeException(e);
         } catch (IllegalBlockSizeException e) {
-          log.error(e.getMessage(),e);
+          log.error("{}", e.getMessage(),e);
           throw new RuntimeException(e);
         }
 
@@ -159,7 +159,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       doKeyEncryptionOperation(Cipher.WRAP_MODE, params, fullPath, pathToKey, fs);
 
     } catch (IOException e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       throw new RuntimeException(e);
     }
 
@@ -183,7 +183,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       doKeyEncryptionOperation(Cipher.UNWRAP_MODE, params, pathToKeyName, pathToKey, fs);
 
     } catch (IOException e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       throw new RuntimeException(e);
     }
 

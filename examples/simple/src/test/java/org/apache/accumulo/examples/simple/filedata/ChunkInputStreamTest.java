@@ -285,7 +285,7 @@ public class ChunkInputStreamTest extends TestCase {
       assertEquals(0, cis.read(b));
       fail();
     } catch (IOException e) {
-      log.debug("EXCEPTION " + e.getMessage());
+      log.debug("EXCEPTION {}", e.getMessage());
       // expected, ignore
     }
   }
@@ -295,7 +295,7 @@ public class ChunkInputStreamTest extends TestCase {
       cis.close();
       fail();
     } catch (IOException e) {
-      log.debug("EXCEPTION " + e.getMessage());
+      log.debug("EXCEPTION {}", e.getMessage());
       // expected, ignore
     }
   }

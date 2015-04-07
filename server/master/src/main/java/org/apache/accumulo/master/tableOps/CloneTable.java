@@ -198,7 +198,7 @@ class ClonePermissions extends MasterRepo {
         AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
             cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
+        LoggerFactory.getLogger(FinishCloneTable.class).error("{}", e.getMessage(), e);
         throw e;
       }
     }

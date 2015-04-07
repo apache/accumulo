@@ -334,7 +334,7 @@ class ConfigurationDocGen {
         try {
           data.close();
         } catch (IOException ex) {
-          log.error(ex.getMessage(), ex);
+          log.error("{}", ex.getMessage(), ex);
         }
       }
     }
