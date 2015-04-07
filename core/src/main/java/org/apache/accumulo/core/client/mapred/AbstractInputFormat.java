@@ -676,7 +676,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         }
         for (Map.Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
           Range ke = extentRanges.getKey().toDataRange();
-          if (batchScan && supportBatchScan) {
+          if (batchScan) {
             // group ranges by tablet to be read by a BatchScanner
             ArrayList<Range> clippedRanges = new ArrayList<Range>();
             for(Range r: extentRanges.getValue())
