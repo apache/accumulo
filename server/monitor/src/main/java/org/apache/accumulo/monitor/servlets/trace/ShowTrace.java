@@ -132,7 +132,7 @@ public class ShowTrace extends Basic {
       public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
         sb.append("<tr>\n");
         sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>%n", node.stop - node.start, node.start - finalStart));
-        sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 5, node.svc, node.sender));
+        sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 10, node.svc, node.sender));
         sb.append("<td>" + node.description + "</td>");
         boolean hasData = node.data != null && !node.data.isEmpty();
         boolean hasAnnotations = node.annotations != null && !node.annotations.isEmpty();
