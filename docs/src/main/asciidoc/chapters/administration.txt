@@ -646,6 +646,32 @@ Time  Start  Service@Location       Name
 Accumulo processes each write to a set of log files. By default these are found under
 +$ACCUMULO/logs/+.
 
+[[watcher]]
+=== Watcher
+Accumulo includes scripts to automatically restart server processes in the case
+of intermittent failures. To enable this watcher, edit +conf/accumulo-env.sh+
+to include the following:
+
+....
+# Should process be automatically restarted
+export ACCUMULO_WATCHER="true"
+
+# What settings should we use for the watcher, if enabled
+export UNEXPECTED_TIMESPAN="3600"
+export UNEXPECTED_RETRIES="2"
+
+export OOM_TIMESPAN="3600"
+export OOM_RETRIES="5"
+
+export ZKLOCK_TIMESPAN="600"
+export ZKLOCK_RETRIES="5"
+....
+
+When an Accumulo process dies, the watcher will look at the logs and exit codes
+to determine how the process failed and either restart or fail depending on the
+recent history of failures. The restarting policy for various failure conditions
+is configurable through the +*_TIMESPAN+ and +*_RETRIES+ variables shown above.
+
 === Recovery
 
 In the event of TabletServer failure or error on shutting Accumulo down, some
@@ -724,5 +750,158 @@ new nameservice volume shows up with +$ACCUMULO_HOME/bin/accumulo admin volumes+
 
 Some erroneous GarbageCollector messages may still be seen for a small period while data is transitioning to
 the new volumes. This is expected and can usually be ignored.
+
+
+
+
+
+
+
+
+
+=== Achieving Stability in a VM Environment
+
+For testing, demonstration, and even operation uses, Accumulo is often
+installed and run in a virtual machine (VM) environment. The majority of
+long-term operational uses of Accumulo are on bare-metal cluster. However, the
+core design of Accumulo and its dependencies do not preclude running stably for
+long periods within a VM. Many of Accumulo’s operational robustness features to
+handle failures like periodic network partitioning in a large cluster carry
+over well to VM environments. This guide covers general recommendations for
+maximizing stability in a VM environment, including some of the common failure
+modes that are more common when running in VMs.
+
+==== Known failure modes: Setup and Troubleshooting
+In addition to the general failure modes of running Sqrrl, VMs can introduce a
+couple of environmental challenges that can affect process stability. Clock
+drift is something that is more common in VMs, especially when VMs are
+suspended and resumed. Clock drift can cause Accumulo servers to assume that
+they have lost connectivity to the other Accumulo processes and/or lose their
+locks in Zookeeper. VM environments also frequently have constrained resources,
+such as CPU, RAM, network, and disk throughput and capacity. Accumulo generally
+deals well with constrained resources from a stability perspective (optimizing
+performance will require additional tuning, which is not covered in this
+section), however there are some limits.
+
+===== Physical Memory
+One of those limits has to do with the Linux out of memory killer. A common
+failure mode in VM environments (and in some bare metal installations) is when
+the Linux out of memory killer decides to kill processes in order to avoid a
+kernel panic when provisioning a memory page. This often happens in VMs due to
+the large number of processes that must run in a small memory footprint. In
+addition to the Linux core processes, a single-node Accumulo setup requires a
+Hadoop Namenode, a Hadoop Secondary Namenode a Hadoop Datanode, a Zookeeper
+server, an Accumulo Master, an Accumulo GC and an Accumulo TabletServer.
+Typical setups also include an Accumulo Monitor, an Accumulo Tracer, a Hadoop
+ResourceManager, a Hadoop NodeManager, provisioning software, and client
+applications. Between all of these processes, it is not uncommon to
+over-subscribe the available RAM in a VM. We recommend setting up VMs without
+swap enabled, so rather than performance grinding to a halt when physical
+memory is exhausted the kernel will randomly* select processes to kill in order
+to free up memory.
+
+Calculating the maximum possible memory usage is essential in creating a stable
+Accumulo VM setup. Safely engineering memory allocation for stability is a
+matter of then bringing the calculated maximum memory usage under the physical
+memory by a healthy margin. The margin is to account for operating system-level
+operations, such as managing process, maintaining virtual memory pages, and
+file system caching. When the java out-of-memory killer finds your process, you
+will probably only see evidence of that in /var/log/messages. Out-of-memory
+process kills do not show up in Accumulo or Hadoop logs.
+
+To calculate the max memory usage of all java virtual machine (JVM) processes
+add the maximum heap size (often limited by a -Xmx... argument, such as in
+accumulo-site.xml) and the off-heap memory usage. Off-heap memory usage
+includes the following:
+
+* "Permanent Space", where the JVM stores Classes, Methods, and other code elements. This can be limited by a JVM flag such as +-XX:MaxPermSize:100m+, and is typically tens of megabytes.
+* Code generation space, where the JVM stores just-in-time compiled code. This is typically small enough to ignore
+* Socket buffers, where the JVM stores send and receive buffers for each socket.
+* Thread stacks, where the JVM allocates memory to manage each thread.
+* Direct memory space and JNI code, where applications can allocate memory outside of the JVM-managed space. For Accumulo, this includes the native in-memory maps that are allocated with the memory.maps.max parameter in accumulo-site.xml.
+* Garbage collection space, where the JVM stores information used for garbage collection.
+
+You can assume that each Hadoop and Accumulo process will use ~100-150MB for
+Off-heap memory, plus the in-memory map of the Accumulo TServer process. A
+simple calculation for physical memory requirements follows:
+
+....
+  Physical memory needed
+    = (per-process off-heap memory) + (heap memory) + (other processes) + (margin) 
+    = (number of java processes * 150M + native map) + (sum of -Xmx settings for java process) + (total applications memory, provisioning memory, etc.) + (1G)
+    = (11*150M +500M) + (1G +1G +1G +256M +1G +256M +512M +512M +512M +512M +512M) + (2G) + (1G)
+    = (2150M) + (7G) + (2G) + (1G)
+    = ~12GB
+....
+
+These calculations can add up quickly with the large number of processes,
+especially in constrained VM environments. To reduce the physical memory
+requirements, it is a good idea to reduce maximum heap limits and turn off
+unnecessary processes. If you're not using YARN in your application, you can
+turn off the ResourceManager and NodeManager. If you're not expecting to
+re-provision the cluster frequently you can turn off or reduce provisioning
+processes such as Salt Stack minions and masters.
+
+===== Disk Space
+Disk space is primarily used for two operations: storing data and storing logs.
+While Accumulo generally stores all of its key/value data in HDFS, Accumulo,
+Hadoop, and Zookeeper all store a significant amount of logs in a directory on
+a local file system. Care should be taken to make sure that (a) limitations to
+the amount of logs generated are in place, and (b) enough space is available to
+host the generated logs on the partitions that they are assigned. When space is
+not available to log, processes will hang. This can cause interruptions in
+availability of Accumulo, as well as cascade into failures of various
+processes.
+
+Hadoop, Accumulo, and Zookeeper use log4j as a logging mechanism, and each of
+them has a way of limiting the logs and directing them to a particular
+directory. Logs are generated independently for each process, so when
+considering the total space you need to add up the maximum logs generated by
+each process. Typically, a rolling log setup in which each process can generate
+something like 10 100MB files is instituted, resulting in a maximum file system
+usage of 1GB per process. Default setups for Hadoop and Zookeeper are often
+unbounded, so it is important to set these limits in the logging configuration
+files for each subsystem. Consult the user manual for each system for
+instructions on how to limit generated logs.
+
+===== Zookeeper Interaction
+Accumulo is designed to scale up to thousands of nodes. At that scale,
+intermittent interruptions in network service and other rare failures of
+compute nodes become more common. To limit the impact of node failures on
+overall service availability, Accumulo uses a heartbeat monitoring system that
+leverages Zookeeper's ephemeral locks. There are several conditions that can
+occur that cause Accumulo process to lose their Zookeeper locks, some of which
+are true interruptions to availability and some of which are false positives.
+Several of these conditions become more common in VM environments, where they
+can be exacerbated by resource constraints and clock drift.
+
+Accumulo includes a mechanism to limit the impact of the false positives known
+as the <<watcher>>. The watcher monitors Accumulo processes and will restart
+them when they fail for certain reasons. The watcher can be configured within
+the accumulo-env.sh file inside of Accumulo's configuration directory. We
+recommend using the watcher to monitor Accumulo processes, as it will restore
+the system to full capacity without administrator interaction after many of the
+common failure modes.
+
+==== Tested Versions
+Another large consideration for Accumulo stability is to use versions of
+software that have been tested together in a VM environment. Any cluster of
+processes that have not been tested together are likely to expose running
+conditions that vary from the environments individually tested in the various
+components. For example, Accumulo's use of HDFS includes many short block
+reads, which differs from the more common full file read used in most
+map/reduce applications. We have found that certain versions of Accumulo and
+Hadoop will include stability bugs that greatly affect overall stability. In
+our testing, Accumulo 1.6.2, Hadoop 2.6.0, and Zookeeper 3.4.6 resulted in a
+stable VM clusters that did not fail a month of testing, while Accumulo 1.6.1,
+Hadoop 2.5.1, and Zookeeper 3.4.5 had a mean time between failure of less than
+a week under heavy ingest and query load. We expect that results will vary with
+other configurations, and you should choose your software versions with that in
+mind.
+
+
+
+
+
 
 
