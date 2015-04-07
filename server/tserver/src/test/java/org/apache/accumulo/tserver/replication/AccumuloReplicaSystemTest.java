@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -493,5 +494,35 @@ public class AccumuloReplicaSystemTest {
     verify(replClient, ars);
 
     Assert.assertEquals(new ReplicationStats(0l, 0l, 5l), stats);
+  }
+
+  @Test
+  public void testUserPassword() throws Exception {
+    AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
+    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", "1");
+    String user = "user", password = "password";
+
+    Map<String,String> confMap = new HashMap<>();
+    confMap.put(Property.REPLICATION_PEER_USER.getKey() + target.getPeerName(), user);
+    confMap.put(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName(), password);
+    AccumuloConfiguration conf = new ConfigurationCopy(confMap);
+
+    assertEquals(user, ars.getPrincipal(conf, target));
+    assertEquals(password, ars.getPassword(conf, target));
+  }
+
+  @Test
+  public void testUserKeytab() throws Exception {
+    AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
+    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", "1");
+    String user = "user", keytab = "/etc/security/keytabs/replication.keytab";
+
+    Map<String,String> confMap = new HashMap<>();
+    confMap.put(Property.REPLICATION_PEER_USER.getKey() + target.getPeerName(), user);
+    confMap.put(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName(), keytab);
+    AccumuloConfiguration conf = new ConfigurationCopy(confMap);
+
+    assertEquals(user, ars.getPrincipal(conf, target));
+    assertEquals(keytab, ars.getKeytab(conf, target));
   }
 }

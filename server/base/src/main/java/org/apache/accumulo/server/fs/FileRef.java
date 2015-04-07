@@ -44,6 +44,7 @@ public class FileRef implements Comparable<FileRef> {
     this(path, new Path(path));
   }
 
+  @Override
   public String toString() {
     return fullReference.toString();
   }

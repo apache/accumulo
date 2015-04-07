@@ -86,9 +86,10 @@ public class ShowTrace extends Basic {
     long start;
     if (null != entry.getValue()) {
       start = entry.getValue().doAs(new PrivilegedAction<Long>() {
-         public Long run() {
-           return addSpans(scanner, tree, Long.MAX_VALUE);
-         }
+        @Override
+        public Long run() {
+          return addSpans(scanner, tree, Long.MAX_VALUE);
+        }
       });
     } else {
       start = addSpans(scanner, tree, Long.MAX_VALUE);

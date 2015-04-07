@@ -54,6 +54,7 @@ public class Transfer extends Test {
       seq = Integer.parseInt(s);
     }
 
+    @Override
     public String toString() {
       return seq + " " + bal;
     }

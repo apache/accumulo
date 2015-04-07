@@ -21,6 +21,7 @@ import org.apache.accumulo.shell.ShellExtension;
 
 public class MyAppShellExtension extends ShellExtension {
 
+  @Override
   public String getExtensionName() {
     return "MyApp";
   }

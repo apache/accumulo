@@ -46,6 +46,7 @@ public class SplitReportMessage implements MasterMessage {
     extents.put(ne2, np2);
   }
 
+  @Override
   public void send(TCredentials credentials, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();

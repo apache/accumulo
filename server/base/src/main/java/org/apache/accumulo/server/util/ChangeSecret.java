@@ -92,6 +92,7 @@ public class ChangeSecret {
     String root = ZooUtil.getRoot(inst);
     final List<String> ephemerals = new ArrayList<String>();
     recurse(zooReader, root, new Visitor() {
+      @Override
       public void visit(ZooReader zoo, String path) throws Exception {
         Stat stat = zoo.getStatus(path);
         if (stat.getEphemeralOwner() != 0)
@@ -115,6 +116,7 @@ public class ChangeSecret {
     final String newInstanceId = UUID.randomUUID().toString();
     String root = ZooUtil.getRoot(inst);
     recurse(orig, root, new Visitor() {
+      @Override
       public void visit(ZooReader zoo, String path) throws Exception {
         String newPath = path.replace(inst.getInstanceID(), newInstanceId);
         byte[] data = zoo.getData(path, null);

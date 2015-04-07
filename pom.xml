@@ -538,9 +538,9 @@
           <version>2.14</version>
         </plugin>
         <plugin>
-          <groupId>com.google.code.sortpom</groupId>
-          <artifactId>maven-sortpom-plugin</artifactId>
-          <version>2.3.0</version>
+          <groupId>com.github.ekryd.sortpom</groupId>
+          <artifactId>sortpom-maven-plugin</artifactId>
+          <version>2.4.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <lineSeparator>\n</lineSeparator>
@@ -841,9 +841,9 @@
                 </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
-                    <groupId>com.google.code.sortpom</groupId>
-                    <artifactId>maven-sortpom-plugin</artifactId>
-                    <versionRange>[2.1.0,)</versionRange>
+                    <groupId>com.github.ekryd.sortpom</groupId>
+                    <artifactId>sortpom-maven-plugin</artifactId>
+                    <versionRange>[2.4.0,)</versionRange>
                     <goals>
                       <goal>verify</goal>
                     </goals>
@@ -903,8 +903,8 @@
     <plugins>
       <plugin>
         <!-- verify only; 'mvn clean -P sortpom' sorts -->
-        <groupId>com.google.code.sortpom</groupId>
-        <artifactId>maven-sortpom-plugin</artifactId>
+        <groupId>com.github.ekryd.sortpom</groupId>
+        <artifactId>sortpom-maven-plugin</artifactId>
         <executions>
           <execution>
             <id>verify-sorted-pom</id>
@@ -1009,6 +1009,8 @@
                   <property name="allowThrowsTagsForSubclasses" value="true" />
                 </module>
                 <module name="SingleLineJavadoc" />
+                <module name="MissingOverrideCheck" />
+                <module name="AnnotationLocation" />
               </module>
             </module>
           </checkstyleRules>
@@ -1268,8 +1270,8 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.google.code.sortpom</groupId>
-            <artifactId>maven-sortpom-plugin</artifactId>
+            <groupId>com.github.ekryd.sortpom</groupId>
+            <artifactId>sortpom-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>sort-pom</id>

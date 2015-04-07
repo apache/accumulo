@@ -156,9 +156,6 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
   }
 
-  /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this namespace configuration.
-   */
   @Override
   public synchronized void invalidateCache() {
     if (null != propCacheAccessor) {

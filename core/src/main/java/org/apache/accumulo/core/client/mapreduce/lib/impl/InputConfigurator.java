@@ -680,8 +680,9 @@ public class InputConfigurator extends ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockTabletLocator();
     Instance instance = getInstance(implementingClass, conf);
+    ClientConfiguration clientConf = getClientConfiguration(implementingClass, conf);
     ClientContext context = new ClientContext(instance,
-        new Credentials(getPrincipal(implementingClass, conf), getAuthenticationToken(implementingClass, conf)), ClientConfiguration.loadDefault());
+        new Credentials(getPrincipal(implementingClass, conf), getAuthenticationToken(implementingClass, conf)), clientConf);
     return TabletLocator.getLocator(context, new Text(tableId));
   }
 

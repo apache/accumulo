@@ -20,7 +20,6 @@ import java.util.Date;
 
 import org.slf4j.Logger;
 
-
 public class LoggingRunnable implements Runnable {
   private Runnable runnable;
   private Logger log;
@@ -30,6 +29,7 @@ public class LoggingRunnable implements Runnable {
     this.log = log;
   }
 
+  @Override
   public void run() {
     try {
       runnable.run();

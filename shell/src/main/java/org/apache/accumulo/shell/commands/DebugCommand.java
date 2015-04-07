@@ -28,6 +28,7 @@ import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class DebugCommand extends Command {
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {

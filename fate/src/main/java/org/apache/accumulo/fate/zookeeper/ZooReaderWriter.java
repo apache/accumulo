@@ -63,11 +63,6 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     ZooUtil.recursiveDelete(info, zPath, policy);
   }
 
-  /**
-   * Create a persistent node with the default ACL
-   *
-   * @return true if the node was created or altered; false if it was skipped
-   */
   @Override
   public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return ZooUtil.putPersistentData(info, zPath, data, policy);

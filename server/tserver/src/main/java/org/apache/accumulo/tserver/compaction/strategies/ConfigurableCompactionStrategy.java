@@ -76,6 +76,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
   private int minFiles = 1;
   private WriteParameters writeParams = new WriteParameters();
 
+  @Override
   public void init(Map<String,String> options) {
 
     Set<Entry<String,String>> es = options.entrySet();

@@ -129,7 +129,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   /**
    * Creates a deep copy of this iterator as though seek had not yet been called. init should be called on an iterator before deepCopy is called. init should
    * not need to be called on the copy that is returned by deepCopy; that is, when necessary init should be called in the deepCopy method on the iterator it
-   * returns. The behavior is unspecified if init is called after deepCopy either on the original or the copy.
+   * returns. The behavior is unspecified if init is called after deepCopy either on the original or the copy. A proper implementation would call deepCopy on
+   * the source.
    *
    * @param env
    *          <tt>IteratorEnvironment</tt> environment in which iterator is being run.

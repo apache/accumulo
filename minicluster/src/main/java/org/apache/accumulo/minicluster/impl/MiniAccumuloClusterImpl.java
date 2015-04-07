@@ -287,6 +287,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
       argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
     }
+    // @formatter:off
     argList.addAll(Arrays.asList(
         "-XX:+UseConcMarkSweepGC",
         "-XX:CMSInitiatingOccupancyFraction=75",
@@ -295,6 +296,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         "-XX:+PerfDisableSharedMem",
         "-XX:+AlwaysPreTouch",
         Main.class.getName(), className));
+    // @formatter:on
     argList.addAll(Arrays.asList(args));
 
     ProcessBuilder builder = new ProcessBuilder(argList);
@@ -652,24 +654,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     getClusterControl().killProcess(type, proc);
   }
 
-  /**
-   * @return Accumulo instance name
-   */
   @Override
   public String getInstanceName() {
     return config.getInstanceName();
   }
 
-  /**
-   * @return zookeeper connection string
-   */
   @Override
   public String getZooKeepers() {
     return config.getZooKeepers();
   }
 
   /**
-   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
+   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However it's probably best to
    * call stop in a finally block as soon as possible.
    */
   @Override

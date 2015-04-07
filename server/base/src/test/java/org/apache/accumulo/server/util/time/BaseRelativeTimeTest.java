@@ -26,6 +26,7 @@ public class BaseRelativeTimeTest {
   static class BogusTime implements ProvidesTime {
     public long value = 0;
 
+    @Override
     public long currentTime() {
       return value;
     }

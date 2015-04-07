@@ -42,6 +42,7 @@ public class FaultyConditionalWriter implements ConditionalWriter {
 
   }
 
+  @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
     ArrayList<Result> resultList = new ArrayList<Result>();
     ArrayList<ConditionalMutation> writes = new ArrayList<ConditionalMutation>();
@@ -68,6 +69,7 @@ public class FaultyConditionalWriter implements ConditionalWriter {
     return resultList.iterator();
   }
 
+  @Override
   public Result write(ConditionalMutation mutation) {
     return write(Collections.singleton(mutation).iterator()).next();
   }

@@ -50,6 +50,7 @@ public class LogEntry {
     this.logSet = new ArrayList<String>(le.logSet);
   }
 
+  @Override
   public String toString() {
     return extent.toString() + " " + filename + " (" + tabletId + ")";
   }

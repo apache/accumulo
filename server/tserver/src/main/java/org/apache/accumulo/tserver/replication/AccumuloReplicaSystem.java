@@ -20,13 +20,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,6 +39,8 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -68,6 +73,7 @@ import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,8 +160,77 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   public Status replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
     final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getConfiguration();
-    final ClientContext peerContext = getContextForPeer(localConf, target);
 
+    final String principal = getPrincipal(localConf, target);
+    final File keytab;
+    final String password;
+    if (localConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      String keytabPath = getKeytab(localConf, target);
+      keytab = new File(keytabPath);
+      if (!keytab.exists() || !keytab.isFile()) {
+        log.error("{} is not a regular file. Cannot login to replicate", keytabPath);
+        return status;
+      }
+      password = null;
+    } else {
+      keytab = null;
+      password = getPassword(localConf, target);
+    }
+
+    if (null != keytab) {
+      try {
+        final UserGroupInformation accumuloUgi = UserGroupInformation.getCurrentUser();
+        // Get a UGI with the principal + keytab
+        UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
+
+        // Run inside a doAs to avoid nuking the Tserver's user
+        return ugi.doAs(new PrivilegedAction<Status>() {
+          @Override
+          public Status run() {
+            KerberosToken token;
+            try {
+              // Do *not* replace the current user
+              token = new KerberosToken(principal, keytab, false);
+            } catch (IOException e) {
+              log.error("Failed to create KerberosToken", e);
+              return status;
+            }
+            ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
+            return _replicate(p, status, target, helper, localConf, peerContext, accumuloUgi);
+          }
+        });
+      } catch (IOException e) {
+        // Can't log in, can't replicate
+        log.error("Failed to perform local login", e);
+        return status;
+      }
+    } else {
+      // Simple case: make a password token, context and then replicate
+      PasswordToken token = new PasswordToken(password);
+      ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
+      return _replicate(p, status, target, helper, localConf, peerContext, null);
+    }
+  }
+
+  /**
+   * Perform replication, making a few attempts when an exception is returned.
+   *
+   * @param p
+   *          Path of WAL to replicate
+   * @param status
+   *          Current status for the WAL
+   * @param target
+   *          Where we're replicating to
+   * @param helper
+   *          A helper for replication
+   * @param localConf
+   *          The local instance's configuration
+   * @param peerContext
+   *          The ClientContext to connect to the peer
+   * @return The new (or unchanged) Status for the WAL
+   */
+  private Status _replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper,
+      final AccumuloConfiguration localConf, final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
     try {
       Trace.on("AccumuloReplicaSystem");
 
@@ -166,7 +241,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       // trying to replicate it again later some other time.
       int numAttempts = localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS);
       for (int i = 0; i < numAttempts; i++) {
+        log.debug("Attempt {}", i);
         String peerTserverStr;
+        log.debug("Fetching peer tserver address");
         Span span = Trace.start("Fetch peer tserver");
         try {
           // Ask the master on the remote what TServer we should talk with to replicate the data
@@ -208,7 +285,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           } else {
             span = Trace.start("WAL replication");
             try {
-              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper);
+              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi);
             } finally {
               span.stop();
             }
@@ -279,9 +356,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
-      AccumuloException, AccumuloSecurityException {
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, final UserGroupInformation accumuloUgi)
+      throws TTransportException, AccumuloException, AccumuloSecurityException {
 
+    log.info("Replication WAL to peer tserver");
     final Set<Integer> tids;
     final DataInputStream input;
     Span span = Trace.start("Read WAL header");
@@ -315,6 +393,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span.stop();
     }
 
+    log.info("Skipping unwanted data in WAL");
     span = Trace.start("Consume WAL prefix");
     span.data("file", p.toString());
     try {
@@ -328,7 +407,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span.stop();
     }
 
+    log.info("Sending batches of data to peer tserver");
+
     Status lastStatus = status, currentStatus = status;
+    final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     while (true) {
       // Set some trace info
       span = Trace.start("Replicate WAL batch");
@@ -364,7 +446,34 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       if (!currentStatus.equals(lastStatus)) {
         span = Trace.start("Update replication table");
         try {
-          helper.recordNewStatus(p, currentStatus, target);
+          if (null != accumuloUgi) {
+            final Status copy = currentStatus;
+            accumuloUgi.doAs(new PrivilegedAction<Void>() {
+              @Override
+              public Void run() {
+                try {
+                  helper.recordNewStatus(p, copy, target);
+                } catch (Exception e) {
+                  exceptionRef.set(e);
+                }
+                return null;
+              }
+            });
+            Exception e = exceptionRef.get();
+            if (null != e) {
+              if (e instanceof TableNotFoundException) {
+                throw (TableNotFoundException) e;
+              } else if (e instanceof AccumuloSecurityException) {
+                throw (AccumuloSecurityException) e;
+              } else if (e instanceof AccumuloException) {
+                throw (AccumuloException) e;
+              } else {
+                throw new RuntimeException("Received unexpected exception", e);
+              }
+            }
+          } else {
+            helper.recordNewStatus(p, currentStatus, target);
+          }
         } catch (TableNotFoundException e) {
           log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(currentStatus), e);
           throw new RuntimeException("Replication table did not exist, will retry", e);
@@ -421,6 +530,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       // If we have some edits to send
       if (0 < edits.walEdits.getEditsSize()) {
+        log.info("Sending {} edits", edits.walEdits.getEditsSize());
         long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
         if (entriesReplicated != edits.numUpdates) {
           log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
@@ -479,25 +589,55 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  private ClientContext getContextForPeer(AccumuloConfiguration localConf, ReplicationTarget target) {
+  protected String getPassword(AccumuloConfiguration localConf, ReplicationTarget target) {
+    Preconditions.checkNotNull(localConf);
+    Preconditions.checkNotNull(target);
+
+    Map<String,String> peerPasswords = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
+    String password = peerPasswords.get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
+    if (null == password) {
+      throw new IllegalArgumentException("Cannot get password for " + target.getPeerName());
+    }
+    return password;
+  }
+
+  protected String getKeytab(AccumuloConfiguration localConf, ReplicationTarget target) {
+    Preconditions.checkNotNull(localConf);
+    Preconditions.checkNotNull(target);
+
+    Map<String,String> peerKeytabs = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
+    String keytab = peerKeytabs.get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
+    if (null == keytab) {
+      throw new IllegalArgumentException("Cannot get keytab for " + target.getPeerName());
+    }
+    return keytab;
+  }
+
+  protected String getPrincipal(AccumuloConfiguration localConf, ReplicationTarget target) {
     Preconditions.checkNotNull(localConf);
     Preconditions.checkNotNull(target);
 
     String peerName = target.getPeerName();
-    String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName, passwordKey = Property.REPLICATION_PEER_PASSWORD.getKey() + peerName;
+    String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName;
     Map<String,String> peerUsers = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
-    Map<String,String> peerPasswords = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
 
     String user = peerUsers.get(userKey);
-    String password = peerPasswords.get(passwordKey);
-    if (null == user || null == password) {
-      throw new IllegalArgumentException(userKey + " and " + passwordKey + " not configured, cannot replicate");
+    if (null == user) {
+      throw new IllegalArgumentException("Cannot get user for " + target.getPeerName());
     }
-
-    return new ClientContext(getPeerInstance(target), new Credentials(user, new PasswordToken(password)), localConf);
+    return user;
   }
 
-  private Instance getPeerInstance(ReplicationTarget target) {
+  protected ClientContext getContextForPeer(AccumuloConfiguration localConf, ReplicationTarget target, String principal, AuthenticationToken token) {
+    Preconditions.checkNotNull(localConf);
+    Preconditions.checkNotNull(target);
+    Preconditions.checkNotNull(principal);
+    Preconditions.checkNotNull(token);
+
+    return new ClientContext(getPeerInstance(target), new Credentials(principal, token), localConf);
+  }
+
+  protected Instance getPeerInstance(ReplicationTarget target) {
     return new ZooKeeperInstance(instanceName, zookeepers);
   }
 

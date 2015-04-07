@@ -102,6 +102,16 @@ root@accumulo_primary> config -s replication.peer.user.peer1=replication
 root@accumulo_primary> config -s replication.peer.password.peer1=password
 ----
 
+Alternatively, when configuring replication on Accumulo running Kerberos, a keytab
+file per peer can be configured instead of a password. The provided keytabs must be readable
+by the unix user running Accumulo. They keytab for a peer can be unique from the
+keytab used by Accumulo or any keytabs for other peers.
+
+----
+accumulo@EXAMPLE.COM@accumulo_primary> config -s replication.peer.user.peer1=replication@EXAMPLE.COM
+accumulo@EXAMPLE.COM@accumulo_primary> config -s replication.peer.keytab.peer1=/path/to/replication.keytab
+----
+
 ==== Table Configuration
 
 Now, we presently have a peer defined, so we just need to configure which tables will

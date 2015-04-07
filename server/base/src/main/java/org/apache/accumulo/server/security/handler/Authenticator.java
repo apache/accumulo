@@ -40,12 +40,18 @@ public interface Authenticator {
 
   Set<String> listUsers() throws AccumuloSecurityException;
 
+  /**
+   * Creates a user with no initial permissions whatsoever
+   */
   void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
 
   void dropUser(String user) throws AccumuloSecurityException;
 
   void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException;
 
+  /**
+   * Checks if a user exists
+   */
   boolean userExists(String user) throws AccumuloSecurityException;
 
   Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();

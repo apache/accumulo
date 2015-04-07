@@ -95,6 +95,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
     }
   }
 
+  @Override
   public void listen() throws TTransportException {
     // Make sure not to block on accept
     if (serverSocket_ != null) {
@@ -106,6 +107,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
     }
   }
 
+  @Override
   protected TNonblockingSocket acceptImpl() throws TTransportException {
     if (serverSocket_ == null) {
       throw new TTransportException(TTransportException.NOT_OPEN, "No underlying server socket.");
@@ -124,6 +126,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
     }
   }
 
+  @Override
   public void registerSelector(Selector selector) {
     try {
       // Register the server socket channel, indicating an interest in
@@ -135,6 +138,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
     }
   }
 
+  @Override
   public void close() {
     if (serverSocket_ != null) {
       try {
@@ -146,6 +150,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
     }
   }
 
+  @Override
   public void interrupt() {
     // The thread-safeness of this is dubious, but Java documentation suggests
     // that it is safe to do this from a different thread context

@@ -409,7 +409,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    *
-   * @deprecated As of release 1.4, replaced by {@link #flush(String, Text, Text, boolean)}
+   * @deprecated since 1.4; use {@link #flush(String, Text, Text, boolean)} instead
    */
   @Deprecated
   void flush(String tableName) throws AccumuloException, AccumuloSecurityException;

@@ -29,6 +29,7 @@ public class CountingIterator extends WrappingIterator {
 
   private long count;
 
+  @Override
   public CountingIterator deepCopy(IteratorEnvironment env) {
     return new CountingIterator(this, env);
   }

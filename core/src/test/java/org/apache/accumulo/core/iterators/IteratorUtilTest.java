@@ -52,26 +52,32 @@ public class IteratorUtilTest {
 
     protected SortedKeyValueIterator<Key,Value> source;
 
+    @Override
     public WrappedIter deepCopy(IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 
+    @Override
     public Key getTopKey() {
       return source.getTopKey();
     }
 
+    @Override
     public Value getTopValue() {
       return source.getTopValue();
     }
 
+    @Override
     public boolean hasTop() {
       return source.hasTop();
     }
 
+    @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
       this.source = source;
     }
 
+    @Override
     public void next() throws IOException {
       source.next();
     }
@@ -86,6 +92,7 @@ public class IteratorUtilTest {
 
     int amount = 1;
 
+    @Override
     public Value getTopValue() {
       Value val = super.getTopValue();
 
@@ -94,6 +101,7 @@ public class IteratorUtilTest {
       return new Value(((orig + amount) + "").getBytes());
     }
 
+    @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
 
@@ -106,6 +114,7 @@ public class IteratorUtilTest {
   }
 
   static class SquaringIter extends WrappedIter {
+    @Override
     public Value getTopValue() {
       Value val = super.getTopValue();
 

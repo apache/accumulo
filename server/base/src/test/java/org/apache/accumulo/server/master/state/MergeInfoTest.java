@@ -32,11 +32,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
 public class MergeInfoTest {
+
   private KeyExtent keyExtent;
   private MergeInfo mi;
 
@@ -169,4 +172,51 @@ public class MergeInfoTest {
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.DELETE);
     assertTrue(mi.overlaps(keyExtent2));
   }
+
+  private static MergeInfo readWrite(MergeInfo info) throws Exception {
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    info.write(buffer);
+    DataInputBuffer in = new DataInputBuffer();
+    in.reset(buffer.getData(), 0, buffer.getLength());
+    MergeInfo info2 = new MergeInfo();
+    info2.readFields(in);
+    assertEquals(info.getExtent(), info2.getExtent());
+    assertEquals(info.getState(), info2.getState());
+    assertEquals(info.getOperation(), info2.getOperation());
+    return info2;
+  }
+
+  private static KeyExtent ke(String tableId, String endRow, String prevEndRow) {
+    return new KeyExtent(new Text(tableId), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+  }
+
+  @Test
+  public void testWritable() throws Exception {
+    MergeInfo info;
+    info = readWrite(new MergeInfo(ke("a", null, "b"), MergeInfo.Operation.MERGE));
+    info = readWrite(new MergeInfo(ke("a", "b", null), MergeInfo.Operation.MERGE));
+    info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE));
+    info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE));
+    assertTrue(info.isDelete());
+    info.setState(MergeState.COMPLETE);
+  }
+
+  @Test
+  public void testNeedsToBeChopped() throws Exception {
+    MergeInfo info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE);
+    assertTrue(info.needsToBeChopped(ke("x", "c", "b")));
+    assertTrue(info.overlaps(ke("x", "c", "b")));
+    assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
+    assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
+    assertFalse(info.needsToBeChopped(ke("x", "b", "a")));
+    info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE);
+    assertTrue(info.needsToBeChopped(ke("x", "c", "a")));
+    assertTrue(info.needsToBeChopped(ke("x", "aa", "a")));
+    assertTrue(info.needsToBeChopped(ke("x", null, null)));
+    assertFalse(info.needsToBeChopped(ke("x", "c", "b")));
+    assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
+    assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
+    assertTrue(info.needsToBeChopped(ke("x", "b", "a")));
+  }
+
 }

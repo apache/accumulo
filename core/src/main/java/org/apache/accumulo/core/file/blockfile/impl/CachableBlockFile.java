@@ -41,7 +41,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /***
  *
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks and metadatablocks
@@ -72,21 +71,25 @@ public class CachableBlockFile {
       _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
     }
 
+    @Override
     public ABlockWriter prepareMetaBlock(String name) throws IOException {
       _bw = new BlockWrite(_bc.prepareMetaBlock(name));
       return _bw;
     }
 
+    @Override
     public ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException {
       _bw = new BlockWrite(_bc.prepareMetaBlock(name, compressionName));
       return _bw;
     }
 
+    @Override
     public ABlockWriter prepareDataBlock() throws IOException {
       _bw = new BlockWrite(_bc.prepareDataBlock());
       return _bw;
     }
 
+    @Override
     public void close() throws IOException {
 
       _bw.close();
@@ -371,6 +374,7 @@ public class CachableBlockFile {
      * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is read from disk and other threads check the cache before it
      * has been inserted.
      */
+    @Override
     public BlockRead getMetaBlock(String blockName) throws IOException {
       String _lookup = this.fileName + "M" + blockName;
       return getBlock(_lookup, _iCache, new MetaBlockLoader(blockName, accumuloConfiguration));
@@ -390,6 +394,7 @@ public class CachableBlockFile {
      * has been inserted.
      */
 
+    @Override
     public BlockRead getDataBlock(int blockIndex) throws IOException {
       String _lookup = this.fileName + "O" + blockIndex;
       return getBlock(_lookup, _dCache, new OffsetBlockLoader(blockIndex));
@@ -402,6 +407,7 @@ public class CachableBlockFile {
       return getBlock(_lookup, _dCache, new RawBlockLoader(offset, compressedSize, rawSize));
     }
 
+    @Override
     public synchronized void close() throws IOException {
       if (closed)
         return;
@@ -512,6 +518,7 @@ public class CachableBlockFile {
     /**
      * Size is the size of the bytearray that was read form the cache
      */
+    @Override
     public long getRawSize() {
       return size;
     }

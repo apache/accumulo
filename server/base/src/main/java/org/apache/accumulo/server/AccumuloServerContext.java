@@ -81,7 +81,7 @@ public class AccumuloServerContext extends ClientContext {
     UserGroupInformation loginUser;
     try {
       // The system user should be logged in via keytab when the process is started, not the currentUser() like KerberosToken
-      loginUser = UserGroupInformation.getCurrentUser();
+      loginUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
       throw new RuntimeException("Could not get login user", e);
     }

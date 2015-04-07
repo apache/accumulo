@@ -24,8 +24,8 @@ import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -34,8 +34,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicaSystem;
@@ -57,23 +55,23 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class ReplicationProcessor implements Processor {
   private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
 
-  private final Instance inst;
+  private final ClientContext context;
   private final AccumuloConfiguration conf;
   private final VolumeManager fs;
-  private final Credentials creds;
   private final ReplicaSystemHelper helper;
+  private final ReplicaSystemFactory factory;
 
-  public ReplicationProcessor(Instance inst, AccumuloConfiguration conf, VolumeManager fs, Credentials creds) {
-    this.inst = inst;
+  public ReplicationProcessor(ClientContext context, AccumuloConfiguration conf, VolumeManager fs) {
+    this.context = context;
     this.conf = conf;
     this.fs = fs;
-    this.creds = creds;
-    this.helper = new ReplicaSystemHelper(inst, creds);
+    this.helper = new ReplicaSystemHelper(context);
+    this.factory = new ReplicaSystemFactory();
   }
 
   @Override
   public ReplicationProcessor newProcessor() {
-    return new ReplicationProcessor(inst, new ServerConfigurationFactory(inst).getConfiguration(), fs, creds);
+    return new ReplicationProcessor(context, context.getConfiguration(), fs);
   }
 
   @Override
@@ -146,7 +144,7 @@ public class ReplicationProcessor implements Processor {
     String peerType = getPeerType(target.getPeerName());
 
     // Get the peer that we're replicating to
-    return ReplicaSystemFactory.get(peerType);
+    return factory.get(peerType);
   }
 
   protected String getPeerType(String peerName) {
@@ -173,7 +171,7 @@ public class ReplicationProcessor implements Processor {
 
   protected Status getStatus(String file, ReplicationTarget target) throws ReplicationTableOfflineException, AccumuloException, AccumuloSecurityException,
       InvalidProtocolBufferException {
-    Scanner s = ReplicationTable.getScanner(inst.getConnector(creds.getPrincipal(), creds.getToken()));
+    Scanner s = ReplicationTable.getScanner(context.getConnector());
     s.setRange(Range.exact(file));
     s.fetchColumn(WorkSection.NAME, target.toText());
 

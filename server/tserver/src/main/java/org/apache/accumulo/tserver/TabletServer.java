@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -236,6 +237,7 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -2953,10 +2955,21 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, app);
-      TabletServer server = new TabletServer(conf, fs);
+      final TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
       DistributedTrace.enable(hostname, app, conf.getConfiguration());
-      server.run();
+      if (UserGroupInformation.isSecurityEnabled()) {
+        UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+        loginUser.doAs(new PrivilegedExceptionAction<Void>() {
+          @Override
+          public Void run() {
+            server.run();
+            return null;
+          }
+        });
+      } else {
+        server.run();
+      }
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);
       System.exit(1);

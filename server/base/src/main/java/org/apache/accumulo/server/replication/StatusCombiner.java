@@ -64,9 +64,6 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       }
     }
 
-    /**
-     * Makes a copy of the subarray of {@code b}, then passes it through {@link Status#parseFrom(byte[])}
-     */
     @Override
     protected Status decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
       try {

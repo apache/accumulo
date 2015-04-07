@@ -44,8 +44,6 @@ public interface BatchDeleter extends ScannerBase {
    */
   void setRanges(Collection<Range> ranges);
 
-  /**
-   * Releases any resources.
-   */
+  @Override
   void close();
 }

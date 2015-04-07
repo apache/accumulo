@@ -27,10 +27,12 @@ public class StringMax implements Aggregator {
 
   long max = Long.MIN_VALUE;
 
+  @Override
   public Value aggregate() {
     return new Value(Long.toString(max).getBytes());
   }
 
+  @Override
   public void collect(Value value) {
     long l = Long.parseLong(new String(value.get()));
     if (l > max) {
@@ -38,6 +40,7 @@ public class StringMax implements Aggregator {
     }
   }
 
+  @Override
   public void reset() {
     max = Long.MIN_VALUE;
   }

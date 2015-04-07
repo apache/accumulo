@@ -38,6 +38,7 @@ public class SimpleTimer {
   private static final Logger log = LoggerFactory.getLogger(SimpleTimer.class);
 
   private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
+    @Override
     public void uncaughtException(Thread t, Throwable e) {
       log.warn("SimpleTimer task failed", e);
     }

@@ -106,9 +106,6 @@ public final class ZKAuthenticator implements Authenticator {
     return new TreeSet<String>(zooCache.getChildren(ZKUserPath));
   }
 
-  /**
-   * Creates a user with no permissions whatsoever
-   */
   @Override
   public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     try {
@@ -174,9 +171,6 @@ public final class ZKAuthenticator implements Authenticator {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
 
-  /**
-   * Checks if a user exists
-   */
   @Override
   public boolean userExists(String user) {
     return zooCache.get(ZKUserPath + "/" + user) != null;

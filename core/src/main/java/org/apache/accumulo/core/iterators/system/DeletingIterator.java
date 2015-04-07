@@ -34,6 +34,7 @@ public class DeletingIterator extends WrappingIterator {
   private boolean propogateDeletes;
   private Key workKey = new Key();
 
+  @Override
   public DeletingIterator deepCopy(IteratorEnvironment env) {
     return new DeletingIterator(this, env);
   }

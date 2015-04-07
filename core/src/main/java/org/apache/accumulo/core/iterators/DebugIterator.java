@@ -35,6 +35,7 @@ public class DebugIterator extends WrappingIterator implements OptionDescriber {
 
   public DebugIterator() {}
 
+  @Override
   public DebugIterator deepCopy(IteratorEnvironment env) {
     return new DebugIterator(this, env);
   }

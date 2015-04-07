@@ -18,6 +18,8 @@ package org.apache.accumulo.test.randomwalk;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +33,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +51,10 @@ public class Environment {
    * The configuration property key for a password.
    */
   public static final String KEY_PASSWORD = "PASSWORD";
+  /**
+   * The configuration property key for a keytab
+   */
+  public static final String KEY_KEYTAB = "KEYTAB";
   /**
    * The configuration property key for the instance name.
    */
@@ -128,6 +135,15 @@ public class Environment {
   }
 
   /**
+   * Gets the configured keytab.
+   *
+   * @return path to keytab
+   */
+  public String getKeytab() {
+    return p.getProperty(KEY_KEYTAB);
+  }
+
+  /**
    * Gets this process's ID.
    *
    * @return pid
@@ -142,7 +158,23 @@ public class Environment {
    * @return authentication token
    */
   public AuthenticationToken getToken() {
-    return new PasswordToken(getPassword());
+    String password = getPassword();
+    if (null != password) {
+      return new PasswordToken(getPassword());
+    }
+    String keytab = getKeytab();
+    if (null != keytab) {
+      File keytabFile = new File(keytab);
+      if (!keytabFile.exists() || !keytabFile.isFile()) {
+        throw new IllegalArgumentException("Provided keytab is not a normal file: "+ keytab);
+      }
+      try {
+        return new KerberosToken(getUserName(), keytabFile, true);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to login", e);
+      }
+    }
+    throw new IllegalArgumentException("Must provide password or keytab in configuration");
   }
 
   /**
@@ -154,7 +186,7 @@ public class Environment {
     if (instance == null) {
       String instance = p.getProperty(KEY_INSTANCE);
       String zookeepers = p.getProperty(KEY_ZOOKEEPERS);
-      this.instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(instance).withZkHosts(zookeepers));
+      this.instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(zookeepers));
     }
     return instance;
   }

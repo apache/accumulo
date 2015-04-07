@@ -63,17 +63,11 @@ public class HdfsFileObject extends AbstractFileObject {
     this.path = p;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#canRenameTo(org.apache.commons.vfs2.FileObject)
-   */
   @Override
   public boolean canRenameTo(final FileObject newfile) {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doAttach()
-   */
   @Override
   protected void doAttach() throws Exception {
     try {
@@ -84,9 +78,6 @@ public class HdfsFileObject extends AbstractFileObject {
     }
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetAttributes()
-   */
   @Override
   protected Map<String,Object> doGetAttributes() throws Exception {
     if (null == this.stat) {
@@ -104,25 +95,16 @@ public class HdfsFileObject extends AbstractFileObject {
     }
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetContentSize()
-   */
   @Override
   protected long doGetContentSize() throws Exception {
     return stat.getLen();
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetInputStream()
-   */
   @Override
   protected InputStream doGetInputStream() throws Exception {
     return this.hdfs.open(this.path);
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetLastModifiedTime()
-   */
   @Override
   protected long doGetLastModifiedTime() throws Exception {
     if (null != this.stat) {
@@ -132,9 +114,6 @@ public class HdfsFileObject extends AbstractFileObject {
     }
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetRandomAccessContent (org.apache.commons.vfs2.util.RandomAccessMode)
-   */
   @Override
   protected RandomAccessContent doGetRandomAccessContent(final RandomAccessMode mode) throws Exception {
     if (mode.equals(RandomAccessMode.READWRITE)) {
@@ -143,9 +122,6 @@ public class HdfsFileObject extends AbstractFileObject {
     return new HdfsRandomAccessContent(this.path, this.hdfs);
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetType()
-   */
   @Override
   protected FileType doGetType() throws Exception {
     try {
@@ -163,41 +139,26 @@ public class HdfsFileObject extends AbstractFileObject {
     }
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doIsHidden()
-   */
   @Override
   protected boolean doIsHidden() throws Exception {
     return false;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doIsReadable()
-   */
   @Override
   protected boolean doIsReadable() throws Exception {
     return true;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doIsSameFile(org.apache.commons.vfs2.FileObject)
-   */
   @Override
   protected boolean doIsSameFile(final FileObject destFile) throws FileSystemException {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doIsWriteable()
-   */
   @Override
   protected boolean doIsWriteable() throws Exception {
     return false;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doListChildren()
-   */
   @Override
   protected String[] doListChildren() throws Exception {
     if (this.doGetType() != FileType.FOLDER) {
@@ -213,9 +174,6 @@ public class HdfsFileObject extends AbstractFileObject {
     return children;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doListChildrenResolved()
-   */
   @Override
   protected FileObject[] doListChildrenResolved() throws Exception {
     if (this.doGetType() != FileType.FOLDER) {
@@ -230,33 +188,21 @@ public class HdfsFileObject extends AbstractFileObject {
     return fo;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doRemoveAttribute(java.lang.String)
-   */
   @Override
   protected void doRemoveAttribute(final String attrName) throws Exception {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doSetAttribute(java.lang.String, java.lang.Object)
-   */
   @Override
   protected void doSetAttribute(final String attrName, final Object value) throws Exception {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#doSetLastModifiedTime(long)
-   */
   @Override
   protected boolean doSetLastModifiedTime(final long modtime) throws Exception {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(final Object o) {
     if (null == o) {
@@ -274,10 +220,6 @@ public class HdfsFileObject extends AbstractFileObject {
     return false;
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileObject#exists()
-   * @return boolean true if file exists, false if not
-   */
   @Override
   public boolean exists() throws FileSystemException {
     try {
@@ -290,9 +232,6 @@ public class HdfsFileObject extends AbstractFileObject {
     }
   }
 
-  /**
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return this.path.getName().toString().hashCode();

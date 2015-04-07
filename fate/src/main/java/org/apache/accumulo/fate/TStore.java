@@ -34,13 +34,6 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    */
   long create();
 
-  /**
-   * Get the current operation for the given transaction id.
-   *
-   * @param tid
-   *          transaction id
-   * @return the operation
-   */
   @Override
   Repo<T> top(long tid);
 

@@ -36,6 +36,7 @@ public class ShellCommandException extends Exception {
       return this.description;
     }
 
+    @Override
     public String toString() {
       return getDescription();
     }
@@ -53,6 +54,7 @@ public class ShellCommandException extends Exception {
     this.command = command;
   }
 
+  @Override
   public String getMessage() {
     return code + (command != null ? " (" + command + ")" : "");
   }

@@ -51,6 +51,7 @@ public class UniqueNameAllocator {
 
       try {
         byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
+          @Override
           public byte[] mutate(byte[] currentValue) throws Exception {
             long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
             l += allocate;

@@ -26,6 +26,7 @@ import org.apache.hadoop.io.Text;
 public class BinaryFormatter extends DefaultFormatter {
   private static int showLength;
 
+  @Override
   public String next() {
     checkState(true);
     return formatEntry(getScannerIterator().next(), isDoTimestamps());

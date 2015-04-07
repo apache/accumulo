@@ -100,6 +100,7 @@ public class Scan {
       this.current = 0;
     }
 
+    @Override
     public boolean keepScanning() {
       if (current < max) {
         ++current;
@@ -112,6 +113,7 @@ public class Scan {
 
   // Does an infinite number of iterations
   static class ContinuousLoopControl implements LoopControl {
+    @Override
     public boolean keepScanning() {
       return true;
     }

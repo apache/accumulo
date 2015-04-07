@@ -32,7 +32,7 @@ fail() {
   exit 1
 }
 
-# Test to see if we have thrift installed
+# Test to see if we have protoc installed
 VERSION=$(protoc --version 2>/dev/null | grep -F "${REQUIRED_PROTOC_VERSION}" |  wc -l)
 if [[ $VERSION -ne 1 ]] ; then
   # Nope: bail
@@ -50,7 +50,7 @@ mkdir -p $BUILD_DIR
 
 protoc ${PROTOC_ARGS} src/main/protobuf/*.proto || fail unable to generate Java protocol buffer classes
 
-# For all generated thrift code, suppress all warnings and add the LICENSE header
+# For all generated protobuf code, suppress all warnings and add the LICENSE header
 s='@SuppressWarnings({"unused"})'
 find $BUILD_DIR -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public final class \)/'"$s"' \1/'
 

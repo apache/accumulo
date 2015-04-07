@@ -63,6 +63,7 @@ public interface IZooReaderWriter extends IZooReader {
 
   void mkdirs(String path) throws KeeperException, InterruptedException;
 
+  @Override
   void sync(String path) throws KeeperException, InterruptedException;
 
 }
