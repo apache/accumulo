@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
@@ -76,7 +75,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
    * Tests several different paths through the getSplits() method by setting different properties and verifying the results.
    */
   @Test
-  public void testGetSplits() throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException {
+  public void testGetSplits() throws Exception {
     Connector conn = getConnector();
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
@@ -129,7 +128,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (Exception e) {}
+    } catch (IOException e) {}
 
     conn.tableOperations().offline(table);
     splits = inputFormat.getSplits(job);
@@ -155,7 +154,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (Exception e) {}
+    } catch (IOException e) {}
     AccumuloInputFormat.setOfflineTableScan(job, false);
 
     //BatchScan not available with isolated iterators
@@ -163,7 +162,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (Exception e) {}
+    } catch (IOException e) {}
     AccumuloInputFormat.setScanIsolation(job, false);
 
     //BatchScan not available with local iterators
@@ -171,7 +170,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (Exception e) {}
+    } catch (IOException e) {}
     AccumuloInputFormat.setLocalIterators(job, false);
 
     //Check we are getting back correct type pf split
