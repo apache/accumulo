@@ -533,6 +533,7 @@ public enum Property {
   REPLICATION_PEER_USER("replication.peer.user.", null, PropertyType.PREFIX, "The username to provide when authenticating with the given peer"),
   @Sensitive
   REPLICATION_PEER_PASSWORD("replication.peer.password.", null, PropertyType.PREFIX, "The password to provide when authenticating with the given peer"),
+  REPLICATION_PEER_KEYTAB("replication.peer.keytab.", null, PropertyType.PREFIX, "The keytab to use when authenticating with the given peer"),
   REPLICATION_NAME("replication.name", "", PropertyType.STRING,
       "Name of this cluster with respect to replication. Used to identify this instance from other peers"),
   REPLICATION_MAX_WORK_QUEUE("replication.max.work.queue", "1000", PropertyType.COUNT, "Upper bound of the number of files queued for replication"),

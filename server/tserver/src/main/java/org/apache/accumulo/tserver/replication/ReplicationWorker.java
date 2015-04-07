@@ -24,7 +24,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -33,22 +32,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * Launches the {@link ReplicationProcessor}
  */
 public class ReplicationWorker implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationWorker.class);
 
+  private ClientContext context;
   private Instance inst;
-  private VolumeManager fs;
-  private Credentials creds;
   private AccumuloConfiguration conf;
+  private VolumeManager fs;
   private ThreadPoolExecutor executor;
 
   public ReplicationWorker(ClientContext clientCtx, VolumeManager fs) {
+    this.context = clientCtx;
     this.inst = clientCtx.getInstance();
     this.fs = fs;
     this.conf = clientCtx.getConfiguration();
-    this.creds = clientCtx.getCredentials();
   }
 
   public void setExecutor(ThreadPoolExecutor executor) {
@@ -72,7 +71,7 @@ public class ReplicationWorker implements Runnable {
         workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
       }
 
-      workQueue.startProcessing(new ReplicationProcessor(inst, conf, fs, creds), executor);
+      workQueue.startProcessing(new ReplicationProcessor(context, conf, fs), executor);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

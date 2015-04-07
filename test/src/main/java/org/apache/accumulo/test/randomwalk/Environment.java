@@ -169,7 +169,7 @@ public class Environment {
         throw new IllegalArgumentException("Provided keytab is not a normal file: "+ keytab);
       }
       try {
-        return new KerberosToken(getUserName(), keytabFile);
+        return new KerberosToken(getUserName(), keytabFile, true);
       } catch (IOException e) {
         throw new RuntimeException("Failed to login", e);
       }

@@ -25,7 +25,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.hadoop.security.UserGroupInformation;
 
 /**
  * Simple wrapper around a principal and its credentials: a password or a keytab.
@@ -82,8 +81,7 @@ public class ClusterUser {
     if (null != password) {
       return new PasswordToken(password);
     } else if (null != keytab) {
-      UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-      return new KerberosToken(principal, keytab);
+      return new KerberosToken(principal, keytab, true);
     }
 
     throw new IllegalStateException("One of password and keytab must be non-null");
