@@ -82,6 +82,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -996,7 +997,9 @@ public class Tablet implements TabletCommitter {
       mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
     }
 
-    return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason);
+    double tracePercent = tabletServer.getConfiguration().getFraction(Property.TSERV_MINC_TRACE_PERCENT);
+
+    return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason, tracePercent);
 
   }
 
@@ -2075,8 +2078,9 @@ public class Tablet implements TabletCommitter {
     Span span = null;
 
     try {
-      // Always trace majC
-      span = Trace.on("majorCompaction");
+      double tracePercent = tabletServer.getConfiguration().getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
+      ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+      span = Trace.on("majorCompaction", sampler);
 
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {

@@ -64,8 +64,8 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.trace.CountSampler;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -526,7 +526,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       return;
     }
 
-    CountSampler sampler = new CountSampler(100);
+    ProbabilitySampler sampler = new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
       Trace.on("gc", sampler);
