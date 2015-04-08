@@ -20,6 +20,9 @@ import org.apache.htrace.HTraceConfiguration;
 
 import java.util.Collections;
 
+/**
+ * This wrapper intended for internal Accumulo tracing makes creating a ProbabilitySampler easier.
+ */
 public class ProbabilitySampler extends org.apache.htrace.impl.ProbabilitySampler {
   public ProbabilitySampler(double d) {
     super(HTraceConfiguration.fromMap(Collections.singletonMap(ProbabilitySampler.SAMPLER_FRACTION_CONF_KEY, Double.toString(d))));

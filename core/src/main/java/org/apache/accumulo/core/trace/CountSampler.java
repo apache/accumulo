@@ -20,6 +20,9 @@ import org.apache.htrace.HTraceConfiguration;
 
 import java.util.Collections;
 
+/**
+ * This wrapper intended for internal Accumulo tracing makes creating a CountSampler easier.
+ */
 public class CountSampler extends org.apache.htrace.impl.CountSampler {
   public CountSampler(long frequency) {
     super(HTraceConfiguration.fromMap(Collections.singletonMap(CountSampler.SAMPLER_FREQUENCY_CONF_KEY, Long.toString(frequency))));

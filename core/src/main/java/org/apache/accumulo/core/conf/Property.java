@@ -382,7 +382,7 @@ public enum Property {
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", PropertyType.CLASSNAMELIST,
       "A list of span receiver classes to send trace spans"),
   TRACE_SPAN_RECEIVER_PREFIX("trace.span.receiver.", null, PropertyType.PREFIX, "Prefix for span receiver configuration properties"),
-  TRACE_ZK_PATH("trace.span.receiver.zookeeper.path", Constants.ZTRACERS, PropertyType.STRING, "The zookeeper node where tracers are registered"),
+  TRACE_ZK_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.STRING, "The zookeeper node where tracers are registered"),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
   TRACE_USER("trace.user", "root", PropertyType.STRING, "The name of the user to store distributed traces"),

@@ -47,7 +47,6 @@ public class DistributedTrace {
 
   public static final String TRACE_HOST_PROPERTY = "trace.host";
   public static final String TRACE_SERVICE_PROPERTY = "trace.service";
-  public static final String TRACE_QUEUE_SIZE_PROPERTY = "trace.queue.size";
 
   public static final String TRACER_ZK_HOST = "tracer.zookeeper.host";
   public static final String TRACER_ZK_TIMEOUT = "tracer.zookeeper.timeout";

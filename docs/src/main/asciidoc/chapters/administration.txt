@@ -495,8 +495,14 @@ the following properties
 
 Other tracer configuration properties include
 
-  trace.port.client
-  trace.table
+  trace.port.client - port tracer listens on
+  trace.table - table tracer writes to
+  trace.zookeeper.path - zookeeper path where tracers register
+
+The zookeeper path is configured to /tracers by default.  If
+multiple Accumulo instances are sharing the same ZooKeeper
+quorum, take care to configure Accumulo with unique values for
+this property.
 
 ==== Configuring Tracing
 Traces are collected via SpanReceivers. The default SpanReceiver
@@ -510,36 +516,52 @@ comma-separated list, by modifying the property
 
 Individual span receivers may require their own configuration
 parameters, which are grouped under the trace.span.receiver.*
-prefix.  The ZooTraceClient requires the following property that
-indicates where the tracer servers will register themselves in
-ZooKeeper.
+prefix.  ZooTraceClient uses the following properties.  The first
+three properties are populated from other Accumulo properties,
+while the remaining ones should be prefixed with
+trace.span.receiver. when set in the Accumulo configuration.
 
-  trace.span.receiver.zookeeper.path
+  tracer.zookeeper.host - populated from instance.zookeepers
+  tracer.zookeeper.timeout - populated from instance.zookeeper.timeout
+  tracer.zookeeper.path - populated from trace.zookeeper.path
+  tracer.send.timer.millis - timer for flushing send queue (in ms, default 1000)
+  tracer.queue.size - max queue size (default 5000)
+  tracer.span.min.ms - minimum span length to store (in ms, default 1)
 
-This is configured to /tracers by default.  If multiple Accumulo
-instances are sharing the same ZooKeeper quorum, take care to
-configure Accumulo with unique values for this property.
+Note that to configure an Accumulo client for tracing, including
+the Accumulo shell, the client configuration must be given the same
+trace.span.receivers, trace.span.receiver.*, and trace.zookeeper.path
+properties as the servers have.
 
 Hadoop can also be configured to send traces to Accumulo, as of
-Hadoop 2.6.0, by setting the following properties in Hadoop's
-core-site.xml file (the path property is optional if left as the
-default).
+Hadoop 2.6.0, by setting properties in Hadoop's core-site.xml
+file.  Instead of using the trace.span.receiver.* prefix, Hadoop
+uses hadoop.htrace.*.  The Hadoop configuration does not have
+access to Accumulo's properties, so the
+hadoop.htrace.tracer.zookeeper.host property must be specified.
+The zookeeper timeout defaults to 30000 (30 seconds), and the
+zookeeper path defaults to /tracers.  An example of configuring
+Hadoop to send traces to ZooTraceClient is
 
   <property>
     <name>hadoop.htrace.spanreceiver.classes</name>
     <value>org.apache.accumulo.core.trace.ZooTraceClient</value>
   </property>
   <property>
-    <name>hadoop.tracer.zookeeper.host</name>
+    <name>hadoop.htrace.tracer.zookeeper.host</name>
     <value>zookeeperHost:2181</value>
   </property>
   <property>
-    <name>hadoop.tracer.zookeeper.path</name>
+    <name>hadoop.htrace.tracer.zookeeper.path</name>
     <value>/tracers</value>
   </property>
+  <property>
+    <name>hadoop.htrace.tracer.span.min.ms</name>
+    <value>1</value>
+  </property>
 
-The accumulo-core, accumulo-trace, and libthrift jars must also
-be placed on Hadoop's classpath.
+The accumulo-core, accumulo-tracer, accumulo-fate and libthrift
+jars must also be placed on Hadoop's classpath.
 
 ==== Instrumenting a Client
 Tracing can be used to measure a client operation, such as a scan, as
