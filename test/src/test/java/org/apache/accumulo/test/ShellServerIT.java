@@ -1084,6 +1084,31 @@ public class ShellServerIT extends SharedMiniClusterIT {
   }
 
   @Test
+  public void extensions() throws Exception {
+    String extName = "ExampleShellExtension";
+
+    // check for example extension
+    ts.exec("help", true, extName, false);
+    ts.exec("extensions -l", true, extName, false);
+
+    // enable extensions and check for example
+    ts.exec("extensions -e", true);
+    ts.exec("extensions -l", true, extName, true);
+    ts.exec("help", true, extName, true);
+
+    // test example extension command
+    ts.exec(extName + "::debug", true, "This is a test", true);
+
+    // disable extensions and check for example
+    ts.exec("extensions -d", true);
+    ts.exec("extensions -l", true, extName, false);
+    ts.exec("help", true, extName, false);
+
+    // ensure extensions are really disabled
+    ts.exec(extName + "::debug", true, "Unknown command", true);
+  }
+
+  @Test
   public void grep() throws Exception {
     final String table = name.getMethodName();
 

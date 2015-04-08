@@ -19,11 +19,14 @@ package org.apache.accumulo.examples.simple.shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellExtension;
 
-public class MyAppShellExtension extends ShellExtension {
+import com.google.auto.service.AutoService;
+
+@AutoService(ShellExtension.class)
+public class ExampleShellExtension extends ShellExtension {
 
   @Override
   public String getExtensionName() {
-    return "MyApp";
+    return "ExampleShellExtension";
   }
 
   @Override
