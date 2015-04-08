@@ -88,6 +88,14 @@ Accumulo is configured by editing several Shell and XML files found in
 +$ACCUMULO_HOME/conf+. The structure closely resembles Hadoop's configuration
 files.
 
+Logging is primarily controlled using the log4j configuration files,
++generic_logger.xml+ and +monitor_logger.xml+ (or their corresponding
++.properties+ version if the +.xml+ version is missing). The generic logger is
+used for most server types, and is typically configured to send logs to the
+monitor, as well as log files. The monitor logger is used by the monitor, and
+is typically configured to log only errors the monitor itself generates,
+rather than all the logs that it receives from other server types.
+
 ==== Edit conf/accumulo-env.sh
 
 Accumulo needs to know where to find the software it depends on. Edit accumulo-env.sh
