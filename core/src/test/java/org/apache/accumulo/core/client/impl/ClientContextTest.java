@@ -23,12 +23,14 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.AllFilter;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 public class ClientContextTest {
 
@@ -98,7 +100,8 @@ public class ClientContextTest {
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<String,String>();
-    accClientConf.getProperties(props, new AllFilter());
+    Predicate<String> all = Predicates.alwaysTrue();
+    accClientConf.getProperties(props, all);
 
     // Only sensitive properties are added
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));

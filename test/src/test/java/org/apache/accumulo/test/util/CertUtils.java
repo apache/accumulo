@@ -70,6 +70,7 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Predicate;
 
 public class CertUtils {
   private static final Logger log = LoggerFactory.getLogger(CertUtils.class);
@@ -151,9 +152,9 @@ public class CertUtils {
           }
 
           @Override
-          public void getProperties(Map<String,String> props, PropertyFilter filter) {
+          public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> entry : this)
-              if (filter.accept(entry.getKey()))
+              if (filter.apply(entry.getKey()))
                 props.put(entry.getKey(), entry.getValue());
           }
         };

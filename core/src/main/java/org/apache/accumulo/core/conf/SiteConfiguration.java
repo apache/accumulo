@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 
 /**
  * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
@@ -116,11 +117,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+  public void getProperties(Map<String,String> props, Predicate<String> filter) {
     parent.getProperties(props, filter);
 
     for (Entry<String,String> entry : getXmlConfig())
-      if (filter.accept(entry.getKey()))
+      if (filter.apply(entry.getKey()))
         props.put(entry.getKey(), entry.getValue());
 
     // CredentialProvider should take precedence over site
@@ -132,7 +133,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
             continue;
           }
 
-          if (filter.accept(key)) {
+          if (filter.apply(key)) {
             char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
             if (null != value) {
               props.put(key, new String(value));

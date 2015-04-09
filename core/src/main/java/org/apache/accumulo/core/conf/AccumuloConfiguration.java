@@ -33,6 +33,9 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+
 /**
  * A configuration object.
  */
@@ -40,7 +43,10 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   /**
    * A filter for properties, based on key.
+   *
+   * @deprecated since 1.7.0; use {@link Predicate} instead.
    */
+  @Deprecated
   public interface PropertyFilter {
     /**
      * Determines whether to accept a property based on its key.
@@ -53,19 +59,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * A filter that accepts all properties.
-   */
-  public static class AllFilter implements PropertyFilter {
-    @Override
-    public boolean accept(String key) {
-      return true;
-    }
-  }
-
-  /**
    * A filter that accepts properties whose keys are an exact match.
    */
-  public static class MatchFilter implements PropertyFilter {
+  public static class MatchFilter implements Predicate<String> {
 
     private String match;
 
@@ -80,7 +76,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     @Override
-    public boolean accept(String key) {
+    public boolean apply(String key) {
       return Objects.equals(match, key);
     }
   }
@@ -88,7 +84,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * A filter that accepts properties whose keys begin with a prefix.
    */
-  public static class PrefixFilter implements PropertyFilter {
+  public static class PrefixFilter implements Predicate<String> {
 
     private String prefix;
 
@@ -103,7 +99,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     @Override
-    public boolean accept(String key) {
+    public boolean apply(String key) {
       return key.startsWith(prefix);
     }
   }
@@ -114,8 +110,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property value from this configuration.
    *
    * <p>
-   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use {@link #getProperties(Map, PropertyFilter)} with a custom
-   * filter.
+   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use {@link #getProperties(Map, Predicate)} with a custom filter.
    *
    * @param property
    *          property to get
@@ -145,7 +140,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @param filter
    *          filter for accepting properties from this configuration
    */
-  public abstract void getProperties(Map<String,String> props, PropertyFilter filter);
+  public abstract void getProperties(Map<String,String> props, Predicate<String> filter);
 
   /**
    * Returns an iterator over property key/value pairs in this configuration. Some implementations may elect to omit properties.
@@ -154,8 +149,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   @Override
   public Iterator<Entry<String,String>> iterator() {
+    Predicate<String> all = Predicates.alwaysTrue();
     TreeMap<String,String> entries = new TreeMap<String,String>();
-    getProperties(entries, new AllFilter());
+    getProperties(entries, all);
     return entries.entrySet().iterator();
   }
 
