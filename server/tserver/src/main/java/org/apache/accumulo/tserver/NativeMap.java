@@ -84,7 +84,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       try {
         System.loadLibrary("accumulo");
         loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library from " + ldLibraryPath);
+        log.info("Loaded native map shared library from {}", ldLibraryPath);
       } catch (Exception e) {
         log.error(errMsg, e);
       } catch (UnsatisfiedLinkError e) {

@@ -107,7 +107,7 @@ public class SortedLogRecovery {
         try {
           tids[i] = findLastStartToFinish(reader, i, extent, tabletFiles, lastStartToFinish);
         } catch (EmptyMapFileException ex) {
-          log.info("Ignoring empty map file " + logfile);
+          log.info("Ignoring empty map file {}", logfile);
           tids[i] = -1;
         } catch (UnusedException ex) {
           log.info("Ignoring log file {} appears to be unused by ", logfile, extent);
@@ -138,7 +138,7 @@ public class SortedLogRecovery {
           log.warn("Ignoring error closing file");
         }
       }
-      log.info("Recovery complete for " + extent + " using " + logfile);
+      log.info("Recovery complete for {} using{} ", extent, logfile);
     }
   }
 
@@ -237,7 +237,7 @@ public class SortedLogRecovery {
     LogFileValue value = new LogFileValue();
 
     // Playback mutations after the last stop to finish
-    log.info("Scanning for mutations starting at sequence number " + lastStartToFinish.seq + " for tid " + tid);
+    log.info("Scanning for mutations starting at sequence number {} for tid {}", lastStartToFinish.seq, tid);
     key.event = MUTATION;
     key.tid = tid;
     // the seq number for the minor compaction start is now the same as the

@@ -224,7 +224,7 @@ public class Compactor implements Callable<CompactionStats> {
         FileSKVIterator openReader = fileFactory.openReader(outputFile.path().toString(), false, ns, ns.getConf(), acuTableConf);
         openReader.close();
       } catch (IOException ex) {
-        log.error("Verification of successful compaction fails!!! " + extent + " " + outputFile, ex);
+        log.error("Verification of successful compaction fails!!! {} {} {}", extent, outputFile, ex);
         throw ex;
       }
 
@@ -254,7 +254,7 @@ public class Compactor implements Callable<CompactionStats> {
           } finally {
             if (!fs.deleteRecursively(outputFile.path()))
               if (fs.exists(outputFile.path()))
-                log.error("Unable to delete " + outputFile);
+                log.error("Unable to delete {}", outputFile);
           }
         }
       } catch (IOException e) {
@@ -292,7 +292,7 @@ public class Compactor implements Callable<CompactionStats> {
 
         ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile.path().toString(), e));
 
-        log.warn("Some problem opening map file " + mapFile + " " + e.getMessage(), e);
+        log.warn("Some problem opening map file {} {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {
@@ -373,7 +373,7 @@ public class Compactor implements Callable<CompactionStats> {
             }
             fs.deleteRecursively(outputFile.path());
           } catch (Exception e) {
-            log.warn("Failed to delete Canceled compaction output file " + outputFile, e);
+            log.warn("Failed to delete Canceled compaction output file {} {}", outputFile, e);
           }
           throw new CompactionCanceledException();
         }

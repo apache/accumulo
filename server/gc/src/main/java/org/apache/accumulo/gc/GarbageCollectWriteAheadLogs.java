@@ -206,7 +206,7 @@ public class GarbageCollectWriteAheadLogs {
       if (entry.getKey().isEmpty()) {
         // old-style log entry, just remove it
         for (Path path : entry.getValue()) {
-          log.debug("Removing old-style WAL " + path);
+          log.debug("Removing old-style WAL {}", path);
           try {
             if (!useTrash || !fs.moveToTrash(path))
               fs.deleteRecursively(path);
@@ -214,14 +214,14 @@ public class GarbageCollectWriteAheadLogs {
           } catch (FileNotFoundException ex) {
             // ignored
           } catch (IOException ex) {
-            log.error("Unable to delete wal " + path + ": " + ex);
+            log.error("Unable to delete wal {}: {}", path, ex);
           }
         }
       } else {
         HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
         if (!holdsLock(address)) {
           for (Path path : entry.getValue()) {
-            log.debug("Removing WAL for offline server " + path);
+            log.debug("Removing WAL for offline server {}", path);
             try {
               if (!useTrash || !fs.moveToTrash(path))
                 fs.deleteRecursively(path);
@@ -229,7 +229,7 @@ public class GarbageCollectWriteAheadLogs {
             } catch (FileNotFoundException ex) {
               // ignored
             } catch (IOException ex) {
-              log.error("Unable to delete wal " + path + ": " + ex);
+              log.error("Unable to delete wal {}: {}", path, ex);
             }
           }
           continue;
@@ -238,10 +238,10 @@ public class GarbageCollectWriteAheadLogs {
           try {
             tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
             tserver.removeLogs(Tracer.traceInfo(), context.rpcCreds(), paths2strings(entry.getValue()));
-            log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
+            log.debug("deleted {} from {}", entry.getValue(), entry.getKey());
             status.currentLog.deleted += entry.getValue().size();
           } catch (TException e) {
-            log.warn("Error talking to " + address + ": " + e);
+            log.warn("Error talking to {}: {}", address, e);
           } finally {
             if (tserver != null)
               ThriftUtil.returnClient(tserver);
@@ -251,7 +251,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     for (Path swalog : sortedWALogs.values()) {
-      log.debug("Removing sorted WAL " + swalog);
+      log.debug("Removing sorted WAL {}", swalog);
       try {
         if (!useTrash || !fs.moveToTrash(swalog)) {
           fs.deleteRecursively(swalog);
@@ -261,10 +261,10 @@ public class GarbageCollectWriteAheadLogs {
       } catch (IOException ioe) {
         try {
           if (fs.exists(swalog)) {
-            log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
+            log.error("Unable to delete sorted walog {}: {}", swalog, ioe);
           }
         } catch (IOException ex) {
-          log.error("Unable to check for the existence of " + swalog, ex);
+          log.error("Unable to check for the existence of {} {}", swalog, ex);
         }
       }
     }
@@ -383,7 +383,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return True if the WAL is still needed by replication (not a candidate for deletion)
    */
   protected boolean neededByReplication(Connector conn, String wal) {
-    log.info("Checking replication table for " + wal);
+    log.info("Checking replication table for {}", wal);
 
     Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
 
@@ -398,7 +398,7 @@ public class GarbageCollectWriteAheadLogs {
           return true;
         }
       } catch (InvalidProtocolBufferException e) {
-        log.error("Could not deserialize Status protobuf for " + entry.getKey(), e);
+        log.error("Could not deserialize Status protobuf for {} {}", entry.getKey(), e);
       }
     }
 
@@ -472,7 +472,7 @@ public class GarbageCollectWriteAheadLogs {
               fileToServerMap.put(file.getPath(), server);
               nameToFileMap.put(file.getPath().getName(), file.getPath());
             } else {
-              log.info("Ignoring file " + file.getPath() + " because it doesn't look like a uuid");
+              log.info("Ignoring file {} because it doesn't look like a uuid", file.getPath());
             }
           }
         } else if (isUUID(server)) {
@@ -481,7 +481,7 @@ public class GarbageCollectWriteAheadLogs {
           fileToServerMap.put(status.getPath(), "");
           nameToFileMap.put(server, status.getPath());
         } else {
-          log.info("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
+          log.info("Ignoring file {} because it doesn't look like a uuid", status.getPath());
         }
       }
     }
@@ -511,7 +511,7 @@ public class GarbageCollectWriteAheadLogs {
           if (isUUID(name)) {
             result.put(name, status.getPath());
           } else {
-            log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
+            log.debug("Ignoring file {} because it doesn't look like a uuid", status.getPath());
           }
         }
       }

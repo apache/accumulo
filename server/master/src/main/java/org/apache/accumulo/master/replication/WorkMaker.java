@@ -94,7 +94,7 @@ public class WorkMaker {
         // Extract the useful bits from the status key
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
         ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
-        log.info("Processing replication status record for " + file + " on table " + tableId);
+        log.info("Processing replication status record for {} on table {}", file, tableId);
 
         Status status;
         try {
@@ -163,7 +163,7 @@ public class WorkMaker {
   }
 
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
-    log.info("Adding work records for " + file + " to targets " + targets);
+    log.info("Adding work records for {} to targets {}", file, targets);
     try {
       Mutation m = new Mutation(file);
 

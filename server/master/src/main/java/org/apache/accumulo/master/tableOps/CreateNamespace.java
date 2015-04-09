@@ -67,7 +67,7 @@ class FinishCreateNamespace extends MasterRepo {
 
     env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 
-    LoggerFactory.getLogger(FinishCreateNamespace.class).debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);
+    LoggerFactory.getLogger(FinishCreateNamespace.class).debug("Created table {} {}", namespaceInfo.namespaceId, namespaceInfo.namespaceName);
 
     return null;
   }
@@ -146,7 +146,7 @@ class SetupNamespacePermissions extends MasterRepo {
       try {
         security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user, namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(FinishCreateNamespace.class).error("{}", e.getMessage(), e);
+        LoggerFactory.getLogger(FinishCreateNamespace.class).error(e.getMessage(), e);
         throw e;
       }
     }

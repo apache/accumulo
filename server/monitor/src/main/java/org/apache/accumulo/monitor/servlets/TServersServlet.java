@@ -138,7 +138,7 @@ public class TServersServlet extends BasicServlet {
       }
     } catch (Exception e) {
       banner(sb, "error", "No Such Tablet ServerAvailable");
-      log.error(e, e);
+      log.error("{}", e);
       return;
     }
 
@@ -339,7 +339,7 @@ public class TServersServlet extends BasicServlet {
     tServerList.addSortableColumn("OS&nbsp;Load", new NumberType<Double>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
         "The Unix one minute load average. The average number of processes in the run queue over a one minute interval.");
 
-    log.debug("tableId: " + tableId);
+    log.debug("tableId: {}", tableId);
     for (TabletServerStatus status : tservers) {
       if (status == null)
         status = NO_STATUS;

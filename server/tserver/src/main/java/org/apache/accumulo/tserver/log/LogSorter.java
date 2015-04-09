@@ -92,7 +92,7 @@ public class LogSorter {
       }
 
       try {
-        log.info("Copying " + src + " to " + dest);
+        log.info("Copying {} to {}", src, dest);
         sort(sortId, new Path(src), dest);
       } finally {
         currentWork.remove(sortId);

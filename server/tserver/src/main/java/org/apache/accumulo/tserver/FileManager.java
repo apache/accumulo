@@ -237,7 +237,7 @@ public class FileManager {
       try {
         reader.close();
       } catch (Exception e) {
-        log.error("Failed to close file " + e.getMessage(), e);
+        log.error("Failed to close file {} {}", e.getMessage(), e);
       }
     }
   }

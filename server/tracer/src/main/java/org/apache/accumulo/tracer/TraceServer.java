@@ -293,7 +293,7 @@ public class TraceServer implements Watcher {
   private void registerInZooKeeper(String name, String root) throws Exception {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
-    log.info("Registering tracer " + name + " at " + root);
+    log.info("Registering tracer {} at {}", name, root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
     zoo.exists(path, this);
   }

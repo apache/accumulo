@@ -119,7 +119,7 @@ class FinishImportTable extends MasterRepo {
 
     env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
 
-    LoggerFactory.getLogger(FinishImportTable.class).debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
+    LoggerFactory.getLogger(FinishImportTable.class).debug("Imported table {} {}", tableInfo.tableId, tableInfo.tableName);
 
     return null;
   }
@@ -169,7 +169,7 @@ class MoveExportedFiles extends MasterRepo {
 
       return new FinishImportTable(tableInfo);
     } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
+      log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error renaming files " + ioe.getMessage());
     }
@@ -222,7 +222,7 @@ class PopulateMetadataTable extends MasterRepo {
 
       Map<String,String> fileNameMappings = readMappingFile(fs, tableInfo);
 
-      log.info("importDir is " + tableInfo.importDir);
+      log.info("importDir is {}", tableInfo.importDir);
 
       // This is a directory already prefixed with proper volume information e.g. hdfs://localhost:8020/path/to/accumulo/tables/...
       final String bulkDir = tableInfo.importDir;
@@ -303,7 +303,7 @@ class PopulateMetadataTable extends MasterRepo {
 
       return new MoveExportedFiles(tableInfo);
     } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
+      log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading " + path + " " + ioe.getMessage());
     } finally {
@@ -370,7 +370,7 @@ class MapImportFileNames extends MasterRepo {
 
       for (FileStatus fileStatus : files) {
         String fileName = fileStatus.getPath().getName();
-        log.info("filename " + fileStatus.getPath().toString());
+        log.info("filename {}", fileStatus.getPath().toString());
         String sa[] = fileName.split("\\.");
         String extension = "";
         if (sa.length > 1) {
@@ -397,7 +397,7 @@ class MapImportFileNames extends MasterRepo {
 
       return new PopulateMetadataTable(tableInfo);
     } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
+      log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error writing mapping file " + path + " " + ioe.getMessage());
     } finally {
@@ -405,7 +405,7 @@ class MapImportFileNames extends MasterRepo {
         try {
           mappingsWriter.close();
         } catch (IOException ioe) {
-          log.warn("Failed to close " + path, ioe);
+          log.warn("Failed to close {} {}", path, ioe);
         }
     }
   }
@@ -434,16 +434,16 @@ class CreateImportDir extends MasterRepo {
     Path exportDir = new Path(tableInfo.exportDir);
     String[] tableDirs = ServerConstants.getTablesDirs();
 
-    log.info("Looking for matching filesystem for " + exportDir + " from options " + Arrays.toString(tableDirs));
+    log.info("Looking for matching filesystem for {} from options {}", exportDir, Arrays.toString(tableDirs));
     Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
-    log.info("Chose base table directory of " + base);
+    log.info("Chose base table directory of {}", base);
     Path directory = new Path(base, tableInfo.tableId);
 
     Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
 
     tableInfo.importDir = newBulkDir.toString();
 
-    log.info("Using import dir: " + tableInfo.importDir);
+    log.info("Using import dir: {}", tableInfo.importDir);
 
     return new MapImportFileNames(tableInfo);
   }
@@ -538,7 +538,7 @@ class ImportSetupPermissions extends MasterRepo {
       try {
         security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(ImportSetupPermissions.class).error("{}", e.getMessage(), e);
+        LoggerFactory.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
         throw e;
       }
     }
@@ -617,7 +617,7 @@ public class ImportTable extends MasterRepo {
         }
       }
     } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
+      log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Failed to read export metadata " + ioe.getMessage());
     }
