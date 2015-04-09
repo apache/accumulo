@@ -92,7 +92,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       @Override
       public void run() {
 
-        log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource());
+        log.debug("Filing problem report {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource());
 
         try {
           if (isMeta(pr.getTableName())) {
@@ -103,7 +103,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.saveToMetadataTable(context);
           }
         } catch (Exception e) {
-          log.error("Failed to file problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
+          log.error("Failed to file problem report {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), e);
         }
       }
 

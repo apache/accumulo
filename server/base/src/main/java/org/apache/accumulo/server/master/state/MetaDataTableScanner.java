@@ -173,7 +173,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       }
     }
     if (extent == null) {
-      log.warn("No prev-row for key extent: " + decodedRow);
+      log.warn("No prev-row for key extent: {}", decodedRow);
       return null;
     }
     return new TabletLocationState(extent, future, current, last, walogs, chopped);

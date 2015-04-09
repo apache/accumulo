@@ -99,7 +99,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
       // getLocalPort will return the actual ephemeral port used when '0' was provided.
       String logForwardingAddr = hostAddress + ":" + server.getLocalPort();
 
-      log.debug("Setting monitor log4j log-forwarding address to: " + logForwardingAddr);
+      log.debug("Setting monitor log4j log-forwarding address to: {}", logForwardingAddr);
 
       final String path = ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_LOG4J_ADDR;
       final ZooReaderWriter zoo = ZooReaderWriter.getInstance();

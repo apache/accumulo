@@ -216,7 +216,7 @@ public class UserImpersonation {
           hosts.addAll(Arrays.<String> asList(hostValues));
         }
       } else {
-        log.debug("Ignoring key " + aclKey);
+        log.debug("Ignoring key {}", aclKey);
       }
     }
   }
