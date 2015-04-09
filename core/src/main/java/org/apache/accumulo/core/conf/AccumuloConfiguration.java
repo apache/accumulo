@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
@@ -62,6 +63,29 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
+   * A filter that accepts properties whose keys are an exact match.
+   */
+  public static class MatchFilter implements PropertyFilter {
+
+    private String match;
+
+    /**
+     * Creates a new filter.
+     *
+     * @param match
+     *          prefix of property keys to accept
+     */
+    public MatchFilter(String match) {
+      this.match = match;
+    }
+
+    @Override
+    public boolean accept(String key) {
+      return Objects.equals(match, key);
+    }
+  }
+
+  /**
    * A filter that accepts properties whose keys begin with a prefix.
    */
   public static class PrefixFilter implements PropertyFilter {
@@ -85,6 +109,23 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
+
+  /**
+   * Gets a property value from this configuration.
+   *
+   * <p>
+   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use {@link #getProperties(Map, PropertyFilter)} with a custom
+   * filter.
+   *
+   * @param property
+   *          property to get
+   * @return property value
+   */
+  public String get(String property) {
+    Map<String,String> propMap = new HashMap<String,String>(1);
+    getProperties(propMap, new MatchFilter(property));
+    return propMap.get(property);
+  }
 
   /**
    * Gets a property value from this configuration.

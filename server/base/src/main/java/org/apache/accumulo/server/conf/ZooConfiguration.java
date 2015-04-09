@@ -65,7 +65,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     String value = null;
 
     if (Property.isValidZooPropertyKey(key)) {
-      value = get(key);
+      value = getRaw(key);
     }
 
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -94,7 +94,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     }
   }
 
-  private String get(String key) {
+  private String getRaw(String key) {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG + "/" + key;
     byte[] v = propCache.get(zPath);
     String value = null;
@@ -111,7 +111,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     if (children != null) {
       for (String child : children) {
         if (child != null && filter.accept(child)) {
-          String value = get(child);
+          String value = getRaw(child);
           if (value != null)
             props.put(child, value);
         }
