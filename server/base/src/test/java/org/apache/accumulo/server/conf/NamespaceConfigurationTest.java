@@ -37,8 +37,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.AllFilter;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -46,6 +44,9 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 public class NamespaceConfigurationTest {
   private static final String NSID = "namespace";
@@ -116,9 +117,9 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testGetProperties() {
-    PropertyFilter filter = new AllFilter();
+    Predicate<String> all = Predicates.alwaysTrue();
     Map<String,String> props = new java.util.HashMap<String,String>();
-    parent.getProperties(props, filter);
+    parent.getProperties(props, all);
     replay(parent);
     List<String> children = new java.util.ArrayList<String>();
     children.add("foo");
@@ -127,7 +128,7 @@ public class NamespaceConfigurationTest {
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn("dong".getBytes(UTF_8));
     replay(zc);
-    c.getProperties(props, filter);
+    c.getProperties(props, all);
     assertEquals(2, props.size());
     assertEquals("bar", props.get("foo"));
     assertEquals("dong", props.get("ding"));

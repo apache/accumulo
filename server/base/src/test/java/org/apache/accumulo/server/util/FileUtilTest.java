@@ -44,6 +44,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
+import com.google.common.base.Predicate;
+
 /**
  *
  */
@@ -238,7 +240,7 @@ public class FileUtilTest {
     }
 
     @Override
-    public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    public void getProperties(Map<String,String> props, Predicate<String> filter) {
       throw new UnsupportedOperationException();
     }
   }

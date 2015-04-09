@@ -42,6 +42,8 @@ import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
+
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC operations throughout the code. It is intended to represent a shared
  * object that contains these things from when the client was first constructed. It is not public API, and is only an internal representation of the context in
@@ -212,13 +214,13 @@ public class ClientContext {
       }
 
       @Override
-      public void getProperties(Map<String,String> props, PropertyFilter filter) {
+      public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
         Iterator<?> keyIter = config.getKeys();
         while (keyIter.hasNext()) {
           String key = keyIter.next().toString();
-          if (filter.accept(key))
+          if (filter.apply(key))
             props.put(key, config.getString(key));
         }
 
@@ -226,7 +228,7 @@ public class ClientContext {
         // Automatically reconstruct the server property when converting a client config.
         if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
           final String serverPrimary = props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
-          if (filter.accept(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
+          if (filter.apply(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
           }
@@ -241,7 +243,7 @@ public class ClientContext {
                 continue;
               }
 
-              if (filter.accept(key)) {
+              if (filter.apply(key)) {
                 char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
                 if (null != value) {
                   props.put(key, new String(value));

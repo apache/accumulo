@@ -33,6 +33,8 @@ import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
+
 public class NamespaceConfiguration extends ObservableConfiguration {
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
 
@@ -99,26 +101,26 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     return getPropCacheAccessor().get(property, getPath(), getParent);
   }
 
-  private class SystemNamespaceFilter implements PropertyFilter {
+  private class SystemNamespaceFilter implements Predicate<String> {
 
-    private PropertyFilter userFilter;
+    private Predicate<String> userFilter;
 
-    SystemNamespaceFilter(PropertyFilter userFilter) {
+    SystemNamespaceFilter(Predicate<String> userFilter) {
       this.userFilter = userFilter;
     }
 
     @Override
-    public boolean accept(String key) {
+    public boolean apply(String key) {
       if (isIteratorOrConstraint(key))
         return false;
-      return userFilter.accept(key);
+      return userFilter.apply(key);
     }
 
   }
 
   @Override
-  public void getProperties(Map<String,String> props, PropertyFilter filter) {
-    PropertyFilter parentFilter = filter;
+  public void getProperties(Map<String,String> props, Predicate<String> filter) {
+    Predicate<String> parentFilter = filter;
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
     if (getNamespaceId().equals(Namespaces.ACCUMULO_NAMESPACE_ID))
