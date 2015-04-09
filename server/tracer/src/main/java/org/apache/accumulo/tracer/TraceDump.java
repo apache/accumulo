@@ -45,16 +45,12 @@ public class TraceDump {
   static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000l;
 
   static class Opts extends ClientOnDefaultTable {
-    @Parameter(names = {"-l", "--list"}, description = "List recent traces")
+    @Parameter(names = {"-r", "--recent"}, description = "List recent traces")
     boolean list = false;
-    @Parameter(names = {"-s", "--start"}, description = "The start time of traces to display")
-    String start;
-    @Parameter(names = {"-e", "--end"}, description = "The end time of traces to display")
-    String end;
-    @Parameter(names = {"-d", "--dump"}, description = "Dump the traces")
+    @Parameter(names = {"-ms", "--ms"}, description = "Time period of recent traces to list in ms")
+    long length = DEFAULT_TIME_IN_MILLIS;
+    @Parameter(names = {"-d", "--dump"}, description = "Dump all traces")
     boolean dump = false;
-    @Parameter(names = {"-i", "--instance"}, description = "URL to point to accumulo.")
-    String instance;
     @Parameter(description = " <trace id> { <trace id> ... }")
     List<String> traceIds = new ArrayList<String>();
 
@@ -91,7 +87,7 @@ public class TraceDump {
   private static int listSpans(Opts opts, ScannerOpts scanOpts) throws Exception {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
-    long startTime = endTime - DEFAULT_TIME_IN_MILLIS;
+    long startTime = endTime - opts.length;
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
@@ -157,9 +153,10 @@ public class TraceDump {
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {
-      out.print("Warning: the following spans are not rooted!");
+      out.print("The following spans are not rooted (probably due to a parent span of length 0ms):");
       for (RemoteSpan span : sortByStart(tree.nodes.values())) {
-        out.print(String.format("%s %s %s", Long.toHexString(span.spanId), Long.toHexString(span.parentId), span.description));
+        String fmt = "%5d+%-5d %" + 1 + "s%s@%s %s";
+        out.print(String.format(fmt, span.stop - span.start, span.start - finalStart, "", span.svc, span.sender, span.description));
       }
       return -1;
     }
