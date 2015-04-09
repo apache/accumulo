@@ -155,7 +155,7 @@ public class MetricsConfiguration {
       File mFile = new File(ACUHOME, metricsFileName);
       if (mFile.exists()) {
         if (log.isDebugEnabled())
-          log.debug("Loading config file: " + mFile.getAbsolutePath());
+          log.debug("Loading config file: {}", mFile.getAbsolutePath());
         try {
           xConfig = new XMLConfiguration(mFile);
           xConfig.append(getEnvironmentConfiguration());
@@ -177,7 +177,7 @@ public class MetricsConfiguration {
         }
       } else {
         if (!alreadyWarned)
-          log.warn("Unable to find metrics file: " + mFile.getAbsolutePath());
+          log.warn("Unable to find metrics file: {}", mFile.getAbsolutePath());
         alreadyWarned = true;
         notFound = true;
         return;
@@ -194,7 +194,7 @@ public class MetricsConfiguration {
       // set the enabled boolean from the configuration
       enabled = config.getBoolean(enabledName);
       if (log.isDebugEnabled())
-        log.debug("Metrics collection enabled=" + enabled);
+        log.debug("Metrics collection enabled={}", enabled);
     } else {
       enabled = false;
     }

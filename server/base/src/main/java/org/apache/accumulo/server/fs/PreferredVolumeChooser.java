@@ -84,8 +84,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
 
     if (log.isTraceEnabled()) {
       log.trace("In custom chooser");
-      log.trace("Volumes: " + volumes);
-      log.trace("TableID: " + env.getTableId());
+      log.trace("Volumes: {}", volumes);
+      log.trace("TableID: {}", env.getTableId());
     }
     // If the preferred volumes property was specified, split the returned string by the comma and add use it to filter the given options.
     Set<String> preferred = parsedPreferredVolumes.get(volumes);
@@ -107,7 +107,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
     // Randomly choose the volume from the preferred volumes
     String choice = super.choose(env, filteredOptions.toArray(EMPTY_STRING_ARRAY));
     if (log.isTraceEnabled()) {
-      log.trace("Choice = " + choice);
+      log.trace("Choice = {}", choice);
     }
     return choice;
   }

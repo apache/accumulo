@@ -53,7 +53,8 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.common.base.Joiner;
 
@@ -78,7 +79,7 @@ public class HdfsZooInstance implements Instance {
 
   private static ZooCache zooCache;
   private static String instanceId = null;
-  private static final Logger log = Logger.getLogger(HdfsZooInstance.class);
+  private static final Logger log = LoggerFactory.getLogger(HdfsZooInstance.class);
 
   @Override
   public String getRootTabletLocation() {
@@ -133,7 +134,7 @@ public class HdfsZooInstance implements Instance {
         throw new RuntimeException(e);
       }
       Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
-      log.trace("Looking for instanceId from " + instanceIdPath);
+      log.trace("Looking for instanceId from {}", instanceIdPath);
       String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, acuConf);
       instanceId = instanceIdFromFile;
     }

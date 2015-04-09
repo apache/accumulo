@@ -77,7 +77,7 @@ public class ZooStore implements DistributedStore {
       path = relative(path);
       ZooReaderWriter.getInstance().putPersistentData(path, bs, NodeExistsPolicy.OVERWRITE);
       cache.clear();
-      log.debug("Wrote " + new String(bs, UTF_8) + " to " + path);
+      log.debug("Wrote {} to {}", new String(bs, UTF_8), path);
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);
     }
@@ -86,7 +86,7 @@ public class ZooStore implements DistributedStore {
   @Override
   public void remove(String path) throws DistributedStoreException {
     try {
-      log.debug("Removing " + path);
+      log.debug("Removing {}", path);
       path = relative(path);
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       if (zoo.exists(path))
