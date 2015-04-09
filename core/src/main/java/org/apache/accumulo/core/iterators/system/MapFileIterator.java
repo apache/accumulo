@@ -120,7 +120,7 @@ public class MapFileIterator implements FileSKVIterator {
     try {
       SortedKeyValueIterator<Key,Value> other = env.reserveMapFileReader(dirName);
       ((InterruptibleIterator) other).setInterruptFlag(interruptFlag);
-      log.debug("deep copying MapFile: " + this + " -> " + other);
+      log.debug("deep copying MapFile: {} -> {}", this, other);
       return other;
     } catch (IOException e) {
       log.error("failed to clone map file reader", e);

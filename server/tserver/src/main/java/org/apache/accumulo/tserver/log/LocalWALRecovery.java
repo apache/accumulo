@@ -125,7 +125,7 @@ public class LocalWALRecovery implements Runnable {
       }
 
       if (!localDirectory.isDirectory()) {
-        log.warn("Local walog dir " + localDirectory.getAbsolutePath() + " does not exist or is not a directory.");
+        log.warn("Local walog dir {} does not exist or is not a directory.", localDirectory.getAbsolutePath());
         continue;
       }
 
@@ -133,21 +133,21 @@ public class LocalWALRecovery implements Runnable {
         // Defer loading the default value until now because it might require talking to zookeeper.
         options.destination = ServerConstants.getWalDirs()[0];
       }
-      log.info("Copying WALs to " + options.destination);
+      log.info("Copying WALs to {}", options.destination);
 
       for (File file : localDirectory.listFiles()) {
         String name = file.getName();
         try {
           UUID.fromString(name);
         } catch (IllegalArgumentException ex) {
-          log.info("Ignoring non-log file " + file.getAbsolutePath());
+          log.info("Ignoring non-log file {}", file.getAbsolutePath());
           continue;
         }
 
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 
-        log.info("Openning local log " + file.getAbsolutePath());
+        log.info("Openning local log {}", file.getAbsolutePath());
 
         Path localWal = new Path(file.toURI());
         FileSystem localFs = FileSystem.getLocal(fs.getConf());
@@ -170,12 +170,12 @@ public class LocalWALRecovery implements Runnable {
 
         if (options.deleteLocal) {
           if (file.delete()) {
-            log.info("Copied and deleted: " + name);
+            log.info("Copied and deleted: {}", name);
           } else {
-            log.info("Failed to delete: " + name + " (but it is safe for you to delete it manually).");
+            log.info("Failed to delete: {} (but it is safe for you to delete it manually).", name);
           }
         } else {
-          log.info("Safe to delete: " + name);
+          log.info("Safe to delete: {}", name);
         }
       }
     }

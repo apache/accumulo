@@ -101,7 +101,7 @@ public class SortedLogRecovery {
     LastStartToFinish lastStartToFinish = new LastStartToFinish();
     for (int i = 0; i < recoveryLogs.size(); i++) {
       Path logfile = recoveryLogs.get(i);
-      log.info("Looking at mutations from " + logfile + " for " + extent);
+      log.info("Looking at mutations from {} for {}", logfile, extent);
       MultiReader reader = new MultiReader(fs, logfile);
       try {
         try {
@@ -110,7 +110,7 @@ public class SortedLogRecovery {
           log.info("Ignoring empty map file " + logfile);
           tids[i] = -1;
         } catch (UnusedException ex) {
-          log.info("Ignoring log file " + logfile + " appears to be unused by " + extent);
+          log.info("Ignoring log file {} appears to be unused by ", logfile, extent);
           tids[i] = -1;
         }
       } finally {
@@ -195,7 +195,7 @@ public class SortedLogRecovery {
       throw new UnusedException();
     }
 
-    log.debug("Found tid, seq " + tid + " " + defineKey.seq);
+    log.debug("Found tid, seq {} {}", tid, defineKey.seq);
 
     // Scan start/stop events for this tablet
     key = defineKey;
@@ -213,7 +213,7 @@ public class SortedLogRecovery {
         lastStartToFinish.update(fileno, key.seq);
 
         // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
-        log.debug("minor compaction into " + key.filename + " finished, but was still in the METADATA");
+        log.debug("minor compaction into {} finished, but was still in the METADATA", key.filename);
         if (suffixes.contains(getPathSuffix(key.filename)))
           lastStartToFinish.update(-1);
       } else if (key.event == COMPACTION_FINISH) {

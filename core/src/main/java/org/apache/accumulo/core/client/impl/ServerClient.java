@@ -78,7 +78,7 @@ public class ServerClient {
         client = pair.getSecond();
         return exec.execute(client);
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed " + server + ", retrying ... ", tte);
+        log.debug("ClientService request failed {}, retrying ... {}", server, tte);
         UtilWaitThread.sleep(100);
       } finally {
         if (client != null)
@@ -98,7 +98,7 @@ public class ServerClient {
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed " + server + ", retrying ... ", tte);
+        log.debug("ClientService request failed {}, retrying ...{}", server, tte);
         UtilWaitThread.sleep(100);
       } finally {
         if (client != null)
@@ -149,7 +149,7 @@ public class ServerClient {
           if (servers.isEmpty()) {
             log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
           } else {
-            log.warn("Failed to find an available server in the list of servers: " + servers);
+            log.warn("Failed to find an available server in the list of servers: {}", servers);
           }
           warnedAboutTServersBeingDown = true;
         }

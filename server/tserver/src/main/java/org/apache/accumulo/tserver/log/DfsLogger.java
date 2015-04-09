@@ -430,7 +430,7 @@ public class DfsLogger {
       key.tserverSession = filename;
       key.filename = filename;
       write(key, EMPTY);
-      log.debug("Got new write-ahead log: " + this);
+      log.debug("Got new write-ahead log: {}", this);
     } catch (Exception ex) {
       if (logFile != null)
         logFile.close();

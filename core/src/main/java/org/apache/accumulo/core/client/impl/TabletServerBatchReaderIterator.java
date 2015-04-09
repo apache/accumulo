@@ -64,17 +64,18 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.common.net.HostAndPort;
 
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
-  private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
 
   private final ClientContext context;
   private final Instance instance;
@@ -684,20 +685,20 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         ThriftUtil.returnClient(client);
       }
     } catch (TTransportException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage());
+      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TApplicationException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
       throw new AccumuloServerException(server, e);
     } catch (NoSuchScanIDException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
       throw new IOException(e);
     } catch (TException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } finally {

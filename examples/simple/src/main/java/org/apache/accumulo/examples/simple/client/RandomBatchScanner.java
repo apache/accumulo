@@ -65,11 +65,11 @@ class CountingVerifyingReceiver {
     byte expectedValue[] = RandomBatchWriter.createValue(rowid, expectedValueSize);
 
     if (!Arrays.equals(expectedValue, value.get())) {
-      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue, UTF_8) + " got : " + new String(value.get(), UTF_8));
+      log.error("Got unexpected value for {} expected : {} got : {}", key, new String(expectedValue, UTF_8), new String(value.get(), UTF_8));
     }
 
     if (!expectedRows.containsKey(key.getRow())) {
-      log.error("Got unexpected key " + key);
+      log.error("Got unexpected key {}", key);
     } else {
       expectedRows.put(key.getRow(), true);
     }
@@ -128,7 +128,7 @@ public class RandomBatchScanner {
         count++;
 
     if (count > 0) {
-      log.warn("Did not find " + count + " rows");
+      log.warn("Did not find {} rows", count);
       allFound = false;
     }
     return allFound;

@@ -53,11 +53,11 @@ public class ConfigSanityCheck {
       if (prop == null && Property.isValidPropertyKey(key))
         continue; // unknown valid property (i.e. has proper prefix)
       else if (prop == null)
-        log.warn(PREFIX + "unrecognized property key (" + key + ")");
+        log.warn("{} unrecognized property key ({})", PREFIX , key);
       else if (prop.getType() == PropertyType.PREFIX)
-        fatal(PREFIX + "incomplete property key (" + key + ")");
+        fatal(String.format("%s incomplete property key (%s)", PREFIX, key));
       else if (!prop.getType().isValidFormat(value))
-        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
+        fatal(String.format("%s improperly formatted value for key (%s, type=%s)", PREFIX, key, prop.getType()));
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
@@ -73,7 +73,7 @@ public class ConfigSanityCheck {
     }
 
     if (!usingVolumes) {
-      log.warn("Use of " + INSTANCE_DFS_URI + " and " + INSTANCE_DFS_DIR + " are deprecated. Consider using " + Property.INSTANCE_VOLUMES + " instead.");
+      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
     }
   }
 

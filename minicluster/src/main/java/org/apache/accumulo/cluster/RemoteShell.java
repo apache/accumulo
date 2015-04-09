@@ -80,7 +80,7 @@ public class RemoteShell extends ShellCommandExecutor {
 
     String cmd = String.format("%1$s %2$s %3$s \"%4$s\"", options.getSshCommand(), options.getSshOptions(), hostWithUser, remoteCmd);
 
-    log.debug("Executing full command [" + cmd + "]");
+    log.debug("Executing full command [{}]", cmd);
 
     return new String[] {"/usr/bin/env", "bash", "-c", cmd};
   }

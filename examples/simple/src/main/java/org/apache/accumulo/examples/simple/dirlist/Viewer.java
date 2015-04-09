@@ -110,9 +110,9 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
 
   public void populate(DefaultMutableTreeNode node) throws TableNotFoundException {
     String path = ((NodeInfo) node.getUserObject()).getFullName();
-    log.debug("listing " + path);
+    log.debug("listing {}", path);
     for (Entry<String,Map<String,String>> e : q.getDirList(path).entrySet()) {
-      log.debug("got child for " + node.getUserObject() + ": " + e.getKey());
+      log.debug("got child for {}: {}", node.getUserObject(), e.getKey());
       node.add(new DefaultMutableTreeNode(new NodeInfo(e.getKey(), e.getValue())));
     }
   }
@@ -166,7 +166,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     try {
       populateChildren((DefaultMutableTreeNode) event.getPath().getLastPathComponent());
     } catch (TableNotFoundException e) {
-      log.error("Could not find table.", e);
+      log.error("Could not find table. {}", e);
     }
   }
 
@@ -177,7 +177,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     Enumeration<DefaultMutableTreeNode> children = node.children();
     while (children.hasMoreElements()) {
       DefaultMutableTreeNode child = children.nextElement();
-      log.debug("removing children of " + ((NodeInfo) child.getUserObject()).getFullName());
+      log.debug("removing children of {}", ((NodeInfo) child.getUserObject()).getFullName());
       child.removeAllChildren();
     }
   }
@@ -197,7 +197,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
         data.setText("");
       }
     } catch (IOException e1) {
-      log.error("Could not get data from FileDataQuery.", e1);
+      log.error("Could not get data from FileDataQuery. {}", e1);
     }
   }
 

@@ -28,6 +28,12 @@ public class TLevel extends Level {
     super(Level.DEBUG_INT + 100, "TABLET_HIST", Level.DEBUG_INT + 100);
   }
 
+<<<<<<< HEAD
+=======
+  static public Level toLevel(int val) {
+    if (val == Level.DEBUG_INT + 100)
+      return Level.DEBUG;
+    return Level.toLevel(val);
   }
   
   static public void logAtLevel(Logger log, Level level, String msg, Object...objects) {
@@ -49,4 +55,7 @@ public class TLevel extends Level {
         log.warn(msg, objects);
         break;
     }
+  }
+
+>>>>>>> ACCUMULO-3652 refactor for slf4j all packages except gc, master, monitor and server-base
 }

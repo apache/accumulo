@@ -44,7 +44,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.commons.configuration.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 /**
  * <p>
@@ -62,7 +63,7 @@ import org.apache.log4j.Logger;
 
 public class ZooKeeperInstance implements Instance {
 
-  private static final Logger log = Logger.getLogger(ZooKeeperInstance.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);
 
   private String instanceId = null;
   private String instanceName = null;

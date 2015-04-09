@@ -85,7 +85,7 @@ public class NGramIngest extends Configured implements Tool {
     job.setSpeculativeExecution(false);
 
     if (!opts.getConnector().tableOperations().exists(opts.getTableName())) {
-      log.info("Creating table " + opts.getTableName());
+      log.info("Creating table {}", opts.getTableName());
       opts.getConnector().tableOperations().create(opts.getTableName());
       SortedSet<Text> splits = new TreeSet<Text>();
       String numbers[] = "1 2 3 4 5 6 7 8 9".split("\\s");

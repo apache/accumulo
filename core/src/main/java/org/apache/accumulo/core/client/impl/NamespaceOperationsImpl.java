@@ -51,13 +51,14 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private final ClientContext context;
   private TableOperationsImpl tableOps;
 
-  private static final Logger log = Logger.getLogger(TableOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
 
   public NamespaceOperationsImpl(ClientContext context, TableOperationsImpl tableOps) {
     checkArgument(context != null, "context is null");
@@ -103,7 +104,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
       Credentials credentials = context.getCredentials();
-      log.debug(credentials.getPrincipal() + " attempted to delete the " + namespaceId + " namespace");
+      log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
       throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 

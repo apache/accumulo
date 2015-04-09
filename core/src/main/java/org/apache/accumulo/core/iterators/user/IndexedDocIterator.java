@@ -163,16 +163,16 @@ public class IndexedDocIterator extends IntersectingIterator {
       log.trace("using top key to seek for doc: " + topKey.toString());
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
-    log.debug("got doc key: " + docSource.getTopKey().toString());
+    log.debug("got doc key: {}", docSource.getTopKey().toString());
     if (docSource.hasTop() && docKey.equals(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
       value = docSource.getTopValue();
     }
-    log.debug("got doc value: " + value.toString());
+    log.debug("got doc value: {}", value.toString());
   }
 
   protected Key buildDocKey() {
     if (log.isTraceEnabled())
-      log.trace("building doc key for " + currentPartition + " " + currentDocID);
+      log.trace("building doc key for {} {}", currentPartition, currentDocID);
     int zeroIndex = currentDocID.find("\0");
     if (zeroIndex < 0)
       throw new IllegalArgumentException("bad current docID");
@@ -186,7 +186,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 1);
     Key k = new Key(currentPartition, colf, colq);
     if (log.isTraceEnabled())
-      log.trace("built doc key for seek: " + k.toString());
+      log.trace("built doc key for seek: {}", k.toString());
     return k;
   }
 

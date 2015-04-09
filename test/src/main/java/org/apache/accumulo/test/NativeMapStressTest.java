@@ -33,11 +33,12 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public class NativeMapStressTest {
 
-  private static final Logger log = Logger.getLogger(NativeMapStressTest.class);
+  private static final Logger log = LoggerFactory.getLogger(NativeMapStressTest.class);
 
   public static void main(String[] args) {
     testLotsOfMapDeletes(true);

@@ -80,7 +80,7 @@ public class PrintInfo implements KeywordExecutable {
 
     Configuration conf = new Configuration();
     for (String confFile : opts.configFiles) {
-      log.debug("Adding Hadoop configuration file " + confFile);
+      log.debug("Adding Hadoop configuration file {}", confFile);
       conf.addResource(new Path(confFile));
     }
 
