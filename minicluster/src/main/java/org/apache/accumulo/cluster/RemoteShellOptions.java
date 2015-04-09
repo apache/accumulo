@@ -41,7 +41,7 @@ public class RemoteShellOptions {
   public static final String SSH_COMMAND_DEFAULT = "/usr/bin/ssh";
 
   public static final String SSH_OPTIONS_KEY = SSH_PREFIX + "options";
-  public static final String SSH_OPTIONS_DEFAULT = "";
+  public static final String SSH_OPTIONS_DEFAULT = "-o StrictHostKeyChecking=no";
 
   public static final String SSH_USER_KEY = SSH_PREFIX + "user";
   public static final String SSH_USER_DEFAULT = "";
