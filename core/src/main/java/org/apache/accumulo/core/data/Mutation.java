@@ -79,6 +79,20 @@ public class Mutation implements Writable {
     }
   }
 
+  /* This is so hashCode & equals can be called without changing this object.
+   *
+   * It will return a copy of the current data buffer if serialized has not been
+   * called previously. Otherwise, this.data will be returned since the buffer is
+   * null and will not change.
+   */
+  private byte[] serializedSnapshot() {
+    if (buffer != null) {
+      return buffer.toArray();
+    } else {
+      return this.data;
+    }
+  }
+
   /**
    * @since 1.5.0
    */
@@ -583,7 +597,7 @@ public class Mutation implements Writable {
 
   @Override
   public int hashCode() {
-    return toThrift().hashCode();
+    return toThrift(false).hashCode();
   }
 
   /**
@@ -599,9 +613,9 @@ public class Mutation implements Writable {
   }
 
   private boolean equalMutation(Mutation m) {
-    serialize();
-    m.serialize();
-    if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
+    byte[] myData = serializedSnapshot();
+    byte[] otherData = m.serializedSnapshot();
+    if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(myData, otherData)) {
       if (values == null && m.values == null)
         return true;
 
@@ -620,7 +634,17 @@ public class Mutation implements Writable {
   }
 
   public TMutation toThrift() {
-    serialize();
+    return toThrift(true);
+  }
+
+  private TMutation toThrift(boolean serialize) {
+    byte[] data;
+    if (serialize) {
+      this.serialize();
+      data = this.data;
+    } else {
+      data = serializedSnapshot();
+    }
     return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
   }
 
