@@ -186,7 +186,7 @@ public class DfsLogger {
             }
           }
         } catch (Exception ex) {
-          log.warn("Exception syncing " + ex);
+          log.warn("Exception syncing {}", ex);
           for (DfsLogger.LogWork logWork : work) {
             logWork.exception = ex;
           }
@@ -361,7 +361,7 @@ public class DfsLogger {
 
       }
     } catch (EOFException e) {
-      log.warn("Got EOFException trying to read WAL header information, assuming the rest of the file (" + path + ") has no data.");
+      log.warn("Got EOFException trying to read WAL header information, assuming the rest of the file ({}) has no data.", path);
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }

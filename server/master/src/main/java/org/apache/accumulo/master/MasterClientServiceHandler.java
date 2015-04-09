@@ -129,7 +129,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
     } catch (Exception e) {
-      Master.log.warn("{}", e.getMessage(), e);
+      Master.log.warn(e.getMessage(), e);
       throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
     }
     return Long.parseLong(new String(fid));
@@ -237,14 +237,14 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
           throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
 
       } catch (AccumuloException e) {
-        Master.log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, e);
+        Master.log.debug("Failed to scan {} table to wait for flush {} {}", MetadataTable.NAME, tableId, e);
       } catch (TabletDeletedException tde) {
-        Master.log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, tde);
+        Master.log.debug("Failed to scan {} table to wait for flush {} {}", MetadataTable.NAME, tableId, tde);
       } catch (AccumuloSecurityException e) {
-        Master.log.warn("{}", e.getMessage(), e);
+        Master.log.warn(e.getMessage(), e);
         throw new ThriftSecurityException();
       } catch (TableNotFoundException e) {
-        Master.log.error("{}", e.getMessage(), e);
+        Master.log.error(e.getMessage(), e);
         throw new ThriftTableOperationException();
       }
     }
@@ -289,7 +289,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     if (!force) {
       final TServerConnection server = master.tserverSet.getConnection(doomed);
       if (server == null) {
-        Master.log.warn("No server found for name " + tabletServer);
+        Master.log.warn("No server found for name {}", tabletServer);
         return;
       }
     }
@@ -304,7 +304,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName, TabletSplit split) {
     KeyExtent oldTablet = new KeyExtent(split.oldTablet);
     if (master.migrations.remove(oldTablet) != null) {
-      Master.log.info("Canceled migration of " + split.oldTablet);
+      Master.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
       if (serverName.equals(instance.hostPort())) {
@@ -312,7 +312,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
         return;
       }
     }
-    Master.log.warn("Got a split from a server we don't recognize: " + serverName);
+    Master.log.warn("Got a split from a server we don't recognize: {}", serverName);
   }
 
   @Override
@@ -321,7 +321,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
     switch (status) {
       case LOAD_FAILURE:
-        Master.log.error(serverName + " reports assignment failed for tablet " + tablet);
+        Master.log.error("{} reports assignment failed for tablet {}", serverName, tablet);
         break;
       case LOADED:
         master.nextEvent.event("tablet %s was loaded on %s", tablet, serverName);
@@ -330,11 +330,11 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
         master.nextEvent.event("tablet %s was unloaded from %s", tablet, serverName);
         break;
       case UNLOAD_ERROR:
-        Master.log.error(serverName + " reports unload failed for tablet " + tablet);
+        Master.log.error("{} reports unload failed for tablet {}", serverName, tablet);
         break;
       case UNLOAD_FAILURE_NOT_SERVING:
         if (Master.log.isTraceEnabled()) {
-          Master.log.trace(serverName + " reports unload failed: not serving tablet, could be a split: " + tablet);
+          Master.log.trace("{} reports unload failed: not serving tablet, could be a split: {}", serverName, tablet);
         }
         break;
       case CHOPPED:
@@ -444,7 +444,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
           new DefaultLoadBalancer());
       balancer.init(master.getConfigurationFactory());
       master.tabletBalancer = balancer;
-      log.info("tablet balancer changed to " + master.tabletBalancer.getClass().getName());
+      log.info("tablet balancer changed to {}", master.tabletBalancer.getClass().getName());
     }
   }
 

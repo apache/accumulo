@@ -56,7 +56,7 @@ public class ReplicationDriver extends Daemon {
     ProbabilitySampler sampler = new ProbabilitySampler(conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
-    log.debug("Waiting " + millisToWait + "ms before starting main replication loop");
+    log.debug("Waiting {}ms before starting main replication loop", millisToWait);
     UtilWaitThread.sleep(millisToWait);
 
     log.debug("Starting replication loop");
@@ -67,7 +67,7 @@ public class ReplicationDriver extends Daemon {
           conn = master.getConnector();
         } catch (AccumuloException | AccumuloSecurityException e) {
           // couldn't get a connector, try again in a "short" amount of time
-          log.warn("Error trying to get connector to process replication records", e);
+          log.warn("Error trying to get connector to process replication records {}", e);
           UtilWaitThread.sleep(2000);
           continue;
         }
@@ -86,21 +86,21 @@ public class ReplicationDriver extends Daemon {
       try {
         statusMaker.run();
       } catch (Exception e) {
-        log.error("Caught Exception trying to create Replication status records", e);
+        log.error("Caught Exception trying to create Replication status records {}", e);
       }
 
       // Tell the work maker to make work
       try {
         workMaker.run();
       } catch (Exception e) {
-        log.error("Caught Exception trying to create Replication work records", e);
+        log.error("Caught Exception trying to create Replication work records {}", e);
       }
 
       // Update the status records from the work records
       try {
         finishedWorkUpdater.run();
       } catch (Exception e) {
-        log.error("Caught Exception trying to update Replication records using finished work records", e);
+        log.error("Caught Exception trying to update Replication records using finished work records {}", e);
       }
 
       // Clean up records we no longer need.
@@ -109,7 +109,7 @@ public class ReplicationDriver extends Daemon {
       try {
         rcrr.run();
       } catch (Exception e) {
-        log.error("Caught Exception trying to remove finished Replication records", e);
+        log.error("Caught Exception trying to remove finished Replication records {}", e);
       }
 
       Trace.off();
@@ -120,7 +120,7 @@ public class ReplicationDriver extends Daemon {
       try {
         Thread.sleep(sleepMillis);
       } catch (InterruptedException e) {
-        log.error("Interrupted while sleeping", e);
+        log.error("Interrupted while sleeping {}", e);
       }
     }
   }

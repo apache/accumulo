@@ -138,7 +138,7 @@ public class ConstraintChecker {
           }
         }
       } catch (Throwable throwable) {
-        log.warn("CONSTRAINT FAILED : " + throwable.getMessage(), throwable);
+        log.warn("CONSTRAINT FAILED : {} {}", throwable.getMessage(), throwable);
 
         // constraint failed in some way, do not allow mutation to pass
         short vcode;

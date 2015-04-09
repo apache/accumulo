@@ -275,7 +275,7 @@ class DatafileManager {
     synchronized (tablet) {
       for (Entry<FileRef,DataFileValue> tpath : paths.entrySet()) {
         if (datafileSizes.containsKey(tpath.getKey())) {
-          log.error("Adding file that is already in set " + tpath.getKey());
+          log.error("Adding file that is already in set {}", tpath.getKey());
         }
         datafileSizes.put(tpath.getKey(), tpath.getValue());
 
@@ -362,7 +362,7 @@ class DatafileManager {
           tablet.getTabletServer().getFileSystem().deleteRecursively(tmpDatafile.path());
         } else {
           if (tablet.getTabletServer().getFileSystem().exists(newDatafile.path())) {
-            log.warn("Target map file already exist " + newDatafile);
+            log.warn("Target map file already exist {}", newDatafile);
             tablet.getTabletServer().getFileSystem().deleteRecursively(newDatafile.path());
           }
 
@@ -370,7 +370,7 @@ class DatafileManager {
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet " + tablet.getExtent() + " failed to rename " + newDatafile + " after MinC, will retry in 60 secs...", ioe);
+        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...{}", tablet.getExtent(), newDatafile, ioe);
         UtilWaitThread.sleep(60 * 1000);
       }
     } while (true);
@@ -441,7 +441,7 @@ class DatafileManager {
         tablet.getTabletServer().minorCompactionFinished(tablet.getTabletMemory().getCommitSession(), newDatafile.toString(), commitSession.getWALogSeq() + 2);
         break;
       } catch (IOException e) {
-        log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+        log.error("Failed to write to write-ahead log {} will retry {}", e.getMessage(), e);
         UtilWaitThread.sleep(1 * 1000);
       }
     } while (true);
@@ -450,7 +450,7 @@ class DatafileManager {
       t1 = System.currentTimeMillis();
 
       if (datafileSizes.containsKey(newDatafile)) {
-        log.error("Adding file that is already in set " + newDatafile);
+        log.error("Adding file that is already in set {}", newDatafile);
       }
 
       if (dfv.getNumEntries() > 0) {
@@ -503,7 +503,7 @@ class DatafileManager {
     if (!extent.isRootTablet()) {
 
       if (tablet.getTabletServer().getFileSystem().exists(newDatafile.path())) {
-        log.error("Target map file already exist " + newDatafile, new Exception());
+        log.error("Target map file already exist {} {}", newDatafile, new Exception());
         throw new IllegalStateException("Target map file already exist " + newDatafile);
       }
 
@@ -549,14 +549,14 @@ class DatafileManager {
       // atomically remove old files and add new file
       for (FileRef oldDatafile : oldDatafiles) {
         if (!datafileSizes.containsKey(oldDatafile)) {
-          log.error("file does not exist in set " + oldDatafile);
+          log.error("file does not exist in set {}", oldDatafile);
         }
         datafileSizes.remove(oldDatafile);
         majorCompactingFiles.remove(oldDatafile);
       }
 
       if (datafileSizes.containsKey(newDatafile)) {
-        log.error("Adding file that is already in set " + newDatafile);
+        log.error("Adding file that is already in set {}", newDatafile);
       }
 
       if (dfv.getNumEntries() > 0) {

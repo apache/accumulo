@@ -69,7 +69,7 @@ public class Utils {
       });
       return new String(nid, UTF_8);
     } catch (Exception e1) {
-      LoggerFactory.getLogger(CreateTable.class).error("Failed to assign tableId to " + tableName, e1);
+      LoggerFactory.getLogger(CreateTable.class).error("Failed to assign tableId to {} {}", tableName, e1);
       throw new ThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
@@ -86,7 +86,7 @@ public class Utils {
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
           throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
-      log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      log.info("table {} ({}) locked for {} operation: {}", tableId, Long.toHexString(tid), (writeLock ? "write" : "read"), op);
       return 0;
     } else
       return 100;
@@ -94,12 +94,12 @@ public class Utils {
 
   public static void unreserveTable(String tableId, long tid, boolean writeLock) throws Exception {
     getLock(tableId, tid, writeLock).unlock();
-    log.info("table " + tableId + " (" + Long.toHexString(tid) + ") unlocked for " + (writeLock ? "write" : "read"));
+    log.info("table {} ({}) unlocked for ", tableId, Long.toHexString(tid), (writeLock ? "write" : "read"));
   }
 
   public static void unreserveNamespace(String namespaceId, long id, boolean writeLock) throws Exception {
     getLock(namespaceId, id, writeLock).unlock();
-    log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") unlocked for " + (writeLock ? "write" : "read"));
+    log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id), (writeLock ? "write" : "read"));
   }
 
   public static long reserveNamespace(String namespaceId, long id, boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
@@ -110,7 +110,7 @@ public class Utils {
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
-      log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      log.info("namespace {} ({}) locked for {} operation: {}", namespaceId, Long.toHexString(id), (writeLock ? "write" : "read"), op);
       return 0;
     } else
       return 100;

@@ -259,7 +259,7 @@ public class Monitor {
           Monitor.gcStatus = fetchGcStatus();
         } catch (Exception e) {
           mmi = null;
-          log.info("Error fetching stats: " + e);
+          log.info("Error fetching stats: {}", e);
         } finally {
           if (client != null) {
             MasterClient.close(client);
@@ -386,7 +386,7 @@ public class Monitor {
         }
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at " + address, ex);
+      log.warn("Unable to contact the garbage collector at {} {}", address, ex);
     }
     return result;
   }
@@ -427,10 +427,10 @@ public class Monitor {
     Monitor.START_TIME = System.currentTimeMillis();
     int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
     try {
-      log.debug("Creating monitor on port " + port);
+      log.debug("Creating monitor on port {}", port);
       server = new EmbeddedWebServer(hostname, port);
     } catch (Throwable ex) {
-      log.error("Unable to start embedded web server", ex);
+      log.error("Unable to start embedded web server {}", ex);
       throw new RuntimeException(ex);
     }
 
@@ -457,13 +457,13 @@ public class Monitor {
     try {
       hostname = InetAddress.getLocalHost().getHostName();
 
-      log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
+      log.debug("Using {} to advertise monitor location in ZooKeeper", hostname);
 
       String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
 
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
-      log.info("Set monitor address in zookeeper to " + monitorAddress);
+      log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
@@ -485,7 +485,7 @@ public class Monitor {
           try {
             Monitor.fetchData();
           } catch (Exception e) {
-            log.warn("{}", e.getMessage(), e);
+            log.warn(e.getMessage(), e);
           }
 
           UtilWaitThread.sleep(333);
@@ -501,7 +501,7 @@ public class Monitor {
           try {
             Monitor.fetchScans();
           } catch (Exception e) {
-            log.warn("{}", e.getMessage(), e);
+            log.warn(e.getMessage(), e);
           }
           UtilWaitThread.sleep(5000);
         }
@@ -656,7 +656,7 @@ public class Monitor {
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock " + e);
+      log.warn("Failed to get monitor lock {}", e);
 
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
