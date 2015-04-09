@@ -72,14 +72,14 @@ public class ChunkInputStream extends InputStream {
     currentKey = entry.getKey();
     buf = entry.getValue().get();
     while (!currentKey.getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
-      log.debug("skipping key: " + currentKey.toString());
+      log.debug("skipping key: {}", currentKey.toString());
       if (!source.hasNext())
         return;
       entry = source.next();
       currentKey = entry.getKey();
       buf = entry.getValue().get();
     }
-    log.debug("starting chunk: " + currentKey.toString());
+    log.debug("starting chunk: {}", currentKey.toString());
     count = buf.length;
     currentVis.add(currentKey.getColumnVisibility());
     currentChunk = FileDataIngest.bytesToInt(currentKey.getColumnQualifier().getBytes(), 4);
@@ -103,7 +103,7 @@ public class ChunkInputStream extends InputStream {
 
     Entry<Key,Value> entry = source.peek();
     Key thisKey = entry.getKey();
-    log.debug("evaluating key: " + thisKey.toString());
+    log.debug("evaluating key: {}", thisKey.toString());
 
     // check that we're still on the same row
     if (!thisKey.equals(currentKey, PartialKey.ROW)) {
@@ -144,7 +144,7 @@ public class ChunkInputStream extends InputStream {
     }
 
     if (gotEndMarker) {
-      log.debug("got another chunk after end marker: " + currentKey.toString() + " " + thisKey.toString());
+      log.debug("got another chunk after end marker: {} {}", currentKey.toString(), thisKey.toString());
       clear();
       throw new IOException("found extra chunk after end marker");
     }
@@ -152,7 +152,7 @@ public class ChunkInputStream extends InputStream {
     // got new chunk of the same file, check that it's the next chunk
     int thisChunk = FileDataIngest.bytesToInt(thisKey.getColumnQualifier().getBytes(), 4);
     if (thisChunk != currentChunk + 1) {
-      log.debug("new chunk same file, unexpected chunkID: " + currentKey.toString() + " " + thisKey.toString());
+      log.debug("new chunk same file, unexpected chunkID: {} {}", currentKey.toString(), thisKey.toString());
       clear();
       throw new IOException("missing chunks between " + currentChunk + " and " + thisChunk);
     }
@@ -181,12 +181,12 @@ public class ChunkInputStream extends InputStream {
   public int read() throws IOException {
     if (source == null)
       return -1;
-    log.debug("pos: " + pos + " count: " + count);
+    log.debug("pos: {} count: {}", pos, count);
     if (pos >= count) {
       if (fill() <= 0) {
-        log.debug("done reading input stream at key: " + (currentKey == null ? "null" : currentKey.toString()));
+        log.debug("done reading input stream at key: {}", (currentKey == null ? "null" : currentKey.toString()));
         if (source != null && source.hasNext())
-          log.debug("next key: " + source.peek().getKey());
+          log.debug("next key: {}", source.peek().getKey());
         clear();
         return -1;
       }
@@ -204,31 +204,31 @@ public class ChunkInputStream extends InputStream {
       return 0;
     }
 
-    log.debug("filling buffer " + off + " " + len);
+    log.debug("filling buffer {} {}", off, len);
     int total = 0;
     while (total < len) {
       int avail = count - pos;
-      log.debug(avail + " available in current local buffer");
+      log.debug("{} available in current local buffer", avail);
       if (avail <= 0) {
         if (fill() <= 0) {
-          log.debug("done reading input stream at key: " + (currentKey == null ? "null" : currentKey.toString()));
+          log.debug("done reading input stream at key: {}", (currentKey == null ? "null" : currentKey.toString()));
           if (source != null && source.hasNext())
-            log.debug("next key: " + source.peek().getKey());
+            log.debug("next key: {}", source.peek().getKey());
           clear();
-          log.debug("filled " + total + " bytes");
+          log.debug("filled {} bytes", total);
           return total == 0 ? -1 : total;
         }
         avail = count - pos;
       }
 
       int cnt = (avail < len - total) ? avail : len - total;
-      log.debug("copying from local buffer: local pos " + pos + " into pos " + off + " len " + cnt);
+      log.debug("copying from local buffer: local pos {} into pos {} len ", pos, off, cnt);
       System.arraycopy(buf, pos, b, off, cnt);
       pos += cnt;
       off += cnt;
       total += cnt;
     }
-    log.debug("filled " + total + " bytes");
+    log.debug("filled {} bytes", total);
     return total;
   }
 

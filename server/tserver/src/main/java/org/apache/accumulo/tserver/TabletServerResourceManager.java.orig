@@ -736,6 +736,55 @@ public class TabletServerResourceManager {
     }
   }
 
+<<<<<<< HEAD
+=======
+  public void stopSplits() {
+    splitThreadPool.shutdown();
+    defaultSplitThreadPool.shutdown();
+    while (true) {
+      try {
+        while (!splitThreadPool.awaitTermination(1, TimeUnit.MINUTES)) {
+          log.info("Waiting for metadata split thread pool to stop");
+        }
+        while (!defaultSplitThreadPool.awaitTermination(1, TimeUnit.MINUTES)) {
+          log.info("Waiting for split thread pool to stop");
+        }
+        break;
+      } catch (InterruptedException ex) {
+        log.info("Interrupted waiting for splits executor to terminate {}", ex);
+      }
+    }
+  }
+
+  public void stopNormalAssignments() {
+    assignmentPool.shutdown();
+    while (true) {
+      try {
+        while (!assignmentPool.awaitTermination(1, TimeUnit.MINUTES)) {
+          log.info("Waiting for assignment thread pool to stop");
+        }
+        break;
+      } catch (InterruptedException ex) {
+        log.info("Interrupted waiting for assignment executor to terminate {}", ex);
+      }
+    }
+  }
+
+  public void stopMetadataAssignments() {
+    assignMetaDataPool.shutdown();
+    while (true) {
+      try {
+        while (!assignMetaDataPool.awaitTermination(1, TimeUnit.MINUTES)) {
+          log.info("Waiting for metadata assignment thread pool to stop");
+        }
+        break;
+      } catch (InterruptedException ex) {
+        log.info("Interrupted waiting for metadata assignment executor to terminate {}", ex);
+      }
+    }
+  }
+
+>>>>>>> ACCUMULO-3652 refactor for slf4j all packages except gc, master, monitor and server-base
   public LruBlockCache getIndexCache() {
     return _iCache;
   }

@@ -209,7 +209,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     char lastChar = str.charAt(str.length() - 1);
 
     if (lastChar == 'b') {
-      log.warn("The 'b' in " + str + " is being considered as bytes. " + "Setting memory by bits is not supported");
+      log.warn("The 'b' in {} is being considered as bytes. Setting memory by bits is not supported", str);
     }
     try {
       int multiplier;
@@ -348,7 +348,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     int port = Integer.parseInt(portString);
     if (port != 0) {
       if (port < 1024 || port > 65535) {
-        log.error("Invalid port number " + port + "; Using default " + property.getDefaultValue());
+        log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
         port = Integer.parseInt(property.getDefaultValue());
       }
     }
@@ -437,7 +437,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     int maxFilesPerTablet = getCount(Property.TABLE_FILE_MAX);
     if (maxFilesPerTablet <= 0) {
       maxFilesPerTablet = getCount(Property.TSERV_SCAN_MAX_OPENFILES) - 1;
-      log.debug("Max files per tablet " + maxFilesPerTablet);
+      log.debug("Max files per tablet {}", maxFilesPerTablet);
     }
 
     return maxFilesPerTablet;
@@ -467,13 +467,13 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     try {
       Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
-      log.info("Loaded class : " + clazzName);
+      log.info("Loaded class : {}",  clazzName);
     } catch (Exception e) {
       log.warn("Failed to load class ", e);
     }
 
     if (instance == null) {
-      log.info("Using " + defaultInstance.getClass().getName());
+      log.info("Using {}", defaultInstance.getClass().getName());
       instance = defaultInstance;
     }
     return instance;

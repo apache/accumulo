@@ -82,7 +82,7 @@ public class MinorCompactor extends Compactor {
 
   @Override
   public CompactionStats call() {
-    log.debug("Begin minor compaction " + getOutputFile() + " " + getExtent());
+    log.debug("Begin minor compaction {} {}", getOutputFile(), getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;
@@ -105,13 +105,13 @@ public class MinorCompactor extends Compactor {
 
           return ret;
         } catch (IOException e) {
-          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(),getOutputFile());
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile());
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
           // minor compaction would succeed
-          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile(), e);
+          log.warn("MinC failed ({}) to create {} retrying ...{}", e.getMessage(), getOutputFile(), e);
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
@@ -121,7 +121,7 @@ public class MinorCompactor extends Compactor {
         Random random = new Random();
 
         int sleep = sleepTime + random.nextInt(sleepTime);
-        log.debug("MinC failed sleeping " + sleep + " ms before retrying");
+        log.debug("MinC failed sleeping {}ms before retrying", sleep);
         UtilWaitThread.sleep(sleep);
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
 

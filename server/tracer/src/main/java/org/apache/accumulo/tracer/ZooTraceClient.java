@@ -142,7 +142,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   }
 
   synchronized private void updateHosts(String path, List<String> children) {
-    log.debug("Scanning trace hosts in zookeeper: " + path);
+    log.debug("Scanning trace hosts in zookeeper: {}", path);
     try {
       List<String> hosts = new ArrayList<String>();
       for (String child : children) {
@@ -151,9 +151,9 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       }
       this.hosts.clear();
       this.hosts.addAll(hosts);
-      log.debug("Trace hosts: " + this.hosts);
+      log.debug("Trace hosts: {}", this.hosts);
     } catch (Exception ex) {
-      log.error("unable to get destination hosts in zookeeper", ex);
+      log.error("unable to get destination hosts in zookeeper {}", ex);
     }
   }
 }

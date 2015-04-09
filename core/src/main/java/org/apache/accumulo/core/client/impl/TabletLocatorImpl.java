@@ -49,11 +49,12 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public class TabletLocatorImpl extends TabletLocator {
 
-  private static final Logger log = Logger.getLogger(TabletLocatorImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
 
   // there seems to be a bug in TreeMap.tailMap related to
   // putting null in the treemap.. therefore instead of

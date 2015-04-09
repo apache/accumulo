@@ -88,11 +88,11 @@ public class ZooCache {
               clear();
               break;
             default:
-              log.warn("Unhandled: " + event);
+              log.warn("Unhandled: {}", event);
           }
           break;
         default:
-          log.warn("Unhandled: " + event);
+          log.warn("Unhandled: {}", event);
       }
 
       if (externalWatcher != null) {
@@ -165,14 +165,14 @@ public class ZooCache {
       } catch (KeeperException e) {
         final Code code = e.code();
         if (code == Code.NONODE) {
-          log.error("Looked up non-existent node in cache " + e.getPath(), e);
+          log.error("Looked up non-existent node in cache {} {}", e.getPath(), e);
         } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
-          log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry", e);
+          log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry {}", e);
         } else {
-          log.warn("Zookeeper error, will retry", e);
+          log.warn("Zookeeper error, will retry {}", e);
         }
       } catch (InterruptedException e) {
-        log.info("Zookeeper error, will retry", e);
+        log.info("Zookeeper error, will retry {}", e);
       } catch (ConcurrentModificationException e) {
         log.debug("Zookeeper was modified, will retry");
       }
@@ -181,7 +181,7 @@ public class ZooCache {
         // do not hold lock while sleeping
         wait(sleepTime);
       } catch (InterruptedException e) {
-        log.debug("Wait in retry() was interrupted.", e);
+        log.debug("Wait in retry() was interrupted. {}", e);
       }
       if (sleepTime < 10000)
         sleepTime = (int) (sleepTime + sleepTime * Math.random());
@@ -270,7 +270,7 @@ public class ZooCache {
 
         if (stat == null) {
           if (log.isTraceEnabled())
-            log.trace("zookeeper did not contain " + zPath);
+            log.trace("zookeeper did not contain {}", zPath);
         } else {
           try {
             data = zooKeeper.getData(zPath, watcher, stat);
@@ -280,10 +280,10 @@ public class ZooCache {
             throw new ConcurrentModificationException();
           }
           if (log.isTraceEnabled())
-            log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data, UTF_8)));
+            log.trace("zookeeper contained {} {}", zPath, (data == null ? null : new String(data, UTF_8)));
         }
         if (log.isTraceEnabled())
-          log.trace("putting " + zPath + " " + (data == null ? null : new String(data, UTF_8)) + " in cache");
+          log.trace("putting {} {} in cache", zPath, (data == null ? null : new String(data, UTF_8)));
         put(zPath, data, stat);
       }
 
@@ -321,7 +321,7 @@ public class ZooCache {
 
   private synchronized void remove(String zPath) {
     if (log.isTraceEnabled())
-      log.trace("removing " + zPath + " from cache");
+      log.trace("removing {} from cache", zPath);
     cache.remove(zPath);
     childrenCache.remove(zPath);
     statCache.remove(zPath);

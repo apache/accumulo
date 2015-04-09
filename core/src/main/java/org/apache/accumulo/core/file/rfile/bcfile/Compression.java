@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,13 +36,14 @@ import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Compression related stuff.
  */
 public final class Compression {
-  static final Log LOG = LogFactory.getLog(Compression.class);
-
+  private static final Logger log = LoggerFactory.getLogger(Compression.class);
   /**
    * Prevent the instantiation of class.
    */
@@ -93,7 +95,7 @@ public final class Compression {
           String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
           String clazz = (extClazz != null) ? extClazz : defaultClazz;
           try {
-            LOG.info("Trying to load Lzo codec class: " + clazz);
+            log.info("Trying to load Lzo codec class: {}", clazz);
             codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
           } catch (ClassNotFoundException e) {
             // that is okay
@@ -271,7 +273,7 @@ public final class Compression {
           String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
           String clazz = (extClazz != null) ? extClazz : defaultClazz;
           try {
-            LOG.info("Trying to load snappy codec class: " + clazz);
+            log.info("Trying to load snappy codec class: {}", clazz);
             snappyCodec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
           } catch (ClassNotFoundException e) {
             // that is okay
@@ -311,9 +313,9 @@ public final class Compression {
           if (compressor.finished()) {
             // Somebody returns the compressor to CodecPool but is still using
             // it.
-            LOG.warn("Compressor obtained from CodecPool already finished()");
+            log.warn("Compressor obtained from CodecPool already finished()");
           } else {
-            LOG.debug("Got a compressor: " + compressor.hashCode());
+            log.debug("Got a compressor: {}", compressor.hashCode());
           }
           /**
            * Following statement is necessary to get around bugs in 0.18 where a compressor is referenced after returned back to the codec pool.
@@ -327,7 +329,7 @@ public final class Compression {
 
     public void returnCompressor(Compressor compressor) {
       if (compressor != null) {
-        LOG.debug("Return a compressor: " + compressor.hashCode());
+        log.debug("Return a compressor: {}", compressor.hashCode());
         CodecPool.returnCompressor(compressor);
       }
     }
@@ -340,9 +342,9 @@ public final class Compression {
           if (decompressor.finished()) {
             // Somebody returns the decompressor to CodecPool but is still using
             // it.
-            LOG.warn("Decompressor obtained from CodecPool already finished()");
+            log.warn("Decompressor obtained from CodecPool already finished()");
           } else {
-            LOG.debug("Got a decompressor: " + decompressor.hashCode());
+            log.debug("Got a decompressor: {}", decompressor.hashCode());
           }
           /**
            * Following statement is necessary to get around bugs in 0.18 where a decompressor is referenced after returned back to the codec pool.
@@ -357,7 +359,7 @@ public final class Compression {
 
     public void returnDecompressor(Decompressor decompressor) {
       if (decompressor != null) {
-        LOG.debug("Returned a decompressor: " + decompressor.hashCode());
+        log.debug("Returned a decompressor: {}", decompressor.hashCode());
         CodecPool.returnDecompressor(decompressor);
       }
     }

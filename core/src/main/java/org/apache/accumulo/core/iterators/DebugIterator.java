@@ -53,39 +53,39 @@ public class DebugIterator extends WrappingIterator implements OptionDescriber {
   @Override
   public Key getTopKey() {
     Key wc = super.getTopKey();
-    log.debug(prefix + " getTopKey() --> " + wc);
+    log.debug("{} getTopKey() --> {}", prefix, wc);
     return wc;
   }
 
   @Override
   public Value getTopValue() {
     Value w = super.getTopValue();
-    log.debug(prefix + " getTopValue() --> " + w);
+    log.debug("{} getTopKey() --> {}", prefix, w);
     return w;
   }
 
   @Override
   public boolean hasTop() {
     boolean b = super.hasTop();
-    log.debug(prefix + " hasTop() --> " + b);
+    log.debug("{} getTopKey() --> {}", prefix, b);
     return b;
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    log.debug(prefix + " seek(" + range + ", " + columnFamilies + ", " + inclusive + ")");
+    log.debug("{} seek({}, {}, {})", prefix, range, columnFamilies, inclusive);
     super.seek(range, columnFamilies, inclusive);
   }
 
   @Override
   public void next() throws IOException {
-    log.debug(prefix + " next()");
+    log.debug("{} next()", prefix);
     super.next();
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    log.debug("init(" + source + ", " + options + ", " + env + ")");
+    log.debug("init({}, {}, {})", source, options, env);
 
     if (null == prefix) {
       prefix = String.format("0x%08X", this.hashCode());

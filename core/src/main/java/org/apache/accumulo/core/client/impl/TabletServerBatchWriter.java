@@ -526,9 +526,9 @@ public class TabletServerBatchWriter {
     this.lastUnknownError = t;
     this.notifyAll();
     if (t instanceof TableDeletedException || t instanceof TableOfflineException || t instanceof TimedOutException)
-      log.debug("{}", msg, t); // this is not unknown
+      log.debug(msg, t); // this is not unknown
     else
-      log.error("{}", msg, t);
+      log.error(msg, t);
   }
 
   private void checkForFailures() throws MutationsRejectedException {
@@ -837,7 +837,7 @@ public class TabletServerBatchWriter {
           }
         } catch (IOException e) {
           if (log.isTraceEnabled())
-            log.trace("failed to send mutations to {} : {}", location, e.getMessage());
+            log.trace("failed to send mutations to " + location + " : " + e.getMessage());
 
           HashSet<String> tables = new HashSet<String>();
           for (KeyExtent ke : mutationBatch.keySet())

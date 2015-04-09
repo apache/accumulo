@@ -86,7 +86,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     } catch (TooManyFilesException tmfe) {
       addResult(tmfe);
     } catch (Throwable e) {
-      log.warn("exception while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent), e);
+      log.warn("exception while scanning tablet {}", (scanSession == null ? "(unknown)" : scanSession.extent), e);
       addResult(e);
     } finally {
       runState.set(ScanRunState.FINISHED);

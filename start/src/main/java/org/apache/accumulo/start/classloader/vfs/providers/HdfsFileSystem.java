@@ -21,8 +21,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Collection;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileName;
@@ -35,13 +33,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 /**
  * A VFS FileSystem that interacts with HDFS.
  *
  * @since 2.1
  */
 public class HdfsFileSystem extends AbstractFileSystem {
-  private static final Log log = LogFactory.getLog(HdfsFileSystem.class);
+  private static final Logger log = LoggerFactory.getLogger(HdfsFileSystem.class);
 
   private FileSystem fs;
 
@@ -83,7 +84,7 @@ public class HdfsFileSystem extends AbstractFileSystem {
         try {
           fs = org.apache.hadoop.fs.FileSystem.get(conf);
         } catch (final IOException e) {
-          log.error("Error connecting to filesystem " + hdfsUri, e);
+          log.error("Error connecting to filesystem {} {}", hdfsUri, e);
           throw new FileSystemException("Error connecting to filesystem " + hdfsUri, e);
         }
       }
