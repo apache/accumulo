@@ -297,6 +297,43 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
+   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
+   * Using this feature will group Ranges by their source tablet, producing an InputSplit per tablet
+   * rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges.
+   * (ex: when doing quad-tree decomposition for spatial queries)
+   * <p>
+   * This configuration is incompatible with:
+   * <ul>
+   *   <li>{@link #setOfflineTableScan(JobConf, boolean)}</li>
+   *   <li>{@link #setLocalIterators(JobConf, boolean)}</li>
+   *   <li>{@link #setScanIsolation(JobConf, boolean)}</li>
+   * </ul>
+   * <p>
+   * By default, this feature is <b>disabled</b>.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param enableFeature
+   *          the feature is enabled if true, disabled otherwise
+   * @since 1.7.0
+   */
+  public static void setBatchScan(JobConf job, boolean enableFeature) {
+    InputConfigurator.setBatchScan(CLASS, job, enableFeature);
+  }
+
+  /**
+   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner} feature enabled.
+   *
+   * @param job
+   *          the Hadoop context for the configured job
+   * @since 1.7.0
+   * @see #setBatchScan(JobConf, boolean)
+   */
+  public static boolean isBatchScan(JobConf job) {
+    return InputConfigurator.isBatchScan(CLASS, job);
+  }
+
+  /**
    * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
    *
    * @param job
