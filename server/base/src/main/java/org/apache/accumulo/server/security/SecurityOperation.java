@@ -641,7 +641,7 @@ public class SecurityOperation {
       authorizor.dropUser(user);
       authenticator.dropUser(user);
       permHandle.cleanUser(user);
-      log.info("Deleted user " + user + " at the request of user " + credentials.getPrincipal());
+      log.info("Deleted user {} at the request of user {}", user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }

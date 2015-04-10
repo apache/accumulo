@@ -517,7 +517,7 @@ public class TabletServerBatchWriter {
     somethingFailed = true;
     this.serverSideErrors.add(server);
     this.notifyAll();
-    log.error("Server side error on " + server + ": " + e);
+    log.error("Server side error on {}: {}", server, e);
   }
 
   private synchronized void updateUnknownErrors(String msg, Throwable t) {
@@ -610,7 +610,7 @@ public class TabletServerBatchWriter {
 
         if (rf != null) {
           if (log.isTraceEnabled())
-            log.trace("tid=" + Thread.currentThread().getId() + "  Requeuing " + rf.size() + " failed mutations");
+            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(), rf.size());
           addFailedMutations(rf);
         }
       } catch (Throwable t) {
@@ -814,8 +814,9 @@ public class TabletServerBatchWriter {
             failures = sendMutationsToTabletServer(location, mutationBatch, timeoutTracker);
             long st2 = System.currentTimeMillis();
             if (log.isTraceEnabled())
-              log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
-                  + String.format("%.2f secs (%,.2f mutations/sec) with %,d failures", (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
+              log.trace("sent {} mutations to {} in {}",
+                  String.format("%,d", count), location,
+                  String.format("%.2f secs (%,.2f mutations/sec) with %,d failures", (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
 
             long successBytes = 0;
             for (Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
@@ -837,7 +838,7 @@ public class TabletServerBatchWriter {
           }
         } catch (IOException e) {
           if (log.isTraceEnabled())
-            log.trace("failed to send mutations to " + location + " : " + e.getMessage());
+            log.trace("failed to send mutations to {} : {}", location, e.getMessage());
 
           HashSet<String> tables = new HashSet<String>();
           for (KeyExtent ke : mutationBatch.keySet())

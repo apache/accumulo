@@ -40,10 +40,10 @@ public class CreateUser extends Test {
     String userName = userNames.get(rand.nextInt(userNames.size()));
 
     try {
-      log.debug("Creating user " + userName);
+      log.debug("Creating user {}", userName);
       conn.securityOperations().createLocalUser(userName, new PasswordToken(userName + "pass"));
     } catch (AccumuloSecurityException ex) {
-      log.debug("Create user failed " + ex.getCause());
+      log.debug("Create user failed {}", ex.getCause());
     }
   }
 }

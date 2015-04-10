@@ -687,7 +687,7 @@ public class Tablet implements TabletCommitter {
         }
       }
     } catch (IOException ex) {
-      log.error("Error scanning for old temp files in " + location);
+      log.error("Error scanning for old temp files in {}", location);
     }
   }
 

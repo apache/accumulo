@@ -123,7 +123,7 @@ public class BatchScanSplitIT extends AccumuloClusterIT {
     }
 
     splits = getConnector().tableOperations().listSplits(tableName);
-    log.info("splits : " + splits);
+    log.info("splits : {}", splits);
   }
 
 }

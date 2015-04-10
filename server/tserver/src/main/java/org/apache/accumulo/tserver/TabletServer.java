@@ -1951,8 +1951,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     statsKeeper.updateTime(Operation.SPLIT, start, 0, false);
     long t2 = System.currentTimeMillis();
-    log.info("Tablet split: " + tablet.getExtent() + " size0 " + newTablets[0].estimateTabletSize() + " size1 " + newTablets[1].estimateTabletSize() + " time "
-        + (t2 - t1) + "ms");
+//    log.info("Tablet split: " + tablet.getExtent() + " size0 " + newTablets[0].estimateTabletSize() + " size1 " + newTablets[1].estimateTabletSize() + " time "
+//        + (t2 - t1) + "ms");
+    log.info("Tablet split: {} size0 {} size1 {} time {}ms",
+        tablet.getExtent(), newTablets[0].estimateTabletSize(), newTablets[1].estimateTabletSize(), (t2 - t1));
 
     return tabletInfo;
   }

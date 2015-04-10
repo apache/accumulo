@@ -47,20 +47,20 @@ public class TableOp extends Test {
     Connector conn = env.getConnector();
     TableOperations tableOps = conn.tableOperations();
     if (tableOps.exists(tableName) == false) {
-      log.error("Table " + tableName + " does not exist!");
+      log.error("Table {} does not exist!", tableName);
       return;
     }
 
     // choose a random action
     int num = rand.nextInt(10);
     if (num > 6) {
-      log.debug("Retrieving info for " + tableName);
+      log.debug("Retrieving info for {}", tableName);
       tableOps.getLocalityGroups(tableName);
       tableOps.getProperties(tableName);
       tableOps.listSplits(tableName);
       tableOps.list();
     } else {
-      log.debug("Clearing locator cache for " + tableName);
+      log.debug("Clearing locator cache for {}", tableName);
       tableOps.clearLocatorCache(tableName);
     }
 
@@ -68,10 +68,10 @@ public class TableOp extends Test {
       Map<String,Set<Text>> groups = tableOps.getLocalityGroups(state.getString("imageTableName"));
 
       if (groups.size() == 0) {
-        log.debug("Adding locality groups to " + state.getString("imageTableName"));
+        log.debug("Adding locality groups to {}", state.getString("imageTableName"));
         groups = ImageFixture.getLocalityGroups();
       } else {
-        log.debug("Removing locality groups from " + state.getString("imageTableName"));
+        log.debug("Removing locality groups from {}", state.getString("imageTableName"));
         groups = new HashMap<String,Set<Text>>();
       }
 

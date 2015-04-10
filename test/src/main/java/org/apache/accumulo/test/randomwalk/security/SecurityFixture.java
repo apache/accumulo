@@ -91,26 +91,26 @@ public class SecurityFixture extends Fixture {
 
     if (WalkingSecurity.get(state, env).getTableExists()) {
       String secTableName = WalkingSecurity.get(state, env).getTableName();
-      log.debug("Dropping tables: " + secTableName);
+      log.debug("Dropping tables: {}", secTableName);
 
       conn.tableOperations().delete(secTableName);
     }
 
     if (WalkingSecurity.get(state, env).getNamespaceExists()) {
       String secNamespaceName = WalkingSecurity.get(state, env).getNamespaceName();
-      log.debug("Dropping namespace: " + secNamespaceName);
+      log.debug("Dropping namespace: {}", secNamespaceName);
 
       conn.namespaceOperations().delete(secNamespaceName);
     }
 
     if (WalkingSecurity.get(state, env).userExists(WalkingSecurity.get(state, env).getTabUserName())) {
       String tableUserName = WalkingSecurity.get(state, env).getTabUserName();
-      log.debug("Dropping user: " + tableUserName);
+      log.debug("Dropping user: {}", tableUserName);
 
       conn.securityOperations().dropLocalUser(tableUserName);
     }
     String systemUserName = WalkingSecurity.get(state, env).getSysUserName();
-    log.debug("Dropping user: " + systemUserName);
+    log.debug("Dropping user: {}", systemUserName);
     conn.securityOperations().dropLocalUser(systemUserName);
     WalkingSecurity.clearInstance();
 

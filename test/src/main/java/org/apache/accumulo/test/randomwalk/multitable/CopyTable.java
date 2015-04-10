@@ -64,7 +64,7 @@ public class CopyTable extends Test {
     args[6] = env.getConfigProperty("ZOOKEEPERS");
     args[7] = dstTableName;
 
-    log.debug("copying " + srcTableName + " to " + dstTableName);
+    log.debug("copying {} to {}", srcTableName, dstTableName);
 
     env.getConnector().tableOperations().create(dstTableName);
 
@@ -76,12 +76,12 @@ public class CopyTable extends Test {
     }
 
     String tableId = Tables.getNameToIdMap(env.getInstance()).get(dstTableName);
-    log.debug("copied " + srcTableName + " to " + dstTableName + " (id - " + tableId + " )");
+    log.debug("copied {} to {} (id - {})", srcTableName, dstTableName, tableId);
 
     tables.add(dstTableName);
 
     env.getConnector().tableOperations().delete(srcTableName);
-    log.debug("dropped " + srcTableName);
+    log.debug("dropped {}", srcTableName);
 
     nextId++;
     state.set("nextId", Integer.valueOf(nextId));

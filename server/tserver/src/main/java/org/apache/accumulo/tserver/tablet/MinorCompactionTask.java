@@ -76,7 +76,7 @@ class MinorCompactionTask implements Runnable {
           tablet.getTabletServer().minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
           break;
         } catch (IOException e) {
-          log.warn("Failed to write to write ahead log " + e.getMessage(), e);
+          log.warn("Failed to write to write ahead log {} {}", e.getMessage(), e);
         }
       }
       span.stop();
@@ -96,7 +96,7 @@ class MinorCompactionTask implements Runnable {
         tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
       }
     } catch (Throwable t) {
-      log.error("Unknown error during minor compaction for extent: " + tablet.getExtent(), t);
+      log.error("Unknown error during minor compaction for extent: {} {}", tablet.getExtent(), t);
       throw new RuntimeException(t);
     } finally {
       tablet.minorCompactionComplete();

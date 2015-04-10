@@ -52,18 +52,18 @@ public class CheckPermission extends Test {
     try {
       int dice = rand.nextInt(2);
       if (dice == 0) {
-        log.debug("Checking systerm permission " + userName);
+        log.debug("Checking systerm permission {}", userName);
         conn.securityOperations().hasSystemPermission(userName, SystemPermission.values()[rand.nextInt(SystemPermission.values().length)]);
       } else if (dice == 1) {
-        log.debug("Checking table permission " + userName + " " + tableName);
+        log.debug("Checking table permission {} {}", userName, tableName);
         conn.securityOperations().hasTablePermission(userName, tableName, TablePermission.values()[rand.nextInt(TablePermission.values().length)]);
       } else if (dice == 2) {
-        log.debug("Checking namespace permission " + userName + " " + namespace);
+        log.debug("Checking namespace permission {} {}", userName, namespace);
         conn.securityOperations().hasNamespacePermission(userName, namespace, NamespacePermission.values()[rand.nextInt(NamespacePermission.values().length)]);
       }
 
     } catch (AccumuloSecurityException ex) {
-      log.debug("Unable to check permissions: " + ex.getCause());
+      log.debug("Unable to check permissions: {}", ex.getCause());
     }
   }
 

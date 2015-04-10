@@ -157,7 +157,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
         UtilWaitThread.sleep(seconds * 1000);
       } finally {
         if (!trickFile.delete()) {
-          log.error("Couldn't delete " + trickFile);
+          log.error("Couldn't delete {}", trickFile);
         }
       }
 

@@ -78,7 +78,7 @@ public class ContinuousVerify extends Configured implements Tool {
       } catch (BadChecksumException bce) {
         context.getCounter(Counts.CORRUPT).increment(1l);
         if (corrupt < 1000) {
-          log.error("Bad checksum : " + key);
+          log.error("Bad checksum : {}", key);
         } else if (corrupt == 1000) {
           System.out.println("Too many bad checksums, not printing anymore!");
         }

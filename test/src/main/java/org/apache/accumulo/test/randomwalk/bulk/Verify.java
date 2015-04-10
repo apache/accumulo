@@ -47,7 +47,7 @@ public class Verify extends Test {
     int lastSize = 0;
     while (!threadPool.isTerminated()) {
       int size = threadPool.getQueue().size() + threadPool.getActiveCount();
-      log.info("Waiting for " + size + " nodes to complete");
+      log.info("Waiting for {} nodes to complete", size);
       if (size != lastSize)
         makingProgress();
       lastSize = size;
@@ -99,7 +99,7 @@ public class Verify extends Test {
       }
     }
 
-    log.info("Test successful on table " + Setup.getTableName());
+    log.info("Test successful on table {}", Setup.getTableName());
     env.getConnector().tableOperations().delete(Setup.getTableName());
   }
 

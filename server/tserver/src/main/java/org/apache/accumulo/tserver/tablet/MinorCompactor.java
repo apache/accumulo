@@ -75,7 +75,7 @@ public class MinorCompactor extends Compactor {
     try {
       return Tables.getTableState(tabletServer.getInstance(), extent.getTableId().toString()) == TableState.DELETING;
     } catch (Exception e) {
-      log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
+      log.warn("Failed to determine if table {} was deleting {}", extent.getTableId(), e);
       return false; // can not get positive confirmation that its deleting.
     }
   }

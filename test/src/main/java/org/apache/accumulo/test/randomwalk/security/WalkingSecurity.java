@@ -244,14 +244,14 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
 
   private static void setSysPerm(State state, String userName, SystemPermission tp, boolean value) {
-    log.debug((value ? "Gave" : "Took") + " the system permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug("{} the system permission {}{} user {}", (value ? "Gave" : "Took"), tp.name(), (value ? " to" : " from"), userName);
     state.set("Sys-" + userName + '-' + tp.name(), Boolean.toString(value));
   }
 
   private void setTabPerm(State state, String userName, TablePermission tp, String table, boolean value) {
     if (table.equals(userName))
       throw new RuntimeException("This is also fucked up");
-    log.debug((value ? "Gave" : "Took") + " the table permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug("{} the table permission {}{} user {}",(value ? "Gave" : "Took"), tp.name(), (value ? " to" : " from"), userName);
     state.set("Tab-" + userName + '-' + tp.name(), Boolean.toString(value));
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
       state.set("Tab-" + userName + '-' + tp.name() + '-' + "time", System.currentTimeMillis());
@@ -271,7 +271,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   private void setNspPerm(State state, String userName, NamespacePermission tnp, String namespace, boolean value) {
     if (namespace.equals(userName))
       throw new RuntimeException("I don't even know");
-    log.debug((value ? "Gave" : "Took") + " the table permission " + tnp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug("{} the table permission {}{} user {}",(value ? "Gave" : "Took"), tnp.name(), (value ? " to" : " from"), userName);
     state.set("Nsp-" + userName + '-' + tnp.name(), Boolean.toString(value));
     if (tnp.equals(NamespacePermission.READ) || tnp.equals(NamespacePermission.WRITE))
       state.set("Nsp-" + userName + '-' + tnp.name() + '-' + "time", System.currentTimeMillis());

@@ -143,7 +143,7 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (log.isTraceEnabled())
-        log.trace("Tablet server " + tl.tablet_location + " " + tl.tablet_session + " no longer holds its lock");
+        log.trace("Tablet server {} {} no longer holds its lock", tl.tablet_location, tl.tablet_session);
 
       invalidLocks.add(lock);
 
@@ -374,7 +374,7 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     if (log.isTraceEnabled())
-      log.trace("Invalidated extent=" + failedExtent);
+      log.trace("Invalidated extent={}", failedExtent);
   }
 
   @Override
@@ -386,7 +386,7 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     if (log.isTraceEnabled())
-      log.trace("Invalidated " + keySet.size() + " cache entries for table " + tableId);
+      log.trace("Invalidated {} cache entries for table {}", keySet.size(), tableId);
   }
 
   @Override
@@ -407,7 +407,7 @@ public class TabletLocatorImpl extends TabletLocator {
     lockChecker.invalidateCache(server);
 
     if (log.isTraceEnabled())
-      log.trace("invalidated " + invalidatedCount + " cache entries  table=" + tableId + " server=" + server);
+      log.trace("invalidated {} cache entries  table={} server={}", invalidatedCount, tableId, server);
 
   }
 
@@ -422,7 +422,7 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     if (log.isTraceEnabled())
-      log.trace("invalidated all " + invalidatedCount + " cache entries for table=" + tableId);
+      log.trace("invalidated all {} cache entries for table={}", invalidatedCount, tableId);
   }
 
   @Override
@@ -442,7 +442,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (retry && tl == null) {
         UtilWaitThread.sleep(100);
         if (log.isTraceEnabled())
-          log.trace("Failed to locate tablet containing row " + TextUtil.truncate(row) + " in table " + tableId + ", will retry...");
+          log.trace("Failed to locate tablet containing row {} in table {}, will retry...", TextUtil.truncate(row), tableId);
         continue;
       }
 

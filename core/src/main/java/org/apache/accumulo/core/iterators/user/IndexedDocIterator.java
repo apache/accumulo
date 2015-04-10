@@ -160,7 +160,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     if (topKey == null)
       return;
     if (log.isTraceEnabled())
-      log.trace("using top key to seek for doc: " + topKey.toString());
+      log.trace("using top key to seek for doc: {}", topKey.toString());
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
     log.debug("got doc key: {}", docSource.getTopKey().toString());
@@ -181,7 +181,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     colf.append(currentDocID.getBytes(), 0, zeroIndex);
     docColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
     if (log.isTraceEnabled())
-      log.trace(zeroIndex + " " + currentDocID.getLength());
+      log.trace("{} {}", zeroIndex, currentDocID.getLength());
     Text colq = new Text();
     colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 1);
     Key k = new Key(currentPartition, colf, colq);

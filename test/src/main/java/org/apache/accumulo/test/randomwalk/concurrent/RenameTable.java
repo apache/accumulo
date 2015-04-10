@@ -57,30 +57,30 @@ public class RenameTable extends Test {
 
     try {
       conn.tableOperations().rename(srcTableName, newTableName);
-      log.debug("Renamed table " + srcTableName + " " + newTableName);
+      log.debug("Renamed table {} {}", srcTableName, newTableName);
     } catch (TableExistsException e) {
-      log.debug("Rename " + srcTableName + " failed, " + newTableName + " exists");
+      log.debug("Rename {} failed {} exists", srcTableName, newTableName);
     } catch (TableNotFoundException e) {
       Throwable cause = e.getCause();
       if (null != cause) {
         // Rename has to have failed on the destination namespace, because the source namespace
         // couldn't be deleted with our table in it
         if (cause.getClass().isAssignableFrom(NamespaceNotFoundException.class)) {
-          log.debug("Rename failed because new namespace doesn't exist: " + newNamespace, cause);
+          log.debug("Rename failed because new namespace doesn't exist: {} {}", newNamespace, cause);
           // Avoid the final src/dest namespace check
           return;
         }
       }
 
-      log.debug("Rename " + srcTableName + " failed, doesnt exist");
+      log.debug("Rename {} failed, doesnt exist", srcTableName);
     } catch (IllegalArgumentException e) {
-      log.debug("Rename: " + e.toString());
+      log.debug("Rename: {}", e.toString());
     } catch (AccumuloException e) {
       // Catch the expected failure when we try to rename a table into a new namespace
       if (!srcNamespace.equals(newNamespace)) {
         return;
       }
-      log.debug("Rename " + srcTableName + " failed.", e);
+      log.debug("Rename {} failed. {}", srcTableName, e);
     }
 
     if (!srcNamespace.equals(newNamespace)) {

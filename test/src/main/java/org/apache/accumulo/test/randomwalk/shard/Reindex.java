@@ -59,7 +59,7 @@ public class Reindex extends Test {
 
     tbw.close();
 
-    log.debug("Reindexed " + count + " documents into " + tmpIndexTableName);
+    log.debug("Reindexed {} documents into {}", count, tmpIndexTableName);
 
   }
 

@@ -50,7 +50,7 @@ public class Delete extends Test {
 
     env.getMultiTableBatchWriter().getBatchWriter(dataTableName).addMutation(m);
 
-    log.debug("Deleted document " + docID);
+    log.debug("Deleted document {}", docID);
 
     env.getMultiTableBatchWriter().flush();
   }

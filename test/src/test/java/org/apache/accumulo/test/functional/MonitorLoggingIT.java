@@ -72,11 +72,11 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
         monitorLocation = getMonitor();
         break;
       } catch (KeeperException e) {
-        log.debug("Monitor not up yet, trying again in " + LOCATION_DELAY_SECS + " secs");
+        log.debug("Monitor not up yet, trying again in {} secs", LOCATION_DELAY_SECS);
       }
     }
     assertNotNull("Monitor failed to start within " + (LOCATION_DELAY_SECS * NUM_LOCATION_PASSES) + " secs", monitorLocation);
-    log.debug("Monitor running at " + monitorLocation);
+    log.debug("Monitor running at {}", monitorLocation);
 
     // The tserver has to observe that the log-forwarding address
     // changed in ZooKeeper. If we cause the error before the tserver
@@ -100,7 +100,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
 
       // Verify messages were received at the monitor.
       URL url = new URL("http://" + monitorLocation + "/log");
-      log.debug("Fetching web page " + url);
+      log.debug("Fetching web page {}", url);
       result = FunctionalTestUtils.readAll(url.openStream());
       if (result.contains("<pre class='logevent'>")) {
         break;

@@ -317,7 +317,7 @@ public class CertUtils {
         if (cert == null) {
           cert = keyStore.getCertificate(alias);
         } else {
-          log.warn("Found multiple certificates in keystore.  Ignoring " + alias);
+          log.warn("Found multiple certificates in keystore.  Ignoring {}", alias);
         }
       }
     }
@@ -336,7 +336,7 @@ public class CertUtils {
         if (key == null) {
           key = (PrivateKey) keyStore.getKey(alias, keystorePassword);
         } else {
-          log.warn("Found multiple keys in keystore.  Ignoring " + alias);
+          log.warn("Found multiple keys in keystore.  Ignoring {}", alias);
         }
       }
     }

@@ -42,10 +42,12 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 
 public class MapRedVerifyTool extends Configured implements Tool {
-  protected final Logger log = Logger.getLogger(this.getClass());
+  protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
   public static class SeqMapClass extends Mapper<Key,Value,NullWritable,IntWritable> {
     @Override
@@ -118,9 +120,10 @@ public class MapRedVerifyTool extends Configured implements Tool {
 
         // Do the explicit check to see if the user has the permission to get a delegation token
         if (!conn.securityOperations().hasSystemPermission(conn.whoami(), SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-          log.error(newPrincipal + " doesn't have the " + SystemPermission.OBTAIN_DELEGATION_TOKEN.name()
+          log.error("{} doesn't have the {}"
               + " SystemPermission neccesary to obtain a delegation token. MapReduce tasks cannot automatically use the client's"
-              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.");
+              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.",
+              newPrincipal, SystemPermission.OBTAIN_DELEGATION_TOKEN.name());
           throw new IllegalStateException(conn.whoami() + " does not have permission to obtain a delegation token");
         }
 

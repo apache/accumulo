@@ -43,11 +43,11 @@ public class RenameNamespace extends Test {
 
     try {
       conn.namespaceOperations().rename(srcName, newName);
-      log.debug("Renamed namespace " + srcName + " " + newName);
+      log.debug("Renamed namespace {} {}", srcName, newName);
     } catch (NamespaceExistsException e) {
-      log.debug("Rename namespace " + srcName + " failed, " + newName + " exists");
+      log.debug("Rename namespace {} failed {} exists", srcName, newName);
     } catch (NamespaceNotFoundException e) {
-      log.debug("Rename namespace " + srcName + " failed, doesn't exist");
+      log.debug("Rename namespace {} failed, doesn't exist", srcName);
     }
   }
 }

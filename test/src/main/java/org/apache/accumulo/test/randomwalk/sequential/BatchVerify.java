@@ -74,9 +74,9 @@ public class BatchVerify extends Test {
       if (count == 0 || ranges.size() == 0)
         return;
 
-      log.debug(String.format("scanning %d rows in the following %d ranges:", count, ranges.size()));
+      log.debug("scanning {} rows in the following {} ranges:", count, ranges.size());
       for (Range r : ranges) {
-        log.debug(r);
+        log.debug(r.toString());
       }
 
       scanner.setRanges(ranges);
@@ -86,7 +86,7 @@ public class BatchVerify extends Test {
         keys.add(entry.getKey());
       }
 
-      log.debug("scan returned " + keys.size() + " rows. now verifying...");
+      log.debug("scan returned {} rows. now verifying...", keys.size());
 
       Collections.sort(keys);
 
@@ -99,12 +99,12 @@ public class BatchVerify extends Test {
         for (int i = start; i <= end; i++) {
 
           if (done) {
-            log.error("missing key " + i);
+            log.error("missing key {}", i);
             break;
           }
 
           while (curKey < i) {
-            log.error("extra key " + curKey);
+            log.error("extra key {}", curKey);
             if (iterator.hasNext() == false) {
               done = true;
               break;
@@ -113,7 +113,7 @@ public class BatchVerify extends Test {
           }
 
           if (curKey > i) {
-            log.error("missing key " + i);
+            log.error("missing key {}", i);
           }
 
           if (iterator.hasNext()) {

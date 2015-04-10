@@ -64,17 +64,17 @@ public class ImageFixture extends Fixture {
     try {
       conn.tableOperations().create(imageTableName);
       conn.tableOperations().addSplits(imageTableName, splits);
-      log.debug("Created table " + imageTableName + " (id:" + Tables.getNameToIdMap(instance).get(imageTableName) + ")");
+      log.debug("Created table {} (id:{})", imageTableName, Tables.getNameToIdMap(instance).get(imageTableName));
     } catch (TableExistsException e) {
-      log.error("Table " + imageTableName + " already exists.");
+      log.error("Table {} already exists.", imageTableName);
       throw e;
     }
 
     try {
       conn.tableOperations().create(indexTableName);
-      log.debug("Created table " + indexTableName + " (id:" + Tables.getNameToIdMap(instance).get(indexTableName) + ")");
+      log.debug("Created table {} (id:{})", indexTableName, Tables.getNameToIdMap(instance).get(indexTableName));
     } catch (TableExistsException e) {
-      log.error("Table " + imageTableName + " already exists.");
+      log.error("Table {} already exists.", imageTableName);
       throw e;
     }
 
@@ -84,7 +84,7 @@ public class ImageFixture extends Fixture {
       Map<String,Set<Text>> groups = getLocalityGroups();
 
       conn.tableOperations().setLocalityGroups(imageTableName, groups);
-      log.debug("Configured locality groups for " + imageTableName + " groups = " + groups);
+      log.debug("Configured locality groups for {} groups = {}", imageTableName, groups);
     }
 
     state.set("numWrites", Long.valueOf(0));
@@ -122,13 +122,13 @@ public class ImageFixture extends Fixture {
     }
 
     // Now we can safely delete the tables
-    log.debug("Dropping tables: " + imageTableName + " " + indexTableName);
+    log.debug("Dropping tables: {} {}", imageTableName, indexTableName);
 
     Connector conn = env.getConnector();
 
     conn.tableOperations().delete(imageTableName);
     conn.tableOperations().delete(indexTableName);
 
-    log.debug("Final total of writes: " + state.getLong("totalWrites"));
+    log.debug("Final total of writes: {}", state.getLong("totalWrites"));
   }
 }
