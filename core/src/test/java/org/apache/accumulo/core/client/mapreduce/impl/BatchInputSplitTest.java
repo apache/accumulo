@@ -93,7 +93,6 @@ public class BatchInputSplitTest {
     split.setZooKeepers("localhost");
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
-    split.setScanThreads(101);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -118,7 +117,6 @@ public class BatchInputSplitTest {
     Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());
-    Assert.assertEquals(split.getScanThreads(), newSplit.getScanThreads());
   }
 
 }

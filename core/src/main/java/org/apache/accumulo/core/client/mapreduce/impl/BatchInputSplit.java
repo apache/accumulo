@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Range;
  */
 public class BatchInputSplit extends AccumuloInputSplit {
   private Collection<Range> ranges;
-  private int scanThreads;
   private float[] rangeProgress = null;
 
   public BatchInputSplit() {
@@ -111,8 +110,6 @@ public class BatchInputSplit extends AccumuloInputSplit {
       r.readFields(in);
       ranges.add(r);
     }
-
-    scanThreads = in.readInt();
   }
 
   @Override
@@ -122,8 +119,6 @@ public class BatchInputSplit extends AccumuloInputSplit {
     out.writeInt(ranges.size());
     for (Range r: ranges)
       r.write(out);
-
-    out.writeInt(scanThreads);
   }
 
   @Override
@@ -143,7 +138,6 @@ public class BatchInputSplit extends AccumuloInputSplit {
     sb.append(" Authorizations: ").append(auths);
     sb.append(" fetchColumns: ").append(fetchedColumns);
     sb.append(" iterators: ").append(iterators);
-    sb.append(" scanThreads:").append(scanThreads);
     sb.append(" logLevel: ").append(level);
     return sb.toString();
   }
@@ -154,13 +148,5 @@ public class BatchInputSplit extends AccumuloInputSplit {
 
   public Collection<Range> getRanges() {
     return ranges;
-  }
-
-  public int getScanThreads() {
-     return scanThreads;
-  }
-
-  public void setScanThreads(int count) {
-     scanThreads = count;
   }
 }

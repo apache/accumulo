@@ -536,7 +536,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         BatchInputSplit multiRangeSplit = (BatchInputSplit) split;
 
         try{
-          int scanThreads = multiRangeSplit.getScanThreads();
+          // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
+          int scanThreads = 1;
           scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(), authorizations, scanThreads);
           setupIterators(job, scanner, split.getTableName(), split);
         } catch (Exception e) {
@@ -645,7 +646,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
         throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
-      int scanThreads = InputConfigurator.getBatchScanThreads(CLASS, job);
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
@@ -713,7 +713,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
-            split.setScanThreads(scanThreads);
 
             splits.add(split);
           } else {

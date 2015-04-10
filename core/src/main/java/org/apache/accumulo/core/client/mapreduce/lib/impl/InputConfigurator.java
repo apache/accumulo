@@ -551,40 +551,6 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Controls the use of the {@link BatchScanner} in this job.
-   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
-   *
-   * <p>
-   * By default, this feature is <b>disabled</b>.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param count
-   *          number of threads to use with BatchScanner
-   * @since 1.7.0
-   */
-  public static void setBatchScanThreads(Class<?> implementingClass, Configuration conf, int count) {
-    conf.setInt(enumToConfKey(implementingClass, Features.BATCH_SCANNER_THREADS), count);
-  }
-
-  /**
-   * Determines whether a configuration has the BatchScanner feature enabled.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return Number of threads to use with BatchScanner
-   * @since 1.7.0
-   * @see #setBatchScanThreads(Class, Configuration, int)
-   */
-  public static int getBatchScanThreads(Class<?> implementingClass, Configuration conf) {
-    return conf.getInt(enumToConfKey(implementingClass, Features.BATCH_SCANNER_THREADS), 10);
-  }
-
-  /**
    * Sets configurations for multiple tables at a time.
    *
    * @param implementingClass

@@ -328,36 +328,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
-   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
-   *
-   * <p>
-   * By default, this feature is <b>disabled</b>.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param threads
-   *          number of threads to use with BatchScanner
-   * @since 1.7.0
-   */
-  public static void setBatchScanThreads(Job job, int threads) {
-    InputConfigurator.setBatchScanThreads(CLASS, job.getConfiguration(), threads);
-  }
-
-  /**
-   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner} feature enabled.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return true if the feature is enabled, false otherwise
-   * @since 1.7.0
-   * @see #setBatchScanThreads(Job, int)
-   */
-  public static int getBatchScanThreads(JobContext context) {
-    return InputConfigurator.getBatchScanThreads(CLASS, context.getConfiguration());
-  }
-
-  /**
    * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
    *
    * @param context
