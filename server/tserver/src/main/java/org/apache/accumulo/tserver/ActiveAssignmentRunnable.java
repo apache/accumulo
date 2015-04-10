@@ -18,7 +18,7 @@ package org.apache.accumulo.tserver;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

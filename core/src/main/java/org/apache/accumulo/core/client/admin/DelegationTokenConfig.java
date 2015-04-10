@@ -21,10 +21,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
-
 /**
- * Configuration options for obtaining a {@link DelegationToken}
+ * Configuration options for obtaining a delegation token created by {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}
  *
  * @since 1.7.0
  */

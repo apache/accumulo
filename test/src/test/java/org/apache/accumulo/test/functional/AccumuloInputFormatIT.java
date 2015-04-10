@@ -94,7 +94,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
 
       for (ClientProperty prop : sslProperties) {
         // The default property is returned if it's not in the ClientConfiguration so we don't have to check if the value is actually defined
-        clientConf.setProperty(prop, clusterClientConf.get(prop.getAccumuloProperty()));
+        clientConf.setProperty(prop, clusterClientConf.get(prop.getKey()));
       }
     }
 

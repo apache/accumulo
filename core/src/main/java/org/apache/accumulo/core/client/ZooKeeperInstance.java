@@ -28,12 +28,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -215,7 +216,7 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public String getInstanceName() {
     if (instanceName == null)
-      instanceName = lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
+      instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
 
     return instanceName;
   }
@@ -267,19 +268,13 @@ public class ZooKeeperInstance implements Instance {
 
   /**
    * Given a zooCache and instanceId, look up the instance name.
+   *
+   * @deprecated since 1.7.0 {@link ZooCache} is not part of the public API, but its a parameter to this method. Therefore code that uses this method is not
+   *             guaranteed to be stable. This method was deprecated to discourage its use.
    */
+  @Deprecated
   public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
-    checkArgument(zooCache != null, "zooCache is null");
-    checkArgument(instanceId != null, "instanceId is null");
-    for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-      byte[] bytes = zooCache.get(instanceNamePath);
-      UUID iid = UUID.fromString(new String(bytes, UTF_8));
-      if (iid.equals(instanceId)) {
-        return name;
-      }
-    }
-    return null;
+    return InstanceOperationsImpl.lookupInstanceName(zooCache, instanceId);
   }
 
   @Override

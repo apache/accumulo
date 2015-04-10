@@ -89,7 +89,7 @@ class ActiveCompactionIterator implements Iterator<String> {
 
           compactions.add(String.format("%21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s", tserver,
               Duration.format(ac.getAge(), "", "-"), ac.getType(), ac.getReason(), shortenCount(ac.getEntriesRead()), shortenCount(ac.getEntriesWritten()),
-              ac.getTable(), ac.getExtent(), ac.getInputFiles().size(), output, iterList, iterOpts));
+              ac.getTable(), ac.getTablet(), ac.getInputFiles().size(), output, iterList, iterOpts));
         }
       } catch (Exception e) {
         compactions.add(tserver + " ERROR " + e.getMessage());

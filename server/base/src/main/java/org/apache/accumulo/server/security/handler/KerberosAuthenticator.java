@@ -24,10 +24,10 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -132,7 +132,7 @@ public class KerberosAuthenticator implements Authenticator {
     }
 
     // User is authenticated at the transport layer -- nothing extra is necessary
-    if (token instanceof KerberosToken || token instanceof DelegationToken) {
+    if (token instanceof KerberosToken || token instanceof DelegationTokenImpl) {
       return true;
     }
     return false;

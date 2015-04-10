@@ -135,9 +135,8 @@
                 <exclude>.*[.]impl[.].*</exclude>
               </excludes>
               <allows>
-                <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]data[.](Mutation|Key|Value|Condition|ConditionalMutation|Range|ByteSequence|PartialKey|Column)([$].*)?</allow>
-                <allow>org[.]apache[.]accumulo[.]core[.]security[.](ColumnVisibility|Authorizations|NamespacePermission|SystemPermission|TablePermission)([$].*)?</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.](client|data|security)[.](?!.*(impl|thrift|crypto).*).*</allow>
+                <allow>org.apache.commons.configuration.PropertiesConfiguration</allow>
               </allows>
             </configuration>
           </execution>

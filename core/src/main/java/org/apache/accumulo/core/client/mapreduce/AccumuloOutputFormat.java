@@ -35,6 +35,9 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -43,10 +46,10 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ColumnUpdate;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.data.TabletID;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -83,8 +86,10 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
-   * conversion to a string, and is not intended to be secure.
+   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the configuration as a means to pass the token to MapReduce tasks. This
+   * information is BASE64 encoded to provide a charset safe conversion to a string, but this conversion is not intended to be secure. {@link PasswordToken} is
+   * one example that is insecure in this way; however {@link DelegationToken}s, acquired using
+   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this concern.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -106,8 +111,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       }
     }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in the configuration
-    if (token instanceof DelegationToken) {
-      DelegationToken delegationToken = (DelegationToken) token;
+    if (token instanceof DelegationTokenImpl) {
+      DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
 
       // Convert it into a Hadoop Token
       AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
@@ -537,9 +542,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
-        if (e.getAuthorizationFailuresMap().size() >= 0) {
+        if (e.getSecurityErrorCodes().size() >= 0) {
           HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
-          for (Entry<KeyExtent,Set<SecurityErrorCode>> ke : e.getAuthorizationFailuresMap().entrySet()) {
+          for (Entry<TabletID,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
             Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
             if (secCodes == null) {
               secCodes = new HashSet<SecurityErrorCode>();

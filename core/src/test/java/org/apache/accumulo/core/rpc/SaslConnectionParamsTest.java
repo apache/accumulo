@@ -27,14 +27,14 @@ import javax.security.sasl.Sasl;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.QualityOfProtection;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -118,8 +118,8 @@ public class SaslConnectionParamsTest {
   }
 
   @Test
-  public void testDelegationToken() throws Exception {
-    final DelegationToken token = new DelegationToken(new byte[0], new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
+  public void testDelegationTokenImpl() throws Exception {
+    final DelegationTokenImpl token = new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
     testUser.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
@@ -189,7 +189,7 @@ public class SaslConnectionParamsTest {
     assertEquals(params1, params2);
     assertEquals(params1.hashCode(), params2.hashCode());
 
-    final DelegationToken delToken1 = new DelegationToken(new byte[0], new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
+    final DelegationTokenImpl delToken1 = new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
     SaslConnectionParams params3 = testUser.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
       @Override
       public SaslConnectionParams run() throws Exception {
@@ -211,7 +211,7 @@ public class SaslConnectionParamsTest {
     assertNotEquals(params2, params3);
     assertNotEquals(params2.hashCode(), params3.hashCode());
 
-    final DelegationToken delToken2 = new DelegationToken(new byte[0], new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
+    final DelegationTokenImpl delToken2 = new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
     SaslConnectionParams params4 = testUser.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
       @Override
       public SaslConnectionParams run() throws Exception {

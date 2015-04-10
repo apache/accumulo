@@ -62,9 +62,24 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
 
   /**
+   * @deprecated since 1.7.0 was never intended for public use.  However this could have been used by anything extending this class.
+   */
+  @Deprecated
+  public class ScannerTranslator extends ScannerTranslatorImpl {
+    public ScannerTranslator(Scanner scanner) {
+      super(scanner);
+    }
+
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
+      return new ScannerTranslator(scanner);
+    }
+  }
+
+  /**
    * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can use it as a source.
    */
-  public class ScannerTranslator implements SortedKeyValueIterator<Key,Value> {
+  private class ScannerTranslatorImpl implements SortedKeyValueIterator<Key,Value> {
     protected Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
@@ -75,7 +90,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
      * @param scanner
      *          the scanner to iterate over
      */
-    public ScannerTranslator(final Scanner scanner) {
+    public ScannerTranslatorImpl(final Scanner scanner) {
       this.scanner = scanner;
     }
 
@@ -123,11 +138,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
-      return new ScannerTranslator(scanner);
+      return new ScannerTranslatorImpl(scanner);
     }
   }
 
-  private ScannerTranslator smi;
+  private ScannerTranslatorImpl smi;
 
   /**
    * Constructs a scanner that can execute client-side iterators.
@@ -136,7 +151,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    *          the source scanner
    */
   public ClientSideIteratorScanner(final Scanner scanner) {
-    smi = new ScannerTranslator(scanner);
+    smi = new ScannerTranslatorImpl(scanner);
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
     this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
@@ -147,7 +162,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * Sets the source Scanner.
    */
   public void setSource(final Scanner scanner) {
-    smi = new ScannerTranslator(scanner);
+    smi = new ScannerTranslatorImpl(scanner);
   }
 
   @Override

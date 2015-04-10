@@ -19,8 +19,8 @@ package org.apache.accumulo.tserver.tablet;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.slf4j.Logger;
