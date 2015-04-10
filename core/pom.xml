@@ -166,6 +166,36 @@
     </pluginManagement>
     <plugins>
       <plugin>
+        <groupId>net.revelc.apilyzer</groupId>
+        <artifactId>apilyzer-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>apilyzer</id>
+            <goals>
+              <goal>analyze</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>org[.]apache[.]accumulo[.]core[.]client[.].*</include>
+                <include>org[.]apache[.]accumulo[.]core[.]data[.](Mutation|Key|Value|Condition|ConditionalMutation|Range|ByteSequence|PartialKey|Column)([$].*)?</include>
+                <include>org[.]apache[.]accumulo[.]core[.]security[.](ColumnVisibility|Authorizations|NamespacePermission|SystemPermission|TablePermission)([$].*)?</include>
+              </includes>
+              <excludes>
+                <exclude>.*Impl</exclude>
+                <exclude>.*[.]impl[.].*</exclude>
+                <exclude>org[.]apache[.]accumulo[.]core[.]client[.]mock[.].*</exclude>
+              </excludes>
+              <allows>
+                <allow>org[.]apache[.]accumulo[.].*[.]thrift[.].*</allow>
+                <allow>org[.]apache[.]commons[.].*</allow>
+                <allow>org[.]apache[.]hadoop[.].*</allow>
+                <allow>org[.]apache[.]log4j[.].*</allow>
+              </allows>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>

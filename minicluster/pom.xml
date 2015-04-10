@@ -115,4 +115,34 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>net.revelc.apilyzer</groupId>
+        <artifactId>apilyzer-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>apilyzer</id>
+            <goals>
+              <goal>analyze</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>org[.]apache[.]accumulo[.]minicluster[.].*</include>
+              </includes>
+              <excludes>
+                <exclude>.*Impl</exclude>
+                <exclude>.*[.]impl[.].*</exclude>
+              </excludes>
+              <allows>
+                <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]data[.](Mutation|Key|Value|Condition|ConditionalMutation|Range|ByteSequence|PartialKey|Column)([$].*)?</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]security[.](ColumnVisibility|Authorizations|NamespacePermission|SystemPermission|TablePermission)([$].*)?</allow>
+              </allows>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
