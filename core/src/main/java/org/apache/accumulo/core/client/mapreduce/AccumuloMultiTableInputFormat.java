@@ -87,15 +87,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
       }
 
       @Override
-      protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
-        List<IteratorSetting> iterators = split.getIterators();
-        if (null == iterators) {
-          iterators = getInputTableConfig(context, tableName).getIterators();
-        }
-
-        for (IteratorSetting setting : iterators) {
-          scanner.addScanIterator(setting);
-        }
+      protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
+        return getInputTableConfig(context, tableName).getIterators();
       }
     };
   }

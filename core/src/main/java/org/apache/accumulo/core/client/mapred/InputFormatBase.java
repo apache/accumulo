@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -317,23 +318,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
-      setupIterators(job, scanner, split);
-    }
-
-    protected void setupIterators(JobConf job, ScannerBase scanner, AccumuloInputSplit split) {
-      List<IteratorSetting> iterators = null;
-
-      if (null == split) {
-        iterators = getIterators(job);
-      } else {
-        iterators = split.getIterators();
-        if (null == iterators) {
-          iterators = getIterators(job);
-        }
-      }
-
-      setupIterators(iterators, scanner);
+    protected List<IteratorSetting> jobIterators(JobConf job, String tableName) {
+      return getIterators(job);
     }
 
     /**
@@ -343,23 +329,13 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the iterators to set
      * @param scanner
      *          the scanner to configure
+     * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
-    protected void setupIterators(List<IteratorSetting> iterators, ScannerBase scanner) {
+    @Deprecated
+    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
       for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
       }
-    }
-
-    /**
-     * Apply the configured iterators to the scanner.
-     *
-     * @param iterators
-     *          the iterators to set
-     * @param scanner
-     *          the scanner to configure
-     */
-    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
-      setupIterators(iterators, (ScannerBase) scanner);
     }
 
     /**

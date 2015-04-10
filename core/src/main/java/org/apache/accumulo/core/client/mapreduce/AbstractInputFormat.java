@@ -65,6 +65,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -421,15 +422,46 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     protected AccumuloInputSplit split;
 
     /**
+     * Extracts Iterators settings from the context to be used by RecordReader.
+     
+     * @param  context
+     *           the Hadoop context for the configured job
+     * @param  tableName
+     *           the table name for which the scanner is configured           
+     * @return List of iterator settings for given table
+     * @since 1.7.0
+     */
+    protected abstract List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName);
+    
+    /**
      * Configures the iterators on a scanner for the given table name.
+     * Will attempt to use configuration from the InputSplit, on failure will try to extract them from TaskAttemptContext.
      *
      * @param context
      *          the Hadoop context for the configured job
+     * @param tableName
+     *          the table name for which the scanner is configured
      * @param scanner
      *          the scanner for which to configure the iterators
+     * @param split
+     *          InputSplit containing configurations
      * @since 1.7.0
      */
-    protected abstract void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split);
+    private void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
+      List<IteratorSetting> iterators = null;
+      
+      if (null == split) {
+        iterators = contextIterators(context, tableName);
+      } else {
+        iterators = split.getIterators();
+        if (null == iterators) {
+          iterators = contextIterators(context, tableName);
+        }
+      }
+
+      for (IteratorSetting iterator : iterators)
+        scanner.addScanIterator(iterator);
+    }
 
     /**
      * Configures the iterators on a scanner for the given table name.
@@ -441,6 +473,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      * @param tableName
      *          the table name for which the scanner is configured
      * @since 1.6.0
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
     @Deprecated
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {

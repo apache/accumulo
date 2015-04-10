@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
@@ -390,6 +391,19 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     protected org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit split;
     protected ScannerBase scannerBase;
 
+
+    /**
+     * Extracts Iterators settings from the context to be used by RecordReader.
+     
+     * @param job
+     *          the Hadoop job configuration
+     * @param tableName
+     *          the table name for which the scanner is configured
+     * @return List of iterator settings for given table
+     * @since 1.7.0
+     */
+    protected abstract List<IteratorSetting> jobIterators(JobConf job, String tableName);
+    
     /**
      * Configures the iterators on a scanner for the given table name.
      *
@@ -401,7 +415,21 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.7.0
      */
-    protected abstract void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split);
+    private void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
+      List<IteratorSetting> iterators = null;
+      
+      if (null == split) {
+        iterators = jobIterators(job, tableName);
+      } else {
+        iterators = split.getIterators();
+        if (null == iterators) {
+          iterators = jobIterators(job, tableName);
+        }
+      }
+
+      for (IteratorSetting iterator : iterators)
+        scanner.addScanIterator(iterator);
+    }
 
     /**
      * Configures the iterators on a scanner for the given table name.
@@ -413,6 +441,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @param tableName
      *          the table name for which the scanner is configured
      * @since 1.6.0
+     * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
     @Deprecated
     protected void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split) {

@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -374,32 +375,9 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
-    /**
-     * Apply the configured iterators from the configuration to the scanner for the specified table name
-     *
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner to configure
-     * @since 1.7.0
-     */
     @Override
-    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
-      setupIterators(context, scanner, split);
-    }
-
-    protected void setupIterators(TaskAttemptContext context, ScannerBase scanner, AccumuloInputSplit split) {
-      List<IteratorSetting> iterators = null;
-      if (null == split) {
-        iterators = getIterators(context);
-      } else {
-        iterators = split.getIterators();
-        if (null == iterators) {
-          iterators = getIterators(context);
-        }
-      }
-      for (IteratorSetting iterator : iterators)
-        scanner.addScanIterator(iterator);
+    protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
+      return getIterators(context);
     }
 
     /**
@@ -409,17 +387,12 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the Hadoop context for the configured job
      * @param scanner
      *          the scanner to configure
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
     @Deprecated
     protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
-      setupIterators(context, scanner, null);
-    }
-
-    /**
-     * Initialize a scanner over the given input split using this task attempt configuration.
-     */
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
-      setupIterators(context, (ScannerBase) scanner, (AccumuloInputSplit) split);
+      // tableName is given as null as it will be ignored in eventual call to #contextIterators
+      setupIterators(context, scanner, null, null);
     }
   }
 
