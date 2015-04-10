@@ -157,6 +157,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     } catch (IOException e) {}
     AccumuloInputFormat.setOfflineTableScan(job, false);
 
+    // test for resumption of success
+    inputFormat.getSplits(job);
+    assertEquals(2, splits.size());
+
     //BatchScan not available with isolated iterators
     AccumuloInputFormat.setScanIsolation(job, true);
     try {
@@ -164,6 +168,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
       fail("An exception should have been thrown");
     } catch (IOException e) {}
     AccumuloInputFormat.setScanIsolation(job, false);
+
+    // test for resumption of success
+    inputFormat.getSplits(job);
+    assertEquals(2, splits.size());
 
     //BatchScan not available with local iterators
     AccumuloInputFormat.setLocalIterators(job, true);
