@@ -427,7 +427,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      * @param  context
      *           the Hadoop context for the configured job
      * @param  tableName
-     *           the table name for which the scanner is configured           
+     *           the table name for which the scanner is configured
      * @return List of iterator settings for given table
      * @since 1.7.0
      */
