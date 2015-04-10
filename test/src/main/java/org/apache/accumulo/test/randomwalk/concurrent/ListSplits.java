@@ -44,11 +44,11 @@ public class ListSplits extends Test {
 
     try {
       Collection<Text> splits = conn.tableOperations().listSplits(tableName);
-      log.debug("Table " + tableName + " had " + splits.size() + " splits");
+      log.debug("Table {} had {} splits", tableName, splits.size());
     } catch (TableNotFoundException e) {
-      log.debug("listSplits " + tableName + " failed, doesnt exist");
+      log.debug("listSplits {} failed, doesnt exist", tableName);
     } catch (AccumuloSecurityException ase) {
-      log.debug("listSplits " + tableName + " failed, " + ase.getMessage());
+      log.debug("listSplits {} failed, {}", tableName, ase.getMessage());
     }
   }
 }

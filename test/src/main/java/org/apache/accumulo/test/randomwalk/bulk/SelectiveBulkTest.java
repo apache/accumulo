@@ -31,7 +31,7 @@ public abstract class SelectiveBulkTest extends BulkTest {
     if (SelectiveQueueing.shouldQueueOperation(state, env)) {
       super.visit(state, env, props);
     } else {
-      log.debug("Skipping queueing of " + getClass().getSimpleName() + " because of excessive queued tasks already");
+      log.debug("Skipping queueing of {} because of excessive queued tasks already", getClass().getSimpleName());
       log.debug("Waiting 30 seconds before continuing");
       try {
         Thread.sleep(30 * 1000);

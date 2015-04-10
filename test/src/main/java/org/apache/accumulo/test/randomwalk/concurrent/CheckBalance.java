@@ -59,7 +59,7 @@ public class CheckBalance extends Test {
     }
     final double average = total / counts.size();
     final double sd = stddev(counts.values(), average);
-    log.debug("average " + average + ", standard deviation " + sd);
+    log.debug("average {}, standard deviation {}", average, sd);
 
     // Check for balanced # of tablets on each node
     double maxDifference = 2.0 * sd;
@@ -70,7 +70,7 @@ public class CheckBalance extends Test {
       long thisCount = entry.getValue().longValue();
       if (Math.abs(thisCount - average) > maxDifference) {
         balanced = false;
-        log.debug("unbalanced: " + entry.getKey() + " has " + entry.getValue() + " tablets and the average is " + average);
+        log.debug("unbalanced: {} has {} tablets and the average is {}", entry.getKey(), entry.getValue(), average);
         unbalancedLocation = entry.getKey();
         lastCount = thisCount;
       }

@@ -71,7 +71,7 @@ public class StopTabletServer extends Test {
     Runtime runtime = Runtime.getRuntime();
     if (currentServers.size() > 1) {
       TServerInstance victim = currentServers.get(0);
-      log.info("Stopping " + victim.hostPort());
+      log.info("Stopping {}", victim.hostPort());
       Process exec = runtime.exec(new String[] {System.getenv("ACCUMULO_HOME") + "/bin/accumulo", "admin", "stop", victim.hostPort()});
       if (exec.waitFor() != 0)
         throw new RuntimeException("admin stop returned a non-zero response: " + exec.exitValue());

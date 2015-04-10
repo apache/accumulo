@@ -31,7 +31,7 @@ public class Commit extends Test {
     Long numWrites = state.getLong("numWrites");
     Long totalWrites = state.getLong("totalWrites") + numWrites;
 
-    log.debug("Committed " + numWrites + " writes.  Total writes: " + totalWrites);
+    log.debug("Committed {} writes.  Total writes: {}", numWrites, totalWrites);
 
     state.set("totalWrites", totalWrites);
     state.set("numWrites", Long.valueOf(0));

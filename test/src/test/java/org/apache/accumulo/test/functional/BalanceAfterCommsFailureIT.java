@@ -113,7 +113,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
       }
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
-        log.info("Found " + unassignedTablets + " unassigned tablets, sleeping 3 seconds for tablet assignment");
+        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment", unassignedTablets);
         Thread.sleep(3000);
       }
     }

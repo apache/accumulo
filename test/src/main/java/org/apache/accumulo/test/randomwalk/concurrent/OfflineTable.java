@@ -42,12 +42,12 @@ public class OfflineTable extends Test {
 
     try {
       conn.tableOperations().offline(tableName, rand.nextBoolean());
-      log.debug("Offlined " + tableName);
+      log.debug("Offlined {}", tableName);
       UtilWaitThread.sleep(rand.nextInt(200));
       conn.tableOperations().online(tableName, rand.nextBoolean());
-      log.debug("Onlined " + tableName);
+      log.debug("Onlined {}", tableName);
     } catch (TableNotFoundException tne) {
-      log.debug("offline or online failed " + tableName + ", doesnt exist");
+      log.debug("offline or online failed {}, doesnt exist", tableName);
     }
 
   }

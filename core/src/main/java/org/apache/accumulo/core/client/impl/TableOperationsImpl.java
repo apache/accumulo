@@ -1156,10 +1156,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
           waitTime = waitFor * 10;
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
-        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
-            + " sleeping:" + waitTime + "ms");
-        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
-            + " sleeping:" + waitTime + "ms");
+//        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
+//            + " sleeping:" + waitTime + "ms");
+        log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
+            waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
         UtilWaitThread.sleep(waitTime);
       } else {
         break;
@@ -1347,7 +1347,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
     } catch (IOException ioe) {
-      LoggerFactory.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
+      LoggerFactory.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : {}", ioe.getMessage());
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(importDir.getBytes(UTF_8)));

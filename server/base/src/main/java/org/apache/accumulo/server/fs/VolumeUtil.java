@@ -189,7 +189,7 @@ public class VolumeUtil {
   public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles,
       boolean replicate) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
-    log.trace("Using volume replacements: " + replacements);
+    log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<LogEntry>();
     List<LogEntry> logsToAdd = new ArrayList<LogEntry>();

@@ -269,7 +269,7 @@ public class ExamplesIT extends AccumuloClusterIT {
       }
     }
 
-    log.info("result " + entry.getValue());
+    log.info("result {}", entry.getValue());
     assertEquals(0, entry.getKey().intValue());
     assertTrue(entry.getValue().contains(expectedFile));
   }

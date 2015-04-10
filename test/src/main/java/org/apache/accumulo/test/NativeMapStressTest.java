@@ -90,7 +90,7 @@ public class NativeMapStressTest {
 
             Value value = nm.get(new Key(new Text(row)));
             if (value == null || !value.toString().equals(val)) {
-              log.error("nm.get(" + row + ") failed");
+              log.error("nm.get({}) failed", row);
             }
           }
 
@@ -114,7 +114,7 @@ public class NativeMapStressTest {
 
               Entry<Key,Value> entry = iter.next();
               if (!entry.getValue().toString().equals(val2) || !entry.getKey().equals(new Key(new Text(row2)))) {
-                log.error("nm.iter(" + row2 + ") failed row = " + row + " count = " + count + " row2 = " + row + " val2 = " + val2);
+                log.error("nm.iter({}) failed row = {} count = {} row2 = {} val2 = {}", row2, row, count, row, val2);
               }
 
               count++;
@@ -139,7 +139,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '" + thread.getName() + "'.", e);
+        log.error("Could not join thread '{}'. {}", thread.getName(), e);
         throw new RuntimeException(e);
       }
     }
@@ -201,7 +201,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '" + thread.getName() + "'.", e);
+        log.error("Could not join thread '{}'. {}", thread.getName(), e);
         throw new RuntimeException(e);
       }
     }
@@ -262,7 +262,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '" + thread.getName() + "'.", e);
+        log.error("Could not join thread '{}'. {}", thread.getName(), e);
         throw new RuntimeException(e);
       }
     }

@@ -44,7 +44,7 @@ public class Setup extends Test {
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
     String pid = env.getPid();
     tableName = String.format("bulk_%s_%s_%d", hostname, pid, System.currentTimeMillis());
-    log.info("Starting bulk test on " + tableName);
+    log.info("Starting bulk test on {}", tableName);
 
     TableOperations tableOps = env.getConnector().tableOperations();
     try {

@@ -39,10 +39,10 @@ public class DropUser extends Test {
     String userName = userNames.get(rand.nextInt(userNames.size()));
 
     try {
-      log.debug("Dropping user " + userName);
+      log.debug("Dropping user {}", userName);
       conn.securityOperations().dropLocalUser(userName);
     } catch (AccumuloSecurityException ex) {
-      log.debug("Unable to drop " + ex.getCause());
+      log.debug("Unable to drop {}", ex.getCause());
     }
   }
 }

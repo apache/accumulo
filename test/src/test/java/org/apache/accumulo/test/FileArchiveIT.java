@@ -89,7 +89,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
     // Then force another to make an unreferenced file
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    log.info("File for table: " + file);
+    log.info("File for table: {}", file);
 
     FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
     int i = 0;
@@ -97,7 +97,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -105,7 +105,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + filePath);
+    log.info("File relative to accumulo dir: {}", filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
@@ -146,7 +146,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     conn.tableOperations().delete(tableName);
 
-    log.info("File for table: " + file);
+    log.info("File for table: {}", file);
 
     FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
     int i = 0;
@@ -154,7 +154,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -162,7 +162,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + filePath);
+    log.info("File relative to accumulo dir: {}", filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
@@ -204,7 +204,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
     // Then force another to make an unreferenced file
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    log.info("File for table: " + file);
+    log.info("File for table: {}", file);
 
     FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
     int i = 0;
@@ -212,7 +212,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -220,7 +220,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + filePath);
+    log.info("File relative to accumulo dir: {}", filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
@@ -245,14 +245,14 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     conn.tableOperations().delete(tableName);
 
-    log.info("File for table: " + finalPath);
+    log.info("File for table: {}", finalPath);
 
     i = 0;
     while (fs.exists(finalPath)) {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -260,7 +260,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     String finalFilePath = finalPath.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + finalFilePath);
+    log.info("File relative to accumulo dir: {}", finalFilePath);
 
     Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 

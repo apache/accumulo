@@ -72,7 +72,7 @@ public class CompactFilter extends Test {
     env.getConnector().tableOperations().compact(indexTableName, null, null, indexFilters, true, true);
     t2 = System.currentTimeMillis();
 
-    log.debug("Filtered documents using compaction iterators " + regex + " " + (t3) + " " + (t2 - t1));
+    log.debug("Filtered documents using compaction iterators {} {} {}", regex, (t3), (t2 - t1));
 
     BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName, new Authorizations(), 10);
 

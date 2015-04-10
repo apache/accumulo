@@ -183,8 +183,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg = "The BatchScanner was unexpectedly closed while this Iterator was still in use.";
-          log.error(shortMsg + " Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
-              + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.");
+          log.error("{} Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
+              + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.", shortMsg);
           throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
@@ -247,7 +247,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled())
-          log.trace("Failed to bin " + failures.size() + " ranges, tablet locations were null, retrying in 100ms");
+          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms", failures.size());
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -281,7 +281,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     if (log.isTraceEnabled())
-      log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
+      log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
 
     try {
       Thread.sleep(failSleepTime);

@@ -67,7 +67,7 @@ public class Search extends Test {
       columns[index++] = new Text(term);
     }
 
-    log.debug("Looking up terms " + searchTerms + " expect to find " + docID);
+    log.debug("Looking up terms {} expect to find {}", searchTerms, docID);
 
     BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 10);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);

@@ -42,7 +42,7 @@ public class Compact extends Test {
       row2 = null;
     }
 
-    log.debug("compacting " + row1 + " " + row2);
+    log.debug("compacting {} {}", row1, row2);
     conn.tableOperations().compact(table, row1, row2, rand.nextBoolean(), rand.nextBoolean());
   }
 }

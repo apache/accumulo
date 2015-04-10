@@ -37,7 +37,7 @@ public class SelectiveQueueing {
     int numTservers = conn.instanceOperations().getTabletServers().size();
 
     if (!shouldQueue(queuedThreads, numTservers)) {
-      log.info("Not queueing because of " + queuedThreads + " outstanding tasks");
+      log.info("Not queueing because of {} outstanding tasks", queuedThreads);
       return false;
     }
 

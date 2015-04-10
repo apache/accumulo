@@ -47,18 +47,18 @@ public class CloneTable extends Test {
     boolean flush = rand.nextBoolean();
 
     try {
-      log.debug("Cloning table " + srcTableName + " " + newTableName + " " + flush);
+      log.debug("Cloning table {} {} {}", srcTableName, newTableName, flush);
       conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(), new HashSet<String>());
     } catch (TableExistsException e) {
-      log.debug("Clone " + srcTableName + " failed, " + newTableName + " exists");
+      log.debug("Clone {} failed {} exists", srcTableName, newTableName);
     } catch (TableNotFoundException e) {
-      log.debug("Clone " + srcTableName + " failed, doesnt exist");
+      log.debug("Clone {} failed, doesnt exist", srcTableName);
     } catch (IllegalArgumentException e) {
-      log.debug("Clone: " + e.toString());
+      log.debug("Clone: {}", e.toString());
     } catch (AccumuloException e) {
       Throwable cause = e.getCause();
       if (cause != null && cause instanceof NamespaceNotFoundException)
-        log.debug("Clone: " + srcTableName + " to " + newTableName + " failed, namespace not found");
+        log.debug("Clone: {} to {} failed, namespace not found", srcTableName, newTableName);
       else
         throw e;
     }

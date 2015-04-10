@@ -39,7 +39,7 @@ public class Flush extends Test {
       table = dataTableName;
 
     env.getConnector().tableOperations().flush(table, null, null, true);
-    log.debug("Flushed " + table);
+    log.debug("Flushed {}", table);
   }
 
 }
