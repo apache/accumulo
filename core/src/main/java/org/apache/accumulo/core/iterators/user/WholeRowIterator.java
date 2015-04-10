@@ -57,13 +57,6 @@ public class WholeRowIterator extends RowEncodingIterator {
   }
 
   @Override
-  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    if (sourceIter != null)
-      return new WholeRowIterator(sourceIter.deepCopy(env));
-    return new WholeRowIterator();
-  }
-
-  @Override
   public SortedMap<Key,Value> rowDecoder(Key rowKey, Value rowValue) throws IOException {
     return decodeRow(rowKey, rowValue);
   }
