@@ -26,6 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.Test;
 

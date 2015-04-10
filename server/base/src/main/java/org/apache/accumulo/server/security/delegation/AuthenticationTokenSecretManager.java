@@ -32,8 +32,8 @@ import javax.crypto.SecretKey;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
@@ -152,7 +152,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
 
     final AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier(username, cfg);
 
-    final StringBuilder svcName = new StringBuilder(DelegationToken.SERVICE_NAME);
+    final StringBuilder svcName = new StringBuilder(DelegationTokenImpl.SERVICE_NAME);
     if (null != id.getInstanceId()) {
       svcName.append("-").append(id.getInstanceId());
     }

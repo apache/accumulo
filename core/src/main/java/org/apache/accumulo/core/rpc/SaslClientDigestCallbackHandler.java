@@ -27,7 +27,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.sasl.RealmCallback;
 import javax.security.sasl.RealmChoiceCallback;
 
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ public class SaslClientDigestCallbackHandler extends SaslDigestCallbackHandler {
   private final String userName;
   private final char[] userPassword;
 
-  public SaslClientDigestCallbackHandler(DelegationToken token) {
+  public SaslClientDigestCallbackHandler(DelegationTokenImpl token) {
     checkNotNull(token);
     this.userName = encodeIdentifier(token.getIdentifier().getBytes());
     this.userPassword = encodePassword(token.getPassword());

@@ -21,10 +21,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
@@ -88,7 +88,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     final String principal = UGIAssumingProcessor.rpcPrincipal();
 
     // If we authenticated the user over DIGEST-MD5 and they have a DelegationToken, the principals should match
-    if (SaslMechanism.DIGEST_MD5 == UGIAssumingProcessor.rpcMechanism() && DelegationToken.class.isAssignableFrom(tokenClass)) {
+    if (SaslMechanism.DIGEST_MD5 == UGIAssumingProcessor.rpcMechanism() && DelegationTokenImpl.class.isAssignableFrom(tokenClass)) {
       if (!principal.equals(tcreds.principal)) {
         log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the Accumulo principal {}. Disallowing RPC", principal, tcreds.principal);
         throw new ThriftSecurityException("RPC principal did not match provided Accumulo principal", SecurityErrorCode.BAD_CREDENTIALS);

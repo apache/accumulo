@@ -352,9 +352,8 @@ public interface SecurityOperations {
   Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Obtain a {@link DelegationToken} for use when Kerberos credentials are unavailable (e.g. YARN Jobs)
+   * Obtain a {@link DelegationToken} for use when Kerberos credentials cannot be used (e.g. YARN Jobs)
    *
-   * @return a {@link DelegationToken} for this user
    * @since 1.7.0
    */
   DelegationToken getDelegationToken(DelegationTokenConfig cfg) throws AccumuloException, AccumuloSecurityException;

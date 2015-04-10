@@ -60,7 +60,10 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @param context
    *          the Hadoop context for the configured job
    * @since 1.5.0
+   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
+   *             discourage its use.
    */
+  @Deprecated
   protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
     return FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
   }
@@ -139,7 +142,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
     // get the path of the temporary output file
     final Configuration conf = context.getConfiguration();
-    final AccumuloConfiguration acuConf = getAccumuloConfiguration(context);
+    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = this.getDefaultWorkFile(context, "." + extension);

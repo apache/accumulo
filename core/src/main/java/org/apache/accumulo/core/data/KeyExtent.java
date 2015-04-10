@@ -16,278 +16,193 @@
  */
 package org.apache.accumulo.core.data;
 
-/**
- * keeps track of information needed to identify a tablet
- * apparently, we only need the endKey and not the start as well
- *
- */
-
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+/**
+ * keeps track of information needed to identify a tablet
+ *
+ * @deprecated since 1.7.0 use {@link TabletID}
+ */
+@Deprecated
 public class KeyExtent implements WritableComparable<KeyExtent> {
 
-  private static final WeakHashMap<Text,WeakReference<Text>> tableIds = new WeakHashMap<Text,WeakReference<Text>>();
+  // Wrapping impl.KeyExtent to resuse code. Did not want to extend impl.KeyExtent because any changes to impl.KeyExtent would be reflected in this class.
+  // Wrapping impl.KeyExtent allows the API of this deprecated class to be frozen.
+  private org.apache.accumulo.core.data.impl.KeyExtent wrapped;
 
-  private static Text dedupeTableId(Text tableId) {
-    synchronized (tableIds) {
-      WeakReference<Text> etir = tableIds.get(tableId);
-      if (etir != null) {
-        Text eti = etir.get();
-        if (eti != null) {
-          return eti;
-        }
-      }
-
-      tableId = new Text(tableId);
-      tableIds.put(tableId, new WeakReference<Text>(tableId));
-      return tableId;
-    }
-  }
-
-  private Text textTableId;
-  private Text textEndRow;
-  private Text textPrevEndRow;
-
-  private void check() {
-
-    if (getTableId() == null)
-      throw new IllegalArgumentException("null table id not allowed");
-
-    if (getEndRow() == null || getPrevEndRow() == null)
-      return;
-
-    if (getPrevEndRow().compareTo(getEndRow()) >= 0) {
-      throw new IllegalArgumentException("prevEndRow (" + getPrevEndRow() + ") >= endRow (" + getEndRow() + ")");
-    }
-  }
-
-  /**
-   * Default constructor
-   *
-   */
   public KeyExtent() {
-    this.setTableId(new Text());
-    this.setEndRow(new Text(), false, false);
-    this.setPrevEndRow(new Text(), false, false);
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent();
   }
 
   public KeyExtent(Text table, Text endRow, Text prevEndRow) {
-    this.setTableId(table);
-    this.setEndRow(endRow, false, true);
-    this.setPrevEndRow(prevEndRow, false, true);
-
-    check();
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(table, endRow, prevEndRow);
   }
 
   public KeyExtent(KeyExtent extent) {
-    // extent has already deduped table id, so there is no need to do it again
-    this.textTableId = extent.textTableId;
-    this.setEndRow(extent.getEndRow(), false, true);
-    this.setPrevEndRow(extent.getPrevEndRow(), false, true);
-
-    check();
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(extent.getTableId(), extent.getEndRow(), extent.getPrevEndRow());
   }
 
   public KeyExtent(TKeyExtent tke) {
-    this.setTableId(new Text(ByteBufferUtil.toBytes(tke.table)));
-    this.setEndRow(tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow)), false, false);
-    this.setPrevEndRow(tke.prevEndRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.prevEndRow)), false, false);
-
-    check();
-  }
-
-  /**
-   * Returns a String representing this extent's entry in the Metadata table
-   *
-   */
-  public Text getMetadataEntry() {
-    return getMetadataEntry(getTableId(), getEndRow());
-  }
-
-  public static Text getMetadataEntry(Text tableId, Text endRow) {
-    return MetadataSchema.TabletsSection.getRow(tableId, endRow);
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(tke);
   }
 
   // constructor for loading extents from metadata rows
   public KeyExtent(Text flattenedExtent, Value prevEndRow) {
-    decodeMetadataRow(flattenedExtent);
-
-    // decode the prev row
-    this.setPrevEndRow(decodePrevEndRow(prevEndRow), false, true);
-
-    check();
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(flattenedExtent, prevEndRow);
   }
 
   // recreates an encoded extent from a string representation
   // this encoding is what is stored as the row id of the metadata table
   public KeyExtent(Text flattenedExtent, Text prevEndRow) {
-
-    decodeMetadataRow(flattenedExtent);
-
-    this.setPrevEndRow(null, false, false);
-    if (prevEndRow != null)
-      this.setPrevEndRow(prevEndRow, false, true);
-
-    check();
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(flattenedExtent, prevEndRow);
   }
 
-  /**
-   * Sets the extents table id
-   *
-   */
+  public Text getMetadataEntry() {
+    return wrapped.getMetadataEntry();
+  }
+
   public void setTableId(Text tId) {
-
-    if (tId == null)
-      throw new IllegalArgumentException("null table name not allowed");
-
-    this.textTableId = dedupeTableId(tId);
-
-    hashCode = 0;
+    wrapped.setTableId(tId);
   }
 
-  /**
-   * Returns the extent's table id
-   *
-   */
   public Text getTableId() {
-    return textTableId;
+    return wrapped.getTableId();
   }
 
-  private void setEndRow(Text endRow, boolean check, boolean copy) {
-    if (endRow != null)
-      if (copy)
-        this.textEndRow = new Text(endRow);
-      else
-        this.textEndRow = endRow;
-    else
-      this.textEndRow = null;
-
-    hashCode = 0;
-    if (check)
-      check();
-  }
-
-  /**
-   * Sets this extent's end row
-   *
-   */
   public void setEndRow(Text endRow) {
-    setEndRow(endRow, true, true);
+    wrapped.setEndRow(endRow);
   }
 
-  /**
-   * Returns this extent's end row
-   *
-   */
   public Text getEndRow() {
-    return textEndRow;
+    return wrapped.getEndRow();
   }
 
-  /**
-   * Return the previous extent's end row
-   *
-   */
   public Text getPrevEndRow() {
-    return textPrevEndRow;
+    return wrapped.getPrevEndRow();
   }
 
-  private void setPrevEndRow(Text prevEndRow, boolean check, boolean copy) {
-    if (prevEndRow != null)
-      if (copy)
-        this.textPrevEndRow = new Text(prevEndRow);
-      else
-        this.textPrevEndRow = prevEndRow;
-    else
-      this.textPrevEndRow = null;
-
-    hashCode = 0;
-    if (check)
-      check();
-  }
-
-  /**
-   * Sets the previous extent's end row
-   *
-   */
   public void setPrevEndRow(Text prevEndRow) {
-    setPrevEndRow(prevEndRow, true, true);
+    wrapped.setPrevEndRow(prevEndRow);
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    Text tid = new Text();
-    tid.readFields(in);
-    setTableId(tid);
-    boolean hasRow = in.readBoolean();
-    if (hasRow) {
-      Text er = new Text();
-      er.readFields(in);
-      setEndRow(er, false, false);
-    } else {
-      setEndRow(null, false, false);
-    }
-    boolean hasPrevRow = in.readBoolean();
-    if (hasPrevRow) {
-      Text per = new Text();
-      per.readFields(in);
-      setPrevEndRow(per, false, true);
-    } else {
-      setPrevEndRow((Text) null);
-    }
-
-    hashCode = 0;
-    check();
+    wrapped.readFields(in);
   }
 
   @Override
   public void write(DataOutput out) throws IOException {
-    getTableId().write(out);
-    if (getEndRow() != null) {
-      out.writeBoolean(true);
-      getEndRow().write(out);
-    } else {
-      out.writeBoolean(false);
-    }
-    if (getPrevEndRow() != null) {
-      out.writeBoolean(true);
-      getPrevEndRow().write(out);
-    } else {
-      out.writeBoolean(false);
-    }
+    wrapped.write(out);
   }
 
-  /**
-   * Returns a String representing the previous extent's entry in the Metadata table
-   *
-   */
   public Mutation getPrevRowUpdateMutation() {
-    return getPrevRowUpdateMutation(this);
+    return wrapped.getPrevRowUpdateMutation();
+  }
+
+  @Override
+  public int compareTo(KeyExtent other) {
+    return wrapped.compareTo(other.wrapped);
+  }
+
+  @Override
+  public int hashCode() {
+    return wrapped.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if(o instanceof KeyExtent){
+      return wrapped.equals(((KeyExtent)o).wrapped);
+    }
+
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return wrapped.toString();
+  }
+
+  public UUID getUUID() {
+    return wrapped.getUUID();
+  }
+
+  public boolean contains(ByteSequence bsrow) {
+    return wrapped.contains(bsrow);
+  }
+
+  public boolean contains(BinaryComparable row) {
+    return wrapped.contains(row);
+  }
+
+  public Range toDataRange() {
+    return wrapped.toDataRange();
+  }
+
+  public Range toMetadataRange() {
+    return wrapped.toMetadataRange();
+  }
+
+  public boolean overlaps(KeyExtent other) {
+    return wrapped.overlaps(other.wrapped);
+  }
+
+  public TKeyExtent toThrift() {
+    return wrapped.toThrift();
+  }
+
+  public boolean isPreviousExtent(KeyExtent prevExtent) {
+    return wrapped.isPreviousExtent(prevExtent.wrapped);
+  }
+
+  public boolean isMeta() {
+    return wrapped.isMeta();
+  }
+
+  public boolean isRootTablet() {
+    return wrapped.isRootTablet();
+  }
+
+  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> unwrap(Set<KeyExtent> tablets){
+    SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> trans = new TreeSet<>();
+    for (KeyExtent wrapper : tablets) {
+      trans.add(wrapper.wrapped);
+    }
+
+    return trans;
+  }
+
+  private static KeyExtent wrap(org.apache.accumulo.core.data.impl.KeyExtent ke){
+    return new KeyExtent(ke.getTableId(), ke.getEndRow(), ke.getPrevEndRow());
+  }
+
+  private static SortedSet<KeyExtent> wrap(Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped){
+    SortedSet<KeyExtent> wrapped = new TreeSet<>();
+    for (org.apache.accumulo.core.data.impl.KeyExtent wrappee : unwrapped) {
+      wrapped.add(wrap(wrappee));
+    }
+
+    return wrapped;
+  }
+
+  public static Text getMetadataEntry(Text tableId, Text endRow) {
+    return MetadataSchema.TabletsSection.getRow(tableId, endRow);
   }
 
   /**
@@ -298,468 +213,46 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
    */
   @Deprecated
   public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow, Set<KeyExtent> kes) {
-    if (kes == null)
-      return Collections.emptyList();
-    if (startRow == null)
-      startRow = new Text();
-    if (endRow == null)
-      endRow = new Text();
-    Collection<KeyExtent> keys = new ArrayList<KeyExtent>();
-    for (KeyExtent ckes : kes) {
-      if (ckes.getPrevEndRow() == null) {
-        if (ckes.getEndRow() == null) {
-          // only tablet
-          keys.add(ckes);
-        } else {
-          // first tablet
-          // if start row = '' then we want everything up to the endRow which will always include the first tablet
-          if (startRow.getLength() == 0) {
-            keys.add(ckes);
-          } else if (ckes.getEndRow().compareTo(startRow) >= 0) {
-            keys.add(ckes);
-          }
-        }
-      } else {
-        if (ckes.getEndRow() == null) {
-          // last tablet
-          // if endRow = '' and we're at the last tablet, add it
-          if (endRow.getLength() == 0) {
-            keys.add(ckes);
-          }
-          if (ckes.getPrevEndRow().compareTo(endRow) < 0) {
-            keys.add(ckes);
-          }
-        } else {
-          // tablet in the middle
-          if (startRow.getLength() == 0) {
-            // no start row
-
-            if (endRow.getLength() == 0) {
-              // no start & end row
-              keys.add(ckes);
-            } else {
-              // just no start row
-              if (ckes.getPrevEndRow().compareTo(endRow) < 0) {
-                keys.add(ckes);
-              }
-            }
-          } else if (endRow.getLength() == 0) {
-            // no end row
-            if (ckes.getEndRow().compareTo(startRow) >= 0) {
-              keys.add(ckes);
-            }
-          } else {
-            // no null prevend or endrows and no empty string start or end rows
-            if (ckes.getPrevEndRow().compareTo(endRow) < 0 && ckes.getEndRow().compareTo(startRow) >= 0) {
-              keys.add(ckes);
-            }
-          }
-
-        }
-      }
-    }
-    return keys;
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.getKeyExtentsForRange(startRow, endRow, unwrap(kes)));
   }
 
   public static Text decodePrevEndRow(Value ibw) {
-    Text per = null;
-
-    if (ibw.get()[0] != 0) {
-      per = new Text();
-      per.set(ibw.get(), 1, ibw.get().length - 1);
-    }
-
-    return per;
+    return org.apache.accumulo.core.data.impl.KeyExtent.decodePrevEndRow(ibw);
   }
 
   public static Value encodePrevEndRow(Text per) {
-    if (per == null)
-      return new Value(new byte[] {0});
-    byte[] b = new byte[per.getLength() + 1];
-    b[0] = 1;
-    System.arraycopy(per.getBytes(), 0, b, 1, per.getLength());
-    return new Value(b);
+    return org.apache.accumulo.core.data.impl.KeyExtent.encodePrevEndRow(per);
   }
 
   public static Mutation getPrevRowUpdateMutation(KeyExtent ke) {
-    Mutation m = new Mutation(ke.getMetadataEntry());
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
-    return m;
-  }
-
-  @Override
-  public int compareTo(KeyExtent other) {
-
-    int result = getTableId().compareTo(other.getTableId());
-    if (result != 0)
-      return result;
-
-    if (this.getEndRow() == null) {
-      if (other.getEndRow() != null)
-        return 1;
-    } else {
-      if (other.getEndRow() == null)
-        return -1;
-
-      result = getEndRow().compareTo(other.getEndRow());
-      if (result != 0)
-        return result;
-    }
-    if (this.getPrevEndRow() == null) {
-      if (other.getPrevEndRow() == null)
-        return 0;
-      return -1;
-    }
-    if (other.getPrevEndRow() == null)
-      return 1;
-    return this.getPrevEndRow().compareTo(other.getPrevEndRow());
-  }
-
-  private int hashCode = 0;
-
-  @Override
-  public int hashCode() {
-    if (hashCode != 0)
-      return hashCode;
-
-    int prevEndRowHash = 0;
-    int endRowHash = 0;
-    if (this.getEndRow() != null) {
-      endRowHash = this.getEndRow().hashCode();
-    }
-
-    if (this.getPrevEndRow() != null) {
-      prevEndRowHash = this.getPrevEndRow().hashCode();
-    }
-
-    hashCode = getTableId().hashCode() + endRowHash + prevEndRowHash;
-    return hashCode;
-  }
-
-  private boolean equals(Text t1, Text t2) {
-    if (t1 == null || t2 == null)
-      return t1 == t2;
-
-    return t1.equals(t2);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == this)
-      return true;
-    if (!(o instanceof KeyExtent))
-      return false;
-    KeyExtent oke = (KeyExtent) o;
-    return textTableId.equals(oke.textTableId) && equals(textEndRow, oke.textEndRow) && equals(textPrevEndRow, oke.textPrevEndRow);
-  }
-
-  @Override
-  public String toString() {
-    String endRowString;
-    String prevEndRowString;
-    String tableIdString = getTableId().toString().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
-
-    if (getEndRow() == null)
-      endRowString = "<";
-    else
-      endRowString = ";" + TextUtil.truncate(getEndRow()).toString().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
-
-    if (getPrevEndRow() == null)
-      prevEndRowString = "<";
-    else
-      prevEndRowString = ";" + TextUtil.truncate(getPrevEndRow()).toString().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
-
-    return tableIdString + endRowString + prevEndRowString;
-  }
-
-  public UUID getUUID() {
-    try {
-
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      DataOutputStream dos = new DataOutputStream(baos);
-
-      // to get a unique hash it is important to encode the data
-      // like it is being serialized
-
-      this.write(dos);
-
-      dos.close();
-
-      return UUID.nameUUIDFromBytes(baos.toByteArray());
-
-    } catch (IOException e) {
-      // should not happen since we are writing to memory
-      throw new RuntimeException(e);
-    }
-  }
-
-  // note: this is only the encoding of the table id and the last row, not the prev row
-  /**
-   * Populates the extent's fields based on a flatted extent
-   *
-   */
-  private void decodeMetadataRow(Text flattenedExtent) {
-    int semiPos = -1;
-    int ltPos = -1;
-
-    for (int i = 0; i < flattenedExtent.getLength(); i++) {
-      if (flattenedExtent.getBytes()[i] == ';' && semiPos < 0) {
-        // want the position of the first semicolon
-        semiPos = i;
-      }
-
-      if (flattenedExtent.getBytes()[i] == '<') {
-        ltPos = i;
-      }
-    }
-
-    if (semiPos < 0 && ltPos < 0) {
-      throw new IllegalArgumentException("Metadata row does not contain ; or <  " + flattenedExtent);
-    }
-
-    if (semiPos < 0) {
-
-      if (ltPos != flattenedExtent.getLength() - 1) {
-        throw new IllegalArgumentException("< must come at end of Metadata row  " + flattenedExtent);
-      }
-
-      Text tableId = new Text();
-      tableId.set(flattenedExtent.getBytes(), 0, flattenedExtent.getLength() - 1);
-      this.setTableId(tableId);
-      this.setEndRow(null, false, false);
-    } else {
-
-      Text tableId = new Text();
-      tableId.set(flattenedExtent.getBytes(), 0, semiPos);
-
-      Text endRow = new Text();
-      endRow.set(flattenedExtent.getBytes(), semiPos + 1, flattenedExtent.getLength() - (semiPos + 1));
-
-      this.setTableId(tableId);
-
-      this.setEndRow(endRow, false, false);
-    }
+   return org.apache.accumulo.core.data.impl.KeyExtent.getPrevRowUpdateMutation(ke.wrapped);
   }
 
   public static byte[] tableOfMetadataRow(Text row) {
-    KeyExtent ke = new KeyExtent();
-    ke.decodeMetadataRow(row);
-    return TextUtil.getBytes(ke.getTableId());
-  }
-
-  public boolean contains(final ByteSequence bsrow) {
-    if (bsrow == null) {
-      throw new IllegalArgumentException("Passing null to contains is ambiguous, could be in first or last extent of table");
-    }
-
-    BinaryComparable row = new BinaryComparable() {
-
-      @Override
-      public int getLength() {
-        return bsrow.length();
-      }
-
-      @Override
-      public byte[] getBytes() {
-        if (bsrow.isBackedByArray() && bsrow.offset() == 0)
-          return bsrow.getBackingArray();
-
-        return bsrow.toArray();
-      }
-    };
-
-    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0) && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
-      return true;
-    }
-    return false;
-  }
-
-  public boolean contains(BinaryComparable row) {
-    if (row == null) {
-      throw new IllegalArgumentException("Passing null to contains is ambiguous, could be in first or last extent of table");
-    }
-
-    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0) && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
-      return true;
-    }
-    return false;
-  }
-
-  public Range toDataRange() {
-    return new Range(getPrevEndRow(), false, getEndRow(), true);
-  }
-
-  public Range toMetadataRange() {
-    Text metadataPrevRow = new Text(getTableId());
-    metadataPrevRow.append(new byte[] {';'}, 0, 1);
-    if (getPrevEndRow() != null) {
-      metadataPrevRow.append(getPrevEndRow().getBytes(), 0, getPrevEndRow().getLength());
-    }
-
-    Range range = new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
-    return range;
+    return org.apache.accumulo.core.data.impl.KeyExtent.tableOfMetadataRow(row);
   }
 
   public static SortedSet<KeyExtent> findChildren(KeyExtent ke, SortedSet<KeyExtent> tablets) {
-
-    SortedSet<KeyExtent> children = null;
-
-    for (KeyExtent tabletKe : tablets) {
-
-      if (ke.getPrevEndRow() == tabletKe.getPrevEndRow() || ke.getPrevEndRow() != null && tabletKe.getPrevEndRow() != null
-          && tabletKe.getPrevEndRow().compareTo(ke.getPrevEndRow()) == 0) {
-        children = new TreeSet<KeyExtent>();
-      }
-
-      if (children != null) {
-        children.add(tabletKe);
-      }
-
-      if (ke.getEndRow() == tabletKe.getEndRow() || ke.getEndRow() != null && tabletKe.getEndRow() != null
-          && tabletKe.getEndRow().compareTo(ke.getEndRow()) == 0) {
-        return children;
-      }
-    }
-
-    return new TreeSet<KeyExtent>();
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findChildren(ke.wrapped, unwrap(tablets)));
   }
 
   public static KeyExtent findContainingExtent(KeyExtent extent, SortedSet<KeyExtent> extents) {
-
-    KeyExtent lookupExtent = new KeyExtent(extent);
-    lookupExtent.setPrevEndRow((Text) null);
-
-    SortedSet<KeyExtent> tailSet = extents.tailSet(lookupExtent);
-
-    if (tailSet.isEmpty()) {
-      return null;
-    }
-
-    KeyExtent first = tailSet.first();
-
-    if (first.getTableId().compareTo(extent.getTableId()) != 0) {
-      return null;
-    }
-
-    if (first.getPrevEndRow() == null) {
-      return first;
-    }
-
-    if (extent.getPrevEndRow() == null) {
-      return null;
-    }
-
-    if (extent.getPrevEndRow().compareTo(first.getPrevEndRow()) >= 0)
-      return first;
-    return null;
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findContainingExtent(extent.wrapped, unwrap(extents)));
   }
 
-  private static boolean startsAfter(KeyExtent nke, KeyExtent ke) {
-
-    int tiCmp = ke.getTableId().compareTo(nke.getTableId());
-
-    if (tiCmp > 0) {
-      return true;
-    }
-
-    return ke.getPrevEndRow() != null && nke.getEndRow() != null && ke.getPrevEndRow().compareTo(nke.getEndRow()) >= 0;
-  }
-
-  private static Text rowAfterPrevRow(KeyExtent nke) {
-    Text row = new Text(nke.getPrevEndRow());
-    row.append(new byte[] {0}, 0, 1);
-    return row;
-  }
-
-  // Some duplication with TabletLocatorImpl
   public static Set<KeyExtent> findOverlapping(KeyExtent nke, SortedSet<KeyExtent> extents) {
-    if (nke == null || extents == null || extents.isEmpty())
-      return Collections.emptySet();
-
-    SortedSet<KeyExtent> start;
-
-    if (nke.getPrevEndRow() != null) {
-      Text row = rowAfterPrevRow(nke);
-      KeyExtent lookupKey = new KeyExtent(nke.getTableId(), row, null);
-      start = extents.tailSet(lookupKey);
-    } else {
-      KeyExtent lookupKey = new KeyExtent(nke.getTableId(), new Text(), null);
-      start = extents.tailSet(lookupKey);
-    }
-
-    TreeSet<KeyExtent> result = new TreeSet<KeyExtent>();
-    for (KeyExtent ke : start) {
-      if (startsAfter(nke, ke)) {
-        break;
-      }
-      result.add(ke);
-    }
-    return result;
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findOverlapping(nke.wrapped, unwrap(extents)));
   }
 
-  public boolean overlaps(KeyExtent other) {
-    SortedSet<KeyExtent> set = new TreeSet<KeyExtent>();
-    set.add(other);
-    return !findOverlapping(this, set).isEmpty();
-  }
-
-  // Specialization of findOverlapping(KeyExtent, SortedSet<KeyExtent> to work with SortedMap
   public static Set<KeyExtent> findOverlapping(KeyExtent nke, SortedMap<KeyExtent,?> extents) {
-    if (nke == null || extents == null || extents.isEmpty())
-      return Collections.emptySet();
-
-    SortedMap<KeyExtent,?> start;
-
-    if (nke.getPrevEndRow() != null) {
-      Text row = rowAfterPrevRow(nke);
-      KeyExtent lookupKey = new KeyExtent(nke.getTableId(), row, null);
-      start = extents.tailMap(lookupKey);
-    } else {
-      KeyExtent lookupKey = new KeyExtent(nke.getTableId(), new Text(), null);
-      start = extents.tailMap(lookupKey);
+    SortedMap<org.apache.accumulo.core.data.impl.KeyExtent,Object> trans = new TreeMap<>();
+    for(Entry<KeyExtent, ?> entry : extents.entrySet()){
+      trans.put(entry.getKey().wrapped, entry.getValue());
     }
 
-    TreeSet<KeyExtent> result = new TreeSet<KeyExtent>();
-    for (Entry<KeyExtent,?> entry : start.entrySet()) {
-      KeyExtent ke = entry.getKey();
-      if (startsAfter(nke, ke)) {
-        break;
-      }
-      result.add(ke);
-    }
-    return result;
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findOverlapping(nke.wrapped, trans));
   }
-
   public static Text getMetadataEntry(KeyExtent extent) {
-    return getMetadataEntry(extent.getTableId(), extent.getEndRow());
-  }
-
-  public TKeyExtent toThrift() {
-    return new TKeyExtent(TextUtil.getByteBuffer(textTableId), textEndRow == null ? null : TextUtil.getByteBuffer(textEndRow), textPrevEndRow == null ? null
-        : TextUtil.getByteBuffer(textPrevEndRow));
-  }
-
-  public boolean isPreviousExtent(KeyExtent prevExtent) {
-    if (prevExtent == null)
-      return getPrevEndRow() == null;
-
-    if (!prevExtent.getTableId().equals(getTableId()))
-      throw new IllegalArgumentException("Cannot compare accross tables " + prevExtent + " " + this);
-
-    if (prevExtent.getEndRow() == null)
-      return false;
-
-    if (getPrevEndRow() == null)
-      return false;
-
-    return prevExtent.getEndRow().equals(getPrevEndRow());
-  }
-
-  public boolean isMeta() {
-    return getTableId().toString().equals(MetadataTable.ID) || isRootTablet();
-  }
-
-  public boolean isRootTablet() {
-    return getTableId().toString().equals(RootTable.ID);
+    return org.apache.accumulo.core.data.impl.KeyExtent.getMetadataEntry(extent.wrapped);
   }
 }

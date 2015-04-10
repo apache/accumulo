@@ -24,7 +24,9 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.impl.TabletIDImpl;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 
 /**
@@ -43,12 +45,21 @@ public class ActiveCompactionImpl extends ActiveCompaction {
 
   @Override
   public String getTable() throws TableNotFoundException {
-    return Tables.getTableName(instance, getExtent().getTableId().toString());
+    return Tables.getTableName(instance, new KeyExtent(tac.getExtent()).getTableId().toString());
+  }
+
+
+  @Override
+  @Deprecated
+  public org.apache.accumulo.core.data.KeyExtent getExtent() {
+    KeyExtent ke = new KeyExtent(tac.getExtent());
+    org.apache.accumulo.core.data.KeyExtent oke = new org.apache.accumulo.core.data.KeyExtent(ke.getTableId(), ke.getEndRow(), ke.getPrevEndRow());
+    return oke;
   }
 
   @Override
-  public KeyExtent getExtent() {
-    return new KeyExtent(tac.getExtent());
+  public TabletID getTablet() {
+    return new TabletIDImpl(new KeyExtent(tac.getExtent()));
   }
 
   @Override

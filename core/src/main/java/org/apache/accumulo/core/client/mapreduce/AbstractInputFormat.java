@@ -41,7 +41,11 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -56,13 +60,11 @@ import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -91,9 +93,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> For {@link PasswordToken}, the serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure. This is not the case for {@link KerberosToken} and the corresponding
-   * {@link DelegationToken} acquired using the KerberosToken.
+   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the configuration as a means to pass the token to MapReduce tasks. This
+   * information is BASE64 encoded to provide a charset safe conversion to a string, but this conversion is not intended to be secure. {@link PasswordToken} is
+   * one example that is insecure in this way; however {@link DelegationToken}s, acquired using
+   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this concern.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -115,8 +118,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       }
     }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in the configuration
-    if (token instanceof DelegationToken) {
-      DelegationToken delegationToken = (DelegationToken) token;
+    if (token instanceof DelegationTokenImpl) {
+      DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
 
       // Convert it into a Hadoop Token
       AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
@@ -360,7 +363,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @throws org.apache.accumulo.core.client.TableNotFoundException
    *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
+   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
+   *              discourage its use.
    */
+  @Deprecated
   protected static TabletLocator getTabletLocator(JobContext context, String table) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), table);
   }
@@ -714,7 +720,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
           }
         } else {
-          tl = getTabletLocator(context, tableId);
+          tl = InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), tableId);
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
 

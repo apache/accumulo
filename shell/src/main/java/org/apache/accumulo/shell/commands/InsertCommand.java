@@ -32,8 +32,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletID;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -107,10 +107,10 @@ public class InsertCommand extends Command {
       bw.close();
     } catch (MutationsRejectedException e) {
       final ArrayList<String> lines = new ArrayList<String>();
-      if (e.getAuthorizationFailuresMap().isEmpty() == false) {
+      if (e.getSecurityErrorCodes().isEmpty() == false) {
         lines.add("\tAuthorization Failures:");
       }
-      for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailuresMap().entrySet()) {
+      for (Entry<TabletID,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes().entrySet()) {
         lines.add("\t\t" + entry);
       }
       if (e.getConstraintViolationSummaries().isEmpty() == false) {

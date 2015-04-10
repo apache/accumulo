@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.security.Authorizations;

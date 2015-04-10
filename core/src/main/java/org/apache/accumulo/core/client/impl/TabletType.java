@@ -18,7 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.Collection;
 
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public enum TabletType {
   ROOT, METADATA, USER;

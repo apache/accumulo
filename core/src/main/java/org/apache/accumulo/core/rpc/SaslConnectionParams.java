@@ -30,8 +30,8 @@ import javax.security.sasl.Sasl;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -150,9 +150,9 @@ public class SaslConnectionParams {
       mechanism = SaslMechanism.GSSAPI;
       // No callbackhandlers necessary for GSSAPI
       callbackHandler = null;
-    } else if (token instanceof DelegationToken) {
+    } else if (token instanceof DelegationTokenImpl) {
       mechanism = SaslMechanism.DIGEST_MD5;
-      callbackHandler = new SaslClientDigestCallbackHandler((DelegationToken) token);
+      callbackHandler = new SaslClientDigestCallbackHandler((DelegationTokenImpl) token);
     } else {
       throw new IllegalArgumentException("Cannot determine SASL mechanism for token class: " + token.getClass());
     }
