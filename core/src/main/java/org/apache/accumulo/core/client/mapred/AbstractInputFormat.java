@@ -394,7 +394,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     /**
      * Extracts Iterators settings from the context to be used by RecordReader.
-     
+     *
      * @param job
      *          the Hadoop job configuration
      * @param tableName
@@ -403,7 +403,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @since 1.7.0
      */
     protected abstract List<IteratorSetting> jobIterators(JobConf job, String tableName);
-    
+
     /**
      * Configures the iterators on a scanner for the given table name.
      *
@@ -417,7 +417,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      */
     private void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
       List<IteratorSetting> iterators = null;
-      
+
       if (null == split) {
         iterators = jobIterators(job, tableName);
       } else {
