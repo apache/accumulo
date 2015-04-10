@@ -297,8 +297,16 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**
    * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
-   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
-   *
+   * Using this feature will group Ranges by their source tablet, producing an InputSplit per tablet
+   * rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges.
+   * (ex: when doing quad-tree decomposition for spatial queries)
+   * <p>
+   * This configuration is incompatible with:
+   * <ul>
+   *   <li>{@link #setOfflineTableScan(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   *   <li>{@link #setLocalIterators(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   *   <li>{@link #setScanIsolation(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * </ul>
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
