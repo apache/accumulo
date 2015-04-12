@@ -197,11 +197,11 @@ public class Mutation implements Writable {
    * called previously. Otherwise, this.data will be returned since the buffer is
    * null and will not change.
    */
-  private byte[] serializedSnapshot() {
+  private java.nio.ByteBuffer serializedSnapshot() {
     if (buffer != null) {
-      return buffer.toArray();
+      return java.nio.ByteBuffer.wrap(this.buffer.data, 0, this.buffer.offset);
     } else {
-      return this.data;
+      return java.nio.ByteBuffer.wrap(this.data);
     }
   }
 
@@ -709,9 +709,9 @@ public class Mutation implements Writable {
   }
 
   public boolean equals(Mutation m) {
-    byte[] myData = serializedSnapshot();
-    byte[] otherData = m.serializedSnapshot();
-    if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(myData, otherData)) {
+    java.nio.ByteBuffer myData = serializedSnapshot();
+    java.nio.ByteBuffer otherData = m.serializedSnapshot();
+    if (Arrays.equals(row, m.row) && entries == m.entries && myData.equals(otherData)) {
       if (values == null && m.values == null)
         return true;
 
@@ -729,19 +729,25 @@ public class Mutation implements Writable {
     return false;
   }
 
+  /**
+   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object
+   * containing this Mutation's data.
+   *
+   * Note that this method will move the Mutation into a "serialized" state
+   * that will prevent users from adding more data via Mutation#put().
+   *
+   * @return a thrift form of this Mutation
+   */
   public TMutation toThrift() {
     return toThrift(true);
   }
 
   private TMutation toThrift(boolean serialize) {
-    byte[] data;
     if (serialize) {
       this.serialize();
-      data = this.data;
-    } else {
-      data = serializedSnapshot();
     }
-    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
+    java.nio.ByteBuffer data = serializedSnapshot();
+    return new TMutation(java.nio.ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
   }
 
   protected SERIALIZED_FORMAT getSerializedFormat() {
