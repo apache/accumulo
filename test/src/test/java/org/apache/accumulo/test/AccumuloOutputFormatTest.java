@@ -141,9 +141,7 @@ public class AccumuloOutputFormatTest {
     OutputConfigurator.setBatchWriterOptions(org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class, job, batchConfig);
     org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat outputFormat = new org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat();
     org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job, accumulo.getInstanceName(), accumulo.getZooKeepers());
-    
     Job stubbedJob = new Job(job);
-    
     org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(stubbedJob, "root", new PasswordToken(secret));
     TaskAttemptContext context = new TaskAttemptContext(stubbedJob.getConfiguration(),new TaskAttemptID());
     org.apache.hadoop.mapreduce.RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(context);
