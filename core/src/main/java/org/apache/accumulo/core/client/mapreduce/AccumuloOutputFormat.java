@@ -482,6 +482,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         if (e.getConstraintViolationSummaries().size() > 0) {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
+        throw new IOException(e);
       }
     }
   }
