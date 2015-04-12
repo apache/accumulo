@@ -76,11 +76,6 @@ public class AccumuloOutputFormatTest {
     accumulo.stop();
     folder.delete();
   }
-  
-  protected void writeToTable()
-  {
-    
-  }
 
   @Test(expected = IOException.class)
   public void testMapred() throws Exception {
@@ -143,7 +138,7 @@ public class AccumuloOutputFormatTest {
     org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job, accumulo.getInstanceName(), accumulo.getZooKeepers());
     Job stubbedJob = new Job(job);
     org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(stubbedJob, "root", new PasswordToken(secret));
-    TaskAttemptContext context = new TaskAttemptContext(stubbedJob.getConfiguration(),new TaskAttemptID());
+    TaskAttemptContext context = new TaskAttemptContext(stubbedJob.getConfiguration(), new TaskAttemptID());
     org.apache.hadoop.mapreduce.RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(context);
 
     try {
