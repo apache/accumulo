@@ -19,6 +19,7 @@ package org.apache.accumulo.core.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -103,11 +104,11 @@ public class Mutation implements Writable {
    * called previously. Otherwise, this.data will be returned since the buffer is
    * null and will not change.
    */
-  private byte[] serializedSnapshot() {
+  private ByteBuffer serializedSnapshot() {
     if (buffer != null) {
-      return buffer.toArray();
+      return this.buffer.toByteBuffer();
     } else {
-      return this.data;
+      return ByteBuffer.wrap(this.data);
     }
   }
 
@@ -1115,9 +1116,9 @@ public class Mutation implements Writable {
   }
 
   private boolean equalMutation(Mutation m) {
-    byte[] myData = serializedSnapshot();
-    byte[] otherData = m.serializedSnapshot();
-    if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(myData, otherData)) {
+    ByteBuffer myData = serializedSnapshot();
+    ByteBuffer otherData = m.serializedSnapshot();
+    if (Arrays.equals(row, m.row) && entries == m.entries && myData.equals(otherData)) {
       // If two mutations don't have the same
       if (!replicationSources.equals(m.replicationSources)) {
         return false;
@@ -1140,23 +1141,24 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Converts this mutation to Thrift.
+   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object
+   * containing this Mutation's data.
    *
-   * @return Thrift mutation
+   * Note that this method will move the Mutation into a "serialized" state
+   * that will prevent users from adding more data via Mutation#put().
+   *
+   * @return a thrift form of this Mutation
    */
   public TMutation toThrift() {
     return toThrift(true);
   }
 
   private TMutation toThrift(boolean serialize) {
-    byte[] data;
     if (serialize) {
       this.serialize();
-      data = this.data;
-    } else {
-      data = serializedSnapshot();
     }
-    TMutation tmutation = new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
+    ByteBuffer data = serializedSnapshot();
+    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
     if (!this.replicationSources.isEmpty()) {
       tmutation.setSources(new ArrayList<>(replicationSources));
     }
