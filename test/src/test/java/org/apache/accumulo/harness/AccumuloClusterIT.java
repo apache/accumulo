@@ -169,7 +169,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
 
           // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
-          Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab()));
+          Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab(), true));
 
           // Then, log back in as the "root" user and do the grant
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());

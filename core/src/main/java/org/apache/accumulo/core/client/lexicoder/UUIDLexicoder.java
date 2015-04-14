@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
-import org.apache.accumulo.core.iterators.ValueFormatException;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * A lexicoder for a UUID that maintains its lexicographic sorting order.
@@ -34,6 +34,8 @@ import java.util.UUID;
 public class UUIDLexicoder extends AbstractLexicoder<UUID> implements Lexicoder<UUID> {
 
   /**
+   * {@inheritDoc}
+   *
    * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace, "Rules for Lexical Equivalence" in
    *      Section 3.</a>
    */

@@ -30,7 +30,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * An input stream that reads file data stored in one or more Accumulo values. Used by {@link ChunkInputFormat} to present input streams to a mapper.
  */
@@ -178,6 +177,7 @@ public class ChunkInputStream extends InputStream {
     return currentVis;
   }
 
+  @Override
   public int read() throws IOException {
     if (source == null)
       return -1;

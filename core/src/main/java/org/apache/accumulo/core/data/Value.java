@@ -259,7 +259,9 @@ public class Value implements WritableComparable<Object> {
    * @param array
    *          list of byte arrays
    * @return two-dimensional byte array containing one given byte array per row
+   * @deprecated since 1.7.0; this utility method is not appropriate for the {@link Value} object
    */
+  @Deprecated
   public static byte[][] toArray(final List<byte[]> array) {
     // List#toArray doesn't work on lists of byte [].
     byte[][] results = new byte[array.size()][];

@@ -131,11 +131,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     this.context = context;
   }
 
-  /**
-   * Retrieve a list of tables in Accumulo.
-   *
-   * @return List of tables in accumulo
-   */
   @Override
   public SortedSet<String> list() {
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of tables...");
@@ -144,13 +139,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return tableNames;
   }
 
-  /**
-   * A method to check if a table exists in Accumulo.
-   *
-   * @param tableName
-   *          the name of the table
-   * @return true if the table exists
-   */
   @Override
   public boolean exists(String tableName) {
     checkArgument(tableName != null, "tableName is null");
@@ -163,43 +151,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return exists;
   }
 
-  /**
-   * Create a table with no special configuration
-   *
-   * @param tableName
-   *          the name of the table
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableExistsException
-   *           if the table already exists
-   */
   @Override
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, new NewTableConfiguration());
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param limitVersion
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
-   */
   @Override
   @Deprecated
   public void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, limitVersion, TimeType.MILLIS);
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param timeType
-   *          specifies logical or real-time based time recording for entries in the table
-   * @param limitVersion
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
-   */
   @Override
   @Deprecated
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
@@ -214,14 +176,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       create(tableName, ntc.withoutDefaultIterators());
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param ntc
-   *          specifies the new table's configuration. It determines whether the versioning iterator is enabled or disabled, logical or real-time based time
-   *          recording for entries in the table
-   *
-   */
   @Override
   public void create(String tableName, NewTableConfiguration ntc) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
@@ -417,18 +371,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param partitionKeys
-   *          a sorted set of row key values to pre-split the table on
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableNotFoundException
-   *           if the table does not exist
-   */
   @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     String tableId = Tables.getTableId(context.getInstance(), tableName);
@@ -576,11 +518,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @return the split points (end-row names) for the table's current split profile
-   */
   @Override
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException {
 
@@ -631,13 +568,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param maxSplits
-   *          specifies the maximum number of splits to return
-   * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
-   */
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException {
     Collection<Text> endRows = listSplits(tableName);
@@ -673,18 +603,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * Delete a table
-   *
-   * @param tableName
-   *          the name of the table
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableNotFoundException
-   *           if the table does not exist
-   */
   @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -734,22 +652,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     doTableFateOperation(newTableName, AccumuloException.class, FateOperation.TABLE_CLONE, args, opts);
   }
 
-  /**
-   * Rename a table
-   *
-   * @param oldTableName
-   *          the old table name
-   * @param newTableName
-   *          the new table name
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableNotFoundException
-   *           if the old table name does not exist
-   * @throws TableExistsException
-   *           if the new table name already exists
-   */
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
@@ -759,9 +661,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     doTableFateOperation(oldTableName, TableNotFoundException.class, FateOperation.TABLE_RENAME, args, opts);
   }
 
-  /**
-   * @deprecated since 1.4 {@link #flush(String, Text, Text, boolean)}
-   */
   @Override
   @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
@@ -772,16 +671,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * Flush a table
-   *
-   * @param tableName
-   *          the name of the table
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   */
   @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -922,20 +811,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * Sets a property on a table
-   *
-   * @param tableName
-   *          the name of the table
-   * @param property
-   *          the name of a per-table property
-   * @param value
-   *          the value to set a per-table property to
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   */
   @Override
   public void setProperty(final String tableName, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
@@ -953,18 +828,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * Removes a property from a table
-   *
-   * @param tableName
-   *          the name of the table
-   * @param property
-   *          the name of a per-table property
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   */
   @Override
   public void removeProperty(final String tableName, final String property) throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
@@ -981,15 +844,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * Gets properties of a table
-   *
-   * @param tableName
-   *          the name of the table
-   * @return all properties visible by this table (system and per-table properties)
-   * @throws TableNotFoundException
-   *           if the table does not exist
-   */
   @Override
   public Iterable<Entry<String,String>> getProperties(final String tableName) throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -1017,20 +871,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   }
 
-  /**
-   * Sets a tables locality groups. A tables locality groups can be changed at any time.
-   *
-   * @param tableName
-   *          the name of the table
-   * @param groups
-   *          mapping of locality group names to column families in the locality group
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableNotFoundException
-   *           if the table does not exist
-   */
   @Override
   public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
@@ -1075,18 +915,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   *
-   * Gets the locality groups currently set for a table.
-   *
-   * @param tableName
-   *          the name of the table
-   * @return mapping of locality group names to column families in the locality group
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws TableNotFoundException
-   *           if the table does not exist
-   */
   @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException {
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
@@ -1107,21 +935,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return groups2;
   }
 
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param range
-   *          a range to split
-   * @param maxSplits
-   *          the maximum number of splits
-   * @return the range, split into smaller ranges that fall on boundaries of the table's split points as evenly as possible
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableNotFoundException
-   *           if the table does not exist
-   */
   @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
@@ -1370,15 +1183,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     offline(tableName, false);
   }
 
-  /**
-   *
-   * @param tableName
-   *          the table to take offline
-   * @throws AccumuloException
-   *           when there is a general accumulo error
-   * @throws AccumuloSecurityException
-   *           when the user does not have the proper permissions
-   */
   @Override
   public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
@@ -1403,15 +1207,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     online(tableName, false);
   }
 
-  /**
-   *
-   * @param tableName
-   *          the table to take online
-   * @throws AccumuloException
-   *           when there is a general accumulo error
-   * @throws AccumuloSecurityException
-   *           when the user does not have the proper permissions
-   */
   @Override
   public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -1430,14 +1225,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       waitForTableStateTransition(tableId, TableState.ONLINE);
   }
 
-  /**
-   * Clears the tablet locator cache for a specified table
-   *
-   * @param tableName
-   *          the name of the table
-   * @throws TableNotFoundException
-   *           if table does not exist
-   */
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -1445,11 +1232,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     tabLocator.invalidateCache();
   }
 
-  /**
-   * Get a mapping of table name to internal table id.
-   *
-   * @return the map from table name to internal table id
-   */
   @Override
   public Map<String,String> tableIdMap() {
     return Tables.getNameToIdMap(context.getInstance());

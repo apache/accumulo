@@ -61,17 +61,18 @@ public class ReplicationUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationUtil.class);
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
-  private ZooCache zooCache;
-
   private final AccumuloServerContext context;
+  private final ZooCache zooCache;
+  private final ReplicaSystemFactory factory;
 
   public ReplicationUtil(AccumuloServerContext context) {
-    this(context, new ZooCache());
+    this(context, new ZooCache(), new ReplicaSystemFactory());
   }
 
-  public ReplicationUtil(AccumuloServerContext context, ZooCache cache) {
+  public ReplicationUtil(AccumuloServerContext context, ZooCache cache, ReplicaSystemFactory factory) {
     this.zooCache = cache;
     this.context = context;
+    this.factory = factory;
   }
 
   public int getMaxReplicationThreads(MasterMonitorInfo mmi) {
@@ -96,17 +97,18 @@ public class ReplicationUtil {
     for (Entry<String,String> property : context.getConfiguration().getAllPropertiesWithPrefix(Property.REPLICATION_PEERS).entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
+      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())
+          && !key.startsWith(Property.REPLICATION_PEER_KEYTAB.getKey())) {
         String peerName = property.getKey().substring(Property.REPLICATION_PEERS.getKey().length());
-        ReplicaSystem replica;
+        Entry<String,String> entry;
         try {
-          replica = ReplicaSystemFactory.get(property.getValue());
+          entry = factory.parseReplicaSystemConfiguration(property.getValue());
         } catch (Exception e) {
           log.warn("Could not instantiate ReplicaSystem for {} with configuration {}", property.getKey(), property.getValue(), e);
           continue;
         }
 
-        peers.put(peerName, replica.getClass().getName());
+        peers.put(peerName, entry.getKey());
       }
     }
 

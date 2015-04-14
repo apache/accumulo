@@ -74,7 +74,7 @@ public class NumSummationTest {
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
       assertTrue(la.length == 0);
     } catch (Exception e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       assertTrue(false);
     }
   }

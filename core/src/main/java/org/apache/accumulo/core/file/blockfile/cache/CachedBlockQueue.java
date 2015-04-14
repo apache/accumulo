@@ -115,6 +115,7 @@ public class CachedBlockQueue implements HeapSize {
    *
    * @return size of all elements currently in queue, in bytes
    */
+  @Override
   public long heapSize() {
     return heapSize;
   }

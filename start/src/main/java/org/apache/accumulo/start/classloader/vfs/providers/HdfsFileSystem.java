@@ -49,17 +49,11 @@ public class HdfsFileSystem extends AbstractFileSystem {
     super(rootName, null, fileSystemOptions);
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#addCapabilities(java.util.Collection)
-   */
   @Override
   protected void addCapabilities(final Collection<Capability> capabilities) {
     capabilities.addAll(HdfsFileProvider.CAPABILITIES);
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#close()
-   */
   @Override
   synchronized public void close() {
     try {
@@ -72,17 +66,11 @@ public class HdfsFileSystem extends AbstractFileSystem {
     super.close();
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#createFile(org.apache.commons.vfs2.provider.AbstractFileName)
-   */
   @Override
   protected FileObject createFile(final AbstractFileName name) throws Exception {
     throw new FileSystemException("Operation not supported");
   }
 
-  /**
-   * @see org.apache.commons.vfs2.provider.AbstractFileSystem#resolveFile(org.apache.commons.vfs2.FileName)
-   */
   @Override
   public FileObject resolveFile(final FileName name) throws FileSystemException {
 

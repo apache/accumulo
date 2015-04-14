@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.Range;
  * If you want to lookup a few ranges and expect those ranges to contain a lot of data, then use the Scanner instead. Also, the Scanner will return data in
  * sorted order, this will not.
  */
-
 public interface BatchScanner extends ScannerBase {
 
   /**
@@ -41,22 +40,15 @@ public interface BatchScanner extends ScannerBase {
    */
   void setRanges(Collection<Range> ranges);
 
-  /**
-   * Cleans up and finalizes the scanner
-   */
+  @Override
   void close();
 
   /**
-   * Sets a timeout threshold for a server to respond. The batch scanner will accomplish as much work as possible before throwing an exception. BatchScanner
-   * iterators will throw a {@link TimedOutException} when all needed servers timeout. Setting the timeout to zero or Long.MAX_VALUE and TimeUnit.MILLISECONDS
-   * means no timeout.
+   * {@inheritDoc}
    *
    * <p>
-   * If not set, there is not timeout. The BatchScanner will retry forever.
-   *
-   * @param timeUnit
-   *          determines how timeout is interpreted
-   * @since 1.5.0
+   * The batch scanner will accomplish as much work as possible before throwing an exception. BatchScanner iterators will throw a {@link TimedOutException} when
+   * all needed servers timeout.
    */
   @Override
   void setTimeout(long timeout, TimeUnit timeUnit);

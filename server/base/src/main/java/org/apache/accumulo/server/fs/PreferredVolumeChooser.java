@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -36,6 +35,8 @@ import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Predicate;
 
 /**
  * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset of those options preferred for a particular table. Defaults
@@ -47,9 +48,9 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
 
   public static final String PREFERRED_VOLUMES_CUSTOM_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "preferredVolumes";
   // TODO ACCUMULO-3417 replace this with the ability to retrieve by String key.
-  private static final PropertyFilter PREFERRED_VOLUMES_FILTER = new PropertyFilter() {
+  private static final Predicate<String> PREFERRED_VOLUMES_FILTER = new Predicate<String>() {
     @Override
-    public boolean accept(String key) {
+    public boolean apply(String key) {
       return PREFERRED_VOLUMES_CUSTOM_KEY.equals(key);
     }
   };

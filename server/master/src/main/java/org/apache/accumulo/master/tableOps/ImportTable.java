@@ -169,7 +169,7 @@ class MoveExportedFiles extends MasterRepo {
 
       return new FinishImportTable(tableInfo);
     } catch (IOException ioe) {
-      log.warn(ioe.getMessage(), ioe);
+      log.warn("{}", ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error renaming files " + ioe.getMessage());
     }
@@ -303,7 +303,7 @@ class PopulateMetadataTable extends MasterRepo {
 
       return new MoveExportedFiles(tableInfo);
     } catch (IOException ioe) {
-      log.warn(ioe.getMessage(), ioe);
+      log.warn("{}", ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading " + path + " " + ioe.getMessage());
     } finally {
@@ -397,7 +397,7 @@ class MapImportFileNames extends MasterRepo {
 
       return new PopulateMetadataTable(tableInfo);
     } catch (IOException ioe) {
-      log.warn(ioe.getMessage(), ioe);
+      log.warn("{}", ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error writing mapping file " + path + " " + ioe.getMessage());
     } finally {
@@ -538,7 +538,7 @@ class ImportSetupPermissions extends MasterRepo {
       try {
         security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
+        LoggerFactory.getLogger(ImportSetupPermissions.class).error("{}", e.getMessage(), e);
         throw e;
       }
     }
@@ -617,7 +617,7 @@ public class ImportTable extends MasterRepo {
         }
       }
     } catch (IOException ioe) {
-      log.warn(ioe.getMessage(), ioe);
+      log.warn("{}", ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Failed to read export metadata " + ioe.getMessage());
     }

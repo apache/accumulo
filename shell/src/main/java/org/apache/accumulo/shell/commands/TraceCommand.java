@@ -34,6 +34,7 @@ import org.apache.hadoop.io.Text;
 
 public class TraceCommand extends DebugCommand {
 
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {

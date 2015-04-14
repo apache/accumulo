@@ -33,6 +33,7 @@ import org.apache.hadoop.io.WritableUtils;
 public class NumSummation implements Aggregator {
   long sum = 0l;
 
+  @Override
   public Value aggregate() {
     try {
       return new Value(NumSummation.longToBytes(sum));
@@ -41,6 +42,7 @@ public class NumSummation implements Aggregator {
     }
   }
 
+  @Override
   public void collect(Value value) {
     long l;
     try {
@@ -81,6 +83,7 @@ public class NumSummation implements Aggregator {
     return a + b;
   }
 
+  @Override
   public void reset() {
     sum = 0l;
   }

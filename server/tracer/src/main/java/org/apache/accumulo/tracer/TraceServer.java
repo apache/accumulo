@@ -360,7 +360,7 @@ public class TraceServer implements Watcher {
         if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
           return;
       } catch (Exception ex) {
-        log.error(ex.getMessage(), ex);
+        log.error("{}", ex.getMessage(), ex);
       }
       log.warn("Trace server unable to reset watch on zookeeper registration");
       server.stop();

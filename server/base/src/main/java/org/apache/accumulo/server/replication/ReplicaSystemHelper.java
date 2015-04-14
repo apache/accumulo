@@ -20,19 +20,19 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  *
@@ -40,12 +40,11 @@ import org.slf4j.LoggerFactory;
 public class ReplicaSystemHelper {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemHelper.class);
 
-  private Instance inst;
-  private Credentials creds;
+  private ClientContext context;
 
-  public ReplicaSystemHelper(Instance inst, Credentials creds) {
-    this.inst = inst;
-    this.creds = creds;
+  public ReplicaSystemHelper(ClientContext context) {
+    Preconditions.checkNotNull(context);
+    this.context = context;
   }
 
   /**
@@ -60,8 +59,7 @@ public class ReplicaSystemHelper {
    */
   public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = context.getConnector().createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     try {
       log.debug("Recording new status for {}, {}", filePath.toString(), ProtobufUtil.toString(status));
       Mutation m = new Mutation(filePath.toString());

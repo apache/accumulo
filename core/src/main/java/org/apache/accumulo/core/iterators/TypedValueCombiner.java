@@ -105,7 +105,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   }
 
   /**
-   * An interface for translating from byte[] to V and back.
+   * An interface for translating from byte[] to V and back. Decodes the entire contents of the byte array.
    */
   public interface Encoder<V> {
     byte[] encode(V v);

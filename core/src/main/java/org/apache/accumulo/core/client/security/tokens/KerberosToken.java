@@ -65,13 +65,20 @@ public class KerberosToken implements AuthenticationToken {
    *          The Kerberos principal
    * @param keytab
    *          A keytab file
+   * @param replaceCurrentUser
+   *          Should the current Hadoop user be replaced with this user
    */
-  public KerberosToken(String principal, File keytab) throws IOException {
+  public KerberosToken(String principal, File keytab, boolean replaceCurrentUser) throws IOException {
     Preconditions.checkNotNull(principal, "Principal was null");
     Preconditions.checkNotNull(keytab, "Keytab was null");
     Preconditions.checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
-    UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    UserGroupInformation ugi;
+    if (replaceCurrentUser) {
+      UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
+      ugi = UserGroupInformation.getCurrentUser();
+    } else {
+      ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
+    }
     this.principal = ugi.getUserName();
     this.keytab = keytab;
   }

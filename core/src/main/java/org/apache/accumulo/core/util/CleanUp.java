@@ -55,7 +55,7 @@ public class CleanUp {
           try {
             Thread.sleep(100);
           } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
+            log.error("{}", e.getMessage(), e);
           }
         }
       }

@@ -241,12 +241,6 @@ public class InputTableConfig implements Writable {
     return useIsolatedScanners;
   }
 
-  /**
-   * Writes the state for the current object out to the specified {@link DataOutput}
-   *
-   * @param dataOutput
-   *          the output for which to write the object's state
-   */
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
@@ -284,12 +278,6 @@ public class InputTableConfig implements Writable {
     dataOutput.writeBoolean(offlineScan);
   }
 
-  /**
-   * Reads the fields in the {@link DataInput} into the current object
-   *
-   * @param dataInput
-   *          the input fields to read into the current object
-   */
   @Override
   public void readFields(DataInput dataInput) throws IOException {
     // load iterators

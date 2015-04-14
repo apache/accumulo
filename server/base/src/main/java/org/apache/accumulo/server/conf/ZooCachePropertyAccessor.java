@@ -22,11 +22,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Predicate;
 
 /**
  * A helper object for accessing properties in a {@link ZooCache}.
@@ -136,13 +137,13 @@ public class ZooCachePropertyAccessor {
    * @param parentFilter
    *          separate filter for parent properties (optional)
    */
-  void getProperties(Map<String,String> props, String path, PropertyFilter filter, AccumuloConfiguration parent, PropertyFilter parentFilter) {
+  void getProperties(Map<String,String> props, String path, Predicate<String> filter, AccumuloConfiguration parent, Predicate<String> parentFilter) {
     parent.getProperties(props, parentFilter != null ? parentFilter : filter);
 
     List<String> children = propCache.getChildren(path);
     if (children != null) {
       for (String child : children) {
-        if (child != null && filter.accept(child)) {
+        if (child != null && filter.apply(child)) {
           String value = get(path + "/" + child);
           if (value != null) {
             props.put(child, value);

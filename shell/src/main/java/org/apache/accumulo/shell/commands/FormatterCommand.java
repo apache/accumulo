@@ -53,6 +53,7 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     return options;
   }
 
+  @Override
   protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException,
       AccumuloSecurityException {
     super.setPlugin(cl, shellState, tableName, className);
@@ -61,6 +62,7 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     }
   }
 
+  @Override
   protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     super.removePlugin(cl, shellState, tableName);
     if (cl.hasOption(interpeterOption.getOpt())) {

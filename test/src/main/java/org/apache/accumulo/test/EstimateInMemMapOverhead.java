@@ -90,10 +90,12 @@ class TextMemoryUsageTest extends MemoryUsageTest {
 
   }
 
+  @Override
   void init() {
     map = new TreeMap<Text,Value>();
   }
 
+  @Override
   public void addEntry(int i) {
     Text key = new Text(String.format("%0" + keyLen + "d:%0" + colFamLen + "d:%0" + colQualLen + "d", i, 0, 0).getBytes());
     //
@@ -107,19 +109,23 @@ class TextMemoryUsageTest extends MemoryUsageTest {
 
   }
 
+  @Override
   public void clear() {
     map.clear();
     map = null;
   }
 
+  @Override
   public int getEstimatedBytesPerEntry() {
     return keyLen + colFamLen + colQualLen + dataLen;
   }
 
+  @Override
   int getNumPasses() {
     return passes;
   }
 
+  @Override
   String getName() {
     return "Text " + keyLen + " " + colFamLen + " " + colQualLen + " " + dataLen;
   }
@@ -151,6 +157,7 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
 
   }
 
+  @Override
   void init() {
     imm = new InMemoryMap(false, "/tmp");
     key = new Text();
@@ -160,6 +167,7 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
     colv = new ColumnVisibility(String.format("%0" + colVisLen + "d", 0));
   }
 
+  @Override
   public void addEntry(int i) {
     key.set(String.format("%0" + keyLen + "d", i));
 
@@ -177,10 +185,12 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
 
   }
 
+  @Override
   public int getEstimatedBytesPerEntry() {
     return keyLen + colFamLen + colQualLen + dataLen + 4 + colVisLen;
   }
 
+  @Override
   public void clear() {
     imm = null;
     key = null;
@@ -188,10 +198,12 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
     colq = null;
   }
 
+  @Override
   int getNumPasses() {
     return passes;
   }
 
+  @Override
   String getName() {
     return "IMM " + keyLen + " " + colFamLen + " " + colQualLen + " " + dataLen;
   }
@@ -220,6 +232,7 @@ class MutationMemoryUsageTest extends MemoryUsageTest {
 
   }
 
+  @Override
   void init() {
     key = new Text();
 
@@ -232,6 +245,7 @@ class MutationMemoryUsageTest extends MemoryUsageTest {
     }
   }
 
+  @Override
   public void addEntry(int i) {
     key.set(String.format("%0" + keyLen + "d", i));
 
@@ -248,10 +262,12 @@ class MutationMemoryUsageTest extends MemoryUsageTest {
     mutations[i] = m;
   }
 
+  @Override
   public int getEstimatedBytesPerEntry() {
     return keyLen + colFamLen + colQualLen + dataLen;
   }
 
+  @Override
   public void clear() {
     key = null;
     colf = null;
@@ -259,10 +275,12 @@ class MutationMemoryUsageTest extends MemoryUsageTest {
     mutations = null;
   }
 
+  @Override
   int getNumPasses() {
     return passes;
   }
 
+  @Override
   String getName() {
     return "Mutation " + keyLen + " " + colFamLen + " " + colQualLen + " " + dataLen;
   }
@@ -285,25 +303,31 @@ class IntObjectMemoryUsageTest extends MemoryUsageTest {
     this.passes = numPasses;
   }
 
+  @Override
   void init() {
     data = new Object[passes];
   }
 
+  @Override
   void addEntry(int i) {
     data[i] = new SimpleObject(i);
 
   }
 
+  @Override
   void clear() {}
 
+  @Override
   int getEstimatedBytesPerEntry() {
     return 4;
   }
 
+  @Override
   String getName() {
     return "int obj";
   }
 
+  @Override
   int getNumPasses() {
     return passes;
   }

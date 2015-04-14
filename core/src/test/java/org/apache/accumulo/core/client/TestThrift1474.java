@@ -70,6 +70,7 @@ public class TestThrift1474 {
     args.stopTimeoutUnit = TimeUnit.MILLISECONDS;
     final TServer server = new TThreadPoolServer(args.processor(processor));
     Thread thread = new Thread() {
+      @Override
       public void run() {
         server.serve();
       }

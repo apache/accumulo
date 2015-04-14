@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.server.replication;
 
+import java.util.Map.Entry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /**
  *
@@ -27,14 +30,39 @@ import com.google.common.base.Preconditions;
 public class ReplicaSystemFactory {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemFactory.class);
 
-  private ReplicaSystemFactory() {}
-
   /**
    * @param value
    *          {@link ReplicaSystem} implementation class name
    * @return A {@link ReplicaSystem} object from the given name
    */
-  public static ReplicaSystem get(String value) {
+  public ReplicaSystem get(String value) {
+    final Entry<String,String> entry = parseReplicaSystemConfiguration(value);
+
+    try {
+      Class<?> clz = Class.forName(entry.getKey());
+
+      if (ReplicaSystem.class.isAssignableFrom(clz)) {
+        Object o = clz.newInstance();
+        ReplicaSystem rs = (ReplicaSystem) o;
+        rs.configure(entry.getValue());
+        return rs;
+      }
+
+      throw new IllegalArgumentException("Class is not assignable to ReplicaSystem: " + entry.getKey());
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      log.error("Error creating ReplicaSystem object", e);
+      throw new IllegalArgumentException(e);
+    }
+  }
+
+  /**
+   * Parse the configuration value for a peer into its components: {@link ReplicaSystem} class name and configuration string.
+   *
+   * @param value
+   *          The configuration value for a replication peer.
+   * @return An entry where the set is the replica system name and the value is the configuration string.
+   */
+  public Entry<String,String> parseReplicaSystemConfiguration(String value) {
     Preconditions.checkNotNull(value);
 
     int index = value.indexOf(',');
@@ -44,22 +72,7 @@ public class ReplicaSystemFactory {
 
     String name = value.substring(0, index);
     String configuration = value.substring(index + 1);
-
-    try {
-      Class<?> clz = Class.forName(name);
-
-      if (ReplicaSystem.class.isAssignableFrom(clz)) {
-        Object o = clz.newInstance();
-        ReplicaSystem rs = (ReplicaSystem) o;
-        rs.configure(configuration);
-        return rs;
-      }
-
-      throw new IllegalArgumentException("Class is not assignable to ReplicaSystem: " + name);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-      log.error("Error creating ReplicaSystem object", e);
-      throw new IllegalArgumentException(e);
-    }
+    return Maps.immutableEntry(name, configuration);
   }
 
   /**

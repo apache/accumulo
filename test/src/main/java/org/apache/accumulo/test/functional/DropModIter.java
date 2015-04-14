@@ -42,6 +42,7 @@ public class DropModIter extends SkippingIterator {
     this.drop = Integer.parseInt(options.get("drop"));
   }
 
+  @Override
   protected void consume() throws IOException {
     while (getSource().hasTop() && Integer.parseInt(getSource().getTopKey().getRow().toString()) % mod == drop) {
       getSource().next();

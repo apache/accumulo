@@ -53,6 +53,7 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
 
   private static Thread slowScan(final Connector c, final String tableName, final AtomicBoolean stop) {
     Thread thread = new Thread() {
+      @Override
       public void run() {
         try {
           while (stop.get() == false) {
@@ -66,7 +67,7 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
             }
           }
         } catch (Exception ex) {
-          log.trace(ex.getMessage(), ex);
+          log.trace("{}", ex.getMessage(), ex);
           stop.set(true);
         }
       }

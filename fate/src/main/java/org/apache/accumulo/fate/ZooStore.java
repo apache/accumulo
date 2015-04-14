@@ -190,6 +190,7 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  @Override
   public void reserve(long tid) {
     synchronized (this) {
       reservationsWaiting++;

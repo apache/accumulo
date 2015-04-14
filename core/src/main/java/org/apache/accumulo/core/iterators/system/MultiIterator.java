@@ -43,6 +43,7 @@ public class MultiIterator extends HeapIterator {
   private Range fence;
 
   // deep copy with no seek/scan state
+  @Override
   public MultiIterator deepCopy(IteratorEnvironment env) {
     return new MultiIterator(this, env);
   }

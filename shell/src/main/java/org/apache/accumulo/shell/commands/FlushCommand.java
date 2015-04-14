@@ -37,6 +37,7 @@ public class FlushCommand extends TableOperation {
     return "flushes a tables data that is currently in memory to disk";
   }
 
+  @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
     Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));

@@ -407,7 +407,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
 
-      Instance instance = split.getInstance();
+      Instance instance = split.getInstance(getClientConfiguration(job));
       if (null == instance) {
         instance = getInstance(job);
       }
@@ -467,7 +467,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         } else if (instance instanceof MockInstance) {
           scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
         } else {
-          ClientContext context = new ClientContext(instance, new Credentials(principal, token), ClientConfiguration.loadDefault());
+          ClientConfiguration clientConf = getClientConfiguration(job);
+          ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
           scanner = new ScannerImpl(context, split.getTableId(), authorizations);
         }
         if (isIsolated) {
@@ -531,7 +532,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Read the metadata table to get tablets and match up ranges to them.
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {

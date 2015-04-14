@@ -52,6 +52,7 @@ public class FilterTest {
   private static final Map<String,String> EMPTY_OPTS = new HashMap<String,String>();
 
   public static class SimpleFilter extends Filter {
+    @Override
     public boolean accept(Key k, Value v) {
       // System.out.println(k.getRow());
       if (k.getRow().toString().endsWith("0"))
@@ -61,6 +62,7 @@ public class FilterTest {
   }
 
   public static class SimpleFilter2 extends Filter {
+    @Override
     public boolean accept(Key k, Value v) {
       if (k.getColumnFamily().toString().equals("a"))
         return false;

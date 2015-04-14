@@ -225,6 +225,7 @@ public final class Compression {
       private transient boolean checked = false;
       private static final String defaultClazz = "org.apache.hadoop.io.compress.SnappyCodec";
 
+      @Override
       public CompressionCodec getCodec() throws IOException {
         if (!isSupported()) {
           throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");

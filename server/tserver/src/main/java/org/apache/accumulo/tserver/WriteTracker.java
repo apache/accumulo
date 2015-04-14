@@ -78,7 +78,7 @@ class WriteTracker {
       try {
         this.wait();
       } catch (InterruptedException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       }
     }
   }

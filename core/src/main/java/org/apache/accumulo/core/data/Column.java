@@ -50,6 +50,7 @@ public class Column implements WritableComparable<Column> {
    *          column to compare
    * @return comparison result
    */
+  @Override
   public int compareTo(Column that) {
     int result;
     result = compareBytes(this.columnFamily, that.columnFamily);
@@ -61,6 +62,7 @@ public class Column implements WritableComparable<Column> {
     return compareBytes(this.columnVisibility, that.columnVisibility);
   }
 
+  @Override
   public void readFields(DataInput in) throws IOException {
     if (in.readBoolean()) {
       int len = in.readInt();
@@ -210,11 +212,12 @@ public class Column implements WritableComparable<Column> {
   }
 
   /**
-   * Gets a string representation of this column. The family, qualifier, and visibility are interpreted as strings using the platform default encoding; nulls
-   * are interpreted as empty strings.
+   * Gets a string representation of this column. The family, qualifier, and visibility are interpreted as strings using the UTF-8 encoding; nulls are
+   * interpreted as empty strings.
    *
    * @return string form of column
    */
+  @Override
   public String toString() {
     return new String(columnFamily == null ? new byte[0] : columnFamily, UTF_8) + ":"
         + new String(columnQualifier == null ? new byte[0] : columnQualifier, UTF_8) + ":"

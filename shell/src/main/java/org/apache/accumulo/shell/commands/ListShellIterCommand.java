@@ -78,6 +78,7 @@ public class ListShellIterCommand extends Command {
     return 0;
   }
 
+  @Override
   public String description() {
     return "lists iterators profiles configured in shell";
   }

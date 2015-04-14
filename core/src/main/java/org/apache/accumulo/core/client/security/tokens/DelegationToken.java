@@ -142,11 +142,9 @@ public class DelegationToken extends PasswordToken {
     return super.hashCode() ^ identifier.hashCode();
   }
 
-  /*
-   * We assume we can cast obj to DelegationToken because the super.equals(obj) check ensures obj is of the same type as this
-   */
   @Override
   public boolean equals(Object obj) {
+    // We assume we can cast obj to DelegationToken because the super.equals(obj) check ensures obj is of the same type as this
     return super.equals(obj) && identifier.equals(((DelegationToken) obj).identifier);
   }
 

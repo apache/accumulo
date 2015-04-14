@@ -974,7 +974,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
         }
 
       } catch (Exception e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         failed.set(true);
       }
     }

@@ -1006,7 +1006,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           if (connection != null)
             connection.fastHalt(masterLock);
         } catch (TException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
         tserverSet.remove(instance);
       }

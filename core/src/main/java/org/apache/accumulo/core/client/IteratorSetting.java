@@ -279,9 +279,6 @@ public class IteratorSetting implements Writable {
     properties.clear();
   }
 
-  /**
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -322,9 +319,6 @@ public class IteratorSetting implements Writable {
     return true;
   }
 
-  /**
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -372,6 +366,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * @since 1.5.0
+   * @see Writable
    */
   @Override
   public void readFields(DataInput din) throws IOException {
@@ -388,6 +383,7 @@ public class IteratorSetting implements Writable {
 
   /**
    * @since 1.5.0
+   * @see Writable
    */
   @Override
   public void write(DataOutput dout) throws IOException {

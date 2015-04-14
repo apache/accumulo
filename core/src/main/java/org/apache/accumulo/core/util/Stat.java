@@ -68,6 +68,7 @@ public class Stat {
     return sd.getResult();
   }
 
+  @Override
   public String toString() {
     return String.format("%,d %,d %,.2f %,d", getMin(), getMax(), getAverage(), mean.getN());
   }

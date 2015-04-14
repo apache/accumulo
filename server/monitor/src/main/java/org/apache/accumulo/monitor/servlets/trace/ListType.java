@@ -66,6 +66,7 @@ public class ListType extends Basic {
 
     if (null != entry.getValue()) {
       entry.getValue().doAs(new PrivilegedAction<Void>() {
+        @Override
         public Void run() {
           addRows(scanner, type, trace);
           return null;

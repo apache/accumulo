@@ -52,6 +52,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacIT {
     // ask the tserver to do something
     final AtomicReference<Exception> ex = new AtomicReference<>();
     Thread splitter = new Thread() {
+      @Override
       public void run() {
         try {
           TreeSet<Text> splits = new TreeSet<>();

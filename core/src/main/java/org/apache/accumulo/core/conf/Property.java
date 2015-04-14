@@ -275,6 +275,10 @@ public enum Property {
       "The maximum number of concurrent major compactions for a tablet server"),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server"),
+  TSERV_MAJC_TRACE_PERCENT("tserver.compaction.major.trace.percent", "0.1", PropertyType.FRACTION,
+      "The percent of major compactions to trace"),
+  TSERV_MINC_TRACE_PERCENT("tserver.compaction.minor.trace.percent", "0.1", PropertyType.FRACTION,
+      "The percent of minor compactions to trace"),
   TSERV_COMPACTION_WARN_TIME("tserver.compaction.warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged"),
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
@@ -344,6 +348,7 @@ public enum Property {
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT, "The number of threads used to delete files"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN, "Do not use the Trash, even if it is configured."),
   GC_FILE_ARCHIVE("gc.file.archive", "false", PropertyType.BOOLEAN, "Archive any files/directories instead of moving to the HDFS trash or deleting."),
+  GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION, "Percent of gc cycles to trace"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the monitor web server."),
@@ -377,7 +382,7 @@ public enum Property {
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", PropertyType.CLASSNAMELIST,
       "A list of span receiver classes to send trace spans"),
   TRACE_SPAN_RECEIVER_PREFIX("trace.span.receiver.", null, PropertyType.PREFIX, "Prefix for span receiver configuration properties"),
-  TRACE_ZK_PATH("trace.span.receiver.zookeeper.path", Constants.ZTRACERS, PropertyType.STRING, "The zookeeper node where tracers are registered"),
+  TRACE_ZK_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.STRING, "The zookeeper node where tracers are registered"),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
   TRACE_USER("trace.user", "root", PropertyType.STRING, "The name of the user to store distributed traces"),
@@ -533,6 +538,7 @@ public enum Property {
   REPLICATION_PEER_USER("replication.peer.user.", null, PropertyType.PREFIX, "The username to provide when authenticating with the given peer"),
   @Sensitive
   REPLICATION_PEER_PASSWORD("replication.peer.password.", null, PropertyType.PREFIX, "The password to provide when authenticating with the given peer"),
+  REPLICATION_PEER_KEYTAB("replication.peer.keytab.", null, PropertyType.PREFIX, "The keytab to use when authenticating with the given peer"),
   REPLICATION_NAME("replication.name", "", PropertyType.STRING,
       "Name of this cluster with respect to replication. Used to identify this instance from other peers"),
   REPLICATION_MAX_WORK_QUEUE("replication.max.work.queue", "1000", PropertyType.COUNT, "Upper bound of the number of files queued for replication"),
@@ -555,6 +561,8 @@ public enum Property {
       "Amount of time to wait before first checking for replication work, not useful outside of tests"),
   REPLICATION_WORK_PROCESSOR_PERIOD("replication.work.processor.period", "0s", PropertyType.TIMEDURATION,
       "Amount of time to wait before re-checking for replication work, not useful outside of tests"),
+  REPLICATION_TRACE_PERCENT("replication.trace.percent", "0.1", PropertyType.FRACTION,
+      "The sampling percentage to use for replication traces"),
 
   ;
 
@@ -683,9 +691,9 @@ public enum Property {
         if (annotationType.isInstance(a))
           return true;
     } catch (SecurityException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     } catch (NoSuchFieldException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
     }
     return false;
   }

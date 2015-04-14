@@ -40,6 +40,7 @@ public class ComparableBytes extends BinaryComparable {
    *
    * @return bytes
    */
+  @Override
   public byte[] getBytes() {
     return data;
   }

@@ -211,6 +211,7 @@ public abstract class Filter implements Writable {
 
   // Writable interface
 
+  @Override
   public void write(final DataOutput out) throws IOException {
     out.writeInt(VERSION);
     out.writeInt(this.nbHash);
@@ -226,6 +227,7 @@ public abstract class Filter implements Writable {
     return VERSION;
   }
 
+  @Override
   public void readFields(final DataInput in) throws IOException {
     final int ver = in.readInt();
     rVersion = ver;

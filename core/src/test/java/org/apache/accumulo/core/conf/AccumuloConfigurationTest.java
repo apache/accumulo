@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.conf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -54,5 +55,21 @@ public class AccumuloConfigurationTest {
   @Test(expected = IllegalArgumentException.class)
   public void testGetMemoryInBytesFailureCases2() throws Exception {
     AccumuloConfiguration.getMemoryInBytes("FooBar");
+  }
+
+  @Test
+  public void testGetPropertyByString() {
+    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    boolean found = false;
+    for (Property p : Property.values()) {
+      if (p.getType() != PropertyType.PREFIX) {
+        found = true;
+        // ensure checking by property and by key works the same
+        assertEquals(c.get(p), c.get(p.getKey()));
+        // ensure that getting by key returns the expected value
+        assertEquals(p.getDefaultValue(), c.get(p.getKey()));
+      }
+    }
+    assertTrue("test was a dud, and did nothing", found);
   }
 }

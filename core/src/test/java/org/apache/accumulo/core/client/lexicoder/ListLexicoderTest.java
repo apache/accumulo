@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
-import org.apache.accumulo.core.util.TextUtil;
-import org.apache.hadoop.io.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
 
 public class ListLexicoderTest extends AbstractLexicoderTest {
 
@@ -32,6 +32,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
   private List<Long> data4 = new ArrayList<Long>();
   private List<Long> data5 = new ArrayList<Long>();
 
+  @Override
   public void setUp() {
 
     data1.add(1l);
@@ -49,6 +50,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
     data5.add(2l);
     data5.add(1l);
   }
+
   public void testSortOrder() {
     List<List<Long>> data = new ArrayList<List<Long>>();
 

@@ -239,10 +239,6 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     setPrevEndRow(prevEndRow, true, true);
   }
 
-  /**
-   * Populates the extents data fields from a DataInput object
-   *
-   */
   @Override
   public void readFields(DataInput in) throws IOException {
     Text tid = new Text();
@@ -269,10 +265,6 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     check();
   }
 
-  /**
-   * Writes this extent's data fields to a DataOutput object
-   *
-   */
   @Override
   public void write(DataOutput out) throws IOException {
     getTableId().write(out);
@@ -395,10 +387,6 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return m;
   }
 
-  /**
-   * Compares extents based on rows
-   *
-   */
   @Override
   public int compareTo(KeyExtent other) {
 

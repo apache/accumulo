@@ -343,7 +343,7 @@ public class BulkImporter {
         mapFileSizes.put(path, fs.getContentSummary(path).getLength());
       }
     } catch (IOException e) {
-      log.error("Failed to get map files in for " + paths + ": " + e.getMessage(), e);
+      log.error("Failed to get map files in for {}: {}", paths, e.getMessage(), e);
       throw new RuntimeException(e);
     }
 
@@ -370,7 +370,7 @@ public class BulkImporter {
           try {
             estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(), mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, vm);
           } catch (IOException e) {
-            log.warn("Failed to estimate map file sizes " + e.getMessage());
+            log.warn("Failed to estimate map file sizes {}", e.getMessage());
           }
 
           if (estimatedSizes == null) {
@@ -462,7 +462,7 @@ public class BulkImporter {
           }
         }
 
-        log.info("Could not assign " + mapFiles.size() + " map files to tablet " + ke + " because : " + message + ".  Will retry ...");
+        log.info("Could not assign {} map files to tablet {} because : {} .  Will retry ...", mapFiles.size(), ke, message);
       }
     }
 

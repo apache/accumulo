@@ -171,6 +171,7 @@ public class Summary extends Basic {
     final Map<String,Stats> summary = new TreeMap<String,Stats>();
     if (null != pair.getValue()) {
       pair.getValue().doAs(new PrivilegedAction<Void>() {
+        @Override
         public Void run() {
           parseSpans(scanner, summary);
           return null;

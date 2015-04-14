@@ -111,7 +111,7 @@ class ZKSecurityTool {
       for (SystemPermission sp : systempermissions)
         out.writeByte(sp.getId());
     } catch (IOException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
     }
     return bytes.toByteArray();
@@ -138,7 +138,7 @@ class ZKSecurityTool {
       for (TablePermission tp : tablepermissions)
         out.writeByte(tp.getId());
     } catch (IOException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
     }
     return bytes.toByteArray();
@@ -158,7 +158,7 @@ class ZKSecurityTool {
       for (NamespacePermission tnp : namespacepermissions)
         out.writeByte(tnp.getId());
     } catch (IOException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
     }
     return bytes.toByteArray();

@@ -33,6 +33,7 @@ import org.apache.hadoop.io.WritableUtils;
 public class NumArraySummation implements Aggregator {
   long[] sum = new long[0];
 
+  @Override
   public Value aggregate() {
     try {
       return new Value(NumArraySummation.longArrayToBytes(sum));
@@ -41,6 +42,7 @@ public class NumArraySummation implements Aggregator {
     }
   }
 
+  @Override
   public void collect(Value value) {
     long[] la;
     try {
@@ -86,6 +88,7 @@ public class NumArraySummation implements Aggregator {
     return la;
   }
 
+  @Override
   public void reset() {
     sum = new long[0];
   }

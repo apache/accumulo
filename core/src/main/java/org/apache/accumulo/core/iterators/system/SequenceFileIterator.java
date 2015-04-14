@@ -39,6 +39,7 @@ public class SequenceFileIterator implements FileSKVIterator {
   private Key top_key;
   private boolean readValue;
 
+  @Override
   public SequenceFileIterator deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException("SequenceFileIterator does not yet support cloning");
   }
@@ -60,18 +61,22 @@ public class SequenceFileIterator implements FileSKVIterator {
     next();
   }
 
+  @Override
   public Key getTopKey() {
     return top_key;
   }
 
+  @Override
   public Value getTopValue() {
     return top_value;
   }
 
+  @Override
   public boolean hasTop() {
     return top_key != null;
   }
 
+  @Override
   public void next() throws IOException {
     boolean valid;
     if (readValue)
@@ -91,6 +96,7 @@ public class SequenceFileIterator implements FileSKVIterator {
     throw new UnsupportedOperationException("seek() not supported");
   }
 
+  @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
 

@@ -67,7 +67,7 @@ public class RandomizeVolumes {
       int status = randomize(c, opts.getTableName());
       System.exit(status);
     } catch (Exception ex) {
-      log.error(ex.getMessage(), ex);
+      log.error("{}", ex.getMessage(), ex);
       System.exit(4);
     }
   }

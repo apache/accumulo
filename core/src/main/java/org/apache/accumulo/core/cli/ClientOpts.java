@@ -57,6 +57,7 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Predicate;
 
 public class ClientOpts extends Help {
 
@@ -132,26 +133,7 @@ public class ClientOpts extends Help {
           props.put(loginOption.getKey(), loginOption.getValue());
       }
 
-      // If the user isn't currently logged in with Kerberos, they might have provided a keytab file
-      // instead which can be used to log them in. Check that before constructing the KerberosToken
-      // as it will expect the user is already logged in.
-      if (KerberosToken.CLASS_NAME.equals(tokenClassName)) {
-        if (null != keytabPath) {
-          File keytab = new File(keytabPath);
-          if (!keytab.exists() || !keytab.isFile()) {
-            throw new IllegalArgumentException("Keytab isn't a normal file: " + keytabPath);
-          }
-          if (null == principal) {
-            throw new IllegalArgumentException("Principal must be provided if logging in via Keytab");
-          }
-          try {
-            UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-          } catch (IOException e) {
-            throw new RuntimeException("Failed to log in with keytab", e);
-          }
-        }
-      }
-
+      // It's expected that the user is already logged in via UserGroupInformation or external to this program (kinit).
       try {
         AuthenticationToken token = Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
         token.init(props);
@@ -159,7 +141,6 @@ public class ClientOpts extends Help {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-
     }
 
     if (securePassword != null)
@@ -246,6 +227,22 @@ public class ClientOpts extends Help {
     final boolean clientConfSaslEnabled = Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
     if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
       tokenClassName = KerberosToken.CLASS_NAME;
+      // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce Job is going to make a copy of the current user (UGI)
+      // when it is instantiated.
+      if (null != keytabPath) {
+        File keytab = new File(keytabPath);
+        if (!keytab.exists() || !keytab.isFile()) {
+          throw new IllegalArgumentException("Keytab isn't a normal file: " + keytabPath);
+        }
+        if (null == principal) {
+          throw new IllegalArgumentException("Principal must be provided if logging in via Keytab");
+        }
+        try {
+          UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
+        } catch (IOException e) {
+          throw new RuntimeException("Failed to log in with keytab", e);
+        }
+      }
     }
   }
 
@@ -346,12 +343,12 @@ public class ClientOpts extends Help {
         }
 
         @Override
-        public void getProperties(Map<String,String> props, PropertyFilter filter) {
+        public void getProperties(Map<String,String> props, Predicate<String> filter) {
           for (Entry<String,String> prop : DefaultConfiguration.getInstance())
-            if (filter.accept(prop.getKey()))
+            if (filter.apply(prop.getKey()))
               props.put(prop.getKey(), prop.getValue());
           for (Entry<String,String> prop : xml)
-            if (filter.accept(prop.getKey()))
+            if (filter.apply(prop.getKey()))
               props.put(prop.getKey(), prop.getValue());
         }
 

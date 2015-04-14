@@ -92,4 +92,9 @@
     </Or>
     <Bug code="DM" pattern="DM_EXIT" />
   </Match>
+  <Match>
+    <!-- The purpose of the method is to test a null argument -->
+    <Class name="org.apache.accumulo.core.client.impl.ScannerOptionsTest" />
+    <Bug code="NP" pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS" />
+  </Match>
 </FindBugsFilter>

@@ -22,7 +22,6 @@ import org.apache.accumulo.core.data.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.SummingCombiner} with
  *             {@link org.apache.accumulo.core.iterators.LongCombiner.Type#FIXEDLEN}
@@ -32,10 +31,12 @@ public class LongSummation implements Aggregator {
   private static final Logger log = LoggerFactory.getLogger(LongSummation.class);
   long sum = 0;
 
+  @Override
   public Value aggregate() {
     return new Value(longToBytes(sum));
   }
 
+  @Override
   public void collect(Value value) {
     try {
       sum += bytesToLong(value.get());
@@ -44,6 +45,7 @@ public class LongSummation implements Aggregator {
     }
   }
 
+  @Override
   public void reset() {
     sum = 0;
   }

@@ -86,6 +86,7 @@ public class BlockedInputStream extends InputStream {
   }
 
   // Amount available to read
+  @Override
   public int available() {
     int toRet = writePos + 1 - readPos;
     if (toRet < 0)
@@ -168,6 +169,7 @@ public class BlockedInputStream extends InputStream {
     writePos = -1;
   }
 
+  @Override
   public boolean markSupported() {
     return false;
   }

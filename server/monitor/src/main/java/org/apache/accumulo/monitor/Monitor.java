@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -495,7 +494,7 @@ public class Monitor {
           try {
             Monitor.fetchData();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
 
           UtilWaitThread.sleep(333);
@@ -511,7 +510,7 @@ public class Monitor {
           try {
             Monitor.fetchScans();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
           UtilWaitThread.sleep(5000);
         }
@@ -539,7 +538,7 @@ public class Monitor {
 
   public static Map<HostAndPort,ScanStats> getScans() {
     synchronized (allScans) {
-      return new TreeMap<HostAndPort,ScanStats>(allScans);
+      return new HashMap<HostAndPort,ScanStats>(allScans);
     }
   }
 

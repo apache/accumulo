@@ -19,6 +19,8 @@ package org.apache.accumulo.test.randomwalk.security;
 import java.net.InetAddress;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
@@ -33,6 +35,12 @@ public class SecurityFixture extends Fixture {
   @Override
   public void setUp(State state, Environment env) throws Exception {
     String secTableName, systemUserName, tableUserName, secNamespaceName;
+    // A best-effort sanity check to guard against not password-based auth
+    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      throw new IllegalStateException("Security module currently cannot support Kerberos/SASL instances");
+    }
+
     Connector conn = env.getConnector();
 
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");

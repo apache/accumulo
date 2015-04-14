@@ -313,15 +313,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
-    /**
-     * Apply the configured iterators from the configuration to the scanner for the specified table name
-     *
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner to configure
-     * @since 1.6.0
-     */
     @Override
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       setupIterators(context, scanner, split);

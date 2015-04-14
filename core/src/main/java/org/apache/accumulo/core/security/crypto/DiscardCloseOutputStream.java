@@ -32,6 +32,7 @@ public class DiscardCloseOutputStream extends FilterOutputStream {
     super(out);
   }
 
+  @Override
   public void close() throws IOException {
     // Discard
     log.trace("Discarded close");

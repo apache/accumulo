@@ -79,13 +79,13 @@ public final class ZKAuthenticator implements Authenticator {
         constructUser(principal, ZKSecurityTool.createPass(token));
       }
     } catch (KeeperException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (AccumuloException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
@@ -106,9 +106,6 @@ public final class ZKAuthenticator implements Authenticator {
     return new TreeSet<String>(zooCache.getChildren(ZKUserPath));
   }
 
-  /**
-   * Creates a user with no permissions whatsoever
-   */
   @Override
   public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     try {
@@ -121,10 +118,10 @@ public final class ZKAuthenticator implements Authenticator {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (AccumuloException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
     }
   }
@@ -137,13 +134,13 @@ public final class ZKAuthenticator implements Authenticator {
         ZooReaderWriter.getInstance().recursiveDelete(ZKUserPath + "/" + user, NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NONODE)) {
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
       }
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     }
   }
@@ -161,22 +158,19 @@ public final class ZKAuthenticator implements Authenticator {
               NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
       } catch (InterruptedException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         throw new RuntimeException(e);
       } catch (AccumuloException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
       }
     } else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
 
-  /**
-   * Checks if a user exists
-   */
   @Override
   public boolean userExists(String user) {
     return zooCache.get(ZKUserPath + "/" + user) != null;

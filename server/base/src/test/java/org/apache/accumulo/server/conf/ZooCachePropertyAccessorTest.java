@@ -29,11 +29,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.base.Predicate;
 
 public class ZooCachePropertyAccessorTest {
   private static final String PATH = "/root/path/to/props";
@@ -106,7 +107,8 @@ public class ZooCachePropertyAccessorTest {
   public void testGetProperties() {
     Map<String,String> props = new java.util.HashMap<String,String>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
-    PropertyFilter filter = createMock(PropertyFilter.class);
+    @SuppressWarnings("unchecked")
+    Predicate<String> filter = createMock(Predicate.class);
     parent.getProperties(props, filter);
     replay(parent);
     String child1 = "child1";
@@ -118,8 +120,8 @@ public class ZooCachePropertyAccessorTest {
     expect(zc.get(PATH + "/" + child1)).andReturn(VALUE_BYTES);
     expect(zc.get(PATH + "/" + child2)).andReturn(null);
     replay(zc);
-    expect(filter.accept(child1)).andReturn(true);
-    expect(filter.accept(child2)).andReturn(true);
+    expect(filter.apply(child1)).andReturn(true);
+    expect(filter.apply(child2)).andReturn(true);
     replay(filter);
 
     a.getProperties(props, PATH, filter, parent, null);
@@ -132,7 +134,8 @@ public class ZooCachePropertyAccessorTest {
   public void testGetProperties_NoChildren() {
     Map<String,String> props = new java.util.HashMap<String,String>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
-    PropertyFilter filter = createMock(PropertyFilter.class);
+    @SuppressWarnings("unchecked")
+    Predicate<String> filter = createMock(Predicate.class);
     parent.getProperties(props, filter);
     replay(parent);
     expect(zc.getChildren(PATH)).andReturn(null);
@@ -146,7 +149,8 @@ public class ZooCachePropertyAccessorTest {
   public void testGetProperties_Filter() {
     Map<String,String> props = new java.util.HashMap<String,String>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
-    PropertyFilter filter = createMock(PropertyFilter.class);
+    @SuppressWarnings("unchecked")
+    Predicate<String> filter = createMock(Predicate.class);
     parent.getProperties(props, filter);
     replay(parent);
     String child1 = "child1";
@@ -154,7 +158,7 @@ public class ZooCachePropertyAccessorTest {
     children.add(child1);
     expect(zc.getChildren(PATH)).andReturn(children);
     replay(zc);
-    expect(filter.accept(child1)).andReturn(false);
+    expect(filter.apply(child1)).andReturn(false);
     replay(filter);
 
     a.getProperties(props, PATH, filter, parent, null);
@@ -165,8 +169,10 @@ public class ZooCachePropertyAccessorTest {
   public void testGetProperties_ParentFilter() {
     Map<String,String> props = new java.util.HashMap<String,String>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
-    PropertyFilter filter = createMock(PropertyFilter.class);
-    PropertyFilter parentFilter = createMock(PropertyFilter.class);
+    @SuppressWarnings("unchecked")
+    Predicate<String> filter = createMock(Predicate.class);
+    @SuppressWarnings("unchecked")
+    Predicate<String> parentFilter = createMock(Predicate.class);
     parent.getProperties(props, parentFilter);
     replay(parent);
     expect(zc.getChildren(PATH)).andReturn(null);

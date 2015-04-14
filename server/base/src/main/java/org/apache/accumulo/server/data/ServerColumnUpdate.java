@@ -27,6 +27,7 @@ public class ServerColumnUpdate extends ColumnUpdate {
     parent = serverMutation;
   }
 
+  @Override
   public long getTimestamp() {
     if (hasTimestamp())
       return super.getTimestamp();

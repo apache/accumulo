@@ -32,6 +32,7 @@ public class NamingThreadFactory implements ThreadFactory {
     this.name = name;
   }
 
+  @Override
   public Thread newThread(Runnable r) {
     return new Daemon(new LoggingRunnable(log, r), name + " " + threadNum.getAndIncrement());
   }

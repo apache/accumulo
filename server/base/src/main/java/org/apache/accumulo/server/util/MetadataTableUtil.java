@@ -153,15 +153,15 @@ public class MetadataTableUtil {
         t.update(m);
         return;
       } catch (AccumuloException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       } catch (AccumuloSecurityException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       } catch (ConstraintViolationException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
         throw new RuntimeException(e);
       } catch (TableNotFoundException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       }
       UtilWaitThread.sleep(1000);
     }

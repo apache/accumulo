@@ -30,6 +30,8 @@ import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
+
 public class TableConfiguration extends ObservableConfiguration {
   private static final Logger log = LoggerFactory.getLogger(TableConfiguration.class);
 
@@ -98,7 +100,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   @Override
-  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+  public void getProperties(Map<String,String> props, Predicate<String> filter) {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);
   }
 
@@ -123,9 +125,6 @@ public class TableConfiguration extends ObservableConfiguration {
     return parent;
   }
 
-  /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this table configuration.
-   */
   @Override
   public synchronized void invalidateCache() {
     if (null != propCacheAccessor) {

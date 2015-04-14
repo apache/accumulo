@@ -56,10 +56,12 @@ public class ColumnUtil {
       hashCode = hash(key.getColumnFamilyData());
     }
 
+    @Override
     public int hashCode() {
       return hashCode;
     }
 
+    @Override
     public boolean equals(Object o) {
       if (o instanceof ColFamHashKey)
         return equals((ColFamHashKey) o);
@@ -97,10 +99,12 @@ public class ColumnUtil {
       hashValue = hash(key.getColumnFamilyData()) + hash(key.getColumnQualifierData());
     }
 
+    @Override
     public int hashCode() {
       return hashValue;
     }
 
+    @Override
     public boolean equals(Object o) {
       if (o instanceof ColHashKey)
         return equals((ColHashKey) o);

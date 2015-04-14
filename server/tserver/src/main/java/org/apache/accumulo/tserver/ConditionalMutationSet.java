@@ -38,6 +38,7 @@ public class ConditionalMutationSet {
   }
 
   static class DuplicateFilter implements DeferFilter {
+    @Override
     public void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
       okMutations.add(scml.get(0));
       for (int i = 1; i < scml.size(); i++) {

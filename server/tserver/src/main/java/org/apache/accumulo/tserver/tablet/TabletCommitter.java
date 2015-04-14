@@ -43,6 +43,11 @@ public interface TabletCommitter {
 
   TableConfiguration getTableConfiguration();
 
+  /**
+   * Returns a KeyExtent object representing this tablet's key range.
+   *
+   * @return extent
+   */
   KeyExtent getExtent();
 
   int getLogId();

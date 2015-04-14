@@ -257,7 +257,7 @@ AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old
 ----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter negate, default false
                 keeps k/v that pass accept method, true rejects k/v that pass accept method:
 ----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter ttl, time to
-                live (milliseconds): 3000
+                live (milliseconds): 30000
 ----------> set org.apache.accumulo.core.iterators.user.AgeOffFilter parameter currentTime, if set,
                 use the given value as the absolute time in milliseconds as the current time of day:
 
@@ -284,15 +284,15 @@ To see the iterator settings for a table, use:
   SCOPE    | NAME                                        | VALUE
   ---------+---------------------------------------------+------------------
   table    | table.iterator.majc.myfilter .............. | 10,org.apache.accumulo.core.iterators.user.AgeOffFilter
-  table    | table.iterator.majc.myfilter.opt.ttl ...... | 3000
+  table    | table.iterator.majc.myfilter.opt.ttl ...... | 30000
   table    | table.iterator.majc.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
   table    | table.iterator.majc.vers.opt.maxVersions .. | 1
   table    | table.iterator.minc.myfilter .............. | 10,org.apache.accumulo.core.iterators.user.AgeOffFilter
-  table    | table.iterator.minc.myfilter.opt.ttl ...... | 3000
+  table    | table.iterator.minc.myfilter.opt.ttl ...... | 30000
   table    | table.iterator.minc.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
   table    | table.iterator.minc.vers.opt.maxVersions .. | 1
   table    | table.iterator.scan.myfilter .............. | 10,org.apache.accumulo.core.iterators.user.AgeOffFilter
-  table    | table.iterator.scan.myfilter.opt.ttl ...... | 3000
+  table    | table.iterator.scan.myfilter.opt.ttl ...... | 30000
   table    | table.iterator.scan.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
   table    | table.iterator.scan.vers.opt.maxVersions .. | 1
   ---------+---------------------------------------------+------------------

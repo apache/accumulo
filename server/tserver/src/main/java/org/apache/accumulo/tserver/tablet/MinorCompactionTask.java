@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.fs.FileRef;
@@ -38,8 +39,9 @@ class MinorCompactionTask implements Runnable {
   private FileRef mergeFile;
   private long flushId;
   private MinorCompactionReason mincReason;
+  private double tracePercent;
 
-  MinorCompactionTask(Tablet tablet, FileRef mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
+  MinorCompactionTask(Tablet tablet, FileRef mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason, double tracePercent) {
     this.tablet = tablet;
     queued = System.currentTimeMillis();
     tablet.minorCompactionWaitingToStart();
@@ -47,12 +49,14 @@ class MinorCompactionTask implements Runnable {
     this.mergeFile = mergeFile;
     this.flushId = flushId;
     this.mincReason = mincReason;
+    this.tracePercent = tracePercent;
   }
 
   @Override
   public void run() {
     tablet.minorCompactionStarted();
-    Span minorCompaction = Trace.on("minorCompaction");
+    ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+    Span minorCompaction = Trace.on("minorCompaction", sampler);
     try {
       FileRef newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");
       FileRef tmpFileRef = new FileRef(newMapfileLocation.path() + "_tmp");
@@ -72,7 +76,7 @@ class MinorCompactionTask implements Runnable {
           tablet.getTabletServer().minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
           break;
         } catch (IOException e) {
-          log.warn("Failed to write to write ahead log " + e.getMessage(), e);
+          log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
         }
       }
       span.stop();

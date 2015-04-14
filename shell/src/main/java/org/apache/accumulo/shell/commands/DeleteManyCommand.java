@@ -34,6 +34,7 @@ import org.apache.commons.cli.Options;
 public class DeleteManyCommand extends ScanCommand {
   private Option forceOpt;
 
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
