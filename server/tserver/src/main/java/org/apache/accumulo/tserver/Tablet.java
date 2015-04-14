@@ -2162,6 +2162,11 @@ public class Tablet {
             mincReason);
         span.stop();
 
+        minorCompaction.data("extent", extent.toString());
+        minorCompaction.data("numEntries", Long.toString(this.stats.getNumEntries()));
+        minorCompaction.data("size", Long.toString(this.stats.getSize()));
+        minorCompaction.stop();
+
         if (needsSplit()) {
           tabletServer.executeSplit(Tablet.this);
         } else {
@@ -2172,9 +2177,6 @@ public class Tablet {
         throw new RuntimeException(t);
       } finally {
         minorCompactionInProgress = false;
-        minorCompaction.data("extent", extent.toString());
-        minorCompaction.data("numEntries", Long.toString(this.stats.getNumEntries()));
-        minorCompaction.data("size", Long.toString(this.stats.getSize()));
         minorCompaction.stop();
       }
     }
