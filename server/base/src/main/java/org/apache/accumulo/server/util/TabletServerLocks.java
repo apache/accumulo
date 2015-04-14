@@ -56,7 +56,7 @@ public class TabletServerLocks {
       List<String> tabletServers = zoo.getChildren(tserverPath);
 
       for (String tabletServer : tabletServers) {
-        byte[] lockData = ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
+        byte[] lockData = org.apache.accumulo.fate.zookeeper.ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
         String holder = null;
         if (lockData != null) {
           holder = new String(lockData, UTF_8);

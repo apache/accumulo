@@ -88,7 +88,7 @@ public class ContinuousStatsCollector {
 
         System.out.println(System.currentTimeMillis() + " " + acuStats + " " + fsStats + " " + mrStats + " " + tabletStats);
       } catch (Exception e) {
-        log.error("{} - Failed to collect stats {}", System.currentTimeMillis(), e);
+        log.error("{} - Failed to collect stats", System.currentTimeMillis(), e);
       }
     }
 

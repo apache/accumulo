@@ -188,7 +188,7 @@ public class ZooKeeperInstance implements Instance {
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
-    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
+    byte[] loc = org.apache.accumulo.fate.zookeeper.ZooUtil.getLockData(zooCache, masterLocPath);
     opTimer.stop("Found master at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
 
     if (loc == null) {

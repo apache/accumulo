@@ -112,7 +112,7 @@ public class CryptoModuleFactory {
       } catch (IllegalAccessException e) {
         log.warn("Got illegal access exception when trying to instantiate crypto module \"{}\".  No encryption will be used.",
             cryptoModuleClassname);
-        log.warn("IllegalAccessException {}",e);
+        log.warn("IllegalAccessException",e);
         return new NullCryptoModule();
       }
     }
@@ -189,7 +189,7 @@ public class CryptoModuleFactory {
       } catch (IllegalAccessException e) {
         log.warn("Got illegal access exception when trying to instantiate secret key encryption strategy \"{}\".  No encryption will be used.",
             className);
-        log.warn("IllegalAccessException {}",e);
+        log.warn("IllegalAccessException",e);
         return new NullSecretKeyEncryptionStrategy();
       }
     }

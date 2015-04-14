@@ -105,7 +105,7 @@ public class ShardFixture extends Fixture {
 
     if (rand.nextDouble() < .5) {
       conn.tableOperations().setProperty((String) state.get("docTableName"), Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      log.info("Enabled bloom filters for table {}", (String) state.get("docTableName"));
+      log.info("Enabled bloom filters for table {}", state.get("docTableName"));
     }
   }
 

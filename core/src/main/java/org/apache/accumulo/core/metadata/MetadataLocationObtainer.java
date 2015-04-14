@@ -124,7 +124,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       parent.invalidateCache(src.tablet_extent);
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
-        log.trace("{} lookup failed {}", src.tablet_extent.getTableId(), e);
+        log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);
       parent.invalidateCache(context.getInstance(), src.tablet_location);
     }
 
@@ -181,10 +181,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         parent.invalidateCache(failures.keySet());
       }
     } catch (IOException e) {
-      log.trace("lookupTablets failed server={} {}", tserver, e);
+      log.trace("lookupTablets failed server={}", tserver, e);
       parent.invalidateCache(context.getInstance(), tserver);
     } catch (AccumuloServerException e) {
-      log.trace("lookupTablets failed server={} {}", tserver, e);
+      log.trace("lookupTablets failed server={}", tserver, e);
       throw e;
     }
 

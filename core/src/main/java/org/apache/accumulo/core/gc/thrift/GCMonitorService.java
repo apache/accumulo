@@ -28,23 +28,15 @@ import org.apache.thrift.scheme.StandardScheme;
 
 import org.apache.thrift.scheme.TupleScheme;
 import org.apache.thrift.protocol.TTupleProtocol;
-import org.apache.thrift.protocol.TProtocolException;
-import org.apache.thrift.EncodingUtils;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.server.AbstractNonblockingServer.*;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.EnumMap;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,9 +57,11 @@ import org.slf4j.LoggerFactory;
   public static class Client extends org.apache.thrift.TServiceClient implements Iface {
     public static class Factory implements org.apache.thrift.TServiceClientFactory<Client> {
       public Factory() {}
+      @Override
       public Client getClient(org.apache.thrift.protocol.TProtocol prot) {
         return new Client(prot);
       }
+      @Override
       public Client getClient(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) {
         return new Client(iprot, oprot);
       }
@@ -82,6 +76,7 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
+    @Override
     public GCStatus getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getStatus(tinfo, credentials);
@@ -118,6 +113,7 @@ import org.slf4j.LoggerFactory;
         this.clientManager = clientManager;
         this.protocolFactory = protocolFactory;
       }
+      @Override
       public AsyncClient getAsyncClient(org.apache.thrift.transport.TNonblockingTransport transport) {
         return new AsyncClient(protocolFactory, clientManager, transport);
       }
@@ -127,6 +123,7 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
+    @Override
     public void getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getStatus_call method_call = new getStatus_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
@@ -143,6 +140,7 @@ import org.slf4j.LoggerFactory;
         this.credentials = credentials;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getStatus", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getStatus_args args = new getStatus_args();
@@ -184,14 +182,17 @@ import org.slf4j.LoggerFactory;
         super("getStatus");
       }
 
+      @Override
       public getStatus_args getEmptyArgsInstance() {
         return new getStatus_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public getStatus_result getResult(I iface, getStatus_args args) throws org.apache.thrift.TException {
         getStatus_result result = new getStatus_result();
         try {
@@ -225,13 +226,16 @@ import org.slf4j.LoggerFactory;
         super("getStatus");
       }
 
+      @Override
       public getStatus_args getEmptyArgsInstance() {
         return new getStatus_args();
       }
 
+      @Override
       public AsyncMethodCallback<GCStatus> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<GCStatus>() { 
+          @Override
           public void onComplete(GCStatus o) {
             getStatus_result result = new getStatus_result();
             result.success = o;
@@ -243,6 +247,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -268,10 +273,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, getStatus_args args, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler) throws TException {
         iface.getStatus(args.tinfo, args.credentials,resultHandler);
       }
@@ -346,10 +353,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -391,6 +400,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public getStatus_args deepCopy() {
       return new getStatus_args(this);
     }
@@ -449,6 +459,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -470,6 +481,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case TINFO:
@@ -483,6 +495,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -567,14 +580,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -631,6 +647,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class getStatus_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public getStatus_argsStandardScheme getScheme() {
         return new getStatus_argsStandardScheme();
       }
@@ -638,6 +655,7 @@ import org.slf4j.LoggerFactory;
 
     private static class getStatus_argsStandardScheme extends StandardScheme<getStatus_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, getStatus_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -677,6 +695,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, getStatus_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -698,6 +717,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class getStatus_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public getStatus_argsTupleScheme getScheme() {
         return new getStatus_argsTupleScheme();
       }
@@ -810,10 +830,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -855,6 +877,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public getStatus_result deepCopy() {
       return new getStatus_result(this);
     }
@@ -913,6 +936,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -934,6 +958,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
@@ -947,6 +972,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -1031,14 +1057,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -1092,6 +1121,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class getStatus_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public getStatus_resultStandardScheme getScheme() {
         return new getStatus_resultStandardScheme();
       }
@@ -1099,6 +1129,7 @@ import org.slf4j.LoggerFactory;
 
     private static class getStatus_resultStandardScheme extends StandardScheme<getStatus_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, getStatus_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -1138,6 +1169,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, getStatus_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -1159,6 +1191,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class getStatus_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public getStatus_resultTupleScheme getScheme() {
         return new getStatus_resultTupleScheme();
       }

@@ -22,11 +22,6 @@
  */
 package org.apache.accumulo.core.replication.thrift;
 
-
-import java.util.Map;
-import java.util.HashMap;
-import org.apache.thrift.TEnum;
-
 @SuppressWarnings({"unused"}) public enum ReplicationCoordinatorErrorCode implements org.apache.thrift.TEnum {
   NO_AVAILABLE_SERVERS(0),
   SERVICE_CONFIGURATION_UNAVAILABLE(1),
@@ -41,6 +36,7 @@ import org.apache.thrift.TEnum;
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
+  @Override
   public int getValue() {
     return value;
   }

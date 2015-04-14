@@ -139,7 +139,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
       try {
         clz = Class.forName(tokenClassName);
       } catch (ClassNotFoundException e) {
-        log.debug("Could not create class from token name: {} {}", tokenClassName, e);
+        log.debug("Could not create class from token name: {}", tokenClassName, e);
         return null;
       }
       typedClz = clz.asSubclass(AuthenticationToken.class);

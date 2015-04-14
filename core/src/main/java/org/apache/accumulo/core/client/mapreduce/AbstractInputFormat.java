@@ -127,7 +127,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
     }
 
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
+    ConfiguratorBase.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
 
   /**
@@ -145,7 +145,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.6.0
    */
   public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
+    ConfiguratorBase.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
   }
 
   /**
@@ -158,7 +158,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
-    return InputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
+    return ConfiguratorBase.isConnectorInfoSet(CLASS, context.getConfiguration());
   }
 
   /**
@@ -171,7 +171,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getPrincipal(JobContext context) {
-    return InputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getPrincipal(CLASS, context.getConfiguration());
   }
 
   /**
@@ -207,7 +207,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
+    AuthenticationToken token = ConfiguratorBase.getAuthenticationToken(CLASS, context.getConfiguration());
     return ConfiguratorBase.unwrapAuthenticationToken(context, token);
   }
 
@@ -239,7 +239,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.6.0
    */
   public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
-    InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
+    ConfiguratorBase.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
 
   /**
@@ -252,7 +252,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setMockInstance(Job job, String instanceName) {
-    InputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
+    ConfiguratorBase.setMockInstance(CLASS, job.getConfiguration(), instanceName);
   }
 
   /**
@@ -266,7 +266,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
-    return InputConfigurator.getInstance(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getInstance(CLASS, context.getConfiguration());
   }
 
   /**
@@ -279,7 +279,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setLogLevel(Job job, Level level) {
-    InputConfigurator.setLogLevel(CLASS, job.getConfiguration(), level);
+    ConfiguratorBase.setLogLevel(CLASS, job.getConfiguration(), level);
   }
 
   /**
@@ -292,7 +292,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setLogLevel(Job, Level)
    */
   protected static Level getLogLevel(JobContext context) {
-    return InputConfigurator.getLogLevel(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getLogLevel(CLASS, context.getConfiguration());
   }
 
   /**
@@ -378,8 +378,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   protected static void validateOptions(JobContext context) throws IOException {
     final Configuration conf = context.getConfiguration();
     final Instance inst = InputConfigurator.validateInstance(CLASS, conf);
-    String principal = InputConfigurator.getPrincipal(CLASS, conf);
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, conf);
+    String principal = ConfiguratorBase.getPrincipal(CLASS, conf);
+    AuthenticationToken token = ConfiguratorBase.getAuthenticationToken(CLASS, conf);
     // In secure mode, we need to convert the DelegationTokenStub into a real DelegationToken
     token = ConfiguratorBase.unwrapAuthenticationToken(context, token);
     Connector conn;
@@ -400,7 +400,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.7.0
    */
   protected static ClientConfiguration getClientConfiguration(JobContext context) {
-    return InputConfigurator.getClientConfiguration(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getClientConfiguration(CLASS, context.getConfiguration());
   }
 
   /**

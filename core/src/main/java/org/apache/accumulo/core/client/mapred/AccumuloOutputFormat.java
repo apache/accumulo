@@ -117,7 +117,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
     }
 
-    OutputConfigurator.setConnectorInfo(CLASS, job, principal, token);
+    ConfiguratorBase.setConnectorInfo(CLASS, job, principal, token);
   }
 
   /**
@@ -135,7 +135,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.6.0
    */
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
-    OutputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
+    ConfiguratorBase.setConnectorInfo(CLASS, job, principal, tokenFile);
   }
 
   /**
@@ -148,7 +148,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    */
   protected static Boolean isConnectorInfoSet(JobConf job) {
-    return OutputConfigurator.isConnectorInfoSet(CLASS, job);
+    return ConfiguratorBase.isConnectorInfoSet(CLASS, job);
   }
 
   /**
@@ -161,7 +161,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    */
   protected static String getPrincipal(JobConf job) {
-    return OutputConfigurator.getPrincipal(CLASS, job);
+    return ConfiguratorBase.getPrincipal(CLASS, job);
   }
 
   /**
@@ -197,7 +197,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(JobConf, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobConf job) {
-    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS, job);
+    AuthenticationToken token = ConfiguratorBase.getAuthenticationToken(CLASS, job);
     return ConfiguratorBase.unwrapAuthenticationToken(job, token);
   }
 
@@ -230,7 +230,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.6.0
    */
   public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
+    ConfiguratorBase.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
   /**
@@ -243,7 +243,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    */
   public static void setMockInstance(JobConf job, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, job, instanceName);
+    ConfiguratorBase.setMockInstance(CLASS, job, instanceName);
   }
 
   /**
@@ -257,7 +257,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @see #setMockInstance(JobConf, String)
    */
   protected static Instance getInstance(JobConf job) {
-    return OutputConfigurator.getInstance(CLASS, job);
+    return ConfiguratorBase.getInstance(CLASS, job);
   }
 
   /**
@@ -270,7 +270,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    */
   public static void setLogLevel(JobConf job, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, job, level);
+    ConfiguratorBase.setLogLevel(CLASS, job, level);
   }
 
   /**
@@ -283,7 +283,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @see #setLogLevel(JobConf, Level)
    */
   protected static Level getLogLevel(JobConf job) {
-    return OutputConfigurator.getLogLevel(CLASS, job);
+    return ConfiguratorBase.getLogLevel(CLASS, job);
   }
 
   /**

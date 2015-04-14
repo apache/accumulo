@@ -254,10 +254,16 @@ public class AccumuloInputFormatTest {
 
       job.setInputFormatClass(inputFormatClass);
 
+<<<<<<< HEAD
+      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setMockInstance(job, instanceName);
+      AccumuloInputFormat.setBatchScan(job, batchScan);
+=======
       AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       InputFormatBase.setInputTableName(job, table);
       AbstractInputFormat.setMockInstance(job, instanceName);
-      AccumuloInputFormat.setBatchScan(job, batchScan);
+>>>>>>> First round of revisions from the review board.
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

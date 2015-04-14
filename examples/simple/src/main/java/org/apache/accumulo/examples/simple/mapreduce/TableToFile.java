@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
@@ -35,6 +36,7 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -86,7 +88,7 @@ public class TableToFile extends Configured implements Tool {
         columnsToFetch.add(new Pair<Text,Text>(cf, cq));
     }
     if (!columnsToFetch.isEmpty())
-      AccumuloInputFormat.fetchColumns(job, columnsToFetch);
+      InputFormatBase.fetchColumns(job, columnsToFetch);
 
     job.setMapperClass(TTFMapper.class);
     job.setMapOutputKeyClass(NullWritable.class);
@@ -95,7 +97,7 @@ public class TableToFile extends Configured implements Tool {
     job.setNumReduceTasks(0);
 
     job.setOutputFormatClass(TextOutputFormat.class);
-    TextOutputFormat.setOutputPath(job, new Path(opts.output));
+    FileOutputFormat.setOutputPath(job, new Path(opts.output));
 
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

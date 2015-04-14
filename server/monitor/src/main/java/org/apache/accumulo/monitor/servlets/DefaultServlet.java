@@ -280,7 +280,7 @@ public class DefaultServlet extends BasicServlet {
               break;
             }
           } catch (Exception ex) {
-            log.trace("Unable to get disk usage information for {} {}", baseDir, ex);
+            log.trace("Unable to get disk usage information for {}", baseDir, ex);
           }
         }
 
@@ -308,7 +308,7 @@ public class DefaultServlet extends BasicServlet {
         tableRow(sb, (highlight = !highlight), "Lookups", NumberType.commas(Monitor.getTotalLookups()));
         tableRow(sb, (highlight = !highlight), "Uptime", Duration.format(System.currentTimeMillis() - Monitor.getStartTime()));
       } catch (Exception e) {
-        log.debug("{}", e);
+        log.debug("", e);
       }
     }
     sb.append("</table>\n");

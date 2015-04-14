@@ -580,13 +580,13 @@ public class CombinerTest {
     SortedMapIterator smi = new SortedMapIterator(tm);
     Combiner iter = new SummingCombiner();
     IteratorSetting s = new IteratorSetting(10, "s", SummingCombiner.class);
-    SummingCombiner.setColumns(s, Collections.singletonList(new IteratorSetting.Column("count")));
-    SummingCombiner.setEncodingType(s, LongCombiner.StringEncoder.class);
+    Combiner.setColumns(s, Collections.singletonList(new IteratorSetting.Column("count")));
+    LongCombiner.setEncodingType(s, LongCombiner.StringEncoder.class);
     iter.init(smi, s.getOptions(), new DefaultIteratorEnvironment());
     Combiner iter2 = new SummingCombiner();
     IteratorSetting s2 = new IteratorSetting(10, "s2", SummingCombiner.class);
-    SummingCombiner.setColumns(s2, Collections.singletonList(new IteratorSetting.Column("count", "a")));
-    SummingCombiner.setEncodingType(s2, LongCombiner.StringEncoder.class);
+    Combiner.setColumns(s2, Collections.singletonList(new IteratorSetting.Column("count", "a")));
+    LongCombiner.setEncodingType(s2, LongCombiner.StringEncoder.class);
     iter2.init(iter, s.getOptions(), new DefaultIteratorEnvironment());
     iter2.seek(new Range(), EMPTY_COL_FAMS, false);
 
@@ -717,7 +717,7 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     is.clearOptions();
-    SummingArrayCombiner.setEncodingType(is, SummingCombiner.VAR_LEN_ENCODER.getClass().getName());
+    SummingArrayCombiner.setEncodingType(is, LongCombiner.VAR_LEN_ENCODER.getClass().getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
     try {
@@ -761,21 +761,21 @@ public class CombinerTest {
 
   @Test
   public void testEncoders() {
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, Long.MAX_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, Long.MIN_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, -42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 0l);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, Long.MAX_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, Long.MIN_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, -42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 0l);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, Long.MAX_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, Long.MIN_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, -42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(LongCombiner.FIXED_LEN_ENCODER, Long.MAX_VALUE);
+    TypedValueCombiner.testEncoder(LongCombiner.FIXED_LEN_ENCODER, Long.MIN_VALUE);
+    TypedValueCombiner.testEncoder(LongCombiner.FIXED_LEN_ENCODER, 42l);
+    TypedValueCombiner.testEncoder(LongCombiner.FIXED_LEN_ENCODER, -42l);
+    TypedValueCombiner.testEncoder(LongCombiner.FIXED_LEN_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(LongCombiner.VAR_LEN_ENCODER, Long.MAX_VALUE);
+    TypedValueCombiner.testEncoder(LongCombiner.VAR_LEN_ENCODER, Long.MIN_VALUE);
+    TypedValueCombiner.testEncoder(LongCombiner.VAR_LEN_ENCODER, 42l);
+    TypedValueCombiner.testEncoder(LongCombiner.VAR_LEN_ENCODER, -42l);
+    TypedValueCombiner.testEncoder(LongCombiner.VAR_LEN_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(LongCombiner.STRING_ENCODER, Long.MAX_VALUE);
+    TypedValueCombiner.testEncoder(LongCombiner.STRING_ENCODER, Long.MIN_VALUE);
+    TypedValueCombiner.testEncoder(LongCombiner.STRING_ENCODER, 42l);
+    TypedValueCombiner.testEncoder(LongCombiner.STRING_ENCODER, -42l);
+    TypedValueCombiner.testEncoder(LongCombiner.STRING_ENCODER, 0l);
 
     TypedValueCombiner.testEncoder(SummingArrayCombiner.FIXED_LONG_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
     TypedValueCombiner.testEncoder(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));

@@ -277,7 +277,7 @@ public class LiveTServerSet implements Watcher {
 
     final String lockPath = path + "/" + zPath;
     Stat stat = new Stat();
-    byte[] lockData = ZooLock.getLockData(getZooCache(), lockPath, stat);
+    byte[] lockData = org.apache.accumulo.fate.zookeeper.ZooLock.getLockData(getZooCache(), lockPath, stat);
 
     if (lockData == null) {
       if (info != null) {

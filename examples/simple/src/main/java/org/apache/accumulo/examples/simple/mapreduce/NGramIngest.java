@@ -31,6 +31,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -99,7 +100,7 @@ public class NGramIngest extends Configured implements Tool {
       opts.getConnector().tableOperations().addSplits(opts.getTableName(), splits);
     }
 
-    TextInputFormat.addInputPath(job, new Path(opts.inputDirectory));
+    FileInputFormat.addInputPath(job, new Path(opts.inputDirectory));
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }

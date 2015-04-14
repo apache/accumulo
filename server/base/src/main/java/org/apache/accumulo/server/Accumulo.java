@@ -246,7 +246,7 @@ public class Accumulo {
             }
           }
         } catch (Throwable t) {
-          log.error("{}", t);
+          log.error("", t);
         }
       }
     }, 1000, 10 * 60 * 1000);
@@ -281,7 +281,7 @@ public class Accumulo {
           if (unknownHostTries > 0) {
             log.warn("Unable to connect to HDFS, will retry. cause: {}", exception.getCause());
             /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
-            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
+            sleep = Math.max(sleep, (org.apache.accumulo.fate.util.AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
           } else {
             log.error("Unable to connect to HDFS and have exceeded the maximum number of retries.", exception);
             throw exception;

@@ -257,7 +257,7 @@ public class MetadataConstraints implements Constraint {
           String lockId = new String(columnUpdate.getValue(), UTF_8);
 
           try {
-            lockHeld = ZooLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
+            lockHeld = org.apache.accumulo.fate.zookeeper.ZooLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
           } catch (Exception e) {
             log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
           }

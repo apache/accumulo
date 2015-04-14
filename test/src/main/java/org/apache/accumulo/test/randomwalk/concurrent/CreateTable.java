@@ -55,7 +55,7 @@ public class CreateTable extends Test {
     } catch (IllegalArgumentException e) {
       log.debug("Create: {}", e.toString());
     } catch (AccumuloSecurityException e) {
-      log.debug("Could not create table: {}", e);
+      log.debug("Could not create table:", e);
     }
   }
 }

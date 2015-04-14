@@ -51,7 +51,6 @@ import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.tserver.TLevel;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Level;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
@@ -94,7 +93,7 @@ class DatafileManager {
         try {
           tablet.wait(50);
         } catch (InterruptedException e) {
-          log.warn("{}", e);
+          log.warn("", e);
         }
       }
 
@@ -186,7 +185,7 @@ class DatafileManager {
             try {
               tablet.wait(100);
             } catch (InterruptedException e) {
-              log.warn("{}", e);
+              log.warn("", e);
             }
           }
         }
@@ -370,7 +369,7 @@ class DatafileManager {
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...{}", tablet.getExtent(), newDatafile, ioe);
+        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", tablet.getExtent(), newDatafile, ioe);
         UtilWaitThread.sleep(60 * 1000);
       }
     } while (true);
@@ -441,7 +440,7 @@ class DatafileManager {
         tablet.getTabletServer().minorCompactionFinished(tablet.getTabletMemory().getCommitSession(), newDatafile.toString(), commitSession.getWALogSeq() + 2);
         break;
       } catch (IOException e) {
-        log.error("Failed to write to write-ahead log {} will retry {}", e.getMessage(), e);
+        log.error("Failed to write to write-ahead log {} will retry", e.getMessage(), e);
         UtilWaitThread.sleep(1 * 1000);
       }
     } while (true);

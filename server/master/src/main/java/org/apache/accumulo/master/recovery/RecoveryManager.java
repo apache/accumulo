@@ -104,7 +104,7 @@ public class RecoveryManager {
       } catch (FileNotFoundException e) {
         log.debug("Unable to initate log sort for {}: ", source, e);
       } catch (Exception e) {
-        log.warn("Failed to initiate log sort {} {}", source, e);
+        log.warn("Failed to initiate log sort {}", source, e);
       } finally {
         if (!rescheduled) {
           synchronized (RecoveryManager.this) {

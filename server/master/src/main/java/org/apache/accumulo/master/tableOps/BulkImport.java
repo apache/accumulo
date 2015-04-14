@@ -389,7 +389,7 @@ class CopyFailed extends MasterRepo {
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
-        log.info("Ignoring error trying to check on tid {} from server {}: {}", tid, server, ex);
+        log.info("Ignoring error trying to check on tid {} from server {}: ", tid, server, ex);
       }
     }
     if (finished.containsAll(running))
@@ -574,7 +574,7 @@ class LoadFiles extends MasterRepo {
                 failures.addAll(fail);
               }
             } catch (Exception ex) {
-              log.error("rpc failed server:{}, tid {} {}", server, tid, ex);
+              log.error("rpc failed server:{}, tid {}", server, tid, ex);
             } finally {
               ServerClient.close(client);
             }

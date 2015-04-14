@@ -133,6 +133,7 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerMinCMetricsKeys;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
 import org.apache.commons.codec.DecoderException;
@@ -683,7 +684,7 @@ public class Tablet implements TabletCommitter {
           log.debug("Removing old temp file {}", tmp.getPath());
           getTabletServer().getFileSystem().delete(tmp.getPath());
         } catch (IOException ex) {
-          log.error("Unable to remove old temp file {}: ", tmp.getPath(), ex);
+          log.error("Unable to remove old temp file {}:", tmp.getPath(), ex);
         }
       }
     } catch (IOException ex) {
@@ -759,7 +760,7 @@ public class Tablet implements TabletCommitter {
       } catch (IOException ioe) {
         if (shutdownInProgress()) {
           // assume HDFS shutdown hook caused this exception
-          log.debug("IOException while shutdown in progress ", ioe);
+          log.debug("IOException while shutdown in progress", ioe);
           handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range, entriesAdded);
           tabletClosed = true;
         } else {
@@ -977,11 +978,11 @@ public class Tablet implements TabletCommitter {
       }
       Metrics minCMetrics = getTabletServer().getMinCMetrics();
       if (minCMetrics.isEnabled())
-        minCMetrics.add(TabletServerMinCMetrics.MINC, (lastMinorCompactionFinishTime - start));
+        minCMetrics.add(TabletServerMinCMetricsKeys.MINC, (lastMinorCompactionFinishTime - start));
       if (hasQueueTime) {
         timer.updateTime(Operation.MINOR, queued, start, count, failed);
         if (minCMetrics.isEnabled())
-          minCMetrics.add(TabletServerMinCMetrics.QUEUE, (start - queued));
+          minCMetrics.add(TabletServerMinCMetricsKeys.QUEUE, (start - queued));
       } else
         timer.updateTime(Operation.MINOR, start, count, failed);
     }
@@ -1455,7 +1456,7 @@ public class Tablet implements TabletCommitter {
           err = null;
         } catch (RuntimeException t) {
           err = t;
-          log.error("Consistency check fails, retrying ", t);
+          log.error("Consistency check fails, retrying", t);
           UtilWaitThread.sleep(500);
         }
       }
@@ -1469,7 +1470,7 @@ public class Tablet implements TabletCommitter {
     try {
       getTabletMemory().getMemTable().delete(0);
     } catch (Throwable t) {
-      log.error("Failed to delete mem table : {} ", t.getMessage(), t);
+      log.error("Failed to delete mem table : {}", t.getMessage(), t);
     }
 
     getTabletMemory().close();
@@ -2099,9 +2100,9 @@ public class Tablet implements TabletCommitter {
     } catch (CompactionCanceledException cce) {
       log.debug("Major compaction canceled, extent = {}", getExtent());
     } catch (IOException ioe) {
-      log.error("MajC Failed, extent = {} ", getExtent(), ioe);
+      log.error("MajC Failed, extent = {}", getExtent(), ioe);
     } catch (RuntimeException e) {
-      log.error("MajC Unexpected exception, extent = {} ", getExtent(), e);
+      log.error("MajC Unexpected exception, extent = {}", getExtent(), e);
     } finally {
       // ensure we always reset boolean, even
       // when an exception is thrown

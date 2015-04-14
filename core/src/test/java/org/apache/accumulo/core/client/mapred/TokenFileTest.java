@@ -113,9 +113,9 @@ public class TokenFileTest {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, tokenFile);
-      AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AbstractInputFormat.setConnectorInfo(job, user, tokenFile);
+      InputFormatBase.setInputTableName(job, table1);
+      AbstractInputFormat.setMockInstance(job, INSTANCE_NAME);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

@@ -131,7 +131,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
           }
           sent = true;
         } catch (Exception ex) {
-          log.warn("Got error sending to {}, refreshing client {}", dest, ex);
+          log.warn("Got error sending to {}, refreshing client", dest, ex);
           clients.remove(dest);
         }
       }

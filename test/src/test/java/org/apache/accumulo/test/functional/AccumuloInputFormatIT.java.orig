@@ -35,7 +35,11 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+<<<<<<< HEAD
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
+=======
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
+>>>>>>> First round of revisions from the review board.
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;

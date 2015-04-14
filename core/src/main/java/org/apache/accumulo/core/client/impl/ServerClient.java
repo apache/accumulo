@@ -78,7 +78,7 @@ public class ServerClient {
         client = pair.getSecond();
         return exec.execute(client);
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed {}, retrying ... {}", server, tte);
+        log.debug("ClientService request failed {}, retrying ...", server, tte);
         UtilWaitThread.sleep(100);
       } finally {
         if (client != null)
@@ -98,7 +98,7 @@ public class ServerClient {
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed {}, retrying ...{}", server, tte);
+        log.debug("ClientService request failed {}, retrying ...", server, tte);
         UtilWaitThread.sleep(100);
       } finally {
         if (client != null)
@@ -128,7 +128,7 @@ public class ServerClient {
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
-      byte[] data = ZooUtil.getLockData(zc, path);
+      byte[] data = org.apache.accumulo.fate.zookeeper.ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))

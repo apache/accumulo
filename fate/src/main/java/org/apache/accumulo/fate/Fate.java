@@ -106,7 +106,7 @@ public class Fate<T> {
 
     private void transitionToFailed(long tid, Repo<T> op, Exception e) {
       String tidStr = String.format("%016x", tid);
-      log.warn("Failed to execute Repo, tid={} {}", tidStr, e);
+      log.warn("Failed to execute Repo, tid={}", tidStr, e);
       store.setProperty(tid, EXCEPTION_PROP, e);
       store.setStatus(tid, TStatus.FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with tid={} to FAILED_IN_PROGRESS", tidStr);
@@ -140,7 +140,7 @@ public class Fate<T> {
       try {
         op.undo(tid, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, tid={} {}", String.format("%016x", tid), e);
+        log.warn("Failed to undo Repo, tid={}", String.format("%016x", tid), e);
       }
     }
 

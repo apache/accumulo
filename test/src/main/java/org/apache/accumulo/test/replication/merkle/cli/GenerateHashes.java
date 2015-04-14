@@ -178,7 +178,7 @@ public class GenerateHashes {
             try {
               s = conn.createScanner(inputTableName, Authorizations.EMPTY);
             } catch (Exception e) {
-              log.error("Could not get scanner for {} {}", inputTableName, e);
+              log.error("Could not get scanner for {}", inputTableName, e);
               throw new RuntimeException(e);
             }
 

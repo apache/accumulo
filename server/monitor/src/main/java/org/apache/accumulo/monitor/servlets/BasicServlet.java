@@ -67,7 +67,7 @@ abstract public class BasicServlet extends HttpServlet {
       pageBody(req, resp, sb);
       pageEnd(req, resp, sb);
     } catch (Throwable t) {
-      log.error("Error building page {} {}", req.getRequestURI(), t);
+      log.error("Error building page {}", req.getRequestURI(), t);
       sb.append("\n<pre>\n");
       StringWriter sw = new StringWriter();
       t.printStackTrace(new PrintWriter(sw));
@@ -254,7 +254,7 @@ abstract public class BasicServlet extends HttpServlet {
     try {
       return URLEncoder.encode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      LoggerFactory.getLogger(BasicServlet.class).error("{} is not a recognized encoding{}", UTF_8.name(), e);
+      LoggerFactory.getLogger(BasicServlet.class).error("{} is not a recognized encoding", UTF_8.name(), e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }

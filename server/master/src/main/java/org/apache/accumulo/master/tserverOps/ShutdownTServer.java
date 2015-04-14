@@ -74,7 +74,7 @@ public class ShutdownTServer extends MasterRepo {
         } catch (TTransportException ex) {
           // expected
         } catch (Exception ex) {
-          log.error("Error talking to tablet server {}: {}", server, ex);
+          log.error("Error talking to tablet server {}: ", server, ex);
         }
 
         // If the connection was non-null and we could coomunicate with it

@@ -28,23 +28,16 @@ import org.apache.thrift.scheme.StandardScheme;
 
 import org.apache.thrift.scheme.TupleScheme;
 import org.apache.thrift.protocol.TTupleProtocol;
-import org.apache.thrift.protocol.TProtocolException;
 import org.apache.thrift.EncodingUtils;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.server.AbstractNonblockingServer.*;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.EnumMap;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +62,11 @@ import org.slf4j.LoggerFactory;
   public static class Client extends org.apache.thrift.TServiceClient implements Iface {
     public static class Factory implements org.apache.thrift.TServiceClientFactory<Client> {
       public Factory() {}
+      @Override
       public Client getClient(org.apache.thrift.protocol.TProtocol prot) {
         return new Client(prot);
       }
+      @Override
       public Client getClient(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) {
         return new Client(iprot, oprot);
       }
@@ -86,6 +81,7 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
+    @Override
     public long replicateLog(String remoteTableId, WalEdits data, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws RemoteReplicationException, org.apache.thrift.TException
     {
       send_replicateLog(remoteTableId, data, credentials);
@@ -114,6 +110,7 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "replicateLog failed: unknown result");
     }
 
+    @Override
     public long replicateKeyValues(String remoteTableId, KeyValues data, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws RemoteReplicationException, org.apache.thrift.TException
     {
       send_replicateKeyValues(remoteTableId, data, credentials);
@@ -151,6 +148,7 @@ import org.slf4j.LoggerFactory;
         this.clientManager = clientManager;
         this.protocolFactory = protocolFactory;
       }
+      @Override
       public AsyncClient getAsyncClient(org.apache.thrift.transport.TNonblockingTransport transport) {
         return new AsyncClient(protocolFactory, clientManager, transport);
       }
@@ -160,6 +158,7 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
+    @Override
     public void replicateLog(String remoteTableId, WalEdits data, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       replicateLog_call method_call = new replicateLog_call(remoteTableId, data, credentials, resultHandler, this, ___protocolFactory, ___transport);
@@ -178,6 +177,7 @@ import org.slf4j.LoggerFactory;
         this.credentials = credentials;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("replicateLog", org.apache.thrift.protocol.TMessageType.CALL, 0));
         replicateLog_args args = new replicateLog_args();
@@ -198,6 +198,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void replicateKeyValues(String remoteTableId, KeyValues data, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       replicateKeyValues_call method_call = new replicateKeyValues_call(remoteTableId, data, credentials, resultHandler, this, ___protocolFactory, ___transport);
@@ -216,6 +217,7 @@ import org.slf4j.LoggerFactory;
         this.credentials = credentials;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("replicateKeyValues", org.apache.thrift.protocol.TMessageType.CALL, 0));
         replicateKeyValues_args args = new replicateKeyValues_args();
@@ -259,14 +261,17 @@ import org.slf4j.LoggerFactory;
         super("replicateLog");
       }
 
+      @Override
       public replicateLog_args getEmptyArgsInstance() {
         return new replicateLog_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public replicateLog_result getResult(I iface, replicateLog_args args) throws org.apache.thrift.TException {
         replicateLog_result result = new replicateLog_result();
         try {
@@ -284,14 +289,17 @@ import org.slf4j.LoggerFactory;
         super("replicateKeyValues");
       }
 
+      @Override
       public replicateKeyValues_args getEmptyArgsInstance() {
         return new replicateKeyValues_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public replicateKeyValues_result getResult(I iface, replicateKeyValues_args args) throws org.apache.thrift.TException {
         replicateKeyValues_result result = new replicateKeyValues_result();
         try {
@@ -327,13 +335,16 @@ import org.slf4j.LoggerFactory;
         super("replicateLog");
       }
 
+      @Override
       public replicateLog_args getEmptyArgsInstance() {
         return new replicateLog_args();
       }
 
+      @Override
       public AsyncMethodCallback<Long> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<Long>() { 
+          @Override
           public void onComplete(Long o) {
             replicateLog_result result = new replicateLog_result();
             result.success = o;
@@ -346,6 +357,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -371,10 +383,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, replicateLog_args args, org.apache.thrift.async.AsyncMethodCallback<Long> resultHandler) throws TException {
         iface.replicateLog(args.remoteTableId, args.data, args.credentials,resultHandler);
       }
@@ -385,13 +399,16 @@ import org.slf4j.LoggerFactory;
         super("replicateKeyValues");
       }
 
+      @Override
       public replicateKeyValues_args getEmptyArgsInstance() {
         return new replicateKeyValues_args();
       }
 
+      @Override
       public AsyncMethodCallback<Long> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<Long>() { 
+          @Override
           public void onComplete(Long o) {
             replicateKeyValues_result result = new replicateKeyValues_result();
             result.success = o;
@@ -404,6 +421,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -429,10 +447,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, replicateKeyValues_args args, org.apache.thrift.async.AsyncMethodCallback<Long> resultHandler) throws TException {
         iface.replicateKeyValues(args.remoteTableId, args.data, args.credentials,resultHandler);
       }
@@ -512,10 +532,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -564,6 +586,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public replicateLog_args deepCopy() {
       return new replicateLog_args(this);
     }
@@ -647,6 +670,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case REMOTE_TABLE_ID:
@@ -676,6 +700,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case REMOTE_TABLE_ID:
@@ -692,6 +717,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -797,14 +823,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -869,6 +898,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateLog_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public replicateLog_argsStandardScheme getScheme() {
         return new replicateLog_argsStandardScheme();
       }
@@ -876,6 +906,7 @@ import org.slf4j.LoggerFactory;
 
     private static class replicateLog_argsStandardScheme extends StandardScheme<replicateLog_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, replicateLog_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -923,6 +954,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, replicateLog_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -949,6 +981,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateLog_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public replicateLog_argsTupleScheme getScheme() {
         return new replicateLog_argsTupleScheme();
       }
@@ -1071,10 +1104,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -1118,6 +1153,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public replicateLog_result deepCopy() {
       return new replicateLog_result(this);
     }
@@ -1176,6 +1212,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -1197,6 +1234,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
@@ -1210,6 +1248,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -1294,14 +1333,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -1350,6 +1392,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateLog_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public replicateLog_resultStandardScheme getScheme() {
         return new replicateLog_resultStandardScheme();
       }
@@ -1357,6 +1400,7 @@ import org.slf4j.LoggerFactory;
 
     private static class replicateLog_resultStandardScheme extends StandardScheme<replicateLog_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, replicateLog_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -1395,6 +1439,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, replicateLog_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -1416,6 +1461,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateLog_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public replicateLog_resultTupleScheme getScheme() {
         return new replicateLog_resultTupleScheme();
       }
@@ -1532,10 +1578,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -1584,6 +1632,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public replicateKeyValues_args deepCopy() {
       return new replicateKeyValues_args(this);
     }
@@ -1667,6 +1716,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case REMOTE_TABLE_ID:
@@ -1696,6 +1746,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case REMOTE_TABLE_ID:
@@ -1712,6 +1763,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -1817,14 +1869,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -1889,6 +1944,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateKeyValues_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public replicateKeyValues_argsStandardScheme getScheme() {
         return new replicateKeyValues_argsStandardScheme();
       }
@@ -1896,6 +1952,7 @@ import org.slf4j.LoggerFactory;
 
     private static class replicateKeyValues_argsStandardScheme extends StandardScheme<replicateKeyValues_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, replicateKeyValues_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -1943,6 +2000,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, replicateKeyValues_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -1969,6 +2027,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateKeyValues_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public replicateKeyValues_argsTupleScheme getScheme() {
         return new replicateKeyValues_argsTupleScheme();
       }
@@ -2091,10 +2150,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -2138,6 +2199,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public replicateKeyValues_result deepCopy() {
       return new replicateKeyValues_result(this);
     }
@@ -2196,6 +2258,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -2217,6 +2280,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
@@ -2230,6 +2294,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -2314,14 +2379,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -2370,6 +2438,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateKeyValues_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public replicateKeyValues_resultStandardScheme getScheme() {
         return new replicateKeyValues_resultStandardScheme();
       }
@@ -2377,6 +2446,7 @@ import org.slf4j.LoggerFactory;
 
     private static class replicateKeyValues_resultStandardScheme extends StandardScheme<replicateKeyValues_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, replicateKeyValues_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -2415,6 +2485,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, replicateKeyValues_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -2436,6 +2507,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class replicateKeyValues_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public replicateKeyValues_resultTupleScheme getScheme() {
         return new replicateKeyValues_resultTupleScheme();
       }

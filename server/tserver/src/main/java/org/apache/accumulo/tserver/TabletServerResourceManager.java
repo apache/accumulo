@@ -408,7 +408,7 @@ public class TabletServerResourceManager {
           mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {
-          log.error("Memory manager failed {} {}", t.getMessage(), t);
+          log.error("Memory manager failed {}", t.getMessage(), t);
         }
 
         try {
@@ -445,7 +445,7 @@ public class TabletServerResourceManager {
             // log.debug("mma.tabletsToMinorCompact = "+mma.tabletsToMinorCompact);
           }
         } catch (Throwable t) {
-          log.error("Minor compactions for memory managment failed {}", t);
+          log.error("Minor compactions for memory managment failed", t);
         }
 
         UtilWaitThread.sleep(250);
@@ -518,7 +518,7 @@ public class TabletServerResourceManager {
             break;
           log.info("Waiting for thread pool {} to shutdown", entry.getKey());
         } catch (InterruptedException e) {
-          log.warn("Interrupted waiting for executor to terminate {}", e);
+          log.warn("Interrupted waiting for executor to terminate", e);
         }
       }
     }

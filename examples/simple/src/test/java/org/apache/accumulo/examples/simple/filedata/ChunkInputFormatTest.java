@@ -33,6 +33,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -215,10 +217,10 @@ public class ChunkInputFormatTest {
 
       job.setInputFormatClass(ChunkInputFormat.class);
 
-      ChunkInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      ChunkInputFormat.setInputTableName(job, table);
-      ChunkInputFormat.setScanAuthorizations(job, AUTHS);
-      ChunkInputFormat.setMockInstance(job, instance);
+      AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      InputFormatBase.setInputTableName(job, table);
+      AbstractInputFormat.setScanAuthorizations(job, AUTHS);
+      AbstractInputFormat.setMockInstance(job, instance);
 
       @SuppressWarnings("unchecked")
       Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[4]);

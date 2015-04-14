@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
@@ -97,8 +98,8 @@ public class MiniAccumuloClusterTest {
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.READ);
 
     IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
-    SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
+    LongCombiner.setEncodingType(is, LongCombiner.Type.STRING);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
 
     conn.tableOperations().attachIterator("table1", is);
 

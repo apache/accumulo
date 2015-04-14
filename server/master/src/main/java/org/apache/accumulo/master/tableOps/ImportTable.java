@@ -405,7 +405,7 @@ class MapImportFileNames extends MasterRepo {
         try {
           mappingsWriter.close();
         } catch (IOException ioe) {
-          log.warn("Failed to close {} {}", path, ioe);
+          log.warn("Failed to close {}", path, ioe);
         }
     }
   }

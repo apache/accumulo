@@ -1156,8 +1156,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
           waitTime = waitFor * 10;
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
-//        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
-//            + " sleeping:" + waitTime + "ms");
         log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
             waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
         UtilWaitThread.sleep(waitTime);
@@ -1275,7 +1273,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (pair == null) {
           log.debug("Disk usage request failed.  Pair is null.  Retrying request...", e);
         } else {
-          log.debug("Disk usage request failed {}, retrying ... {}", pair.getFirst(), e);
+          log.debug("Disk usage request failed {}, retrying ... ", pair.getFirst(), e);
         }
         UtilWaitThread.sleep(100);
       } catch (TException e) {
@@ -1342,7 +1340,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       for (Entry<String,String> entry : props.entrySet()) {
         if (Property.isClassProperty(entry.getKey()) && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
           LoggerFactory.getLogger(this.getClass()).info(
-              "Imported table sets '" + entry.getKey() + "' to '" + entry.getValue() + "'.  Ensure this class is on Accumulo classpath.");
+              "Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.", entry.getKey(), entry.getValue());
         }
       }
 

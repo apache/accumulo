@@ -91,7 +91,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     log.info("File for table: {}", file);
 
-    FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     int i = 0;
     while (fs.exists(p)) {
       i++;
@@ -148,7 +148,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     log.info("File for table: {}", file);
 
-    FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     int i = 0;
     while (fs.exists(p)) {
       i++;
@@ -206,7 +206,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     log.info("File for table: {}", file);
 
-    FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     int i = 0;
     while (fs.exists(p)) {
       i++;

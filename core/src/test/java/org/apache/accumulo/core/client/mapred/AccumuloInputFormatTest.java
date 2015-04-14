@@ -85,7 +85,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testSetIterator() throws IOException {
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
-    AccumuloInputFormat.addIterator(job, is);
+    InputFormatBase.addIterator(job, is);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
@@ -94,14 +94,14 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() throws IOException {
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
+    InputFormatBase.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
+    InputFormatBase.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
     iter.addOption("v1", "1");
     iter.addOption("junk", "\0omg:!\\xyzzy");
-    AccumuloInputFormat.addIterator(job, iter);
+    InputFormatBase.addIterator(job, iter);
 
-    List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
+    List<IteratorSetting> list = InputFormatBase.getIterators(job);
 
     // Check the list size
     assertTrue(list.size() == 3);
@@ -140,9 +140,9 @@ public class AccumuloInputFormatTest {
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
-    AccumuloInputFormat.addIterator(job, someSetting);
+    InputFormatBase.addIterator(job, someSetting);
 
-    List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
+    List<IteratorSetting> list = InputFormatBase.getIterators(job);
     assertEquals(1, list.size());
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);
@@ -150,8 +150,8 @@ public class AccumuloInputFormatTest {
     someSetting.addOption(key + "2", value);
     someSetting.setPriority(2);
     someSetting.setName("it2");
-    AccumuloInputFormat.addIterator(job, someSetting);
-    list = AccumuloInputFormat.getIterators(job);
+    InputFormatBase.addIterator(job, someSetting);
+    list = InputFormatBase.getIterators(job);
     assertEquals(2, list.size());
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);
@@ -165,11 +165,11 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testGetIteratorSettings() throws IOException {
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
+    InputFormatBase.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
+    InputFormatBase.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
+    InputFormatBase.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
 
-    List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
+    List<IteratorSetting> list = InputFormatBase.getIterators(job);
 
     // Check the list size
     assertTrue(list.size() == 3);
@@ -198,9 +198,9 @@ public class AccumuloInputFormatTest {
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    AccumuloInputFormat.addIterator(job, is);
+    InputFormatBase.addIterator(job, is);
 
-    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
+    assertTrue(regex.equals(InputFormatBase.getIterators(job).get(0).getName()));
   }
 
   private static AssertionError e1 = null;
@@ -255,9 +255,9 @@ public class AccumuloInputFormatTest {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      InputFormatBase.setInputTableName(job, table);
+      AbstractInputFormat.setMockInstance(job, INSTANCE_NAME);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -309,14 +309,14 @@ public class AccumuloInputFormatTest {
     Connector connector = inst.getConnector(username, password);
     connector.tableOperations().create(table);
 
-    AccumuloInputFormat.setConnectorInfo(job, username, password);
-    AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setMockInstance(job, instance);
-    AccumuloInputFormat.setScanIsolation(job, isolated);
-    AccumuloInputFormat.setLocalIterators(job, localIters);
-    AccumuloInputFormat.fetchColumns(job, fetchColumns);
-    AccumuloInputFormat.setLogLevel(job, level);
+    AbstractInputFormat.setConnectorInfo(job, username, password);
+    InputFormatBase.setInputTableName(job, table);
+    AbstractInputFormat.setScanAuthorizations(job, auths);
+    AbstractInputFormat.setMockInstance(job, instance);
+    InputFormatBase.setScanIsolation(job, isolated);
+    InputFormatBase.setLocalIterators(job, localIters);
+    InputFormatBase.fetchColumns(job, fetchColumns);
+    AbstractInputFormat.setLogLevel(job, level);
 
     AccumuloInputFormat aif = new AccumuloInputFormat();
 

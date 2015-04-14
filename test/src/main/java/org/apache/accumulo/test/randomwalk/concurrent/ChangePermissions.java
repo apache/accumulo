@@ -69,7 +69,7 @@ public class ChangePermissions extends Test {
       if (cause != null && cause instanceof ThriftTableOperationException) {
         ThriftTableOperationException toe = (ThriftTableOperationException) cause.getCause();
         if (toe.type == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          log.debug("Unable to change user permissions: {}", toe);
+          log.debug("Unable to change user permissions:", toe);
           return;
         }
       }

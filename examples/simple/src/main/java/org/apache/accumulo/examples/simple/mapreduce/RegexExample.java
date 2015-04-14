@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
@@ -29,6 +30,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -70,7 +72,7 @@ public class RegexExample extends Configured implements Tool {
 
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
     RegExFilter.setRegexs(regex, opts.rowRegex, opts.columnFamilyRegex, opts.columnQualifierRegex, opts.valueRegex, false);
-    AccumuloInputFormat.addIterator(job, regex);
+    InputFormatBase.addIterator(job, regex);
 
     job.setMapperClass(RegexMapper.class);
     job.setMapOutputKeyClass(Key.class);
@@ -79,7 +81,7 @@ public class RegexExample extends Configured implements Tool {
     job.setNumReduceTasks(0);
 
     job.setOutputFormatClass(TextOutputFormat.class);
-    TextOutputFormat.setOutputPath(job, new Path(opts.destination));
+    FileOutputFormat.setOutputPath(job, new Path(opts.destination));
 
     System.out.println("setRowRegex: " + opts.rowRegex);
     System.out.println("setColumnFamilyRegex: " + opts.columnFamilyRegex);
