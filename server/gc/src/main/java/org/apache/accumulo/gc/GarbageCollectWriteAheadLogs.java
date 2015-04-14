@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -130,9 +131,9 @@ public class GarbageCollectWriteAheadLogs {
       status.currentLog.candidates = count;
       span.stop();
 
-      span = Trace.start("removeMetadataEntries");
+      span = Trace.start("removeEntriesInUse");
       try {
-        count = removeMetadataEntries(candidates, status, currentServers);
+        count = removeEntriesInUse(candidates, status, currentServers);
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
@@ -165,7 +166,7 @@ public class GarbageCollectWriteAheadLogs {
       span.stop();
 
       span = Trace.start("removeMarkers");
-      count = removeMarkers(candidates);
+      count = removeTabletServerMarkers(candidates);
       long removeMarkersStop = System.currentTimeMillis();
       log.info(String.format("%d markers removed in %.2f seconds", count, (removeMarkersStop - removeStop) / 1000.));
       span.stop();
@@ -182,7 +183,7 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  private long removeMarkers(Map<TServerInstance,Set<Path>> candidates) {
+  private long removeTabletServerMarkers(Map<TServerInstance,Set<Path>> candidates) {
     long result = 0;
     try {
       BatchWriter root = null;
@@ -231,15 +232,19 @@ public class GarbageCollectWriteAheadLogs {
     return status.currentLog.deleted;
   }
 
-  private long removeMetadataEntries(Map<TServerInstance, Set<Path> > candidates, GCStatus status, Set<TServerInstance> liveServers) throws IOException, KeeperException,
+  private UUID path2uuid(Path path) {
+    return UUID.fromString(path.getName());
+  }
+
+  private long removeEntriesInUse(Map<TServerInstance, Set<Path> > candidates, GCStatus status, Set<TServerInstance> liveServers) throws IOException, KeeperException,
       InterruptedException {
 
     // remove any entries if there's a log reference, or a tablet is still assigned to the dead server
 
-    Map<Path, TServerInstance> walToDeadServer = new HashMap<>();
+    Map<UUID, TServerInstance> walToDeadServer = new HashMap<>();
     for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
       for (Path file : entry.getValue()) {
-        walToDeadServer.put(file, entry.getKey());
+        walToDeadServer.put(path2uuid(file), entry.getKey());
       }
     }
     long count = 0;
@@ -254,9 +259,16 @@ public class GarbageCollectWriteAheadLogs {
       }
       for (Collection<String> wals : state.walogs) {
         for (String wal : wals) {
-          TServerInstance dead = walToDeadServer.get(new Path(wal));
+          UUID walUUID = path2uuid(new Path(wal));
+          TServerInstance dead = walToDeadServer.get(walUUID);
           if (dead != null) {
-            candidates.get(dead).remove(wal);
+            Iterator<Path> iter = candidates.get(dead).iterator();
+            while (iter.hasNext()) {
+              if (path2uuid(iter.next()).equals(walUUID)) {
+                iter.remove();
+                break;
+              }
+            }
           }
         }
       }

@@ -2893,7 +2893,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
     totalMinorCompactions.incrementAndGet();
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq);
-    removeUnusedWALs();
+    markUnusedWALs();
   }
 
   public void minorCompactionStarted(CommitSession tablet, int lastUpdateSequence, String newMapfileLocation) throws IOException {
@@ -3000,7 +3000,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   // remove any meta entries after a rolled log is no longer referenced
   Set<DfsLogger> closedLogs = new HashSet<>();
 
-  private void removeUnusedWALs() {
+  private void markUnusedWALs() {
     Set<DfsLogger> candidates;
     synchronized (closedLogs) {
       candidates = new HashSet<>(closedLogs);

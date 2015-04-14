@@ -81,6 +81,10 @@ public class LogEntry {
   static private final Text EMPTY_TEXT = new Text();
 
   public static LogEntry fromKeyValue(Key key, Value value) {
+    String qualifier = key.getColumnQualifier().toString();
+    if (qualifier.indexOf('/') < 1) {
+      throw new IllegalArgumentException("Bad key for log entry: " + key);
+    }
     KeyExtent extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
     String[] parts = key.getColumnQualifier().toString().split("/", 2);
     String server = parts[0];

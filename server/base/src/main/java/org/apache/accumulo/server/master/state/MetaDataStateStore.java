@@ -168,6 +168,9 @@ public class MetaDataStateStore extends TabletStateStore {
     BatchWriter writer = createBatchWriter();
     try {
       for (Entry<TServerInstance,List<Path>> entry : logs.entrySet()) {
+        if (entry.getValue().isEmpty()) {
+          continue;
+        }
         Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
         for (Path log : entry.getValue()) {
           m.put(MetadataSchema.CurrentLogsSection.COLF, new Text(log.toString()), MetadataSchema.CurrentLogsSection.UNUSED);

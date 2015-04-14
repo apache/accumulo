@@ -79,7 +79,7 @@ public class TabletServerLogger {
   // The current logger
   private DfsLogger currentLog = null;
   private final SynchronousQueue<DfsLogger> nextLog = new SynchronousQueue<>();
-  private final ThreadPoolExecutor nextLogMaker = new SimpleThreadPool(1, "WALog creator");
+  private ThreadPoolExecutor nextLogMaker;
 
   // The current generation of logs.
   // Because multiple threads can be using a log at one time, a log
@@ -150,7 +150,6 @@ public class TabletServerLogger {
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
-    startLogMaker();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -200,6 +199,7 @@ public class TabletServerLogger {
     }
 
     try {
+      startLogMaker();
       DfsLogger next = nextLog.take();
       log.info("Using next log " + next.getFileName());
       currentLog = next;
@@ -214,7 +214,11 @@ public class TabletServerLogger {
     }
   }
 
-  private void startLogMaker() {
+  private synchronized void startLogMaker() {
+    if (nextLogMaker != null) {
+      return;
+    }
+    nextLogMaker = new SimpleThreadPool(1, "WALog creator");
     nextLogMaker.submit(new Runnable() {
       @Override
       public void run() {
