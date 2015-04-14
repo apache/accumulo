@@ -159,14 +159,14 @@ public class TraceServer implements Watcher {
         if (timeMutation != null)
           writer.addMutation(timeMutation);
       } catch (MutationsRejectedException exception) {
-        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for span information and stacktrace. cause: {}", exception);
+        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for span information and stacktrace. cause:", exception);
         if (log.isDebugEnabled()) {
-          log.debug("discarded span due to rejection of mutation: {} {}", spanMutation, exception);
+          log.debug("discarded span due to rejection of mutation: {}", spanMutation, exception);
         }
         /* XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this mutation to a writer that has been closed since we retrieved it */
       } catch (RuntimeException exception) {
-        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause: {}", exception);
-        log.debug("unable to write mutation to table due to exception. {}", exception);
+        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause:", exception);
+        log.debug("unable to write mutation to table due to exception.", exception);
       }
     }
 
@@ -216,7 +216,7 @@ public class TraceServer implements Watcher {
         connector.tableOperations().setProperty(table, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
       } catch (RuntimeException ex) {
-        log.info("Waiting to checking/create the trace table. {}", ex);
+        log.info("Waiting to checking/create the trace table.", ex);
         UtilWaitThread.sleep(1000);
       }
     }
@@ -258,13 +258,13 @@ public class TraceServer implements Watcher {
         }
       }
     } catch (MutationsRejectedException exception) {
-      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: {}", exception);
-      log.debug("flushing traces failed due to exception {}", exception);
+      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause:", exception);
+      log.debug("flushing traces failed due to exception", exception);
       resetWriter();
       /* XXX e.g. if the writer was closed between when we grabbed it and when we called flush. */
     } catch (RuntimeException exception) {
-      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: {}", exception);
-      log.debug("flushing traces failed due to exception {}", exception);
+      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause:", exception);
+      log.debug("flushing traces failed due to exception", exception);
       resetWriter();
     }
   }
@@ -274,8 +274,8 @@ public class TraceServer implements Watcher {
     try {
       writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
     } catch (Exception ex) {
-      log.warn("Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: {}", ex);
-      log.debug("batch writer creation failed with exception. {}", ex);
+      log.warn("Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause:", ex);
+      log.debug("batch writer creation failed with exception.", ex);
     } finally {
       /* Trade in the new writer (even if null) for the one we need to close. */
       writer = this.writer.getAndSet(writer);
@@ -284,8 +284,8 @@ public class TraceServer implements Watcher {
           writer.close();
         }
       } catch (Exception ex) {
-        log.warn("Problem closing batch writer. Set log level to DEBUG to see stacktrace. cause: {}", ex);
-        log.debug("batch writer close failed with exception {}", ex);
+        log.warn("Problem closing batch writer. Set log level to DEBUG to see stacktrace. cause:", ex);
+        log.debug("batch writer close failed with exception", ex);
       }
     }
   }

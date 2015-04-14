@@ -39,6 +39,7 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
@@ -56,7 +57,7 @@ public class AccumuloServerContextTest {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
     Configuration conf = new Configuration(false);
-    conf.set(CommonConfigurationKeys.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
     UserGroupInformation.setConfiguration(conf);
     testUser = UserGroupInformation.createUserForTesting("test_user", new String[0]);
     username = testUser.getUserName();

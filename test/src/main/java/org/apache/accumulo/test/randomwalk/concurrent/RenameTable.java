@@ -80,7 +80,7 @@ public class RenameTable extends Test {
       if (!srcNamespace.equals(newNamespace)) {
         return;
       }
-      log.debug("Rename {} failed. {}", srcTableName, e);
+      log.debug("Rename {} failed.", srcTableName, e);
     }
 
     if (!srcNamespace.equals(newNamespace)) {

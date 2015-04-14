@@ -59,7 +59,7 @@ public class Utils {
     try {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       final String ntp = ZooUtil.getRoot(instance) + Constants.ZTABLES;
-      byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, new Mutator() {
+      byte[] nid = zoo.mutate(ntp, ZERO_BYTE, org.apache.accumulo.fate.zookeeper.ZooUtil.PUBLIC, new Mutator() {
         @Override
         public byte[] mutate(byte[] currentValue) throws Exception {
           BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
@@ -69,7 +69,7 @@ public class Utils {
       });
       return new String(nid, UTF_8);
     } catch (Exception e1) {
-      LoggerFactory.getLogger(CreateTable.class).error("Failed to assign tableId to {} {}", tableName, e1);
+      LoggerFactory.getLogger(CreateTable.class).error("Failed to assign tableId to {}", tableName, e1);
       throw new ThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }

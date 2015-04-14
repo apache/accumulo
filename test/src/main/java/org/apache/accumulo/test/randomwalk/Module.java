@@ -46,6 +46,7 @@ import javax.xml.validation.SchemaFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.log4j.Level;
+import org.apache.log4j.Priority;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.w3c.dom.Document;
@@ -76,17 +77,17 @@ public class Module extends Node {
           case Level.TRACE_INT:
             log.trace(name);
             break;
-          case Level.DEBUG_INT:
+          case Priority.DEBUG_INT:
             log.debug(name);
             break;
-          case Level.ERROR_INT:
-          case Level.FATAL_INT:
+          case Priority.ERROR_INT:
+          case Priority.FATAL_INT:
             log.error(name);
             break;
-          case Level.INFO_INT:
+          case Priority.INFO_INT:
             log.info(name);
             break;
-          case Level.WARN_INT:
+          case Priority.WARN_INT:
             log.warn(name);
         }
         //log.log(level, name);
@@ -423,7 +424,7 @@ public class Module extends Node {
       try {
         timer.join();
       } catch (InterruptedException e) {
-        log.error("Failed to join timer '{}'. {}", timer.getName(), e);
+        log.error("Failed to join timer '{}'.", timer.getName(), e);
       }
     }
     if (runningLong.get())
@@ -519,7 +520,7 @@ public class Module extends Node {
       docbuilder = dbf.newDocumentBuilder();
       d = docbuilder.parse(xmlFile);
     } catch (Exception e) {
-      log.error("Failed to parse: {} {}", xmlFile, e);
+      log.error("Failed to parse: {}", xmlFile, e);
       throw new Exception("Failed to parse: " + xmlFile);
     }
 

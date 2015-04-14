@@ -237,9 +237,9 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
           throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
 
       } catch (AccumuloException e) {
-        Master.log.debug("Failed to scan {} table to wait for flush {} {}", MetadataTable.NAME, tableId, e);
+        Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, e);
       } catch (TabletDeletedException tde) {
-        Master.log.debug("Failed to scan {} table to wait for flush {} {}", MetadataTable.NAME, tableId, tde);
+        Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, tde);
       } catch (AccumuloSecurityException e) {
         Master.log.warn(e.getMessage(), e);
         throw new ThriftSecurityException();

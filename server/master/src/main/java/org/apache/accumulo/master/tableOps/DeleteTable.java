@@ -149,7 +149,7 @@ class CleanUp extends MasterRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan {} looking for references to deleted table {} {}", MetadataTable.NAME, tableId, e);
+      log.error("Failed to scan {} looking for references to deleted table {}", MetadataTable.NAME, tableId, e);
     }
 
     // remove metadata table entries
@@ -159,14 +159,14 @@ class CleanUp extends MasterRepo {
       // are dropped and the operation completes, then the deletes will not be repeated.
       MetadataTableUtil.deleteTable(tableId, refCount != 0, master, null);
     } catch (Exception e) {
-      log.error("error deleting {} from metadata table {}", tableId, e);
+      log.error("error deleting {} from metadata table", tableId, e);
     }
 
     // remove any problem reports the table may have
     try {
       ProblemReports.getInstance(master).deleteProblemReports(tableId);
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table {} {}", tableId, e);
+      log.error("Failed to delete problem reports for table {}", tableId, e);
     }
 
     if (refCount == 0) {

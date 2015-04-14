@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ServerServices;
@@ -58,7 +59,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     ClientConfiguration clientConf = ClientConfiguration.loadDefault();
     clientConf.withInstance(instance.getInstanceName()).withZkHosts(instance.getZooKeepers());
     ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
-    long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
+    long rpcTimeout = AccumuloConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
@@ -67,7 +68,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
-      byte[] data = ZooUtil.getLockData(zc, path);
+      byte[] data = org.apache.accumulo.fate.zookeeper.ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))

@@ -169,7 +169,7 @@ public class TabletServerLogger {
           else
             result[0] = -1;
         } catch (IOException e) {
-          log.error("Unable to create loggers {}", e);
+          log.error("Unable to create loggers", e);
         }
       }
     });
@@ -310,7 +310,7 @@ public class TabletServerLogger {
         log.debug("Logs closed while writing, retrying {}", attempt);
       } catch (Exception t) {
         if (attempt != 1) {
-          log.error("Unexpected error writing to log, retrying attempt {} {}", attempt, t);
+          log.error("Unexpected error writing to log, retrying attempt {}", attempt, t);
         }
         UtilWaitThread.sleep(100);
       } finally {

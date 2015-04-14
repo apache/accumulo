@@ -68,7 +68,7 @@ public class OperationServlet extends BasicServlet {
         }
       }
     } catch (Throwable t) {
-      log.error("{}", t);
+      log.error("", t);
     } finally {
       try {
         for (Cookie c : cookiesToSet) {
@@ -77,7 +77,7 @@ public class OperationServlet extends BasicServlet {
         resp.sendRedirect(sanitizeRedirect(redir));
         resp.flushBuffer();
       } catch (Throwable t) {
-        log.error("{}", t);
+        log.error("", t);
       }
     }
   }
@@ -117,7 +117,7 @@ public class OperationServlet extends BasicServlet {
       try {
         ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(table);
       } catch (Exception e) {
-        log.error("Failed to delete problem reports for table {} {}", table, e);
+        log.error("Failed to delete problem reports for table {}", table, e);
       }
       return Collections.emptyList();
     }
@@ -132,7 +132,7 @@ public class OperationServlet extends BasicServlet {
       try {
         ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(table, ProblemType.valueOf(ptype), resource);
       } catch (Exception e) {
-        log.error("Failed to delete problem reports for table {} {}", table, e);
+        log.error("Failed to delete problem reports for table {}", table, e);
       }
       return Collections.emptyList();
     }

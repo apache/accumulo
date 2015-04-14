@@ -40,6 +40,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.BeforeClass;
@@ -140,10 +141,10 @@ public class AccumuloFileOutputFormatTest {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
-      AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
+      AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      InputFormatBase.setInputTableName(job, table);
+      AbstractInputFormat.setMockInstance(job, INSTANCE_NAME);
+      FileOutputFormat.setOutputPath(job, new Path(args[3]));
 
       job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : Mapper.class);
       job.setMapOutputKeyClass(Key.class);

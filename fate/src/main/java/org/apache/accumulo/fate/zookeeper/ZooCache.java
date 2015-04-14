@@ -165,14 +165,14 @@ public class ZooCache {
       } catch (KeeperException e) {
         final Code code = e.code();
         if (code == Code.NONODE) {
-          log.error("Looked up non-existent node in cache {} {}", e.getPath(), e);
+          log.error("Looked up non-existent node in cache {}", e.getPath(), e);
         } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
           log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry {}", e);
         } else {
-          log.warn("Zookeeper error, will retry {}", e);
+          log.warn("Zookeeper error, will retry", e);
         }
       } catch (InterruptedException e) {
-        log.info("Zookeeper error, will retry {}", e);
+        log.info("Zookeeper error, will retry", e);
       } catch (ConcurrentModificationException e) {
         log.debug("Zookeeper was modified, will retry");
       }
@@ -181,7 +181,7 @@ public class ZooCache {
         // do not hold lock while sleeping
         wait(sleepTime);
       } catch (InterruptedException e) {
-        log.debug("Wait in retry() was interrupted. {}", e);
+        log.debug("Wait in retry() was interrupted.", e);
       }
       if (sleepTime < 10000)
         sleepTime = (int) (sleepTime + sleepTime * Math.random());

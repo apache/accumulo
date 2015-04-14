@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -141,7 +142,7 @@ public class MockConnectorTest {
     c.tableOperations().create(table);
     IteratorSetting is = new IteratorSetting(10, "String Summation", SummingCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("day")));
-    SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(table, is);
     String keys[][] = { {"foo", "day", "20080101"}, {"foo", "day", "20080101"}, {"foo", "day", "20080103"}, {"bar", "day", "20080101"},
         {"bar", "day", "20080101"},};

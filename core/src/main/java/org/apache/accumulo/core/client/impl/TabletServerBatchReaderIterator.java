@@ -685,20 +685,20 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         ThriftUtil.returnClient(client);
       }
     } catch (TTransportException e) {
-      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
-      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TApplicationException e) {
-      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new AccumuloServerException(server, e);
     } catch (NoSuchScanIDException e) {
-      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new IOException(e);
     } catch (TException e) {
-      log.debug("Server : {} msg : {} {}", server, e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } finally {

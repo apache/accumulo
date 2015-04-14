@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -394,10 +393,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
       float singleMB = ((float) bucketSingle.totalSize()) / ((float) (1024 * 1024));
       float multiMB = ((float) bucketMulti.totalSize()) / ((float) (1024 * 1024));
       float memoryMB = ((float) bucketMemory.totalSize()) / ((float) (1024 * 1024));
-
-//      log.debug("Block cache LRU eviction completed. " + "Freed " + bytesFreed + " bytes.  " + "Priority Sizes: " + "Single=" + singleMB + "MB ("
-//          + bucketSingle.totalSize() + "), " + "Multi=" + multiMB + "MB (" + bucketMulti.totalSize() + ")," + "Memory=" + memoryMB + "MB ("
-//          + bucketMemory.totalSize() + ")");
       
       log.debug("Block cache LRU eviction completed. Freed {} bytes.  Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
           bytesFreed, singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(), memoryMB, bucketMemory.totalSize());
@@ -583,11 +578,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
     float sizeMB = ((float) totalSize) / ((float) (1024 * 1024));
     float freeMB = ((float) freeSize) / ((float) (1024 * 1024));
     float maxMB = ((float) maxSize) / ((float) (1024 * 1024));
-//    LruBlockCache.log.debug("Cache Stats: Sizes: " + "Total=" + sizeMB + "MB (" + totalSize + "), " + "Free=" + freeMB + "MB (" + freeSize + "), " + "Max="
-//        + maxMB + "MB (" + maxSize + ")" + ", Counts: " + "Blocks=" + size() + ", " + "Access=" + stats.getRequestCount() + ", " + "Hit=" + stats.getHitCount()
-//        + ", " + "Miss=" + stats.getMissCount() + ", " + "Evictions=" + stats.getEvictionCount() + ", " + "Evicted=" + stats.getEvictedCount() + ", Ratios: "
-//        + "Hit Ratio=" + stats.getHitRatio() * 100 + "%, " + "Miss Ratio=" + stats.getMissRatio() * 100 + "%, " + "Evicted/Run=" + stats.evictedPerEviction()
-//        + ", " + "Duplicate Reads=" + stats.getDuplicateReads());
 
     LruBlockCache.log.debug("Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB ({}), Counts: Blocks={}, Access={}, Hit={}"
         + ", Miss={}, Evictions={}, Evicted={}, Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={}, Duplicate Reads={}",

@@ -186,7 +186,7 @@ public class DfsLogger {
             }
           }
         } catch (Exception ex) {
-          log.warn("Exception syncing {}", ex);
+          log.warn("Exception syncing", ex);
           for (DfsLogger.LogWork logWork : work) {
             logWork.exception = ex;
           }

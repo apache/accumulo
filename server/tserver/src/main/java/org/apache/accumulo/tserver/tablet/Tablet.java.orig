@@ -636,7 +636,7 @@ public class Tablet implements TabletCommitter {
 
       } catch (Throwable t) {
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
-          log.warn("Error recovering from log files: {}", t);
+          log.warn("Error recovering from log files: ", t);
         } else {
           throw new RuntimeException(t);
         }
@@ -684,11 +684,15 @@ public class Tablet implements TabletCommitter {
           log.debug("Removing old temp file {}", tmp.getPath());
           getTabletServer().getFileSystem().delete(tmp.getPath());
         } catch (IOException ex) {
-          log.error("Unable to remove old temp file {}: {}", tmp.getPath(), ex);
+<<<<<<< HEAD
+          log.error("Unable to remove old temp file {}: ", tmp.getPath(), ex);
+=======
+          log.error("Unable to remove old temp file {}:", tmp.getPath(), ex);
+>>>>>>> First round of revisions from the review board.
         }
       }
     } catch (IOException ex) {
-      log.error("Error scanning for old temp files in " + location);
+      log.error("Error scanning for old temp files in {}", location);
     }
   }
 
@@ -700,7 +704,7 @@ public class Tablet implements TabletCommitter {
         ColumnVisibility cv = new ColumnVisibility(tableConfiguration.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
         this.defaultSecurityLabel = cv.getExpression();
       } catch (Exception e) {
-        log.error("{}", e);
+        log.error("", e);
         this.defaultSecurityLabel = new byte[0];
       }
     }
@@ -760,7 +764,11 @@ public class Tablet implements TabletCommitter {
       } catch (IOException ioe) {
         if (shutdownInProgress()) {
           // assume HDFS shutdown hook caused this exception
-          log.debug("IOException while shutdown in progress {}", ioe);
+<<<<<<< HEAD
+          log.debug("IOException while shutdown in progress ", ioe);
+=======
+          log.debug("IOException while shutdown in progress", ioe);
+>>>>>>> First round of revisions from the review board.
           handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range, entriesAdded);
           tabletClosed = true;
         } else {
@@ -970,7 +978,7 @@ public class Tablet implements TabletCommitter {
       try {
         getTabletMemory().finalizeMinC();
       } catch (Throwable t) {
-        log.error("Failed to free tablet memory {}", t);
+        log.error("Failed to free tablet memory", t);
       }
 
       if (!failed) {
@@ -1460,7 +1468,11 @@ public class Tablet implements TabletCommitter {
           err = null;
         } catch (RuntimeException t) {
           err = t;
-          log.error("Consistency check fails, retrying {}", t);
+<<<<<<< HEAD
+          log.error("Consistency check fails, retrying ", t);
+=======
+          log.error("Consistency check fails, retrying", t);
+>>>>>>> First round of revisions from the review board.
           UtilWaitThread.sleep(500);
         }
       }
@@ -1474,7 +1486,11 @@ public class Tablet implements TabletCommitter {
     try {
       getTabletMemory().getMemTable().delete(0);
     } catch (Throwable t) {
-      log.error("Failed to delete mem table : {} {}", t.getMessage(), t);
+<<<<<<< HEAD
+      log.error("Failed to delete mem table : {} ", t.getMessage(), t);
+=======
+      log.error("Failed to delete mem table : {}", t.getMessage(), t);
+>>>>>>> First round of revisions from the review board.
     }
 
     getTabletMemory().close();
@@ -1883,7 +1899,7 @@ public class Tablet implements TabletCommitter {
           droppedFiles.addAll(plan.deleteFiles);
         propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
         log.debug("Major compaction plan: {} propogate deletes : {}", plan, propogateDeletes);
-        filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
+        filesToCompact = new HashMap<>(allFiles);
         filesToCompact.keySet().retainAll(inputFiles);
 
         getDatafileManager().reserveMajorCompactingFiles(filesToCompact.keySet());
@@ -2104,9 +2120,15 @@ public class Tablet implements TabletCommitter {
     } catch (CompactionCanceledException cce) {
       log.debug("Major compaction canceled, extent = {}", getExtent());
     } catch (IOException ioe) {
-      log.error("MajC Failed, extent = {} {}", getExtent(), ioe);
+<<<<<<< HEAD
+      log.error("MajC Failed, extent = {} ", getExtent(), ioe);
     } catch (RuntimeException e) {
-      log.error("MajC Unexpected exception, extent = {} {}", getExtent(), e);
+      log.error("MajC Unexpected exception, extent = {} ", getExtent(), e);
+=======
+      log.error("MajC Failed, extent = {}", getExtent(), ioe);
+    } catch (RuntimeException e) {
+      log.error("MajC Unexpected exception, extent = {}", getExtent(), e);
+>>>>>>> First round of revisions from the review board.
     } finally {
       // ensure we always reset boolean, even
       // when an exception is thrown
@@ -2758,7 +2780,7 @@ public class Tablet implements TabletCommitter {
           }
         }
       } catch (IOException e) {
-        log.warn("{}", e);
+        log.warn("", e);
       }
 
       log.warn("Failed to create dir for tablet in table {} in volume {} will retry ...", tableId, volume);

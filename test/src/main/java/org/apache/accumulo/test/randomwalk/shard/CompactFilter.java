@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.Environment;
@@ -53,7 +54,7 @@ public class CompactFilter extends Test {
 
     IteratorSetting is = new IteratorSetting(21, "ii", RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    RegExFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     documentFilters.add(is);
 
     long t1 = System.currentTimeMillis();
@@ -65,7 +66,7 @@ public class CompactFilter extends Test {
 
     is = new IteratorSetting(21, RegExFilter.class);
     RegExFilter.setRegexs(is, null, null, regex, null, false);
-    RegExFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     indexFilters.add(is);
 
     t1 = System.currentTimeMillis();

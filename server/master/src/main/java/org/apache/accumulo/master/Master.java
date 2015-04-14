@@ -689,7 +689,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         byte[] data = ZooReaderWriter.getInstance().getData(ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_GOAL_STATE, null);
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
-        log.error("Problem getting real goal state from zookeeper: {}", e);
+        log.error("Problem getting real goal state from zookeeper: ", e);
         UtilWaitThread.sleep(1000);
       }
   }
@@ -957,7 +957,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           wait = updateStatus();
           eventListener.waitForEvents(wait);
         } catch (Throwable t) {
-          log.error("Error balancing tablets, will wait for {} (seconds) and then retry {}", WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
+          log.error("Error balancing tablets, will wait for {} (seconds) and then retry ", WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
         }
       }
@@ -1056,7 +1056,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         }
       } catch (Exception ex) {
         log.error("unable to get tablet server status {} {}", server, ex.toString());
-        log.debug("unable to get tablet server status {} {}", server, ex);
+        log.debug("unable to get tablet server status {}", server, ex);
         if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
           log.warn("attempting to stop {}", server);
           try {
@@ -1066,7 +1066,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           } catch (TTransportException e) {
             // ignore: it's probably down
           } catch (Exception e) {
-            log.info("error talking to troublesome tablet server {}", e);
+            log.info("error talking to troublesome tablet server", e);
           }
           badServers.remove(server);
           tserverSet.remove(server);
@@ -1108,7 +1108,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           // watcher only fires once, add it back
           ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, this);
         } catch (Exception e) {
-          log.error("Failed to add log recovery watcher back {}", e);
+          log.error("Failed to add log recovery watcher back", e);
         }
       }
     });
@@ -1194,7 +1194,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     try {
       replicationWorkAssigner = new WorkDriver(this);
     } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Caught exception trying to initialize replication WorkDriver {}", e);
+      log.error("Caught exception trying to initialize replication WorkDriver", e);
       throw new RuntimeException(e);
     }
     replicationWorkAssigner.start();
@@ -1218,7 +1218,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     try {
       replicationMetrics.register();
     } catch (Exception e) {
-      log.error("Failed to register replication metrics {}", e);
+      log.error("Failed to register replication metrics", e);
     }
 
     while (clientService.isServing()) {
@@ -1270,7 +1270,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       Halt.halt(-1, new Runnable() {
         @Override
         public void run() {
-          log.error("FATAL: No longer able to monitor master lock node {}", e);
+          log.error("FATAL: No longer able to monitor master lock node", e);
         }
       });
 
@@ -1290,7 +1290,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get master lock {}", e);
+      log.warn("Failed to get master lock", e);
 
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
@@ -1354,7 +1354,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       DistributedTrace.enable(hostname, app, conf.getConfiguration());
       master.run();
     } catch (Exception ex) {
-      log.error("Unexpected exception, exiting {}", ex);
+      log.error("Unexpected exception, exiting", ex);
       System.exit(1);
     } finally {
       DistributedTrace.disable();

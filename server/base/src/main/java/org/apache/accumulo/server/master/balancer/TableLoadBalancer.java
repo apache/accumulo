@@ -88,7 +88,7 @@ public class TableLoadBalancer extends TabletBalancer {
 
           log.info("Loaded new class {} for table {}", clazzName, table);
         } catch (Exception e) {
-          log.warn("Failed to load table balancer class {} for table {} {}", clazzName, table, e);
+          log.warn("Failed to load table balancer class {} for table {}", clazzName, table, e);
         }
       }
     }
@@ -97,7 +97,7 @@ public class TableLoadBalancer extends TabletBalancer {
         balancer = constructNewBalancerForTable(clazzName, table);
         log.info("Loaded class {} for table {}", clazzName, table);
       } catch (Exception e) {
-        log.warn("Failed to load table balancer class {} for table {} {}", clazzName, table, e);
+        log.warn("Failed to load table balancer class {} for table {}", clazzName, table, e);
       }
 
       if (balancer == null) {

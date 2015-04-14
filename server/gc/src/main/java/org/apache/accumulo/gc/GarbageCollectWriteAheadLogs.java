@@ -214,7 +214,7 @@ public class GarbageCollectWriteAheadLogs {
           } catch (FileNotFoundException ex) {
             // ignored
           } catch (IOException ex) {
-            log.error("Unable to delete wal {}: {}", path, ex);
+            log.error("Unable to delete wal {}: ", path, ex);
           }
         }
       } else {
@@ -229,7 +229,7 @@ public class GarbageCollectWriteAheadLogs {
             } catch (FileNotFoundException ex) {
               // ignored
             } catch (IOException ex) {
-              log.error("Unable to delete wal {}: {}", path, ex);
+              log.error("Unable to delete wal {}: ", path, ex);
             }
           }
           continue;
@@ -241,7 +241,7 @@ public class GarbageCollectWriteAheadLogs {
             log.debug("deleted {} from {}", entry.getValue(), entry.getKey());
             status.currentLog.deleted += entry.getValue().size();
           } catch (TException e) {
-            log.warn("Error talking to {}: {}", address, e);
+            log.warn("Error talking to {}: ", address, e);
           } finally {
             if (tserver != null)
               ThriftUtil.returnClient(tserver);
@@ -261,10 +261,10 @@ public class GarbageCollectWriteAheadLogs {
       } catch (IOException ioe) {
         try {
           if (fs.exists(swalog)) {
-            log.error("Unable to delete sorted walog {}: {}", swalog, ioe);
+            log.error("Unable to delete sorted walog {}: ", swalog, ioe);
           }
         } catch (IOException ex) {
-          log.error("Unable to check for the existence of {} {}", swalog, ex);
+          log.error("Unable to check for the existence of {} ", swalog, ex);
         }
       }
     }
@@ -398,7 +398,7 @@ public class GarbageCollectWriteAheadLogs {
           return true;
         }
       } catch (InvalidProtocolBufferException e) {
-        log.error("Could not deserialize Status protobuf for {} {}", entry.getKey(), e);
+        log.error("Could not deserialize Status protobuf for {}", entry.getKey(), e);
       }
     }
 

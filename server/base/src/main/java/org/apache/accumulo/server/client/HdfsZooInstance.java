@@ -105,7 +105,7 @@ public class HdfsZooInstance implements Instance {
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
 
-    byte[] loc = ZooLock.getLockData(zooCache, masterLocPath, null);
+    byte[] loc = org.apache.accumulo.fate.zookeeper.ZooLock.getLockData(zooCache, masterLocPath, null);
 
     opTimer.stop("Found master at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
 

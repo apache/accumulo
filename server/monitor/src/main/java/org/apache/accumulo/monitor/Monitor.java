@@ -259,7 +259,7 @@ public class Monitor {
           Monitor.gcStatus = fetchGcStatus();
         } catch (Exception e) {
           mmi = null;
-          log.info("Error fetching stats: {}", e);
+          log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
             MasterClient.close(client);
@@ -386,7 +386,7 @@ public class Monitor {
         }
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at {} {}", address, ex);
+      log.warn("Unable to contact the garbage collector at {}", address, ex);
     }
     return result;
   }
@@ -430,7 +430,7 @@ public class Monitor {
       log.debug("Creating monitor on port {}", port);
       server = new EmbeddedWebServer(hostname, port);
     } catch (Throwable ex) {
-      log.error("Unable to start embedded web server {}", ex);
+      log.error("Unable to start embedded web server", ex);
       throw new RuntimeException(ex);
     }
 
@@ -656,7 +656,7 @@ public class Monitor {
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock {}", e);
+      log.warn("Failed to get monitor lock", e);
 
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);

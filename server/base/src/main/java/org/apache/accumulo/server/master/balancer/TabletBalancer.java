@@ -196,7 +196,7 @@ public abstract class TabletBalancer {
     try {
       return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId);
     } catch (TTransportException e) {
-      log.error("Unable to connect to {}: {}", tserver, e);
+      log.error("Unable to connect to {}: ", tserver, e);
     } finally {
       ThriftUtil.returnClient(client);
     }

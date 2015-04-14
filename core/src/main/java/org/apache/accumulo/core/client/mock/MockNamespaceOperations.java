@@ -126,7 +126,7 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      log.warn("Could not load class '{}' with type name '{}' in testClassLoad() {}", className, asTypeName, e);
+      log.warn("Could not load class '{}' with type name '{}' in testClassLoad() ", className, asTypeName, e);
       return false;
     }
     return true;

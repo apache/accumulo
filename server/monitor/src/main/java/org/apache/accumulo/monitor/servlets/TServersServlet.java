@@ -138,7 +138,7 @@ public class TServersServlet extends BasicServlet {
       }
     } catch (Exception e) {
       banner(sb, "error", "No Such Tablet ServerAvailable");
-      log.error("{}", e);
+      log.error("", e);
       return;
     }
 

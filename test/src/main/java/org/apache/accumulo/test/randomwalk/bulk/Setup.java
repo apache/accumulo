@@ -24,6 +24,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -51,8 +52,8 @@ public class Setup extends Test {
       if (!tableOps.exists(getTableName())) {
         tableOps.create(getTableName());
         IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
-        SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
-        SummingCombiner.setCombineAllColumns(is, true);
+        LongCombiner.setEncodingType(is, LongCombiner.Type.STRING);
+        Combiner.setCombineAllColumns(is, true);
         tableOps.attachIterator(getTableName(), is);
       }
     } catch (TableExistsException ex) {

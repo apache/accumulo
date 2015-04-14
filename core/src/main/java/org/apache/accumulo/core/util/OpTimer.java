@@ -19,6 +19,7 @@ package org.apache.accumulo.core.util;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.Priority;
 import org.slf4j.Logger;
 
 
@@ -36,48 +37,53 @@ public class OpTimer {
 
   public OpTimer start(String msg) {
     opid = nextOpid.getAndIncrement();
+    
     switch(level.toInt()) {
       case Level.TRACE_INT:
         log.trace("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
         break;
-      case Level.DEBUG_INT:
+      case Priority.DEBUG_INT:
         log.debug("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
         break;
-      case Level.ERROR_INT:
-      case Level.FATAL_INT:
+      case Priority.ERROR_INT:
         log.error("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
         break;
-      case Level.WARN_INT:
-        log.warn("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+     case Priority.FATAL_INT:
+        log.error("FATAL: tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
         break;
+     case Priority.WARN_INT:
+       log.warn("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+       break;
+     default:
+       log.error("UNKNOWN: tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
     }
-//    if (log.isEnabledFor(level))
-//      log.log(level, "tid=" + Thread.currentThread().getId() + " oid=" + opid + "  " + msg);
     t1 = System.currentTimeMillis();
     return this;
   }
 
   public void stop(String msg) {
-//    if (log.isEnabledFor(level)) {
-      long t2 = System.currentTimeMillis();
-      String duration = String.format("%.3f secs", (t2 - t1) / 1000.0);
-      msg = msg.replace("%DURATION%", duration);
-      switch(level.toInt()) {
-        case Level.TRACE_INT:
-          log.trace("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
-          break;
-        case Level.DEBUG_INT:
-          log.debug("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
-          break;
-        case Level.ERROR_INT:
-        case Level.FATAL_INT:
-          log.error("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
-          break;
-        case Level.WARN_INT:
-          log.warn("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
-          break;
-      }
-//      log.log(level, "tid=" + Thread.currentThread().getId() + " oid=" + opid + "  " + msg);
-//    }
+    long t2 = System.currentTimeMillis();
+    String duration = String.format("%.3f secs", (t2 - t1) / 1000.0);
+    msg = msg.replace("%DURATION%", duration);
+    
+    switch(level.toInt()) {
+      case Level.TRACE_INT:
+        log.trace("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+        break;
+      case Priority.DEBUG_INT:
+        log.debug("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+        break;
+      case Priority.ERROR_INT:
+        log.error("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+        break;
+      case Priority.FATAL_INT:
+        log.error("FATAL: tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+        break;
+      case Priority.WARN_INT:
+        log.warn("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+        break;
+      default:
+        log.error("UNKNOWN: tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
+    }
   }
 }

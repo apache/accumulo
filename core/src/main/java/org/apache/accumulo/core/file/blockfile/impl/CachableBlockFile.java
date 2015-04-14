@@ -289,7 +289,7 @@ public class CachableBlockFile {
       try {
         _iCache.cacheBlock(_lookup, b);
       } catch (Exception e) {
-        log.warn("Already cached block: {} {}", _lookup, e);
+        log.warn("Already cached block: {}", _lookup, e);
       }
     }
 
@@ -334,7 +334,7 @@ public class CachableBlockFile {
           b = new byte[(int) _currBlock.getRawSize()];
           _currBlock.readFully(b);
         } catch (IOException e) {
-          log.debug("Error full blockRead for file {} for block {} {}", fileName, block, e);
+          log.debug("Error full blockRead for file {} for block {}", fileName, block, e);
           throw e;
         } finally {
           _currBlock.close();
@@ -344,7 +344,7 @@ public class CachableBlockFile {
         try {
           ce = cache.cacheBlock(_lookup, b);
         } catch (Exception e) {
-          log.warn("Already cached block: {} {}", _lookup, e);
+          log.warn("Already cached block: {}", _lookup, e);
         }
 
         if (ce == null)

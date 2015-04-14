@@ -24,9 +24,11 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -98,8 +100,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
 
     ClientConfiguration clientConf = ClientConfiguration.loadDefault().withInstance(args[3]).withZkHosts(args[4]);
 
-    AccumuloInputFormat.setInputTableName(job, args[2]);
-    AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
+    InputFormatBase.setInputTableName(job, args[2]);
+    AbstractInputFormat.setZooKeeperInstance(job, clientConf);
     AccumuloOutputFormat.setDefaultTableName(job, args[5]);
     AccumuloOutputFormat.setZooKeeperInstance(job, clientConf);
 
@@ -131,7 +133,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
         AuthenticationToken dt = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
         // Set the delegation token instead of the kerberos token
-        AccumuloInputFormat.setConnectorInfo(job, newPrincipal, dt);
+        AbstractInputFormat.setConnectorInfo(job, newPrincipal, dt);
         AccumuloOutputFormat.setConnectorInfo(job, newPrincipal, dt);
       } catch (Exception e) {
         final String msg = "Failed to acquire DelegationToken for use with MapReduce";
@@ -139,7 +141,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
         throw new RuntimeException(msg, e);
       }
     } else {
-      AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
+      AbstractInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
       AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     }
 

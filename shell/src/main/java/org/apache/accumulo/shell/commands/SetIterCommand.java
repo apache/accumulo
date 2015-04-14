@@ -225,7 +225,7 @@ public class SetIterCommand extends Command {
     }
 
     @SuppressWarnings("unchecked")
-    SortedKeyValueIterator<Key,Value> skvi = (SortedKeyValueIterator<Key,Value>) untypedInstance;
+    SortedKeyValueIterator<Key,Value> skvi = untypedInstance;
     OptionDescriber iterOptions = null;
     if (OptionDescriber.class.isAssignableFrom(skvi.getClass())) {
       iterOptions = (OptionDescriber) skvi;

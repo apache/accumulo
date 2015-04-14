@@ -159,7 +159,7 @@ public class TablesServlet extends BasicServlet {
           try {
             locs.add(state.current.hostPort());
           } catch (Exception ex) {
-            log.error("{}", ex);
+            log.error("", ex);
           }
         }
       }
@@ -176,7 +176,7 @@ public class TablesServlet extends BasicServlet {
           if (tss.name != null && locs.contains(tss.name))
             tservers.add(tss);
         } catch (Exception ex) {
-          log.error("{}", ex);
+          log.error("", ex);
         }
       }
     }

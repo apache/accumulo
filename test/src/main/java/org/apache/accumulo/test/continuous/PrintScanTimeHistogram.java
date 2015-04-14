@@ -68,7 +68,7 @@ public class PrintScanTimeHistogram {
           fsrHist.addPoint(point);
         }
       } catch (Exception e) {
-        log.error("Failed to process line '{}'. {}", line, e);
+        log.error("Failed to process line '{}'.", line, e);
       }
     }
 

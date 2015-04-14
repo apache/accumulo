@@ -192,7 +192,7 @@ public class IndexedDocIteratorTest extends TestCase {
     HashSet<Text> docs = new HashSet<Text>();
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
-    IndexedDocIterator.setColumnFamilies(is, columnFamilies);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
     iter.init(source, is.getOptions(), env);
@@ -230,7 +230,7 @@ public class IndexedDocIteratorTest extends TestCase {
     HashSet<Text> docs = new HashSet<Text>();
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
-    IndexedDocIterator.setColumnFamilies(is, columnFamilies);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
     iter.init(source, is.getOptions(), env);
@@ -272,7 +272,7 @@ public class IndexedDocIteratorTest extends TestCase {
     sourceIters.add(source2);
     MultiIterator mi = new MultiIterator(sourceIters, false);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
-    IndexedDocIterator.setColumnFamilies(is, columnFamilies);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
     iter.init(mi, is.getOptions(), env);
@@ -313,7 +313,7 @@ public class IndexedDocIteratorTest extends TestCase {
     HashSet<Text> docs = new HashSet<Text>();
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
-    IndexedDocIterator.setColumnFamilies(is, columnFamilies, notFlags);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies, notFlags);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
     iter.init(source, is.getOptions(), env);

@@ -19,8 +19,10 @@ package org.apache.accumulo.test.randomwalk.multitable;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -58,10 +60,10 @@ public class CopyTool extends Configured implements Tool {
     ClientConfiguration clientConf = new ClientConfiguration().withInstance(args[3]).withZkHosts(args[4]);
 
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
-    AccumuloInputFormat.setInputTableName(job, args[2]);
-    AccumuloInputFormat.setScanAuthorizations(job, Authorizations.EMPTY);
-    AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
+    AbstractInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
+    InputFormatBase.setInputTableName(job, args[2]);
+    AbstractInputFormat.setScanAuthorizations(job, Authorizations.EMPTY);
+    AbstractInputFormat.setZooKeeperInstance(job, clientConf);
 
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(Text.class);

@@ -127,7 +127,7 @@ public class BloomFilterLayer {
         transformer = clazz.newInstance();
 
       } catch (Exception e) {
-        log.error("Failed to find KeyFunctor: {} {}", acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
+        log.error("Failed to find KeyFunctor: {}", acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
         throw new IllegalArgumentException("Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR));
 
       }
@@ -238,31 +238,31 @@ public class BloomFilterLayer {
             // file does not have a bloom filter, ignore it
           } catch (IOException ioe) {
             if (!closed)
-              log.warn("Can't open BloomFilter {}", ioe);
+              log.warn("Can't open BloomFilter", ioe);
             else
               log.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
 
             bloomFilter = null;
           } catch (ClassNotFoundException e) {
-            log.error("Failed to find KeyFunctor in config: {} {}", ClassName, e);
+            log.error("Failed to find KeyFunctor in config: {}", ClassName, e);
             bloomFilter = null;
           } catch (InstantiationException e) {
-            log.error("Could not instantiate KeyFunctor: {} {}", ClassName, e);
+            log.error("Could not instantiate KeyFunctor: {}", ClassName, e);
             bloomFilter = null;
           } catch (IllegalAccessException e) {
-            log.error("Illegal acess exception {}", e);
+            log.error("Illegal acess exception", e);
             bloomFilter = null;
           } catch (RuntimeException rte) {
             if (!closed)
               throw rte;
             else
-              log.debug("Can't open BloomFilter, RTE after closed {}", rte);
+              log.debug("Can't open BloomFilter, RTE after closed", rte);
           } finally {
             if (in != null) {
               try {
                 in.close();
               } catch (IOException e) {
-                log.warn("Failed to close {}", e);
+                log.warn("Failed to close", e);
               }
             }
           }

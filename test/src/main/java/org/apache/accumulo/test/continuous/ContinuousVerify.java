@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.accumulo.core.cli.MapReduceClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -41,6 +42,7 @@ import org.apache.hadoop.io.VLongWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -182,14 +184,14 @@ public class ContinuousVerify extends Configured implements Tool {
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       ranges = conn.tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
       conn.tableOperations().offline(clone);
-      AccumuloInputFormat.setInputTableName(job, clone);
-      AccumuloInputFormat.setOfflineTableScan(job, true);
+      InputFormatBase.setInputTableName(job, clone);
+      InputFormatBase.setOfflineTableScan(job, true);
     } else {
       ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
     }
 
-    AccumuloInputFormat.setRanges(job, ranges);
-    AccumuloInputFormat.setAutoAdjustRanges(job, false);
+    InputFormatBase.setRanges(job, ranges);
+    InputFormatBase.setAutoAdjustRanges(job, false);
 
     job.setMapperClass(CMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
@@ -202,7 +204,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", opts.scanOffline);
 
-    TextOutputFormat.setOutputPath(job, new Path(opts.outputDir));
+    FileOutputFormat.setOutputPath(job, new Path(opts.outputDir));
 
     job.waitForCompletion(true);
 

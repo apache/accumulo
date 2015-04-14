@@ -315,7 +315,7 @@ class TabletGroupWatcher extends Daemon {
         Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
         eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
       } catch (Exception ex) {
-        Master.log.error("Error processing table state for store {} {}", store.name(), ex);
+        Master.log.error("Error processing table state for store {}", store.name(), ex);
         if (ex.getCause() != null && ex.getCause() instanceof BadLocationStateException) {
           repairMetadata(((BadLocationStateException) ex.getCause()).getEncodedEndRow());
         } else {
@@ -326,7 +326,7 @@ class TabletGroupWatcher extends Daemon {
           try {
             iter.close();
           } catch (IOException ex) {
-            Master.log.warn("Error closing TabletLocationState iterator: {}", ex);
+            Master.log.warn("Error closing TabletLocationState iterator:", ex);
           }
         }
       }
@@ -381,7 +381,7 @@ class TabletGroupWatcher extends Daemon {
       }
       Master.log.error("Metadata table is inconsistent at {} and all assigned/future tservers are still online.", row);
     } catch (Throwable e) {
-      Master.log.error("Error attempting repair of metadata {}: {}", row, e);
+      Master.log.error("Error attempting repair of metadata {}: ", row, e);
     }
   }
 
@@ -425,9 +425,9 @@ class TabletGroupWatcher extends Daemon {
             Master.log.warn("Not connected to server {}", tls.current);
           }
         } catch (NotServingTabletException e) {
-          Master.log.debug("Error asking tablet server to split a tablet: {}", e);
+          Master.log.debug("Error asking tablet server to split a tablet: ", e);
         } catch (Exception e) {
-          Master.log.warn("Error asking tablet server to split a tablet: {}", e);
+          Master.log.warn("Error asking tablet server to split a tablet: ", e);
         }
       }
     }
@@ -487,7 +487,7 @@ class TabletGroupWatcher extends Daemon {
           }
         }
       } catch (Exception ex) {
-        Master.log.error("Unable to update merge state for merge {} {}", stats.getMergeInfo().getExtent(), ex);
+        Master.log.error("Unable to update merge state for merge {} ", stats.getMergeInfo().getExtent(), ex);
       }
     }
   }

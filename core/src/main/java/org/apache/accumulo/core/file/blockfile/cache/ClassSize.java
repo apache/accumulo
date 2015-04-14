@@ -22,7 +22,6 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.impl.ServerClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

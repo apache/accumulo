@@ -302,7 +302,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         return null;
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host {}", e);
+      log.warn("Failed to obtain master host", e);
     }
 
     return null;
@@ -317,7 +317,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       }
       return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, context);
     } catch (Exception e) {
-      log.warn("Issue with masterConnection ({}) {} {}", address, e, e);
+      log.warn("Issue with masterConnection ({}) {}", address, e, e);
     }
     return null;
   }
@@ -389,10 +389,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
       tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
       return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
     } catch (TTransportException e) {
-      log.warn("Failed to fetch active write-ahead logs from {} {}", server, e);
+      log.warn("Failed to fetch active write-ahead logs from {}", server, e);
       return null;
     } catch (TException e) {
-      log.warn("Failed to fetch active write-ahead logs from {} {}", server, e);
+      log.warn("Failed to fetch active write-ahead logs from {}", server, e);
       return null;
     } finally {
       ThriftUtil.returnClient(tserverClient);

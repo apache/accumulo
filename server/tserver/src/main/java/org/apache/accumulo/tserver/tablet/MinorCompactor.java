@@ -75,7 +75,7 @@ public class MinorCompactor extends Compactor {
     try {
       return Tables.getTableState(tabletServer.getInstance(), extent.getTableId().toString()) == TableState.DELETING;
     } catch (Exception e) {
-      log.warn("Failed to determine if table {} was deleting {}", extent.getTableId(), e);
+      log.warn("Failed to determine if table {} was deleting", extent.getTableId(), e);
       return false; // can not get positive confirmation that its deleting.
     }
   }
@@ -111,7 +111,7 @@ public class MinorCompactor extends Compactor {
         } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
           // minor compaction would succeed
-          log.warn("MinC failed ({}) to create {} retrying ...{}", e.getMessage(), getOutputFile(), e);
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile(), e);
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
