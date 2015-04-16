@@ -104,7 +104,7 @@ public class RandomWriter {
       bw.addMutations(new RandomMutationGenerator(opts.count));
       bw.close();
     } catch (Exception e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw e;
     }
     long stop = System.currentTimeMillis();

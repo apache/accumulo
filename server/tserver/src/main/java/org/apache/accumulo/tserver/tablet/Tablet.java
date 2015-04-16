@@ -82,6 +82,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -996,7 +997,9 @@ public class Tablet implements TabletCommitter {
       mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
     }
 
-    return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason);
+    double tracePercent = tabletServer.getConfiguration().getFraction(Property.TSERV_MINC_TRACE_PERCENT);
+
+    return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason, tracePercent);
 
   }
 
@@ -1860,21 +1863,26 @@ public class Tablet implements TabletCommitter {
 
       if (inputFiles.isEmpty()) {
         if (reason == MajorCompactionReason.USER) {
-          // no work to do
-          lastCompactID = compactionId.getFirst();
-          updateCompactionID = true;
+          if (compactionId.getSecond().getIterators().isEmpty()) {
+            log.debug("No-op major compaction by USER on 0 input files because no iterators present.");
+            lastCompactID = compactionId.getFirst();
+            updateCompactionID = true;
+          } else {
+            log.debug("Major compaction by USER on 0 input files with iterators.");
+            filesToCompact = new HashMap<>();
+          }
         } else {
           return majCStats;
         }
       } else {
         // If no original files will exist at the end of the compaction, we do not have to propogate deletes
-        Set<FileRef> droppedFiles = new HashSet<FileRef>();
+        Set<FileRef> droppedFiles = new HashSet<>();
         droppedFiles.addAll(inputFiles);
         if (plan != null)
           droppedFiles.addAll(plan.deleteFiles);
         propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
         log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
-        filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
+        filesToCompact = new HashMap<>(allFiles);
         filesToCompact.keySet().retainAll(inputFiles);
 
         getDatafileManager().reserveMajorCompactingFiles(filesToCompact.keySet());
@@ -1913,6 +1921,7 @@ public class Tablet implements TabletCommitter {
             // compaction was canceled
             return majCStats;
           }
+          compactionIterators = compactionId.getSecond().getIterators();
 
           synchronized (this) {
             if (lastCompactID >= compactionId.getFirst())
@@ -1921,12 +1930,11 @@ public class Tablet implements TabletCommitter {
           }
         }
 
-        compactionIterators = compactionId.getSecond().getIterators();
       }
 
       // need to handle case where only one file is being major compacted
-      while (filesToCompact.size() > 0) {
-
+      // ACCUMULO-3645 run loop at least once, even if filesToCompact.isEmpty()
+      do {
         int numToCompact = maxFilesToCompact;
 
         if (filesToCompact.size() > maxFilesToCompact && filesToCompact.size() < 2 * maxFilesToCompact) {
@@ -1992,7 +2000,7 @@ public class Tablet implements TabletCommitter {
           span.stop();
         }
 
-      }
+      } while (filesToCompact.size() > 0);
       return majCStats;
     } finally {
       synchronized (Tablet.this) {
@@ -2021,6 +2029,13 @@ public class Tablet implements TabletCommitter {
 
   private Set<FileRef> removeSmallest(Map<FileRef,DataFileValue> filesToCompact, int maxFilesToCompact) {
     // ensure this method works properly when multiple files have the same size
+
+    // short-circuit; also handles zero files case
+    if (filesToCompact.size() <= maxFilesToCompact) {
+      Set<FileRef> smallestFiles = new HashSet<FileRef>(filesToCompact.keySet());
+      filesToCompact.clear();
+      return smallestFiles;
+    }
 
     PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<Pair<FileRef,Long>>(filesToCompact.size(), new Comparator<Pair<FileRef,Long>>() {
       @Override
@@ -2075,8 +2090,9 @@ public class Tablet implements TabletCommitter {
     Span span = null;
 
     try {
-      // Always trace majC
-      span = Trace.on("majorCompaction");
+      double tracePercent = tabletServer.getConfiguration().getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
+      ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+      span = Trace.on("majorCompaction", sampler);
 
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
@@ -2561,29 +2577,22 @@ public class Tablet implements TabletCommitter {
       if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || isMajorCompactionRunning())
         return;
 
-      if (getDatafileManager().getDatafileSizes().size() == 0) {
-        // no files, so jsut update the metadata table
-        majorCompactionState = CompactionState.IN_PROGRESS;
-        updateMetadata = true;
-        lastCompactID = compactionId;
-      } else {
-        CompactionStrategyConfig strategyConfig = compactionConfig.getCompactionStrategy();
-        CompactionStrategy strategy = createCompactionStrategy(strategyConfig);
+      CompactionStrategyConfig strategyConfig = compactionConfig.getCompactionStrategy();
+      CompactionStrategy strategy = createCompactionStrategy(strategyConfig);
 
-        MajorCompactionRequest request = new MajorCompactionRequest(extent, MajorCompactionReason.USER, getTabletServer().getFileSystem(), tableConfiguration);
-        request.setFiles(getDatafileManager().getDatafileSizes());
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, MajorCompactionReason.USER, getTabletServer().getFileSystem(), tableConfiguration);
+      request.setFiles(getDatafileManager().getDatafileSizes());
 
-        try {
-          if (strategy.shouldCompact(request)) {
-            initiateMajorCompaction(MajorCompactionReason.USER);
-          } else {
-            majorCompactionState = CompactionState.IN_PROGRESS;
-            updateMetadata = true;
-            lastCompactID = compactionId;
-          }
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+      try {
+        if (strategy.shouldCompact(request)) {
+          initiateMajorCompaction(MajorCompactionReason.USER);
+        } else {
+          majorCompactionState = CompactionState.IN_PROGRESS;
+          updateMetadata = true;
+          lastCompactID = compactionId;
         }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
 

@@ -48,12 +48,12 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -494,7 +494,7 @@ public class Monitor {
           try {
             Monitor.fetchData();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
 
           UtilWaitThread.sleep(333);
@@ -510,7 +510,7 @@ public class Monitor {
           try {
             Monitor.fetchScans();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
           UtilWaitThread.sleep(5000);
         }

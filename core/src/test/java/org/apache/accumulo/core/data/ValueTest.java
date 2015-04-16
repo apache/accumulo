@@ -199,6 +199,7 @@ public class ValueTest {
   }
 
   @Test
+  @Deprecated
   public void testToArray() {
     List<byte[]> l = new java.util.ArrayList<byte[]>();
     byte[] one = toBytes("one");

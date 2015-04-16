@@ -132,7 +132,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -140,6 +139,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
@@ -378,7 +378,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private static long jitter(long ms) {
     Random r = new Random();
     // add a random 10% wait
-    return (long)((1. + (r.nextDouble() / 10)) * ms);
+    return (long) ((1. + (r.nextDouble() / 10)) * ms);
   }
 
   private final SessionManager sessionManager;
@@ -425,7 +425,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           try {
             importTablet.importMapFiles(tid, fileRefMap, setTime);
           } catch (IOException ioe) {
-            log.info("files " + fileMap.keySet() + " not imported to " + new KeyExtent(tke) + ": " + ioe.getMessage());
+            log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke), ioe.getMessage());
             failures.add(tke);
           }
         }
@@ -1565,7 +1565,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             flushID = tablet.getFlushID();
           } catch (NoNodeException e) {
             // table was probably deleted
-            log.info("Asked to flush table that has no flush id " + ke + " " + e.getMessage());
+            log.info("Asked to flush table that has no flush id {} {}", ke, e.getMessage());
             return;
           }
         }
@@ -1588,7 +1588,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           tablet.flush(tablet.getFlushID());
         } catch (NoNodeException nne) {
-          log.info("Asked to flush tablet that has no flush id " + new KeyExtent(textent) + " " + nne.getMessage());
+          log.info("Asked to flush tablet that has no flush id {} {}", new KeyExtent(textent), nne.getMessage());
         }
       }
     }
@@ -1683,7 +1683,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           try {
             compactionInfo = tablet.getCompactionID();
           } catch (NoNodeException e) {
-            log.info("Asked to compact table with no compaction id " + ke + " " + e.getMessage());
+            log.info("Asked to compact table with no compaction id {} {}", ke, e.getMessage());
             return;
           }
         tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
@@ -1906,10 +1906,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     } catch (IOException e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
-      log.error("split failed: " + e.getMessage() + " for tablet " + tablet.getExtent(), e);
+      log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
     } catch (Exception e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
-      log.error("Unknown error on split: " + e, e);
+      log.error("Unknown error on split: {}", e, e);
     }
   }
 
@@ -2011,9 +2011,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
-          log.debug("Failed to unload tablet " + extent + "... it was alread closing or closed : " + e.getMessage());
+          log.debug("Failed to unload tablet {} ... it was alread closing or closed : {}", extent, e.getMessage());
         } else {
-          log.error("Failed to close tablet " + extent + "... Aborting migration", e);
+          log.error("Failed to close tablet {}... Aborting migration", extent, e);
           enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
         }
         return;
@@ -2185,9 +2185,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         tablet = null; // release this reference
         successful = true;
       } catch (Throwable e) {
-        log.warn("exception trying to assign tablet " + extent + " " + locationToOpen, e);
-        if (e.getMessage() != null)
-          log.warn(e.getMessage());
+        log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
+
+        if (e.getMessage() != null) {
+          log.warn("{}", e.getMessage());
+        }
+
         String table = extent.getTableId().toString();
         ProblemReports.getInstance(TabletServer.this).report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
       } finally {
@@ -2582,7 +2585,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       log.debug("Closing filesystem");
       fs.close();
     } catch (IOException e) {
-      log.warn("Failed to close filesystem : " + e.getMessage(), e);
+      log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
     gcLogger.logGCInfo(getConfiguration());
@@ -2818,7 +2821,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(contexts);
         } catch (IOException e) {
-          log.warn(e.getMessage(), e);
+          log.warn("{}", e.getMessage(), e);
         }
       }
     };

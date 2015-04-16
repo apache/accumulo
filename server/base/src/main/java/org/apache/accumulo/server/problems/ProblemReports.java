@@ -42,9 +42,9 @@ import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -112,7 +112,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
-      log.error("Failed to report problem " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + "  " + ree.getMessage());
+      log.error("Failed to report problem {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), ree.getMessage());
     }
 
   }
@@ -139,7 +139,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.removeFromMetadataTable(context);
           }
         } catch (Exception e) {
-          log.error("Failed to delete problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
+          log.error("Failed to delete problem report {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), e);
         }
       }
     };
@@ -147,7 +147,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
-      log.error("Failed to delete problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + "  " + ree.getMessage());
+      log.error("Failed to delete problem report {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), ree.getMessage());
     }
   }
 

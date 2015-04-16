@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Predicate;
+
 /**
  * An {@link AccumuloConfiguration} which holds a flat copy of properties defined in another configuration
  */
@@ -62,9 +64,9 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   }
 
   @Override
-  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+  public void getProperties(Map<String,String> props, Predicate<String> filter) {
     for (Entry<String,String> entry : copy.entrySet()) {
-      if (filter.accept(entry.getKey())) {
+      if (filter.apply(entry.getKey())) {
         props.put(entry.getKey(), entry.getValue());
       }
     }

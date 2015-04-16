@@ -165,7 +165,7 @@ public class FileUtil {
           if (reader != null)
             reader.close();
         } catch (IOException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
 
         for (SortedKeyValueIterator<Key,Value> r : iters)
@@ -174,13 +174,13 @@ public class FileUtil {
               ((FileSKVIterator) r).close();
           } catch (IOException e) {
             // continue closing
-            log.error(e.getMessage(), e);
+            log.error("{}", e.getMessage(), e);
           }
 
         try {
           writer.close();
         } catch (IOException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
           throw e;
         }
       }
@@ -374,7 +374,7 @@ public class FileUtil {
           r.close();
       } catch (IOException e) {
         // okay, try to close the rest anyway
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       }
     }
 
@@ -420,7 +420,7 @@ public class FileUtil {
           if (reader != null)
             reader.close();
         } catch (IOException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
       }
 
@@ -495,7 +495,7 @@ public class FileUtil {
           if (reader != null)
             reader.close();
         } catch (IOException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
       }
     }
@@ -542,7 +542,7 @@ public class FileUtil {
           index.close();
       } catch (IOException e) {
         // continue with next file
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       }
     }
 

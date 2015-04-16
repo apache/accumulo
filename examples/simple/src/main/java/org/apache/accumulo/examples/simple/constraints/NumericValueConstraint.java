@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.examples.simple.constraints;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.constraints.Constraint;
@@ -29,7 +30,10 @@ import org.apache.accumulo.core.data.Mutation;
  */
 public class NumericValueConstraint implements Constraint {
 
-  private static final short NON_NUMERIC_VALUE = 1;
+  static final short NON_NUMERIC_VALUE = 1;
+  static final String VIOLATION_MESSAGE = "Value is not numeric";
+
+  private static final List<Short> VIOLATION_LIST = Collections.unmodifiableList(Arrays.asList(NON_NUMERIC_VALUE));
 
   private boolean isNumeric(byte bytes[]) {
     for (byte b : bytes) {
@@ -41,28 +45,16 @@ public class NumericValueConstraint implements Constraint {
     return true;
   }
 
-  private List<Short> addViolation(List<Short> violations, short violation) {
-    if (violations == null) {
-      violations = new ArrayList<Short>();
-      violations.add(violation);
-    } else if (!violations.contains(violation)) {
-      violations.add(violation);
-    }
-    return violations;
-  }
-
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    List<Short> violations = null;
-
     Collection<ColumnUpdate> updates = mutation.getUpdates();
 
     for (ColumnUpdate columnUpdate : updates) {
       if (!isNumeric(columnUpdate.getValue()))
-        violations = addViolation(violations, NON_NUMERIC_VALUE);
+        return VIOLATION_LIST;
     }
 
-    return violations;
+    return null;
   }
 
   @Override

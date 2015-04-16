@@ -146,7 +146,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   private boolean switchSource() throws IOException {
-    while (!source.isCurrent()) {
+    if (!source.isCurrent()) {
       source = source.getNewDataSource();
       iter = source.iterator();
       return true;

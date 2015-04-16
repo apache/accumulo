@@ -51,7 +51,9 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   private static final Logger log = LoggerFactory.getLogger(AsyncSpanReceiver.class);
 
-  public static final String SEND_TIMER_MILLIS = "send.timer.millis";
+  public static final String SEND_TIMER_MILLIS = "tracer.send.timer.millis";
+  public static final String QUEUE_SIZE = "tracer.queue.size";
+  private static final String SPAN_MIN_MS = "tracer.span.min.ms";
 
   private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
 
@@ -68,6 +70,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
   int maxQueueSize = 5000;
   long lastNotificationOfDroppedSpans = 0;
+  int minSpanSize = 1;
 
   // Visible for testing
   AsyncSpanReceiver() {}
@@ -82,7 +85,8 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       }
     }
     service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
-    maxQueueSize = conf.getInt(DistributedTrace.TRACE_QUEUE_SIZE_PROPERTY, maxQueueSize);
+    maxQueueSize = conf.getInt(QUEUE_SIZE, maxQueueSize);
+    minSpanSize = conf.getInt(SPAN_MIN_MS, minSpanSize);
 
     int millis = conf.getInt(SEND_TIMER_MILLIS, 1000);
     timer.schedule(new TimerTask() {
@@ -102,6 +106,13 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     while (!sendQueue.isEmpty()) {
       boolean sent = false;
       RemoteSpan s = sendQueue.peek();
+      if (s.stop - s.start < minSpanSize) {
+        synchronized (sendQueue) {
+          sendQueue.remove();
+          sendQueue.notifyAll();
+        }
+        continue;
+      }
       SpanKey dest = getSpanKey(s.data);
       Destination client = clients.get(dest);
       if (client == null) {

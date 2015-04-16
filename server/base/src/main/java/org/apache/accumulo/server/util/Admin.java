@@ -254,13 +254,13 @@ public class Admin implements KeywordExecutable {
       if (rc != 0)
         System.exit(rc);
     } catch (AccumuloException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       System.exit(2);
     } catch (Exception e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       System.exit(3);
     }
   }
@@ -316,7 +316,7 @@ public class Admin implements KeywordExecutable {
             }
           }
         } catch (Exception e) {
-          log.warn("Failed to intiate flush " + e.getMessage());
+          log.warn("Failed to intiate flush {}", e.getMessage());
         }
       }
     };

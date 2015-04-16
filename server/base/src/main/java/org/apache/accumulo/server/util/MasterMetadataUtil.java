@@ -189,9 +189,9 @@ public class MasterMetadataUtil {
       try {
         return new TServerInstance(address, zooLock.getSessionId());
       } catch (KeeperException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       } catch (InterruptedException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       }
       UtilWaitThread.sleep(1000);
     }
@@ -280,9 +280,9 @@ public class MasterMetadataUtil {
           }
           break;
         } catch (KeeperException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         } catch (InterruptedException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
         UtilWaitThread.sleep(1000);
       }

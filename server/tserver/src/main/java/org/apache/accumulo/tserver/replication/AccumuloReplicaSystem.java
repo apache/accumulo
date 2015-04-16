@@ -55,6 +55,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -232,7 +233,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   private Status _replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper,
       final AccumuloConfiguration localConf, final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
     try {
-      Trace.on("AccumuloReplicaSystem");
+      double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
+      ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+      Trace.on("AccumuloReplicaSystem", sampler);
 
       // Remote identifier is an integer (table id) in this case.
       final String remoteTableId = target.getRemoteIdentifier();

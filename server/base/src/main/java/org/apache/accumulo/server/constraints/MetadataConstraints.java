@@ -259,7 +259,7 @@ public class MetadataConstraints implements Constraint {
           try {
             lockHeld = ZooLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
           } catch (Exception e) {
-            log.debug("Failed to verify lock was held " + lockId + " " + e.getMessage());
+            log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
           }
 
           if (!lockHeld) {
@@ -271,10 +271,10 @@ public class MetadataConstraints implements Constraint {
     }
 
     if (violations != null) {
-      log.debug("violating metadata mutation : " + new String(mutation.getRow(), UTF_8));
+      log.debug("violating metadata mutation : {}", new String(mutation.getRow(), UTF_8));
       for (ColumnUpdate update : mutation.getUpdates()) {
-        log.debug(" update: " + new String(update.getColumnFamily(), UTF_8) + ":" + new String(update.getColumnQualifier(), UTF_8) + " value "
-            + (update.isDeleted() ? "[delete]" : new String(update.getValue(), UTF_8)));
+        log.debug(" update: {}:{} value {}", new String(update.getColumnFamily(), UTF_8), new String(update.getColumnQualifier(), UTF_8),
+            (update.isDeleted() ? "[delete]" : new String(update.getValue(), UTF_8)));
       }
     }
 

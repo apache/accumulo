@@ -265,7 +265,7 @@ public class LiveTServerSet implements Watcher {
       if (!doomed.isEmpty() || !updates.isEmpty())
         this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
-      log.error(ex.getMessage(), ex);
+      log.error("{}", ex.getMessage(), ex);
     }
   }
 

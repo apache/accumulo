@@ -198,7 +198,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
     this.maxSize = maxSize;
     this.blockSize = blockSize;
-    map = new ConcurrentHashMap<String,CachedBlock>(mapInitialSize, mapLoadFactor, mapConcurrencyLevel);
+    map = new ConcurrentHashMap<>(mapInitialSize, mapLoadFactor, mapConcurrencyLevel);
     this.minFactor = minFactor;
     this.acceptableFactor = acceptableFactor;
     this.singleFactor = singleFactor;
@@ -254,14 +254,20 @@ public class LruBlockCache implements BlockCache, HeapSize {
     if (cb != null) {
       stats.duplicateReads();
       cb.access(count.incrementAndGet());
-
     } else {
       cb = new CachedBlock(blockName, buf, count.incrementAndGet(), inMemory);
-      long newSize = size.addAndGet(cb.heapSize());
-      map.put(blockName, cb);
-      elements.incrementAndGet();
-      if (newSize > acceptableSize() && !evictionInProgress) {
-        runEviction();
+      CachedBlock currCb = map.putIfAbsent(blockName, cb);
+      if (currCb != null) {
+        stats.duplicateReads();
+        cb = currCb;
+        cb.access(count.incrementAndGet());
+      } else {
+        // Actually added block to cache
+        long newSize = size.addAndGet(cb.heapSize());
+        elements.incrementAndGet();
+        if (newSize > acceptableSize() && !evictionInProgress) {
+          runEviction();
+        }
       }
     }
 
@@ -364,7 +370,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
         }
       }
 
-      PriorityQueue<BlockBucket> bucketQueue = new PriorityQueue<BlockBucket>(3);
+      PriorityQueue<BlockBucket> bucketQueue = new PriorityQueue<>(3);
 
       bucketQueue.add(bucketSingle);
       bucketQueue.add(bucketMulti);
@@ -517,7 +523,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     public EvictionThread(LruBlockCache cache) {
       super("LruBlockCache.EvictionThread");
       setDaemon(true);
-      this.cache = new WeakReference<LruBlockCache>(cache);
+      this.cache = new WeakReference<>(cache);
     }
 
     public synchronized boolean running() {

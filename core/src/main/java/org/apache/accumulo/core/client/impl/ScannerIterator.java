@@ -92,13 +92,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
           return;
         }
       } catch (IsolationException | ScanTimedOutException | AccumuloException | AccumuloSecurityException | TableDeletedException | TableOfflineException e) {
-        log.trace(e.getMessage(), e);
+        log.trace("{}", e.getMessage(), e);
         synchQ.add(e);
       } catch (TableNotFoundException e) {
-        log.warn(e.getMessage(), e);
+        log.warn("{}", e.getMessage(), e);
         synchQ.add(e);
       } catch (Exception e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         synchQ.add(e);
       }
     }

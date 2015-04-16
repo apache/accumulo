@@ -61,3 +61,17 @@ export ACCUMULO_KILL_CMD='kill -9 %p'
 
 # Should the monitor bind to all network interfaces -- default: false
 # export ACCUMULO_MONITOR_BIND_ALL="true"
+
+# Should process be automatically restarted
+# export ACCUMULO_WATCHER="true"
+
+# What settings should we use for the watcher, if enabled
+export UNEXPECTED_TIMESPAN="3600"
+export UNEXPECTED_RETRIES="2"
+
+export OOM_TIMESPAN="3600"
+export OOM_RETRIES="5"
+
+export ZKLOCK_TIMESPAN="600"
+export ZKLOCK_RETRIES="5"
+

@@ -83,7 +83,7 @@ public class ZKAuthenticatorTest extends TestCase {
       storedBytes = ZKSecurityTool.createPass(rawPass);
       assertTrue(ZKSecurityTool.checkPass(rawPass, storedBytes));
     } catch (AccumuloException e) {
-      log.error(e.getMessage(),e);
+      log.error("{}", e.getMessage(),e);
       assertTrue(false);
     }
   }

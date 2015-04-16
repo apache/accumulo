@@ -72,11 +72,16 @@ fi
 
 if [[ -z "$PID" ]]; then
    echo "Starting $LONGNAME on $HOST"
+   COMMAND="${bin}/accumulo"
+   if [ "${ACCUMULO_WATCHER}" = "true" ]; then
+      COMMAND="${bin}/accumulo_watcher.sh ${LOGHOST}"
+   fi
+
    if [[ $HOST == localhost || $HOST == "$(hostname -f)" || $HOST = "$IP" ]]; then
-      "${bin}/accumulo" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" & 
+      "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" & 
       MAX_FILES_OPEN=$(ulimit -n)
    else
-      $SSH "$HOST" "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
+      $SSH "$HOST" "bash -c 'exec nohup $COMMAND ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
       MAX_FILES_OPEN=$($SSH "$HOST" "/usr/bin/env bash -c 'ulimit -n'") 
    fi
 

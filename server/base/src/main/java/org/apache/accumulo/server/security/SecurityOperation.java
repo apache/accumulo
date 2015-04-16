@@ -202,7 +202,7 @@ public class SecurityOperation {
           throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
         }
       } catch (AccumuloSecurityException e) {
-        log.debug("AccumuloSecurityException",e);
+        log.debug("AccumuloSecurityException", e);
         throw e.asThriftException();
       }
     }
@@ -244,7 +244,8 @@ public class SecurityOperation {
 
     targetUserExists(user);
 
-    if (!credentials.getPrincipal().equals(user) && !hasSystemPermission(credentials, SystemPermission.SYSTEM, false))
+    if (!credentials.getPrincipal().equals(user) && !hasSystemPermission(credentials, SystemPermission.SYSTEM, false)
+        && !hasSystemPermission(credentials, SystemPermission.ALTER_USER, false))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     try {

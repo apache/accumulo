@@ -26,6 +26,9 @@
       <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
+        <!-- if you update this list, you should also update the assembly
+        pom.xml section which executes the maven-dependency-plugin to generate a
+        version listing for packaged artifacts -->
         <include>${groupId}:${artifactId}-*</include>
         <include>com.beust:jcommander</include>
         <include>com.google.code.gson:gson</include>
@@ -251,6 +254,14 @@
         <include>README.md</include>
         <include>INSTALL.md</include>
         <include>BUILD.md</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>target</directory>
+      <outputDirectory>lib</outputDirectory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>VERSIONS</include>
       </includes>
     </fileSet>
   </fileSets>

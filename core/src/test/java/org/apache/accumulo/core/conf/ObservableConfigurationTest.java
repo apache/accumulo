@@ -28,6 +28,8 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Predicate;
+
 public class ObservableConfigurationTest {
   private static class TestObservableConfig extends ObservableConfiguration {
     @Override
@@ -36,7 +38,7 @@ public class ObservableConfigurationTest {
     }
 
     @Override
-    public void getProperties(Map<String,String> props, PropertyFilter filter) {}
+    public void getProperties(Map<String,String> props, Predicate<String> filter) {}
   }
 
   private ObservableConfiguration c;

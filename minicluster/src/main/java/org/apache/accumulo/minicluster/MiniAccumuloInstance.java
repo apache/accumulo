@@ -50,7 +50,8 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
     }
   }
 
-  public static String getZooKeepersFromDir(File directory) throws FileNotFoundException {
+  // Keep this private to avoid bringing it into the public API
+  private static String getZooKeepersFromDir(File directory) throws FileNotFoundException {
     if (!directory.isDirectory())
       throw new IllegalArgumentException("Not a directory " + directory.getPath());
     File configFile = new File(new File(directory, "conf"), "accumulo-site.xml");

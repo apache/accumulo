@@ -56,10 +56,10 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.FileUtil;
@@ -343,7 +343,7 @@ public class BulkImporter {
         mapFileSizes.put(path, fs.getContentSummary(path).getLength());
       }
     } catch (IOException e) {
-      log.error("Failed to get map files in for " + paths + ": " + e.getMessage(), e);
+      log.error("Failed to get map files in for {}: {}", paths, e.getMessage(), e);
       throw new RuntimeException(e);
     }
 
@@ -370,7 +370,7 @@ public class BulkImporter {
           try {
             estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(), mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, vm);
           } catch (IOException e) {
-            log.warn("Failed to estimate map file sizes " + e.getMessage());
+            log.warn("Failed to estimate map file sizes {}", e.getMessage());
           }
 
           if (estimatedSizes == null) {
@@ -462,7 +462,7 @@ public class BulkImporter {
           }
         }
 
-        log.info("Could not assign " + mapFiles.size() + " map files to tablet " + ke + " because : " + message + ".  Will retry ...");
+        log.info("Could not assign {} map files to tablet {} because : {} .  Will retry ...", mapFiles.size(), ke, message);
       }
     }
 

@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
@@ -162,9 +163,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     ScannerOptions opts = new ScannerOptions() {
       ScannerOptions setOpts() {
         this.fetchedColumns = locCols;
-        this.serverSideIteratorList = new ArrayList<IterInfo>();
         // see comment in lookupTablet about why iterator is used
-        this.serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
+        addScanIterator(new IteratorSetting(10000, "WRI", WholeRowIterator.class.getName()));
         return this;
       }
     }.setOpts();

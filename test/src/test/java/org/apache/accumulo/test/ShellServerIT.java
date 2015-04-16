@@ -715,6 +715,50 @@ public class ShellServerIT extends SharedMiniClusterIT {
   }
 
   @Test
+  public void getAuths() throws Exception {
+    Assume.assumeFalse("test skipped for kerberos", getToken() instanceof KerberosToken);
+
+    // create two users with different auths
+    for (int i = 1; i <= 2; i++) {
+      String userName = name.getMethodName() + "user" + i;
+      String password = "password" + i;
+      String auths = "auth" + i + "A,auth" + i + "B";
+      ts.exec("createuser " + userName, true);
+      ts.exec(password, true);
+      ts.exec("addauths -u " + userName + " -s " + auths, true);
+    }
+
+    // get auths using root user, which has System.SYSTEM
+    ts.exec("getauths -u getAuthsuser1", true, "auth1A", true);
+    ts.exec("getauths -u getAuthsuser1", true, "auth1B", true);
+    ts.exec("getauths -u getAuthsuser2", true, "auth2A", true);
+    ts.exec("getauths -u getAuthsuser2", true, "auth2B", true);
+
+    // grant the first user the ability to see other users auths
+    ts.exec("grant -u getAuthsuser1 -s System.ALTER_USER", true);
+
+    // switch to first user (the one with the ALTER_USER perm)
+    ts.exec("user getAuthsuser1", true);
+    ts.exec("password1", true);
+
+    // get auths for self and other user
+    ts.exec("getauths -u getAuthsuser1", true, "auth1A", true);
+    ts.exec("getauths -u getAuthsuser1", true, "auth1B", true);
+    ts.exec("getauths -u getAuthsuser2", true, "auth2A", true);
+    ts.exec("getauths -u getAuthsuser2", true, "auth2B", true);
+
+    // switch to second user (the one without the ALTER_USER perm)
+    ts.exec("user getAuthsuser2", true);
+    ts.exec("password2", true);
+
+    // get auths for self, but not other user
+    ts.exec("getauths -u getAuthsuser2", true, "auth2A", true);
+    ts.exec("getauths -u getAuthsuser2", true, "auth2B", true);
+    ts.exec("getauths -u getAuthsuser1", false, "PERMISSION_DENIED", true);
+    ts.exec("getauths -u getAuthsuser1", false, "PERMISSION_DENIED", true);
+  }
+
+  @Test
   public void byeQuitExit() throws Exception {
     // bye, quit, exit
     for (String cmd : "bye quit exit".split(" ")) {
@@ -1037,6 +1081,31 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("getgroups -t " + table, true, "alpha=a,b,c", true);
     ts.exec("getgroups -t " + table, true, "num=1,2,3", true);
     ts.exec("deletetable -f " + table);
+  }
+
+  @Test
+  public void extensions() throws Exception {
+    String extName = "ExampleShellExtension";
+
+    // check for example extension
+    ts.exec("help", true, extName, false);
+    ts.exec("extensions -l", true, extName, false);
+
+    // enable extensions and check for example
+    ts.exec("extensions -e", true);
+    ts.exec("extensions -l", true, extName, true);
+    ts.exec("help", true, extName, true);
+
+    // test example extension command
+    ts.exec(extName + "::debug", true, "This is a test", true);
+
+    // disable extensions and check for example
+    ts.exec("extensions -d", true);
+    ts.exec("extensions -l", true, extName, false);
+    ts.exec("help", true, extName, false);
+
+    // ensure extensions are really disabled
+    ts.exec(extName + "::debug", true, "Unknown command", true);
   }
 
   @Test

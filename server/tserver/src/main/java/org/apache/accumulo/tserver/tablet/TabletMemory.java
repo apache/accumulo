@@ -137,7 +137,7 @@ class TabletMemory implements Closeable {
       try {
         tablet.wait(50);
       } catch (InterruptedException e) {
-        log.warn(e.getMessage(), e);
+        log.warn("{}", e.getMessage(), e);
       }
     }
   }

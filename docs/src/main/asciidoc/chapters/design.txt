@@ -124,25 +124,26 @@ image::data_distribution.png[width=500]
 
 When a write arrives at a TabletServer it is written to a Write-Ahead Log and
 then inserted into a sorted data structure in memory called a MemTable. When the
-MemTable reaches a certain size the TabletServer writes out the sorted key-value
-pairs to a file in HDFS called Indexed Sequential Access Method (ISAM)
-file. This process is called a minor compaction. A new MemTable is then created
-and the fact of the compaction is recorded in the Write-Ahead Log.
+MemTable reaches a certain size, the TabletServer writes out the sorted
+key-value pairs to a file in HDFS called a Relative Key File (RFile), which is a
+kind of Indexed Sequential Access Method (ISAM) file. This process is called a
+minor compaction. A new MemTable is then created and the fact of the compaction
+is recorded in the Write-Ahead Log.
 
 When a request to read data arrives at a TabletServer, the TabletServer does a
 binary search across the MemTable as well as the in-memory indexes associated
-with each ISAM file to find the relevant values. If clients are performing a
-scan, several key-value pairs are returned to the client in order from the
-MemTable and the set of ISAM files by performing a merge-sort as they are read.
+with each RFile to find the relevant values. If clients are performing a scan,
+several key-value pairs are returned to the client in order from the MemTable
+and the set of RFiles by performing a merge-sort as they are read.
 
 === Compactions
 
 In order to manage the number of files per tablet, periodically the TabletServer
-performs Major Compactions of files within a tablet, in which some set of ISAM
-files are combined into one file. The previous files will eventually be removed
-by the Garbage Collector. This also provides an opportunity to permanently
-remove deleted key-value pairs by omitting key-value pairs suppressed by a
-delete entry when the new file is created.
+performs Major Compactions of files within a tablet, in which some set of RFiles
+are combined into one file. The previous files will eventually be removed by the
+Garbage Collector. This also provides an opportunity to permanently remove
+deleted key-value pairs by omitting key-value pairs suppressed by a delete entry
+when the new file is created.
 
 === Splitting
 

@@ -57,6 +57,7 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Predicate;
 
 public class ClientOpts extends Help {
 
@@ -342,12 +343,12 @@ public class ClientOpts extends Help {
         }
 
         @Override
-        public void getProperties(Map<String,String> props, PropertyFilter filter) {
+        public void getProperties(Map<String,String> props, Predicate<String> filter) {
           for (Entry<String,String> prop : DefaultConfiguration.getInstance())
-            if (filter.accept(prop.getKey()))
+            if (filter.apply(prop.getKey()))
               props.put(prop.getKey(), prop.getValue());
           for (Entry<String,String> prop : xml)
-            if (filter.accept(prop.getKey()))
+            if (filter.apply(prop.getKey()))
               props.put(prop.getKey(), prop.getValue());
         }
 

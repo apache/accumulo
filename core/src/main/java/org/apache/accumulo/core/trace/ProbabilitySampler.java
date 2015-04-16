@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.simple.shell;
+package org.apache.accumulo.core.trace;
 
-import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellExtension;
+import org.apache.htrace.HTraceConfiguration;
 
-public class MyAppShellExtension extends ShellExtension {
+import java.util.Collections;
 
-  @Override
-  public String getExtensionName() {
-    return "MyApp";
+/**
+ * This wrapper intended for internal Accumulo tracing makes creating a ProbabilitySampler easier.
+ */
+public class ProbabilitySampler extends org.apache.htrace.impl.ProbabilitySampler {
+  public ProbabilitySampler(double d) {
+    super(HTraceConfiguration.fromMap(Collections.singletonMap(ProbabilitySampler.SAMPLER_FRACTION_CONF_KEY, Double.toString(d))));
   }
-
-  @Override
-  public Command[] getCommands() {
-    return new Command[] {new DebugCommand()};
-  }
-
 }

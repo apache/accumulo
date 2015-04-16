@@ -130,59 +130,61 @@ public class ShowTrace extends Basic {
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override
       public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
-        sb.append("<tr>\n");
-        sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>%n", node.stop - node.start, node.start - finalStart));
-        sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 5, node.svc, node.sender));
-        sb.append("<td>" + node.description + "</td>");
-        boolean hasData = node.data != null && !node.data.isEmpty();
-        boolean hasAnnotations = node.annotations != null && !node.annotations.isEmpty();
-        if (hasData || hasAnnotations) {
-          String hexSpanId = Long.toHexString(node.spanId);
-          sb.append("<td><input type='checkbox' id=\"");
-          sb.append(hexSpanId);
-          sb.append(checkboxIdSuffix);
-          sb.append("\" onclick='toggle(\"" + Long.toHexString(node.spanId) + "\")'></td>\n");
-        } else {
-          sb.append("<td></td>\n");
-        }
-        sb.append("</tr>\n");
-        sb.append("<tr id='" + Long.toHexString(node.spanId) + "' style='display:none'>");
-        sb.append("<td colspan='5'>\n");
-        if (hasData || hasAnnotations) {
-          sb.append("  <table class='indent,noborder'>\n");
-          if (hasData) {
-            sb.append("  <tr><th>Key</th><th>Value</th></tr>\n");
-            for (Entry<ByteBuffer,ByteBuffer> entry : node.data.entrySet()) {
-              String key = new String(entry.getKey().array(), entry.getKey().arrayOffset(), entry.getKey().limit(), UTF_8);
-              String value = new String(entry.getValue().array(), entry.getValue().arrayOffset(), entry.getValue().limit(), UTF_8);
-              sb.append("  <tr><td>" + BasicServlet.sanitize(key) + "</td>");
-              sb.append("<td>" + BasicServlet.sanitize(value) + "</td></tr>\n");
-            }
-          }
-          if (hasAnnotations) {
-            sb.append("  <tr><th>Annotation</th><th>Time Offset</th></tr>\n");
-            for (Annotation entry : node.annotations) {
-              sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getMsg()) + "</td>");
-              sb.append(String.format("<td>%d</td></tr>\n", entry.getTime() - finalStart));
-            }
-          }
-          sb.append("  </table>");
-        }
-        sb.append("</td>\n");
-        sb.append("</tr>\n");
+        appendRow(sb, level, node, finalStart);
       }
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {
-      sb.append("<span type='warn'>Warning: the following spans are not rooted!</span>\n");
-      sb.append("<ul>\n");
+      sb.append("<tr><td colspan=10>The following spans are not rooted (probably due to a parent span of length 0ms):<td></tr>\n");
       for (RemoteSpan span : TraceDump.sortByStart(tree.nodes.values())) {
-        sb.append(String.format("<li>%s %s %s</li>\n", Long.toHexString(span.spanId), Long.toHexString(span.parentId), span.description));
+        appendRow(sb, 0, span, finalStart);
       }
-      sb.append("</ul>\n");
     }
     sb.append("</table>\n");
     sb.append("</div>\n");
+  }
+
+  private static void appendRow(StringBuilder sb, int level, RemoteSpan node, long finalStart) {
+    sb.append("<tr>\n");
+    sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>%n", node.stop - node.start, node.start - finalStart));
+    sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 10, node.svc, node.sender));
+    sb.append("<td>" + node.description + "</td>");
+    boolean hasData = node.data != null && !node.data.isEmpty();
+    boolean hasAnnotations = node.annotations != null && !node.annotations.isEmpty();
+    if (hasData || hasAnnotations) {
+      String hexSpanId = Long.toHexString(node.spanId);
+      sb.append("<td><input type='checkbox' id=\"");
+      sb.append(hexSpanId);
+      sb.append(checkboxIdSuffix);
+      sb.append("\" onclick='toggle(\"" + Long.toHexString(node.spanId) + "\")'></td>\n");
+    } else {
+      sb.append("<td></td>\n");
+    }
+    sb.append("</tr>\n");
+    sb.append("<tr id='" + Long.toHexString(node.spanId) + "' style='display:none'>");
+    sb.append("<td colspan='5'>\n");
+    if (hasData || hasAnnotations) {
+      sb.append("  <table class='indent,noborder'>\n");
+      if (hasData) {
+        sb.append("  <tr><th>Key</th><th>Value</th></tr>\n");
+        for (Entry<ByteBuffer,ByteBuffer> entry : node.data.entrySet()) {
+          String key = new String(entry.getKey().array(), entry.getKey().arrayOffset(), entry.getKey().limit(), UTF_8);
+          String value = new String(entry.getValue().array(), entry.getValue().arrayOffset(), entry.getValue().limit(), UTF_8);
+          sb.append("  <tr><td>" + BasicServlet.sanitize(key) + "</td>");
+          sb.append("<td>" + BasicServlet.sanitize(value) + "</td></tr>\n");
+        }
+      }
+      if (hasAnnotations) {
+        sb.append("  <tr><th>Annotation</th><th>Time Offset</th></tr>\n");
+        for (Annotation entry : node.annotations) {
+          sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getMsg()) + "</td>");
+          sb.append(String.format("<td>%d</td></tr>\n", entry.getTime() - finalStart));
+        }
+      }
+      sb.append("  </table>");
+    }
+    sb.append("</td>\n");
+    sb.append("</tr>\n");
   }
 
   @Override
