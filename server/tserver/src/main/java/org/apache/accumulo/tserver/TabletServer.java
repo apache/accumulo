@@ -149,6 +149,7 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -3038,23 +3039,18 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
-  public void addLoggersToMetadata(DfsLogger copy, KeyExtent extent) {
-    TabletLevel level = TabletLevel.getLevel(extent);
+  public void addLoggersToMetadata(DfsLogger copy, TabletLevel level) {
     // serialize the updates to the metadata per level: avoids updating the level more than once
     // updating one level, may cause updates to other levels, so we need to release the lock on metadataTableLogs
     synchronized (levelLocks[level.ordinal()]) {
       EnumSet<TabletLevel> set = null;
-      synchronized (metadataTableLogs) {
-        set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
-      }
+      set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
       if (set == null || !set.contains(level) || level == TabletLevel.ROOT) {
         log.info("Writing log marker for level " + level + " " + copy.getFileName());
-        MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getPath(), extent);
+        MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getPath(), level);
       }
-      synchronized (metadataTableLogs) {
-        set = metadataTableLogs.get(copy);
-        set.add(level);
-      }
+      set = metadataTableLogs.get(copy);
+      set.add(level);
     }
   }
 

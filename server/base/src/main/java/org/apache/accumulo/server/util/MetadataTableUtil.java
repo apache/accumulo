@@ -81,6 +81,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -1057,9 +1058,9 @@ public class MetadataTableUtil {
     return tabletEntries;
   }
 
-  public static void addNewLogMarker(ClientContext context, ZooLock zooLock, final TServerInstance tabletSession, final Path filename, KeyExtent extent) {
+  public static void addNewLogMarker(ClientContext context, ZooLock zooLock, final TServerInstance tabletSession, final Path filename, TabletLevel level) {
     log.debug("Adding log entry " + filename);
-    if (extent.isRootTablet()) {
+    if (level == TabletLevel.ROOT) {
       retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
         @Override
         public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
@@ -1077,7 +1078,7 @@ public class MetadataTableUtil {
       Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + tabletSession.toString());
       m.put(CurrentLogsSection.COLF, new Text(filename.toString()), new Value(EMPTY_BYTES));
       String tableName = MetadataTable.NAME;
-      if (extent.isMeta()) {
+      if (level == TabletLevel.META) {
         tableName = RootTable.NAME;
       }
       BatchWriter bw = null;

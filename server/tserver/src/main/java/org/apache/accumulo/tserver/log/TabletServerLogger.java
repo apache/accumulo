@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -227,8 +229,12 @@ public class TabletServerLogger {
             log.debug("Creating next WAL");
             DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
+            EnumSet<TabletLevel> levels = EnumSet.noneOf(TabletLevel.class);
             for (Tablet tablet : tserver.getOnlineTablets()) {
-              tserver.addLoggersToMetadata(alog, tablet.getExtent());
+              levels.add(TabletLevel.getLevel(tablet.getExtent()));
+            }
+            for (TabletLevel level : levels) {
+              tserver.addLoggersToMetadata(alog, level);
             }
             log.debug("Created next WAL " + alog.getFileName());
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
@@ -308,7 +314,7 @@ public class TabletServerLogger {
                 // Scribble out a tablet definition and then write to the metadata table
                 defineTablet(commitSession);
                 if (currentLogId == logId.get())
-                  tserver.addLoggersToMetadata(copy, commitSession.getExtent());
+                  tserver.addLoggersToMetadata(copy, TabletLevel.getLevel(commitSession.getExtent()));
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }
