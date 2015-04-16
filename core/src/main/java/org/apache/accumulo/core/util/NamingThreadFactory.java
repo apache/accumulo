@@ -19,6 +19,7 @@ package org.apache.accumulo.core.util;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

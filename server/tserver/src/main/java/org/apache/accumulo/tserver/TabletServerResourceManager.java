@@ -41,9 +41,9 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -65,9 +65,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
- *
- *
- *
  */
 public class TabletServerResourceManager {
 

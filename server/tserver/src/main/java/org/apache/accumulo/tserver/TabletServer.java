@@ -133,7 +133,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -141,6 +140,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
@@ -379,7 +379,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private static long jitter(long ms) {
     Random r = new Random();
     // add a random 10% wait
-    return (long)((1. + (r.nextDouble() / 10)) * ms);
+    return (long) ((1. + (r.nextDouble() / 10)) * ms);
   }
 
   private final SessionManager sessionManager;

@@ -85,6 +85,11 @@ class MinorCompactionTask implements Runnable {
           mergeFile, true, queued, commitSession, flushId, mincReason);
       span.stop();
 
+      minorCompaction.data("extent", tablet.getExtent().toString());
+      minorCompaction.data("numEntries", Long.toString(this.stats.getNumEntries()));
+      minorCompaction.data("size", Long.toString(this.stats.getSize()));
+      minorCompaction.stop();
+
       if (tablet.needsSplit()) {
         tablet.getTabletServer().executeSplit(tablet);
       } else {
@@ -95,9 +100,6 @@ class MinorCompactionTask implements Runnable {
       throw new RuntimeException(t);
     } finally {
       tablet.minorCompactionComplete();
-      minorCompaction.data("extent", tablet.getExtent().toString());
-      minorCompaction.data("numEntries", Long.toString(this.stats.getNumEntries()));
-      minorCompaction.data("size", Long.toString(this.stats.getSize()));
       minorCompaction.stop();
     }
   }

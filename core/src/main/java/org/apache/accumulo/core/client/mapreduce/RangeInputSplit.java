@@ -358,6 +358,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   /**
    * Use {@link #getTableName}
+   *
+   * @deprecated since 1.6.1, use getTableName() instead.
    */
   @Deprecated
   public String getTable() {
@@ -370,6 +372,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   /**
    * Use {@link #setTableName}
+   *
+   * @deprecated since 1.6.1, use setTableName() instead.
    */
   @Deprecated
   public void setTable(String table) {
@@ -390,6 +394,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   /**
    * @see #getInstance(ClientConfiguration)
+   * @deprecated since 1.7.0, use getInstance(ClientConfiguration) instead.
    */
   @Deprecated
   public Instance getInstance() {
