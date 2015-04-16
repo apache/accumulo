@@ -30,7 +30,7 @@ public class TLevel extends Level {
   }
 
   }
-  
+
   static public void logAtLevel(Logger log, Level level, String msg, Object...objects) {
     switch(level.toInt()) {
       case Priority.DEBUG_INT:

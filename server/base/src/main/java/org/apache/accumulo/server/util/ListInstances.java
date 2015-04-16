@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

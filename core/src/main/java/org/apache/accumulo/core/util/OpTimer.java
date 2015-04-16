@@ -37,7 +37,7 @@ public class OpTimer {
 
   public OpTimer start(String msg) {
     opid = nextOpid.getAndIncrement();
-    
+
     switch(level.toInt()) {
       case Level.TRACE_INT:
         log.trace("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);
@@ -65,7 +65,7 @@ public class OpTimer {
     long t2 = System.currentTimeMillis();
     String duration = String.format("%.3f secs", (t2 - t1) / 1000.0);
     msg = msg.replace("%DURATION%", duration);
-    
+
     switch(level.toInt()) {
       case Level.TRACE_INT:
         log.trace("tid={} oid={} {}", Thread.currentThread().getId(), opid, msg);

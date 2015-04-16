@@ -45,7 +45,6 @@ import org.apache.accumulo.monitor.util.celltypes.ProgressChartType;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
-import org.apache.log4j.Level;
 import org.apache.log4j.Priority;
 
 import com.google.common.base.Joiner;

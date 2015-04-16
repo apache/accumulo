@@ -57,8 +57,7 @@ public class ConfigSanityCheck {
       else if (prop.getType() == PropertyType.PREFIX) {
         log.error("{} incomplete property key ({})", PREFIX, key);
         throw new SanityCheckException(String.format("%s incomplete property key (%s)", PREFIX, key));
-      }
-      else if (!prop.getType().isValidFormat(value)) {
+      } else if (!prop.getType().isValidFormat(value)) {
         log.error("{} improperly formatted value for key ({}, type={})", PREFIX, key, prop.getType());
         throw new SanityCheckException(String.format("%s improperly formatted value for key (%s, type=%s)", PREFIX, key, prop.getType()));
       }
