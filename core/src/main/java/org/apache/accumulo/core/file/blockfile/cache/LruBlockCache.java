@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
 public class LruBlockCache implements BlockCache, HeapSize {
 
   private static final Logger log = LoggerFactory.getLogger(LruBlockCache.class);
-  
+
   /** Default Configuration Parameters */
 
   /** Backing Concurrent Map Configuration */
@@ -393,7 +393,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
       float singleMB = ((float) bucketSingle.totalSize()) / ((float) (1024 * 1024));
       float multiMB = ((float) bucketMulti.totalSize()) / ((float) (1024 * 1024));
       float memoryMB = ((float) bucketMemory.totalSize()) / ((float) (1024 * 1024));
-      
+
       log.debug("Block cache LRU eviction completed. Freed {} bytes.  Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
           bytesFreed, singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(), memoryMB, bucketMemory.totalSize());
 

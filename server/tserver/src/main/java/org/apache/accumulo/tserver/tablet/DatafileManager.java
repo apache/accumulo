@@ -585,7 +585,7 @@ class DatafileManager {
     log.debug(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
     TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} MajC  --> ", oldDatafiles, newDatafile);
   }
-  
+
   public SortedMap<FileRef,DataFileValue> getDatafileSizes() {
     synchronized (tablet) {
       TreeMap<FileRef,DataFileValue> copy = new TreeMap<FileRef,DataFileValue>(datafileSizes);

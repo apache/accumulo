@@ -19,7 +19,6 @@ package org.apache.accumulo.server.rpc;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsFactory;
-import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.accumulo.server.metrics.ThriftMetricsKeys;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;

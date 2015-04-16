@@ -81,7 +81,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     try {
       OpTimer opTimer = null;
       if (log.isTraceEnabled())
-        opTimer = new OpTimer(log, Level.TRACE).start(String.format("Looking up in %s row=%s extent=%s tserver=%s", src.tablet_extent.getTableId(), TextUtil.truncate(row), src.tablet_extent, src.tablet_location));
+        opTimer = new OpTimer(log, Level.TRACE).start(String.format("Looking up in %s row=%s extent=%s tserver=%s",
+            src.tablet_extent.getTableId(), TextUtil.truncate(row), src.tablet_extent, src.tablet_location));
 
       Range range = new Range(row, true, stopRow, true);
 

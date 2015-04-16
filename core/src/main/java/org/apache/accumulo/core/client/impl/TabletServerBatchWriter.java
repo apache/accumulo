@@ -816,10 +816,10 @@ public class TabletServerBatchWriter {
             failures = sendMutationsToTabletServer(location, mutationBatch, timeoutTracker);
             long st2 = System.currentTimeMillis();
             if (log.isTraceEnabled())
-              log.trace("{}", 
-                  String.format("sent %,d mutations to %s in %.2f secs (%,.2f mutations/sec) with %,d failures", 
+              log.trace("{}",
+                  String.format("sent %,d mutations to %s in %.2f secs (%,.2f mutations/sec) with %,d failures",
                   count, location, (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
-              
+
             long successBytes = 0;
             for (Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
               for (Mutation mutation : entry.getValue()) {
