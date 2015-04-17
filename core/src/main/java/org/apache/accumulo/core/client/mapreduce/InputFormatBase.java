@@ -177,6 +177,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
+   * Must be enabled when {@link #setBatchScan(Job, boolean)} is true.
    *
    * @param context
    *          the Hadoop context for the configured job
