@@ -106,6 +106,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
@@ -714,16 +715,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return config;
   }
 
-  /**
-   * Utility method to get a connector to the MAC.
-   *
-   * @since 1.6.0
-   */
-  @Deprecated
-  public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, new PasswordToken(passwd));
-  }
-
   @Override
   public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(getClientConfig());
@@ -745,12 +736,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  // Visible for testing
+  @VisibleForTesting
   protected void setShutdownExecutor(ExecutorService svc) {
     this.executor = svc;
   }
 
-  // Visible for testing
+  @VisibleForTesting
   protected ExecutorService getShutdownExecutor() {
     return executor;
   }

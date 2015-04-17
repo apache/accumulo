@@ -28,7 +28,4 @@ public class DistributedStoreException extends Exception {
     super(cause);
   }
 
-  public DistributedStoreException(String why, Exception cause) {
-    super(why, cause);
-  }
 }

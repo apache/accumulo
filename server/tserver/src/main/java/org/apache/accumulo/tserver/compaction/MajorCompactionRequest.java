@@ -28,9 +28,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
@@ -70,11 +68,6 @@ public class MajorCompactionRequest implements Cloneable {
 
   public void setFiles(Map<FileRef,DataFileValue> update) {
     this.files = Collections.unmodifiableMap(update);
-  }
-
-  public FileStatus[] listStatus(Path path) throws IOException {
-    // @TODO verify the file isn't some random file in HDFS
-    return volumeManager.listStatus(path);
   }
 
   public FileSKVIterator openReader(FileRef ref) throws IOException {

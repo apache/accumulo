@@ -148,10 +148,6 @@ public abstract class AbstractMetricsImpl implements Metrics {
     registry.put(name, new Metric());
   }
 
-  public Metric getMetric(String name) {
-    return registry.get(name);
-  }
-
   public long getMetricCount(String name) {
     return registry.get(name).getCount();
   }

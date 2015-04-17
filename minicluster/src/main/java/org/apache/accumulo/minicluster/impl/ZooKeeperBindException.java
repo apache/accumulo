@@ -29,12 +29,4 @@ public class ZooKeeperBindException extends RuntimeException {
     super(message);
   }
 
-  public ZooKeeperBindException(Throwable cause) {
-    super(cause);
-  }
-
-  public ZooKeeperBindException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
 }

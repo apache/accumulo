@@ -18,11 +18,11 @@ package org.apache.accumulo.tserver;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.common.base.Preconditions;
-
 import org.apache.accumulo.core.data.KeyExtent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  *

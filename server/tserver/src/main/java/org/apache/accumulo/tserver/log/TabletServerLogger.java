@@ -211,15 +211,6 @@ public class TabletServerLogger {
     }
   }
 
-  public void resetLoggers() throws IOException {
-    logSetLock.writeLock().lock();
-    try {
-      close();
-    } finally {
-      logSetLock.writeLock().unlock();
-    }
-  }
-
   synchronized private void close() throws IOException {
     if (!logSetLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");

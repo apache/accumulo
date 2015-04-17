@@ -48,6 +48,8 @@ import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid pauses caused by Java GC.
  *
@@ -122,7 +124,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
    *
    * @return true if they are loaded; false otherwise
    */
-  public static boolean isLoaded() {
+  static boolean isLoaded() {
     return loadedNativeLibraries.get();
   }
 
@@ -506,6 +508,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
+  @VisibleForTesting
   public void mutate(Mutation mutation, int mutationCount) {
     wlock.lock();
     try {
@@ -521,7 +524,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
-  public void mutate(List<Mutation> mutations, int mutationCount) {
+  void mutate(List<Mutation> mutations, int mutationCount) {
     Iterator<Mutation> iter = mutations.iterator();
 
     while (iter.hasNext()) {
@@ -547,6 +550,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
+  @VisibleForTesting
   public void put(Key key, Value value) {
     wlock.lock();
     try {

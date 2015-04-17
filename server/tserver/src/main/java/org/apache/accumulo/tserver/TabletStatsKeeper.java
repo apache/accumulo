@@ -87,15 +87,7 @@ public class TabletStatsKeeper {
     ActionStatsUpdator.update(major, t.majors);
   }
 
-  public void saveMinorTimes(TabletStatsKeeper t) {
-    ActionStatsUpdator.update(minor, t.minor);
-  }
-
-  public void saveMajorTimes(TabletStatsKeeper t) {
-    ActionStatsUpdator.update(major, t.major);
-  }
-
-  public void resetTimes() {
+  private void resetTimes() {
     major = new ActionStats();
     split = new ActionStats();
     minor = new ActionStats();
@@ -109,7 +101,7 @@ public class TabletStatsKeeper {
     major.status++;
   }
 
-  public void incrementStatusSplit() {
+  void incrementStatusSplit() {
     split.status++;
   }
 

@@ -893,22 +893,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       TABLENAMES, USERNAMES, COMMANDS, NAMESPACES
     }
 
-    static Set<String> getCommandNames(Map<CompletionSet,Set<String>> objects) {
-      return objects.get(CompletionSet.COMMANDS);
-    }
-
-    static Set<String> getTableNames(Map<CompletionSet,Set<String>> objects) {
-      return objects.get(CompletionSet.TABLENAMES);
-    }
-
-    static Set<String> getUserNames(Map<CompletionSet,Set<String>> objects) {
-      return objects.get(CompletionSet.USERNAMES);
-    }
-
-    static Set<String> getNamespaces(Map<CompletionSet,Set<String>> objects) {
-      return objects.get(CompletionSet.NAMESPACES);
-    }
-
     public void registerCompletionGeneral(Token root, Set<String> args, boolean caseSens) {
       Token t = new Token(args);
       t.setCaseSensitive(caseSens);

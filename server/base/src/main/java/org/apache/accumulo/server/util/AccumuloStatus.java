@@ -19,24 +19,10 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReader;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.zookeeper.KeeperException;
 
 public class AccumuloStatus {
-  /**
-   * Determines if there could be an accumulo instance running via zookeeper lock checking
-   *
-   * @return true iff all servers show no indication of being registered in zookeeper, otherwise false
-   * @throws IOException
-   *           if there are issues connecting to ZooKeeper to determine service status
-   */
-  public static boolean isAccumuloOffline(IZooReader reader) throws IOException {
-    String rootPath = ZooUtil.getRoot(HdfsZooInstance.getInstance());
-    return isAccumuloOffline(reader, rootPath);
-  }
-
   /**
    * Determines if there could be an accumulo instance running via zookeeper lock checking
    *

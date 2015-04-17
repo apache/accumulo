@@ -698,7 +698,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return (long) Math.floor(this.maxSize * this.memoryFactor * this.minFactor);
   }
 
-  @Override
   public void shutdown() {
     this.scheduleThreadPool.shutdown();
   }

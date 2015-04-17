@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.file.blockfile;
 
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.IOException;
 
 /*
@@ -35,7 +34,5 @@ public interface ABlockWriter extends DataOutput {
   long getRawSize() throws IOException;
 
   long getStartPos() throws IOException;
-
-  DataOutputStream getStream() throws IOException;
 
 }

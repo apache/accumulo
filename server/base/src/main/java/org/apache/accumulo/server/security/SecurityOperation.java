@@ -79,10 +79,6 @@ public class SecurityOperation {
 
   static SecurityOperation instance;
 
-  public static synchronized SecurityOperation getInstance(AccumuloServerContext context) {
-    return getInstance(context, false);
-  }
-
   public static synchronized SecurityOperation getInstance(AccumuloServerContext context, boolean initialize) {
     if (instance == null) {
       String instanceId = context.getInstance().getInstanceID();

@@ -53,10 +53,6 @@ public class MapCounter<KT> {
     return increment(key, -1 * l);
   }
 
-  public boolean contains(KT key) {
-    return map.containsKey(key);
-  }
-
   public long get(KT key) {
     MutableLong ml = map.get(key);
     if (ml == null) {

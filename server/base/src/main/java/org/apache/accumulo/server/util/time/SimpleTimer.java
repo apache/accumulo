@@ -51,16 +51,6 @@ public class SimpleTimer {
   private static final int DEFAULT_THREAD_POOL_SIZE = 1;
 
   /**
-   * Gets the timer instance.
-   *
-   * @deprecated Use {@link #getInstance(AccumuloConfiguration)} instead to get the configured number of threads.
-   */
-  @Deprecated
-  public static synchronized SimpleTimer getInstance() {
-    return getInstance(null);
-  }
-
-  /**
    * Gets the timer instance. If an instance has already been created, it will have the number of threads supplied when it was constructed, and the size
    * provided here is ignored.
    *

@@ -60,7 +60,7 @@ public class FileManager {
 
   private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 
-  int maxOpen;
+  private int maxOpen;
 
   private static class OpenReader implements Comparable<OpenReader> {
     long releaseTime;

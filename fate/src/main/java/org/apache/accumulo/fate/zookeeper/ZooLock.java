@@ -396,24 +396,6 @@ public class ZooLock implements Watcher {
 
   }
 
-  public static boolean isLockHeld(ZooKeeper zk, LockID lid) throws KeeperException, InterruptedException {
-
-    List<String> children = zk.getChildren(lid.path, false);
-
-    if (children == null || children.size() == 0) {
-      return false;
-    }
-
-    Collections.sort(children);
-
-    String lockNode = children.get(0);
-    if (!lid.node.equals(lockNode))
-      return false;
-
-    Stat stat = zk.exists(lid.path + "/" + lid.node, false);
-    return stat != null && stat.getEphemeralOwner() == lid.eid;
-  }
-
   public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
     List<String> children = zc.getChildren(lid.path);

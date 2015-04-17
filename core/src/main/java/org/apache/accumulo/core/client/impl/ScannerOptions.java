@@ -133,11 +133,6 @@ public class ScannerOptions implements ScannerBase {
     fetchedColumns.add(c);
   }
 
-  public synchronized void fetchColumn(Column column) {
-    checkArgument(column != null, "column is null");
-    fetchedColumns.add(column);
-  }
-
   @Override
   public void fetchColumn(IteratorSetting.Column column) {
     checkArgument(column != null, "Column is null");

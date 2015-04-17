@@ -37,8 +37,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.BlockRead;
 import org.apache.accumulo.core.file.rfile.bcfile.CompareUtils.Scalar;
-import org.apache.accumulo.core.file.rfile.bcfile.CompareUtils.ScalarComparator;
-import org.apache.accumulo.core.file.rfile.bcfile.CompareUtils.ScalarLong;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.security.crypto.CryptoModule;
@@ -1032,23 +1030,6 @@ public final class BCFile {
       return new BlockReader(rbs);
     }
 
-    /**
-     * Find the smallest Block index whose starting offset is greater than or equal to the specified offset.
-     *
-     * @param offset
-     *          User-specific offset.
-     * @return the index to the data Block if such block exists; or -1 otherwise.
-     */
-    public int getBlockIndexNear(long offset) {
-      ArrayList<BlockRegion> list = dataIndex.getBlockRegionList();
-      int idx = Utils.lowerBound(list, new ScalarLong(offset), new ScalarComparator());
-
-      if (idx == list.size()) {
-        return -1;
-      }
-
-      return idx;
-    }
   }
 
   /**

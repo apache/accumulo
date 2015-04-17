@@ -745,8 +745,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
-  final static String METADATA_TABLE_DIR = "/" + MetadataTable.ID;
-
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer) throws MutationsRejectedException {
     Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + delete);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);

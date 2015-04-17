@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.shell;
 
-import org.apache.commons.cli.Option;
 
 /**
  * Abstract class to encompass the Options available on the Accumulo Shell
@@ -28,6 +27,4 @@ public abstract class ShellOptions {
   public static final String namespaceOption = "ns";
   public static final String helpOption = "?";
   public static final String helpLongOption = "help";
-
-  final Option helpOpt = new Option(helpOption, helpLongOption, false, "display this help");
 }

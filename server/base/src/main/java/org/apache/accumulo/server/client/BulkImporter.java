@@ -700,15 +700,6 @@ public class BulkImporter {
       this.completeFailures = completeFailures;
     }
 
-    void tabletSplit(KeyExtent parent, Collection<KeyExtent> children) {
-      Integer count = getCount(parent);
-
-      counts.remove(parent);
-
-      for (KeyExtent keyExtent : children)
-        counts.put(keyExtent, count);
-    }
-
     private Integer getCount(KeyExtent parent) {
       Integer count = counts.get(parent);
 

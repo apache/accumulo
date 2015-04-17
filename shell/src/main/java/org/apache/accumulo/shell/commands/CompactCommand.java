@@ -42,8 +42,6 @@ public class CompactCommand extends TableOperation {
 
   private CompactionConfig compactionConfig = null;
 
-  boolean override = false;
-
   private boolean cancel = false;
 
   @Override

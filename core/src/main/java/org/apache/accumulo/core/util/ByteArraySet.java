@@ -48,8 +48,4 @@ public class ByteArraySet extends TreeSet<byte[]> {
     return ByteArraySet.fromStrings(Arrays.asList(c));
   }
 
-  public List<byte[]> toList() {
-    return new ArrayList<byte[]>(this);
-  }
-
 }

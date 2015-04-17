@@ -63,6 +63,8 @@ import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
  */
@@ -182,7 +184,7 @@ public class TabletServerResourceManager {
 
     // make this thread pool have a priority queue... and execute tablets with the most
     // files first!
-    majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor", new CompactionQueue());
+    majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor", new CompactionQueue().asBlockingQueueOfRunnable());
     rootMajorCompactionThreadPool = createEs(0, 1, 300, "md root major compactor");
     defaultMajorCompactionThreadPool = createEs(0, 1, 300, "md major compactor");
 
@@ -546,10 +548,12 @@ public class TabletServerResourceManager {
       this.tableConf = tableConf;
     }
 
+    @VisibleForTesting
     KeyExtent getExtent() {
       return extent;
     }
 
+    @VisibleForTesting
     AccumuloConfiguration getTableConfiguration() {
       return tableConf;
     }
@@ -729,52 +733,6 @@ public class TabletServerResourceManager {
       defaultMigrationPool.execute(migrationHandler);
     } else {
       migrationPool.execute(migrationHandler);
-    }
-  }
-
-  public void stopSplits() {
-    splitThreadPool.shutdown();
-    defaultSplitThreadPool.shutdown();
-    while (true) {
-      try {
-        while (!splitThreadPool.awaitTermination(1, TimeUnit.MINUTES)) {
-          log.info("Waiting for metadata split thread pool to stop");
-        }
-        while (!defaultSplitThreadPool.awaitTermination(1, TimeUnit.MINUTES)) {
-          log.info("Waiting for split thread pool to stop");
-        }
-        break;
-      } catch (InterruptedException ex) {
-        log.info("Interrupted waiting for splits executor to terminate", ex);
-      }
-    }
-  }
-
-  public void stopNormalAssignments() {
-    assignmentPool.shutdown();
-    while (true) {
-      try {
-        while (!assignmentPool.awaitTermination(1, TimeUnit.MINUTES)) {
-          log.info("Waiting for assignment thread pool to stop");
-        }
-        break;
-      } catch (InterruptedException ex) {
-        log.info("Interrupted waiting for assignment executor to terminate", ex);
-      }
-    }
-  }
-
-  public void stopMetadataAssignments() {
-    assignMetaDataPool.shutdown();
-    while (true) {
-      try {
-        while (!assignMetaDataPool.awaitTermination(1, TimeUnit.MINUTES)) {
-          log.info("Waiting for metadata assignment thread pool to stop");
-        }
-        break;
-      } catch (InterruptedException ex) {
-        log.info("Interrupted waiting for metadata assignment executor to terminate", ex);
-      }
     }
   }
 

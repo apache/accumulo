@@ -27,10 +27,4 @@ public class TLevel extends Level {
     super(Level.DEBUG_INT + 100, "TABLET_HIST", Level.DEBUG_INT + 100);
   }
 
-  static public Level toLevel(int val) {
-    if (val == Level.DEBUG_INT + 100)
-      return Level.DEBUG;
-    return Level.toLevel(val);
-  }
-
 }

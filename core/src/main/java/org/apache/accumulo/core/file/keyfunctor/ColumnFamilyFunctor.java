@@ -41,7 +41,7 @@ public class ColumnFamilyFunctor implements KeyFunctor {
 
   @Override
   public Key transform(Range range) {
-    if (RowFunctor.isRangeInBloomFilter(range, PartialKey.ROW_COLFAM)) {
+    if (RowFunctor.isRangeInBloomFilter(range, kDepth)) {
       return transform(range.getStartKey());
     }
     return null;

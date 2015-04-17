@@ -246,20 +246,6 @@ public class MetadataSchema {
     }
 
     /**
-     * Extract the table ID from the colfam (inefficiently if called repeatedly)
-     *
-     * @param k
-     *          Key to extract from
-     * @return The table ID
-     * @see #getTableId(Key,Text)
-     */
-    public static String getTableId(Key k) {
-      Text buff = new Text();
-      getTableId(k, buff);
-      return buff.toString();
-    }
-
-    /**
      * Extract the table ID from the colfam into the given {@link Text}
      *
      * @param k
