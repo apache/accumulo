@@ -387,13 +387,4 @@ public class ZooCache {
     }
   }
 
-  private static ZooCacheFactory zcf = new ZooCacheFactory();
-
-  /**
-   * @deprecated Use {@link ZooCacheFactory} instead.
-   */
-  @Deprecated
-  public static synchronized ZooCache getInstance(String zooKeepers, int sessionTimeout) {
-    return zcf.getZooCache(zooKeepers, sessionTimeout);
-  }
 }

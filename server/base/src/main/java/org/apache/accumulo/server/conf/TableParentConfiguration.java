@@ -27,20 +27,10 @@ public class TableParentConfiguration extends NamespaceConfiguration {
 
   private String tableId;
 
-  public TableParentConfiguration(String tableId, AccumuloConfiguration parent) {
-    super(null, parent);
-    this.tableId = tableId;
-    this.namespaceId = getNamespaceId();
-  }
-
   public TableParentConfiguration(String tableId, Instance inst, AccumuloConfiguration parent) {
     super(null, inst, parent);
     this.tableId = tableId;
     this.namespaceId = getNamespaceId();
-  }
-
-  String getTableId() {
-    return tableId;
   }
 
   @Override

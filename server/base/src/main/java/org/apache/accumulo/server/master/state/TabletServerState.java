@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 
 public enum TabletServerState {
   // not a valid state, reserved for internal use only
@@ -70,7 +68,4 @@ public enum TabletServerState {
     throw new IndexOutOfBoundsException("No such state");
   }
 
-  public static Set<TabletServerState> getBadStates() {
-    return Collections.unmodifiableSet(badStates);
-  }
 }

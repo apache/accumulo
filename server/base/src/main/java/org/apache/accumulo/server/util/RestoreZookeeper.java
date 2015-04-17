@@ -99,8 +99,6 @@ public class RestoreZookeeper {
   }
 
   static class Opts extends Help {
-    @Parameter(names = {"-z", "--keepers"})
-    String keepers = "localhost:2181";
     @Parameter(names = "--overwrite")
     boolean overwrite = false;
     @Parameter(names = "--file")

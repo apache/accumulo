@@ -150,11 +150,6 @@ public class VolumeConfiguration {
     return new VolumeImpl(fs, basePath);
   }
 
-  public static Volume create(String path, Configuration conf) throws IOException {
-    Preconditions.checkNotNull(path);
-    return create(new Path(path), conf);
-  }
-
   public static Volume create(Path path, Configuration conf) throws IOException {
     return new VolumeImpl(path, conf);
   }

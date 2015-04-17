@@ -154,11 +154,6 @@ public class Tables {
     return tableName == null ? "(ID:" + tableId + ")" : tableName;
   }
 
-  public static String getPrintableTableIdFromName(Map<String,String> nameToIdMap, String tableName) {
-    String tableId = nameToIdMap.get(tableName);
-    return tableId == null ? "(NAME:" + tableName + ")" : tableId;
-  }
-
   public static String getPrintableTableInfoFromId(Instance instance, String tableId) {
     String tableName = null;
     try {

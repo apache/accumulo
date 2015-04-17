@@ -87,10 +87,6 @@ public class ZooKeeperStatus implements Runnable {
     return status;
   }
 
-  public void stop() {
-    this.stop = true;
-  }
-
   @Override
   public void run() {
 

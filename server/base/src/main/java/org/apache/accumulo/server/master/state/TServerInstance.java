@@ -112,10 +112,6 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     return cachedStringRepresentation;
   }
 
-  public int port() {
-    return getLocation().getPort();
-  }
-
   public String host() {
     return getLocation().getHostText();
   }

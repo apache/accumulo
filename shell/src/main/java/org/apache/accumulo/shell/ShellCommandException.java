@@ -45,10 +45,6 @@ public class ShellCommandException extends Exception {
   private ErrorCode code;
   private String command;
 
-  public ShellCommandException(ErrorCode code) {
-    this(code, null);
-  }
-
   public ShellCommandException(ErrorCode code, String command) {
     this.code = code;
     this.command = command;

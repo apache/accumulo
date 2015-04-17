@@ -138,11 +138,6 @@ public class StatusFormatter implements Formatter {
     return appendBytes(sb, t.getBytes(), 0, t.getLength());
   }
 
-  protected String getValue(Value v) {
-    StringBuilder sb = new StringBuilder();
-    return appendBytes(sb, v.get(), 0, v.get().length).toString();
-  }
-
   protected StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[offset + i];

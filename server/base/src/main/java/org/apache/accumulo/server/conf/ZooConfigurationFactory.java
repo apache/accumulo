@@ -82,17 +82,6 @@ class ZooConfigurationFactory {
   }
 
   /**
-   * Gets a configuration object with the given parent. A default instance is used. Repeated calls will return the same object.
-   *
-   * @param parent
-   *          parent configuration (required)
-   * @return configuration
-   */
-  public ZooConfiguration getInstance(AccumuloConfiguration parent) {
-    return getInstance(null, parent);
-  }
-
-  /**
    * Gets a configuration object for the given instance with the given parent. Repeated calls will return the same object.
    *
    * @param inst

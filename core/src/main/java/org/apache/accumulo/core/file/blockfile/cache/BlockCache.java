@@ -55,11 +55,6 @@ public interface BlockCache {
   CacheEntry getBlock(String blockName);
 
   /**
-   * Shutdown the cache.
-   */
-  void shutdown();
-
-  /**
    * Get the maximum size of this cache.
    *
    * @return max size in bytes

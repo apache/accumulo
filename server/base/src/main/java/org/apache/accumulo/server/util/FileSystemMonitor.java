@@ -32,7 +32,6 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class FileSystemMonitor {
@@ -107,17 +106,6 @@ public class FileSystemMonitor {
     Timer timer = new Timer("filesystem monitor timer", true);
     timer.schedule(tt, period, period);
 
-  }
-
-  protected void logAsync(final Level level, final String msg, final Exception e) {
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        log.log(level, msg, e);
-      }
-    };
-
-    new Thread(r).start();
   }
 
   protected void checkMounts(String procFile) throws Exception {

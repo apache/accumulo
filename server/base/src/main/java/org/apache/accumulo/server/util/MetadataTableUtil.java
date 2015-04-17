@@ -211,11 +211,6 @@ public class MetadataTableUtil {
     update(context, lock, m, extent);
   }
 
-  public static void updateTabletPrevEndRow(KeyExtent extent, ClientContext context) {
-    Mutation m = extent.getPrevRowUpdateMutation(); //
-    update(context, m, extent);
-  }
-
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove, List<LogEntry> logsToAdd, List<FileRef> filesToRemove,
       SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock, AccumuloServerContext context) {
 

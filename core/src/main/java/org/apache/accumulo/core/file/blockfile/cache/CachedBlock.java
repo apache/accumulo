@@ -55,10 +55,6 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
   private BlockPriority priority;
   private Object index;
 
-  public CachedBlock(String blockName, byte buf[], long accessTime) {
-    this(blockName, buf, accessTime, false);
-  }
-
   public CachedBlock(String blockName, byte buf[], long accessTime, boolean inMemory) {
     this.blockName = blockName;
     this.buf = buf;

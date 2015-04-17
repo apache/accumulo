@@ -21,12 +21,12 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 
 public class Session {
   public final String client;
-  public long lastAccessTime;
+  long lastAccessTime;
   public long startTime;
-  public boolean reserved;
+  boolean reserved;
   private final TCredentials credentials;
 
-  public Session(TCredentials credentials) {
+  Session(TCredentials credentials) {
     this.credentials = credentials;
     this.client = TServerUtils.clientAddress.get();
   }

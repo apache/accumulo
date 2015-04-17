@@ -115,8 +115,6 @@ public class TeraSortIngest extends Configured implements Tool {
       long finishedRows;
       long totalRows;
 
-      LongWritable currentKey;
-
       public RangeRecordReader(RangeInputSplit split) {
         startRow = split.firstRow;
         finishedRows = 0;

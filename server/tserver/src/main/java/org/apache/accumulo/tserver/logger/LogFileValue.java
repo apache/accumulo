@@ -55,10 +55,6 @@ public class LogFileValue implements Writable {
     }
   }
 
-  public static void print(LogFileValue value) {
-    System.out.println(value.toString());
-  }
-
   private static String displayLabels(byte[] labels) {
     String s = new String(labels, UTF_8);
     s = s.replace("&", " & ");

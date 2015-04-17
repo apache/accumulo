@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -789,16 +788,6 @@ public enum Property {
    */
   public static boolean isFixedZooPropertyKey(Property key) {
     return fixedProperties.contains(key);
-  }
-
-  /**
-   * Gets the set of "fixed" valid Zookeeper properties.
-   *
-   * @return fixed Zookeeper properties
-   * @see #isFixedZooPropertyKey(Property)
-   */
-  public static Set<Property> getFixedProperties() {
-    return fixedProperties;
   }
 
   /**

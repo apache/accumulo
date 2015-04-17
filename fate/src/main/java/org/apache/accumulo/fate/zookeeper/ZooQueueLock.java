@@ -32,16 +32,9 @@ public class ZooQueueLock implements QueueLock {
 
   private static final String PREFIX = "lock-";
 
-  // private static final Logger log = Logger.getLogger(ZooQueueLock.class);
-
   private IZooReaderWriter zoo;
   private String path;
   private boolean ephemeral;
-
-  public ZooQueueLock(String zookeepers, int timeInMillis, String scheme, byte[] auth, String path, boolean ephemeral) throws KeeperException,
-      InterruptedException {
-    this(ZooReaderWriter.getInstance(zookeepers, timeInMillis, scheme, auth), path, ephemeral);
-  }
 
   protected ZooQueueLock(IZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;

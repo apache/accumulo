@@ -169,23 +169,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * method here to support testing, do not call
-   */
-  public void clear() {
-    getXmlConfig().clear();
-  }
-
-  /**
-   * Clears the configuration properties in this configuration (but not the parent) and nulls it. This method supports testing and should not be called.
-   */
-  public synchronized void clearAndNull() {
-    if (xmlConfig != null) {
-      xmlConfig.clear();
-      xmlConfig = null;
-    }
-  }
-
-  /**
    * Sets a property. This method supports testing and should not be called.
    *
    * @param property

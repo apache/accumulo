@@ -28,8 +28,6 @@ import java.io.IOException;
 
 public interface ABlockReader extends DataInput {
 
-  long getRawSize();
-
   DataInputStream getStream() throws IOException;
 
   void close() throws IOException;

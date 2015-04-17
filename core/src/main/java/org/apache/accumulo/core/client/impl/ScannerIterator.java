@@ -26,7 +26,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -103,10 +102,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       }
     }
 
-  }
-
-  ScannerIterator(ClientContext context, Text table, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options, boolean isolated) {
-    this(context, table, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
   }
 
   ScannerIterator(ClientContext context, Text table, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,

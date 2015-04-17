@@ -38,7 +38,9 @@ public enum PartialKey {
    * @return partial key
    * @throws IllegalArgumentException
    *           if no partial key has the given depth
+   * @deprecated since 1.7.0
    */
+  @Deprecated
   public static PartialKey getByDepth(int depth) {
     for (PartialKey d : PartialKey.values())
       if (depth == d.depth)

@@ -28,17 +28,6 @@ public class MemValue extends Value {
   int kvCount;
   boolean merged = false;
 
-  /**
-   * @param value
-   *          Value
-   * @param kv
-   *          kv count
-   */
-  public MemValue(byte[] value, int kv) {
-    super(value);
-    this.kvCount = kv;
-  }
-
   public MemValue() {
     super();
     this.kvCount = Integer.MAX_VALUE;

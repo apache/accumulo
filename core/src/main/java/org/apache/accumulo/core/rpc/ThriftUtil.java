@@ -29,16 +29,10 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ClientExec;
-import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -178,70 +172,6 @@ public class ThriftUtil {
    */
   public static TabletClientService.Client getTServerClient(HostAndPort address, ClientContext context, long timeout) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context, timeout);
-  }
-
-  /**
-   * Execute the provided closure against a TabletServer at the given address. If a Thrift transport exception occurs, the operation will be automatically
-   * retried.
-   *
-   * @param address
-   *          TabletServer address
-   * @param context
-   *          RPC options
-   * @param exec
-   *          The closure to execute
-   */
-  public static void execute(HostAndPort address, ClientContext context, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException {
-    while (true) {
-      TabletClientService.Client client = null;
-      try {
-        exec.execute(client = getTServerClient(address, context));
-        break;
-      } catch (TTransportException tte) {
-        log.debug("getTServerClient request failed, retrying ... ", tte);
-        UtilWaitThread.sleep(100);
-      } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (Exception e) {
-        throw new AccumuloException(e);
-      } finally {
-        if (client != null)
-          returnClient(client);
-      }
-    }
-  }
-
-  /**
-   * Execute the provided closure against the TabletServer at the given address, and return the result of the closure to the client. If a Thrift transport
-   * exception occurs, the operation will be automatically retried.
-   *
-   * @param address
-   *          TabletServer address
-   * @param context
-   *          RPC options
-   * @param exec
-   *          Closure with a return value to execute
-   * @return The result from the closure
-   */
-  public static <T> T execute(HostAndPort address, ClientContext context, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException {
-    while (true) {
-      TabletClientService.Client client = null;
-      try {
-        return exec.execute(client = getTServerClient(address, context));
-      } catch (TTransportException tte) {
-        log.debug("getTServerClient request failed, retrying ... ", tte);
-        UtilWaitThread.sleep(100);
-      } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (Exception e) {
-        throw new AccumuloException(e);
-      } finally {
-        if (client != null)
-          returnClient(client);
-      }
-    }
   }
 
   /**

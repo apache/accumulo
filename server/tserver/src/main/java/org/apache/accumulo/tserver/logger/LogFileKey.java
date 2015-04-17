@@ -168,10 +168,6 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     return (int) seq;
   }
 
-  public static void printEntry(LogFileKey entry) {
-    System.out.println(entry.toString());
-  }
-
   @Override
   public String toString() {
     switch (event) {

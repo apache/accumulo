@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import org.apache.htrace.wrappers.TraceRunnable;
-
 import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,59 +26,64 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
-public class CompactionQueue extends AbstractQueue<Runnable> implements BlockingQueue<Runnable> {
+import org.apache.htrace.wrappers.TraceRunnable;
+
+/**
+ * {@link TraceRunnable} objects placed in this queue <b>must</a> wrap a {@link Runnable} which is also {@link Comparable}
+ */
+class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQueue<TraceRunnable> {
 
   private List<TraceRunnable> task = new LinkedList<TraceRunnable>();
 
   private static final Comparator<TraceRunnable> comparator = new Comparator<TraceRunnable>() {
+    @SuppressWarnings("unchecked")
     @Override
     public int compare(TraceRunnable o1, TraceRunnable o2) {
-      return ((Comparable) o1.getRunnable()).compareTo(o2.getRunnable());
+      return ((Comparable<Runnable>) o1.getRunnable()).compareTo(o2.getRunnable());
     }
   };
 
   @Override
-  public synchronized Runnable poll() {
+  public synchronized TraceRunnable poll() {
     if (task.size() == 0)
       return null;
 
     TraceRunnable min = Collections.min(task, comparator);
     task.remove(min);
-    return (Runnable) min;
+    return min;
   }
 
   @Override
-  public synchronized Runnable peek() {
+  public synchronized TraceRunnable peek() {
     if (task.size() == 0)
       return null;
 
     TraceRunnable min = Collections.min(task, comparator);
-    return (Runnable) min;
+    return min;
   }
 
   @Override
-  public synchronized boolean offer(Runnable e) {
-    task.add((TraceRunnable) e);
+  public synchronized boolean offer(TraceRunnable e) {
+    task.add(e);
     notify();
     return true;
   }
 
   @Override
-  public synchronized void put(Runnable e) throws InterruptedException {
-    task.add((TraceRunnable) e);
+  public synchronized void put(TraceRunnable e) throws InterruptedException {
+    task.add(e);
     notify();
   }
 
   @Override
-  public synchronized boolean offer(Runnable e, long timeout, TimeUnit unit) throws InterruptedException {
-    task.add((TraceRunnable) e);
+  public synchronized boolean offer(TraceRunnable e, long timeout, TimeUnit unit) throws InterruptedException {
+    task.add(e);
     notify();
     return true;
   }
 
   @Override
-  public synchronized Runnable take() throws InterruptedException {
+  public synchronized TraceRunnable take() throws InterruptedException {
     while (task.size() == 0) {
       wait();
     }
@@ -89,7 +92,7 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
   }
 
   @Override
-  public synchronized Runnable poll(long timeout, TimeUnit unit) throws InterruptedException {
+  public synchronized TraceRunnable poll(long timeout, TimeUnit unit) throws InterruptedException {
     if (task.size() == 0) {
       wait(unit.toMillis(timeout));
     }
@@ -106,19 +109,19 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
   }
 
   @Override
-  public synchronized int drainTo(Collection<? super Runnable> c) {
+  public synchronized int drainTo(Collection<? super TraceRunnable> c) {
     return drainTo(c, task.size());
   }
 
   @Override
-  public synchronized int drainTo(Collection<? super Runnable> c, int maxElements) {
+  public synchronized int drainTo(Collection<? super TraceRunnable> c, int maxElements) {
     Collections.sort(task, comparator);
 
     int num = Math.min(task.size(), maxElements);
 
     Iterator<TraceRunnable> iter = task.iterator();
     for (int i = 0; i < num; i++) {
-      c.add((Runnable) iter.next());
+      c.add(iter.next());
       iter.remove();
     }
 
@@ -126,33 +129,20 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
   }
 
   @Override
-  public synchronized Iterator<Runnable> iterator() {
+  public synchronized Iterator<TraceRunnable> iterator() {
     Collections.sort(task, comparator);
 
-    final Iterator<TraceRunnable> iter = task.iterator();
-
-    return new Iterator<Runnable>() {
-
-      @Override
-      public boolean hasNext() {
-        return iter.hasNext();
-      }
-
-      @Override
-      public Runnable next() {
-        return (Runnable) iter.next();
-      }
-
-      @Override
-      public void remove() {
-        iter.remove();
-      }
-    };
+    return task.iterator();
   }
 
   @Override
   public synchronized int size() {
     return task.size();
+  }
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  BlockingQueue<Runnable> asBlockingQueueOfRunnable() {
+    return (BlockingQueue) this;
   }
 
 }

@@ -104,13 +104,10 @@ public class Monitor {
   private static final int REFRESH_TIME = 5;
   private static long lastRecalc = 0L;
   private static double totalIngestRate = 0.0;
-  private static double totalIngestByteRate = 0.0;
   private static double totalQueryRate = 0.0;
   private static double totalScanRate = 0.0;
-  private static double totalQueryByteRate = 0.0;
   private static long totalEntries = 0L;
   private static int totalTabletCount = 0;
-  private static int onlineTabletCount = 0;
   private static long totalHoldTime = 0;
   private static long totalLookups = 0;
   private static int totalTables = 0;
@@ -140,7 +137,6 @@ public class Monitor {
   private static final List<Pair<Long,Double>> loadOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> ingestRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> ingestByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> recoveriesOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Integer>> minorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Integer>> majorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> lookupsOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
@@ -234,7 +230,6 @@ public class Monitor {
     double totalScanRate = 0.;
     long totalEntries = 0;
     int totalTabletCount = 0;
-    int onlineTabletCount = 0;
     long totalHoldTime = 0;
     long totalLookups = 0;
     boolean retry = true;
@@ -311,20 +306,16 @@ public class Monitor {
         int totalTables = 0;
         for (TableInfo tInfo : mmi.tableMap.values()) {
           totalTabletCount += tInfo.tablets;
-          onlineTabletCount += tInfo.onlineTablets;
           totalTables++;
         }
         Monitor.totalIngestRate = totalIngestRate;
         Monitor.totalTables = totalTables;
         totalIngestByteRate = totalIngestByteRate / 1000000.0;
-        Monitor.totalIngestByteRate = totalIngestByteRate;
         Monitor.totalQueryRate = totalQueryRate;
         Monitor.totalScanRate = totalScanRate;
         totalQueryByteRate = totalQueryByteRate / 1000000.0;
-        Monitor.totalQueryByteRate = totalQueryByteRate;
         Monitor.totalEntries = totalEntries;
         Monitor.totalTabletCount = totalTabletCount;
-        Monitor.onlineTabletCount = onlineTabletCount;
         Monitor.totalHoldTime = totalHoldTime;
         Monitor.totalLookups = totalLookups;
 
@@ -696,10 +687,6 @@ public class Monitor {
     return totalTabletCount;
   }
 
-  public static int getOnlineTabletCount() {
-    return onlineTabletCount;
-  }
-
   public static long getTotalEntries() {
     return totalEntries;
   }
@@ -708,20 +695,12 @@ public class Monitor {
     return totalIngestRate;
   }
 
-  public static double getTotalIngestByteRate() {
-    return totalIngestByteRate;
-  }
-
   public static double getTotalQueryRate() {
     return totalQueryRate;
   }
 
   public static double getTotalScanRate() {
     return totalScanRate;
-  }
-
-  public static double getTotalQueryByteRate() {
-    return totalQueryByteRate;
   }
 
   public static long getTotalHoldTime() {
@@ -763,12 +742,6 @@ public class Monitor {
   public static List<Pair<Long,Double>> getIngestByteRateOverTime() {
     synchronized (ingestByteRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(ingestByteRateOverTime);
-    }
-  }
-
-  public static List<Pair<Long,Integer>> getRecoveriesOverTime() {
-    synchronized (recoveriesOverTime) {
-      return new ArrayList<Pair<Long,Integer>>(recoveriesOverTime);
     }
   }
 

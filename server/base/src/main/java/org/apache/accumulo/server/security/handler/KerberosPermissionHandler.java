@@ -33,14 +33,6 @@ import org.apache.accumulo.core.util.Base64;
  */
 public class KerberosPermissionHandler implements PermissionHandler {
 
-  private static KerberosPermissionHandler INST;
-
-  public static synchronized KerberosPermissionHandler getInstance() {
-    if (INST == null)
-      INST = new KerberosPermissionHandler();
-    return INST;
-  }
-
   private final ZKPermHandler zkPermissionHandler;
 
   public KerberosPermissionHandler() {
