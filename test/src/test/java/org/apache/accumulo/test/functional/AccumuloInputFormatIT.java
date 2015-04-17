@@ -32,9 +32,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -75,7 +75,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
    * Tests several different paths through the getSplits() method by setting different properties and verifying the results.
    */
   @Test
-  public void testGetSplits() throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException {
+  public void testGetSplits() throws Exception {
     Connector conn = getConnector();
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
@@ -128,7 +128,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (Exception e) {}
+    } catch (IOException e) {}
 
     conn.tableOperations().offline(table);
     splits = inputFormat.getSplits(job);
@@ -146,6 +146,49 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     AccumuloInputFormat.setAutoAdjustRanges(job, false);
     splits = inputFormat.getSplits(job);
     assertEquals(ranges.size(), splits.size());
+
+    //BatchScan not available for offline scans
+    AccumuloInputFormat.setBatchScan(job, true);
+
+    AccumuloInputFormat.setOfflineTableScan(job, true);
+    try {
+      inputFormat.getSplits(job);
+      fail("An exception should have been thrown");
+    } catch (IOException e) {}
+    AccumuloInputFormat.setOfflineTableScan(job, false);
+
+    // test for resumption of success
+    inputFormat.getSplits(job);
+    assertEquals(2, splits.size());
+
+    //BatchScan not available with isolated iterators
+    AccumuloInputFormat.setScanIsolation(job, true);
+    try {
+      inputFormat.getSplits(job);
+      fail("An exception should have been thrown");
+    } catch (IOException e) {}
+    AccumuloInputFormat.setScanIsolation(job, false);
+
+    // test for resumption of success
+    inputFormat.getSplits(job);
+    assertEquals(2, splits.size());
+
+    //BatchScan not available with local iterators
+    AccumuloInputFormat.setLocalIterators(job, true);
+    try {
+      inputFormat.getSplits(job);
+      fail("An exception should have been thrown");
+    } catch (IOException e) {}
+    AccumuloInputFormat.setLocalIterators(job, false);
+
+    //Check we are getting back correct type pf split
+    conn.tableOperations().online(table);
+    splits = inputFormat.getSplits(job);
+    for (InputSplit split: splits)
+      assert(split instanceof BatchInputSplit);
+
+    //We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job, true)`
+    assertEquals(2, splits.size());
   }
 
   private void insertData(String tableName, long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {

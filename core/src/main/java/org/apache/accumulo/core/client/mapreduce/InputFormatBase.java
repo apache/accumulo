@@ -177,6 +177,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
+   * Must be enabled when {@link #setBatchScan(Job, boolean)} is true.
    *
    * @param context
    *          the Hadoop context for the configured job
@@ -296,6 +297,48 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
+   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
+   * Using this feature will group Ranges by their source tablet, producing an InputSplit per tablet
+   * rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges.
+   * (ex: when doing quad-tree decomposition for spatial queries)
+   * <p>
+   * In order to achieve good locality of InputSplits this option always clips the input Ranges to tablet boundaries.
+   * This may result in one input Range contributing to several InputSplits.
+   * <p>
+   * Note: that the value of {@link #setAutoAdjustRanges(Job, boolean)} is ignored and is assumed to be true when BatchScan option is enabled.
+   * <p>
+   * This configuration is incompatible with:
+   * <ul>
+   *   <li>{@link #setOfflineTableScan(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   *   <li>{@link #setLocalIterators(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   *   <li>{@link #setScanIsolation(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * </ul>
+   * <p>
+   * By default, this feature is <b>disabled</b>.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param enableFeature
+   *          the feature is enabled if true, disabled otherwise
+   * @since 1.7.0
+   */
+  public static void setBatchScan(Job job, boolean enableFeature) {
+    InputConfigurator.setBatchScan(CLASS, job.getConfiguration(), enableFeature);
+  }
+
+  /**
+   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner} feature enabled.
+   *
+   * @param context
+   *          the Hadoop context for the configured job
+   * @since 1.7.0
+   * @see #setBatchScan(Job, boolean)
+   */
+  public static boolean isBatchScan(JobContext context) {
+    return InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
+  }
+
+  /**
    * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
    *
    * @param context
@@ -314,8 +357,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
-      setupIterators(context, scanner, split);
+    protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
+      return getIterators(context);
     }
 
     /**
@@ -325,27 +368,21 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the Hadoop context for the configured job
      * @param scanner
      *          the scanner to configure
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
     @Deprecated
     protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
-      setupIterators(context, scanner, null);
+      // tableName is given as null as it will be ignored in eventual call to #contextIterators
+      setupIterators(context, scanner, null, null);
     }
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
+    @Deprecated
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
-      List<IteratorSetting> iterators = null;
-      if (null == split) {
-        iterators = getIterators(context);
-      } else {
-        iterators = split.getIterators();
-        if (null == iterators) {
-          iterators = getIterators(context);
-        }
-      }
-      for (IteratorSetting iterator : iterators)
-        scanner.addScanIterator(iterator);
+      setupIterators(context, scanner, null, split);
     }
   }
 

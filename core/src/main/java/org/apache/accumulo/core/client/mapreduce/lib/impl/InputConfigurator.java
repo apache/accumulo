@@ -95,7 +95,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static enum Features {
-    AUTO_ADJUST_RANGES, SCAN_ISOLATION, USE_LOCAL_ITERATORS, SCAN_OFFLINE
+    AUTO_ADJUST_RANGES, SCAN_ISOLATION, USE_LOCAL_ITERATORS, SCAN_OFFLINE, BATCH_SCANNER, BATCH_SCANNER_THREADS
   }
 
   /**
@@ -514,6 +514,40 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Boolean isOfflineScan(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, Features.SCAN_OFFLINE), false);
+  }
+
+  /**
+   * Controls the use of the {@link BatchScanner} in this job.
+   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
+   *
+   * <p>
+   * By default, this feature is <b>disabled</b>.
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param enableFeature
+   *          the feature is enabled if true, disabled otherwise
+   * @since 1.7.0
+   */
+  public static void setBatchScan(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
+    conf.setBoolean(enumToConfKey(implementingClass, Features.BATCH_SCANNER), enableFeature);
+  }
+
+  /**
+   * Determines whether a configuration has the BatchScanner feature enabled.
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return true if the feature is enabled, false otherwise
+   * @since 1.7.0
+   * @see #setBatchScan(Class, Configuration, boolean)
+   */
+  public static Boolean isBatchScan(Class<?> implementingClass, Configuration conf) {
+    return conf.getBoolean(enumToConfKey(implementingClass, Features.BATCH_SCANNER), false);
   }
 
   /**
