@@ -302,6 +302,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges.
    * (ex: when doing quad-tree decomposition for spatial queries)
    * <p>
+   * In order to achieve good locality of InputSplits this option always clips the input Ranges to tablet boundaries. 
+   * This may result in one input Range contributing to several InputSplits.
+   * <p>
+   * Note: that the value of {@link #setAutoAdjustRanges(JobConf, boolean)} is ignored and is assumed to be true when BatchScan option is enabled.
+   * <p>
    * This configuration is incompatible with:
    * <ul>
    *   <li>{@link #setOfflineTableScan(JobConf, boolean)}</li>
