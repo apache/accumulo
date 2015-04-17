@@ -690,10 +690,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
         throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
+
+      boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       if (batchScan && !autoAdjust)
         throw new IllegalArgumentException("AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<Range>(1);
