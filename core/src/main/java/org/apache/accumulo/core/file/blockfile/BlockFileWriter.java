@@ -28,8 +28,6 @@ import java.io.IOException;
 
 public interface BlockFileWriter {
 
-  ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException;
-
   ABlockWriter prepareMetaBlock(String name) throws IOException;
 
   ABlockWriter prepareDataBlock() throws IOException;

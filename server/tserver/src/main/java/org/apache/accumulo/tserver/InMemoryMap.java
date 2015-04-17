@@ -96,7 +96,7 @@ class MemKeyComparator implements Comparator<Key>, Serializable {
 
 class PartialMutationSkippingIterator extends SkippingIterator implements InterruptibleIterator {
 
-  int kvCount;
+  private int kvCount;
 
   public PartialMutationSkippingIterator(SortedKeyValueIterator<Key,Value> source, int maxKVCount) {
     setSource(source);
@@ -122,8 +122,8 @@ class PartialMutationSkippingIterator extends SkippingIterator implements Interr
 }
 
 class MemKeyConversionIterator extends WrappingIterator implements InterruptibleIterator {
-  MemKey currKey = null;
-  Value currVal = null;
+  private MemKey currKey = null;
+  private Value currVal = null;
 
   public MemKeyConversionIterator(SortedKeyValueIterator<Key,Value> source) {
     super();
@@ -521,7 +521,7 @@ public class InMemoryMap {
 
   class MemoryDataSource implements DataSource {
 
-    boolean switched = false;
+    private boolean switched = false;
     private InterruptibleIterator iter;
     private FileSKVIterator reader;
     private MemoryDataSource parent;

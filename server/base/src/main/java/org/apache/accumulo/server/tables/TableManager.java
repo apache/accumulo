@@ -239,10 +239,6 @@ public class TableManager {
     }
   }
 
-  public boolean removeObserver(TableObserver to) {
-    return observers.remove(to);
-  }
-
   private class TableStateWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {

@@ -36,10 +36,6 @@ public class ShellCompletor implements Completer {
 
   public ShellCompletor() {}
 
-  public ShellCompletor(Token root) {
-    this.root = root;
-  }
-
   public ShellCompletor(Token rootToken, Map<CompletionSet,Set<String>> options) {
     this.root = rootToken;
     this.options = options;

@@ -1205,10 +1205,6 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  public synchronized void waitForMinC() {
-    getTabletMemory().waitForMinC();
-  }
-
   private synchronized CommitSession finishPreparingMutations(long time) {
     if (writesInProgress < 0) {
       throw new IllegalStateException("waitingForLogs < 0 " + writesInProgress);
@@ -2317,10 +2313,6 @@ public class Tablet implements TabletCommitter {
 
   public long totalQueries() {
     return this.queryCount;
-  }
-
-  public long totalIngest() {
-    return this.ingestCount;
   }
 
   // synchronized?

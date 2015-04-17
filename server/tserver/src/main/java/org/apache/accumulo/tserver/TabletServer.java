@@ -2963,11 +2963,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       @Override
-      public Set<TServerInstance> getCurrentTServers() {
-        return null;
-      }
-
-      @Override
       public AccumuloConfiguration getConfiguration() {
         return TabletServer.this.getConfiguration();
       }

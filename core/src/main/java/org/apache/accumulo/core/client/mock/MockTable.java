@@ -57,7 +57,7 @@ public class MockTable {
 
     @Override
     public boolean equals(Object other) {
-      return (other instanceof MockMemKey) && super.equals((MockMemKey) other) && count == ((MockMemKey) other).count;
+      return (other instanceof MockMemKey) && super.equals(other) && count == ((MockMemKey) other).count;
     }
 
     @Override
@@ -103,10 +103,6 @@ public class MockTable {
       if (key.startsWith(Property.TABLE_PREFIX.getKey()))
         settings.put(key, entry.getValue());
     }
-  }
-
-  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId) {
-    this(namespace, limitVersion, timeType, tableId, new HashMap<String,String>());
   }
 
   MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId, Map<String,String> properties) {

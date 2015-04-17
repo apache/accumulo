@@ -31,17 +31,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
 public class SplitReportMessage implements MasterMessage {
-  Map<KeyExtent,Text> extents;
-  KeyExtent old_extent;
-
-  public SplitReportMessage(KeyExtent old_extent, Map<KeyExtent,Text> newExtents) {
-    this.old_extent = old_extent;
-    extents = new TreeMap<KeyExtent,Text>(newExtents);
-  }
+  private Map<KeyExtent,Text> extents;
+  private KeyExtent old_extent;
 
   public SplitReportMessage(KeyExtent old_extent, KeyExtent ne1, Text np1, KeyExtent ne2, Text np2) {
     this.old_extent = old_extent;
-    extents = new TreeMap<KeyExtent,Text>();
+    extents = new TreeMap<>();
     extents.put(ne1, np1);
     extents.put(ne2, np2);
   }

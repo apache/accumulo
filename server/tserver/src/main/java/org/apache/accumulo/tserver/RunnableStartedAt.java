@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver;
 
 import java.util.AbstractMap;
-import java.util.Map.Entry;
 
 /**
  * Encapsulation of a task and the time it began execution.
@@ -28,10 +27,6 @@ public class RunnableStartedAt extends AbstractMap.SimpleEntry<ActiveAssignmentR
 
   public RunnableStartedAt(ActiveAssignmentRunnable task, Long startedAtMillis) {
     super(task, startedAtMillis);
-  }
-
-  public RunnableStartedAt(Entry<? extends ActiveAssignmentRunnable,? extends Long> entry) {
-    super(entry);
   }
 
   /**

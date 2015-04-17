@@ -14,27 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.conf;
+package org.apache.accumulo.core.client.mapred.impl;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import java.io.IOException;
+import java.util.Collection;
+
+import org.apache.accumulo.core.data.Range;
+import org.apache.hadoop.mapred.InputSplit;
 
 /**
- * Used by TableConfiguration to dynamically get the NamespaceConfiguration if the namespace changes
+ * The Class BatchInputSplit. Encapsulates Accumulo ranges for use in Map Reduce jobs.
+ * Can contain several Ranges per InputSplit.
  */
-public class TableParentConfiguration extends NamespaceConfiguration {
+public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit implements InputSplit {
 
-  private String tableId;
-
-  public TableParentConfiguration(String tableId, Instance inst, AccumuloConfiguration parent) {
-    super(null, inst, parent);
-    this.tableId = tableId;
-    this.namespaceId = getNamespaceId();
+  public BatchInputSplit() {
+    super();
   }
 
-  @Override
-  protected String getNamespaceId() {
-    return Tables.getNamespaceId(inst, tableId);
+  public BatchInputSplit(BatchInputSplit split) throws IOException {
+    super(split);
+  }
+
+  public BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] location) {
+    super(table, tableId, ranges, location);
   }
 }

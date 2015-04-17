@@ -75,10 +75,6 @@ public class MockAccumulo {
     return systemProperties.remove(key);
   }
 
-  void createTable(String user, String table) {
-    createTable(user, table, true, TimeType.MILLIS);
-  }
-
   public void addMutation(String table, Mutation m) {
     MockTable t = tables.get(table);
     t.addMutation(m);

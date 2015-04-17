@@ -53,8 +53,6 @@ package org.apache.accumulo.core.bloomfilter;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.bloom.HashFunction;
@@ -162,52 +160,6 @@ public abstract class Filter implements Writable {
    * The result is assigned to <i>this</i> filter.
    */
   public abstract void not();
-
-  /**
-   * Adds a list of keys to <i>this</i> filter.
-   *
-   * @param keys
-   *          The list of keys.
-   */
-  public void add(final List<Key> keys) {
-    if (keys == null) {
-      throw new IllegalArgumentException("ArrayList<Key> may not be null");
-    }
-
-    for (Key key : keys) {
-      add(key);
-    }
-  }// end add()
-
-  /**
-   * Adds a collection of keys to <i>this</i> filter.
-   *
-   * @param keys
-   *          The collection of keys.
-   */
-  public void add(final Collection<Key> keys) {
-    if (keys == null) {
-      throw new IllegalArgumentException("Collection<Key> may not be null");
-    }
-    for (Key key : keys) {
-      add(key);
-    }
-  }// end add()
-
-  /**
-   * Adds an array of keys to <i>this</i> filter.
-   *
-   * @param keys
-   *          The array of keys.
-   */
-  public void add(Key[] keys) {
-    if (keys == null) {
-      throw new IllegalArgumentException("Key[] may not be null");
-    }
-    for (int i = 0; i < keys.length; i++) {
-      add(keys[i]);
-    }
-  }// end add()
 
   // Writable interface
 

@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.metrics;
 
 import java.io.File;
-import java.util.Iterator;
 
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.commons.configuration.AbstractFileConfiguration;
@@ -29,7 +28,6 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.event.ConfigurationEvent;
 import org.apache.commons.configuration.event.ConfigurationListener;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class MetricsConfiguration {
 
@@ -210,26 +208,10 @@ public class MetricsConfiguration {
     return enabled;
   }
 
-  public static String toStringValue(Configuration config) {
-    ToStringBuilder tsb = new ToStringBuilder(MetricsConfiguration.class);
-    Iterator<?> keys = config.getKeys();
-    while (keys.hasNext()) {
-      tsb.append("\n");
-      String k = (String) keys.next();
-      Object v = config.getString(k);
-      if (null == v)
-        v = config.getList(k);
-      tsb.append(k, v.toString());
-    }
-    return tsb.toString();
-  }
-
   public static void main(String[] args) throws Exception {
     MetricsConfiguration mc = new MetricsConfiguration("master");
     while (true) {
-      // System.out.println(MetricsConfiguration.toStringValue(getSystemConfiguration()));
       System.out.println("------------------------------------------------------------------------------------------------");
-      // System.out.println(MetricsConfiguration.toStringValue());
       long t1 = System.currentTimeMillis();
       System.out.println(mc.isEnabled() + " took: " + (System.currentTimeMillis() - t1));
       Thread.sleep(1000);

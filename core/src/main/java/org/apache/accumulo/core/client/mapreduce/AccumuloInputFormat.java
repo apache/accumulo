@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -52,17 +53,18 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
 
-    // Override the log level from the configuration as if the RangeInputSplit has one it's the more correct one to use.
-    if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
-      org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
-      Level level = risplit.getLogLevel();
+    // Override the log level from the configuration as if the InputSplit has one it's the more correct one to use.
+    if (split instanceof AccumuloInputSplit) {
+      AccumuloInputSplit accSplit = (AccumuloInputSplit) split;
+      Level level = accSplit.getLogLevel();
       if (null != level) {
         log.setLevel(level);
       }
+    } else {
+        throw new IllegalArgumentException("No RecordReader for " + split.getClass().toString());
     }
 
     return new RecordReaderBase<Key,Value>() {
-
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (scannerIterator.hasNext()) {

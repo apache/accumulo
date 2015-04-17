@@ -20,10 +20,6 @@ import com.google.common.net.HostAndPort;
 
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
-  static public HostAndPort parseAddress(String address) throws NumberFormatException {
-    return parseAddress(address, false);
-  }
-
   static public HostAndPort parseAddress(String address, boolean ignoreMissingPort) throws NumberFormatException {
     address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);

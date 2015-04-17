@@ -34,10 +34,6 @@ public class Rate {
     this.ratio = ratio;
   }
 
-  public double update(long counter) {
-    return update(System.currentTimeMillis(), counter);
-  }
-
   synchronized public double update(long when, long counter) {
     if (lastCounter < 0) {
       lastTime = when;

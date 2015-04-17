@@ -62,13 +62,6 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
   /**
    * Creates just a port listening server socket
    */
-  public TNonblockingServerSocket(int port) throws TTransportException {
-    this(port, 0);
-  }
-
-  /**
-   * Creates just a port listening server socket
-   */
   public TNonblockingServerSocket(int port, int clientTimeout) throws TTransportException {
     this(new InetSocketAddress(port), clientTimeout);
   }

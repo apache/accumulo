@@ -154,7 +154,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       Text session = new Text();
       Text hostPort = new Text();
       MetadataSchema.CurrentLogsSection.getTabletServer(entry.getKey(), hostPort , session);
-      TServerInstance server = new TServerInstance(AddressUtil.parseAddress(hostPort.toString()), session.toString());
+      TServerInstance server = new TServerInstance(AddressUtil.parseAddress(hostPort.toString(), false), session.toString());
       for (String tableId : serverToTableID.get(server)) {
         logs.put(new Path(path.toString()).toString(), tableId);
       }

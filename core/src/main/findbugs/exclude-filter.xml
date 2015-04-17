@@ -49,6 +49,7 @@
       <Package name="org.apache.accumulo.core.iterators" />
       <Package name="org.apache.accumulo.core.trace" />
       <Class name="org.apache.accumulo.core.client.mapred.RangeInputSplit" />
+      <Class name="org.apache.accumulo.core.client.mapred.impl.BatchInputSplit" />
       <Class name="org.apache.accumulo.core.util.AddressUtil" />
       <Class name="org.apache.accumulo.core.zookeeper.ZooUtil" />
     </Or>

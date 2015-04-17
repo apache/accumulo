@@ -46,12 +46,6 @@ public class Token {
     command.addAll(commandNames);
   }
 
-  public Token(Set<String> commandNames, Set<Token> subCommandNames) {
-    this();
-    command.addAll(commandNames);
-    subcommands.addAll(subCommandNames);
-  }
-
   public void setCaseSensitive(boolean cs) {
     caseSensitive = cs;
   }

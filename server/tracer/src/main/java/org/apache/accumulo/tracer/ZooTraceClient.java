@@ -37,6 +37,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -69,7 +70,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
     setInitialTraceHosts();
   }
 
-  // Visible for testing
+  @VisibleForTesting
   protected void setRetryPause(long pause) {
     retryPause = pause;
   }

@@ -146,11 +146,6 @@ public class ScanCommand extends Command {
     }
   }
 
-  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, final Class<? extends Formatter> formatter)
-      throws IOException {
-    printRecords(cl, shellState, scanner, formatter, null);
-  }
-
   protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner,
       final Class<? extends Formatter> formatter, PrintFile outFile) throws IOException {
     if (outFile == null) {
@@ -158,10 +153,6 @@ public class ScanCommand extends Command {
     } else {
       shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter, outFile);
     }
-  }
-
-  protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner) throws IOException {
-    printBinaryRecords(cl, shellState, scanner, null);
   }
 
   protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, PrintFile outFile)

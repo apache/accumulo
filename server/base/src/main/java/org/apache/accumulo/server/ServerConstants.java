@@ -156,10 +156,6 @@ public class ServerConstants {
     return VolumeConfiguration.prefix(getBaseUris(), WALOG_ARCHIVE_DIR);
   }
 
-  public static String[] getFileArchives() {
-    return VolumeConfiguration.prefix(getBaseUris(), FILE_ARCHIVE_DIR);
-  }
-
   public static Path getInstanceIdLocation(Volume v) {
     // all base dirs should have the same instance id, so can choose any one
     return v.prefixChild(INSTANCE_ID_DIR);

@@ -32,14 +32,6 @@ import org.apache.accumulo.core.util.Base64;
  */
 public class KerberosAuthorizor implements Authorizor {
 
-  private static KerberosAuthorizor INST;
-
-  public static synchronized KerberosAuthorizor getInstance() {
-    if (INST == null)
-      INST = new KerberosAuthorizor();
-    return INST;
-  }
-
   private final ZKAuthorizor zkAuthorizor;
 
   public KerberosAuthorizor() {

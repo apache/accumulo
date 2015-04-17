@@ -43,10 +43,6 @@ class NamespaceConfWatcher implements Watcher {
     scf = new ServerConfigurationFactory(instance);
   }
 
-  void setServerConfigurationFactory(ServerConfigurationFactory scf) {
-    this.scf = scf;
-  }
-
   static String toString(WatchedEvent event) {
     return new StringBuilder("{path=").append(event.getPath()).append(",state=").append(event.getState()).append(",type=").append(event.getType()).append("}")
         .toString();

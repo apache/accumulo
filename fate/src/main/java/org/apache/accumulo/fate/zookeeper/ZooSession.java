@@ -140,10 +140,6 @@ public class ZooSession {
     return zooKeeper;
   }
 
-  public static synchronized ZooKeeper getSession(String zooKeepers, int timeout) {
-    return getSession(zooKeepers, timeout, null, null);
-  }
-
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme, byte[] auth) {
 
     if (sessions == null)

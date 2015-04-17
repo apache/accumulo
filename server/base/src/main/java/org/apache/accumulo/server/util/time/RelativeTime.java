@@ -33,10 +33,6 @@ public class RelativeTime extends BaseRelativeTime {
     return instance;
   }
 
-  public static void setInstance(BaseRelativeTime newInstance) {
-    instance = newInstance;
-  }
-
   public static long currentTimeMillis() {
     return getInstance().currentTime();
   }

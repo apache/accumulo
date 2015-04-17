@@ -78,12 +78,6 @@ public class CachableBlockFile {
     }
 
     @Override
-    public ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException {
-      _bw = new BlockWrite(_bc.prepareMetaBlock(name, compressionName));
-      return _bw;
-    }
-
-    @Override
     public ABlockWriter prepareDataBlock() throws IOException {
       _bw = new BlockWrite(_bc.prepareDataBlock());
       return _bw;
@@ -125,12 +119,6 @@ public class CachableBlockFile {
     public void close() throws IOException {
 
       _ba.close();
-    }
-
-    @Override
-    public DataOutputStream getStream() throws IOException {
-
-      return this;
     }
 
     @Override
@@ -430,12 +418,6 @@ public class CachableBlockFile {
       super(buf);
     }
 
-    public SeekableByteArrayInputStream(byte buf[], int offset, int length) {
-      super(buf, offset, length);
-      throw new UnsupportedOperationException("Seek code assumes offset is zero"); // do not need this constructor, documenting that seek will not work
-                                                                                   // unless offset it kept track of
-    }
-
     public void seek(int position) {
       if (pos < 0 || pos >= buf.length)
         throw new IllegalArgumentException("pos = " + pos + " buf.lenght = " + buf.length);
@@ -508,19 +490,9 @@ public class CachableBlockFile {
    *
    */
   public static class BlockRead extends DataInputStream implements ABlockReader {
-    private long size;
 
     public BlockRead(InputStream in, long size) {
       super(in);
-      this.size = size;
-    }
-
-    /**
-     * Size is the size of the bytearray that was read form the cache
-     */
-    @Override
-    public long getRawSize() {
-      return size;
     }
 
     /**

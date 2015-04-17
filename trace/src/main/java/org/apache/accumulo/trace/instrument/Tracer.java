@@ -14,27 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.conf;
-
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+package org.apache.accumulo.trace.instrument;
 
 /**
- * Used by TableConfiguration to dynamically get the NamespaceConfiguration if the namespace changes
+ * ACCUMULO-3738: Temporary fix to keep Hive working with all versions of Accumulo without extra burden on users. Hive referenced this class in the build-up of
+ * the classpath used to compute the answer to a query. Without this class, the accumulo-trace jar would not make it onto the classpath which would break the
+ * query. Whenever Hive can get this patch into their build and a sufficient number of releases pass, we can remove this class.
+ *
+ * Accumulo should not reference this class at all. It is solely here for Hive integration.
  */
-public class TableParentConfiguration extends NamespaceConfiguration {
+@Deprecated
+public class Tracer {
 
-  private String tableId;
-
-  public TableParentConfiguration(String tableId, Instance inst, AccumuloConfiguration parent) {
-    super(null, inst, parent);
-    this.tableId = tableId;
-    this.namespaceId = getNamespaceId();
-  }
-
-  @Override
-  protected String getNamespaceId() {
-    return Tables.getNamespaceId(inst, tableId);
-  }
 }

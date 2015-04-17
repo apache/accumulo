@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.thrift.TServiceClient;
@@ -181,27 +180,6 @@ public class ReplicationClient {
     throw new AccumuloException("Could not connect to ReplicationCoordinator at " + context.getInstance().getInstanceName());
   }
 
-  public static void executeCoordinator(ClientContext context, ClientExec<ReplicationCoordinator.Client> exec) throws AccumuloException,
-      AccumuloSecurityException {
-    ReplicationCoordinator.Client client = null;
-    try {
-      client = getCoordinatorConnectionWithRetry(context);
-      exec.execute(client);
-    } catch (TTransportException tte) {
-      log.debug("ReplicationClient coordinator request failed, retrying ... ", tte);
-      UtilWaitThread.sleep(100);
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (AccumuloException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null)
-        close(client);
-    }
-  }
-
   public static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver, ClientExecReturn<T,ReplicationServicer.Client> exec)
       throws AccumuloException, AccumuloSecurityException, TTransportException {
     ReplicationServicer.Client client = null;
@@ -219,25 +197,6 @@ public class ReplicationClient {
         if (client != null)
           close(client);
       }
-    }
-  }
-
-  public static void executeServicer(ClientContext context, HostAndPort tserver, ClientExec<ReplicationServicer.Client> exec) throws AccumuloException,
-      AccumuloSecurityException, TTransportException {
-    ReplicationServicer.Client client = null;
-    try {
-      client = getServicerConnection(context, tserver);
-      exec.execute(client);
-      return;
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (AccumuloException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null)
-        close(client);
     }
   }
 

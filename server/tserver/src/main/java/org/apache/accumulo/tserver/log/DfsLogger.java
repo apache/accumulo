@@ -36,7 +36,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -57,7 +56,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -95,14 +93,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
   public static class LogHeaderIncompleteException extends IOException {
     private static final long serialVersionUID = 1l;
 
-    public LogHeaderIncompleteException(String msg) {
-      super(msg);
-    }
-
-    public LogHeaderIncompleteException(String msg, Throwable cause) {
-      super(msg, cause);
-    }
-
     public LogHeaderIncompleteException(Throwable cause) {
       super(cause);
     }
@@ -139,8 +129,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
     AccumuloConfiguration getConfiguration();
 
     VolumeManager getFileSystem();
-
-    Set<TServerInstance> getCurrentTServers();
   }
 
   private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
@@ -213,7 +201,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
   }
 
-  static class LogWork {
+  private static class LogWork {
     final CountDownLatch latch;
     final Durability durability;
     volatile Exception exception;
@@ -224,7 +212,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
   }
 
-  public static class LoggerOperation {
+  static class LoggerOperation {
     private final LogWork work;
 
     public LoggerOperation(LogWork work) {
