@@ -375,6 +375,15 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       // tableName is given as null as it will be ignored in eventual call to #contextIterators
       setupIterators(context, scanner, null, null);
     }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
+     */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+      setupIterators(context, scanner, null, split);
+    }
   }
 
   /**
