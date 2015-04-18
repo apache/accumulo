@@ -36,6 +36,7 @@ import java.util.StringTokenizer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -517,8 +518,8 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Controls the use of the {@link BatchScanner} in this job.
-   * Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner to read them.
+   * Controls the use of the {@link BatchScanner} in this job. Using this feature will group ranges by their source tablet per InputSplit and use BatchScanner
+   * to read them.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
