@@ -45,7 +45,7 @@ import org.junit.rules.TemporaryFolder;
 public class LocalWALRecoveryTest {
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   LocalWALRecovery recovery;
 
