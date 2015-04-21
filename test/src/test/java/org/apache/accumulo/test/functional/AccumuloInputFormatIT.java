@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -149,42 +150,42 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     assertEquals(ranges.size(), splits.size());
 
     //BatchScan not available for offline scans
-    AccumuloInputFormat.setBatchScan(job, true);
+    InputFormatBase.setBatchScan(job, true);
     // Reset auto-adjust ranges too
-    AccumuloInputFormat.setAutoAdjustRanges(job, true);
+    InputFormatBase.setAutoAdjustRanges(job, true);
 
-    AccumuloInputFormat.setOfflineTableScan(job, true);
+    InputFormatBase.setOfflineTableScan(job, true);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
     } catch (IllegalArgumentException e) {}
 
     conn.tableOperations().online(table, true);
-    AccumuloInputFormat.setOfflineTableScan(job, false);
+    InputFormatBase.setOfflineTableScan(job, false);
 
     // test for resumption of success
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     //BatchScan not available with isolated iterators
-    AccumuloInputFormat.setScanIsolation(job, true);
+    InputFormatBase.setScanIsolation(job, true);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
     } catch (IllegalArgumentException e) {}
-    AccumuloInputFormat.setScanIsolation(job, false);
+    InputFormatBase.setScanIsolation(job, false);
 
     // test for resumption of success
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     //BatchScan not available with local iterators
-    AccumuloInputFormat.setLocalIterators(job, true);
+    InputFormatBase.setLocalIterators(job, true);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
     } catch (IllegalArgumentException e) {}
-    AccumuloInputFormat.setLocalIterators(job, false);
+    InputFormatBase.setLocalIterators(job, false);
 
     //Check we are getting back correct type pf split
     conn.tableOperations().online(table);
