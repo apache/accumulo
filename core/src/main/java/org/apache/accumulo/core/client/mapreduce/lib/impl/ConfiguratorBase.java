@@ -31,13 +31,13 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -149,9 +149,9 @@ public class ConfiguratorBase {
     checkArgument(token != null, "token is null");
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    if (token instanceof DelegationToken) {
+    if (token instanceof DelegationTokenImpl) {
       // Avoid serializing the DelegationToken secret in the configuration -- the Job will do that work for us securely
-      DelegationToken delToken = (DelegationToken) token;
+      DelegationTokenImpl delToken = (DelegationTokenImpl) token;
       conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.JOB.prefix() + token.getClass().getName() + ":"
           + delToken.getServiceName().toString());
     } else {
@@ -252,7 +252,7 @@ public class ConfiguratorBase {
       String[] args = token.substring(TokenSource.JOB.prefix().length()).split(":", 2);
       if (args.length == 2) {
         String className = args[0], serviceName = args[1];
-        if (DelegationToken.class.getName().equals(className)) {
+        if (DelegationTokenImpl.class.getName().equals(className)) {
           return new DelegationTokenStub(serviceName);
         }
       }
@@ -466,7 +466,7 @@ public class ConfiguratorBase {
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier.readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
-        return new DelegationToken(hadoopToken.getPassword(), identifier);
+        return new DelegationTokenImpl(hadoopToken.getPassword(), identifier);
       } catch (IOException e) {
         throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials", e);
       }
@@ -491,7 +491,7 @@ public class ConfiguratorBase {
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier.readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
-        return new DelegationToken(hadoopToken.getPassword(), identifier);
+        return new DelegationTokenImpl(hadoopToken.getPassword(), identifier);
       } catch (IOException e) {
         throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials", e);
       }

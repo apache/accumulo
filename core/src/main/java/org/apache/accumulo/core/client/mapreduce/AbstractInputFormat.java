@@ -29,25 +29,31 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
+import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -56,16 +62,13 @@ import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -91,9 +94,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> For {@link PasswordToken}, the serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure. This is not the case for {@link KerberosToken} and the corresponding
-   * {@link DelegationToken} acquired using the KerberosToken.
+   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the configuration as a means to pass the token to MapReduce tasks. This
+   * information is BASE64 encoded to provide a charset safe conversion to a string, but this conversion is not intended to be secure. {@link PasswordToken} is
+   * one example that is insecure in this way; however {@link DelegationToken}s, acquired using
+   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this concern.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -115,8 +119,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       }
     }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in the configuration
-    if (token instanceof DelegationToken) {
-      DelegationToken delegationToken = (DelegationToken) token;
+    if (token instanceof DelegationTokenImpl) {
+      DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
 
       // Convert it into a Hadoop Token
       AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
@@ -360,7 +364,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @throws org.apache.accumulo.core.client.TableNotFoundException
    *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
+   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
+   *              discourage its use.
    */
+  @Deprecated
   protected static TabletLocator getTabletLocator(JobContext context, String table) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), table);
   }
@@ -419,7 +426,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected ScannerBase scannerBase;
-    protected AccumuloInputSplit split;
+    protected RangeInputSplit split;
+    private AccumuloInputSplit aiSplit;
 
     /**
      * Extracts Iterators settings from the context to be used by RecordReader.
@@ -483,41 +491,42 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
-      split = (AccumuloInputSplit) inSplit;
-      log.debug("Initializing input split: " + split.toString());
+      aiSplit = (AccumuloInputSplit) inSplit;
+      log.debug("Initializing input split: " + aiSplit.toString());
 
-      Instance instance = split.getInstance(getClientConfiguration(attempt));
+      Instance instance = aiSplit.getInstance(getClientConfiguration(attempt));
       if (null == instance) {
         instance = getInstance(attempt);
       }
 
-      String principal = split.getPrincipal();
+      String principal = aiSplit.getPrincipal();
       if (null == principal) {
         principal = getPrincipal(attempt);
       }
 
-      AuthenticationToken token = split.getToken();
+      AuthenticationToken token = aiSplit.getToken();
       if (null == token) {
         token = getAuthenticationToken(attempt);
       }
 
-      Authorizations authorizations = split.getAuths();
+      Authorizations authorizations = aiSplit.getAuths();
       if (null == authorizations) {
         authorizations = getScanAuthorizations(attempt);
       }
 
-      String table = split.getTableName();
+      String table = aiSplit.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
+      InputTableConfig tableConfig = getInputTableConfig(attempt, aiSplit.getTableName());
 
       log.debug("Creating connector with user: " + principal);
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
-      if (split instanceof RangeInputSplit) {
-        RangeInputSplit rangeSplit = (RangeInputSplit) split;
+      if (aiSplit instanceof RangeInputSplit) {
+        RangeInputSplit rangeSplit = (RangeInputSplit) aiSplit;
+        split = rangeSplit;
         Scanner scanner;
 
         Boolean isOffline = rangeSplit.isOffline();
@@ -537,13 +546,13 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+            scanner = new OfflineScanner(instance, new Credentials(principal, token), aiSplit.getTableId(), authorizations);
           } else if (instance instanceof MockInstance) {
-            scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
+            scanner = instance.getConnector(principal, token).createScanner(aiSplit.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(attempt);
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
-            scanner = new ScannerImpl(context, split.getTableId(), authorizations);
+            scanner = new ScannerImpl(context, aiSplit.getTableId(), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -554,7 +563,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             scanner = new ClientSideIteratorScanner(scanner);
           }
 
-          setupIterators(attempt, scanner, split.getTableName(), split);
+          setupIterators(attempt, scanner, aiSplit.getTableName(), aiSplit);
         } catch (Exception e) {
           throw new IOException(e);
         }
@@ -562,16 +571,17 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         scanner.setRange(rangeSplit.getRange());
         scannerBase = scanner;
 
-      } else  if (split instanceof BatchInputSplit) {
-        BatchInputSplit batchSplit = (BatchInputSplit) split;
+      } else  if (aiSplit instanceof BatchInputSplit) {
+        BatchInputSplit batchSplit = (BatchInputSplit) aiSplit;
 
         BatchScanner scanner;
         try{
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
           int scanThreads = 1;
-          scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(), authorizations, scanThreads);
-          setupIterators(attempt, scanner, split.getTableName(), split);
+          scanner = instance.getConnector(principal, token).createBatchScanner(aiSplit.getTableName(), authorizations, scanThreads);
+          setupIterators(attempt, scanner, aiSplit.getTableName(), aiSplit);
         } catch (Exception e) {
+          e.printStackTrace();
           throw new IOException(e);
         }
 
@@ -579,7 +589,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         scannerBase = scanner;
       }
 
-      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      Collection<Pair<Text,Text>> columns = aiSplit.getFetchedColumns();
       if (null == columns) {
         columns = tableConfig.getFetchedColumns();
       }
@@ -610,7 +620,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     public float getProgress() throws IOException {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
-      return split.getProgress(currentKey);
+      return aiSplit.getProgress(currentKey);
     }
 
     /**
@@ -714,7 +724,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
           }
         } else {
-          tl = getTabletLocator(context, tableId);
+          tl = InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), tableId);
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
 
@@ -761,7 +771,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             for(Range r: extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
-            AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+            SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
 
             splits.add(split);
           } else {
@@ -770,7 +780,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
                 RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
-                AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -792,7 +802,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0]));
-          AccumuloInputSplit.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+          SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());

@@ -33,8 +33,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -56,24 +56,21 @@ public class IteratorUtil {
 
   private static final Logger log = LoggerFactory.getLogger(IteratorUtil.class);
 
+  /**
+   * Even though this type is not in a public API package, its used by methods in the public API. Therefore it should be treated as public API and should not
+   * reference any non public API types. Also this type can not be moved.
+   */
   public static enum IteratorScope {
     majc, minc, scan;
 
     /**
      * Fetch the correct configuration key prefix for the given scope. Throws an IllegalArgumentException if no property exists for the given scope.
+     *
+     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable.  The method was deprecated to discourage its use.
      */
+    @Deprecated
     public static Property getProperty(IteratorScope scope) {
-      Preconditions.checkNotNull(scope);
-      switch (scope) {
-        case scan:
-          return Property.TABLE_ITERATOR_SCAN_PREFIX;
-        case minc:
-          return Property.TABLE_ITERATOR_MINC_PREFIX;
-        case majc:
-          return Property.TABLE_ITERATOR_MAJC_PREFIX;
-        default:
-          throw new IllegalStateException("Could not find configuration property for IteratorScope");
-      }
+      return IteratorUtil.getProperty(scope);
     }
   }
 
@@ -85,6 +82,23 @@ public class IteratorUtil {
       return (o1.priority < o2.priority ? -1 : (o1.priority == o2.priority ? 0 : 1));
     }
 
+  }
+
+  /**
+   * Fetch the correct configuration key prefix for the given scope. Throws an IllegalArgumentException if no property exists for the given scope.
+   */
+  static Property getProperty(IteratorScope scope) {
+    Preconditions.checkNotNull(scope);
+    switch (scope) {
+      case scan:
+        return Property.TABLE_ITERATOR_SCAN_PREFIX;
+      case minc:
+        return Property.TABLE_ITERATOR_MINC_PREFIX;
+      case majc:
+        return Property.TABLE_ITERATOR_MAJC_PREFIX;
+      default:
+        throw new IllegalStateException("Could not find configuration property for IteratorScope");
+    }
   }
 
   /**
@@ -124,7 +138,7 @@ public class IteratorUtil {
   }
 
   protected static void parseIterConf(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
-    final Property scopeProperty = IteratorScope.getProperty(scope);
+    final Property scopeProperty = getProperty(scope);
     final String scopePropertyKey = scopeProperty.getKey();
 
     for (Entry<String,String> entry : conf.getAllPropertiesWithPrefix(scopeProperty).entrySet()) {

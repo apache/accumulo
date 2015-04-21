@@ -18,7 +18,6 @@ package org.apache.accumulo.core.security;
 
 import java.util.ArrayList;
 
-import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
 /**
@@ -80,13 +79,12 @@ public class VisibilityEvaluator {
   }
 
   /**
-   * Creates a new evaluator for the authorizations found in the given environment.
+   * Creates a new evaluator for the authorizations found in the given container.
    *
-   * @param env
-   *          environment containing authorizations
+   * @since 1.7.0
    */
-  VisibilityEvaluator(Environment env) {
-    this.auths = env.getAuthorizationsContainer();
+  public VisibilityEvaluator(AuthorizationContainer authsContainer) {
+    this.auths = authsContainer;
   }
 
   /**

@@ -658,9 +658,9 @@ public class NamespacesIT extends AccumuloClusterIT {
       bw.close();
       fail();
     } catch (MutationsRejectedException e) {
-      assertEquals(1, e.getAuthorizationFailuresMap().size());
-      assertEquals(1, e.getAuthorizationFailuresMap().entrySet().iterator().next().getValue().size());
-      switch (e.getAuthorizationFailuresMap().entrySet().iterator().next().getValue().iterator().next()) {
+      assertEquals(1, e.getSecurityErrorCodes().size());
+      assertEquals(1, e.getSecurityErrorCodes().entrySet().iterator().next().getValue().size());
+      switch (e.getSecurityErrorCodes().entrySet().iterator().next().getValue().iterator().next()) {
         case PERMISSION_DENIED:
           break;
         default:

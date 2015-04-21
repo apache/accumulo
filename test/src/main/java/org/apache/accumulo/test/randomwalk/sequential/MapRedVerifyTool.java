@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -125,7 +125,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
         }
 
         // Fetch a delegation token from Accumulo
-        DelegationToken dt = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        AuthenticationToken dt = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
         // Set the delegation token instead of the kerberos token
         AccumuloInputFormat.setConnectorInfo(job, newPrincipal, dt);

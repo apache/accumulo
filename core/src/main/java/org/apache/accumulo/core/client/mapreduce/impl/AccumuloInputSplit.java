@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,18 +32,17 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.data.Key;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -58,16 +56,16 @@ import org.apache.log4j.Level;
  * @see org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit
  */
 public abstract class AccumuloInputSplit extends InputSplit implements Writable {
-  protected String[] locations;
-  protected String tableId, tableName, instanceName, zooKeepers, principal;
-  protected TokenSource tokenSource;
-  protected String tokenFile;
-  protected AuthenticationToken token;
-  protected Boolean mockInstance;
-  protected Authorizations auths;
-  protected Set<Pair<Text,Text>> fetchedColumns;
-  protected List<IteratorSetting> iterators;
-  protected Level level;
+  private String[] locations;
+  private String tableId, tableName, instanceName, zooKeepers, principal;
+  private TokenSource tokenSource;
+  private String tokenFile;
+  private AuthenticationToken token;
+  private Boolean mockInstance;
+  private Authorizations auths;
+  private Set<Pair<Text,Text>> fetchedColumns;
+  private List<IteratorSetting> iterators;
+  private Level level;
 
   public abstract float getProgress(Key currentKey);
 
@@ -89,26 +87,7 @@ public abstract class AccumuloInputSplit extends InputSplit implements Writable 
     this.tableId = tableId;
   }
 
-  /**
-   * Central place to set common split configuration not handled by split constructors.
-   * The intention is to make it harder to miss optional setters in future refactor.
-   */
-  public static void updateSplit(AccumuloInputSplit split,  Instance instance, InputTableConfig tableConfig,
-                                  String principal, AuthenticationToken token, Authorizations auths, Level logLevel) {
-    split.setInstanceName(instance.getInstanceName());
-    split.setZooKeepers(instance.getZooKeepers());
-    split.setMockInstance(instance instanceof MockInstance);
-
-    split.setPrincipal(principal);
-    split.setToken(token);
-    split.setAuths(auths);
-
-    split.setFetchedColumns(tableConfig.getFetchedColumns());
-    split.setIterators(tableConfig.getIterators());
-    split.setLogLevel(logLevel);
-  }
-
-  private static byte[] extractBytes(ByteSequence seq, int numBytes) {
+  static byte[] extractBytes(ByteSequence seq, int numBytes) {
     byte[] bytes = new byte[numBytes + 1];
     bytes[0] = 0;
     for (int i = 0; i < numBytes; i++) {
@@ -118,14 +97,6 @@ public abstract class AccumuloInputSplit extends InputSplit implements Writable 
         bytes[i + 1] = seq.byteAt(i);
     }
     return bytes;
-  }
-
-  public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
-    int maxDepth = Math.min(Math.max(end.length(), start.length()), position.length());
-    BigInteger startBI = new BigInteger(extractBytes(start, maxDepth));
-    BigInteger endBI = new BigInteger(extractBytes(end, maxDepth));
-    BigInteger positionBI = new BigInteger(extractBytes(position, maxDepth));
-    return (float) (positionBI.subtract(startBI).doubleValue() / endBI.subtract(startBI).doubleValue());
   }
 
   public long getRangeLength(Range range) throws IOException {
@@ -441,5 +412,25 @@ public abstract class AccumuloInputSplit extends InputSplit implements Writable 
 
   public void setLogLevel(Level level) {
     this.level = level;
+  }
+
+  @Override
+  public String toString(){
+    StringBuilder sb = new StringBuilder(256);
+    sb.append(" Locations: ").append(Arrays.asList(locations));
+    sb.append(" Table: ").append(tableName);
+    sb.append(" TableID: ").append(tableId);
+    sb.append(" InstanceName: ").append(instanceName);
+    sb.append(" zooKeepers: ").append(zooKeepers);
+    sb.append(" principal: ").append(principal);
+    sb.append(" tokenSource: ").append(tokenSource);
+    sb.append(" authenticationToken: ").append(token);
+    sb.append(" authenticationTokenFile: ").append(tokenFile);
+    sb.append(" Authorizations: ").append(auths);
+    sb.append(" mockInstance: ").append(mockInstance);
+    sb.append(" fetchColumns: ").append(fetchedColumns);
+    sb.append(" iterators: ").append(iterators);
+    sb.append(" logLevel: ").append(level);
+    return sb.toString();
   }
 }

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public class Assignment {
   public KeyExtent tablet;

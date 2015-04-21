@@ -40,7 +40,7 @@ import javax.crypto.KeyGenerator;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.security.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.junit.After;

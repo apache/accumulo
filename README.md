@@ -76,15 +76,26 @@ API
 
 The public Accumulo API is composed of :
 
- * All public classes and interfaces in the org.apache.accumulo.core.client
-   package, as as well as all of its subpackages excluding those named *impl*.
- * Key, Mutation, Value, Range, Condition, and ConditionalMutation in
-   org.apache.accumulo.core.data.
- * All public classes and interfaces in the org.apache.accumulo.minicluster
-   package, as well as all of its subpackages excluding those named *impl*.
- * Anything with public or protected acccess within any Class or Interface that
-   is in the public API. This includes, but is not limited to: methods, members
-   classes, interfaces, and enums.
+All public types in the following packages and their subpackages excluding
+those named *impl*, *thrift*, or *crypto*. 
+
+   * org.apache.accumulo.core.client
+   * org.apache.accumulo.core.data
+   * org.apache.accumulo.core.security
+   * org.apache.accumulo.minicluster
+
+A type is a class, interface, or enum.  Anything with public or protected
+acccess in an API type is in the API.  This includes, but is not limited to:
+methods, members classes, interfaces, and enums.  Package-private types in
+the above packages are *not* considered public API.
+
+The following regex matches imports that are *not* Accumulo public API.  This
+regex can be used with [RegexpSingleline][13] to automatically find suspicious
+imports in a project using Accumulo. 
+
+```
+import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluster).*|core\.(?!client|data|security).*)
+```
 
 The Accumulo project maintains binary compatibility across this API within a
 major release, as defined in the Java Language Specification 3rd ed. Starting
@@ -100,3 +111,4 @@ with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
 [8]: http://accumulo.apache.org/notable_features.html
 [9]: http://maven.apache.org/
 [12]: http://semver.org/spec/v2.0.0.html
+[13]: http://checkstyle.sourceforge.net/config_regexp.html

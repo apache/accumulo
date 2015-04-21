@@ -38,8 +38,8 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletID;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -312,8 +312,8 @@ public class TestIngest {
       try {
         bw.close();
       } catch (MutationsRejectedException e) {
-        if (e.getAuthorizationFailuresMap().size() > 0) {
-          for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailuresMap().entrySet()) {
+        if (e.getSecurityErrorCodes().size() > 0) {
+          for (Entry<TabletID,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes().entrySet()) {
             System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to " + entry.getValue());
           }
         }

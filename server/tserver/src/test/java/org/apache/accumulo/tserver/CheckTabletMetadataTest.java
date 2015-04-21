@@ -20,8 +20,8 @@ package org.apache.accumulo.tserver;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.master.state.TServerInstance;
