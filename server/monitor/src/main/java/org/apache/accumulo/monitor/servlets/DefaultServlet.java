@@ -84,7 +84,7 @@ public class DefaultServlet extends BasicServlet {
           data.close();
       }
     } catch (Throwable t) {
-      log.error(t, t);
+      log.error("{}", t);
       throw new IOException(t);
     }
   }
@@ -263,7 +263,7 @@ public class DefaultServlet extends BasicServlet {
 
             // Catch the overflow -- this is big data
             if (totalAcuBytesUsed < bytesUsedByAcuOnFs) {
-              log.debug("Overflowed long in bytes used by Accumulo for " + baseDir);
+              log.debug("Overflowed long in bytes used by Accumulo for {}", baseDir);
               totalAcuBytesUsed = 0l;
               break;
             }
@@ -275,12 +275,12 @@ public class DefaultServlet extends BasicServlet {
 
             // Catch the overflow -- this is big data
             if (totalHdfsBytesUsed < bytesUsedOnVolume) {
-              log.debug("Overflowed long in bytes used in HDFS for " + baseDir);
+              log.debug("Overflowed long in bytes used in HDFS for {}", baseDir);
               totalHdfsBytesUsed = 0;
               break;
             }
           } catch (Exception ex) {
-            log.trace("Unable to get disk usage information for " + baseDir, ex);
+            log.trace("Unable to get disk usage information for {}", baseDir, ex);
           }
         }
 
@@ -308,7 +308,7 @@ public class DefaultServlet extends BasicServlet {
         tableRow(sb, (highlight = !highlight), "Lookups", NumberType.commas(Monitor.getTotalLookups()));
         tableRow(sb, (highlight = !highlight), "Uptime", Duration.format(System.currentTimeMillis() - Monitor.getStartTime()));
       } catch (Exception e) {
-        log.debug(e, e);
+        log.debug("", e);
       }
     }
     sb.append("</table>\n");

@@ -22,7 +22,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -50,7 +49,7 @@ public class UniqueNameAllocator {
       final int allocate = 100 + rand.nextInt(100);
 
       try {
-        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
+        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, org.apache.accumulo.fate.zookeeper.ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
           @Override
           public byte[] mutate(byte[] currentValue) throws Exception {
             long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);

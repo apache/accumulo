@@ -104,7 +104,7 @@ class CleanUp extends MasterRepo {
       TabletLocationState locationState = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
-        log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
+        log.debug("Still waiting for table to be deleted: {} locationState: {}", tableId, locationState);
         done = false;
         break;
       }
@@ -149,7 +149,7 @@ class CleanUp extends MasterRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + MetadataTable.NAME + " looking for references to deleted table " + tableId, e);
+      log.error("Failed to scan {} looking for references to deleted table {}", MetadataTable.NAME, tableId, e);
     }
 
     // remove metadata table entries
@@ -159,14 +159,14 @@ class CleanUp extends MasterRepo {
       // are dropped and the operation completes, then the deletes will not be repeated.
       MetadataTableUtil.deleteTable(tableId, refCount != 0, master, null);
     } catch (Exception e) {
-      log.error("error deleting " + tableId + " from metadata table", e);
+      log.error("error deleting {} from metadata table", tableId, e);
     }
 
     // remove any problem reports the table may have
     try {
       ProblemReports.getInstance(master).deleteProblemReports(tableId);
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + tableId, e);
+      log.error("Failed to delete problem reports for table {}", tableId, e);
     }
 
     if (refCount == 0) {
@@ -207,13 +207,13 @@ class CleanUp extends MasterRepo {
     try {
       AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
-      log.error("{}", e.getMessage(), e);
+      log.error(e.getMessage(), e);
     }
 
     Utils.unreserveTable(tableId, tid, true);
     Utils.unreserveNamespace(namespaceId, tid, false);
 
-    LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
+    LoggerFactory.getLogger(CleanUp.class).debug("Deleted table {}", tableId);
 
     return null;
   }
@@ -247,7 +247,7 @@ class CleanUp extends MasterRepo {
     // The destination to archive this table to
     final Path destTableDir = new Path(fileArchiveDir, tableDirSuffix);
 
-    log.debug("Archiving " + tableDirectory + " to " + tableDirectory);
+    log.debug("Archiving {} to {}", tableDirectory, tableDirectory);
 
     if (fs.exists(destTableDir)) {
       merge(fs, tableDirectory, destTableDir);
@@ -263,7 +263,7 @@ class CleanUp extends MasterRepo {
 
       if (child.isFile()) {
         if (fs.exists(childInDest)) {
-          log.warn("File already exists in archive, ignoring. " + childInDest);
+          log.warn("File already exists in archive, ignoring. {}", childInDest);
         } else {
           fs.rename(childInSrc, childInDest);
         }
@@ -276,7 +276,7 @@ class CleanUp extends MasterRepo {
         }
       } else {
         // Symlinks shouldn't exist in table directories..
-        log.warn("Ignoring archiving of non file/directory: " + child);
+        log.warn("Ignoring archiving of non file/directory: {}", child);
       }
     }
   }

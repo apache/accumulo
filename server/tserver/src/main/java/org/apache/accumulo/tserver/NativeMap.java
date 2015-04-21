@@ -84,7 +84,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       try {
         System.loadLibrary("accumulo");
         loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library from " + ldLibraryPath);
+        log.info("Loaded native map shared library from {}", ldLibraryPath);
       } catch (Exception e) {
         log.error(errMsg, e);
       } catch (UnsatisfiedLinkError e) {
@@ -147,13 +147,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   }
 
   private static boolean loadNativeLib(File libFile) {
-    log.debug("Trying to load native map library " + libFile);
+    log.debug("Trying to load native map library {}", libFile);
     if (libFile.exists() && libFile.isFile()) {
       String errMsg = "Tried and failed to load native map library " + libFile;
       try {
         System.load(libFile.getAbsolutePath());
         loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library " + libFile);
+        log.info("Loaded native map shared library {}", libFile);
         return true;
       } catch (Exception e) {
         log.error(errMsg, e);
@@ -161,7 +161,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         log.error(errMsg, e);
       }
     } else {
-      log.debug("Native map library " + libFile + " not found or is not a file.");
+      log.debug("Native map library {} not found or is not a file.", libFile);
     }
     return false;
   }
@@ -205,13 +205,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
           if (allocatedNativeMaps.size() > 0) {
             // print to system err in case log4j is shutdown...
             try {
-              log.warn("There are " + allocatedNativeMaps.size() + " allocated native maps");
+              log.warn("There are {} allocated native maps", allocatedNativeMaps.size());
             } catch (Throwable t) {
-              log.error("There are " + allocatedNativeMaps.size() + " allocated native maps");
+              log.error("There are {} allocated native maps", allocatedNativeMaps.size());
             }
           }
 
-          log.debug(totalAllocations + " native maps were allocated");
+          log.debug("{} native maps were allocated", totalAllocations);
         }
       };
 

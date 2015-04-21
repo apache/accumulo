@@ -401,7 +401,7 @@ public class DefaultCryptoModule implements CryptoModule {
     if (params.getBlockStreamSize() > 0)
       blockedDecryptingInputStream = new BlockedInputStream(blockedDecryptingInputStream, cipher.getBlockSize(), params.getBlockStreamSize());
 
-    log.trace("Initialized cipher input stream with transformation [" + getCipherTransformation(params) + "]");
+    log.trace("Initialized cipher input stream with transformation [{}]", getCipherTransformation(params));
 
     params.setPlaintextInputStream(blockedDecryptingInputStream);
 

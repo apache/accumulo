@@ -99,7 +99,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     // If the authentication token isn't a KerberosToken
     if (!KerberosToken.class.isAssignableFrom(tokenClass) && !SystemToken.class.isAssignableFrom(tokenClass)) {
       // Don't include messages about SystemToken since it's internal
-      log.debug("Will not update principal on authentication tokens other than KerberosToken. Received " + tokenClass);
+      log.debug("Will not update principal on authentication tokens other than KerberosToken. Received {}", tokenClass);
       throw new ThriftSecurityException("Did not receive a valid token", SecurityErrorCode.BAD_CREDENTIALS);
     }
 
@@ -139,7 +139,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
       try {
         clz = Class.forName(tokenClassName);
       } catch (ClassNotFoundException e) {
-        log.debug("Could not create class from token name: " + tokenClassName, e);
+        log.debug("Could not create class from token name: {}", tokenClassName, e);
         return null;
       }
       typedClz = clz.asSubclass(AuthenticationToken.class);

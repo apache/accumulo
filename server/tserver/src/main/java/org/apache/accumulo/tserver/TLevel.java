@@ -17,6 +17,8 @@
 package org.apache.accumulo.tserver;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.Priority;
+import org.slf4j.Logger;
 
 public class TLevel extends Level {
 
@@ -24,7 +26,28 @@ public class TLevel extends Level {
   public final static Level TABLET_HIST = new TLevel();
 
   protected TLevel() {
-    super(Level.DEBUG_INT + 100, "TABLET_HIST", Level.DEBUG_INT + 100);
+    super(Priority.DEBUG_INT + 100, "TABLET_HIST", Priority.DEBUG_INT + 100);
   }
 
+
+  static public void logAtLevel(Logger log, Level level, String msg, Object...objects) {
+    switch(level.toInt()) {
+      case Priority.DEBUG_INT:
+        log.debug(msg, objects);
+        break;
+      case Priority.ERROR_INT:
+      case Priority.FATAL_INT:
+        log.error(msg, objects);
+        break;
+      case Priority.INFO_INT:
+        log.info(msg, objects);
+        break;
+      case Level.TRACE_INT:
+        log.trace(msg, objects);
+        break;
+      case Priority.WARN_INT:
+        log.warn(msg, objects);
+        break;
+    }
+  }
 }

@@ -34,7 +34,7 @@ public class Merge extends Test {
 
     Collection<Text> splits = env.getConnector().tableOperations().listSplits(indexTableName);
     SortedSet<Text> splitSet = new TreeSet<Text>(splits);
-    log.debug("merging " + indexTableName);
+    log.debug("merging {}", indexTableName);
     env.getConnector().tableOperations().merge(indexTableName, null, null);
     org.apache.accumulo.core.util.Merge merge = new org.apache.accumulo.core.util.Merge();
     merge.mergomatic(env.getConnector(), indexTableName, null, null, 256 * 1024 * 1024, true);

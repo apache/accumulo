@@ -17,8 +17,9 @@
 package org.apache.accumulo.core.cli;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.hadoop.mapreduce.Job;
 
@@ -40,14 +41,14 @@ public class MapReduceClientOnRequiredTable extends MapReduceClientOpts {
 
     if (tokenFile.isEmpty()) {
       AuthenticationToken token = getToken();
-      AccumuloInputFormat.setConnectorInfo(job, principal, token);
+      AbstractInputFormat.setConnectorInfo(job, principal, token);
       AccumuloOutputFormat.setConnectorInfo(job, principal, token);
     } else {
-      AccumuloInputFormat.setConnectorInfo(job, principal, tokenFile);
+      AbstractInputFormat.setConnectorInfo(job, principal, tokenFile);
       AccumuloOutputFormat.setConnectorInfo(job, principal, tokenFile);
     }
-    AccumuloInputFormat.setInputTableName(job, tableName);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
+    InputFormatBase.setInputTableName(job, tableName);
+    AbstractInputFormat.setScanAuthorizations(job, auths);
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, tableName);
   }

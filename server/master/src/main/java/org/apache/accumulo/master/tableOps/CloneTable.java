@@ -84,7 +84,7 @@ class FinishCloneTable extends MasterRepo {
 
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName, cloneInfo.srcTableId);
 
-    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
+    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table {} {} {}", cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName);
 
     return null;
   }
@@ -198,7 +198,7 @@ class ClonePermissions extends MasterRepo {
         AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
             cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(FinishCloneTable.class).error("{}", e.getMessage(), e);
+        LoggerFactory.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;
       }
     }

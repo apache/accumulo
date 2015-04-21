@@ -24,8 +24,10 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -42,10 +44,12 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 
 public class MapRedVerifyTool extends Configured implements Tool {
-  protected final Logger log = Logger.getLogger(this.getClass());
+  protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
   public static class SeqMapClass extends Mapper<Key,Value,NullWritable,IntWritable> {
     @Override
@@ -96,8 +100,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
 
     ClientConfiguration clientConf = ClientConfiguration.loadDefault().withInstance(args[3]).withZkHosts(args[4]);
 
-    AccumuloInputFormat.setInputTableName(job, args[2]);
-    AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
+    InputFormatBase.setInputTableName(job, args[2]);
+    AbstractInputFormat.setZooKeeperInstance(job, clientConf);
     AccumuloOutputFormat.setDefaultTableName(job, args[5]);
     AccumuloOutputFormat.setZooKeeperInstance(job, clientConf);
 
@@ -118,9 +122,10 @@ public class MapRedVerifyTool extends Configured implements Tool {
 
         // Do the explicit check to see if the user has the permission to get a delegation token
         if (!conn.securityOperations().hasSystemPermission(conn.whoami(), SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-          log.error(newPrincipal + " doesn't have the " + SystemPermission.OBTAIN_DELEGATION_TOKEN.name()
+          log.error("{} doesn't have the {}"
               + " SystemPermission neccesary to obtain a delegation token. MapReduce tasks cannot automatically use the client's"
-              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.");
+              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.",
+              newPrincipal, SystemPermission.OBTAIN_DELEGATION_TOKEN.name());
           throw new IllegalStateException(conn.whoami() + " does not have permission to obtain a delegation token");
         }
 
@@ -128,7 +133,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
         DelegationToken dt = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
         // Set the delegation token instead of the kerberos token
-        AccumuloInputFormat.setConnectorInfo(job, newPrincipal, dt);
+        AbstractInputFormat.setConnectorInfo(job, newPrincipal, dt);
         AccumuloOutputFormat.setConnectorInfo(job, newPrincipal, dt);
       } catch (Exception e) {
         final String msg = "Failed to acquire DelegationToken for use with MapReduce";
@@ -136,7 +141,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
         throw new RuntimeException(msg, e);
       }
     } else {
-      AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
+      AbstractInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
       AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     }
 

@@ -29,7 +29,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
 
 public class Validate extends Test {
 
@@ -63,7 +63,7 @@ public class Validate extends Test {
         boolean accuHasSp;
         try {
           accuHasSp = conn.securityOperations().hasSystemPermission(user, sp);
-          log.debug("Just checked to see if user " + user + " has system perm " + sp.name() + " with answer " + accuHasSp);
+          log.debug("Just checked to see if user {} has system perm {} with answer {}", user, sp.name(), accuHasSp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
             if (tableUserExists)
@@ -82,7 +82,7 @@ public class Validate extends Test {
         boolean accuHasTp;
         try {
           accuHasTp = conn.securityOperations().hasTablePermission(user, WalkingSecurity.get(state, env).getTableName(), tp);
-          log.debug("Just checked to see if user " + user + " has table perm " + tp.name() + " with answer " + accuHasTp);
+          log.debug("Just checked to see if user {} has table perm {} with answer {}", user, tp.name(), accuHasTp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
             if (tableUserExists)

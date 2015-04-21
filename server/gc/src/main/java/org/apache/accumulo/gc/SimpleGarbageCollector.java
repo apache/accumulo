@@ -170,12 +170,12 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     this.fs = fs;
 
     long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
-    log.info("start delay: " + getStartDelay() + " milliseconds");
-    log.info("time delay: " + gcDelay + " milliseconds");
-    log.info("safemode: " + opts.safeMode);
-    log.info("verbose: " + opts.verbose);
-    log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
-    log.info("delete threads: " + getNumDeleteThreads());
+    log.info("start delay: {} milliseconds", getStartDelay());
+    log.info("time delay: {} milliseconds", gcDelay);
+    log.info("safemode: {}", opts.safeMode);
+    log.info("verbose: {}", opts.verbose);
+    log.info("memory threshold: {} of bytes", CANDIDATE_MEMORY_PERCENTAGE, Runtime.getRuntime().maxMemory());
+    log.info("delete threads: {}", getNumDeleteThreads());
   }
 
   /**
@@ -309,7 +309,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
               + "          Examine the log files to identify them.%n");
         log.info("SAFEMODE: Listing all data file candidates for deletion");
         for (String s : confirmedDeletes.values())
-          log.info("SAFEMODE: " + s);
+          log.info("SAFEMODE: {}", s);
         log.info("SAFEMODE: End candidates for deletion");
         return;
       }
@@ -332,7 +332,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
           lastDir = absPath;
         } else if (lastDir != null) {
           if (absPath.startsWith(lastDir)) {
-            log.debug("Ignoring " + entry.getValue() + " because " + lastDir + " exist");
+            log.debug("Ignoring {} because {} exist", entry.getValue(), lastDir);
             try {
               putMarkerDeleteMutation(entry.getValue(), writer);
             } catch (MutationsRejectedException e) {
@@ -366,13 +366,13 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 // atomically in one mutation and extreme care would need to be taken that delete entry was not lost. Instead of doing that, just deal with
                 // volume switching when something needs to be deleted. Since the rest of the code uses suffixes to compare delete entries, there is no danger
                 // of deleting something that should not be deleted. Must not change value of delete variable because thats whats stored in metadata table.
-                log.debug("Volume replaced " + delete + " -> " + switchedDelete);
+                log.debug("Volume replaced {} -> ", delete, switchedDelete);
                 fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
               } else {
                 fullPath = fs.getFullPath(FileType.TABLE, delete);
               }
 
-              log.debug("Deleting " + fullPath);
+              log.debug("Deleting {}", fullPath);
 
               if (archiveOrMoveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
                 // delete succeeded, still want to delete
@@ -386,7 +386,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 synchronized (SimpleGarbageCollector.this) {
                   ++status.current.errors;
                 }
-                log.warn("File exists, but was not deleted for an unknown reason: " + fullPath);
+                log.warn("File exists, but was not deleted for an unknown reason: {}", fullPath);
               } else {
                 // this failure, we still want to remove the metadata entry
                 removeFlag = true;
@@ -402,10 +402,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                   if (tableState != null && tableState != TableState.DELETING) {
                     // clone directories don't always exist
                     if (!tabletDir.startsWith(Constants.CLONE_PREFIX))
-                      log.debug("File doesn't exist: " + fullPath);
+                      log.debug("File doesn't exist: {}", fullPath);
                   }
                 } else {
-                  log.warn("Very strange path name: " + delete);
+                  log.warn("Very strange path name: {}", delete);
                 }
               }
 
@@ -415,7 +415,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 putMarkerDeleteMutation(delete, finalWriter);
               }
             } catch (Exception e) {
-              log.error("{}", e.getMessage(), e);
+              log.error(e.getMessage(), e);
             }
 
           }
@@ -430,7 +430,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
       } catch (InterruptedException e1) {
-        log.error("{}", e1.getMessage(), e1);
+        log.error(e1.getMessage(), e1);
       }
 
       if (writer != null) {
@@ -456,7 +456,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
         if (tabletDirs.length == 0) {
           Path p = new Path(dir + "/" + tableID);
-          log.debug("Removing table dir " + p);
+          log.debug("Removing table dir {}", p);
           if (!archiveOrMoveToTrash(p))
             fs.delete(p);
         }
@@ -488,7 +488,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
             try {
               stat = Status.parseFrom(input.getValue().get());
             } catch (InvalidProtocolBufferException e) {
-              log.warn("Could not deserialize protobuf for: " + input.getKey());
+              log.warn("Could not deserialize protobuf for: {}", input.getKey());
               stat = null;
             }
             return Maps.immutableEntry(file, stat);
@@ -513,16 +513,16 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     try {
       getZooLock(startStatsService());
     } catch (Exception ex) {
-      log.error("{}", ex.getMessage(), ex);
+      log.error(ex.getMessage(), ex);
       System.exit(1);
     }
 
     try {
       long delay = getStartDelay();
-      log.debug("Sleeping for " + delay + " milliseconds before beginning garbage collection cycles");
+      log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
       Thread.sleep(delay);
     } catch (InterruptedException e) {
-      log.warn("{}", e.getMessage(), e);
+      log.warn(e.getMessage(), e);
       return;
     }
 
@@ -541,17 +541,17 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
         new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
 
-        log.info("Number of data file candidates for deletion: " + status.current.candidates);
-        log.info("Number of data file candidates still in use: " + status.current.inUse);
-        log.info("Number of successfully deleted data files: " + status.current.deleted);
-        log.info("Number of data files delete failures: " + status.current.errors);
+        log.info("Number of data file candidates for deletion: {}", status.current.candidates);
+        log.info("Number of data file candidates still in use: {}", status.current.inUse);
+        log.info("Number of successfully deleted data files: {}", status.current.deleted);
+        log.info("Number of data files delete failures: {}", status.current.errors);
 
         status.current.finished = System.currentTimeMillis();
         status.last = status.current;
         status.current = new GcCycleStats();
 
       } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
+        log.error(e.getMessage(), e);
       }
 
       tStop = System.currentTimeMillis();
@@ -576,7 +576,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
+        log.error(e.getMessage(), e);
       } finally {
         waLogs.stop();
       }
@@ -588,16 +588,16 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
         connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
-        log.warn("{}", e.getMessage(), e);
+        log.warn(e.getMessage(), e);
       }
 
       Trace.off();
       try {
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
-        log.debug("Sleeping for " + gcDelay + " milliseconds");
+        log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
-        log.warn("{}", e.getMessage(), e);
+        log.warn(e.getMessage(), e);
         return;
       }
     }
@@ -637,7 +637,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     Volume sourceVolume = fs.getVolumeByPath(fileToArchive);
     String sourceVolumeBasePath = sourceVolume.getBasePath();
 
-    log.debug("Base path for volume: " + sourceVolumeBasePath);
+    log.debug("Base path for volume: {}", sourceVolumeBasePath);
 
     // Get the path for the file we want to archive
     String sourcePathBasePath = fileToArchive.toUri().getPath();
@@ -652,27 +652,27 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       }
     }
 
-    log.debug("Computed relative path for file to archive: " + relativeVolumePath);
+    log.debug("Computed relative path for file to archive: {}", relativeVolumePath);
 
     // The file archive path on this volume (we can't archive this file to a different volume)
     Path archivePath = new Path(sourceVolumeBasePath, ServerConstants.FILE_ARCHIVE_DIR);
 
-    log.debug("File archive path: " + archivePath);
+    log.debug("File archive path: {}", archivePath);
 
     fs.mkdirs(archivePath);
 
     // Preserve the path beneath the Volume's base directory (e.g. tables/1/A_0000001.rf)
     Path fileArchivePath = new Path(archivePath, relativeVolumePath);
 
-    log.debug("Create full path of " + fileArchivePath + " from " + archivePath + " and " + relativeVolumePath);
+    log.debug("Create full path of {} from {} and {}", fileArchivePath, archivePath, relativeVolumePath);
 
     // Make sure that it doesn't already exist, something is wrong.
     if (fs.exists(fileArchivePath)) {
-      log.warn("Tried to archive file, but it already exists: " + fileArchivePath);
+      log.warn("Tried to archive file, but it already exists: {}", fileArchivePath);
       return false;
     }
 
-    log.debug("Moving " + fileToArchive + " to " + fileArchivePath);
+    log.debug("Moving {} to {}", fileToArchive, fileArchivePath);
     return fs.rename(fileToArchive, fileArchivePath);
   }
 
@@ -722,7 +722,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     int port = getConfiguration().getPort(Property.GC_PORT);
     long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
-    log.debug("Starting garbage collector listening on " + result);
+    log.debug("Starting garbage collector listening on {}", result);
     try {
       return TServerUtils.startTServer(getConfiguration(), result, getThriftServerType(), processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(), getSaslParams(), 0).address;

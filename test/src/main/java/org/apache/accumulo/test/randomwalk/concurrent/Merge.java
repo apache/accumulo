@@ -48,11 +48,11 @@ public class Merge extends Test {
 
     try {
       conn.tableOperations().merge(tableName, range.get(0), range.get(1));
-      log.debug("merged " + tableName + " from " + range.get(0) + " to " + range.get(1));
+      log.debug("merged {} from {} to {}", tableName, range.get(0), range.get(1));
     } catch (TableOfflineException toe) {
-      log.debug("merge " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, table is not online");
+      log.debug("merge {} from {} to {} failed, table is not online", tableName, range.get(0), range.get(1));
     } catch (TableNotFoundException tne) {
-      log.debug("merge " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, doesnt exist");
+      log.debug("merge {} from {} to {} failed, doesnt exist", tableName, range.get(0), range.get(1));
     }
 
   }

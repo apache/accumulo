@@ -58,7 +58,7 @@ public class ZooReader implements IZooReader {
       return;
     }
 
-    log.error("Retry attempts (" + retry.retriesCompleted() + ") exceeded trying to communicate with ZooKeeper");
+    log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper", retry.retriesCompleted());
     throw e;
   }
 

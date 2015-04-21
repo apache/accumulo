@@ -22,11 +22,6 @@
  */
 package org.apache.accumulo.proxy.thrift;
 
-
-import java.util.Map;
-import java.util.HashMap;
-import org.apache.thrift.TEnum;
-
 @SuppressWarnings({"unused"}) public enum CompactionType implements org.apache.thrift.TEnum {
   MINOR(0),
   MERGE(1),
@@ -42,6 +37,7 @@ import org.apache.thrift.TEnum;
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
+  @Override
   public int getValue() {
     return value;
   }

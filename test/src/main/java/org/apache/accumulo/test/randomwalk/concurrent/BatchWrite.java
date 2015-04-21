@@ -65,16 +65,16 @@ public class BatchWrite extends Test {
         bw.close();
       }
 
-      log.debug("Wrote to " + tableName);
+      log.debug("Wrote to {}", tableName);
     } catch (TableNotFoundException e) {
-      log.debug("BatchWrite " + tableName + " failed, doesnt exist");
+      log.debug("BatchWrite {} failed, doesnt exist", tableName);
     } catch (TableOfflineException e) {
-      log.debug("BatchWrite " + tableName + " failed, offline");
+      log.debug("BatchWrite {} failed, offline", tableName);
     } catch (MutationsRejectedException mre) {
       if (mre.getCause() instanceof TableDeletedException)
-        log.debug("BatchWrite " + tableName + " failed, table deleted");
+        log.debug("BatchWrite {} failed, table deleted", tableName);
       else if (mre.getCause() instanceof TableOfflineException)
-        log.debug("BatchWrite " + tableName + " failed, offline");
+        log.debug("BatchWrite {} failed, offline", tableName);
       else
         throw mre;
     }

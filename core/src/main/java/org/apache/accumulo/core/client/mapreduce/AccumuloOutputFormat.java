@@ -118,7 +118,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
     }
 
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
+    ConfiguratorBase.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
 
   /**
@@ -136,7 +136,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @since 1.6.0
    */
   public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
+    ConfiguratorBase.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
   }
 
   /**
@@ -149,7 +149,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
-    return OutputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
+    return ConfiguratorBase.isConnectorInfoSet(CLASS, context.getConfiguration());
   }
 
   /**
@@ -162,7 +162,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getPrincipal(JobContext context) {
-    return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getPrincipal(CLASS, context.getConfiguration());
   }
 
   /**
@@ -198,7 +198,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
+    AuthenticationToken token = ConfiguratorBase.getAuthenticationToken(CLASS, context.getConfiguration());
     return ConfiguratorBase.unwrapAuthenticationToken(context, token);
   }
 
@@ -230,7 +230,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @since 1.6.0
    */
   public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
+    ConfiguratorBase.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
 
   /**
@@ -243,7 +243,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @since 1.5.0
    */
   public static void setMockInstance(Job job, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
+    ConfiguratorBase.setMockInstance(CLASS, job.getConfiguration(), instanceName);
   }
 
   /**
@@ -257,7 +257,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
-    return OutputConfigurator.getInstance(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getInstance(CLASS, context.getConfiguration());
   }
 
   /**
@@ -270,7 +270,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @since 1.5.0
    */
   public static void setLogLevel(Job job, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, job.getConfiguration(), level);
+    ConfiguratorBase.setLogLevel(CLASS, job.getConfiguration(), level);
   }
 
   /**
@@ -283,7 +283,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setLogLevel(Job, Level)
    */
   protected static Level getLogLevel(JobContext context) {
-    return OutputConfigurator.getLogLevel(CLASS, context.getConfiguration());
+    return ConfiguratorBase.getLogLevel(CLASS, context.getConfiguration());
   }
 
   /**

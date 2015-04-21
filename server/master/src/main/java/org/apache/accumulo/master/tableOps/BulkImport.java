@@ -142,7 +142,7 @@ public class BulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    log.debug(" tid " + tid + " sourceDir " + sourceDir);
+    log.debug(" tid {} sourceDir {}", tid, sourceDir);
 
     Utils.getReadLock(tableId, tid).lock();
 
@@ -171,10 +171,10 @@ public class BulkImport extends MasterRepo {
     // move the files into the directory
     try {
       String bulkDir = prepareBulkImport(master, fs, sourceDir, tableId);
-      log.debug(" tid " + tid + " bulkDir " + bulkDir);
+      log.debug(" tid {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
-      log.error("error preparing the bulk import directory", ex);
+      log.error("error preparing the bulk import directory {}", ex);
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY, sourceDir + ": "
           + ex);
     }
@@ -205,7 +205,7 @@ public class BulkImport extends MasterRepo {
         throw new IOException("Dir exist when it should not " + newBulkDir);
       if (fs.mkdirs(newBulkDir))
         return newBulkDir;
-      log.warn("Failed to create " + newBulkDir + " for unknown reason");
+      log.warn("Failed to create {} for unknown reason", newBulkDir);
 
       UtilWaitThread.sleep(3000);
     }
@@ -237,7 +237,7 @@ public class BulkImport extends MasterRepo {
               extension = sa[sa.length - 1];
 
               if (!FileOperations.getValidExtensions().contains(extension)) {
-                log.warn(fileStatus.getPath() + " does not have a valid extension, ignoring");
+                log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
                 return null;
               }
             } else {
@@ -247,22 +247,22 @@ public class BulkImport extends MasterRepo {
 
             if (extension.equals(Constants.MAPFILE_EXTENSION)) {
               if (!fileStatus.isDirectory()) {
-                log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                 return null;
               }
 
               if (fileStatus.getPath().getName().equals("_logs")) {
-                log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
+                log.info("{} is probably a log directory from a map/reduce task, skipping", fileStatus.getPath());
                 return null;
               }
               try {
                 FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
                 if (dataStatus.isDirectory()) {
-                  log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                  log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                   return null;
                 }
               } catch (FileNotFoundException fnfe) {
-                log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                 return null;
               }
             }
@@ -271,7 +271,7 @@ public class BulkImport extends MasterRepo {
             Path newPath = new Path(bulkDir, newName);
             try {
               fs.rename(fileStatus.getPath(), newPath);
-              log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
+              log.debug("Moved {} to {}", fileStatus.getPath(), newPath);
             } catch (IOException E1) {
               log.error("Could not move: {} {}", fileStatus.getPath().toString(), E1.getMessage());
             }
@@ -323,18 +323,18 @@ class CleanUpBulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    log.debug("removing the bulk processing flag file in " + bulk);
+    log.debug("removing the bulk processing flag file in {}", bulk);
     Path bulkDir = new Path(bulk);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master, "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     MetadataTableUtil.addDeleteEntry(master, tableId, bulkDir.toString());
     log.debug("removing the metadata table markers for loaded files");
     Connector conn = master.getConnector();
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
-    log.debug("releasing HDFS reservations for " + source + " and " + error);
+    log.debug("releasing HDFS reservations for {} and {}", source, error);
     Utils.unreserveHdfsDirectory(source, tid);
     Utils.unreserveHdfsDirectory(error, tid);
     Utils.getReadLock(tableId, tid).unlock();
-    log.debug("completing bulk import transaction " + tid);
+    log.debug("completing bulk import transaction {}", tid);
     ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
     return null;
   }
@@ -389,7 +389,7 @@ class CopyFailed extends MasterRepo {
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
-        log.info("Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
+        log.info("Ignoring error trying to check on tid {} from server {}: ", tid, server, ex);
       }
     }
     if (finished.containsAll(running))
@@ -444,7 +444,7 @@ class CopyFailed extends MasterRepo {
       Path orig = new Path(failure);
       Path dest = new Path(error, orig.getName());
       fs.rename(orig, dest);
-      log.debug("tid " + tid + " renamed " + orig + " to " + dest + ": import failed");
+      log.debug("tid {} renamed {} to {}: import failed", tid, orig, dest);
     }
 
     if (loadedFailures.size() > 0) {
@@ -462,7 +462,7 @@ class CopyFailed extends MasterRepo {
 
         bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes(UTF_8));
         workIds.add(orig.getName());
-        log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
+        log.debug("tid {} added to copyq: {} to {}: failed", tid, orig, dest);
       }
 
       bifCopyQueue.waitUntilDone(workIds);
@@ -521,7 +521,7 @@ class LoadFiles extends MasterRepo {
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
     }
-    log.debug("tid " + tid + " importing " + files.size() + " files");
+    log.debug("tid {} importing {} files", tid, files.size());
 
     Path writable = new Path(this.errorDir, ".iswritable");
     if (!fs.createNewFile(writable)) {
@@ -542,7 +542,7 @@ class LoadFiles extends MasterRepo {
       List<Future<List<String>>> results = new ArrayList<Future<List<String>>>();
 
       if (master.onlineTabletServers().size() == 0)
-        log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
+        log.warn("There are no tablet server to process bulk import, waiting (tid = {})", tid);
 
       while (master.onlineTabletServers().size() == 0) {
         UtilWaitThread.sleep(500);
@@ -566,7 +566,7 @@ class LoadFiles extends MasterRepo {
               client = pair.getSecond();
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);
-              log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
+              log.debug("Asking {} to bulk import {}", pair.getFirst(), file);
               List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
@@ -574,7 +574,7 @@ class LoadFiles extends MasterRepo {
                 failures.addAll(fail);
               }
             } catch (Exception ex) {
-              log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
+              log.error("rpc failed server:{}, tid {}", server, tid, ex);
             } finally {
               ServerClient.close(client);
             }
@@ -587,7 +587,7 @@ class LoadFiles extends MasterRepo {
         failures.addAll(f.get());
       filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
-        log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10) + " failed");
+        log.debug("tid {} attempt {} {} failed", tid, (attempt + 1), sampleList(filesToLoad, 10));
         UtilWaitThread.sleep(100);
       }
     }

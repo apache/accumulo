@@ -64,9 +64,9 @@ public class MultiTableFixture extends Fixture {
     for (String tableName : tables) {
       try {
         conn.tableOperations().delete(tableName);
-        log.debug("Dropping table " + tableName);
+        log.debug("Dropping table {}", tableName);
       } catch (TableNotFoundException e) {
-        log.warn("Tried to drop table " + tableName + " but could not be found!");
+        log.warn("Tried to drop table {} but could not be found!", tableName);
       }
     }
   }

@@ -111,13 +111,13 @@ public class AdminUtil<T> {
             tables.add(lda[0].charAt(0) + ":" + id);
 
           } catch (Exception e) {
-            log.error("{}", e.getMessage(),e);
+            log.error(e.getMessage(),e);
           }
           pos++;
         }
 
       } catch (Exception e) {
-        log.error("Failed to read locks for " + id + " continuing.", e);
+        log.error("Failed to read locks for {} continuing.", id, e);
         fmt.format("Failed to read locks for %s continuing", id);
       }
     }

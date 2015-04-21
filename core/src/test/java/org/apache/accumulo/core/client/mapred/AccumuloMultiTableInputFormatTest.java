@@ -111,8 +111,8 @@ public class AccumuloMultiTableInputFormatTest {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloMultiTableInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloMultiTableInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AbstractInputFormat.setMockInstance(job, INSTANCE_NAME);
 
       InputTableConfig tableConfig1 = new InputTableConfig();
       InputTableConfig tableConfig2 = new InputTableConfig();
@@ -185,7 +185,7 @@ public class AccumuloMultiTableInputFormatTest {
     configMap.put(TEST_TABLE_2, table2);
     AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);
 
-    assertEquals(table1, AccumuloMultiTableInputFormat.getInputTableConfig(job, TEST_TABLE_1));
-    assertEquals(table2, AccumuloMultiTableInputFormat.getInputTableConfig(job, TEST_TABLE_2));
+    assertEquals(table1, AbstractInputFormat.getInputTableConfig(job, TEST_TABLE_1));
+    assertEquals(table2, AbstractInputFormat.getInputTableConfig(job, TEST_TABLE_2));
   }
 }

@@ -41,9 +41,9 @@ public class DeleteTable extends Test {
 
     try {
       conn.tableOperations().delete(tableName);
-      log.debug("Deleted table " + tableName);
+      log.debug("Deleted table {}", tableName);
     } catch (TableNotFoundException e) {
-      log.debug("Delete " + tableName + " failed, doesnt exist");
+      log.debug("Delete {} failed, doesnt exist", tableName);
     }
   }
 }

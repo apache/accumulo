@@ -80,7 +80,7 @@ public class Tables {
               namespaceIdToNameMap.put(namespaceId, namespaceName);
             }
           } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
+            log.error("Table ({}) contains reference to namespace ({}) that doesn't exist ", tableId, namespaceId, e);
             continue;
           }
         }

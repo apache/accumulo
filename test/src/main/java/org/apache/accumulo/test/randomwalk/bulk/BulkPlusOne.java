@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
 
 public class BulkPlusOne extends BulkImportTest {
 
@@ -76,7 +76,7 @@ public class BulkPlusOne extends BulkImportTest {
       printRows.add(String.format(FMT, row));
 
     String markerColumnQualifier = String.format("%07d", counter.incrementAndGet());
-    log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
+    log.debug("preparing bulk files with start rows {} last row {} marker {}", printRows, String.format(FMT, LOTS - 1), markerColumnQualifier);
 
     List<Integer> rows = new ArrayList<Integer>(startRows);
     rows.add(LOTS);
@@ -104,7 +104,7 @@ public class BulkPlusOne extends BulkImportTest {
       throw new Exception(failures.length + " failure files found importing files from " + dir);
     }
     fs.delete(fail, true);
-    log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
+    log.debug("Finished bulk import, start rows {} last row {} marker {}", printRows, String.format(FMT, LOTS - 1), markerColumnQualifier);
   }
 
   @Override

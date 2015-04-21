@@ -22,11 +22,6 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-import java.util.Map;
-import java.util.HashMap;
-import org.apache.thrift.TEnum;
-
 @SuppressWarnings({"unused"}) public enum TabletLoadState implements org.apache.thrift.TEnum {
   LOADED(0),
   LOAD_FAILURE(1),
@@ -44,6 +39,7 @@ import org.apache.thrift.TEnum;
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
+  @Override
   public int getValue() {
     return value;
   }

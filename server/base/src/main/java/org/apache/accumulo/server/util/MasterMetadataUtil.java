@@ -97,7 +97,7 @@ public class MasterMetadataUtil {
 
   public static KeyExtent fixSplit(ClientContext context, Text metadataEntry, SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
       throws AccumuloException, IOException {
-    log.info("Incomplete split " + metadataEntry + " attempting to fix");
+    log.info("Incomplete split {} attempting to fix", metadataEntry);
 
     Value oper = columns.get(TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN);
 
@@ -151,11 +151,11 @@ public class MasterMetadataUtil {
 
     VolumeManager fs = VolumeManagerImpl.get();
     if (!scanner2.iterator().hasNext()) {
-      log.info("Rolling back incomplete split " + metadataEntry + " " + metadataPrevEndRow);
+      log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
       MetadataTableUtil.rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), context, lock);
       return new KeyExtent(metadataEntry, KeyExtent.decodePrevEndRow(oper));
     } else {
-      log.info("Finishing incomplete split " + metadataEntry + " " + metadataPrevEndRow);
+      log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
 
       List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
 
@@ -288,7 +288,7 @@ public class MasterMetadataUtil {
       }
     }
     if (unusedWalLogs.size() > 0 && !foundEntry)
-      log.warn("WALog entry for root tablet did not exist " + unusedWalLogs);
+      log.warn("WALog entry for root tablet did not exist {}", unusedWalLogs);
   }
 
   /**

@@ -53,11 +53,14 @@ public class ConfigSanityCheck {
       if (prop == null && Property.isValidPropertyKey(key))
         continue; // unknown valid property (i.e. has proper prefix)
       else if (prop == null)
-        log.warn(PREFIX + "unrecognized property key (" + key + ")");
-      else if (prop.getType() == PropertyType.PREFIX)
-        fatal(PREFIX + "incomplete property key (" + key + ")");
-      else if (!prop.getType().isValidFormat(value))
-        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
+        log.warn("{} unrecognized property key ({})", PREFIX , key);
+      else if (prop.getType() == PropertyType.PREFIX) {
+        log.error("{} incomplete property key ({})", PREFIX, key);
+        throw new SanityCheckException(String.format("%s incomplete property key (%s)", PREFIX, key));
+      } else if (!prop.getType().isValidFormat(value)) {
+        log.error("{} improperly formatted value for key ({}, type={})", PREFIX, key, prop.getType());
+        throw new SanityCheckException(String.format("%s improperly formatted value for key (%s, type=%s)", PREFIX, key, prop.getType()));
+      }
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
@@ -73,7 +76,7 @@ public class ConfigSanityCheck {
     }
 
     if (!usingVolumes) {
-      log.warn("Use of " + INSTANCE_DFS_URI + " and " + INSTANCE_DFS_DIR + " are deprecated. Consider using " + Property.INSTANCE_VOLUMES + " instead.");
+      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
     }
   }
 
@@ -104,14 +107,18 @@ public class ConfigSanityCheck {
 
   private static void checkTimeDuration(Property prop, String value, CheckTimeDuration chk) {
     verifyPropertyTypes(PropertyType.TIMEDURATION, prop);
-    if (!chk.check(AccumuloConfiguration.getTimeInMillis(value)))
-      fatal(PREFIX + chk.getDescription(prop));
+    if (!chk.check(AccumuloConfiguration.getTimeInMillis(value))) {
+      log.error("{}{}", PREFIX, chk.getDescription(prop));
+      throw new SanityCheckException(String.format("%s%s", PREFIX, chk.getDescription(prop)));
+    }
   }
 
   private static void verifyPropertyTypes(PropertyType type, Property... properties) {
     for (Property prop : properties)
-      if (prop.getType() != type)
-        fatal("Unexpected property type (" + prop.getType() + " != " + type + ")");
+      if (prop.getType() != type) {
+        log.error("FATAL: Unexpected property type ({} != {})", prop.getType(), type);
+        throw new SanityCheckException(String.format("Unexpected property type (%s != %s)", prop.getType(), type));
+      }
   }
 
   /**
@@ -126,11 +133,5 @@ public class ConfigSanityCheck {
     public SanityCheckException(String msg) {
       super(msg);
     }
-  }
-
-  private static void fatal(String msg) {
-    // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j compatibility
-    log.error("FATAL: {}", msg);
-    throw new SanityCheckException(msg);
   }
 }

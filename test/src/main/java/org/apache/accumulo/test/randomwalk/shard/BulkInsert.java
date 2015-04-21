@@ -121,7 +121,7 @@ public class BulkInsert extends Test {
 
     for (int i = 0; i < numToInsert; i++) {
       String docID = Insert.insertRandomDocument(nextDocID++, dataWriter, indexWriter, indexTableName, dataTableName, numPartitions, rand);
-      log.debug("Bulk inserting document " + docID);
+      log.debug("Bulk inserting document {}", docID);
     }
 
     state.set("nextDocID", Long.valueOf(nextDocID));
@@ -155,7 +155,7 @@ public class BulkInsert extends Test {
           if (!failure.getPath().getName().endsWith(".seq"))
             fs.rename(failure.getPath(), new Path(new Path(bulkDir), failure.getPath().getName()));
           else
-            log.debug("Ignoring " + failure.getPath());
+            log.debug("Ignoring {}", failure.getPath());
         }
         UtilWaitThread.sleep(3000);
       } else

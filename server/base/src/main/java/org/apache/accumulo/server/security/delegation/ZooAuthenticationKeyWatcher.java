@@ -63,7 +63,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
           }
           break;
         default:
-          log.warn("Unhandled: " + event);
+          log.warn("Unhandled: {}", event);
       }
 
       // Nothing more to do for EventType.None

@@ -365,7 +365,7 @@ public class Admin implements KeywordExecutable {
     for (String server : servers) {
       HostAndPort address = AddressUtil.parseAddress(server, context.getConfiguration().getPort(Property.TSERV_CLIENTPORT));
       final String finalServer = address.toString();
-      log.info("Stopping server " + finalServer);
+      log.info("Stopping server {}", finalServer);
       MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
         @Override
         public void execute(MasterClientService.Client client) throws Exception {

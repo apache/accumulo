@@ -24,8 +24,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -198,7 +198,7 @@ public class MiniAccumuloConfigImpl {
       try {
         CredentialProviderFactoryShim.createEntry(conf, entry.getKey(), entry.getValue().toCharArray());
       } catch (IOException e) {
-        log.warn("Attempted to add " + entry.getKey() + " to CredentialProvider but failed", e);
+        log.warn("Attempted to add {} to CredentialProvider but failed", entry.getKey(), e);
         continue;
       }
 
@@ -628,7 +628,7 @@ public class MiniAccumuloConfigImpl {
     }
     _setSiteConfig(siteConfigMap);
 
-    for (Entry<String,String> entry : DefaultConfiguration.getDefaultConfiguration())
+    for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration())
       accumuloConf.setIfUnset(entry.getKey(), entry.getValue());
 
     return this;

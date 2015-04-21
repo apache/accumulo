@@ -38,7 +38,8 @@ public class CloneIndex extends Test {
     env.getConnector().tableOperations().clone(indexTableName, tmpIndexTableName, false, new HashMap<String,String>(), new HashSet<String>());
     long t3 = System.currentTimeMillis();
 
-    log.debug("Cloned " + tmpIndexTableName + " from " + indexTableName + " flush: " + (t2 - t1) + "ms clone: " + (t3 - t2) + "ms");
+    log.debug("Cloned {} from {} flush: {}ms clone: {}ms",
+        tmpIndexTableName, indexTableName, (t2-t1), (t3-t2));
 
   }
 

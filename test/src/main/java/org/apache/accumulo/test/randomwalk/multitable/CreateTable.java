@@ -50,15 +50,15 @@ public class CreateTable extends Test {
       // Add some splits to make the server's life easier
       conn.tableOperations().addSplits(tableName, splits);
       String tableId = Tables.getNameToIdMap(env.getInstance()).get(tableName);
-      log.debug("created " + tableName + " (id:" + tableId + ")");
+      log.debug("created {} (id:{})", tableName, tableId);
       // Add some splits to make the server's life easier
       conn.tableOperations().addSplits(tableName, splits);
-      log.debug("created " + splits.size() + " splits on " + tableName);
+      log.debug("created {} splits on {}", splits.size(), tableName);
       @SuppressWarnings("unchecked")
       ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
       tables.add(tableName);
     } catch (TableExistsException e) {
-      log.warn("Failed to create " + tableName + " as it already exists");
+      log.warn("Failed to create {} as it already exists", tableName);
     }
 
     nextId++;

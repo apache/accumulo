@@ -49,7 +49,7 @@ public class Ingest extends ScaleTest {
       try {
         conn.tableOperations().delete(tableName);
       } catch (Exception e) {
-        log.error("Failed to delete table '" + tableName + "'.", e);
+        log.error("Failed to delete table '{}'.", tableName, e);
       }
     }
 
@@ -59,7 +59,7 @@ public class Ingest extends ScaleTest {
       conn.tableOperations().addSplits(tableName, calculateSplits());
       conn.tableOperations().setProperty(tableName, "table.split.threshold", "256M");
     } catch (Exception e) {
-      log.error("Failed to create table '" + tableName + "'.", e);
+      log.error("Failed to create table '{}'.", tableName, e);
     }
 
   }
@@ -81,7 +81,7 @@ public class Ingest extends ScaleTest {
       bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
           .setMaxWriteThreads(maxWriteThreads));
     } catch (TableNotFoundException e) {
-      log.error("Table '" + tableName + "' not found.", e);
+      log.error("Table '{}' not found.", tableName, e);
       System.exit(-1);
     }
 
@@ -136,7 +136,7 @@ public class Ingest extends ScaleTest {
     try {
       conn.tableOperations().delete(tableName);
     } catch (Exception e) {
-      log.error("Failed to delete table '" + tableName + "'", e);
+      log.error("Failed to delete table '{}'", tableName, e);
     }
   }
 

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Mapper;
@@ -153,10 +154,10 @@ public class AccumuloFileOutputFormatTest {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
-      AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
+      AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      InputFormatBase.setInputTableName(job, table);
+      AbstractInputFormat.setMockInstance(job, INSTANCE_NAME);
+      FileOutputFormat.setOutputPath(job, new Path(args[3]));
 
       job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : IdentityMapper.class);
       job.setMapOutputKeyClass(Key.class);

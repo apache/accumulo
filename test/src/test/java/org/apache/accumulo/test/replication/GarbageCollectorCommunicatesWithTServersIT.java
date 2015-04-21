@@ -114,7 +114,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
       int index = cq.indexOf('/');
       // Normalize the path
       String path = new Path(cq.substring(index + 1)).toString();
-      log.debug("Extracted file: " + path);
+      log.debug("Extracted file: {}", path);
       wals.add(path);
     }
 

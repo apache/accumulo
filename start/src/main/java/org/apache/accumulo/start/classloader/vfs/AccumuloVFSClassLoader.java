@@ -158,11 +158,11 @@ public class AccumuloVFSClassLoader {
               }
             }
           } else {
-            log.warn("ignoring classpath entry " + fo);
+            log.warn("ignoring classpath entry {}", fo);
           }
           break;
         default:
-          log.warn("ignoring classpath entry " + fo);
+          log.warn("ignoring classpath entry {}", fo);
           break;
       }
 

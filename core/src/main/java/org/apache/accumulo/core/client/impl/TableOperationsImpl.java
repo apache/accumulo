@@ -112,10 +112,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.net.HostAndPort;
@@ -123,7 +124,7 @@ import com.google.common.net.HostAndPort;
 public class TableOperationsImpl extends TableOperationsHelper {
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
-  private static final Logger log = Logger.getLogger(TableOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
   private final ClientContext context;
 
   public TableOperationsImpl(ClientContext context) {
@@ -470,8 +471,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           // Do not silently spin when we repeatedly fail to get the location for a tablet
           locationFailures++;
           if (5 == locationFailures || 0 == locationFailures % 50) {
-            log.warn("Having difficulty locating hosting tabletserver for split " + split + " on table " + tableName + ". Seen " + locationFailures
-                + " failures.");
+            log.warn("Having difficulty locating hosting tabletserver for split {} on table {}. Seen {} failures.", split, tableName, locationFailures);
           }
 
           tabLocator.invalidateCache(tl.tablet_extent);
@@ -544,7 +544,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw (AccumuloSecurityException) e.getCause();
         }
 
-        log.info(e.getMessage() + " ... retrying ...");
+        log.info("{} ... retrying ...", e.getMessage());
         UtilWaitThread.sleep(3000);
       }
     }
@@ -796,7 +796,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case TABLE_DOESNT_EXIST:
           throw new TableNotFoundException(tableId, null, e.getMessage(), e);
         default:
-          log.debug("flush security exception on table id " + tableId);
+          log.debug("flush security exception on table id {}", tableId);
           throw new AccumuloSecurityException(e.user, e.code, e);
       }
     } catch (ThriftTableOperationException e) {
@@ -1156,8 +1156,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           waitTime = waitFor * 10;
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
-        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
-            + " sleeping:" + waitTime + "ms");
+        log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
+            waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
         UtilWaitThread.sleep(waitTime);
       } else {
         break;
@@ -1273,7 +1273,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (pair == null) {
           log.debug("Disk usage request failed.  Pair is null.  Retrying request...", e);
         } else {
-          log.debug("Disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
+          log.debug("Disk usage request failed {}, retrying ... ", pair.getFirst(), e);
         }
         UtilWaitThread.sleep(100);
       } catch (TException e) {
@@ -1339,13 +1339,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       for (Entry<String,String> entry : props.entrySet()) {
         if (Property.isClassProperty(entry.getKey()) && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
-          Logger.getLogger(this.getClass()).info(
-              "Imported table sets '" + entry.getKey() + "' to '" + entry.getValue() + "'.  Ensure this class is on Accumulo classpath.");
+          LoggerFactory.getLogger(this.getClass()).info(
+              "Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.", entry.getKey(), entry.getValue());
         }
       }
 
     } catch (IOException ioe) {
-      Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
+      LoggerFactory.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : {}", ioe.getMessage());
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(importDir.getBytes(UTF_8)));

@@ -110,8 +110,8 @@ public class ExportIndex extends Test {
     env.getConnector().tableOperations().removeProperty(indexTableName, Property.TABLE_SPLIT_THRESHOLD.getKey());
     env.getConnector().tableOperations().removeProperty(tmpIndexTableName, Property.TABLE_SPLIT_THRESHOLD.getKey());
 
-    log.debug("Imported " + tmpIndexTableName + " from " + indexTableName + " flush: " + (t2 - t1) + "ms export: " + (t3 - t2) + "ms copy:" + (t4 - t3)
-        + "ms import:" + (t5 - t4) + "ms");
+    log.debug("Imported {} from {} flush: {}ms export: {}ms copy:{}ms import:{}ms",
+        tmpIndexTableName, indexTableName, (t2 - t1), (t3 - t2), (t4 - t3), (t5 - t4));
 
   }
 

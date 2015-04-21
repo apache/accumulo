@@ -88,7 +88,7 @@ public class Writer {
       TabletLocation tabLoc = TabletLocator.getLocator(context, table).locateTablet(context, new Text(m.getRow()), false, true);
 
       if (tabLoc == null) {
-        log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
+        log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));
         UtilWaitThread.sleep(500);
         continue;
       }
@@ -98,15 +98,15 @@ public class Writer {
         updateServer(context, m, tabLoc.tablet_extent, parsedLocation);
         return;
       } catch (NotServingTabletException e) {
-        log.trace("Not serving tablet, server = " + parsedLocation);
+        log.trace("Not serving tablet, server = {}", parsedLocation);
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
       } catch (ConstraintViolationException cve) {
-        log.error("error sending update to " + parsedLocation + ": " + cve);
+        log.error("error sending update to {}: ", parsedLocation, cve);
         // probably do not need to invalidate cache, but it does not hurt
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
         throw cve;
       } catch (TException e) {
-        log.error("error sending update to " + parsedLocation + ": " + e);
+        log.error("error sending update to {}: ", parsedLocation, e);
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
       }
 

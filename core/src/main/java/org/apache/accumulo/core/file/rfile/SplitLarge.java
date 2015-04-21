@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -57,7 +56,7 @@ public class SplitLarge {
     opts.parseArgs(SplitLarge.class.getName(), args);
 
     for (String file : opts.files) {
-      AccumuloConfiguration aconf = DefaultConfiguration.getDefaultConfiguration();
+      AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
       Path path = new Path(file);
       CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(rdr);

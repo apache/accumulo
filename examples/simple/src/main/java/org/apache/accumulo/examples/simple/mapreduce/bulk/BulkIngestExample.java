@@ -39,7 +39,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -125,8 +127,8 @@ public class BulkIngestExample extends Configured implements Tool {
 
       Connector connector = opts.getConnector();
 
-      TextInputFormat.setInputPaths(job, new Path(opts.inputDir));
-      AccumuloFileOutputFormat.setOutputPath(job, new Path(opts.workDir + "/files"));
+      FileInputFormat.setInputPaths(job, new Path(opts.inputDir));
+      FileOutputFormat.setOutputPath(job, new Path(opts.workDir + "/files"));
 
       FileSystem fs = FileSystem.get(conf);
       out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.workDir + "/splits.txt"))));

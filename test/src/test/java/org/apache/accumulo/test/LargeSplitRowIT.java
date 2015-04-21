@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -78,7 +79,7 @@ public class LargeSplitRowIT extends ConfigurableMacIT {
 
     // Create a split point that is too large to be an end row and fill it with all 'm'
     SortedSet<Text> partitionKeys = new TreeSet<Text>();
-    byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (AccumuloConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length; i++) {
       data[i] = 'm';
     }
@@ -123,7 +124,7 @@ public class LargeSplitRowIT extends ConfigurableMacIT {
     // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
     // Fill this key with all m's except the last spot
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (AccumuloConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length - 1; i++) {
       data[i] = (byte) 'm';
     }
@@ -233,7 +234,7 @@ public class LargeSplitRowIT extends ConfigurableMacIT {
 
     // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (AccumuloConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
 
     // Fill key with all j's except for last spot which alternates through 1 through 10 for every j value
     for (int j = 0; j < max; j += spacing) {

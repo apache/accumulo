@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -76,9 +76,9 @@ public class CreateEmpty {
 
     for (String arg : opts.files) {
       Path path = new Path(arg);
-      log.info("Writing to file '" + path + "'");
+      log.info("Writing to file '{}'", path);
       FileSKVWriter writer = (new RFileOperations())
-          .openWriter(arg, path.getFileSystem(conf), conf, DefaultConfiguration.getDefaultConfiguration(), opts.codec);
+          .openWriter(arg, path.getFileSystem(conf), conf, AccumuloConfiguration.getDefaultConfiguration(), opts.codec);
       writer.close();
     }
   }

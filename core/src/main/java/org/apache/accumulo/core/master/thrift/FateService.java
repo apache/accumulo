@@ -28,7 +28,6 @@ import org.apache.thrift.scheme.StandardScheme;
 
 import org.apache.thrift.scheme.TupleScheme;
 import org.apache.thrift.protocol.TTupleProtocol;
-import org.apache.thrift.protocol.TProtocolException;
 import org.apache.thrift.EncodingUtils;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
@@ -38,13 +37,10 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.EnumMap;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,9 +73,11 @@ import org.slf4j.LoggerFactory;
   public static class Client extends org.apache.thrift.TServiceClient implements Iface {
     public static class Factory implements org.apache.thrift.TServiceClientFactory<Client> {
       public Factory() {}
+      @Override
       public Client getClient(org.apache.thrift.protocol.TProtocol prot) {
         return new Client(prot);
       }
+      @Override
       public Client getClient(org.apache.thrift.protocol.TProtocol iprot, org.apache.thrift.protocol.TProtocol oprot) {
         return new Client(iprot, oprot);
       }
@@ -94,6 +92,7 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
+    @Override
     public long beginFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_beginFateOperation(tinfo, credentials);
@@ -121,6 +120,7 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginFateOperation failed: unknown result");
     }
 
+    @Override
     public void executeFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, FateOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
       send_executeFateOperation(tinfo, credentials, opid, op, arguments, options, autoClean);
@@ -153,6 +153,7 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
+    @Override
     public String waitForFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
       send_waitForFateOperation(tinfo, credentials, opid);
@@ -184,6 +185,7 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "waitForFateOperation failed: unknown result");
     }
 
+    @Override
     public void finishFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_finishFateOperation(tinfo, credentials, opid);
@@ -218,6 +220,7 @@ import org.slf4j.LoggerFactory;
         this.clientManager = clientManager;
         this.protocolFactory = protocolFactory;
       }
+      @Override
       public AsyncClient getAsyncClient(org.apache.thrift.transport.TNonblockingTransport transport) {
         return new AsyncClient(protocolFactory, clientManager, transport);
       }
@@ -227,6 +230,7 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
+    @Override
     public void beginFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       beginFateOperation_call method_call = new beginFateOperation_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
@@ -243,6 +247,7 @@ import org.slf4j.LoggerFactory;
         this.credentials = credentials;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("beginFateOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
         beginFateOperation_args args = new beginFateOperation_args();
@@ -262,6 +267,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void executeFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, FateOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       executeFateOperation_call method_call = new executeFateOperation_call(tinfo, credentials, opid, op, arguments, options, autoClean, resultHandler, this, ___protocolFactory, ___transport);
@@ -288,6 +294,7 @@ import org.slf4j.LoggerFactory;
         this.autoClean = autoClean;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("executeFateOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
         executeFateOperation_args args = new executeFateOperation_args();
@@ -312,6 +319,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void waitForFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       waitForFateOperation_call method_call = new waitForFateOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
@@ -330,6 +338,7 @@ import org.slf4j.LoggerFactory;
         this.opid = opid;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("waitForFateOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
         waitForFateOperation_args args = new waitForFateOperation_args();
@@ -350,6 +359,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void finishFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       finishFateOperation_call method_call = new finishFateOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
@@ -368,6 +378,7 @@ import org.slf4j.LoggerFactory;
         this.opid = opid;
       }
 
+      @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("finishFateOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
         finishFateOperation_args args = new finishFateOperation_args();
@@ -413,14 +424,17 @@ import org.slf4j.LoggerFactory;
         super("beginFateOperation");
       }
 
+      @Override
       public beginFateOperation_args getEmptyArgsInstance() {
         return new beginFateOperation_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public beginFateOperation_result getResult(I iface, beginFateOperation_args args) throws org.apache.thrift.TException {
         beginFateOperation_result result = new beginFateOperation_result();
         try {
@@ -438,14 +452,17 @@ import org.slf4j.LoggerFactory;
         super("executeFateOperation");
       }
 
+      @Override
       public executeFateOperation_args getEmptyArgsInstance() {
         return new executeFateOperation_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public executeFateOperation_result getResult(I iface, executeFateOperation_args args) throws org.apache.thrift.TException {
         executeFateOperation_result result = new executeFateOperation_result();
         try {
@@ -464,14 +481,17 @@ import org.slf4j.LoggerFactory;
         super("waitForFateOperation");
       }
 
+      @Override
       public waitForFateOperation_args getEmptyArgsInstance() {
         return new waitForFateOperation_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public waitForFateOperation_result getResult(I iface, waitForFateOperation_args args) throws org.apache.thrift.TException {
         waitForFateOperation_result result = new waitForFateOperation_result();
         try {
@@ -490,14 +510,17 @@ import org.slf4j.LoggerFactory;
         super("finishFateOperation");
       }
 
+      @Override
       public finishFateOperation_args getEmptyArgsInstance() {
         return new finishFateOperation_args();
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public finishFateOperation_result getResult(I iface, finishFateOperation_args args) throws org.apache.thrift.TException {
         finishFateOperation_result result = new finishFateOperation_result();
         try {
@@ -534,13 +557,16 @@ import org.slf4j.LoggerFactory;
         super("beginFateOperation");
       }
 
+      @Override
       public beginFateOperation_args getEmptyArgsInstance() {
         return new beginFateOperation_args();
       }
 
+      @Override
       public AsyncMethodCallback<Long> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<Long>() { 
+          @Override
           public void onComplete(Long o) {
             beginFateOperation_result result = new beginFateOperation_result();
             result.success = o;
@@ -553,6 +579,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -578,10 +605,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, beginFateOperation_args args, org.apache.thrift.async.AsyncMethodCallback<Long> resultHandler) throws TException {
         iface.beginFateOperation(args.tinfo, args.credentials,resultHandler);
       }
@@ -592,13 +621,16 @@ import org.slf4j.LoggerFactory;
         super("executeFateOperation");
       }
 
+      @Override
       public executeFateOperation_args getEmptyArgsInstance() {
         return new executeFateOperation_args();
       }
 
+      @Override
       public AsyncMethodCallback<Void> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<Void>() { 
+          @Override
           public void onComplete(Void o) {
             executeFateOperation_result result = new executeFateOperation_result();
             try {
@@ -609,6 +641,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -639,10 +672,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, executeFateOperation_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
         iface.executeFateOperation(args.tinfo, args.credentials, args.opid, args.op, args.arguments, args.options, args.autoClean,resultHandler);
       }
@@ -653,13 +688,16 @@ import org.slf4j.LoggerFactory;
         super("waitForFateOperation");
       }
 
+      @Override
       public waitForFateOperation_args getEmptyArgsInstance() {
         return new waitForFateOperation_args();
       }
 
+      @Override
       public AsyncMethodCallback<String> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<String>() { 
+          @Override
           public void onComplete(String o) {
             waitForFateOperation_result result = new waitForFateOperation_result();
             result.success = o;
@@ -671,6 +709,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -701,10 +740,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, waitForFateOperation_args args, org.apache.thrift.async.AsyncMethodCallback<String> resultHandler) throws TException {
         iface.waitForFateOperation(args.tinfo, args.credentials, args.opid,resultHandler);
       }
@@ -715,13 +756,16 @@ import org.slf4j.LoggerFactory;
         super("finishFateOperation");
       }
 
+      @Override
       public finishFateOperation_args getEmptyArgsInstance() {
         return new finishFateOperation_args();
       }
 
+      @Override
       public AsyncMethodCallback<Void> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
         return new AsyncMethodCallback<Void>() { 
+          @Override
           public void onComplete(Void o) {
             finishFateOperation_result result = new finishFateOperation_result();
             try {
@@ -732,6 +776,7 @@ import org.slf4j.LoggerFactory;
             }
             fb.close();
           }
+          @Override
           public void onError(Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
@@ -757,10 +802,12 @@ import org.slf4j.LoggerFactory;
         };
       }
 
+      @Override
       protected boolean isOneway() {
         return false;
       }
 
+      @Override
       public void start(I iface, finishFateOperation_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
         iface.finishFateOperation(args.tinfo, args.credentials, args.opid,resultHandler);
       }
@@ -835,10 +882,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -880,6 +929,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public beginFateOperation_args deepCopy() {
       return new beginFateOperation_args(this);
     }
@@ -938,6 +988,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -959,6 +1010,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case TINFO:
@@ -972,6 +1024,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -1056,14 +1109,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -1120,6 +1176,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class beginFateOperation_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public beginFateOperation_argsStandardScheme getScheme() {
         return new beginFateOperation_argsStandardScheme();
       }
@@ -1127,6 +1184,7 @@ import org.slf4j.LoggerFactory;
 
     private static class beginFateOperation_argsStandardScheme extends StandardScheme<beginFateOperation_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, beginFateOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -1166,6 +1224,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, beginFateOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -1187,6 +1246,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class beginFateOperation_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public beginFateOperation_argsTupleScheme getScheme() {
         return new beginFateOperation_argsTupleScheme();
       }
@@ -1299,10 +1359,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -1346,6 +1408,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public beginFateOperation_result deepCopy() {
       return new beginFateOperation_result(this);
     }
@@ -1404,6 +1467,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -1425,6 +1489,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
@@ -1438,6 +1503,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -1522,14 +1588,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -1578,6 +1647,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class beginFateOperation_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public beginFateOperation_resultStandardScheme getScheme() {
         return new beginFateOperation_resultStandardScheme();
       }
@@ -1585,6 +1655,7 @@ import org.slf4j.LoggerFactory;
 
     private static class beginFateOperation_resultStandardScheme extends StandardScheme<beginFateOperation_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, beginFateOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -1623,6 +1694,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, beginFateOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -1644,6 +1716,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class beginFateOperation_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public beginFateOperation_resultTupleScheme getScheme() {
         return new beginFateOperation_resultTupleScheme();
       }
@@ -1788,10 +1861,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -1875,6 +1950,7 @@ import org.slf4j.LoggerFactory;
       this.autoClean = other.autoClean;
     }
 
+    @Override
     public executeFateOperation_args deepCopy() {
       return new executeFateOperation_args(this);
     }
@@ -2092,6 +2168,7 @@ import org.slf4j.LoggerFactory;
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __AUTOCLEAN_ISSET_ID, value);
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -2153,6 +2230,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case TINFO:
@@ -2181,6 +2259,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -2370,14 +2449,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -2468,6 +2550,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class executeFateOperation_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public executeFateOperation_argsStandardScheme getScheme() {
         return new executeFateOperation_argsStandardScheme();
       }
@@ -2475,6 +2558,7 @@ import org.slf4j.LoggerFactory;
 
     private static class executeFateOperation_argsStandardScheme extends StandardScheme<executeFateOperation_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, executeFateOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -2576,6 +2660,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, executeFateOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -2633,6 +2718,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class executeFateOperation_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public executeFateOperation_argsTupleScheme getScheme() {
         return new executeFateOperation_argsTupleScheme();
       }
@@ -2828,10 +2914,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -2873,6 +2961,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public executeFateOperation_result deepCopy() {
       return new executeFateOperation_result(this);
     }
@@ -2931,6 +3020,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SEC:
@@ -2952,6 +3042,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SEC:
@@ -2965,6 +3056,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -3049,14 +3141,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -3107,6 +3202,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class executeFateOperation_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public executeFateOperation_resultStandardScheme getScheme() {
         return new executeFateOperation_resultStandardScheme();
       }
@@ -3114,6 +3210,7 @@ import org.slf4j.LoggerFactory;
 
     private static class executeFateOperation_resultStandardScheme extends StandardScheme<executeFateOperation_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, executeFateOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -3153,6 +3250,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, executeFateOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -3174,6 +3272,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class executeFateOperation_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public executeFateOperation_resultTupleScheme getScheme() {
         return new executeFateOperation_resultTupleScheme();
       }
@@ -3291,10 +3390,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -3345,6 +3446,7 @@ import org.slf4j.LoggerFactory;
       this.opid = other.opid;
     }
 
+    @Override
     public waitForFateOperation_args deepCopy() {
       return new waitForFateOperation_args(this);
     }
@@ -3428,6 +3530,7 @@ import org.slf4j.LoggerFactory;
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __OPID_ISSET_ID, value);
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -3457,6 +3560,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case TINFO:
@@ -3473,6 +3577,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -3578,14 +3683,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -3648,6 +3756,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class waitForFateOperation_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public waitForFateOperation_argsStandardScheme getScheme() {
         return new waitForFateOperation_argsStandardScheme();
       }
@@ -3655,6 +3764,7 @@ import org.slf4j.LoggerFactory;
 
     private static class waitForFateOperation_argsStandardScheme extends StandardScheme<waitForFateOperation_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, waitForFateOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -3702,6 +3812,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, waitForFateOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -3726,6 +3837,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class waitForFateOperation_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public waitForFateOperation_argsTupleScheme getScheme() {
         return new waitForFateOperation_argsTupleScheme();
       }
@@ -3853,10 +3965,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -3905,6 +4019,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public waitForFateOperation_result deepCopy() {
       return new waitForFateOperation_result(this);
     }
@@ -3988,6 +4103,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -4017,6 +4133,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
@@ -4033,6 +4150,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -4138,14 +4256,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -4204,6 +4325,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class waitForFateOperation_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public waitForFateOperation_resultStandardScheme getScheme() {
         return new waitForFateOperation_resultStandardScheme();
       }
@@ -4211,6 +4333,7 @@ import org.slf4j.LoggerFactory;
 
     private static class waitForFateOperation_resultStandardScheme extends StandardScheme<waitForFateOperation_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, waitForFateOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -4258,6 +4381,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, waitForFateOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -4284,6 +4408,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class waitForFateOperation_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public waitForFateOperation_resultTupleScheme getScheme() {
         return new waitForFateOperation_resultTupleScheme();
       }
@@ -4411,10 +4536,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -4465,6 +4592,7 @@ import org.slf4j.LoggerFactory;
       this.opid = other.opid;
     }
 
+    @Override
     public finishFateOperation_args deepCopy() {
       return new finishFateOperation_args(this);
     }
@@ -4548,6 +4676,7 @@ import org.slf4j.LoggerFactory;
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __OPID_ISSET_ID, value);
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -4577,6 +4706,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case TINFO:
@@ -4593,6 +4723,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -4698,14 +4829,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
     }
@@ -4768,6 +4902,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class finishFateOperation_argsStandardSchemeFactory implements SchemeFactory {
+      @Override
       public finishFateOperation_argsStandardScheme getScheme() {
         return new finishFateOperation_argsStandardScheme();
       }
@@ -4775,6 +4910,7 @@ import org.slf4j.LoggerFactory;
 
     private static class finishFateOperation_argsStandardScheme extends StandardScheme<finishFateOperation_args> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, finishFateOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -4822,6 +4958,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, finishFateOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -4846,6 +4983,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class finishFateOperation_argsTupleSchemeFactory implements SchemeFactory {
+      @Override
       public finishFateOperation_argsTupleScheme getScheme() {
         return new finishFateOperation_argsTupleScheme();
       }
@@ -4963,10 +5101,12 @@ import org.slf4j.LoggerFactory;
         _fieldName = fieldName;
       }
 
+      @Override
       public short getThriftFieldId() {
         return _thriftId;
       }
 
+      @Override
       public String getFieldName() {
         return _fieldName;
       }
@@ -5001,6 +5141,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public finishFateOperation_result deepCopy() {
       return new finishFateOperation_result(this);
     }
@@ -5034,6 +5175,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SEC:
@@ -5047,6 +5189,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    @Override
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SEC:
@@ -5057,6 +5200,7 @@ import org.slf4j.LoggerFactory;
     }
 
     /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
     public boolean isSet(_Fields field) {
       if (field == null) {
         throw new IllegalArgumentException();
@@ -5120,14 +5264,17 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
+    @Override
     public _Fields fieldForId(int fieldId) {
       return _Fields.findByThriftId(fieldId);
     }
 
+    @Override
     public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
       schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
     }
 
+    @Override
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
       }
@@ -5170,6 +5317,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class finishFateOperation_resultStandardSchemeFactory implements SchemeFactory {
+      @Override
       public finishFateOperation_resultStandardScheme getScheme() {
         return new finishFateOperation_resultStandardScheme();
       }
@@ -5177,6 +5325,7 @@ import org.slf4j.LoggerFactory;
 
     private static class finishFateOperation_resultStandardScheme extends StandardScheme<finishFateOperation_result> {
 
+      @Override
       public void read(org.apache.thrift.protocol.TProtocol iprot, finishFateOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
@@ -5207,6 +5356,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
+      @Override
       public void write(org.apache.thrift.protocol.TProtocol oprot, finishFateOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
@@ -5223,6 +5373,7 @@ import org.slf4j.LoggerFactory;
     }
 
     private static class finishFateOperation_resultTupleSchemeFactory implements SchemeFactory {
+      @Override
       public finishFateOperation_resultTupleScheme getScheme() {
         return new finishFateOperation_resultTupleScheme();
       }

@@ -29,7 +29,7 @@ import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
 
 public class ShardFixture extends Fixture {
 
@@ -57,18 +57,18 @@ public class ShardFixture extends Fixture {
     conn.tableOperations().create(name);
 
     String tableId = conn.tableOperations().tableIdMap().get(name);
-    log.info("Created index table " + name + "(id:" + tableId + ")");
+    log.info("Created index table {}(id:{})", name, tableId);
 
     SortedSet<Text> splits = genSplits(numPartitions, rand.nextInt(numPartitions) + 1, "%06x");
     conn.tableOperations().addSplits(name, splits);
 
-    log.info("Added " + splits.size() + " splits to " + name);
+    log.info("Added {} splits to {}", splits.size(), name);
 
     if (enableCache) {
       conn.tableOperations().setProperty(name, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
       conn.tableOperations().setProperty(name, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
 
-      log.info("Enabled caching for table " + name);
+      log.info("Enabled caching for table {}", name);
     }
   }
 
@@ -96,16 +96,16 @@ public class ShardFixture extends Fixture {
     conn.tableOperations().create(docTableName);
 
     String tableId = conn.tableOperations().tableIdMap().get(docTableName);
-    log.info("Created doc table " + docTableName + " (id:" + tableId + ")");
+    log.info("Created doc table {} (id:{})", docTableName, tableId);
 
     SortedSet<Text> splits = genSplits(0xff, rand.nextInt(32) + 1, "%02x");
     conn.tableOperations().addSplits(docTableName, splits);
 
-    log.info("Added " + splits.size() + " splits to " + docTableName);
+    log.info("Added {} splits to {}", splits.size(), docTableName);
 
     if (rand.nextDouble() < .5) {
       conn.tableOperations().setProperty((String) state.get("docTableName"), Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      log.info("Enabled bloom filters for table " + (String) state.get("docTableName"));
+      log.info("Enabled bloom filters for table {}", state.get("docTableName"));
     }
   }
 

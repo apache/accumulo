@@ -63,17 +63,17 @@ public class VerifyIngest {
         Entry<Key,Value> entry = si.next();
 
         if (!entry.getKey().getRow().toString().equals(String.format("row_%08d", i))) {
-          log.error("unexpected row key " + entry.getKey().getRow().toString() + " expected " + String.format("row_%08d", i));
+          log.error("unexpected row key {} expected {}", entry.getKey().getRow().toString(), String.format("row_%08d", i));
           ok = false;
         }
 
         if (!entry.getValue().toString().equals(String.format("value_%08d", i))) {
-          log.error("unexpected value " + entry.getValue().toString() + " expected " + String.format("value_%08d", i));
+          log.error("unexpected value {} expected {}", entry.getValue().toString(), String.format("value_%08d", i));
           ok = false;
         }
 
       } else {
-        log.error("no more rows, expected " + String.format("row_%08d", i));
+        log.error("no more rows, expected {}", String.format("row_%08d", i));
         ok = false;
         break;
       }

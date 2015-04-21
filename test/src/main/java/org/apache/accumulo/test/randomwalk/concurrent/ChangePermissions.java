@@ -63,13 +63,13 @@ public class ChangePermissions extends Test {
       else if (dice == 2)
         changeNamespacePermission(conn, rand, userName, namespace);
     } catch (AccumuloSecurityException ex) {
-      log.debug("Unable to change user permissions: " + ex.getCause());
+      log.debug("Unable to change user permissions: {}", ex.getCause());
     } catch (AccumuloException ex) {
       Throwable cause = ex.getCause();
       if (cause != null && cause instanceof ThriftTableOperationException) {
         ThriftTableOperationException toe = (ThriftTableOperationException) cause.getCause();
         if (toe.type == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          log.debug("Unable to change user permissions: " + toe);
+          log.debug("Unable to change user permissions:", toe);
           return;
         }
       }
@@ -90,13 +90,13 @@ public class ChangePermissions extends Test {
     if (rand.nextBoolean() && more.size() > 0) {
       List<TablePermission> moreList = new ArrayList<TablePermission>(more);
       TablePermission choice = moreList.get(rand.nextInt(moreList.size()));
-      log.debug("adding permission " + choice);
+      log.debug("adding permission {}", choice);
       conn.securityOperations().grantTablePermission(userName, tableName, choice);
     } else {
       if (perms.size() > 0) {
         List<TablePermission> permList = new ArrayList<TablePermission>(perms);
         TablePermission choice = permList.get(rand.nextInt(permList.size()));
-        log.debug("removing permission " + choice);
+        log.debug("removing permission {}", choice);
         conn.securityOperations().revokeTablePermission(userName, tableName, choice);
       }
     }
@@ -116,13 +116,13 @@ public class ChangePermissions extends Test {
     if (rand.nextBoolean() && more.size() > 0) {
       List<SystemPermission> moreList = new ArrayList<SystemPermission>(more);
       SystemPermission choice = moreList.get(rand.nextInt(moreList.size()));
-      log.debug("adding permission " + choice);
+      log.debug("adding permission {}", choice);
       conn.securityOperations().grantSystemPermission(userName, choice);
     } else {
       if (perms.size() > 0) {
         List<SystemPermission> permList = new ArrayList<SystemPermission>(perms);
         SystemPermission choice = permList.get(rand.nextInt(permList.size()));
-        log.debug("removing permission " + choice);
+        log.debug("removing permission {}", choice);
         conn.securityOperations().revokeSystemPermission(userName, choice);
       }
     }
@@ -142,13 +142,13 @@ public class ChangePermissions extends Test {
     if (rand.nextBoolean() && more.size() > 0) {
       List<NamespacePermission> moreList = new ArrayList<NamespacePermission>(more);
       NamespacePermission choice = moreList.get(rand.nextInt(moreList.size()));
-      log.debug("adding permission " + choice);
+      log.debug("adding permission {}", choice);
       conn.securityOperations().grantNamespacePermission(userName, namespace, choice);
     } else {
       if (perms.size() > 0) {
         List<NamespacePermission> permList = new ArrayList<NamespacePermission>(perms);
         NamespacePermission choice = permList.get(rand.nextInt(permList.size()));
-        log.debug("removing permission " + choice);
+        log.debug("removing permission {}", choice);
         conn.securityOperations().revokeNamespacePermission(userName, namespace, choice);
       }
     }

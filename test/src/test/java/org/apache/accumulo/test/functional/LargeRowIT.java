@@ -80,7 +80,7 @@ public class LargeRowIT extends AccumuloClusterIT {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
     } catch (NumberFormatException e) {
-      log.warn("Could not parse property value for 'timeout.factor' as integer: " + System.getProperty("timeout.factor"));
+      log.warn("Could not parse property value for 'timeout.factor' as integer: {}", System.getProperty("timeout.factor"));
     }
 
     Assert.assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);

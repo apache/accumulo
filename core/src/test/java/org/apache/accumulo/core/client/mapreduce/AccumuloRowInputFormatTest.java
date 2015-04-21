@@ -158,9 +158,9 @@ public class AccumuloRowInputFormatTest {
 
       job.setInputFormatClass(AccumuloRowInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloRowInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AbstractInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      InputFormatBase.setInputTableName(job, table);
+      AbstractInputFormat.setMockInstance(job, INSTANCE_NAME);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

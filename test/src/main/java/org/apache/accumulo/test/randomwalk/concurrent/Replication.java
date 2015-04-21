@@ -95,7 +95,7 @@ public class Replication extends Test {
     final String tables[] = new String[] { sourceTable, destTable };
 
     for (String tableName : tables) {
-      log.debug("creating " + tableName);
+      log.debug("creating {}", tableName);
       tOps.create(tableName);
     }
 
@@ -132,7 +132,7 @@ public class Replication extends Test {
     while (true) {
       final Set<String> updatedFileRefs = c.replicationOperations().referencedFiles(sourceTable);
       updatedFileRefs.retainAll(origRefs);
-      log.debug("updateFileRefs size " + updatedFileRefs.size());
+      log.debug("updateFileRefs size {}", updatedFileRefs.size());
       if (updatedFileRefs.isEmpty()) {
         break;
       }
@@ -169,7 +169,7 @@ public class Replication extends Test {
 
     // cleanup
     for (String tableName : tables) {
-      log.debug("Deleting " + tableName);
+      log.debug("Deleting {}", tableName);
       tOps.delete(tableName);
     }
   }
@@ -195,7 +195,7 @@ public class Replication extends Test {
     for (int i = 1; i <= 9; i++) {
       splits.add(new Text(itos(i * (ROWS / 10))));
     }
-    log.debug("Adding splits to " + tableName);
+    log.debug("Adding splits to {}", tableName);
     tOps.addSplits(tableName, splits);
   }
 }

@@ -59,15 +59,15 @@ public class BulkFailedCopyProcessor implements Processor {
 
       FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
       destFs.rename(tmp, dest);
-      log.debug("copied " + orig + " to " + dest);
+      log.debug("copied {} to {}", orig, dest);
     } catch (IOException ex) {
       try {
         VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
         FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
         destFs.create(dest).close();
-        log.warn(" marked " + dest + " failed", ex);
+        log.warn(" marked {} failed", dest, ex);
       } catch (IOException e) {
-        log.error("Unable to create failure flag file " + dest, e);
+        log.error("Unable to create failure flag file {}", dest, e);
       }
     }
 

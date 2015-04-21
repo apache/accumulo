@@ -35,11 +35,11 @@ public class Setup extends Test {
     state.set("rand", rand);
 
     int numBanks = Integer.parseInt(props.getProperty("numBanks", "1000"));
-    log.debug("numBanks = " + numBanks);
+    log.debug("numBanks = {}", numBanks);
     state.set("numBanks", numBanks);
 
     int numAccts = Integer.parseInt(props.getProperty("numAccts", "10000"));
-    log.debug("numAccts = " + numAccts);
+    log.debug("numAccts = {}", numAccts);
     state.set("numAccts", numAccts);
 
     String tableName = "banks";
@@ -47,10 +47,10 @@ public class Setup extends Test {
 
     try {
       env.getConnector().tableOperations().create(tableName);
-      log.debug("created table " + tableName);
+      log.debug("created table {}", tableName);
       boolean blockCache = rand.nextBoolean();
       env.getConnector().tableOperations().setProperty(tableName, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), blockCache + "");
-      log.debug("set " + Property.TABLE_BLOCKCACHE_ENABLED.getKey() + " " + blockCache);
+      log.debug("set {} {}", Property.TABLE_BLOCKCACHE_ENABLED.getKey(), blockCache);
     } catch (TableExistsException tee) {}
 
     ConditionalWriter cw = env.getConnector().createConditionalWriter(tableName, new ConditionalWriterConfig().setMaxWriteThreads(1));

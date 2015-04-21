@@ -186,13 +186,13 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacIT {
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
     }
 
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
     for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
     }
 
     log.info("Bringing table online");
@@ -205,14 +205,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacIT {
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
     }
 
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
     for (Entry<Key,Value> entry : s) {
       Status status = Status.parseFrom(entry.getValue().get());
-      log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(status));
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
       Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
     }
   }

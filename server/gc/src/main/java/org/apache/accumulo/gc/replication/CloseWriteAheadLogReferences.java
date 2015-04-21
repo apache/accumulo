@@ -113,8 +113,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       findWalsSpan.stop();
     }
 
-    log.info("Found " + referencedWals.size() + " WALs referenced in metadata in " + sw.toString());
-    log.debug("Referenced WALs: " + referencedWals);
+    log.info("Found {} WALs referenced in metadata in {}", referencedWals.size(), sw.toString());
+    log.debug("Referenced WALs: {}", referencedWals);
     sw.reset();
 
     /*
@@ -143,11 +143,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
       return;
     }
 
-    log.debug("Got active WALs from all tservers " + activeWals);
+    log.debug("Got active WALs from all tservers {}", activeWals);
 
     referencedWals.addAll(activeWals);
 
-    log.info("Found " + activeWals.size() + " WALs actively in use by TabletServers in " + sw.toString());
+    log.info("Found {} WALs actively in use by TabletServers in {}", activeWals.size(), sw.toString());
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
     long recordsClosed = 0;
@@ -159,7 +159,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       updateReplicationSpan.stop();
     }
 
-    log.info("Closed " + recordsClosed + " WAL replication references in replication table in " + sw.toString());
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw.toString());
   }
 
   /**
@@ -194,7 +194,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         // The value may contain multiple WALs
         LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
 
-        log.debug("Found WALs for table(" + logEntry.extent.getTableId() + "): " + logEntry.logSet);
+        log.debug("Found WALs for table({}): {}", logEntry.extent.getTableId(), logEntry.logSet);
 
         // Normalize each log file (using Path) and add it to the set
         for (String logFile : logEntry.logSet) {
@@ -256,7 +256,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
             closeWal(bw, entry.getKey());
             recordsClosed++;
           } catch (MutationsRejectedException e) {
-            log.error("Failed to submit delete mutation for " + entry.getKey());
+            log.error("Failed to submit delete mutation for {}", entry.getKey());
             continue;
           }
         }
@@ -302,7 +302,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         return null;
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host " + e);
+      log.warn("Failed to obtain master host", e);
     }
 
     return null;
@@ -317,7 +317,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       }
       return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, context);
     } catch (Exception e) {
-      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+      log.warn("Issue with masterConnection ({}) {}", address, e, e);
     }
     return null;
   }
@@ -341,10 +341,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
         HostAndPort address = HostAndPort.fromString(tserver);
         List<String> activeWalsForServer = getActiveWalsForServer(tinfo, address);
         if (null == activeWalsForServer) {
-          log.debug("Could not fetch active wals from " + address);
+          log.debug("Could not fetch active wals from {}", address);
           return null;
         }
-        log.debug("Got raw active wals for " + address + ", " + activeWalsForServer);
+        log.debug("Got raw active wals for {}, {}", address, activeWalsForServer);
         for (String activeWal : activeWalsForServer) {
           // Normalize the WAL URI
           walogs.add(new Path(activeWal).toString());
@@ -389,10 +389,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
       tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
       return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
     } catch (TTransportException e) {
-      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      log.warn("Failed to fetch active write-ahead logs from {}", server, e);
       return null;
     } catch (TException e) {
-      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      log.warn("Failed to fetch active write-ahead logs from {}", server, e);
       return null;
     } finally {
       ThriftUtil.returnClient(tserverClient);

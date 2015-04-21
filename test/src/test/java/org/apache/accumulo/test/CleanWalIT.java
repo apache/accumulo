@@ -100,10 +100,10 @@ public class CleanWalIT extends AccumuloClusterIT {
 
     for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
       conn.tableOperations().flush(table, null, null, true);
-    log.debug("Checking entries for " + tableName);
+    log.debug("Checking entries for {}", tableName);
     assertEquals(1, count(tableName, conn));
     for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
-      log.debug("Checking logs for " + table);
+      log.debug("Checking logs for {}", table);
       assertEquals("Found logs for " + table, 0, countLogs(table, conn));
     }
 
@@ -130,7 +130,7 @@ public class CleanWalIT extends AccumuloClusterIT {
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      log.debug("Saw " + entry.getKey() + "=" + entry.getValue());
+      log.debug("Saw {}={}", entry.getKey(), entry.getValue());
       count++;
     }
     return count;

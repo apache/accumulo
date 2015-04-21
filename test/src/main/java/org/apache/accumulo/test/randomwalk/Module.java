@@ -46,7 +46,9 @@ import javax.xml.validation.SchemaFactory;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.log4j.Priority;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -56,7 +58,7 @@ import org.w3c.dom.NodeList;
  */
 public class Module extends Node {
 
-  private static final Logger log = Logger.getLogger(Module.class);
+  private static final Logger log = LoggerFactory.getLogger(Module.class);
 
   private class Dummy extends Node {
 
@@ -71,7 +73,24 @@ public class Module extends Node {
       String print;
       if ((print = props.getProperty("print")) != null) {
         Level level = Level.toLevel(print);
-        log.log(level, name);
+        switch(level.toInt()) {
+          case Level.TRACE_INT:
+            log.trace(name);
+            break;
+          case Priority.DEBUG_INT:
+            log.debug(name);
+            break;
+          case Priority.ERROR_INT:
+          case Priority.FATAL_INT:
+            log.error(name);
+            break;
+          case Priority.INFO_INT:
+            log.info(name);
+            break;
+          case Priority.WARN_INT:
+            log.warn(name);
+        }
+        //log.log(level, name);
       }
     }
 
@@ -239,7 +258,7 @@ public class Module extends Node {
         // check if maxSec was reached
         long curTime = System.currentTimeMillis() / 1000;
         if ((curTime - startTime) > maxSec) {
-          log.debug("reached maxSec(" + maxSec + ")");
+          log.debug("reached maxSec({})", maxSec);
           break;
         }
 
@@ -248,7 +267,7 @@ public class Module extends Node {
 
         // check if maxHops was reached
         if (numHops > maxHops) {
-          log.debug("reached maxHops(" + maxHops + ")");
+          log.debug("reached maxHops({})", maxHops);
           break;
         }
         numHops++;
@@ -297,13 +316,13 @@ public class Module extends Node {
             // Bound the time we'll wait for the node to complete
             nodeException = task.get(secondsRemaining, TimeUnit.SECONDS);
           } catch (InterruptedException e) {
-            log.warn("Interrupted waiting for " + nextNode.getClass().getSimpleName() + " to complete. Exiting.", e);
+            log.warn("Interrupted waiting for {} to complete. Exiting. {}", nextNode.getClass().getSimpleName(), e);
             break;
           } catch (ExecutionException e) {
-            log.error("Caught error executing " + nextNode.getClass().getSimpleName(), e);
+            log.error("Caught error executing {} {}", nextNode.getClass().getSimpleName(), e);
             throw e;
           } catch (TimeoutException e) {
-            log.info("Timed out waiting for " + nextNode.getClass().getSimpleName() + " to complete (waited " + secondsRemaining + " seconds). Exiting.", e);
+            log.info("Timed out waiting for {} to complete (waited {} seconds). Exiting. {}", nextNode.getClass().getSimpleName(), secondsRemaining, e);
             break;
           }
 
@@ -316,15 +335,15 @@ public class Module extends Node {
           if (test)
             stopTimer(nextNode);
         } catch (Exception e) {
-          log.debug("Connector belongs to user: " + env.getConnector().whoami());
-          log.debug("Exception occured at: " + System.currentTimeMillis());
-          log.debug("Properties for node: " + nextNodeId);
+          log.debug("Connector belongs to user: {}", env.getConnector().whoami());
+          log.debug("Exception occured at: {}", System.currentTimeMillis());
+          log.debug("Properties for node: {}", nextNodeId);
           for (Entry<Object,Object> entry : nodeProps.entrySet()) {
-            log.debug("  " + entry.getKey() + ": " + entry.getValue());
+            log.debug("  {}: {}", entry.getKey(), entry.getValue());
           }
           log.debug("Overall Configuration Properties");
           for (Entry<Object,Object> entry : env.copyConfigProperties().entrySet()) {
-            log.debug("  " + entry.getKey() + ": " + entry.getValue());
+            log.debug("  {}: {}", entry.getKey(), entry.getValue());
           }
           log.debug("State information");
           for (String key : new TreeSet<String>(state.getMap().keySet())) {
@@ -387,7 +406,7 @@ public class Module extends Node {
         }
         long timeSinceLastProgress = System.currentTimeMillis() - initNode.lastProgress();
         if (timeSinceLastProgress > time) {
-          log.warn("Node " + initNode + " has been running for " + timeSinceLastProgress / 1000.0 + " seconds. You may want to look into it.");
+          log.warn("Node {} has been running for {} seconds. You may want to look into it.", initNode, timeSinceLastProgress / 1000.0);
           runningLong.set(true);
         }
       }
@@ -405,11 +424,11 @@ public class Module extends Node {
       try {
         timer.join();
       } catch (InterruptedException e) {
-        log.error("Failed to join timer '" + timer.getName() + "'.", e);
+        log.error("Failed to join timer '{}'.", timer.getName(), e);
       }
     }
     if (runningLong.get())
-      log.warn("Node " + nextNode + ", which was running long, has now completed after " + (System.currentTimeMillis() - systemTime) / 1000.0 + " seconds");
+      log.warn("Node {}, which was running long, has now completed after {} seconds", nextNode, (System.currentTimeMillis() - systemTime) / 1000.0);
   }
 
   @Override
@@ -427,7 +446,7 @@ public class Module extends Node {
     String id = name.substring(0, index);
 
     if (!prefixes.containsKey(id)) {
-      log.warn("Id (" + id + ") was not found in prefixes");
+      log.warn("Id ({}) was not found in prefixes", id);
       return name;
     }
 
@@ -501,7 +520,7 @@ public class Module extends Node {
       docbuilder = dbf.newDocumentBuilder();
       d = docbuilder.parse(xmlFile);
     } catch (Exception e) {
-      log.error("Failed to parse: " + xmlFile, e);
+      log.error("Failed to parse: {}", xmlFile, e);
       throw new Exception("Failed to parse: " + xmlFile);
     }
 
