@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static com.google.common.base.Charsets.UTF_8;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -39,20 +40,27 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.Maps;
 
 /**
- * Exists because mock instance doesn't produce this error when dynamically changing the table permissions.
+ * Prevent regression of ACCUMULO-3709. Exists as a mini test because mock instance doesn't produce this error when dynamically changing the table permissions.
  */
-public class AccumuloOutputFormatTest {
+public class AccumuloOutputFormatIT {
 
   private static final String TABLE = "abc";
-  public static TemporaryFolder folder = new TemporaryFolder();
   private MiniAccumuloCluster accumulo;
   private String secret = "secret";
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   @Before
   public void setUp() throws Exception {
@@ -72,7 +80,7 @@ public class AccumuloOutputFormatTest {
     folder.delete();
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void testMapred() throws Exception {
 
     ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
@@ -109,6 +117,9 @@ public class AccumuloOutputFormatTest {
     }
 
     connector.securityOperations().revokeTablePermission("root", TABLE, TablePermission.WRITE);
+
+    exception.expect(IOException.class);
+    exception.expectMessage("PERMISSION_DENIED");
     writer.close(null);
   }
 }

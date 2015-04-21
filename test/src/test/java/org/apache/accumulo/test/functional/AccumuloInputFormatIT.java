@@ -130,7 +130,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
       fail("An exception should have been thrown");
     } catch (IOException e) {}
 
-    conn.tableOperations().offline(table);
+    conn.tableOperations().offline(table, true);
     splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size(), splits.size());
 
@@ -149,16 +149,20 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
 
     //BatchScan not available for offline scans
     AccumuloInputFormat.setBatchScan(job, true);
+    // Reset auto-adjust ranges too
+    AccumuloInputFormat.setAutoAdjustRanges(job, true);
 
     AccumuloInputFormat.setOfflineTableScan(job, true);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (IOException e) {}
+    } catch (IllegalArgumentException e) {}
+
+    conn.tableOperations().online(table, true);
     AccumuloInputFormat.setOfflineTableScan(job, false);
 
     // test for resumption of success
-    inputFormat.getSplits(job);
+    splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     //BatchScan not available with isolated iterators
@@ -166,11 +170,11 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (IOException e) {}
+    } catch (IllegalArgumentException e) {}
     AccumuloInputFormat.setScanIsolation(job, false);
 
     // test for resumption of success
-    inputFormat.getSplits(job);
+    splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     //BatchScan not available with local iterators
@@ -178,7 +182,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
-    } catch (IOException e) {}
+    } catch (IllegalArgumentException e) {}
     AccumuloInputFormat.setLocalIterators(job, false);
 
     //Check we are getting back correct type pf split
