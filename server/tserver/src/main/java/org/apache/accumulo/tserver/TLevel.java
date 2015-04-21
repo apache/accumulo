@@ -29,7 +29,6 @@ public class TLevel extends Level {
     super(Priority.DEBUG_INT + 100, "TABLET_HIST", Priority.DEBUG_INT + 100);
   }
 
-  }
 
   static public void logAtLevel(Logger log, Level level, String msg, Object...objects) {
     switch(level.toInt()) {
@@ -50,4 +49,5 @@ public class TLevel extends Level {
         log.warn(msg, objects);
         break;
     }
+  }
 }

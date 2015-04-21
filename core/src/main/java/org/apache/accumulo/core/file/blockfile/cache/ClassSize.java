@@ -22,8 +22,8 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an object of this class will occupy in memory
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * The core of this class is taken from the Derby project
  */
 public class ClassSize {
-  private static final Logger log = LoggerFactory.getLogger(ClassSize.class);
+  static final Log LOG = LogFactory.getLog(ClassSize.class);
 
   /** Array overhead */
   public static final int ARRAY;
@@ -148,102 +148,6 @@ public class ClassSize {
   }
 
   /**
-<<<<<<< HEAD
-=======
-   * The estimate of the size of a class instance depends on whether the JVM uses 32 or 64 bit addresses, that is it depends on the size of an object reference.
-   * It is a linear function of the size of a reference, e.g. 24 + 5*r where r is the size of a reference (usually 4 or 8 bytes).
-   *
-   * This method returns the coefficients of the linear function, e.g. {24, 5} in the above example.
-   *
-   * @param cl
-   *          A class whose instance size is to be estimated
-   * @return an array of 3 integers. The first integer is the size of the primitives, the second the number of arrays and the third the number of references.
-   */
-  private static int[] getSizeCoefficients(Class<?> cl, boolean debug) {
-    int primitives = 0;
-    int arrays = 0;
-    // The number of references that a new object takes
-    int references = nrOfRefsPerObj;
-
-    for (; null != cl; cl = cl.getSuperclass()) {
-      Field[] field = cl.getDeclaredFields();
-      if (null != field) {
-        for (int i = 0; i < field.length; i++) {
-          if (!Modifier.isStatic(field[i].getModifiers())) {
-            Class<?> fieldClass = field[i].getType();
-            if (fieldClass.isArray()) {
-              arrays++;
-              references++;
-            } else if (!fieldClass.isPrimitive()) {
-              references++;
-            } else {// Is simple primitive
-              String name = fieldClass.getName();
-
-              if (name.equals("int") || name.equals("I"))
-                primitives += SizeConstants.SIZEOF_INT;
-              else if (name.equals("long") || name.equals("J"))
-                primitives += SizeConstants.SIZEOF_LONG;
-              else if (name.equals("boolean") || name.equals("Z"))
-                primitives += SizeConstants.SIZEOF_BOOLEAN;
-              else if (name.equals("short") || name.equals("S"))
-                primitives += SizeConstants.SIZEOF_SHORT;
-              else if (name.equals("byte") || name.equals("B"))
-                primitives += SizeConstants.SIZEOF_BYTE;
-              else if (name.equals("char") || name.equals("C"))
-                primitives += SizeConstants.SIZEOF_CHAR;
-              else if (name.equals("float") || name.equals("F"))
-                primitives += SizeConstants.SIZEOF_FLOAT;
-              else if (name.equals("double") || name.equals("D"))
-                primitives += SizeConstants.SIZEOF_DOUBLE;
-            }
-            if (debug) {
-              if (log.isDebugEnabled()) {
-                // Write out region name as string and its encoded name.
-                log.debug("{}\n\t{}", field[i].getName(), field[i].getType());
-              }
-            }
-          }
-        }
-      }
-    }
-    return new int[] {primitives, arrays, references};
-  }
-
-  /**
-   * Estimate the static space taken up by a class instance given the coefficients returned by getSizeCoefficients.
-   *
-   * @param coeff
-   *          the coefficients
-   *
-   * @return the size estimate, in bytes
-   */
-  private static long estimateBaseFromCoefficients(int[] coeff, boolean debug) {
-    long size = coeff[0] + align(coeff[1] * ARRAY) + coeff[2] * REFERENCE;
-
-    // Round up to a multiple of 8
-    size = align(size);
-    if (debug) {
-      if (log.isDebugEnabled()) {
-        // Write out region name as string and its encoded name.
-        log.debug("Primitives {}, arrays {}, references(includes {} for object overhead) {}, refSize {}, size {}", coeff[0], coeff[1], nrOfRefsPerObj, coeff[2], REFERENCE, size);
-      }
-    }
-    return size;
-  }
-
-  /**
-   * Estimate the static space taken up by the fields of a class. This includes the space taken up by by references (the pointer) but not by the referenced
-   * object. So the estimated size of an array field does not depend on the size of the array. Similarly the size of an object (reference) field does not depend
-   * on the object.
-   *
-   * @return the size estimate in bytes.
-   */
-  public static long estimateBase(Class<?> cl, boolean debug) {
-    return estimateBaseFromCoefficients(getSizeCoefficients(cl, debug), debug);
-  }
-
-  /**
->>>>>>> ACCUMULO-3652 refactor for slf4j all packages except gc, master, monitor and server-base
    * Aligns a number to 8.
    *
    * @param num
