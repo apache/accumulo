@@ -118,7 +118,7 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>net.revelc.apilyzer</groupId>
+        <groupId>net.revelc.code</groupId>
         <artifactId>apilyzer-maven-plugin</artifactId>
         <executions>
           <execution>

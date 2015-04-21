@@ -899,9 +899,9 @@
           <version>2.5.3</version>
         </plugin>
         <plugin>
-          <groupId>net.revelc.apilyzer</groupId>
+          <groupId>net.revelc.code</groupId>
           <artifactId>apilyzer-maven-plugin</artifactId>
-          <version>1.0.0</version>
+          <version>1.0.1</version>
         </plugin>
       </plugins>
     </pluginManagement>
