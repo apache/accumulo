@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +53,6 @@ import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -229,13 +227,6 @@ public class TabletServerLogger {
             log.debug("Creating next WAL");
             DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
-            EnumSet<TabletLevel> levels = EnumSet.noneOf(TabletLevel.class);
-            for (Tablet tablet : tserver.getOnlineTablets()) {
-              levels.add(TabletLevel.getLevel(tablet.getExtent()));
-            }
-            for (TabletLevel level : levels) {
-              tserver.addLoggersToMetadata(alog, level);
-            }
             log.debug("Created next WAL " + alog.getFileName());
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
               log.info("Our WAL was not used for 12 hours: " + alog.getFileName());
