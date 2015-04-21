@@ -68,7 +68,6 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -147,7 +146,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile) throws IOException {
       ClientConfiguration clientConf;
       try {
-        clientConf = new ClientConfiguration(new PropertiesConfiguration(configFile));
+        clientConf = new ClientConfiguration(configFile);
       } catch (ConfigurationException e) {
         throw new IOException(e);
       }

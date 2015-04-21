@@ -47,7 +47,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -212,7 +211,7 @@ public class ClientOpts extends Help {
       if (clientConfigFile == null)
         clientConfig = ClientConfiguration.loadDefault();
       else
-        clientConfig = new ClientConfiguration(new PropertiesConfiguration(clientConfigFile));
+        clientConfig = new ClientConfiguration(clientConfigFile);
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
@@ -325,7 +324,7 @@ public class ClientOpts extends Help {
       if (clientConfigFile == null)
         clientConfig = ClientConfiguration.loadDefault();
       else
-        clientConfig = new ClientConfiguration(new PropertiesConfiguration(clientConfigFile));
+        clientConfig = new ClientConfiguration(clientConfigFile);
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }

@@ -41,7 +41,6 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.accumulo.test.util.CertUtils;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.zookeeper.KeeperException;
@@ -175,7 +174,7 @@ public class ConfigurableMacIT extends AccumuloIT {
   }
 
   protected ClientConfiguration getClientConfig() throws Exception {
-    return new ClientConfiguration(new PropertiesConfiguration(getCluster().getConfig().getClientConfFile()));
+    return new ClientConfiguration(getCluster().getConfig().getClientConfFile());
   }
 
 }
