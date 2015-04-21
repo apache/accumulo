@@ -107,7 +107,6 @@ import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -193,7 +192,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (props.containsKey("clientConfigurationFile")) {
         String clientConfFile = props.getProperty("clientConfigurationFile");
         try {
-          clientConf = new ClientConfiguration(new PropertiesConfiguration(clientConfFile));
+          clientConf = new ClientConfiguration(clientConfFile);
         } catch (ConfigurationException e) {
           throw new RuntimeException(e);
         }

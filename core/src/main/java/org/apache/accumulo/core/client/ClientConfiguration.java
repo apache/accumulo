@@ -31,10 +31,13 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
+import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
@@ -42,6 +45,8 @@ import org.apache.commons.configuration.PropertiesConfiguration;
  * @since 1.6.0
  */
 public class ClientConfiguration extends CompositeConfiguration {
+  private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
+
   public static final String USER_ACCUMULO_DIR_NAME = ".accumulo";
   public static final String USER_CONF_FILENAME = "config";
   public static final String GLOBAL_CONF_FILENAME = "client.conf";
@@ -134,10 +139,42 @@ public class ClientConfiguration extends CompositeConfiguration {
     }
   };
 
+  public ClientConfiguration(String configFile) throws ConfigurationException {
+    this(new PropertiesConfiguration(), configFile);
+  }
+
+  private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, String configFile) throws ConfigurationException {
+    super(propertiesConfiguration);
+    // Don't do list interpolation
+    propertiesConfiguration.setDelimiterParsingDisabled(true);
+    propertiesConfiguration.load(configFile);
+  }
+
+  public ClientConfiguration(File configFile) throws ConfigurationException {
+    this(new PropertiesConfiguration(), configFile);
+  }
+
+  private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, File configFile) throws ConfigurationException {
+    super(propertiesConfiguration);
+    // Don't do list interpolation
+    propertiesConfiguration.setDelimiterParsingDisabled(true);
+    propertiesConfiguration.load(configFile);
+  }
+
   public ClientConfiguration(List<? extends Configuration> configs) {
     super(configs);
     // Don't do list interpolation
-    this.setListDelimiter('\0');
+    this.setDelimiterParsingDisabled(true);
+    for (Configuration c : configs) {
+      if (c instanceof AbstractConfiguration) {
+        AbstractConfiguration abstractConfiguration = (AbstractConfiguration) c;
+        if (!abstractConfiguration.isDelimiterParsingDisabled() && abstractConfiguration.getListDelimiter() != '\0') {
+          log.warn("Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config " +
+              "properties may be unavailable");
+          abstractConfiguration.setDelimiterParsingDisabled(true);
+        }
+      }
+    }
   }
 
   /**
@@ -172,7 +209,7 @@ public class ClientConfiguration extends CompositeConfiguration {
       for (String path : paths) {
         File conf = new File(path);
         if (conf.canRead()) {
-          configs.add(new PropertiesConfiguration(conf));
+          configs.add(new ClientConfiguration(conf));
         }
       }
       return new ClientConfiguration(configs);
@@ -183,6 +220,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   public static ClientConfiguration deserialize(String serializedConfig) {
     PropertiesConfiguration propConfig = new PropertiesConfiguration();
+    propConfig.setDelimiterParsingDisabled(true);
     try {
       propConfig.load(new StringReader(serializedConfig));
     } catch (ConfigurationException e) {
