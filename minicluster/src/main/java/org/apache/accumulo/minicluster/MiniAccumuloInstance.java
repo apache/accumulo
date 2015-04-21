@@ -43,7 +43,10 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
 
   public static PropertiesConfiguration getConfigProperties(File directory) {
     try {
-      return new PropertiesConfiguration(new File(new File(directory, "conf"), "client.conf"));
+      PropertiesConfiguration conf = new PropertiesConfiguration();
+      conf.setListDelimiter('\0');
+      conf.load(new File(new File(directory, "conf"), "client.conf"));
+      return conf;
     } catch (ConfigurationException e) {
       // this should never happen since we wrote the config file ourselves
       throw new IllegalArgumentException(e);
