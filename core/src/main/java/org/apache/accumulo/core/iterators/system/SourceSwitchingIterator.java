@@ -69,11 +69,11 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     this.source = source;
     this.onlySwitchAfterRow = onlySwitchAfterRow;
     this.copies = copies;
-    copies.add(this);
   }
 
   public SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow) {
     this(source, onlySwitchAfterRow, Collections.synchronizedList(new ArrayList<SourceSwitchingIterator>()));
+    copies.add(this);
   }
 
   public SourceSwitchingIterator(DataSource source) {
@@ -81,8 +81,14 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public synchronized SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies);
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    synchronized (copies) {
+      synchronized(this){
+        SourceSwitchingIterator ssi = new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies);
+        copies.add(ssi);
+        return ssi;
+      }
+    }
   }
 
   @Override
@@ -186,14 +192,17 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public synchronized void setInterruptFlag(AtomicBoolean flag) {
-    if (copies.size() != 1)
-      throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
+  public void setInterruptFlag(AtomicBoolean flag) {
+    synchronized (copies) {
+      synchronized (this) {
+        if (copies.size() != 1)
+          throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
 
-    if (iter != null)
-      ((InterruptibleIterator) iter).setInterruptFlag(flag);
+        if (iter != null)
+          ((InterruptibleIterator) iter).setInterruptFlag(flag);
 
-    source.setInterruptFlag(flag);
+        source.setInterruptFlag(flag);
+      }
+    }
   }
-
 }
