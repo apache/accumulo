@@ -78,7 +78,7 @@ public class TabletServerLogger {
 
   // The current logger
   private DfsLogger currentLog = null;
-  private final SynchronousQueue<DfsLogger> nextLog = new SynchronousQueue<>();
+  private final SynchronousQueue<Object> nextLog = new SynchronousQueue<>();
   private ThreadPoolExecutor nextLogMaker;
 
   // The current generation of logs.
@@ -200,11 +200,18 @@ public class TabletServerLogger {
 
     try {
       startLogMaker();
-      DfsLogger next = nextLog.take();
-      log.info("Using next log " + next.getFileName());
-      currentLog = next;
-      logId.incrementAndGet();
-      return;
+      Object next = nextLog.take();
+      if (next instanceof Exception) {
+        throw (Exception)next;
+      }
+      if (next instanceof DfsLogger) {
+        currentLog = (DfsLogger)next;
+        logId.incrementAndGet();
+        log.info("Using next log " + currentLog.getFileName());
+        return;
+      } else {
+        throw new RuntimeException("Error: unexpected type seen: " + next);
+      }
     } catch (Exception t) {
       walErrors.put(System.currentTimeMillis(), "");
       if (walErrors.size() >= HALT_AFTER_ERROR_COUNT) {
@@ -233,6 +240,11 @@ public class TabletServerLogger {
             }
           } catch (Exception t) {
             log.error("{}", t.getMessage(), t);
+            try {
+              nextLog.offer(t, 12, TimeUnit.HOURS);
+            } catch (InterruptedException ex) {
+              // ignore
+            }
           }
         }
       }

@@ -105,9 +105,9 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     c.tableOperations().create(tableName);
     writeSomeData(c, tableName, 1, 1);
 
-    // should have two markers: wal in use, and next wal
+    // wal markers are added lazily
     Map<String,Boolean> wals = getWals(c, zoo);
-    assertEquals(wals.toString(), 2, wals.size());
+    assertEquals(wals.toString(), 1, wals.size());
     for (Boolean b : wals.values()) {
       assertTrue("logs should be in use", b.booleanValue());
     }
@@ -115,9 +115,9 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     // roll log, get a new next
     writeSomeData(c, tableName, 1000, 50);
     Map<String,Boolean> walsAfterRoll = getWals(c, zoo);
-    assertEquals("should have 3 WALs after roll", 3, walsAfterRoll.size());
+    assertEquals("should have 3 WALs after roll", 2, walsAfterRoll.size());
     assertTrue("new WALs should be a superset of the old WALs", walsAfterRoll.keySet().containsAll(wals.keySet()));
-    assertEquals("all WALs should be in use", 3, countTrue(walsAfterRoll.values()));
+    assertEquals("all WALs should be in use", 2, countTrue(walsAfterRoll.values()));
 
     // flush the tables
     for (String table: new String[] { tableName, MetadataTable.NAME, RootTable.NAME} ) {
@@ -126,15 +126,15 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     UtilWaitThread.sleep(1000);
     // rolled WAL is no longer in use, but needs to be GC'd
     Map<String,Boolean> walsAfterflush = getWals(c, zoo);
-    assertEquals(walsAfterflush.toString(), 3, walsAfterflush.size());
-    assertEquals("inUse should be 2", 2, countTrue(walsAfterflush.values()));
+    assertEquals(walsAfterflush.toString(), 2, walsAfterflush.size());
+    assertEquals("inUse should be 1", 1, countTrue(walsAfterflush.values()));
 
     // let the GC run for a little bit
     control.start(GARBAGE_COLLECTOR);
     UtilWaitThread.sleep(5 * 1000);
     // make sure the unused WAL goes away
     Map<String,Boolean> walsAfterGC = getWals(c, zoo);
-    assertEquals(walsAfterGC.toString(), 2, walsAfterGC.size());
+    assertEquals(walsAfterGC.toString(), 1, walsAfterGC.size());
     control.stop(GARBAGE_COLLECTOR);
     // restart the tserver, but don't run recovery on all tablets
     control.stop(TABLET_SERVER);
@@ -158,12 +158,12 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
 
     Map<String,Boolean> walsAfterRestart = getWals(c, zoo);
     //log.debug("wals after " + walsAfterRestart);
-    assertEquals("used WALs after restart should be 2", 2, countTrue(walsAfterRestart.values()));
+    assertEquals("used WALs after restart should be 1", 1, countTrue(walsAfterRestart.values()));
     control.start(GARBAGE_COLLECTOR);
     UtilWaitThread.sleep(5 * 1000);
     Map<String,Boolean> walsAfterRestartAndGC = getWals(c, zoo);
-    assertEquals("wals left should be 2", 2, walsAfterRestartAndGC.size());
-    assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
+    assertEquals("wals left should be 1", 1, walsAfterRestartAndGC.size());
+    assertEquals("logs in use should be 1", 1, countTrue(walsAfterRestartAndGC.values()));
   }
 
   private void verifySomeData(Connector c, String tableName, int expected) throws Exception {

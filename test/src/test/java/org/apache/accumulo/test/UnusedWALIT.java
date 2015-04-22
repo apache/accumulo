@@ -80,7 +80,7 @@ public class UnusedWALIT extends ConfigurableMacIT {
 
     // roll the logs by pushing data into bigTable
     writeSomeData(c, bigTable, 0, 3000, 0, 1000);
-    assertEquals(3, getWALCount(c));
+    assertEquals(2, getWALCount(c));
 
     // put some data in the latest log
     writeSomeData(c, lilTable, 1, 10, 0, 10);
