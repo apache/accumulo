@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

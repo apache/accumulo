@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.TabletID;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -65,8 +65,16 @@ public abstract class ActiveScan {
 
   /**
    * @return tablet the scan is running against, if a batch scan may be one of many or null
+   * @deprecated since 1.7.0 use {@link #getTablet()}
    */
-  public abstract KeyExtent getExtent();
+  @Deprecated
+  public abstract org.apache.accumulo.core.data.KeyExtent getExtent();
+
+  /**
+   * @return tablet the scan is running against, if a batch scan may be one of many or null
+   * @since 1.7.0
+   */
+  public abstract TabletID getTablet();
 
   /**
    * @return columns requested by the scan

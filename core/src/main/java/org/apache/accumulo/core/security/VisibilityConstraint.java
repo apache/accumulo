@@ -14,78 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.accumulo.core.security;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-
-import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.data.ColumnUpdate;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.util.BadArgumentException;
-
 /**
- * A constraint that checks the visibility of columns against the actor's authorizations. Violation codes:
- * <p>
- * <ul>
- * <li>1 = failure to parse visibility expression</li>
- * <li>2 = insufficient authorization</li>
- * </ul>
+ *
+ * @deprecated since 1.7.0 This is server side code not intended to exist in a public API package. This class references types that are not in the public API
+ *             and therefore is not guaranteed to be stable. It was deprecated to clearly communicate this. Use
+ *             {@link org.apache.accumulo.core.constraints.VisibilityConstraint} instead.
  */
-public class VisibilityConstraint implements Constraint {
+@Deprecated
+public class VisibilityConstraint extends org.apache.accumulo.core.constraints.VisibilityConstraint {
 
-  @Override
-  public String getViolationDescription(short violationCode) {
-    switch (violationCode) {
-      case 1:
-        return "Malformed column visibility";
-      case 2:
-        return "User does not have authorization on column visibility";
-    }
-
-    return null;
-  }
-
-  @Override
-  public List<Short> check(Environment env, Mutation mutation) {
-    List<ColumnUpdate> updates = mutation.getUpdates();
-
-    HashSet<String> ok = null;
-    if (updates.size() > 1)
-      ok = new HashSet<String>();
-
-    VisibilityEvaluator ve = null;
-
-    for (ColumnUpdate update : updates) {
-
-      byte[] cv = update.getColumnVisibility();
-      if (cv.length > 0) {
-        String key = null;
-        if (ok != null && ok.contains(key = new String(cv, UTF_8)))
-          continue;
-
-        try {
-
-          if (ve == null)
-            ve = new VisibilityEvaluator(env);
-
-          if (!ve.evaluate(new ColumnVisibility(cv)))
-            return Collections.singletonList(Short.valueOf((short) 2));
-
-        } catch (BadArgumentException bae) {
-          return Collections.singletonList(new Short((short) 1));
-        } catch (VisibilityParseException e) {
-          return Collections.singletonList(new Short((short) 1));
-        }
-
-        if (ok != null)
-          ok.add(key);
-      }
-    }
-
-    return null;
-  }
 }

@@ -45,7 +45,7 @@ class ActiveScanIterator implements Iterator<String> {
           scans
               .add(String.format("%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%10s | %s", tserver, as.getClient(),
                   Duration.format(as.getAge(), "", "-"), Duration.format(as.getLastContactTime(), "", "-"), as.getState(), as.getType(), as.getUser(),
-                  as.getTable(), as.getColumns(), as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getExtent() : "N/A"), as.getSsiList(),
+                  as.getTable(), as.getColumns(), as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getSsiList(),
                   as.getSsio()));
         }
       } catch (Exception e) {

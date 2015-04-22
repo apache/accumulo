@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.tabletserver;
 
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public interface TabletState {
   KeyExtent getExtent();

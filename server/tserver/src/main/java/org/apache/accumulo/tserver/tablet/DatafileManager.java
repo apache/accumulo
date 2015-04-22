@@ -31,7 +31,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.trace.Span;

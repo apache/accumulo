@@ -53,6 +53,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
   /**
    * Save progress on each call to this function, implied by value of currentKey, and return average ranges in the split
    */
+  @Override
   public float getProgress(Key currentKey) {
     if (null == rangeProgress)
       rangeProgress = new float[ranges.size()];
@@ -70,13 +71,13 @@ public class BatchInputSplit extends AccumuloInputSplit {
           if (range.getStartKey() != null && range.getEndKey() != null) {
             if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
               // just look at the row progress
-              rangeProgress[i] = getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
             } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
               // just look at the column family progress
-              rangeProgress[i] = getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
             } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
               // just look at the column qualifier progress
-              rangeProgress[i] = getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
             }
           }
           total += rangeProgress[i];
@@ -126,19 +127,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
     StringBuilder sb = new StringBuilder(256);
     sb.append("BatchInputSplit:");
     sb.append(" Ranges: ").append(Arrays.asList(ranges));
-    sb.append(" Location: ").append(Arrays.asList(locations));
-    sb.append(" Table: ").append(tableName);
-    sb.append(" TableID: ").append(tableId);
-    sb.append(" InstanceName: ").append(instanceName);
-    sb.append(" zooKeepers: ").append(zooKeepers);
-    sb.append(" principal: ").append(principal);
-    sb.append(" tokenSource: ").append(tokenSource);
-    sb.append(" authenticationToken: ").append(token);
-    sb.append(" authenticationTokenFile: ").append(tokenFile);
-    sb.append(" Authorizations: ").append(auths);
-    sb.append(" fetchColumns: ").append(fetchedColumns);
-    sb.append(" iterators: ").append(iterators);
-    sb.append(" logLevel: ").append(level);
+    sb.append(super.toString());
     return sb.toString();
   }
 

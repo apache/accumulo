@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -220,5 +221,22 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new RuntimeException("Unexpected exception thrown", ex);
     }
 
+  }
+
+  /**
+   * Given a zooCache and instanceId, look up the instance name.
+   */
+  public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
+    checkArgument(zooCache != null, "zooCache is null");
+    checkArgument(instanceId != null, "instanceId is null");
+    for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
+      byte[] bytes = zooCache.get(instanceNamePath);
+      UUID iid = UUID.fromString(new String(bytes, UTF_8));
+      if (iid.equals(instanceId)) {
+        return name;
+      }
+    }
+    return null;
   }
 }

@@ -17,12 +17,18 @@
 package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 
@@ -53,12 +59,12 @@ public class ClientConfigurationTest {
   }
 
   private ClientConfiguration createConfig() {
-    Configuration first = new PropertiesConfiguration();
+    Configuration first = new ClientConfiguration();
     first.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "firstZkHosts");
-    Configuration second = new PropertiesConfiguration();
+    Configuration second = new ClientConfiguration();
     second.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "secondZkHosts");
     second.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "secondInstanceName");
-    Configuration third = new PropertiesConfiguration();
+    Configuration third = new ClientConfiguration();
     third.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
     third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
     third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
@@ -78,4 +84,43 @@ public class ClientConfigurationTest {
     assertEquals(primary, conf.get(ClientProperty.KERBEROS_SERVER_PRIMARY));
   }
 
+  @Test
+  public void testMultipleValues() throws ConfigurationException {
+    String val = "comma,separated,list";
+
+    // not the recommended way to construct a client configuration, but it works
+    PropertiesConfiguration propertiesConfiguration = new PropertiesConfiguration();
+    propertiesConfiguration.setDelimiterParsingDisabled(true);
+    propertiesConfiguration.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
+    propertiesConfiguration.load(new StringReader(ClientProperty.TRACE_SPAN_RECEIVERS.getKey() + "=" + val));
+    ClientConfiguration conf = new ClientConfiguration(propertiesConfiguration);
+    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
+    assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
+    assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+
+    // incorrect usage that results in not being able to use multi-valued properties
+    conf = new ClientConfiguration(new PropertiesConfiguration("multi-valued.client.conf"));
+    assertNotEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals(3, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
+    assertNotEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
+    assertEquals(3, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+
+    // recommended usage
+    conf = new ClientConfiguration("multi-valued.client.conf");
+    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
+    assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
+    assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+
+    // only used internally
+    Map<String, String> map = new HashMap<>();
+    map.put(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
+    map.put(ClientProperty.TRACE_SPAN_RECEIVERS.getKey(), val);
+    conf = new ClientConfiguration(new MapConfiguration(map));
+    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
+    assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
+    assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+  }
 }

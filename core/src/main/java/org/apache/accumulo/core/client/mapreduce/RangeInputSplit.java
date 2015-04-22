@@ -19,9 +19,9 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
+import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -47,6 +47,7 @@ public class RangeInputSplit extends AccumuloInputSplit {
     this.range = range;
   }
 
+  @Override
   public float getProgress(Key currentKey) {
     if (currentKey == null)
       return 0f;
@@ -55,13 +56,13 @@ public class RangeInputSplit extends AccumuloInputSplit {
       if (range.getStartKey() != null && range.getEndKey() != null) {
         if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
           // just look at the row progress
-          return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
+          return SplitUtils.getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
         } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
           // just look at the column family progress
-          return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+          return SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
         } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
           // just look at the column qualifier progress
-          return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+          return SplitUtils.getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
         }
       }
     }
@@ -124,23 +125,10 @@ public class RangeInputSplit extends AccumuloInputSplit {
     StringBuilder sb = new StringBuilder(256);
     sb.append("RangeInputSplit:");
     sb.append(" Range: ").append(range);
-    sb.append(" Locations: ").append(Arrays.asList(locations));
-    sb.append(" Table: ").append(tableName);
-    sb.append(" TableID: ").append(tableId);
-    sb.append(" InstanceName: ").append(instanceName);
-    sb.append(" zooKeepers: ").append(zooKeepers);
-    sb.append(" principal: ").append(principal);
-    sb.append(" tokenSource: ").append(tokenSource);
-    sb.append(" authenticationToken: ").append(token);
-    sb.append(" authenticationTokenFile: ").append(tokenFile);
-    sb.append(" Authorizations: ").append(auths);
+    sb.append(super.toString());
     sb.append(" offlineScan: ").append(offline);
-    sb.append(" mockInstance: ").append(mockInstance);
     sb.append(" isolatedScan: ").append(isolatedScan);
     sb.append(" localIterators: ").append(localIterators);
-    sb.append(" fetchColumns: ").append(fetchedColumns);
-    sb.append(" iterators: ").append(iterators);
-    sb.append(" logLevel: ").append(level);
     return sb.toString();
   }
 

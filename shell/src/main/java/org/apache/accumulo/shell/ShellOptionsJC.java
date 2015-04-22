@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -298,8 +297,7 @@ public class ShellOptionsJC {
   }
 
   public ClientConfiguration getClientConfiguration() throws ConfigurationException, FileNotFoundException {
-    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : new ClientConfiguration(new PropertiesConfiguration(
-        getClientConfigFile()));
+    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : new ClientConfiguration(getClientConfigFile());
     if (useSsl()) {
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
     }

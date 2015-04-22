@@ -18,7 +18,7 @@ package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public abstract class ServerConfiguration {
 

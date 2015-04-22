@@ -27,6 +27,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -212,7 +213,7 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setIndexBlockSize(job1, d);
     AccumuloFileOutputFormat.setCompressionType(job1, e);
 
-    AccumuloConfiguration acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job1);
+    AccumuloConfiguration acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
@@ -233,7 +234,7 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setIndexBlockSize(job2, d);
     AccumuloFileOutputFormat.setCompressionType(job2, e);
 
-    acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job2);
+    acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job2.getConfiguration());
 
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(1300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +87,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     this.clientConfFile = clientConfFile;
     this.clientConf = ClientConfiguration.loadDefault();
     try {
-      clientConf.addConfiguration(new PropertiesConfiguration(clientConfFile));
+      clientConf.addConfiguration(new ClientConfiguration(clientConfFile));
     } catch (ConfigurationException e) {
       throw new RuntimeException("Failed to load client configuration from " + clientConfFile);
     }

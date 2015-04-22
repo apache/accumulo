@@ -48,7 +48,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.log4j.Level;
