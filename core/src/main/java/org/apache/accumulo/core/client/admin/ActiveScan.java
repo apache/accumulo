@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -74,7 +74,7 @@ public abstract class ActiveScan {
    * @return tablet the scan is running against, if a batch scan may be one of many or null
    * @since 1.7.0
    */
-  public abstract TabletID getTablet();
+  public abstract TabletId getTablet();
 
   /**
    * @return columns requested by the scan

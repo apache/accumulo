@@ -17,32 +17,32 @@
 
 package org.apache.accumulo.core.data.impl;
 
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Function;
 
-public class TabletIDImpl implements TabletID {
+public class TabletIdImpl implements TabletId {
 
   private KeyExtent ke;
 
   @SuppressWarnings("deprecation")
-  public static final Function<org.apache.accumulo.core.data.KeyExtent,TabletID> KE_2_TID_OLD = new Function<org.apache.accumulo.core.data.KeyExtent,TabletID>() {
+  public static final Function<org.apache.accumulo.core.data.KeyExtent,TabletId> KE_2_TID_OLD = new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
     @Override
-    public TabletID apply(org.apache.accumulo.core.data.KeyExtent input) {
+    public TabletId apply(org.apache.accumulo.core.data.KeyExtent input) {
       //the following if null check is to appease findbugs... grumble grumble spent a good part of my morning looking into this
       // http://sourceforge.net/p/findbugs/bugs/1139/
       // https://code.google.com/p/guava-libraries/issues/detail?id=920
       if(input == null)
         return null;
-      return new TabletIDImpl(input);
+      return new TabletIdImpl(input);
     }
   };
 
   @SuppressWarnings("deprecation")
-  public static final Function<TabletID, org.apache.accumulo.core.data.KeyExtent> TID_2_KE_OLD = new Function<TabletID, org.apache.accumulo.core.data.KeyExtent>() {
+  public static final Function<TabletId, org.apache.accumulo.core.data.KeyExtent> TID_2_KE_OLD = new Function<TabletId, org.apache.accumulo.core.data.KeyExtent>() {
     @Override
-    public org.apache.accumulo.core.data.KeyExtent apply(TabletID input) {
+    public org.apache.accumulo.core.data.KeyExtent apply(TabletId input) {
       if(input == null)
         return null;
       return new org.apache.accumulo.core.data.KeyExtent(input.getTableId(), input.getEndRow(), input.getPrevEndRow());
@@ -51,17 +51,17 @@ public class TabletIDImpl implements TabletID {
   };
 
   @Deprecated
-  public TabletIDImpl(org.apache.accumulo.core.data.KeyExtent ke) {
+  public TabletIdImpl(org.apache.accumulo.core.data.KeyExtent ke) {
     this.ke = new KeyExtent(ke.getTableId(), ke.getEndRow(), ke.getPrevEndRow());
   }
 
-  public TabletIDImpl(KeyExtent ke) {
+  public TabletIdImpl(KeyExtent ke) {
     this.ke = ke;
   }
 
   @Override
-  public int compareTo(TabletID o) {
-    return ke.compareTo(((TabletIDImpl) o).ke);
+  public int compareTo(TabletId o) {
+    return ke.compareTo(((TabletIdImpl) o).ke);
   }
 
   @Override
@@ -86,8 +86,8 @@ public class TabletIDImpl implements TabletID {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof TabletIDImpl) {
-      return ke.equals(((TabletIDImpl) o).ke);
+    if (o instanceof TabletIdImpl) {
+      return ke.equals(((TabletIdImpl) o).ke);
     }
 
     return false;

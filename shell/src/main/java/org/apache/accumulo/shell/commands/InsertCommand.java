@@ -33,7 +33,7 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -110,7 +110,7 @@ public class InsertCommand extends Command {
       if (e.getSecurityErrorCodes().isEmpty() == false) {
         lines.add("\tAuthorization Failures:");
       }
-      for (Entry<TabletID,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes().entrySet()) {
+      for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes().entrySet()) {
         lines.add("\t\t" + entry);
       }
       if (e.getConstraintViolationSummaries().isEmpty() == false) {

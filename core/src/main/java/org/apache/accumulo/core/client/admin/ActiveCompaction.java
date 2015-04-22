@@ -20,7 +20,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 
 /**
  *
@@ -87,7 +87,7 @@ public abstract class ActiveCompaction {
    * @return tablet thats is compacting
    * @since 1.7.0
    */
-  public abstract TabletID getTablet();
+  public abstract TabletId getTablet();
 
   /**
    * @return how long the compaction has been running in milliseconds

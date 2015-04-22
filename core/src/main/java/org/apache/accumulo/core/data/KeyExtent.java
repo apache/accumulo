@@ -37,7 +37,7 @@ import org.apache.hadoop.io.WritableComparable;
 /**
  * keeps track of information needed to identify a tablet
  *
- * @deprecated since 1.7.0 use {@link TabletID}
+ * @deprecated since 1.7.0 use {@link TabletId}
  */
 @Deprecated
 public class KeyExtent implements WritableComparable<KeyExtent> {
