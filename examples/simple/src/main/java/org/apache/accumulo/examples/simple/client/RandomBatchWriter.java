@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -157,7 +157,7 @@ public class RandomBatchWriter {
     } catch (MutationsRejectedException e) {
       if (e.getSecurityErrorCodes().size() > 0) {
         HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
-        for (Entry<TabletID,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
+        for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
           Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
           if (secCodes == null) {
             secCodes = new HashSet<SecurityErrorCode>();

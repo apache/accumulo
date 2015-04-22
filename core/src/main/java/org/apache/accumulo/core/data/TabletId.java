@@ -20,9 +20,11 @@ package org.apache.accumulo.core.data;
 import org.apache.hadoop.io.Text;
 
 /**
+ * A TabletId provides the information needed to uniquely identify a tablet.
+ *
  * @since 1.7.0
  */
-public interface TabletID extends Comparable<TabletID> {
+public interface TabletId extends Comparable<TabletId> {
   public Text getTableId();
   public Text getEndRow();
   public Text getPrevEndRow();

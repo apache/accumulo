@@ -72,7 +72,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -724,7 +724,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pscan.idleTime = scan.getIdleTime();
         pscan.type = ScanType.valueOf(scan.getType().toString());
         pscan.state = ScanState.valueOf(scan.getState().toString());
-        TabletID e = scan.getTablet();
+        TabletId e = scan.getTablet();
         pscan.extent = new org.apache.accumulo.proxy.thrift.KeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()),
             TextUtil.getByteBuffer(e.getPrevEndRow()));
         pscan.columns = new ArrayList<org.apache.accumulo.proxy.thrift.Column>();
@@ -776,7 +776,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pcomp.age = comp.getAge();
         pcomp.entriesRead = comp.getEntriesRead();
         pcomp.entriesWritten = comp.getEntriesWritten();
-        TabletID e = comp.getTablet();
+        TabletId e = comp.getTablet();
         pcomp.extent = new org.apache.accumulo.proxy.thrift.KeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()),
             TextUtil.getByteBuffer(e.getPrevEndRow()));
         pcomp.inputFiles = new ArrayList<String>();

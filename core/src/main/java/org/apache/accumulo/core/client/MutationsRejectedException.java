@@ -28,8 +28,8 @@ import java.util.Set;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.TabletID;
-import org.apache.accumulo.core.data.impl.TabletIDImpl;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -42,7 +42,7 @@ public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
 
   private List<ConstraintViolationSummary> cvsl;
-  private Map<TabletID,Set<SecurityErrorCode>> af;
+  private Map<TabletId,Set<SecurityErrorCode>> af;
   private Collection<String> es;
   private int unknownErrors;
 
@@ -73,7 +73,7 @@ public class MutationsRejectedException extends AccumuloException {
     super("# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values() + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
-    this.af = transformKeys(hashMap, TabletIDImpl.KE_2_TID_OLD);
+    this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
     this.es = serverSideErrors;
     this.unknownErrors = unknownErrors;
   }
@@ -93,10 +93,10 @@ public class MutationsRejectedException extends AccumuloException {
   @Deprecated
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
       Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(transformKeys(hashMap, TabletIDImpl.KE_2_TID_OLD), instance)
+    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
         + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
-    this.af = transformKeys(hashMap, TabletIDImpl.KE_2_TID_OLD);
+    this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
     this.es = serverSideErrors;
     this.unknownErrors = unknownErrors;
   }
@@ -114,7 +114,7 @@ public class MutationsRejectedException extends AccumuloException {
    *
    * @since 1.7.0
    */
-  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, Map<TabletID,Set<SecurityErrorCode>> hashMap,
+  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, Map<TabletId,Set<SecurityErrorCode>> hashMap,
       Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
     super("# constraint violations : " + cvsList.size() + "  security codes: " + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
@@ -124,10 +124,10 @@ public class MutationsRejectedException extends AccumuloException {
     this.unknownErrors = unknownErrors;
   }
 
-  private static String format(Map<TabletID,Set<SecurityErrorCode>> hashMap, Instance instance) {
+  private static String format(Map<TabletId,Set<SecurityErrorCode>> hashMap, Instance instance) {
     Map<String,Set<SecurityErrorCode>> result = new HashMap<String,Set<SecurityErrorCode>>();
 
-    for (Entry<TabletID,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
+    for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       String tableInfo = Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());
 
       if (!result.containsKey(tableInfo)) {
@@ -153,7 +153,7 @@ public class MutationsRejectedException extends AccumuloException {
    */
   @Deprecated
   public List<org.apache.accumulo.core.data.KeyExtent> getAuthorizationFailures() {
-    return new ArrayList<org.apache.accumulo.core.data.KeyExtent>(Collections2.transform(af.keySet(), TabletIDImpl.TID_2_KE_OLD));
+    return new ArrayList<org.apache.accumulo.core.data.KeyExtent>(Collections2.transform(af.keySet(), TabletIdImpl.TID_2_KE_OLD));
   }
 
   /**
@@ -163,13 +163,13 @@ public class MutationsRejectedException extends AccumuloException {
    */
   @Deprecated
   public Map<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailuresMap() {
-    return transformKeys(af, TabletIDImpl.TID_2_KE_OLD);
+    return transformKeys(af, TabletIdImpl.TID_2_KE_OLD);
   }
 
   /**
    * @return the internal mapping of TabletID to SecurityErrorCodes
    */
-  public Map<TabletID,Set<SecurityErrorCode>> getSecurityErrorCodes(){
+  public Map<TabletId,Set<SecurityErrorCode>> getSecurityErrorCodes(){
     return af;
   }
 

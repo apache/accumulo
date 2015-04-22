@@ -26,9 +26,9 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.ScanState;
 import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.TabletID;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.impl.TabletIDImpl;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.security.Authorizations;
@@ -125,8 +125,8 @@ public class ActiveScanImpl extends ActiveScan {
   }
 
   @Override
-  public TabletID getTablet() {
-    return new TabletIDImpl(extent);
+  public TabletId getTablet() {
+    return new TabletIdImpl(extent);
   }
 
   @Override
