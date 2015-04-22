@@ -46,9 +46,9 @@ public class MutationsRejectedException extends AccumuloException {
   private Collection<String> es;
   private int unknownErrors;
 
-  private static <K, V, L> Map<L, V> transformKeys(Map<K, V> map, Function<K, L> keyFunction) {
-    HashMap<L, V> ret = new HashMap<L,V>();
-    for(Entry<K, V> entry : map.entrySet()){
+  private static <K,V,L> Map<L,V> transformKeys(Map<K,V> map, Function<K,L> keyFunction) {
+    HashMap<L,V> ret = new HashMap<L,V>();
+    for (Entry<K,V> entry : map.entrySet()) {
       ret.put(keyFunction.apply(entry.getKey()), entry.getValue());
     }
 
@@ -65,7 +65,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @param unknownErrors
    *          number of unknown errors
    *
-   * @deprecated since 1.6.0, see {@link #MutationsRejectedException(Instance, List, HashMap, Collection, int, Throwable)}
+   * @deprecated since 1.6.0, see {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
    */
   @Deprecated
   public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
@@ -91,8 +91,8 @@ public class MutationsRejectedException extends AccumuloException {
    * @deprecated since 1.7.0 see {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
    */
   @Deprecated
-  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
-      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
+      HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
     super("# constraint violations : " + cvsList.size() + "  security codes: " + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
         + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
@@ -169,7 +169,7 @@ public class MutationsRejectedException extends AccumuloException {
   /**
    * @return the internal mapping of TabletID to SecurityErrorCodes
    */
-  public Map<TabletId,Set<SecurityErrorCode>> getSecurityErrorCodes(){
+  public Map<TabletId,Set<SecurityErrorCode>> getSecurityErrorCodes() {
     return af;
   }
 
