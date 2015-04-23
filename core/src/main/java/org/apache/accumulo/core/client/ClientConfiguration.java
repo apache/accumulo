@@ -154,6 +154,7 @@ public class ClientConfiguration extends CompositeConfiguration {
   private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, String configFile) throws ConfigurationException {
     super(propertiesConfiguration);
     // Don't do list interpolation
+    this.setDelimiterParsingDisabled(true);
     propertiesConfiguration.setDelimiterParsingDisabled(true);
     propertiesConfiguration.load(configFile);
   }
@@ -165,6 +166,7 @@ public class ClientConfiguration extends CompositeConfiguration {
   private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, File configFile) throws ConfigurationException {
     super(propertiesConfiguration);
     // Don't do list interpolation
+    this.setDelimiterParsingDisabled(true);
     propertiesConfiguration.setDelimiterParsingDisabled(true);
     propertiesConfiguration.load(configFile);
   }
