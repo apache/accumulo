@@ -44,7 +44,7 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
   public static PropertiesConfiguration getConfigProperties(File directory) {
     try {
       PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.setDelimiterParsingDisabled(true);
+      conf.setListDelimiter('\0');
       conf.load(new File(new File(directory, "conf"), "client.conf"));
       return conf;
     } catch (ConfigurationException e) {
