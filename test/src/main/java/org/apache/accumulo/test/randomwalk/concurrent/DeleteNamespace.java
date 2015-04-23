@@ -42,11 +42,11 @@ public class DeleteNamespace extends Test {
 
     try {
       conn.namespaceOperations().delete(namespace);
-      log.debug("Deleted namespace " + namespace);
+      log.debug("Deleted namespace {}", namespace);
     } catch (NamespaceNotFoundException e) {
-      log.debug("Delete namespace " + namespace + " failed, doesnt exist");
+      log.debug("Delete namespace {} failed, doesnt exist", namespace);
     } catch (NamespaceNotEmptyException e) {
-      log.debug("Delete namespace " + namespace + " failed, not empty");
+      log.debug("Delete namespace {} failed, not empty", namespace);
     }
   }
 }

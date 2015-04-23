@@ -56,11 +56,11 @@ public class DeleteRange extends Test {
 
     try {
       conn.tableOperations().deleteRows(tableName, range.get(0), range.get(1));
-      log.debug("deleted rows (" + range.get(0) + " -> " + range.get(1) + "] in " + tableName);
+      log.debug("deleted rows ({} -> {}] in {}", range.get(0), range.get(1), tableName);
     } catch (TableNotFoundException tne) {
-      log.debug("deleted rows " + tableName + " failed, doesnt exist");
+      log.debug("deleted rows {} failed, doesnt exist", tableName);
     } catch (TableOfflineException toe) {
-      log.debug("deleted rows " + tableName + " failed, offline");
+      log.debug("deleted rows {} failed, offline", tableName);
     }
   }
 }

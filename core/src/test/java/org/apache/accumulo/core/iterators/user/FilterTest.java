@@ -198,7 +198,7 @@ public class FilterTest {
     IteratorSetting is = new IteratorSetting(1, AgeOffFilter.class);
     AgeOffFilter.setTTL(is, 101l);
     AgeOffFilter.setCurrentTime(is, 1001l);
-    AgeOffFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
     try {
       ((AgeOffFilter) a).validateOptions(EMPTY_OPTS);

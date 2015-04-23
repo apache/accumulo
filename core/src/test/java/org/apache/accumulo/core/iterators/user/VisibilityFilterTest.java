@@ -115,7 +115,7 @@ public class VisibilityFilterTest {
   @Test
   public void testAllowBadLabelsOnly() throws IOException {
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
-    VisibilityFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     VisibilityFilter.filterInvalidLabelsOnly(is, true);
 
     TreeMap<Key,Value> source = createPollutedSource(1, 2);
@@ -146,7 +146,7 @@ public class VisibilityFilterTest {
   @Test
   public void testAllowUnauthorizedLabelsOnly() throws IOException {
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
-    VisibilityFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     VisibilityFilter.setAuthorizations(is, new Authorizations("def"));
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
@@ -162,13 +162,13 @@ public class VisibilityFilterTest {
   @Test
   public void testNoLabels() throws IOException {
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
-    VisibilityFilter.setNegate(is, false);
+    Filter.setNegate(is, false);
     VisibilityFilter.setAuthorizations(is, new Authorizations());
 
     TreeMap<Key,Value> source = createUnprotectedSource(5, 2);
     verify(source, 7, is.getOptions(), GOOD, GOOD, EMPTY_VIS, 5);
 
-    VisibilityFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     verify(source, 7, is.getOptions(), BAD, BAD, GOOD_VIS, 2);
   }
 
@@ -219,7 +219,7 @@ public class VisibilityFilterTest {
   public void testStaticConfigurators() {
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
     VisibilityFilter.filterInvalidLabelsOnly(is, false);
-    VisibilityFilter.setNegate(is, true);
+    Filter.setNegate(is, true);
     VisibilityFilter.setAuthorizations(is, new Authorizations("abc", "def"));
 
     Map<String,String> opts = is.getOptions();

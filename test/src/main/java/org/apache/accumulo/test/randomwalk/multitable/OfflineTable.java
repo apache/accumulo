@@ -40,8 +40,8 @@ public class OfflineTable extends Test {
     String tableName = tables.get(rand.nextInt(tables.size()));
 
     env.getConnector().tableOperations().offline(tableName, rand.nextBoolean());
-    log.debug("Table " + tableName + " offline ");
+    log.debug("Table {} offline ", tableName);
     env.getConnector().tableOperations().online(tableName, rand.nextBoolean());
-    log.debug("Table " + tableName + " online ");
+    log.debug("Table {} online ", tableName);
   }
 }

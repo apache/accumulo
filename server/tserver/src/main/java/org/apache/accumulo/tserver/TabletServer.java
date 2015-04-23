@@ -209,8 +209,8 @@ import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMetricsFactory;
-import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
-import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetricsKeys;
+import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetricsKeys;
 import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
 import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.LookupTask;
@@ -394,7 +394,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     ThriftClientHandler() {
       super(TabletServer.this, watcher, fs);
-      log.debug(ThriftClientHandler.class.getName() + " created");
+      log.debug("{} created", ThriftClientHandler.class.getName());
     }
 
     @Override
@@ -568,8 +568,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         log.debug(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ", TServerUtils.clientAddress.get(), ss.extent.getTableId()
             .toString(), ss.entriesReturned, (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
         if (scanMetrics.isEnabled()) {
-          scanMetrics.add(TabletServerScanMetrics.SCAN, t2 - ss.startTime);
-          scanMetrics.add(TabletServerScanMetrics.RESULT_SIZE, ss.entriesReturned);
+          scanMetrics.add(TabletServerScanMetricsKeys.SCAN, t2 - ss.startTime);
+          scanMetrics.add(TabletServerScanMetricsKeys.RESULT_SIZE, ss.entriesReturned);
         }
       }
     }
@@ -691,7 +691,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Durability durability = DurabilityImpl.fromThrift(tdurabilty);
       security.authenticateUser(credentials, credentials);
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
+        updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
 
       UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials), credentials, durability);
       long sid = sessionManager.createSession(us, false);
@@ -723,26 +723,26 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             // failures
             us.failures.put(keyExtent, 0l);
             if (updateMetrics.isEnabled())
-              updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
+              updateMetrics.add(TabletServerUpdateMetricsKeys.UNKNOWN_TABLET_ERRORS, 0);
           }
         } else {
-          log.warn("Denying access to table " + keyExtent.getTableId() + " for user " + us.getUser());
+          log.warn("Denying access to table {} for user {}", keyExtent.getTableId(), us.getUser());
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = null;
           us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
           if (updateMetrics.isEnabled())
-            updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
+            updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
           return;
         }
       } catch (ThriftSecurityException e) {
-        log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(), e);
+        log.error("Denying permission to check user {} for user {}", us.getUser(), e.getUser(), e);
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, e.getCode());
         if (updateMetrics.isEnabled())
-          updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
+          updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
         return;
       }
     }
@@ -804,7 +804,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           if (mutations.size() > 0) {
             try {
               if (updateMetrics.isEnabled())
-                updateMetrics.add(TabletServerUpdateMetrics.MUTATION_ARRAY_SIZE, mutations.size());
+                updateMetrics.add(TabletServerUpdateMetricsKeys.MUTATION_ARRAY_SIZE, mutations.size());
 
               CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
               if (commitSession == null) {
@@ -820,7 +820,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             } catch (TConstraintViolationException e) {
               us.violations.add(e.getViolations());
               if (updateMetrics.isEnabled())
-                updateMetrics.add(TabletServerUpdateMetrics.CONSTRAINT_VIOLATIONS, 0);
+                updateMetrics.add(TabletServerUpdateMetricsKeys.CONSTRAINT_VIOLATIONS, 0);
 
               if (e.getNonViolators().size() > 0) {
                 // only log and commit mutations if there were some
@@ -923,17 +923,17 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     private void updateWalogWriteTime(long time) {
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.WALOG_WRITE_TIME, time);
+        updateMetrics.add(TabletServerUpdateMetricsKeys.WALOG_WRITE_TIME, time);
     }
 
     private void updateAvgCommitTime(long time, int size) {
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.COMMIT_TIME, (long) ((time) / (double) size));
+        updateMetrics.add(TabletServerUpdateMetricsKeys.COMMIT_TIME, (long) ((time) / (double) size));
     }
 
     private void updateAvgPrepTime(long time, int size) {
       if (updateMetrics.isEnabled())
-        updateMetrics.add(TabletServerUpdateMetrics.COMMIT_PREP, (long) ((time) / (double) size));
+        updateMetrics.add(TabletServerUpdateMetricsKeys.COMMIT_PREP, (long) ((time) / (double) size));
     }
 
     @Override
@@ -1344,7 +1344,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             throw new NotServingTabletException(tkeyExtent);
           }
         } catch (IOException e) {
-          log.warn("Failed to split " + keyExtent, e);
+          log.warn("Failed to split {}", keyExtent, e);
           throw new RuntimeException(e);
         }
       }
@@ -1383,13 +1383,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private void checkPermission(TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
       boolean fatal = false;
       try {
-        log.trace("Got " + request + " message from user: " + credentials.getPrincipal());
+        log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
         if (!security.canPerformSystemActions(credentials)) {
-          log.warn("Got " + request + " message from user: " + credentials.getPrincipal());
+          log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
         }
       } catch (ThriftSecurityException e) {
-        log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
+        log.warn("Got {} message from unauthenticatable user: {}", request, e.getUser());
         if (getCredentials().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
           log.error("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
           fatal = true;
@@ -1407,7 +1407,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       if (tabletServerLock == null || !tabletServerLock.wasLockAcquired()) {
-        log.warn("Got " + request + " message from master before lock acquired, ignoring...");
+        log.warn("Got {} message from master before lock acquired, ignoring...", request);
         throw new RuntimeException("Lock not acquired");
       }
 
@@ -1415,7 +1415,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         Halt.halt(1, new Runnable() {
           @Override
           public void run() {
-            log.info("Tablet server no longer holds lock during checkPermission() : " + request + ", exiting");
+            log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting", request);
             gcLogger.logGCInfo(TabletServer.this.getConfiguration());
           }
         });
@@ -1425,12 +1425,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         ZooUtil.LockID lid = new ZooUtil.LockID(ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_LOCK, lock);
 
         try {
-          if (!ZooLock.isLockHeld(masterLockCache, lid)) {
+          if (!org.apache.accumulo.fate.zookeeper.ZooLock.isLockHeld(masterLockCache, lid)) {
             // maybe the cache is out of date and a new master holds the
             // lock?
             masterLockCache.clear();
-            if (!ZooLock.isLockHeld(masterLockCache, lid)) {
-              log.warn("Got " + request + " message from a master that does not hold the current lock " + lock);
+            if (!org.apache.accumulo.fate.zookeeper.ZooLock.isLockHeld(masterLockCache, lid)) {
+              log.warn("Got {} message from a master that does not hold the current lock {}", request, lock);
               throw new RuntimeException("bad master lock");
             }
           }
@@ -1483,7 +1483,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               all.remove(extent);
 
               if (all.size() > 0) {
-                log.error("Tablet " + extent + " overlaps previously assigned " + unopenedOverlapping + " " + openingOverlapping + " " + onlineOverlapping
+                log.error("Tablet {} overlaps previously assigned {} {} {}", extent, unopenedOverlapping,  openingOverlapping, onlineOverlapping
                     + " " + all);
               }
               return;
@@ -1495,7 +1495,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       // add the assignment job to the appropriate queue
-      log.info("Loading tablet " + extent);
+      log.info("Loading tablet {}", extent);
 
       final AssignmentHandler ah = new AssignmentHandler(extent);
       // final Runnable ah = new LoggingRunnable(log, );
@@ -1506,7 +1506,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           public void run() {
             ah.run();
             if (onlineTablets.containsKey(extent)) {
-              log.info("Root tablet loaded: " + extent);
+              log.info("Root tablet loaded: {}", extent);
             } else {
               log.info("Root tablet failed to load");
             }
@@ -1584,7 +1584,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       Tablet tablet = onlineTablets.get(new KeyExtent(textent));
       if (tablet != null) {
-        log.info("Flushing " + tablet.getExtent());
+        log.info("Flushing {}", tablet.getExtent());
         try {
           tablet.flush(tablet.getFlushID());
         } catch (NoNodeException nne) {
@@ -1714,7 +1714,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         for (Tablet tablet : onlineTabletsCopy) {
           for (String current : tablet.getCurrentLogFiles()) {
             if (current.contains(uuid)) {
-              log.info("Attempted to delete " + filename + " from tablet " + tablet.getExtent());
+              log.info("Attempted to delete {} from tablet {}", filename, tablet.getExtent());
               continue nextFile;
             }
           }
@@ -1726,27 +1726,27 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             Path walogArchive = fs.matchingFileSystem(source, ServerConstants.getWalogArchives());
             fs.mkdirs(walogArchive);
             Path dest = new Path(walogArchive, source.getName());
-            log.info("Archiving walog " + source + " to " + dest);
+            log.info("Archiving walog {} to {}", source, dest);
             if (!fs.rename(source, dest))
               log.error("rename is unsuccessful");
           } else {
-            log.info("Deleting walog " + filename);
+            log.info("Deleting walog {}", filename);
             Path sourcePath = new Path(filename);
             if (!(!TabletServer.this.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE) && fs.moveToTrash(sourcePath))
                 && !fs.deleteRecursively(sourcePath))
-              log.warn("Failed to delete walog " + source);
+              log.warn("Failed to delete walog {}", source);
             for (String recovery : ServerConstants.getRecoveryDirs()) {
               Path recoveryPath = new Path(recovery, source.getName());
               try {
                 if (fs.moveToTrash(recoveryPath) || fs.deleteRecursively(recoveryPath))
-                  log.info("Deleted any recovery log " + filename);
+                  log.info("Deleted any recovery log {}", filename);
               } catch (FileNotFoundException ex) {
                 // ignore
               }
             }
           }
         } catch (IOException e) {
-          log.warn("Error attempting to delete write-ahead log " + filename + ": " + e);
+          log.warn("Error attempting to delete write-ahead log {}:", filename, e);
         }
       }
     }
@@ -1858,7 +1858,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             int maxLogEntriesPerTablet = getTableConfiguration(tablet.getExtent()).getCount(Property.TABLE_MINC_LOGS_MAX);
 
             if (tablet.getLogCount() >= maxLogEntriesPerTablet) {
-              log.debug("Initiating minor compaction for " + tablet.getExtent() + " because it has " + tablet.getLogCount() + " write ahead logs");
+              log.debug("Initiating minor compaction for {} because it has {} write ahead logs", tablet.getExtent(), tablet.getLogCount());
               tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM);
             }
 
@@ -1887,7 +1887,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             }
           }
         } catch (Throwable t) {
-          log.error("Unexpected exception in " + Thread.currentThread().getName(), t);
+          log.error("Unexpected exception in {}",  Thread.currentThread().getName(), t);
           UtilWaitThread.sleep(1000);
         }
       }
@@ -1909,7 +1909,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
     } catch (Exception e) {
       statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
-      log.error("Unknown error on split: {}", e, e);
+      log.error("Unknown error on split:", e);
     }
   }
 
@@ -1921,7 +1921,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       return null;
     }
 
-    log.info("Starting split: " + tablet.getExtent());
+    log.info("Starting split: {}", tablet.getExtent());
     statsKeeper.incrementStatusSplit();
     long start = System.currentTimeMillis();
 
@@ -1951,8 +1951,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     statsKeeper.updateTime(Operation.SPLIT, start, 0, false);
     long t2 = System.currentTimeMillis();
-    log.info("Tablet split: " + tablet.getExtent() + " size0 " + newTablets[0].estimateTabletSize() + " size1 " + newTablets[1].estimateTabletSize() + " time "
-        + (t2 - t1) + "ms");
+//    log.info("Tablet split: " + tablet.getExtent() + " size0 " + newTablets[0].estimateTabletSize() + " size1 " + newTablets[1].estimateTabletSize() + " time "
+//        + (t2 - t1) + "ms");
+    log.info("Tablet split: {} size0 {} size1 {} time {}ms",
+        tablet.getExtent(), newTablets[0].estimateTabletSize(), newTablets[1].estimateTabletSize(), (t2 - t1));
 
     return tabletInfo;
   }
@@ -2000,7 +2002,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         // Tablet has probably been recently unloaded: repeated master
         // unload request is crossing the successful unloaded message
         if (!recentlyUnloadedCache.containsKey(extent)) {
-          log.info("told to unload tablet that was not being served " + extent);
+          log.info("told to unload tablet that was not being served {}", extent);
           enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
         }
         return;
@@ -2011,7 +2013,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
-          log.debug("Failed to unload tablet {} ... it was alread closing or closed : {}", extent, e.getMessage());
+          log.debug("Failed to unload tablet {}... it was alread closing or closed : {}", extent, e.getMessage());
         } else {
           log.error("Failed to close tablet {}... Aborting migration", extent, e);
           enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
@@ -2030,9 +2032,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           tls = new TabletLocationState(extent, null, instance, null, null, false);
         } catch (BadLocationStateException e) {
-          log.error("Unexpected error ", e);
+          log.error("Unexpected error", e);
         }
-        log.debug("Unassigning " + tls);
+        log.debug("Unassigning {}", tls);
         TabletStateStore.unassign(TabletServer.this, tls);
       } catch (DistributedStoreException ex) {
         log.warn("Unable to update storage", ex);
@@ -2048,7 +2050,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // roll tablet stats over into tablet server's statsKeeper object as
       // historical data
       statsKeeper.saveMajorMinorTimes(t.getTabletStats());
-      log.info("unloaded " + extent);
+      log.info("unloaded {}", extent);
 
     }
   }
@@ -2068,7 +2070,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      log.info(clientAddress + ": got assignment from master: " + extent);
+      log.info("{}: got assignment from master: {}", clientAddress, extent);
 
       synchronized (unopenedTablets) {
         synchronized (openingTablets) {
@@ -2083,7 +2085,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               return;
 
             if (!unopenedOverlapping.contains(extent)) {
-              log.info("assignment " + extent + " no longer in the unopened set");
+              log.info("assignment {} no longer in the unopened set", extent);
               return;
             }
 
@@ -2098,7 +2100,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         }
       }
 
-      log.debug("Loading extent: " + extent);
+      log.debug("Loading extent: {}", extent);
 
       // check Metadata table before accepting assignment
       Text locationToOpen = null;
@@ -2128,13 +2130,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
         }
-        log.warn("Failed to verify tablet " + extent, e);
+        log.warn("Failed to verify tablet {}", extent, e);
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         throw new RuntimeException(e);
       }
 
       if (locationToOpen == null) {
-        log.debug("Reporting tablet " + extent + " assignment failure: unable to verify Tablet Information");
+        log.debug("Reporting tablet {} assignment failure: unable to verify Tablet Information", extent);
         synchronized (openingTablets) {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
@@ -2186,11 +2188,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         successful = true;
       } catch (Throwable e) {
         log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
-
-        if (e.getMessage() != null) {
-          log.warn("{}", e.getMessage());
-        }
-
+        if (e.getMessage() != null)
+          log.warn(e.getMessage());
         String table = extent.getTableId().toString();
         ProblemReports.getInstance(TabletServer.this).report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
       } finally {
@@ -2205,14 +2204,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             openingTablets.notifyAll();
           }
         }
-        log.warn("failed to open tablet " + extent + " reporting failure to master");
+        log.warn("failed to open tablet {} reporting failure to master", extent);
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         long reschedule = Math.min((1l << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000l);
         log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
         SimpleTimer.getInstance(getConfiguration()).schedule(new TimerTask() {
           @Override
           public void run() {
-            log.info("adding tablet " + extent + " back to the assignment pool (retry " + retryAttempt + ")");
+            log.info("adding tablet {} back to the assignment pool (retry {})", extent, retryAttempt);
             AssignmentHandler handler = new AssignmentHandler(extent, retryAttempt + 1);
             if (extent.isMeta()) {
               if (extent.isRootTablet()) {
@@ -2245,13 +2244,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
     if (!this.onlineTablets.containsKey(extent)) {
-      log.info("Not adding " + logs.size() + " logs for extent " + extent + " as alias " + id + " tablet is offline");
+      log.info("Not adding {} logs for extent {} as alias {} tablet is offline", logs.size(), extent, id);
       // minor compaction due to recovery... don't make updates... if it finishes, there will be no WALs,
       // if it doesn't, we'll need to do the same recovery with the old files.
       return;
     }
 
-    log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
+    log.info("Adding {} logs for extent {} as alias {}", logs.size(), extent, id);
     long now = RelativeTime.currentTimeMillis();
     List<String> logSet = new ArrayList<String>();
     for (DfsLogger log : logs)
@@ -2282,7 +2281,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         return null;
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host " + e);
+      log.warn("Failed to obtain master host", e);
     }
 
     return null;
@@ -2298,7 +2297,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {
-      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+      log.warn("Issue with masterConnection ({}) ", address, e);
     }
     return null;
   }
@@ -2319,7 +2318,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
     HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor,
         "Thrift Client Server");
-    log.info("address = " + address);
+    log.info("address = {}", address);
     return address;
   }
 
@@ -2333,7 +2332,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
         "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
-    log.info("Started replication service on " + sp.address);
+    log.info("Started replication service on {}", sp.address);
 
     try {
       // The replication service is unique to the thrift service for a tserver, not just a host.
@@ -2376,7 +2375,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             @Override
             public void run() {
               if (!serverStopRequested)
-                log.error("Lost tablet server lock (reason = " + reason + "), exiting.");
+                log.error("Lost tablet server lock (reason = {}), exiting.", reason);
               gcLogger.logGCInfo(getConfiguration());
             }
           });
@@ -2399,7 +2398,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
         if (tabletServerLock.tryLock(lw, lockContent)) {
-          log.debug("Obtained tablet server lock " + tabletServerLock.getLockPath());
+          log.debug("Obtained tablet server lock {}", tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/");
           return;
         }
@@ -2448,7 +2447,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (KeeperException | InterruptedException e) {
         // TODO Does there need to be a better check? What are the error conditions that we'd fall out here? AUTH_FAILURE?
         // If we get the error, do we just put it on a timer and retry the exists(String, Watcher) call?
-        log.error("Failed to perform initial check for authentication tokens in ZooKeeper. Delegation token authentication will be unavailable.", e);
+        log.error("Failed to perform initial check for authentication tokens in ZooKeeper. Delegation token authentication will be unavailable. {}", e);
       }
     }
 
@@ -2494,7 +2493,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       public void run() {
         int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
         if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
-          log.info("Resizing thread pool for sending replication work from " + replicationThreadPool.getMaximumPoolSize() + " to " + maxPoolSize);
+          log.info("Resizing thread pool for sending replication work from {} to {}", replicationThreadPool.getMaximumPoolSize(), maxPoolSize);
           replicationThreadPool.setMaximumPoolSize(maxPoolSize);
         }
       }
@@ -2557,7 +2556,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         // may have lost connection with master
         // loop back to the beginning and wait for a new one
         // this way we survive master failures
-        log.error(getClientAddressString() + ": TServerInfo: Exception. Master down?", e);
+        log.error("{}: TServerInfo: Exception. Master down?", getClientAddressString(), e);
       }
     }
 
@@ -2623,7 +2622,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public static Pair<Text,KeyExtent> verifyTabletInformation(AccumuloServerContext context, KeyExtent extent, TServerInstance instance,
       SortedMap<Key,Value> tabletsKeyValues, String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
 
-    log.debug("verifying extent " + extent);
+    log.debug("verifying extent {}", extent);
     if (extent.isRootTablet()) {
       return verifyRootTablet(extent, instance);
     }
@@ -2671,7 +2670,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         fke = MasterMetadataUtil.fixSplit(context, metadataEntry, tabletEntries.get(metadataEntry), instance, lock);
       } catch (IOException e) {
-        log.error("Error fixing split " + metadataEntry);
+        log.error("Error fixing split {}", metadataEntry);
         throw new AccumuloException(e.toString());
       }
 
@@ -2697,7 +2696,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
       if (!metadataEntry.equals(key.getRow())) {
-        log.info("Unexpected row in tablet metadata " + metadataEntry + " " + key.getRow());
+        log.info("Unexpected row in tablet metadata {} {}", metadataEntry, key.getRow());
         return null;
       }
       Text cf = key.getColumnFamily();
@@ -2707,7 +2706,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         }
         future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
       } else if (cf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
-        log.info("Tablet seems to be already assigned to " + new TServerInstance(entry.getValue(), key.getColumnQualifier()));
+        log.info("Tablet seems to be already assigned to {} {}", new TServerInstance(entry.getValue(), key.getColumnQualifier()));
         return null;
       } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
         prevEndRow = entry.getValue();
@@ -2723,7 +2722,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       KeyExtent ke2 = new KeyExtent(metadataEntry, prevEndRow);
       if (!extent.equals(ke2)) {
-        log.info("Tablet prev end row mismatch " + extent + " " + ke2.getPrevEndRow());
+        log.info("Tablet prev end row mismatch {} {}", extent, ke2.getPrevEndRow());
         return null;
       }
     }
@@ -2737,12 +2736,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     if (future == null) {
-      log.info("The master has not assigned " + extent + " to " + instance);
+      log.info("The master has not assigned {} to ", extent, instance);
       return null;
     }
 
     if (!instance.equals(future)) {
-      log.info("Table " + extent + " has been assigned to " + future + " which is not " + instance);
+      log.info("Table {} has been assigned to {} which is not {}", extent, future, instance);
       return null;
     }
 
@@ -2770,13 +2769,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     try {
       return new TServerInstance(address, tabletServerLock.getSessionId());
     } catch (Exception ex) {
-      log.warn("Unable to read session from tablet server lock" + ex);
+      log.warn("Unable to read session from tablet server lock", ex);
       return null;
     }
   }
 
   public void config(String hostname) {
-    log.info("Tablet server starting on " + hostname);
+    log.info("Tablet server starting on {}", hostname);
     majorCompactorThread = new Daemon(new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
@@ -2821,7 +2820,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(contexts);
         } catch (IOException e) {
-          log.warn("{}", e.getMessage(), e);
+          log.warn(e.getMessage(), e);
         }
       }
     };
@@ -3005,7 +3004,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       for (String log : entry.logSet) {
         Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
         finished = SortedLogState.getFinishedMarkerPath(finished);
-        TabletServer.log.info("Looking for " + finished);
+        TabletServer.log.info("Looking for {}", finished);
         if (fs.exists(finished)) {
           recovery = finished.getParent();
           break;

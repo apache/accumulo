@@ -62,7 +62,7 @@ public class VerifyIndex extends Test {
     if (iter.hasNext())
       throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
 
-    log.debug("Verified " + count + " index entries ");
+    log.debug("Verified {} index entries ", count);
 
     env.getConnector().tableOperations().delete(indexTableName);
     env.getConnector().tableOperations().rename(tmpIndexTableName, indexTableName);

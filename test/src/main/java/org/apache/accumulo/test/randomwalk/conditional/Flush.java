@@ -42,7 +42,7 @@ public class Flush extends Test {
       row2 = null;
     }
 
-    log.debug("flushing " + row1 + " " + row2);
+    log.debug("flushing {} {}", row1, row2);
     conn.tableOperations().flush(table, row1, row2, rand.nextBoolean());
   }
 }

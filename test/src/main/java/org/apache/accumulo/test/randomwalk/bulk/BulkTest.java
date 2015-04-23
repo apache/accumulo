@@ -32,7 +32,7 @@ public abstract class BulkTest extends Test {
         try {
           runLater(state, env);
         } catch (Throwable ex) {
-          log.error(ex, ex);
+          log.error("", ex);
         }
       }
 

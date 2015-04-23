@@ -35,7 +35,7 @@ public class ConsistencyCheck extends SelectiveBulkTest {
   protected void runLater(State state, Environment env) throws Exception {
     Random rand = (Random) state.get("rand");
     Text row = Merge.getRandomRow(rand);
-    log.info("Checking " + row);
+    log.info("Checking {}", row);
     String user = env.getConnector().whoami();
     Authorizations auths = env.getConnector().securityOperations().getUserAuthorizations(user);
     Scanner scanner = env.getConnector().createScanner(Setup.getTableName(), auths);

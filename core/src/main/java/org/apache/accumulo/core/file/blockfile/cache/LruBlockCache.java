@@ -30,8 +30,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * A block cache implementation that is memory-aware using {@link HeapSize}, memory-bound using an LRU eviction algorithm, and concurrent: backed by a
@@ -65,7 +66,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class LruBlockCache implements BlockCache, HeapSize {
 
-  static final Log LOG = LogFactory.getLog(LruBlockCache.class);
+  private static final Logger log = LoggerFactory.getLogger(LruBlockCache.class);
 
   /** Default Configuration Parameters */
 
@@ -342,7 +343,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
 
       long bytesToFree = size.get() - minSize();
 
-      LOG.debug("Block cache LRU eviction started.  Attempting to free " + bytesToFree + " bytes");
+      log.debug("Block cache LRU eviction started.  Attempting to free {} bytes", bytesToFree);
 
       if (bytesToFree <= 0)
         return;
@@ -393,9 +394,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
       float multiMB = ((float) bucketMulti.totalSize()) / ((float) (1024 * 1024));
       float memoryMB = ((float) bucketMemory.totalSize()) / ((float) (1024 * 1024));
 
-      LOG.debug("Block cache LRU eviction completed. " + "Freed " + bytesFreed + " bytes.  " + "Priority Sizes: " + "Single=" + singleMB + "MB ("
-          + bucketSingle.totalSize() + "), " + "Multi=" + multiMB + "MB (" + bucketMulti.totalSize() + ")," + "Memory=" + memoryMB + "MB ("
-          + bucketMemory.totalSize() + ")");
+      log.debug("Block cache LRU eviction completed. Freed {} bytes.  Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
+          bytesFreed, singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(), memoryMB, bucketMemory.totalSize());
 
     } finally {
       stats.evict();
@@ -578,11 +578,11 @@ public class LruBlockCache implements BlockCache, HeapSize {
     float sizeMB = ((float) totalSize) / ((float) (1024 * 1024));
     float freeMB = ((float) freeSize) / ((float) (1024 * 1024));
     float maxMB = ((float) maxSize) / ((float) (1024 * 1024));
-    LruBlockCache.LOG.debug("Cache Stats: Sizes: " + "Total=" + sizeMB + "MB (" + totalSize + "), " + "Free=" + freeMB + "MB (" + freeSize + "), " + "Max="
-        + maxMB + "MB (" + maxSize + ")" + ", Counts: " + "Blocks=" + size() + ", " + "Access=" + stats.getRequestCount() + ", " + "Hit=" + stats.getHitCount()
-        + ", " + "Miss=" + stats.getMissCount() + ", " + "Evictions=" + stats.getEvictionCount() + ", " + "Evicted=" + stats.getEvictedCount() + ", Ratios: "
-        + "Hit Ratio=" + stats.getHitRatio() * 100 + "%, " + "Miss Ratio=" + stats.getMissRatio() * 100 + "%, " + "Evicted/Run=" + stats.evictedPerEviction()
-        + ", " + "Duplicate Reads=" + stats.getDuplicateReads());
+
+    LruBlockCache.log.debug("Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB ({}), Counts: Blocks={}, Access={}, Hit={}"
+        + ", Miss={}, Evictions={}, Evicted={}, Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={}, Duplicate Reads={}",
+        sizeMB, totalSize, freeMB, freeSize, maxMB, maxSize, size(), stats.getRequestCount(), stats.getHitCount(), stats.getMissCount(),
+        stats.getEvictionCount(), stats.getEvictedCount(), stats.getHitRatio()*100, stats.getMissRatio()*100, stats.evictedPerEviction(), stats.getDuplicateReads());
   }
 
   /**

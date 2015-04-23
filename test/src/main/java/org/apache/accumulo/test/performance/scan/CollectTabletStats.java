@@ -115,7 +115,7 @@ public class CollectTabletStats {
 
     String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());
     if (tableId == null) {
-      log.error("Unable to find table named " + opts.getTableName());
+      log.error("Unable to find table named {}", opts.getTableName());
       System.exit(-1);
     }
 

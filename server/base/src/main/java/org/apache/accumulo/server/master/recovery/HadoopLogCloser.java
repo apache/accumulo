@@ -53,16 +53,16 @@ public class HadoopLogCloser implements LogCloser {
       DistributedFileSystem dfs = (DistributedFileSystem) ns;
       try {
         if (!dfs.recoverLease(source)) {
-          log.info("Waiting for file to be closed " + source.toString());
+          log.info("Waiting for file to be closed {}", source.toString());
           return conf.getTimeInMillis(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD);
         }
-        log.info("Recovered lease on " + source.toString());
+        log.info("Recovered lease on {}", source.toString());
       } catch (FileNotFoundException ex) {
         throw ex;
       } catch (Exception ex) {
-        log.warn("Error recovering lease on " + source.toString(), ex);
+        log.warn("Error recovering lease on {}", source.toString(), ex);
         ns.append(source).close();
-        log.info("Recovered lease on " + source.toString() + " using append");
+        log.info("Recovered lease on {} using append", source.toString());
       }
     } else if (ns instanceof LocalFileSystem || ns instanceof RawLocalFileSystem) {
       // ignore

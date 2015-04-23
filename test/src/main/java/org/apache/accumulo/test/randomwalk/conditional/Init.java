@@ -47,7 +47,7 @@ public class Init extends Test {
     for (int i = 1; i < 10; i++)
       splits.add(new Text(Utils.getBank((int) (numBanks * .1 * i))));
     env.getConnector().tableOperations().addSplits((String) state.get("tableName"), splits);
-    log.debug("Added splits " + splits);
+    log.debug("Added splits {}", splits);
 
     ArrayList<Integer> banks = new ArrayList<Integer>();
     for (int i = 0; i < numBanks; i++)
@@ -87,7 +87,7 @@ public class Init extends Test {
           acceptedCount++;
       }
 
-      log.debug("Added bank " + Utils.getBank(i) + " " + acceptedCount);
+      log.debug("Added bank {} {}", Utils.getBank(i), acceptedCount);
     }
 
   }

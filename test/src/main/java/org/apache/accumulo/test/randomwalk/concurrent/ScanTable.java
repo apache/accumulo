@@ -54,16 +54,16 @@ public class ScanTable extends Test {
       while (iter.hasNext()) {
         iter.next();
       }
-      log.debug("Scanned " + tableName);
+      log.debug("Scanned {}", tableName);
     } catch (TableDeletedException e) {
-      log.debug("Scan " + tableName + " failed, table deleted");
+      log.debug("Scan {} failed, table deleted", tableName);
     } catch (TableNotFoundException e) {
-      log.debug("Scan " + tableName + " failed, doesnt exist");
+      log.debug("Scan {} failed, doesnt exist", tableName);
     } catch (TableOfflineException e) {
-      log.debug("Scan " + tableName + " failed, offline");
+      log.debug("Scan {} failed, offline", tableName);
     } catch (RuntimeException e) {
       if (e.getCause() instanceof AccumuloSecurityException) {
-        log.debug("BatchScan " + tableName + " failed, permission error");
+        log.debug("BatchScan {} failed, permission error", tableName);
       } else {
         throw e;
       }

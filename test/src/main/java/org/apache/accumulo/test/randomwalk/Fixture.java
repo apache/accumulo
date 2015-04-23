@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.test.randomwalk;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class Fixture {
 
-  protected final Logger log = Logger.getLogger(this.getClass());
+  protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
   public abstract void setUp(State state, Environment env) throws Exception;
 

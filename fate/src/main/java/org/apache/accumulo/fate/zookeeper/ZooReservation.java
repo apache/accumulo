@@ -60,7 +60,7 @@ public class ZooReservation {
       zooData = zk.getData(path, null);
     } catch (NoNodeException e) {
       // Just logging a warning, if data is gone then our work here is done.
-      LoggerFactory.getLogger(ZooReservation.class).debug("Node does not exist " + path);
+      LoggerFactory.getLogger(ZooReservation.class).debug("Node does not exist {}", path);
       return;
     }
 

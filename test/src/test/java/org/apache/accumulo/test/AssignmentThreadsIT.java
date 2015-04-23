@@ -76,7 +76,7 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     long now = System.currentTimeMillis();
     c.tableOperations().online(tableName, true);
     long diff = System.currentTimeMillis() - now;
-    log.info("Loaded " + splits.size() + " tablets in " + diff + " ms");
+    log.info("Loaded {} tablets in {} ms", splits.size(), diff);
     c.instanceOperations().setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "20");
     now = System.currentTimeMillis();
     log.info("Taking table offline, again");
@@ -87,7 +87,7 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     log.info("Bringing table back online");
     c.tableOperations().online(tableName, true);
     long diff2 = System.currentTimeMillis() - now;
-    log.debug("Loaded " + splits.size() + " tablets in " + diff2 + " ms");
+    log.debug("Loaded {} tablets in {} ms", splits.size(), diff2);
     assertTrue(diff2 < diff);
   }
 

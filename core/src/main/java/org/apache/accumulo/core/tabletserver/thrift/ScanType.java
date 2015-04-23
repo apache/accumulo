@@ -22,11 +22,6 @@
  */
 package org.apache.accumulo.core.tabletserver.thrift;
 
-
-import java.util.Map;
-import java.util.HashMap;
-import org.apache.thrift.TEnum;
-
 @SuppressWarnings({"unused"}) public enum ScanType implements org.apache.thrift.TEnum {
   SINGLE(0),
   BATCH(1);
@@ -40,6 +35,7 @@ import org.apache.thrift.TEnum;
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
+  @Override
   public int getValue() {
     return value;
   }

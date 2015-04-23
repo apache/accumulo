@@ -297,7 +297,7 @@ public class IteratorUtilTest {
 
     // Make some configuration items, one with a bogus scope
     data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo", "50," + SummingCombiner.class.getName());
-    data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt." + SummingCombiner.ALL_OPTION, "true");
+    data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt." + Combiner.ALL_OPTION, "true");
     data.put(Property.TABLE_ITERATOR_PREFIX + ".fakescope.bar", "50," + SummingCombiner.class.getName());
     data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt.fakeopt", "fakevalue");
 

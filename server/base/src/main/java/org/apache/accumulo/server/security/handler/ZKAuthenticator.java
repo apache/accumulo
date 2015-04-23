@@ -70,7 +70,7 @@ public final class ZKAuthenticator implements Authenticator {
         zooCache.clear();
         if (zoo.exists(ZKUserPath)) {
           zoo.recursiveDelete(ZKUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed " + ZKUserPath + "/" + " from zookeeper");
+          log.info("Removed {}/ from zookeeper", ZKUserPath);
         }
 
         // prep parent node of users with root username

@@ -38,10 +38,13 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.AccumuloIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -158,7 +161,7 @@ public class CyclicReplicationIT {
       master1Cfg.setInstanceName("master1");
 
       // Set up SSL if needed
-      ConfigurableMacIT.configureForEnvironment(master1Cfg, this.getClass(), ConfigurableMacIT.getSslDir(master1Dir));
+      ConfigurableMacIT.configureForEnvironment(master1Cfg, this.getClass(), AccumuloIT.getSslDir(master1Dir));
 
       master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
       master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
@@ -172,7 +175,7 @@ public class CyclicReplicationIT {
         master1Cluster.start();
         break;
       } catch (ZooKeeperBindException e) {
-        log.warn("Failed to start ZooKeeper on " + master1Cfg.getZooKeeperPort() + ", will retry");
+        log.warn("Failed to start ZooKeeper on {}, will retry", master1Cfg.getZooKeeperPort());
       }
     }
 
@@ -198,7 +201,7 @@ public class CyclicReplicationIT {
         master2Cluster.start();
         break;
       } catch (ZooKeeperBindException e) {
-        log.warn("Failed to start ZooKeeper on " + master2Cfg.getZooKeeperPort() + ", will retry");
+        log.warn("Failed to start ZooKeeper on {}, will retry", master2Cfg.getZooKeeperPort());
       }
     }
 
@@ -251,8 +254,8 @@ public class CyclicReplicationIT {
       connMaster2.securityOperations().grantTablePermission(master2UserName, master2Table, TablePermission.WRITE);
 
       IteratorSetting summingCombiner = new IteratorSetting(50, SummingCombiner.class);
-      SummingCombiner.setEncodingType(summingCombiner, Type.STRING);
-      SummingCombiner.setCombineAllColumns(summingCombiner, true);
+      LongCombiner.setEncodingType(summingCombiner, Type.STRING);
+      Combiner.setCombineAllColumns(summingCombiner, true);
 
       // Set a combiner on both instances that will sum multiple values
       // We can use this to verify that the mutation was not sent multiple times

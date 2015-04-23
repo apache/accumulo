@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -58,7 +58,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     ClientConfiguration clientConf = ClientConfiguration.loadDefault();
     clientConf.withInstance(instance.getInstanceName()).withZkHosts(instance.getZooKeepers());
     ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
-    long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
+    long rpcTimeout = AccumuloConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
@@ -67,7 +67,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
-      byte[] data = ZooUtil.getLockData(zc, path);
+      byte[] data = org.apache.accumulo.fate.zookeeper.ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))
@@ -82,7 +82,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
         // Get a transport (cached or not)
         first = pool.getAnyTransport(servers, true).getSecond();
       } catch (TTransportException e) {
-        log.warn("Failed to obtain transport to " + servers);
+        log.warn("Failed to obtain transport to {}", servers);
       }
     }
 
@@ -96,7 +96,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
         // Get a cached transport (should be the first)
         second = pool.getAnyTransport(servers, true).getSecond();
       } catch (TTransportException e) {
-        log.warn("Failed obtain 2nd transport to " + servers);
+        log.warn("Failed obtain 2nd transport to {}", servers);
       }
     }
 
@@ -111,7 +111,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
         // Get a non-cached transport
         third = pool.getAnyTransport(servers, false).getSecond();
       } catch (TTransportException e) {
-        log.warn("Failed obtain 2nd transport to " + servers);
+        log.warn("Failed obtain 2nd transport to {}", servers);
       }
     }
 

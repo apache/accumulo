@@ -95,7 +95,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -413,7 +413,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
-      dfsUri = CachedConfiguration.getInstance().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+      dfsUri = CachedConfiguration.getInstance().get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file:///";
     }
@@ -693,7 +693,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       // the single thread executor shouldn't have any pending tasks, but check anyways
       if (!tasksRemaining.isEmpty()) {
-        log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
+        log.warn("Unexpectedly had {} task(s) remaining in threadpool for execution when being stopped", tasksRemaining.size());
       }
 
       executor = null;

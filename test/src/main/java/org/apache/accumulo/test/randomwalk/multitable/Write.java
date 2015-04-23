@@ -54,10 +54,10 @@ public class Write extends Test {
     try {
       bw = env.getMultiTableBatchWriter().getBatchWriter(tableName);
     } catch (TableOfflineException e) {
-      log.error("Table " + tableName + " is offline!");
+      log.error("Table {} is offline!", tableName);
       return;
     } catch (TableNotFoundException e) {
-      log.error("Table " + tableName + " not found!");
+      log.error("Table {} not found!", tableName);
       return;
     }
 

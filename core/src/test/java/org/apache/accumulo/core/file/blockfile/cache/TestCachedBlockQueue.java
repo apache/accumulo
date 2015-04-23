@@ -94,7 +94,7 @@ public class TestCachedBlockQueue extends TestCase {
     queue.add(cb9);
     queue.add(cb10);
 
-    CachedBlock cb0 = new CachedBlock(10 + CachedBlock.PER_BLOCK_OVERHEAD, "cb0", 0);
+    CachedBlock cb0 = new CachedBlock(10 + org.apache.accumulo.core.file.blockfile.cache.CachedBlock.PER_BLOCK_OVERHEAD, "cb0", 0);
     queue.add(cb0);
 
     // This is older so we must include it, but it will not end up kicking
@@ -122,7 +122,7 @@ public class TestCachedBlockQueue extends TestCase {
 
   private static class CachedBlock extends org.apache.accumulo.core.file.blockfile.cache.CachedBlock {
     public CachedBlock(long heapSize, String name, long accessTime) {
-      super(name, new byte[(int) (heapSize - CachedBlock.PER_BLOCK_OVERHEAD)], accessTime, false);
+      super(name, new byte[(int) (heapSize - org.apache.accumulo.core.file.blockfile.cache.CachedBlock.PER_BLOCK_OVERHEAD)], accessTime, false);
     }
   }
 }

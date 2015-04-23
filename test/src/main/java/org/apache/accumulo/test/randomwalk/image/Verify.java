@@ -83,12 +83,12 @@ public class Verify extends Test {
     if (count != numVerifications && curRow != null) {
       Text lastRow = (Text) state.get("lastIndexRow");
       if (lastRow.compareTo(curRow) != 0) {
-        log.error("Verified only " + count + " of " + numVerifications + " - curRow " + curRow + " lastKey " + lastRow);
+        log.error("Verified only {} of {} - curRow {} lastKey {}",count, numVerifications, curRow, lastRow);
       }
     }
 
     int verified = ((Integer) state.get("verified")).intValue() + numVerifications;
-    log.debug("Verified " + numVerifications + " - Total " + verified);
+    log.debug("Verified {} - Total {}", numVerifications, verified);
     state.set("verified", Integer.valueOf(verified));
   }
 
@@ -102,7 +102,7 @@ public class Verify extends Test {
     Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
 
     if (scanIter.hasNext() == false) {
-      log.error("Found row(" + row + ") in " + indexTableName + " but not " + imageTableName);
+      log.error("Found row({}) in {} but not {}", row, indexTableName, imageTableName);
       return;
     }
 

@@ -159,24 +159,24 @@ public class TablesServlet extends BasicServlet {
           try {
             locs.add(state.current.hostPort());
           } catch (Exception ex) {
-            log.error(ex, ex);
+            log.error("", ex);
           }
         }
       }
       scanner.close();
     }
 
-    log.debug("Locs: " + locs);
+    log.debug("Locs: {}", locs);
 
     List<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
     if (Monitor.getMmi() != null) {
       for (TabletServerStatus tss : Monitor.getMmi().tServerInfo) {
         try {
-          log.debug("tss: " + tss.name);
+          log.debug("tss: {}", tss.name);
           if (tss.name != null && locs.contains(tss.name))
             tservers.add(tss);
         } catch (Exception ex) {
-          log.error(ex, ex);
+          log.error("", ex);
         }
       }
     }

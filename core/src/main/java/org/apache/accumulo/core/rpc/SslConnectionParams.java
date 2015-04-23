@@ -93,7 +93,7 @@ public class SslConnectionParams {
     String keystorePassword = conf.get(passwordOverrideProperty);
     if (!keystorePassword.isEmpty()) {
       if (log.isTraceEnabled())
-        log.trace("Using explicit SSL private key password from " + passwordOverrideProperty.getKey());
+        log.trace("Using explicit SSL private key password from {}", passwordOverrideProperty.getKey());
     } else {
       keystorePassword = defaultPassword;
     }

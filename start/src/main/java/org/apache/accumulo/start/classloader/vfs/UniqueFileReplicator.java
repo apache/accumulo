@@ -48,7 +48,7 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
   public UniqueFileReplicator(File tempDir) {
     this.tempDir = tempDir;
     if (!tempDir.exists() && !tempDir.mkdirs())
-      log.warn("Unexpected error creating directory " + tempDir);
+      log.warn("Unexpected error creating directory {}", tempDir);
   }
 
   @Override
@@ -90,14 +90,14 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
     synchronized (tmpFiles) {
       for (File tmpFile : tmpFiles) {
         if (!tmpFile.delete())
-          log.warn("File does not exist: " + tmpFile);
+          log.warn("File does not exist: {}", tmpFile);
       }
     }
 
     if (tempDir.exists()) {
       int numChildren = tempDir.list().length;
       if (0 == numChildren && !tempDir.delete())
-        log.warn("Cannot delete empty directory: " + tempDir);
+        log.warn("Cannot delete empty directory: {}", tempDir);
     }
   }
 }

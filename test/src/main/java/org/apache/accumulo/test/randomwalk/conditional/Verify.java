@@ -51,7 +51,7 @@ public class Verify extends Test {
   }
 
   private void verifyBank(String table, Connector conn, String row, int numAccts) throws TableNotFoundException, Exception {
-    log.debug("Verifying bank " + row);
+    log.debug("Verifying bank {}", row);
 
     // TODO do not use IsolatedScanner, just enable isolation on scanner
     Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
@@ -80,7 +80,7 @@ public class Verify extends Test {
       throw new Exception("Sum is off " + sum);
     }
 
-    log.debug("Verified " + row + " count = " + count + " sum = " + sum + " min = " + min + " max = " + max);
+    log.debug("Verified {} count = {} sum = {} min = {} max = {}", row, count, sum, min, max);
   }
 
 }

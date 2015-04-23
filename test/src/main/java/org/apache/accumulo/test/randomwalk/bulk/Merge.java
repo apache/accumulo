@@ -28,9 +28,9 @@ public class Merge extends SelectiveBulkTest {
   @Override
   protected void runLater(State state, Environment env) throws Exception {
     Text[] points = getRandomTabletRange(state);
-    log.info("merging " + rangeToString(points));
+    log.info("merging {}", rangeToString(points));
     env.getConnector().tableOperations().merge(Setup.getTableName(), points[0], points[1]);
-    log.info("merging " + rangeToString(points) + " complete");
+    log.info("merging {} complete", rangeToString(points));
   }
 
   public static String rangeToString(Text[] points) {

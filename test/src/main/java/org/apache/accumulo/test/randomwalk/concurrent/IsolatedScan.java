@@ -62,13 +62,13 @@ public class IsolatedScan extends Test {
             throw new Exception("values not equal " + kv + " " + currentKV);
         }
       }
-      log.debug("Isolated scan " + tableName);
+      log.debug("Isolated scan {}", tableName);
     } catch (TableDeletedException e) {
-      log.debug("Isolated scan " + tableName + " failed, table deleted");
+      log.debug("Isolated scan {} failed, table deleted", tableName);
     } catch (TableNotFoundException e) {
-      log.debug("Isolated scan " + tableName + " failed, doesnt exist");
+      log.debug("Isolated scan {} failed, doesnt exist", tableName);
     } catch (TableOfflineException e) {
-      log.debug("Isolated scan " + tableName + " failed, offline");
+      log.debug("Isolated scan {} failed, offline", tableName);
     }
   }
 }

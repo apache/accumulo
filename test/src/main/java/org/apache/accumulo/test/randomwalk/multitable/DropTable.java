@@ -43,9 +43,9 @@ public class DropTable extends Test {
 
     try {
       env.getConnector().tableOperations().delete(tableName);
-      log.debug("Dropped " + tableName);
+      log.debug("Dropped {}", tableName);
     } catch (TableNotFoundException e) {
-      log.error("Tried to drop table " + tableName + " but could not be found!");
+      log.error("Tried to drop table {} but could not be found!", tableName);
     }
   }
 }

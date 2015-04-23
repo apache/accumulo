@@ -41,9 +41,9 @@ public class CreateNamespace extends Test {
 
     try {
       conn.namespaceOperations().create(namespace);
-      log.debug("Created namespace " + namespace);
+      log.debug("Created namespace {}", namespace);
     } catch (NamespaceExistsException e) {
-      log.debug("Create namespace " + namespace + " failed, it exists");
+      log.debug("Create namespace {} failed, it exists", namespace);
     }
   }
 }
