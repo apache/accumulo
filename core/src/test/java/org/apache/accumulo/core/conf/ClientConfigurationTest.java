@@ -17,14 +17,12 @@
 package org.apache.accumulo.core.conf;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 
@@ -64,24 +62,5 @@ public class ClientConfigurationTest {
     third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
     third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
     return new ClientConfiguration(Arrays.asList(first, second, third));
-  }
-
-  @Test
-  public void testMultipleValues() throws ConfigurationException {
-    String val = "comma,separated,list";
-    PropertiesConfiguration propertiesConfiguration = new PropertiesConfiguration();
-    propertiesConfiguration.setListDelimiter('\0');
-    propertiesConfiguration.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
-    ClientConfiguration conf = new ClientConfiguration(propertiesConfiguration);
-    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
-
-    conf = new ClientConfiguration(new PropertiesConfiguration("multi-valued.client.conf"));
-    assertNotEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(3, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
-
-    conf = new ClientConfiguration("multi-valued.client.conf");
-    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
   }
 }

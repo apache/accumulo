@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.DynamicParameter;
@@ -269,7 +270,8 @@ public class ShellOptionsJC {
   }
 
   public ClientConfiguration getClientConfiguration() throws ConfigurationException, FileNotFoundException {
-    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : new ClientConfiguration(getClientConfigFile());
+    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : new ClientConfiguration(new PropertiesConfiguration(
+        getClientConfigFile()));
     if (useSsl()) {
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
     }
