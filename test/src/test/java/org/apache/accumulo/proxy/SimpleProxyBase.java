@@ -1088,7 +1088,9 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     try {
       client.checkIteratorConflicts(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
       fail("checkIteratorConflicts did not throw an exception");
-    } catch (Exception ex) {}
+    } catch (Exception ex) {
+      System.out.println("Ignoring " + ex.toString());
+    }
     client.deleteRows(creds, TABLE_TEST, null, null);
     client.removeIterator(creds, TABLE_TEST, "test", EnumSet.allOf(IteratorScope.class));
     String expected[][] = new String[10][];
