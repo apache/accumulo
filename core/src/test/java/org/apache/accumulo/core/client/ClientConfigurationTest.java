@@ -123,4 +123,17 @@ public class ClientConfigurationTest {
     assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
     assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
   }
+
+  @Test
+  public void testGetAllPropertiesWithPrefix() {
+    ClientConfiguration conf = new ClientConfiguration();
+    conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first", "1st");
+    conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second", "2nd");
+    conf.addProperty("other", "value");
+
+    Map<String, String> props = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
+    assertEquals(2, props.size());
+    assertEquals("1st", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first"));
+    assertEquals("2nd", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second"));
+  }
 }
