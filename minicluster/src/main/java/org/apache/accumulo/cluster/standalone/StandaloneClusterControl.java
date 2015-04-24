@@ -49,6 +49,7 @@ public class StandaloneClusterControl implements ClusterControl {
   private static final String START_SERVER_SCRIPT = "start-server.sh", ACCUMULO_SCRIPT = "accumulo", TOOL_SCRIPT = "tool.sh";
   private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "slaves", TRACER_HOSTS_FILE = "tracers",
       MONITOR_HOSTS_FILE = "monitor";
+  private static final String ACCUMULO_CONF_DIR = "ACCUMULO_CONF_DIR=";
 
   protected String user;
   protected String accumuloHome, accumuloConfDir;
@@ -139,7 +140,7 @@ public class StandaloneClusterControl implements ClusterControl {
   public void adminStopAll() throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[] {SUDO_CMD, "-u", user, accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = new String[] {ACCUMULO_CONF_DIR + accumuloConfDir, SUDO_CMD, "-u", user, accumuloPath, Admin.class.getName(), "stopAll"};
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
@@ -192,7 +193,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void start(ServerType server, String hostname) throws IOException {
-    String[] cmd = new String[] {SUDO_CMD, "-u", user, startServerPath, hostname, getProcessString(server)};
+    String[] cmd = new String[] {ACCUMULO_CONF_DIR + accumuloConfDir, SUDO_CMD, "-u", user, startServerPath, hostname, getProcessString(server)};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
       throw new IOException("Start " + server + " on " + hostname + " failed for execute successfully");
