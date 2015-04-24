@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server;
 
-import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public enum TabletLevel {
   ROOT,
