@@ -18,7 +18,7 @@ package org.apache.accumulo.gc;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,49 +28,56 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
-import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
-import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.master.LiveTServerSet;
+import org.apache.accumulo.server.master.LiveTServerSet.Listener;
+import org.apache.accumulo.server.master.state.MetaDataStateStore;
+import org.apache.accumulo.server.master.state.RootTabletStateStore;
+import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.thrift.TException;
+import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.hadoop.io.Text;
+import org.apache.htrace.Span;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -79,8 +86,8 @@ public class GarbageCollectWriteAheadLogs {
 
   private final AccumuloServerContext context;
   private final VolumeManager fs;
-
-  private boolean useTrash;
+  private final boolean useTrash;
+  private final LiveTServerSet liveServers;
 
   /**
    * Creates a new GC WAL object.
@@ -96,56 +103,37 @@ public class GarbageCollectWriteAheadLogs {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
-  }
-
-  /**
-   * Gets the instance used by this object.
-   *
-   * @return instance
-   */
-  Instance getInstance() {
-    return context.getInstance();
-  }
-
-  /**
-   * Gets the volume manager used by this object.
-   *
-   * @return volume manager
-   */
-  VolumeManager getVolumeManager() {
-    return fs;
-  }
-
-  /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
-   *
-   * @return true if trash is used
-   */
-  boolean isUsingTrash() {
-    return useTrash;
+    this.liveServers = new LiveTServerSet(context, new Listener() {
+      @Override
+      public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
+        log.debug("New tablet servers noticed: " + added);
+        log.debug("Tablet servers removed: " + deleted);
+      }
+    });
+    liveServers.startListeningForTabletServerChanges();
   }
 
   public void collect(GCStatus status) {
 
-    Span span = Trace.start("scanServers");
+    Span span = Trace.start("getCandidates");
     try {
+      Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
-      Map<String,Path> sortedWALogs = getSortedWALogs();
 
       status.currentLog.started = System.currentTimeMillis();
 
-      Map<Path,String> fileToServerMap = new HashMap<Path,String>();
-      Map<String,Path> nameToFileMap = new HashMap<String,Path>();
-      int count = scanServers(fileToServerMap, nameToFileMap);
+      Map<TServerInstance, Set<Path> > candidates = new HashMap<>();
+      long count = getCurrent(candidates, currentServers);
       long fileScanStop = System.currentTimeMillis();
-      log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
+
+      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count, candidates.size(),
           (fileScanStop - status.currentLog.started) / 1000.));
-      status.currentLog.candidates = fileToServerMap.size();
+      status.currentLog.candidates = count;
       span.stop();
 
-      span = Trace.start("removeMetadataEntries");
+      span = Trace.start("removeEntriesInUse");
       try {
-        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status);
+        count = removeEntriesInUse(candidates, status, currentServers);
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
@@ -158,7 +146,7 @@ public class GarbageCollectWriteAheadLogs {
 
       span = Trace.start("removeReplicationEntries");
       try {
-        count = removeReplicationEntries(nameToFileMap, sortedWALogs, status);
+        count = removeReplicationEntries(candidates, status);
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
         return;
@@ -170,16 +158,23 @@ public class GarbageCollectWriteAheadLogs {
       log.info(String.format("%d replication entries scanned in %.2f seconds", count, (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       span = Trace.start("removeFiles");
-      Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap, nameToFileMap);
 
-      count = removeFiles(nameToFileMap, serverToFileMap, sortedWALogs, status);
+      count = removeFiles(candidates, status);
 
       long removeStop = System.currentTimeMillis();
-      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(), (removeStop - logEntryScanStop) / 1000.));
+      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, candidates.size(), (removeStop - logEntryScanStop) / 1000.));
+      span.stop();
+
+      span = Trace.start("removeMarkers");
+      count = removeTabletServerMarkers(candidates);
+      long removeMarkersStop = System.currentTimeMillis();
+      log.info(String.format("%d markers removed in %.2f seconds", count, (removeMarkersStop - removeStop) / 1000.));
+      span.stop();
+
+
       status.currentLog.finished = removeStop;
       status.lastLog = status.currentLog;
       status.currentLog = new GcCycleStats();
-      span.stop();
 
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);
@@ -188,161 +183,101 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  boolean holdsLock(HostAndPort addr) {
+  private long removeTabletServerMarkers(Map<TServerInstance,Set<Path>> candidates) {
+    long result = 0;
     try {
-      String zpath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/" + addr.toString();
-      List<String> children = ZooReaderWriter.getInstance().getChildren(zpath);
-      return !(children == null || children.isEmpty());
-    } catch (KeeperException.NoNodeException ex) {
-      return false;
+      BatchWriter root = null;
+      BatchWriter meta = null;
+      try {
+        root = context.getConnector().createBatchWriter(RootTable.NAME, null);
+        meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
+        for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+          Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
+          for (Path path : entry.getValue()) {
+            m.putDelete(CurrentLogsSection.COLF, new Text(path.toString()));
+            result++;
+          }
+          root.addMutation(m);
+          meta.addMutation(m);
+        }
+      } finally  {
+        if (meta != null) {
+          meta.close();
+        }
+        if (root != null) {
+          root.close();
+        }
+      }
     } catch (Exception ex) {
-      log.debug(ex.toString(), ex);
-      return true;
+      throw new RuntimeException(ex);
     }
+    return result;
   }
 
-  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
-    for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
-      if (entry.getKey().isEmpty()) {
-        // old-style log entry, just remove it
-        for (Path path : entry.getValue()) {
-          log.debug("Removing old-style WAL " + path);
-          try {
-            if (!useTrash || !fs.moveToTrash(path))
-              fs.deleteRecursively(path);
-            status.currentLog.deleted++;
-          } catch (FileNotFoundException ex) {
-            // ignored
-          } catch (IOException ex) {
-            log.error("Unable to delete wal " + path + ": " + ex);
-          }
+  private long removeFiles(Map<TServerInstance, Set<Path> > candidates, final GCStatus status) {
+    for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+      for (Path path : entry.getValue()) {
+        log.debug("Removing unused WAL for server " + entry.getKey() + " log " + path);
+        try {
+          if (!useTrash || !fs.moveToTrash(path))
+            fs.deleteRecursively(path);
+          status.currentLog.deleted++;
+        } catch (FileNotFoundException ex) {
+          // ignored
+        } catch (IOException ex) {
+          log.error("Unable to delete wal " + path + ": " + ex);
         }
-      } else {
-        HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
-        if (!holdsLock(address)) {
-          for (Path path : entry.getValue()) {
-            log.debug("Removing WAL for offline server " + path);
-            try {
-              if (!useTrash || !fs.moveToTrash(path))
-                fs.deleteRecursively(path);
-              status.currentLog.deleted++;
-            } catch (FileNotFoundException ex) {
-              // ignored
-            } catch (IOException ex) {
-              log.error("Unable to delete wal " + path + ": " + ex);
+      }
+    }
+    return status.currentLog.deleted;
+  }
+
+  private UUID path2uuid(Path path) {
+    return UUID.fromString(path.getName());
+  }
+
+  private long removeEntriesInUse(Map<TServerInstance, Set<Path> > candidates, GCStatus status, Set<TServerInstance> liveServers) throws IOException, KeeperException,
+      InterruptedException {
+
+    // remove any entries if there's a log reference, or a tablet is still assigned to the dead server
+
+    Map<UUID, TServerInstance> walToDeadServer = new HashMap<>();
+    for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
+      for (Path file : entry.getValue()) {
+        walToDeadServer.put(path2uuid(file), entry.getKey());
+      }
+    }
+    long count = 0;
+    RootTabletStateStore root = new RootTabletStateStore(context);
+    MetaDataStateStore meta = new MetaDataStateStore(context);
+    Iterator<TabletLocationState> states = Iterators.concat(root.iterator(), meta.iterator());
+    while (states.hasNext()) {
+      count++;
+      TabletLocationState state = states.next();
+      if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+        candidates.remove(state.current);
+      }
+      for (Collection<String> wals : state.walogs) {
+        for (String wal : wals) {
+          UUID walUUID = path2uuid(new Path(wal));
+          TServerInstance dead = walToDeadServer.get(walUUID);
+          if (dead != null) {
+            Iterator<Path> iter = candidates.get(dead).iterator();
+            while (iter.hasNext()) {
+              if (path2uuid(iter.next()).equals(walUUID)) {
+                iter.remove();
+                break;
+              }
             }
           }
-          continue;
-        } else {
-          Client tserver = null;
-          try {
-            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
-            tserver.removeLogs(Tracer.traceInfo(), context.rpcCreds(), paths2strings(entry.getValue()));
-            log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
-            status.currentLog.deleted += entry.getValue().size();
-          } catch (TException e) {
-            log.warn("Error talking to " + address + ": " + e);
-          } finally {
-            if (tserver != null)
-              ThriftUtil.returnClient(tserver);
-          }
         }
       }
     }
-
-    for (Path swalog : sortedWALogs.values()) {
-      log.debug("Removing sorted WAL " + swalog);
-      try {
-        if (!useTrash || !fs.moveToTrash(swalog)) {
-          fs.deleteRecursively(swalog);
-        }
-      } catch (FileNotFoundException ex) {
-        // ignored
-      } catch (IOException ioe) {
-        try {
-          if (fs.exists(swalog)) {
-            log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
-          }
-        } catch (IOException ex) {
-          log.error("Unable to check for the existence of " + swalog, ex);
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  /**
-   * Converts a list of paths to their corresponding strings.
-   *
-   * @param paths
-   *          list of paths
-   * @return string forms of paths
-   */
-  static List<String> paths2strings(List<Path> paths) {
-    List<String> result = new ArrayList<String>(paths.size());
-    for (Path path : paths)
-      result.add(path.toString());
-    return result;
-  }
-
-  /**
-   * Reverses the given mapping of file paths to servers. The returned map provides a list of file paths for each server. Any path whose name is not in the
-   * mapping of file names to paths is skipped.
-   *
-   * @param fileToServerMap
-   *          map of file paths to servers
-   * @param nameToFileMap
-   *          map of file names to paths
-   * @return map of servers to lists of file paths
-   */
-  static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
-    Map<String,ArrayList<Path>> result = new HashMap<String,ArrayList<Path>>();
-    for (Entry<Path,String> fileServer : fileToServerMap.entrySet()) {
-      if (!nameToFileMap.containsKey(fileServer.getKey().getName()))
-        continue;
-      ArrayList<Path> files = result.get(fileServer.getValue());
-      if (files == null) {
-        files = new ArrayList<Path>();
-        result.put(fileServer.getValue(), files);
-      }
-      files.add(fileServer.getKey());
-    }
-    return result;
-  }
-
-  protected int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
-      InterruptedException {
-    int count = 0;
-    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(context);
-
-    // For each WAL reference in the metadata table
-    while (iterator.hasNext()) {
-      // Each metadata reference has at least one WAL file
-      for (String entry : iterator.next().logSet) {
-        // old style WALs will have the IP:Port of their logger and new style will either be a Path either absolute or relative, in all cases
-        // the last "/" will mark a UUID file name.
-        String uuid = entry.substring(entry.lastIndexOf("/") + 1);
-        if (!isUUID(uuid)) {
-          // fully expect this to be a uuid, if its not then something is wrong and walog GC should not proceed!
-          throw new IllegalArgumentException("Expected uuid, but got " + uuid + " from " + entry);
-        }
-
-        Path pathFromNN = nameToFileMap.remove(uuid);
-        if (pathFromNN != null) {
-          status.currentLog.inUse++;
-          sortedWALogs.remove(uuid);
-        }
-
-        count++;
-      }
-    }
-
     return count;
   }
 
-  protected int removeReplicationEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
-      InterruptedException {
+  protected int removeReplicationEntries(Map<TServerInstance, Set<Path> > candidates, GCStatus status) throws IOException, KeeperException,
+  InterruptedException {
     Connector conn;
     try {
       conn = context.getConnector();
@@ -353,27 +288,32 @@ public class GarbageCollectWriteAheadLogs {
 
     int count = 0;
 
-    Iterator<Entry<String,Path>> walIter = nameToFileMap.entrySet().iterator();
+    Iterator<Entry<TServerInstance,Set<Path>>> walIter = candidates.entrySet().iterator();
 
     while (walIter.hasNext()) {
-      Entry<String,Path> wal = walIter.next();
-      String fullPath = wal.getValue().toString();
-      if (neededByReplication(conn, fullPath)) {
-        log.debug("Removing WAL from candidate deletion as it is still needed for replication: {}", fullPath);
-        // If we haven't already removed it, check to see if this WAL is
-        // "in use" by replication (needed for replication purposes)
-        status.currentLog.inUse++;
-
+      Entry<TServerInstance,Set<Path>> wal = walIter.next();
+      Iterator<Path> paths = wal.getValue().iterator();
+      while (paths.hasNext()) {
+        Path fullPath = paths.next();
+        if (neededByReplication(conn, fullPath)) {
+          log.debug("Removing WAL from candidate deletion as it is still needed for replication: {}", fullPath);
+          // If we haven't already removed it, check to see if this WAL is
+          // "in use" by replication (needed for replication purposes)
+          status.currentLog.inUse++;
+          paths.remove();
+        } else {
+          log.debug("WAL not needed for replication {}", fullPath);
+        }
+      }
+      if (wal.getValue().isEmpty()) {
         walIter.remove();
-        sortedWALogs.remove(wal.getKey());
-      } else {
-        log.debug("WAL not needed for replication {}", fullPath);
       }
       count++;
     }
 
     return count;
   }
+
 
   /**
    * Determine if the given WAL is needed for replication
@@ -382,7 +322,7 @@ public class GarbageCollectWriteAheadLogs {
    *          The full path (URI)
    * @return True if the WAL is still needed by replication (not a candidate for deletion)
    */
-  protected boolean neededByReplication(Connector conn, String wal) {
+  protected boolean neededByReplication(Connector conn, Path wal) {
     log.info("Checking replication table for " + wal);
 
     Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
@@ -405,7 +345,7 @@ public class GarbageCollectWriteAheadLogs {
     return false;
   }
 
-  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) {
+  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, Path wal) {
     Scanner metaScanner;
     try {
       metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -425,7 +365,7 @@ public class GarbageCollectWriteAheadLogs {
       StatusSection.limit(replScanner);
 
       // Only look for this specific WAL
-      replScanner.setRange(Range.exact(wal));
+      replScanner.setRange(Range.exact(wal.toString()));
 
       return Iterables.concat(metaScanner, replScanner);
     } catch (ReplicationTableOfflineException e) {
@@ -435,107 +375,84 @@ public class GarbageCollectWriteAheadLogs {
     return metaScanner;
   }
 
-  private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
-    return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
-  }
+
+
 
   /**
-   * Scans write-ahead log directories for logs. The maps passed in are populated with scan information.
+   * Scans log markers. The map passed in is populated with the logs for dead servers.
    *
-   * @param walDirs
-   *          write-ahead log directories
-   * @param fileToServerMap
-   *          map of file paths to servers
-   * @param nameToFileMap
-   *          map of file names to paths
-   * @return number of servers located (including those with no logs present)
+   * @param unusedLogs
+   *          map of dead server to log file entries
+   * @return total number of log files
    */
-  int scanServers(String[] walDirs, Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
-    Set<String> servers = new HashSet<String>();
-    for (String walDir : walDirs) {
-      Path walRoot = new Path(walDir);
-      FileStatus[] listing = null;
-      try {
-        listing = fs.listStatus(walRoot);
-      } catch (FileNotFoundException e) {
-        // ignore dir
-      }
+  private long getCurrent(Map<TServerInstance, Set<Path> > unusedLogs, Set<TServerInstance> currentServers) throws Exception {
+    Set<Path> rootWALs = new HashSet<>();
+    // Get entries in zookeeper:
+    String zpath = ZooUtil.getRoot(context.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
+    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    List<String> children = zoo.getChildren(zpath);
+    for (String child : children) {
+      LogEntry entry = LogEntry.fromBytes(zoo.getData(zpath + "/" + child, null));
+      rootWALs.add(new Path(entry.filename));
+    }
+    long count = 0;
 
-      if (listing == null)
-        continue;
-      for (FileStatus status : listing) {
-        String server = status.getPath().getName();
-        if (status.isDirectory()) {
-          servers.add(server);
-          for (FileStatus file : fs.listStatus(new Path(walRoot, server))) {
-            if (isUUID(file.getPath().getName())) {
-              fileToServerMap.put(file.getPath(), server);
-              nameToFileMap.put(file.getPath().getName(), file.getPath());
-            } else {
-              log.info("Ignoring file " + file.getPath() + " because it doesn't look like a uuid");
-            }
-          }
-        } else if (isUUID(server)) {
-          // old-style WAL are not under a directory
-          servers.add("");
-          fileToServerMap.put(status.getPath(), "");
-          nameToFileMap.put(server, status.getPath());
-        } else {
-          log.info("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
+    // get all the WAL markers that are not in zookeeper for dead servers
+    Scanner rootScanner = context.getConnector().createScanner(RootTable.NAME, Authorizations.EMPTY);
+    rootScanner.setRange(CurrentLogsSection.getRange());
+    Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    metaScanner.setRange(CurrentLogsSection.getRange());
+    Iterator<Entry<Key,Value>> entries = Iterators.concat(rootScanner.iterator(), metaScanner.iterator());
+    Text hostAndPort = new Text();
+    Text sessionId = new Text();
+    Text filename = new Text();
+    while (entries.hasNext()) {
+      Entry<Key,Value> entry = entries.next();
+      CurrentLogsSection.getTabletServer(entry.getKey(), hostAndPort, sessionId);
+      CurrentLogsSection.getPath(entry.getKey(), filename);
+      TServerInstance tsi = new TServerInstance(HostAndPort.fromString(hostAndPort.toString()), sessionId.toString());
+      Path path = new Path(filename.toString());
+      if (!currentServers.contains(tsi) || entry.getValue().equals(CurrentLogsSection.UNUSED) && !rootWALs.contains(path)) {
+        Set<Path> logs = unusedLogs.get(tsi);
+        if (logs == null) {
+          unusedLogs.put(tsi, logs = new HashSet<Path>());
+        }
+        if (logs.add(path)) {
+          count++;
         }
       }
     }
-    return servers.size();
-  }
 
-  private Map<String,Path> getSortedWALogs() throws IOException {
-    return getSortedWALogs(ServerConstants.getRecoveryDirs());
-  }
-
-  /**
-   * Looks for write-ahead logs in recovery directories.
-   *
-   * @param recoveryDirs
-   *          recovery directories
-   * @return map of log file names to paths
-   */
-  Map<String,Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
-    Map<String,Path> result = new HashMap<String,Path>();
-
-    for (String dir : recoveryDirs) {
-      Path recoveryDir = new Path(dir);
-
-      if (fs.exists(recoveryDir)) {
-        for (FileStatus status : fs.listStatus(recoveryDir)) {
-          String name = status.getPath().getName();
-          if (isUUID(name)) {
-            result.put(name, status.getPath());
-          } else {
-            log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
-          }
+    // scan HDFS for logs for dead servers
+    for (Volume volume : VolumeManagerImpl.get().getVolumes()) {
+      RemoteIterator<LocatedFileStatus> iter =  volume.getFileSystem().listFiles(volume.prefixChild(ServerConstants.WAL_DIR), true);
+      while (iter.hasNext()) {
+        LocatedFileStatus next = iter.next();
+        // recursive listing returns directories, too
+        if (next.isDirectory()) {
+          continue;
         }
+        // make sure we've waited long enough for zookeeper propagation
+        if (System.currentTimeMillis() - next.getModificationTime() < context.getConnector().getInstance().getZooKeepersSessionTimeOut()) {
+          continue;
+        }
+        Path path = next.getPath();
+        String hostPlusPort = path.getParent().getName();
+        // server is still alive, or has a replacement
+        TServerInstance instance = liveServers.find(hostPlusPort);
+        if (instance != null) {
+          continue;
+        }
+        TServerInstance fake = new TServerInstance(hostPlusPort, 0L);
+        Set<Path> paths = unusedLogs.get(fake);
+        if (paths == null) {
+          paths = new HashSet<>();
+        }
+        paths.add(path);
+        unusedLogs.put(fake, paths);
       }
     }
-    return result;
-  }
-
-  /**
-   * Checks if a string is a valid UUID.
-   *
-   * @param name
-   *          string to check
-   * @return true if string is a UUID
-   */
-  static boolean isUUID(String name) {
-    if (name == null || name.length() != 36) {
-      return false;
-    }
-    try {
-      UUID.fromString(name);
-      return true;
-    } catch (IllegalArgumentException ex) {
-      return false;
-    }
+    return count;
   }
 
 }

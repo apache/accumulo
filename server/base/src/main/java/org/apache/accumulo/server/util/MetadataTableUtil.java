@@ -23,8 +23,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,6 +59,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -82,10 +81,12 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -121,7 +122,7 @@ public class MetadataTableUtil {
     return metadataTable;
   }
 
-  private synchronized static Writer getRootTable(ClientContext context) {
+  public synchronized static Writer getRootTable(ClientContext context) {
     Credentials credentials = context.getCredentials();
     Writer rootTable = root_tables.get(credentials);
     if (rootTable == null) {
@@ -223,7 +224,7 @@ public class MetadataTableUtil {
 
       // add before removing in case of process death
       for (LogEntry logEntry : logsToAdd)
-        addLogEntry(context, logEntry, zooLock);
+        addRootLogEntry(context, zooLock, logEntry);
 
       removeUnusedWALEntries(context, extent, logsToRemove, zooLock);
     } else {
@@ -246,6 +247,35 @@ public class MetadataTableUtil {
 
       update(context, m, extent);
     }
+  }
+
+  private static interface ZooOperation {
+    void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException;
+  }
+
+  private static void retryZooKeeperUpdate(ClientContext context, ZooLock zooLock, ZooOperation op) {
+    while (true) {
+      try {
+        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        if (zoo.isLockHeld(zooLock.getLockID())) {
+          op.run(zoo);
+        }
+        break;
+      } catch (Exception e) {
+        log.error("Unexpected exception {}", e.getMessage(), e);
+      }
+      UtilWaitThread.sleep(1000);
+    }
+  }
+
+  private static void addRootLogEntry(AccumuloServerContext context, ZooLock zooLock, final LogEntry entry) {
+    retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
+      @Override
+      public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
+        String root = getZookeeperLogLocation();
+        rw.putPersistentData(root + "/" + entry.getUniqueID(), entry.toBytes(), NodeExistsPolicy.OVERWRITE);
+      }
+    });
   }
 
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent, ClientContext context) throws IOException {
@@ -447,34 +477,6 @@ public class MetadataTableUtil {
     return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
   }
 
-  public static void addLogEntry(ClientContext context, LogEntry entry, ZooLock zooLock) {
-    if (entry.extent.isRootTablet()) {
-      String root = getZookeeperLogLocation();
-      while (true) {
-        try {
-          IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-          if (zoo.isLockHeld(zooLock.getLockID())) {
-            String[] parts = entry.filename.split("/");
-            String uniqueId = parts[parts.length - 1];
-            zoo.putPersistentData(root + "/" + uniqueId, entry.toBytes(), NodeExistsPolicy.OVERWRITE);
-          }
-          break;
-        } catch (KeeperException e) {
-          log.error("{}", e.getMessage(), e);
-        } catch (InterruptedException e) {
-          log.error("{}", e.getMessage(), e);
-        } catch (IOException e) {
-          log.error("{}", e.getMessage(), e);
-        }
-        UtilWaitThread.sleep(1000);
-      }
-    } else {
-      Mutation m = new Mutation(entry.getRow());
-      m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
-      update(context, zooLock, m, entry.extent);
-    }
-  }
-
   public static void setRootTabletDir(String dir) throws IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
@@ -565,22 +567,11 @@ public class MetadataTableUtil {
       }
     }
 
-    Collections.sort(result, new Comparator<LogEntry>() {
-      @Override
-      public int compare(LogEntry o1, LogEntry o2) {
-        long diff = o1.timestamp - o2.timestamp;
-        if (diff < 0)
-          return -1;
-        if (diff > 0)
-          return 1;
-        return 0;
-      }
-    });
     log.info("Returning logs " + result + " for extent " + extent);
     return result;
   }
 
-  static void getRootLogEntries(ArrayList<LogEntry> result) throws KeeperException, InterruptedException, IOException {
+  static void getRootLogEntries(final ArrayList<LogEntry> result) throws KeeperException, InterruptedException, IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String root = getZookeeperLogLocation();
     // there's a little race between getting the children and fetching
@@ -588,11 +579,10 @@ public class MetadataTableUtil {
     while (true) {
       result.clear();
       for (String child : zoo.getChildren(root)) {
-        LogEntry e = new LogEntry();
         try {
-          e.fromBytes(zoo.getData(root + "/" + child, null));
+          LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child, null));
           // upgrade from !0;!0<< -> +r<<
-          e.extent = RootTable.EXTENT;
+          e = new LogEntry(RootTable.EXTENT, 0, e.server, e.filename);
           result.add(e);
         } catch (KeeperException.NoNodeException ex) {
           continue;
@@ -662,28 +652,23 @@ public class MetadataTableUtil {
     return new LogEntryIterator(context);
   }
 
-  public static void removeUnusedWALEntries(AccumuloServerContext context, KeyExtent extent, List<LogEntry> logEntries, ZooLock zooLock) {
+  public static void removeUnusedWALEntries(AccumuloServerContext context, KeyExtent extent, final List<LogEntry> entries, ZooLock zooLock) {
     if (extent.isRootTablet()) {
-      for (LogEntry entry : logEntries) {
-        String root = getZookeeperLogLocation();
-        while (true) {
-          try {
-            IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-            if (zoo.isLockHeld(zooLock.getLockID())) {
-              String parts[] = entry.filename.split("/");
-              zoo.recursiveDelete(root + "/" + parts[parts.length - 1], NodeMissingPolicy.SKIP);
-            }
-            break;
-          } catch (Exception e) {
-            log.error("{}", e.getMessage(), e);
+      retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
+        @Override
+        public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
+          String root = getZookeeperLogLocation();
+          for (LogEntry entry : entries) {
+            String path = root + "/" + entry.getUniqueID();
+            log.debug("Removing " + path + " from zookeeper");
+            rw.recursiveDelete(path, NodeMissingPolicy.SKIP);
           }
-          UtilWaitThread.sleep(1000);
         }
-      }
+      });
     } else {
       Mutation m = new Mutation(extent.getMetadataEntry());
-      for (LogEntry entry : logEntries) {
-        m.putDelete(LogColumnFamily.NAME, new Text(entry.getName()));
+      for (LogEntry entry : entries) {
+        m.putDelete(entry.getColumnFamily(), entry.getColumnQualifier());
       }
       update(context, zooLock, m, extent);
     }
@@ -1066,6 +1051,132 @@ public class MetadataTableUtil {
     }
 
     return tabletEntries;
+  }
+
+  public static void addNewLogMarker(ClientContext context, ZooLock zooLock, final TServerInstance tabletSession, final Path filename, TabletLevel level) {
+    log.debug("Adding log entry " + filename);
+    if (level == TabletLevel.ROOT) {
+      retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
+        @Override
+        public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
+          String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
+          String uniqueId = filename.getName();
+          StringBuilder path = new StringBuilder(root);
+          path.append("/");
+          path.append(CurrentLogsSection.getRowPrefix());
+          path.append(tabletSession.toString());
+          path.append(uniqueId);
+          rw.putPersistentData(path.toString(), filename.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+        }
+      });
+    } else {
+      Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + tabletSession.toString());
+      m.put(CurrentLogsSection.COLF, new Text(filename.toString()), new Value(EMPTY_BYTES));
+      String tableName = MetadataTable.NAME;
+      if (level == TabletLevel.META) {
+        tableName = RootTable.NAME;
+      }
+      BatchWriter bw = null;
+      try {
+        bw = context.getConnector().createBatchWriter(tableName, null);
+        bw.addMutation(m);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      } finally {
+        if (bw != null) {
+          try {
+            bw.close();
+          } catch (Exception e2) {
+            throw new RuntimeException(e2);
+          }
+        }
+      }
+    }
+  }
+
+  private static void removeCurrentRootLogMarker(ClientContext context, ZooLock zooLock, final TServerInstance tabletSession, final Path filename) {
+    retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
+      @Override
+      public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
+        String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
+        String uniqueId = filename.getName();
+        String path = root + "/" + CurrentLogsSection.getRowPrefix() + tabletSession.toString() + uniqueId;
+        log.debug("Removing entry " + path + " from zookeeper");
+        rw.recursiveDelete(path, NodeMissingPolicy.SKIP);
+      }
+    });
+  }
+
+  public static void markLogUnused(ClientContext context, ZooLock lock, TServerInstance tabletSession, Set<Path> all) throws AccumuloException {
+    // There could be a marker at the meta and/or root level, mark them both as unused
+    try {
+      BatchWriter root = null;
+      BatchWriter meta = null;
+      try {
+        root = context.getConnector().createBatchWriter(RootTable.NAME, null);
+        meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
+        for (Path fname : all) {
+          Text tname = new Text(fname.toString());
+          Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString());
+          m.putDelete(MetadataSchema.CurrentLogsSection.COLF, tname);
+          root.addMutation(m);
+          log.debug("deleting " + MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString() + " log:" + fname);
+          m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + tabletSession.toString());
+          m.put(MetadataSchema.CurrentLogsSection.COLF, tname, MetadataSchema.CurrentLogsSection.UNUSED);
+          meta.addMutation(m);
+          removeCurrentRootLogMarker(context, lock, tabletSession, fname);
+        }
+      } finally {
+        if (root != null) {
+          root.close();
+        }
+        if (meta != null) {
+          meta.close();
+        }
+      }
+    } catch (Exception ex) {
+      throw new AccumuloException(ex);
+    }
+  }
+
+  public static void fetchLogsForDeadServer(ClientContext context, ZooLock lock, KeyExtent extent, TServerInstance server, Map<TServerInstance,List<Path>> logsForDeadServers)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    // already cached
+    if (logsForDeadServers.containsKey(server)) {
+      return;
+    }
+    if (extent.isRootTablet()) {
+      final List<Path> logs = new ArrayList<>();
+      retryZooKeeperUpdate(context, lock, new ZooOperation() {
+        @Override
+        public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
+          String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
+          logs.clear();
+          for (String child : rw.getChildren(root)) {
+            logs.add(new Path(new String(rw.getData(root + "/" + child, null), UTF_8)));
+          }
+        }
+      });
+      logsForDeadServers.put(server, logs);
+    } else {
+      // use the correct meta table
+      String table = MetadataTable.NAME;
+      if (extent.isMeta()) {
+        table = RootTable.NAME;
+      }
+      // fetch the current logs in use, and put them in the cache
+      Scanner scanner = context.getConnector().createScanner(table, Authorizations.EMPTY);
+      scanner.setRange(new Range(MetadataSchema.CurrentLogsSection.getRowPrefix() + server.toString()));
+      List<Path> logs = new ArrayList<>();
+      Text path = new Text();
+      for (Entry<Key,Value> entry : scanner) {
+        MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
+        if (!entry.getValue().equals(MetadataSchema.CurrentLogsSection.UNUSED)) {
+          logs.add(new Path(path.toString()));
+        }
+      }
+      logsForDeadServers.put(server, logs);
+    }
   }
 
 }

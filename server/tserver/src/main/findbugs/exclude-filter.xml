@@ -18,7 +18,7 @@
   <Match>
     <!-- locking is confusing, but probably correct -->
     <Class name="org.apache.accumulo.tserver.tablet.Tablet" />
-    <Method name="beginUpdatingLogsUsed" params="org.apache.accumulo.tserver.InMemoryMap,java.util.Collection,boolean" returns="boolean" />
+    <Method name="beginUpdatingLogsUsed" params="org.apache.accumulo.tserver.InMemoryMap,org.apache.accumulo.tserver.log.DfsLogger,boolean" returns="boolean" />
     <Bug code="UL" pattern="UL_UNRELEASED_LOCK" />
   </Match>
   <Match>

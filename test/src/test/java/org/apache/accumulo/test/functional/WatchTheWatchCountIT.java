@@ -52,7 +52,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacIT {
       String response = new String(buffer, 0, n);
       long total = Long.parseLong(response.split(":")[1].trim());
       assertTrue("Total watches was not greater than 500, but was " + total, total > 500);
-      assertTrue("Total watches was not less than 650, but was " + total, total < 600);
+      assertTrue("Total watches was not less than 675, but was " + total, total < 675);
     } finally {
       socket.close();
     }
