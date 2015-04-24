@@ -72,7 +72,7 @@ import com.google.common.base.Optional;
  * Wrap a connection to a logger.
  *
  */
-public class DfsLogger {
+public class DfsLogger implements Comparable<DfsLogger> {
   public static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
 
@@ -371,6 +371,7 @@ public class DfsLogger {
 
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
+    log.debug("Address is " + address);
     String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
@@ -463,7 +464,11 @@ public class DfsLogger {
   }
 
   public String getFileName() {
-    return logPath.toString();
+    return logPath;
+  }
+
+  public Path getPath() {
+    return new Path(logPath);
   }
 
   public void close() throws IOException {
@@ -607,6 +612,11 @@ public class DfsLogger {
   public String getLogger() {
     String parts[] = logPath.split("/");
     return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
+  }
+
+  @Override
+  public int compareTo(DfsLogger o) {
+    return getFileName().compareTo(o.getFileName());
   }
 
 }

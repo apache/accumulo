@@ -128,15 +128,12 @@ public class VolumeUtil {
       switchedPath = le.filename;
 
     ArrayList<String> switchedLogs = new ArrayList<String>();
-    for (String log : le.logSet) {
-      String switchedLog = switchVolume(le.filename, FileType.WAL, replacements);
-      if (switchedLog != null) {
-        switchedLogs.add(switchedLog);
-        numSwitched++;
-      } else {
-        switchedLogs.add(log);
-      }
-
+    String switchedLog = switchVolume(le.filename, FileType.WAL, replacements);
+    if (switchedLog != null) {
+      switchedLogs.add(switchedLog);
+      numSwitched++;
+    } else {
+      switchedLogs.add(le.filename);
     }
 
     if (numSwitched == 0) {
@@ -144,9 +141,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = new LogEntry(le);
-    newLogEntry.filename = switchedPath;
-    newLogEntry.logSet = switchedLogs;
+    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedPath);
 
     log.trace("Switched " + le + " to " + newLogEntry);
 
@@ -244,7 +239,7 @@ public class VolumeUtil {
         log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
         for (LogEntry logEntry : logsToRemove) {
-          ReplicationTableUtil.updateFiles(context, extent, logEntry.logSet, status);
+          ReplicationTableUtil.updateFiles(context, extent, logEntry.filename, status);
         }
       }
     }
@@ -253,7 +248,6 @@ public class VolumeUtil {
 
     // method this should return the exact strings that are in the metadata table
     return ret;
-
   }
 
   private static String decommisionedTabletDir(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, String metaDir)
