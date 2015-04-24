@@ -61,14 +61,15 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.common.net.HostAndPort;
 
 public class ThriftScanner {
-  private static final Logger log = Logger.getLogger(ThriftScanner.class);
+  private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
   public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<TabletType,Set<String>>(TabletType.class);
 
@@ -115,12 +116,12 @@ public class ThriftScanner {
     } catch (TApplicationException tae) {
       throw new AccumuloServerException(server, tae);
     } catch (TooManyFilesException e) {
-      log.debug("Tablet (" + extent + ") has too many files " + server + " : " + e);
+      log.debug("Tablet ({}) has too many files {} :", extent, server, e);
     } catch (ThriftSecurityException e) {
-      log.warn("Security Violation in scan request to " + server + ": " + e);
+      log.warn("Security Violation in scan request to {} :", server, e);
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
-      log.debug("Error getting transport to " + server + " : " + e);
+      log.debug("Error getting transport to {} :", server, e);
     }
 
     throw new AccumuloException("getBatchFromServer: failed");
@@ -263,7 +264,7 @@ public class ThriftScanner {
               }
             }
           } catch (AccumuloServerException e) {
-            log.debug("Scan failed, server side exception : " + e.getMessage());
+            log.debug("Scan failed, server side exception : {}", e.getMessage());
             throw e;
           } catch (AccumuloException e) {
             error = "exception from tablet loc " + e.getMessage();

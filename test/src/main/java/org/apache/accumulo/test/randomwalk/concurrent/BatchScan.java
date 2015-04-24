@@ -66,16 +66,16 @@ public class BatchScan extends Test {
         bs.close();
       }
 
-      log.debug("Wrote to " + tableName);
+      log.debug("Wrote to {}", tableName);
     } catch (TableNotFoundException e) {
-      log.debug("BatchScan " + tableName + " failed, doesnt exist");
+      log.debug("BatchScan {} failed, doesnt exist", tableName);
     } catch (TableDeletedException tde) {
-      log.debug("BatchScan " + tableName + " failed, table deleted");
+      log.debug("BatchScan {} failed, table deleted", tableName);
     } catch (TableOfflineException e) {
-      log.debug("BatchScan " + tableName + " failed, offline");
+      log.debug("BatchScan {} failed, offline", tableName);
     } catch (RuntimeException e) {
       if (e.getCause() instanceof AccumuloSecurityException) {
-        log.debug("BatchScan " + tableName + " failed, permission error");
+        log.debug("BatchScan {} failed, permission error", tableName);
       } else {
         throw e;
       }

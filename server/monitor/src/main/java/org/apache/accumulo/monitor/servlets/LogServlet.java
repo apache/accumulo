@@ -50,7 +50,7 @@ public class LogServlet extends BasicServlet {
     try {
       fmt = new SimpleDateFormat(dateFormatStr);
     } catch (IllegalArgumentException e) {
-      log.warn("Could not instantiate SimpleDateFormat with format string of '" + dateFormatStr + "', using default format string");
+      log.warn("Could not instantiate SimpleDateFormat with format string of '{}', using default format string", dateFormatStr);
       fmt = new SimpleDateFormat(Property.MONITOR_LOG_DATE_FORMAT.getDefaultValue());
     }
 

@@ -76,7 +76,7 @@ public class ScanMeta extends Test {
       numToScan--;
     }
 
-    log.debug("Found " + hashes.size() + " hashes starting at " + uuid);
+    log.debug("Found {} hashes starting at {}", hashes.size(), uuid);
 
     if (hashes.isEmpty()) {
       return;
@@ -96,11 +96,11 @@ public class ScanMeta extends Test {
     for (Entry<Key,Value> entry : indexScanner)
       hashes2.put(entry.getKey().getRow(), new Text(entry.getValue().get()));
 
-    log.debug("Looked up " + ranges.size() + " ranges, found " + hashes2.size());
+    log.debug("Looked up {} ranges, found {}", ranges.size(), hashes2.size());
 
     if (!hashes.equals(hashes2)) {
-      log.error("uuids from doc table : " + hashes.values());
-      log.error("uuids from index     : " + hashes2.values());
+      log.error("uuids from doc table : {}", hashes.values());
+      log.error("uuids from index     : {}", hashes2.values());
       throw new Exception("Mismatch between document table and index " + indexTableName + " " + imageTableName);
     }
 

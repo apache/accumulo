@@ -90,7 +90,7 @@ public class Grep extends Test {
           + documentsFoundByGrep);
     }
 
-    log.debug("Grep and index agree " + Arrays.asList(words).toString() + " " + documentsFoundInIndex.size());
+    log.debug("Grep and index agree {} {}", Arrays.asList(words).toString(), documentsFoundInIndex.size());
 
   }
 

@@ -45,7 +45,7 @@ import org.apache.accumulo.monitor.util.celltypes.ProgressChartType;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
-import org.apache.log4j.Level;
+import org.apache.log4j.Priority;
 
 import com.google.common.base.Joiner;
 
@@ -75,11 +75,11 @@ public class MasterServlet extends BasicServlet {
       int error = 0, warning = 0, total = 0;
       for (DedupedLogEvent dev : LogService.getInstance().getEvents()) {
         switch (dev.getEvent().getLevel().toInt()) {
-          case Level.FATAL_INT:
-          case Level.ERROR_INT:
+          case Priority.FATAL_INT:
+          case Priority.ERROR_INT:
             error++;
             break;
-          case Level.WARN_INT:
+          case Priority.WARN_INT:
             warning++;
             break;
         }

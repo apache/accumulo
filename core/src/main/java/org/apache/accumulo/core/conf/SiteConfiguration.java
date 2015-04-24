@@ -79,7 +79,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       xmlConfig = new Configuration(false);
 
       if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null)
-        log.warn(configFile + " not found on classpath", new Throwable());
+        log.warn("{} not found on classpath {}", configFile, new Throwable());
       else
         xmlConfig.addResource(configFile);
     }
@@ -101,7 +101,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
             return new String(value);
           }
         } catch (IOException e) {
-          log.warn("Failed to extract sensitive property (" + key + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+          log.warn("Failed to extract sensitive property ({}) from Hadoop CredentialProvider, falling back to accumulo-site.xml", key, e);
         }
       }
     }
@@ -110,7 +110,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
-        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+        log.error("Using default value for {} due to improperly formatted {}: ", key, property.getType(), value);
       value = parent.get(property);
     }
     return value;

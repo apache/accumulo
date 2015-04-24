@@ -136,7 +136,7 @@ public class TestRandomDeletes {
       String tableName = opts.getTableName();
 
       TreeSet<RowColumn> doomed = scanAll(opts, scanOpts, tableName);
-      log.info("Got " + doomed.size() + " rows");
+      log.info("Got {} rows", doomed.size());
 
       long startTime = System.currentTimeMillis();
       while (true) {
@@ -148,7 +148,7 @@ public class TestRandomDeletes {
       long stopTime = System.currentTimeMillis();
 
       long elapsed = (stopTime - startTime) / 1000;
-      log.info("deleted " + deleted + " values in " + elapsed + " seconds");
+      log.info("deleted {} values in {} seconds", deleted, elapsed);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

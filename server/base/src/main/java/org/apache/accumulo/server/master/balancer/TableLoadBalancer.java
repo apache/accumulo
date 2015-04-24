@@ -86,22 +86,22 @@ public class TableLoadBalancer extends TabletBalancer {
             balancer.init(configuration);
           }
 
-          log.info("Loaded new class " + clazzName + " for table " + table);
+          log.info("Loaded new class {} for table {}", clazzName, table);
         } catch (Exception e) {
-          log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
+          log.warn("Failed to load table balancer class {} for table {}", clazzName, table, e);
         }
       }
     }
     if (balancer == null) {
       try {
         balancer = constructNewBalancerForTable(clazzName, table);
-        log.info("Loaded class " + clazzName + " for table " + table);
+        log.info("Loaded class {} for table {}", clazzName, table);
       } catch (Exception e) {
-        log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
+        log.warn("Failed to load table balancer class {} for table {}", clazzName, table, e);
       }
 
       if (balancer == null) {
-        log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table " + table);
+        log.info("Using balancer {} for table {}", DefaultLoadBalancer.class.getName(), table);
         balancer = new DefaultLoadBalancer(table);
       }
       perTableBalancers.put(table, balancer);

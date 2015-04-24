@@ -66,7 +66,7 @@ class TableRangeOpWait extends MasterRepo {
     String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     Text tableIdText = new Text(tableId);
     MergeInfo mergeInfo = master.getMergeInfo(tableIdText);
-    log.info("removing merge information " + mergeInfo);
+    log.info("removing merge information {}", mergeInfo);
     master.clearMergeState(tableIdText);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
@@ -102,7 +102,7 @@ public class TableRangeOp extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
 
     if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
-      log.warn("Attempt to merge tablets for " + RootTable.NAME + " does nothing. It is not splittable.");
+      log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.", RootTable.NAME);
     }
 
     Text start = startRow.length == 0 ? null : new Text(startRow);
@@ -133,7 +133,7 @@ public class TableRangeOp extends MasterRepo {
     Text tableIdText = new Text(tableId);
     MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
     if (mergeInfo.getState() != MergeState.NONE)
-      log.info("removing merge information " + mergeInfo);
+      log.info("removing merge information {}", mergeInfo);
     env.clearMergeState(tableIdText);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);

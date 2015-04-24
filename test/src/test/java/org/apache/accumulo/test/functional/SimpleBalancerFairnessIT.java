@@ -65,7 +65,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     c.tableOperations().create("unused");
     TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 500);
-    log.info("Creating " + splits.size() + " splits");
+    log.info("Creating {} splits", splits.size());
     c.tableOperations().addSplits("unused", splits);
     List<String> tservers = c.instanceOperations().getTabletServers();
     TestIngest.Opts opts = new TestIngest.Opts();
@@ -90,7 +90,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
       }
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
-        log.info("Found " + unassignedTablets + " unassigned tablets, sleeping 3 seconds for tablet assignment");
+        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment", unassignedTablets);
         Thread.sleep(3000);
       }
     }

@@ -68,6 +68,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -463,12 +465,12 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     bw.close();
 
     IteratorSetting iterConfig = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setEncodingType(iterConfig, Type.STRING);
-    SummingCombiner.setColumns(iterConfig, Collections.singletonList(new IteratorSetting.Column("count")));
+    LongCombiner.setEncodingType(iterConfig, Type.STRING);
+    Combiner.setColumns(iterConfig, Collections.singletonList(new IteratorSetting.Column("count")));
 
     IteratorSetting iterConfig2 = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setEncodingType(iterConfig2, Type.STRING);
-    SummingCombiner.setColumns(iterConfig2, Collections.singletonList(new IteratorSetting.Column("count2", "comments")));
+    LongCombiner.setEncodingType(iterConfig2, Type.STRING);
+    Combiner.setColumns(iterConfig2, Collections.singletonList(new IteratorSetting.Column("count2", "comments")));
 
     IteratorSetting iterConfig3 = new IteratorSetting(5, VersioningIterator.class);
     VersioningIterator.setMaxVersions(iterConfig3, 1);
@@ -1320,14 +1322,14 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
         }
       });
       String traceOutput = finalBuffer.toString();
-      log.info("Trace output:" + traceOutput);
+      log.info("Trace output:{}", traceOutput);
       if (traceCount > 0) {
         int lastPos = 0;
         for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations".split(",")) {
-          log.info("Looking in trace output for '" + part + "'");
+          log.info("Looking in trace output for '{}'", part);
           int pos = traceOutput.indexOf(part);
           if (-1 == pos) {
-            log.info("Trace output doesn't contain '" + part + "'");
+            log.info("Trace output doesn't contain '{}'", part);
             Thread.sleep(1000);
             break loop;
           }
@@ -1337,7 +1339,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
         }
         break;
       } else {
-        log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
+        log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
         Thread.sleep(1000);
       }
     }

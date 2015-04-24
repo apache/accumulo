@@ -47,6 +47,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
@@ -269,7 +271,7 @@ public class ExamplesIT extends AccumuloClusterIT {
       }
     }
 
-    log.info("result " + entry.getValue());
+    log.info("result {}", entry.getValue());
     assertEquals(0, entry.getKey().intValue());
     assertTrue(entry.getValue().contains(expectedFile));
   }
@@ -296,7 +298,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     String table = getUniqueNames(1)[0];
     c.tableOperations().create(table);
     is = new IteratorSetting(10, StatsCombiner.class);
-    StatsCombiner.setCombineAllColumns(is, true);
+    Combiner.setCombineAllColumns(is, true);
 
     c.tableOperations().attachIterator(table, is);
     bw = c.createBatchWriter(table, bwc);
@@ -511,8 +513,8 @@ public class ExamplesIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     is = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column(new Text("count"))));
-    SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column(new Text("count"))));
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(tableName, is);
     fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README.md"), new Path(dir + "/tmp/wc/README.md"));
     String[] args;

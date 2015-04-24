@@ -19,14 +19,15 @@ package org.apache.accumulo.test.randomwalk;
 import java.io.File;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 /**
  * Represents a point in graph of RandomFramework
  */
 public abstract class Node {
 
-  protected final Logger log = Logger.getLogger(this.getClass());
+  protected final Logger log = LoggerFactory.getLogger(this.getClass());
   long progress = System.currentTimeMillis();
 
   /**

@@ -42,7 +42,7 @@ public class Merge extends Test {
       row2 = null;
     }
 
-    log.debug("merging " + row1 + " " + row2);
+    log.debug("merging {} {}", row1, row2);
     conn.tableOperations().merge(table, row1, row2);
   }
 

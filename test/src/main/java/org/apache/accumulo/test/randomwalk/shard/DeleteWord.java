@@ -91,7 +91,7 @@ public class DeleteWord extends Test {
       }
     }
 
-    log.debug("Deleted " + documentsToDelete.size() + " documents containing " + wordToDelete);
+    log.debug("Deleted {} documents containing {}", documentsToDelete.size(), wordToDelete);
   }
 
 }

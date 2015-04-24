@@ -71,8 +71,8 @@ public class ReadData {
       Entry<Key,Value> e = iter.next();
       Text colf = e.getKey().getColumnFamily();
       Text colq = e.getKey().getColumnQualifier();
-      log.trace("row: " + e.getKey().getRow() + ", colf: " + colf + ", colq: " + colq);
-      log.trace(", value: " + e.getValue().toString());
+      log.trace("row: {}, colf: {}, colq: {}", e.getKey().getRow(), colf, colq);
+      log.trace(", value: {}", e.getValue().toString());
     }
   }
 }

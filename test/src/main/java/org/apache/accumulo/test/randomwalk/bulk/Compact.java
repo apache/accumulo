@@ -26,9 +26,9 @@ public class Compact extends SelectiveBulkTest {
   protected void runLater(State state, Environment env) throws Exception {
     final Text[] points = Merge.getRandomTabletRange(state);
     final String rangeString = Merge.rangeToString(points);
-    log.info("Compacting " + rangeString);
+    log.info("Compacting {}", rangeString);
     env.getConnector().tableOperations().compact(Setup.getTableName(), points[0], points[1], false, true);
-    log.info("Compaction " + rangeString + " finished");
+    log.info("Compaction {} finished", rangeString);
   }
 
 }

@@ -79,7 +79,7 @@ public class SecurityHelper {
   }
 
   public static void setSysUserPass(State state, byte[] sysUserPass) {
-    log.debug("Setting system user pass to " + new String(sysUserPass, UTF_8));
+    log.debug("Setting system user pass to {}", new String(sysUserPass, UTF_8));
     state.set(masterPass, sysUserPass);
     state.set(masterPass + "time", System.currentTimeMillis());
 
@@ -94,7 +94,7 @@ public class SecurityHelper {
   }
 
   public static void setTabUserPass(State state, byte[] tabUserPass) {
-    log.debug("Setting table user pass to " + new String(tabUserPass, UTF_8));
+    log.debug("Setting table user pass to {}", new String(tabUserPass, UTF_8));
     state.set(tUserPass, tabUserPass);
     state.set(tUserPass + "time", System.currentTimeMillis());
   }
@@ -132,7 +132,7 @@ public class SecurityHelper {
   }
 
   public static void setTabPerm(State state, String userName, TablePermission tp, boolean value) {
-    log.debug((value ? "Gave" : "Took") + " the table permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug("{} the table permission {}{} user {}", (value ? "Gave" : "Took"), tp.name(), (value ? " to" : " from"), userName);
     state.set("Tab" + userName + tp.name(), Boolean.toString(value));
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
       state.set("Tab" + userName + tp.name() + "time", System.currentTimeMillis());
@@ -144,7 +144,7 @@ public class SecurityHelper {
   }
 
   public static void setSysPerm(State state, String userName, SystemPermission tp, boolean value) {
-    log.debug((value ? "Gave" : "Took") + " the system permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug("{} the system permission {}{} user {}", (value ? "Gave" : "Took"), tp.name(), (value ? " to" : " from"), userName);
     state.set("Sys" + userName + tp.name(), Boolean.toString(value));
   }
 

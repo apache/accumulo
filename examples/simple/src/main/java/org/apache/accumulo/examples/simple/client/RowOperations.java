@@ -197,7 +197,7 @@ public class RowOperations {
   private static void printRow(Scanner scanner) {
     // iterates through and prints
     for (Entry<Key,Value> entry : scanner)
-      log.info("Key: " + entry.getKey().toString() + " Value: " + entry.getValue().toString());
+      log.info("Key: {} Value: {}", entry.getKey().toString(), entry.getValue().toString());
   }
 
   /**

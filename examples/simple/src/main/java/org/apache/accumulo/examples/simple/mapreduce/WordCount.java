@@ -29,6 +29,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -79,7 +80,7 @@ public class WordCount extends Configured implements Tool {
     job.setJarByClass(this.getClass());
 
     job.setInputFormatClass(TextInputFormat.class);
-    TextInputFormat.setInputPaths(job, new Path(opts.inputDirectory));
+    FileInputFormat.setInputPaths(job, new Path(opts.inputDirectory));
 
     job.setMapperClass(MapClass.class);
 

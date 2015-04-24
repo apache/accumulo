@@ -24,6 +24,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -44,15 +45,15 @@ public class Setup extends Test {
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
     String pid = env.getPid();
     tableName = String.format("bulk_%s_%s_%d", hostname, pid, System.currentTimeMillis());
-    log.info("Starting bulk test on " + tableName);
+    log.info("Starting bulk test on {}", tableName);
 
     TableOperations tableOps = env.getConnector().tableOperations();
     try {
       if (!tableOps.exists(getTableName())) {
         tableOps.create(getTableName());
         IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
-        SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
-        SummingCombiner.setCombineAllColumns(is, true);
+        LongCombiner.setEncodingType(is, LongCombiner.Type.STRING);
+        Combiner.setCombineAllColumns(is, true);
         tableOps.attachIterator(getTableName(), is);
       }
     } catch (TableExistsException ex) {

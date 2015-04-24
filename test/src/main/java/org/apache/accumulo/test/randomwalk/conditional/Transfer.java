@@ -111,7 +111,7 @@ public class Transfer extends Test {
 
     int amt = rand.nextInt(50);
 
-    log.debug("transfer req " + bank + " " + amt + " " + acct1 + " " + a1 + " " + acct2 + " " + a2);
+    log.debug("transfer req {} {} {} {} {} {}",bank, amt, acct1, a1, acct2, a2);
 
     if (a1.bal >= amt) {
       ConditionalMutation cm = new ConditionalMutation(bank, new Condition(acct1, "seq").setValue(Utils.getSeq(a1.seq)),
@@ -124,10 +124,10 @@ public class Transfer extends Test {
       ConditionalWriter cw = (ConditionalWriter) state.get("cw");
       Status status = cw.write(cm).getStatus();
       while (status == Status.UNKNOWN) {
-        log.debug("retrying transfer " + status);
+        log.debug("retrying transfer {}", status);
         status = cw.write(cm).getStatus();
       }
-      log.debug("transfer result " + bank + " " + status + " " + a1 + " " + a2);
+      log.debug("transfer result {} {} {} {}", bank, status, a1, a2);
     }
 
   }

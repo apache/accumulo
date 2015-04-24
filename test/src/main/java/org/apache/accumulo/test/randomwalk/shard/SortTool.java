@@ -26,7 +26,9 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +58,7 @@ public class SortTool extends Configured implements Tool {
     }
 
     job.setInputFormatClass(SequenceFileInputFormat.class);
-    SequenceFileInputFormat.setInputPaths(job, seqFile);
+    FileInputFormat.setInputPaths(job, seqFile);
 
     job.setPartitionerClass(KeyRangePartitioner.class);
     KeyRangePartitioner.setSplitFile(job, splitFile);
@@ -67,7 +69,7 @@ public class SortTool extends Configured implements Tool {
     job.setNumReduceTasks(splits.size() + 1);
 
     job.setOutputFormatClass(AccumuloFileOutputFormat.class);
-    AccumuloFileOutputFormat.setOutputPath(job, new Path(outputDir));
+    FileOutputFormat.setOutputPath(job, new Path(outputDir));
 
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

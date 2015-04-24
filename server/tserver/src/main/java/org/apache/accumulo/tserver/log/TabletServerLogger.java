@@ -222,7 +222,7 @@ public class TabletServerLogger {
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Throwable ex) {
-          log.error("Unable to cleanly close log " + logger.getFileName() + ": " + ex, ex);
+          log.error("Unable to cleanly close log {}: {} {}", logger.getFileName(), ex, ex);
         }
       }
       loggers.clear();
@@ -277,7 +277,7 @@ public class TabletServerLogger {
                   logs.add(logger.getFileName());
                 }
                 Status status = StatusUtil.fileCreated(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + logs);
+                log.debug("Writing {} to metadata table for {}", ProtobufUtil.toString(status), logs);
                 // Got some new WALs, note this in the metadata table
                 ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(), logs, status);
               }
@@ -307,10 +307,10 @@ public class TabletServerLogger {
           success = (currentLogSet == logSetId.get());
         }
       } catch (DfsLogger.LogClosedException ex) {
-        log.debug("Logs closed while writing, retrying " + attempt);
+        log.debug("Logs closed while writing, retrying {}", attempt);
       } catch (Exception t) {
         if (attempt != 1) {
-          log.error("Unexpected error writing to log, retrying attempt " + attempt, t);
+          log.error("Unexpected error writing to log, retrying attempt {}", attempt, t);
         }
         UtilWaitThread.sleep(100);
       } finally {
@@ -433,7 +433,7 @@ public class TabletServerLogger {
 
     long t2 = System.currentTimeMillis();
 
-    log.debug(" wrote MinC finish  " + seq + ": writeTime:" + (t2 - t1) + "ms ");
+    log.debug(" wrote MinC finish  {}: writeTime:{}ms ", seq, (t2 - t1));
   }
 
   public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {

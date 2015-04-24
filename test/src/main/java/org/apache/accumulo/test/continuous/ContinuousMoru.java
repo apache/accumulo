@@ -28,6 +28,7 @@ import org.apache.accumulo.core.cli.MapReduceClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -142,8 +143,8 @@ public class ContinuousMoru extends Configured implements Tool {
     // set up ranges
     try {
       Set<Range> ranges = clientOpts.getConnector().tableOperations().splitRangeByTablets(clientOpts.getTableName(), new Range(), opts.maxMaps);
-      AccumuloInputFormat.setRanges(job, ranges);
-      AccumuloInputFormat.setAutoAdjustRanges(job, false);
+      InputFormatBase.setRanges(job, ranges);
+      InputFormatBase.setAutoAdjustRanges(job, false);
     } catch (Exception e) {
       throw new IOException(e);
     }

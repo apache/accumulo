@@ -41,12 +41,13 @@ import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 abstract public class BasicServlet extends HttpServlet {
 
   private static final long serialVersionUID = 1L;
-  protected static final Logger log = Logger.getLogger(BasicServlet.class);
+  protected static final Logger log = LoggerFactory.getLogger(BasicServlet.class);
   static String cachedInstanceName = null;
   private String bannerText;
   private String bannerColor;
@@ -66,7 +67,7 @@ abstract public class BasicServlet extends HttpServlet {
       pageBody(req, resp, sb);
       pageEnd(req, resp, sb);
     } catch (Throwable t) {
-      log.error("Error building page " + req.getRequestURI(), t);
+      log.error("Error building page {}", req.getRequestURI(), t);
       sb.append("\n<pre>\n");
       StringWriter sw = new StringWriter();
       t.printStackTrace(new PrintWriter(sw));
@@ -253,7 +254,7 @@ abstract public class BasicServlet extends HttpServlet {
     try {
       return URLEncoder.encode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(UTF_8.name() + " is not a recognized encoding", e);
+      LoggerFactory.getLogger(BasicServlet.class).error("{} is not a recognized encoding", UTF_8.name(), e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }
@@ -262,7 +263,7 @@ abstract public class BasicServlet extends HttpServlet {
     try {
       return URLDecoder.decode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(UTF_8.name() + " is not a recognized encoding", e);
+      LoggerFactory.getLogger(BasicServlet.class).error("{} is not a recognized encoding", UTF_8.name(), e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }

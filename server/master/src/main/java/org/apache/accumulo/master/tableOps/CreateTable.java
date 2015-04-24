@@ -85,7 +85,7 @@ class FinishCreateTable extends MasterRepo {
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
-    LoggerFactory.getLogger(FinishCreateTable.class).debug("Created table " + tableInfo.tableId + " " + tableInfo.tableName);
+    LoggerFactory.getLogger(FinishCreateTable.class).debug("Created table {} {}", tableInfo.tableId, tableInfo.tableName);
 
     return null;
   }
@@ -256,7 +256,7 @@ class SetupPermissions extends MasterRepo {
         try {
           security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
         } catch (ThriftSecurityException e) {
-          LoggerFactory.getLogger(FinishCreateTable.class).error("{}", e.getMessage(), e);
+          LoggerFactory.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
           throw e;
         }
       }

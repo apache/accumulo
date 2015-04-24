@@ -135,6 +135,7 @@ package org.apache.accumulo.server.replication.proto;
       return defaultInstance;
     }
 
+    @Override
     public Status getDefaultInstanceForType() {
       return defaultInstance;
     }
@@ -210,6 +211,7 @@ package org.apache.accumulo.server.replication.proto;
       return org.apache.accumulo.server.replication.proto.Replication.internal_static_Status_descriptor;
     }
 
+    @Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.apache.accumulo.server.replication.proto.Replication.internal_static_Status_fieldAccessorTable
@@ -219,6 +221,7 @@ package org.apache.accumulo.server.replication.proto;
 
     public static com.google.protobuf.Parser<Status> PARSER =
         new com.google.protobuf.AbstractParser<Status>() {
+      @Override
       public Status parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -243,6 +246,7 @@ package org.apache.accumulo.server.replication.proto;
      * offset where replication should start
      * </pre>
      */
+    @Override
     public boolean hasBegin() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
@@ -253,6 +257,7 @@ package org.apache.accumulo.server.replication.proto;
      * offset where replication should start
      * </pre>
      */
+    @Override
     public long getBegin() {
       return begin_;
     }
@@ -267,6 +272,7 @@ package org.apache.accumulo.server.replication.proto;
      * offset where data is ready for replication
      * </pre>
      */
+    @Override
     public boolean hasEnd() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
@@ -277,6 +283,7 @@ package org.apache.accumulo.server.replication.proto;
      * offset where data is ready for replication
      * </pre>
      */
+    @Override
     public long getEnd() {
       return end_;
     }
@@ -291,6 +298,7 @@ package org.apache.accumulo.server.replication.proto;
      * do we have a discrete 'end'
      * </pre>
      */
+    @Override
     public boolean hasInfiniteEnd() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
@@ -301,6 +309,7 @@ package org.apache.accumulo.server.replication.proto;
      * do we have a discrete 'end'
      * </pre>
      */
+    @Override
     public boolean getInfiniteEnd() {
       return infiniteEnd_;
     }
@@ -315,6 +324,7 @@ package org.apache.accumulo.server.replication.proto;
      * will more data be appended to the file
      * </pre>
      */
+    @Override
     public boolean hasClosed() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
@@ -325,6 +335,7 @@ package org.apache.accumulo.server.replication.proto;
      * will more data be appended to the file
      * </pre>
      */
+    @Override
     public boolean getClosed() {
       return closed_;
     }
@@ -339,6 +350,7 @@ package org.apache.accumulo.server.replication.proto;
      * when, in ms, was the file created?
      * </pre>
      */
+    @Override
     public boolean hasCreatedTime() {
       return ((bitField0_ & 0x00000010) == 0x00000010);
     }
@@ -349,6 +361,7 @@ package org.apache.accumulo.server.replication.proto;
      * when, in ms, was the file created?
      * </pre>
      */
+    @Override
     public long getCreatedTime() {
       return createdTime_;
     }
@@ -361,6 +374,7 @@ package org.apache.accumulo.server.replication.proto;
       createdTime_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
+    @Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized != -1) return isInitialized == 1;
@@ -369,6 +383,7 @@ package org.apache.accumulo.server.replication.proto;
       return true;
     }
 
+    @Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
@@ -391,6 +406,7 @@ package org.apache.accumulo.server.replication.proto;
     }
 
     private int memoizedSerializedSize = -1;
+    @Override
     public int getSerializedSize() {
       int size = memoizedSerializedSize;
       if (size != -1) return size;
@@ -482,10 +498,12 @@ package org.apache.accumulo.server.replication.proto;
     }
 
     public static Builder newBuilder() { return Builder.create(); }
+    @Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder(org.apache.accumulo.server.replication.proto.Replication.Status prototype) {
       return newBuilder().mergeFrom(prototype);
     }
+    @Override
     public Builder toBuilder() { return newBuilder(this); }
 
     @java.lang.Override
@@ -505,6 +523,7 @@ package org.apache.accumulo.server.replication.proto;
         return org.apache.accumulo.server.replication.proto.Replication.internal_static_Status_descriptor;
       }
 
+      @Override
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.apache.accumulo.server.replication.proto.Replication.internal_static_Status_fieldAccessorTable
@@ -530,6 +549,7 @@ package org.apache.accumulo.server.replication.proto;
         return new Builder();
       }
 
+      @Override
       public Builder clear() {
         super.clear();
         begin_ = 0L;
@@ -545,19 +565,23 @@ package org.apache.accumulo.server.replication.proto;
         return this;
       }
 
+      @Override
       public Builder clone() {
         return create().mergeFrom(buildPartial());
       }
 
+      @Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return org.apache.accumulo.server.replication.proto.Replication.internal_static_Status_descriptor;
       }
 
+      @Override
       public org.apache.accumulo.server.replication.proto.Replication.Status getDefaultInstanceForType() {
         return org.apache.accumulo.server.replication.proto.Replication.Status.getDefaultInstance();
       }
 
+      @Override
       public org.apache.accumulo.server.replication.proto.Replication.Status build() {
         org.apache.accumulo.server.replication.proto.Replication.Status result = buildPartial();
         if (!result.isInitialized()) {
@@ -566,6 +590,7 @@ package org.apache.accumulo.server.replication.proto;
         return result;
       }
 
+      @Override
       public org.apache.accumulo.server.replication.proto.Replication.Status buildPartial() {
         org.apache.accumulo.server.replication.proto.Replication.Status result = new org.apache.accumulo.server.replication.proto.Replication.Status(this);
         int from_bitField0_ = bitField0_;
@@ -595,6 +620,7 @@ package org.apache.accumulo.server.replication.proto;
         return result;
       }
 
+      @Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.apache.accumulo.server.replication.proto.Replication.Status) {
           return mergeFrom((org.apache.accumulo.server.replication.proto.Replication.Status)other);
@@ -625,10 +651,12 @@ package org.apache.accumulo.server.replication.proto;
         return this;
       }
 
+      @Override
       public final boolean isInitialized() {
         return true;
       }
 
+      @Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -657,6 +685,7 @@ package org.apache.accumulo.server.replication.proto;
        * offset where replication should start
        * </pre>
        */
+      @Override
       public boolean hasBegin() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
@@ -667,6 +696,7 @@ package org.apache.accumulo.server.replication.proto;
        * offset where replication should start
        * </pre>
        */
+      @Override
       public long getBegin() {
         return begin_;
       }
@@ -706,6 +736,7 @@ package org.apache.accumulo.server.replication.proto;
        * offset where data is ready for replication
        * </pre>
        */
+      @Override
       public boolean hasEnd() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
@@ -716,6 +747,7 @@ package org.apache.accumulo.server.replication.proto;
        * offset where data is ready for replication
        * </pre>
        */
+      @Override
       public long getEnd() {
         return end_;
       }
@@ -755,6 +787,7 @@ package org.apache.accumulo.server.replication.proto;
        * do we have a discrete 'end'
        * </pre>
        */
+      @Override
       public boolean hasInfiniteEnd() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
@@ -765,6 +798,7 @@ package org.apache.accumulo.server.replication.proto;
        * do we have a discrete 'end'
        * </pre>
        */
+      @Override
       public boolean getInfiniteEnd() {
         return infiniteEnd_;
       }
@@ -804,6 +838,7 @@ package org.apache.accumulo.server.replication.proto;
        * will more data be appended to the file
        * </pre>
        */
+      @Override
       public boolean hasClosed() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
@@ -814,6 +849,7 @@ package org.apache.accumulo.server.replication.proto;
        * will more data be appended to the file
        * </pre>
        */
+      @Override
       public boolean getClosed() {
         return closed_;
       }
@@ -853,6 +889,7 @@ package org.apache.accumulo.server.replication.proto;
        * when, in ms, was the file created?
        * </pre>
        */
+      @Override
       public boolean hasCreatedTime() {
         return ((bitField0_ & 0x00000010) == 0x00000010);
       }
@@ -863,6 +900,7 @@ package org.apache.accumulo.server.replication.proto;
        * when, in ms, was the file created?
        * </pre>
        */
+      @Override
       public long getCreatedTime() {
         return createdTime_;
       }
@@ -927,6 +965,7 @@ package org.apache.accumulo.server.replication.proto;
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
+        @Override
         public com.google.protobuf.ExtensionRegistry assignDescriptors(
             com.google.protobuf.Descriptors.FileDescriptor root) {
           descriptor = root;

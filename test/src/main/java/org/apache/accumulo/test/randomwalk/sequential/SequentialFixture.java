@@ -45,9 +45,9 @@ public class SequentialFixture extends Fixture {
 
     try {
       conn.tableOperations().create(seqTableName);
-      log.debug("Created table " + seqTableName + " (id:" + Tables.getNameToIdMap(instance).get(seqTableName) + ")");
+      log.debug("Created table {} (id:{})", seqTableName, Tables.getNameToIdMap(instance).get(seqTableName));
     } catch (TableExistsException e) {
-      log.warn("Table " + seqTableName + " already exists!");
+      log.warn("Table {} already exists!", seqTableName);
       throw e;
     }
     conn.tableOperations().setProperty(seqTableName, "table.scan.max.memory", "1K");
@@ -71,7 +71,7 @@ public class SequentialFixture extends Fixture {
       env.resetMultiTableBatchWriter();
     }
 
-    log.debug("Dropping tables: " + seqTableName);
+    log.debug("Dropping tables: {}", seqTableName);
 
     Connector conn = env.getConnector();
 

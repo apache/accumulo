@@ -111,7 +111,7 @@ public class Config extends Test {
     if (lastSetting != null) {
       int choice = Integer.parseInt(lastSetting.toString());
       Property property = settings[choice].property;
-      log.debug("Setting " + property.getKey() + " back to " + property.getDefaultValue());
+      log.debug("Setting {} back to {}", property.getKey(), property.getDefaultValue());
       env.getConnector().instanceOperations().setProperty(property.getKey(), property.getDefaultValue());
     }
     lastSetting = state.getOkIfAbsent(LAST_TABLE_SETTING);
@@ -121,7 +121,7 @@ public class Config extends Test {
       int choice = Integer.parseInt(parts[1]);
       Property property = tableSettings[choice].property;
       if (env.getConnector().tableOperations().exists(table)) {
-        log.debug("Setting " + property.getKey() + " on " + table + " back to " + property.getDefaultValue());
+        log.debug("Setting {} on {} back to {}", property.getKey(), table, property.getDefaultValue());
         try {
           env.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
@@ -141,7 +141,7 @@ public class Config extends Test {
       int choice = Integer.parseInt(parts[1]);
       Property property = tableSettings[choice].property;
       if (env.getConnector().namespaceOperations().exists(namespace)) {
-        log.debug("Setting " + property.getKey() + " on " + namespace + " back to " + property.getDefaultValue());
+        log.debug("Setting {} on {} back to {}", property.getKey(), namespace, property.getDefaultValue());
         try {
           env.getConnector().namespaceOperations().setProperty(namespace, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
@@ -182,7 +182,7 @@ public class Config extends Test {
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
     state.set(LAST_TABLE_SETTING, table + "," + choice);
-    log.debug("Setting " + setting.property.getKey() + " on table " + table + " to " + newValue);
+    log.debug("Setting {} on table {} to {}", setting.property.getKey(), table, newValue);
     try {
       env.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
     } catch (AccumuloException ex) {
@@ -209,7 +209,7 @@ public class Config extends Test {
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
     state.set(LAST_NAMESPACE_SETTING, namespace + "," + choice);
-    log.debug("Setting " + setting.property.getKey() + " on namespace " + namespace + " to " + newValue);
+    log.debug("Setting {} on namespace {} to {}", setting.property.getKey(), namespace, newValue);
     try {
       env.getConnector().namespaceOperations().setProperty(namespace, setting.property.getKey(), "" + newValue);
     } catch (AccumuloException ex) {
@@ -229,7 +229,7 @@ public class Config extends Test {
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
     state.set(LAST_SETTING, "" + choice);
-    log.debug("Setting " + setting.property.getKey() + " to " + newValue);
+    log.debug("Setting {} to {}", setting.property.getKey(), newValue);
     env.getConnector().instanceOperations().setProperty(setting.property.getKey(), "" + newValue);
   }
 

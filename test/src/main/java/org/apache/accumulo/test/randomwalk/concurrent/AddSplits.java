@@ -52,11 +52,11 @@ public class AddSplits extends Test {
 
     try {
       conn.tableOperations().addSplits(tableName, splits);
-      log.debug("Added " + splits.size() + " splits " + tableName);
+      log.debug("Added {} splits {}", splits.size(), tableName);
     } catch (TableNotFoundException e) {
-      log.debug("AddSplits " + tableName + " failed, doesnt exist");
+      log.debug("AddSplits {} failed, doesn't exist", tableName);
     } catch (TableOfflineException e) {
-      log.debug("AddSplits " + tableName + " failed, offline");
+      log.debug("AddSplits {} failed, offline", tableName);
     }
   }
 }

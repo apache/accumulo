@@ -75,6 +75,6 @@ public class DeleteSomeDocs extends Test {
 
     dbd.close();
 
-    log.debug("Deleted documents w/ id matching '" + pattern + "'");
+    log.debug("Deleted documents w/ id matching '{}'", pattern);
   }
 }

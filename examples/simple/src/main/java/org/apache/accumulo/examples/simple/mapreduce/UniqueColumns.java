@@ -23,6 +23,7 @@ import java.util.HashSet;
 import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -33,6 +34,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -109,8 +111,8 @@ public class UniqueColumns extends Configured implements Tool {
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
 
-      AccumuloInputFormat.setOfflineTableScan(job, true);
-      AccumuloInputFormat.setInputTableName(job, clone);
+      InputFormatBase.setOfflineTableScan(job, true);
+      InputFormatBase.setInputTableName(job, clone);
     }
 
     job.setInputFormatClass(AccumuloInputFormat.class);
@@ -125,7 +127,7 @@ public class UniqueColumns extends Configured implements Tool {
     job.setNumReduceTasks(opts.reducers);
 
     job.setOutputFormatClass(TextOutputFormat.class);
-    TextOutputFormat.setOutputPath(job, new Path(opts.output));
+    FileOutputFormat.setOutputPath(job, new Path(opts.output));
 
     job.waitForCompletion(true);
 

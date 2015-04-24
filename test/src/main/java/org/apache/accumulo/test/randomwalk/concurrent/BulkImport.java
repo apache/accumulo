@@ -136,11 +136,11 @@ public class BulkImport extends Test {
 
       conn.tableOperations().importDirectory(tableName, bulkDir, bulkDir + "_f", rand.nextBoolean());
 
-      log.debug("BulkImported to " + tableName);
+      log.debug("BulkImported to {}", tableName);
     } catch (TableNotFoundException e) {
-      log.debug("BulkImport " + tableName + " failed, doesnt exist");
+      log.debug("BulkImport {} failed, doesnt exist", tableName);
     } catch (TableOfflineException toe) {
-      log.debug("BulkImport " + tableName + " failed, offline");
+      log.debug("BulkImport {} failed, offline", tableName);
     } finally {
       fs.delete(new Path(bulkDir), true);
       fs.delete(new Path(bulkDir + "_f"), true);

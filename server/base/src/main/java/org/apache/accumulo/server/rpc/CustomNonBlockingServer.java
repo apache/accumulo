@@ -230,7 +230,7 @@ public class CustomNonBlockingServer extends THsHaServer {
             // deal with writes
             handleWrite(key);
           } else {
-            LOGGER.warn("Unexpected state in select! " + key.interestOps());
+            LOGGER.warn("Unexpected state in select! {}", key.interestOps());
           }
         }
       } catch (IOException e) {

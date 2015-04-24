@@ -71,7 +71,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacIT {
     c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
     for (int i = 0; i < 5; i++) {
       String tableName = "table" + i;
-      log.info("Creating " + tableName);
+      log.info("Creating {}", tableName);
       c.tableOperations().create(tableName);
       log.info("adding splits");
       c.tableOperations().addSplits(tableName, splits);

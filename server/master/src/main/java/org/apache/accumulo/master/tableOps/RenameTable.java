@@ -97,7 +97,7 @@ public class RenameTable extends MasterRepo {
       Utils.unreserveNamespace(namespaceId, tid, false);
     }
 
-    LoggerFactory.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
+    LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId, oldTableName, newTableName);
 
     return null;
   }

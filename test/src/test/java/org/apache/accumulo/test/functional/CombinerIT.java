@@ -32,6 +32,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
@@ -60,8 +62,8 @@ public class CombinerIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setEncodingType(setting, Type.STRING);
-    SummingCombiner.setColumns(setting, Collections.singletonList(new IteratorSetting.Column("cf")));
+    LongCombiner.setEncodingType(setting, Type.STRING);
+    Combiner.setColumns(setting, Collections.singletonList(new IteratorSetting.Column("cf")));
     c.tableOperations().attachIterator(tableName, setting);
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {

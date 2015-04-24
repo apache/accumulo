@@ -294,7 +294,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       if (!security.canPerformSystemActions(credentials))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-      log.debug("Got request to bulk import files to table(" + tableId + "): " + files);
+      log.debug("Got request to bulk import files to table({}): {}", tableId, files);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {

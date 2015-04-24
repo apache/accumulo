@@ -44,18 +44,18 @@ public class CreateTable extends Test {
 
     try {
       conn.tableOperations().create(tableName);
-      log.debug("Created table " + tableName);
+      log.debug("Created table {}", tableName);
     } catch (TableExistsException e) {
-      log.debug("Create " + tableName + " failed, it exists");
+      log.debug("Create {} failed, it exists", tableName);
     } catch (AccumuloException e) {
       if (e.getCause() != null && e.getCause() instanceof NamespaceNotFoundException)
-        log.debug("Create " + tableName + " failed, the namespace does not exist");
+        log.debug("Create {} failed, the namespace does not exist", tableName);
       else
         throw e;
     } catch (IllegalArgumentException e) {
-      log.debug("Create: " + e.toString());
+      log.debug("Create: {}", e.toString());
     } catch (AccumuloSecurityException e) {
-      log.debug("Could not create table: " + e);
+      log.debug("Could not create table:", e);
     }
   }
 }

@@ -138,7 +138,7 @@ public class XMLServlet extends BasicServlet {
         tableName = Tables.getTableName(instance, tableId);
         tableState = Tables.getTableState(instance, tableId).toString();
       } catch (Exception ex) {
-        log.warn(ex, ex);
+        log.warn("", ex);
       }
       sb.append("<tablename>").append(tableName).append("</tablename>\n");
       sb.append("<tableId>").append(tableId).append("</tableId>\n");

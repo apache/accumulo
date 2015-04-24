@@ -49,7 +49,7 @@ public class Insert extends Test {
 
     String docID = insertRandomDocument(nextDocID++, dataWriter, indexWriter, indexTableName, dataTableName, numPartitions, rand);
 
-    log.debug("Inserted document " + docID);
+    log.debug("Inserted document {}", docID);
 
     state.set("nextDocID", Long.valueOf(nextDocID));
   }

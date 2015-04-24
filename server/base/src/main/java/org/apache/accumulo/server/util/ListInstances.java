@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +156,7 @@ public class ListInstances {
 
     try {
       String masterLocPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-      byte[] master = ZooLock.getLockData(cache, masterLocPath, null);
+      byte[] master = org.apache.accumulo.fate.zookeeper.ZooLock.getLockData(cache, masterLocPath, null);
       if (master == null) {
         return null;
       }
@@ -209,7 +208,7 @@ public class ListInstances {
         try {
           ts.add(UUID.fromString(iid));
         } catch (Exception e) {
-          log.error("Exception: " + e);
+          log.error("Exception: ", e);
         }
       }
     } catch (Exception e) {

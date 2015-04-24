@@ -62,7 +62,7 @@ public class MapRedVerify extends Test {
     for (Entry<Key,Value> entry : outputScanner) {
       Key current = entry.getKey();
       if (lastKey != null && lastKey.getColumnFamily().equals(current.getRow())) {
-        log.info(entry.getKey());
+        log.info(entry.getKey().toString());
         count++;
       }
       lastKey = current;
@@ -72,7 +72,7 @@ public class MapRedVerify extends Test {
       log.error("Gaps in output");
     }
 
-    log.debug("Dropping table: " + args[7]);
+    log.debug("Dropping table: {}", args[7]);
     Connector conn = env.getConnector();
     conn.tableOperations().delete(args[7]);
   }

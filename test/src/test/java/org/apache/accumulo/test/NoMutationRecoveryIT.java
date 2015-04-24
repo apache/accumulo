@@ -110,7 +110,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     conn.tableOperations().flush(table, null, null, true);
 
     Range range = Range.prefix(tableId);
-    log.info("Fetching WAL references over " + table);
+    log.info("Fetching WAL references over {}", table);
     assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME, range)));
 
     // Grant permission to the admin user to write to the Metadata table

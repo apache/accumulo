@@ -126,7 +126,7 @@ public class CleanUpIT extends SharedMiniClusterIT {
     Exception e = new Exception();
     for (Thread thread : threads) {
       e.setStackTrace(thread.getStackTrace());
-      log.info("thread name: " + thread.getName(), e);
+      log.info("thread name: {}", thread.getName(), e);
     }
   }
 
