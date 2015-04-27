@@ -40,6 +40,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class MultiTableRecoveryIT extends ConfigurableMacIT {
 
   @Override
