@@ -110,7 +110,7 @@ public class MetadataIT extends AccumuloClusterIT {
     c.tableOperations().merge(MetadataTable.NAME, null, null);
     Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.DeletesSection.getRange());
-    while (Iterators.size(((Iterable<?>) s).iterator()) == 0) {
+    while (Iterators.size(s.iterator()) == 0) {
       UtilWaitThread.sleep(100);
     }
     assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());

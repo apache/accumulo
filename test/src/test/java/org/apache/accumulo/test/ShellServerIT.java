@@ -1324,7 +1324,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
       @Override
       public void run() {
         try {
-          Iterators.size(((Iterable<?>) s).iterator());
+          Iterators.size(s.iterator());
         } catch (Exception ex) {
           throw new RuntimeException(ex);
         }

@@ -68,7 +68,7 @@ public class BadIteratorMincIT extends AccumuloClusterIT {
 
     // try to scan table
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    int count = Iterators.size(((Iterable<?>) scanner).iterator());
+    int count = Iterators.size(scanner.iterator());
     assertEquals("Did not see expected # entries " + count, 1, count);
 
     // remove the bad iterator

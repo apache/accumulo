@@ -140,7 +140,7 @@ public class CleanWalIT extends AccumuloClusterIT {
 
   int count(String tableName, Connector conn) throws Exception {
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    return Iterators.size(((Iterable<?>) s).iterator());
+    return Iterators.size(s.iterator());
   }
 
 }

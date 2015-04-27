@@ -138,8 +138,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
   }
 
   private int count(String tableName) throws Exception {
-    Connector c = getConnector();
-    return Iterators.size(((Iterable<?>) c.createScanner(tableName, Authorizations.EMPTY)).iterator());
+    return Iterators.size((getConnector().createScanner(tableName, Authorizations.EMPTY)).iterator());
   }
 
 }

@@ -290,7 +290,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     bw.addMutation(m);
     bw.close();
     UtilWaitThread.sleep(1000);
-    assertEquals(0, Iterators.size(((Iterable<?>) c.createScanner(tableName, Authorizations.EMPTY)).iterator()));
+    assertEquals(0, Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator()));
   }
 
   @Test

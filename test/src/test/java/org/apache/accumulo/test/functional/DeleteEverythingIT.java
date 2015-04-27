@@ -98,7 +98,7 @@ public class DeleteEverythingIT extends AccumuloClusterIT {
 
     Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new Range());
-    int count = Iterators.size(((Iterable<?>) scanner).iterator());
+    int count = Iterators.size(scanner.iterator());
     assertEquals("count == " + count, 0, count);
     getConnector().tableOperations().flush(tableName, null, null, true);
 

@@ -75,7 +75,7 @@ public class DeleteRowsIT extends AccumuloClusterIT {
       c.tableOperations().create(tableName);
       c.tableOperations().deleteRows(tableName, null, null);
       Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-      assertEquals(0, Iterators.size(((Iterable<?>) scanner).iterator()));
+      assertEquals(0, Iterators.size(scanner.iterator()));
     }
   }
 

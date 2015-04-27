@@ -148,7 +148,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
   private void waitForCleanStore(MetaDataStateStore store) {
     while (true) {
       try {
-        Iterators.size(((Iterable<?>) store).iterator());
+        Iterators.size(store.iterator());
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

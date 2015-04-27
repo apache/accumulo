@@ -104,7 +104,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    return Iterators.size(((Iterable<?>) s).iterator());
+    return Iterators.size(s.iterator());
   }
 
   private void writeFile(Connector conn, String tableName) throws Exception {

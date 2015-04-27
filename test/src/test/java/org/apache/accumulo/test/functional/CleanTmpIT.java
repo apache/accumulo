@@ -107,7 +107,7 @@ public class CleanTmpIT extends AccumuloClusterIT {
     getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    assertEquals(2, Iterators.size(((Iterable<?>) scanner).iterator()));
+    assertEquals(2, Iterators.size(scanner.iterator()));
     // If we performed log recovery, we should have cleaned up any stray files
     assertFalse("File still exists: " + tmp, fs.exists(tmp));
   }
