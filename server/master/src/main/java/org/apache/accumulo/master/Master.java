@@ -129,6 +129,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
@@ -1103,6 +1104,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
       log.warn("Failed to get master lock " + e);
+
+      if (e instanceof NoAuthException) {
+        String msg = "Failed to acquire master lock due to incorrect ZooKeeper authentication.";
+        log.error(msg + " Ensure instance.secret is consistent across Accumulo configuration", e);
+        Halt.halt(msg, -1);
+      }
 
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
