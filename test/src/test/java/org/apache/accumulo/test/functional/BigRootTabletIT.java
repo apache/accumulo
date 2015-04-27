@@ -30,6 +30,8 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class BigRootTabletIT extends AccumuloClusterIT {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan buffers
 
@@ -58,7 +60,7 @@ public class BigRootTabletIT extends AccumuloClusterIT {
     }
     cluster.stop();
     cluster.start();
-    assertTrue(FunctionalTestUtils.count(c.createScanner(RootTable.NAME, Authorizations.EMPTY)) > 0);
+    assertTrue(Iterators.size(((Iterable<?>) c.createScanner(RootTable.NAME, Authorizations.EMPTY)).iterator()) > 0);
   }
 
 }

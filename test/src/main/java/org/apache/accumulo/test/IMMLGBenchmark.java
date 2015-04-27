@@ -38,14 +38,14 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.collect.Iterators;
 
 /**
  *
@@ -124,12 +124,7 @@ public class IMMLGBenchmark {
 
     long t1 = System.currentTimeMillis();
 
-    @SuppressWarnings("unused")
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    Iterators.size(scanner.iterator());
 
     long t2 = System.currentTimeMillis();
 

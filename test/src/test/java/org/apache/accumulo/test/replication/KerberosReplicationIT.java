@@ -57,6 +57,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
@@ -212,8 +214,7 @@ public class KerberosReplicationIT extends AccumuloIT {
     log.info("Restarted the tserver");
 
     // Read the data -- the tserver is back up and running and tablets are assigned
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : primaryConn.createScanner(primaryTable1, Authorizations.EMPTY)) {}
+    Iterators.size(primaryConn.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
 
     // Wait for both tables to be replicated
     log.info("Waiting for {} for {}", filesFor1, primaryTable1);

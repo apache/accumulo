@@ -20,16 +20,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -42,6 +39,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class VerifySerialRecoveryIT extends ConfigurableMacIT {
 
@@ -78,9 +77,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacIT {
     final Process ts = cluster.exec(TabletServer.class);
 
     // wait for recovery
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY))
-      ;
+    Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     ts.waitFor();
     String result = FunctionalTestUtils.readAll(cluster, TabletServer.class, ts);

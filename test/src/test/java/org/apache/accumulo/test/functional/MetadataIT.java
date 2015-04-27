@@ -44,6 +44,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class MetadataIT extends AccumuloClusterIT {
 
   @Override
@@ -108,7 +110,7 @@ public class MetadataIT extends AccumuloClusterIT {
     c.tableOperations().merge(MetadataTable.NAME, null, null);
     Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.DeletesSection.getRange());
-    while (FunctionalTestUtils.count(s) == 0) {
+    while (Iterators.size(((Iterable<?>) s).iterator()) == 0) {
       UtilWaitThread.sleep(100);
     }
     assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());

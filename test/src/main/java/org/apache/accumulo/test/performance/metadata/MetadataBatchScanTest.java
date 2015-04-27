@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -50,6 +48,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -227,11 +226,7 @@ public class MetadataBatchScanTest {
     ScanStat ss = new ScanStat();
 
     long t1 = System.currentTimeMillis();
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : bs) {
-      count++;
-    }
+    int count = Iterators.size(bs.iterator());
     bs.close();
     long t2 = System.currentTimeMillis();
 

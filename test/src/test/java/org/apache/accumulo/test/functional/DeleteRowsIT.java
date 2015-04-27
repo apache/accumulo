@@ -40,6 +40,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 public class DeleteRowsIT extends AccumuloClusterIT {
 
   @Override
@@ -73,7 +75,7 @@ public class DeleteRowsIT extends AccumuloClusterIT {
       c.tableOperations().create(tableName);
       c.tableOperations().deleteRows(tableName, null, null);
       Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-      assertEquals(0, FunctionalTestUtils.count(scanner));
+      assertEquals(0, Iterators.size(((Iterable<?>) scanner).iterator()));
     }
   }
 

@@ -42,6 +42,8 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class MetaGetsReadersIT extends ConfigurableMacIT {
 
   @Override
@@ -99,8 +101,7 @@ public class MetaGetsReadersIT extends ConfigurableMacIT {
     UtilWaitThread.sleep(500);
     long now = System.currentTimeMillis();
     Scanner m = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : m) {}
+    Iterators.size(m.iterator());
     long delay = System.currentTimeMillis() - now;
     System.out.println("Delay = " + delay);
     assertTrue("metadata table scan was slow", delay < 1000);

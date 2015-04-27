@@ -20,14 +20,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.EnumSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -36,6 +34,8 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class BadIteratorMincIT extends AccumuloClusterIT {
 
@@ -68,7 +68,7 @@ public class BadIteratorMincIT extends AccumuloClusterIT {
 
     // try to scan table
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    int count = FunctionalTestUtils.count(scanner);
+    int count = Iterators.size(((Iterable<?>) scanner).iterator());
     assertEquals("Did not see expected # entries " + count, 1, count);
 
     // remove the bad iterator
@@ -79,11 +79,7 @@ public class BadIteratorMincIT extends AccumuloClusterIT {
     // minc should complete
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
 
-    count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    count = Iterators.size(scanner.iterator());
 
     if (count != 1)
       throw new Exception("Did not see expected # entries " + count);

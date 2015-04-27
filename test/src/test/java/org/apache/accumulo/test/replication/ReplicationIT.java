@@ -96,6 +96,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.protobuf.TextFormat;
@@ -680,9 +681,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3)) {
-      Scanner s = conn.createScanner(table, Authorizations.EMPTY);
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : s) {}
+      Iterators.size(conn.createScanner(table, Authorizations.EMPTY).iterator());
     }
   }
 
@@ -1119,9 +1118,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : Arrays.asList(table1, table2, table3)) {
-      Scanner s = conn.createScanner(table, Authorizations.EMPTY);
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : s) {}
+      Iterators.size(conn.createScanner(table, Authorizations.EMPTY).iterator());
     }
 
     // Starting the gc will run CloseWriteAheadLogReferences which will first close Statuses
@@ -1361,9 +1358,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : new String[] {MetadataTable.NAME, table1}) {
-      s = conn.createScanner(table, Authorizations.EMPTY);
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : s) {}
+      Iterators.size(conn.createScanner(table, Authorizations.EMPTY).iterator());
     }
 
     log.info("Recovered metadata:");

@@ -64,7 +64,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.configuration.ConfigurationException;
@@ -86,6 +85,8 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterators;
 
 public class ShellServerIT extends SharedMiniClusterIT {
   public static class TestOutputStream extends OutputStream {
@@ -1323,7 +1324,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
       @Override
       public void run() {
         try {
-          FunctionalTestUtils.count(s);
+          Iterators.size(((Iterable<?>) s).iterator());
         } catch (Exception ex) {
           throw new RuntimeException(ex);
         }

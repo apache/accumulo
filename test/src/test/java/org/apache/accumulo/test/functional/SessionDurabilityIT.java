@@ -38,6 +38,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class SessionDurabilityIT extends ConfigurableMacIT {
 
   @Override
@@ -81,7 +83,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
   }
 
   private int count(String tableName) throws Exception {
-    return FunctionalTestUtils.count(getConnector().createScanner(tableName, Authorizations.EMPTY));
+    return Iterators.size(((Iterable<?>) getConnector().createScanner(tableName, Authorizations.EMPTY)).iterator());
   }
 
   private void writeSome(String tableName, int n, BatchWriterConfig cfg) throws Exception {

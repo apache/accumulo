@@ -66,6 +66,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
 
@@ -227,8 +229,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> e : ReplicationTable.getScanner(connMaster)) {}
+      Iterators.size(ReplicationTable.getScanner(connMaster).iterator());
       log.info("TabletServer is online");
 
       log.info("");
@@ -417,8 +418,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : connMaster.createScanner(masterTable1, Authorizations.EMPTY)) {}
+      Iterators.size(connMaster.createScanner(masterTable1, Authorizations.EMPTY).iterator());
 
       // Wait for both tables to be replicated
       log.info("Waiting for {} for {}", filesFor1, masterTable1);
@@ -543,8 +543,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     cluster.exec(TabletServer.class);
 
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> kv : connMaster.createScanner(masterTable, Authorizations.EMPTY)) {}
+    Iterators.size(connMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
 
     for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
       log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));

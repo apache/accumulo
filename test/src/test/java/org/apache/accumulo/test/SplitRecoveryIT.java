@@ -37,9 +37,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class SplitRecoveryIT extends AccumuloClusterIT {
 
@@ -54,7 +55,7 @@ public class SplitRecoveryIT extends AccumuloClusterIT {
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    return FunctionalTestUtils.count(scanner) == 0;
+    return Iterators.size(((Iterable<?>) scanner).iterator()) == 0;
   }
 
   @Override

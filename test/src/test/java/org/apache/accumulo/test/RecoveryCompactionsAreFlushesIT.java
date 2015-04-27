@@ -38,6 +38,8 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 // Accumulo3010
 public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterIT {
 
@@ -84,8 +86,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterIT {
     control.startAllServers(ServerType.TABLET_SERVER);
 
     // ensure the table is readable
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {}
+    Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
 
     // ensure that the recovery was not a merging minor compaction
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);

@@ -51,6 +51,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class MockConnectorTest {
   Random random = new Random();
 
@@ -186,11 +188,7 @@ public class MockConnectorTest {
 
     Scanner scanner = c.createScanner("test", Authorizations.EMPTY);
 
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    int count = Iterators.size(scanner.iterator());
 
     assertEquals(0, count);
 
@@ -263,11 +261,7 @@ public class MockConnectorTest {
   private void checkRemaining(Connector c, String tableName, int count) throws Exception {
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
 
-    int total = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      total++;
-    }
+    int total = Iterators.size(scanner.iterator());
     assertEquals(count, total);
   }
 
@@ -339,18 +333,10 @@ public class MockConnectorTest {
     b.flush();
 
     Scanner scanner = c.createScanner("a", Authorizations.EMPTY);
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    int count = Iterators.size(scanner.iterator());
     assertEquals(1, count);
-    count = 0;
     scanner = c.createScanner("b", Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    count = Iterators.size(scanner.iterator());
     assertEquals(1, count);
 
   }

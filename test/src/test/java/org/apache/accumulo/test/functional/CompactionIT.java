@@ -51,6 +51,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 public class CompactionIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
@@ -176,7 +178,7 @@ public class CompactionIT extends AccumuloClusterIT {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.TabletColumnFamily.NAME);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    return FunctionalTestUtils.count(s);
+    return Iterators.size(((Iterable<?>) s).iterator());
   }
 
 }

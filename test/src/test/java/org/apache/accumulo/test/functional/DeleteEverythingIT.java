@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 public class DeleteEverythingIT extends AccumuloClusterIT {
 
@@ -97,7 +98,7 @@ public class DeleteEverythingIT extends AccumuloClusterIT {
 
     Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new Range());
-    int count = FunctionalTestUtils.count(scanner);
+    int count = Iterators.size(((Iterable<?>) scanner).iterator());
     assertEquals("count == " + count, 0, count);
     getConnector().tableOperations().flush(tableName, null, null, true);
 

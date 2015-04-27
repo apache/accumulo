@@ -23,14 +23,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
@@ -45,6 +42,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class MiniAccumuloClusterImplTest {
   public static File testDir;
@@ -78,8 +77,7 @@ public class MiniAccumuloClusterImplTest {
     testTableID = tableops.tableIdMap().get(TEST_TABLE);
 
     Scanner s = conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> e : s) {}
+    Iterators.size(s.iterator());
   }
 
   @Test(timeout = 10000)

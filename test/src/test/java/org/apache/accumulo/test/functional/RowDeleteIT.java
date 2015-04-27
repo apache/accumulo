@@ -41,6 +41,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class RowDeleteIT extends AccumuloClusterIT {
 
   @Override
@@ -79,7 +81,7 @@ public class RowDeleteIT extends AccumuloClusterIT {
     checkRFiles(c, tableName, 1, 1, 1, 1);
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    int count = FunctionalTestUtils.count(scanner);
+    int count = Iterators.size(((Iterable<?>) scanner).iterator());
     assertEquals("count == " + count, 2, count);
 
     bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
@@ -90,7 +92,7 @@ public class RowDeleteIT extends AccumuloClusterIT {
     checkRFiles(c, tableName, 1, 1, 2, 2);
 
     scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    count = FunctionalTestUtils.count(scanner);
+    count = Iterators.size(((Iterable<?>) scanner).iterator());
     assertEquals("count == " + count, 3, count);
 
     c.tableOperations().compact(tableName, null, null, false, true);
@@ -98,7 +100,7 @@ public class RowDeleteIT extends AccumuloClusterIT {
     checkRFiles(c, tableName, 1, 1, 0, 0);
 
     scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    count = FunctionalTestUtils.count(scanner);
+    count = Iterators.size(((Iterable<?>) scanner).iterator());
     assertEquals("count == " + count, 0, count);
     bw.close();
 

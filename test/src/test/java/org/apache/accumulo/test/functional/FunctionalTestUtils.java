@@ -51,6 +51,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 
+import com.google.common.collect.Iterators;
+
 public class FunctionalTestUtils {
 
   public static int countRFiles(Connector c, String tableName) throws Exception {
@@ -59,7 +61,7 @@ public class FunctionalTestUtils {
     scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    return count(scanner);
+    return Iterators.size(((Iterable<?>) scanner).iterator());
   }
 
   static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
@@ -185,14 +187,6 @@ public class FunctionalTestUtils {
     for (String split : splits)
       result.add(new Text(split));
     return result;
-  }
-
-  public static int count(Iterable<?> i) {
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Object entry : i)
-      count++;
-    return count;
   }
 
 }

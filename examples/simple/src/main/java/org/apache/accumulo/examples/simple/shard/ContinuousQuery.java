@@ -36,6 +36,7 @@ import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.collect.Iterators;
 
 /**
  * Using the doc2word table created by Reverse.java, this program randomly selects N words per document. Then it continually queries a random set of words in
@@ -83,11 +84,7 @@ public class ContinuousQuery {
       bs.setRanges(Collections.singleton(new Range()));
 
       long t1 = System.currentTimeMillis();
-      int count = 0;
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : bs) {
-        count++;
-      }
+      int count = Iterators.size(bs.iterator());
       long t2 = System.currentTimeMillis();
 
       System.out.printf("  %s %,d %6.3f%n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);

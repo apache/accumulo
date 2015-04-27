@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 public class CleanTmpIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(CleanTmpIT.class);
@@ -106,7 +107,7 @@ public class CleanTmpIT extends AccumuloClusterIT {
     getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    assertEquals(2, FunctionalTestUtils.count(scanner));
+    assertEquals(2, Iterators.size(((Iterable<?>) scanner).iterator()));
     // If we performed log recovery, we should have cleaned up any stray files
     assertFalse("File still exists: " + tmp, fs.exists(tmp));
   }
