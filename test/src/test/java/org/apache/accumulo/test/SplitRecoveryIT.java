@@ -55,7 +55,7 @@ public class SplitRecoveryIT extends AccumuloClusterIT {
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    return Iterators.size(((Iterable<?>) scanner).iterator()) == 0;
+    return Iterators.size(scanner.iterator()) == 0;
   }
 
   @Override

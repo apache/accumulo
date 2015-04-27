@@ -83,7 +83,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
   }
 
   private int count(String tableName) throws Exception {
-    return Iterators.size(((Iterable<?>) getConnector().createScanner(tableName, Authorizations.EMPTY)).iterator());
+    return Iterators.size(getConnector().createScanner(tableName, Authorizations.EMPTY).iterator());
   }
 
   private void writeSome(String tableName, int n, BatchWriterConfig cfg) throws Exception {

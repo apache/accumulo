@@ -61,7 +61,7 @@ public class FunctionalTestUtils {
     scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    return Iterators.size(((Iterable<?>) scanner).iterator());
+    return Iterators.size(scanner.iterator());
   }
 
   static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {

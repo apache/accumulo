@@ -348,12 +348,12 @@ public class ReadWriteIT extends AccumuloClusterIT {
     long now = System.currentTimeMillis();
     Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf"));
-    Iterators.size(((Iterable<?>) scanner).iterator());
+    Iterators.size(scanner.iterator());
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
     scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf2"));
-    Iterators.size(((Iterable<?>) scanner).iterator());
+    Iterators.size(scanner.iterator());
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
     assertTrue(diff2 < diff);

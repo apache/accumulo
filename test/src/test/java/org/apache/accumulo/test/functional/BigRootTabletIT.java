@@ -60,7 +60,7 @@ public class BigRootTabletIT extends AccumuloClusterIT {
     }
     cluster.stop();
     cluster.start();
-    assertTrue(Iterators.size(((Iterable<?>) c.createScanner(RootTable.NAME, Authorizations.EMPTY)).iterator()) > 0);
+    assertTrue(Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
   }
 
 }

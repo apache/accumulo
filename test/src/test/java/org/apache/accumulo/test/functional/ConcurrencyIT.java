@@ -61,7 +61,7 @@ public class ConcurrencyIT extends AccumuloClusterIT {
 
     @Override
     public void run() {
-      count = Iterators.size(((Iterable<?>) scanner).iterator());
+      count = Iterators.size(scanner.iterator());
     }
 
   }

@@ -172,7 +172,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     cluster.start();
     // did it recover?
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    Iterators.size(((Iterable<?>) scanner).iterator());
+    Iterators.size(scanner.iterator());
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {

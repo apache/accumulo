@@ -174,7 +174,7 @@ public class DurabilityIT extends ConfigurableMacIT {
   }
 
   private long readSome(String table) throws Exception {
-    return Iterators.size(((Iterable<?>) getConnector().createScanner(table, Authorizations.EMPTY)).iterator());
+    return Iterators.size(getConnector().createScanner(table, Authorizations.EMPTY).iterator());
   }
 
   private void restartTServer() throws Exception {

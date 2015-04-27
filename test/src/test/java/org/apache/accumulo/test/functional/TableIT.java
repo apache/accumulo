@@ -88,12 +88,12 @@ public class TableIT extends AccumuloClusterIT {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    assertTrue(Iterators.size(((Iterable<?>) s).iterator()) > 0);
+    assertTrue(Iterators.size(s.iterator()) > 0);
 
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
     to.delete(tableName);
-    assertEquals(0, Iterators.size(((Iterable<?>) s).iterator()));
+    assertEquals(0, Iterators.size(s.iterator()));
     try {
       assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);
     } catch (FileNotFoundException ex) {

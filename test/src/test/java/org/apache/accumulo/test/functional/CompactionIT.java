@@ -178,7 +178,7 @@ public class CompactionIT extends AccumuloClusterIT {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.TabletColumnFamily.NAME);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    return Iterators.size(((Iterable<?>) s).iterator());
+    return Iterators.size(s.iterator());
   }
 
 }

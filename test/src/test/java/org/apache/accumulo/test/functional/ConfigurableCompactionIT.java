@@ -158,7 +158,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
   private int countFiles(Connector c, String tableName) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    return Iterators.size(((Iterable<?>) s).iterator());
+    return Iterators.size(s.iterator());
   }
 
 }
