@@ -125,7 +125,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   private ByteBuffer creds = null;
 
   private void waitForAccumulo(Connector c) throws Exception {
-    Iterators.cycle(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+    Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
   }
 
   @Before
