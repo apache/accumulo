@@ -43,6 +43,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class ConcurrencyIT extends AccumuloClusterIT {
 
   static class ScanTask extends Thread {
@@ -59,7 +61,7 @@ public class ConcurrencyIT extends AccumuloClusterIT {
 
     @Override
     public void run() {
-      count = FunctionalTestUtils.count(scanner);
+      count = Iterators.size(((Iterable<?>) scanner).iterator());
     }
 
   }

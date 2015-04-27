@@ -99,6 +99,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 public class ExamplesIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(ExamplesIT.class);
   private static final BatchWriterOpts bwOpts = new BatchWriterOpts();
@@ -288,7 +290,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     bw.addMutation(m);
     bw.close();
     UtilWaitThread.sleep(1000);
-    assertEquals(0, FunctionalTestUtils.count(c.createScanner(tableName, Authorizations.EMPTY)));
+    assertEquals(0, Iterators.size(((Iterable<?>) c.createScanner(tableName, Authorizations.EMPTY)).iterator()));
   }
 
   @Test

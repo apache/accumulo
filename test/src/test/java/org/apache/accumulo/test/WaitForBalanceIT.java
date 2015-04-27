@@ -37,6 +37,8 @@ import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class WaitForBalanceIT extends ConfigurableMacIT {
 
   @Override
@@ -48,9 +50,7 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
   public void test() throws Exception {
     final Connector c = getConnector();
     // ensure the metadata table is online
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> unused : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-      ;
+    Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
     c.instanceOperations().waitForBalance();
     assertTrue(isBalanced());
     final String tableName = getUniqueNames(1)[0];

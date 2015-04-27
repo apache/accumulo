@@ -44,6 +44,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class ConfigurableCompactionIT extends ConfigurableMacIT {
 
   @Override
@@ -156,7 +158,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
   private int countFiles(Connector c, String tableName) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    return FunctionalTestUtils.count(s);
+    return Iterators.size(((Iterable<?>) s).iterator());
   }
 
 }

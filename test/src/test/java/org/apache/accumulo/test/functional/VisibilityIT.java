@@ -49,6 +49,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class VisibilityIT extends AccumuloClusterIT {
 
   @Override
@@ -264,11 +266,9 @@ public class VisibilityIT extends AccumuloClusterIT {
   }
 
   private void verifyDefault(Scanner scanner, int expectedCount) throws Exception {
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner)
-      --expectedCount;
-    if (expectedCount != 0)
-      throw new Exception(" expected count !=0 " + expectedCount);
+    int actual = Iterators.size(scanner.iterator());
+    if (actual != expectedCount)
+      throw new Exception("actual count " + actual + " != expected count " + expectedCount);
   }
 
   private void verify(Connector c, String tableName, Set<String> auths, Set<String> expectedValues) throws Exception {

@@ -85,6 +85,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Iterators;
 
 public class ReadWriteIT extends AccumuloClusterIT {
   @Override
@@ -347,12 +348,12 @@ public class ReadWriteIT extends AccumuloClusterIT {
     long now = System.currentTimeMillis();
     Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf"));
-    FunctionalTestUtils.count(scanner);
+    Iterators.size(((Iterable<?>) scanner).iterator());
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
     scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf2"));
-    FunctionalTestUtils.count(scanner);
+    Iterators.size(((Iterable<?>) scanner).iterator());
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
     assertTrue(diff2 < diff);

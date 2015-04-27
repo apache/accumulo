@@ -37,6 +37,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class DurabilityIT extends ConfigurableMacIT {
 
   @Override
@@ -172,7 +174,7 @@ public class DurabilityIT extends ConfigurableMacIT {
   }
 
   private long readSome(String table) throws Exception {
-    return FunctionalTestUtils.count(getConnector().createScanner(table, Authorizations.EMPTY));
+    return Iterators.size(((Iterable<?>) getConnector().createScanner(table, Authorizations.EMPTY)).iterator());
   }
 
   private void restartTServer() throws Exception {

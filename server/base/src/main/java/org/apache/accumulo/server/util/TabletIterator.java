@@ -37,6 +37,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 /**
  * This class iterates over the metadata table returning all key values for a tablet in one chunk. As it scans the metadata table it checks the correctness of
  * the metadata table, and rescans if needed. So the tablet key/values returned by this iterator should satisfy the sorted linked list property of the metadata
@@ -244,11 +246,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       // check to see if the last tablet still exist
       range = new Range(lastTablet, true, lastTablet, true);
       scanner.setRange(range);
-      int count = 0;
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : scanner) {
-        count++;
-      }
+      int count = Iterators.size(scanner.iterator());
 
       if (count == 0)
         throw new TabletDeletedException("Tablet " + lastTablet + " was deleted while iterating");

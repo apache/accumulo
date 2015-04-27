@@ -37,7 +37,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
@@ -45,6 +44,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterators;
 
 public class CleanWalIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(CleanWalIT.class);
@@ -139,7 +140,7 @@ public class CleanWalIT extends AccumuloClusterIT {
 
   int count(String tableName, Connector conn) throws Exception {
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    return FunctionalTestUtils.count(s);
+    return Iterators.size(((Iterable<?>) s).iterator());
   }
 
 }

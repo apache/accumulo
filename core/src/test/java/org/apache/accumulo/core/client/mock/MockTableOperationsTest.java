@@ -61,6 +61,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class MockTableOperationsTest {
 
   @Test
@@ -323,11 +325,7 @@ public class MockTableOperationsTest {
     // deletes everything still left
     to.deleteRows("test2", null, null);
     s = connector.createScanner("test2", Authorizations.EMPTY);
-    rowCnt = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : s) {
-      rowCnt++;
-    }
+    rowCnt = Iterators.size(s.iterator());
     s.close();
     to.delete("test2");
     Assert.assertEquals(0, rowCnt);

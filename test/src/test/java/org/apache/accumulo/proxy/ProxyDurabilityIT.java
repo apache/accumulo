@@ -48,13 +48,13 @@ import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.server.TServer;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
 public class ProxyDurabilityIT extends ConfigurableMacIT {
@@ -139,7 +139,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
 
   private int count(String tableName) throws Exception {
     Connector c = getConnector();
-    return FunctionalTestUtils.count(c.createScanner(tableName, Authorizations.EMPTY));
+    return Iterators.size(((Iterable<?>) c.createScanner(tableName, Authorizations.EMPTY)).iterator());
   }
 
 }

@@ -38,6 +38,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
+
 /**
  *
  */
@@ -50,13 +52,7 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterIT {
   };
 
   public int numProperties(Connector connector, String tableName) throws AccumuloException, TableNotFoundException {
-    int countNew = 0;
-    for (@SuppressWarnings("unused")
-    Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
-      countNew++;
-    }
-
-    return countNew;
+    return Iterators.size(connector.tableOperations().getProperties(tableName).iterator());
   }
 
   public int compareProperties(Connector connector, String tableNameOrig, String tableName, String changedProp) throws AccumuloException,

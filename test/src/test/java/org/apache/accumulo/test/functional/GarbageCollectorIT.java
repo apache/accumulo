@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +59,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -67,6 +67,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class GarbageCollectorIT extends ConfigurableMacIT {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -170,7 +172,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     cluster.start();
     // did it recover?
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    FunctionalTestUtils.count(scanner);
+    Iterators.size(((Iterable<?>) scanner).iterator());
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {
@@ -278,13 +280,8 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
   private int countFiles() throws Exception {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    int result = 0;
     Path path = new Path(cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf");
-    for (@SuppressWarnings("unused")
-    FileStatus entry : fs.globStatus(path)) {
-      result++;
-    }
-    return result;
+    return Iterators.size(Arrays.asList(fs.globStatus(path)).iterator());
   }
 
   public static void addEntries(Connector conn, BatchWriterOpts bwOpts) throws Exception {

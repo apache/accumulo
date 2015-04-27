@@ -35,13 +35,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
 
@@ -103,7 +104,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    return FunctionalTestUtils.count(s);
+    return Iterators.size(((Iterable<?>) s).iterator());
   }
 
   private void writeFile(Connector conn, String tableName) throws Exception {

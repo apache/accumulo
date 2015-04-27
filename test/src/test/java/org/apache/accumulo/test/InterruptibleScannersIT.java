@@ -18,14 +18,11 @@ package org.apache.accumulo.test;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ActiveScan;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -33,6 +30,8 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 // ACCUMULO-3030
 public class InterruptibleScannersIT extends AccumuloClusterIT {
@@ -93,8 +92,7 @@ public class InterruptibleScannersIT extends AccumuloClusterIT {
     thread.start();
     try {
       // Use the scanner, expect problems
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : scanner) {}
+      Iterators.size(scanner.iterator());
       Assert.fail("Scan should not succeed");
     } catch (Exception ex) {} finally {
       thread.join();

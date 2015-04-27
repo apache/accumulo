@@ -41,6 +41,8 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
+
 public class BatchWriterFlushIT extends AccumuloClusterIT {
 
   private static final int NUM_TO_FLUSH = 100000;
@@ -74,11 +76,7 @@ public class BatchWriterFlushIT extends AccumuloClusterIT {
 
     UtilWaitThread.sleep(500);
 
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    int count = Iterators.size(scanner.iterator());
 
     if (count != 0) {
       throw new Exception("Flushed too soon");
@@ -86,10 +84,7 @@ public class BatchWriterFlushIT extends AccumuloClusterIT {
 
     UtilWaitThread.sleep(1500);
 
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
+    count = Iterators.size(scanner.iterator());
 
     if (count != 1) {
       throw new Exception("Did not flush");
