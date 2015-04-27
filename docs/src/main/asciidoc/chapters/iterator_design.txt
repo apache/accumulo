@@ -149,13 +149,18 @@ both of these methods should return non-null objects. If `hasTop` returns false,
 what these methods should return. Like `hasTop`, multiple calls to these methods should not alter 
 the state of the Iterator.
 
-When saving a Key or Value from a source iterator's `getTopKey` or `getTopValue` methods
-for use after calling `next` on the source iterator (e.g., when cacheing keys or values
-from the source iterator), it is important to copy the Key or Value into a new object 
-because the source iterator may reuse the Key or Value objects for performance reasons.
-This means that not copying the Key or Value and referencing them after calling `next` 
-on the source iterator risks aliasing bugs, where the locally held Key or Value reference 
-points to data that the source iterator changes.
+Users should take caution when either
+
+1. caching the Key/Value from `getTopKey`/`getTopValue`, for use after calling `next` on the source iterator.
+In this case, the cached Key/Value object is aliased to the reference returned by the source iterator.
+Iterators may reuse the same Key/Value object in a `next` call for performance reasons, changing the data
+that the cached Key/Value object references and resulting in a logic bug.
+2. modifying the Key/Value from `getTopKey`/`getTopValue`. If the source iterator reuses data stored in the Key/Value,
+then the source iterator may use the modified data that the Key/Value references. This may/may not result in a logic bug.
+
+In both cases, copying the Key/Value's data into a new object ensures iterator correctness. If neither case applies,
+it is safe to not copy the Key/Value.  The general guideline is to be aware of who else may use Key/Value objects
+returned from `getTopKey`/`getTopValue`.
 
 ==== `deepCopy`
 
