@@ -35,6 +35,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 
 /**
  *
@@ -61,9 +62,6 @@ public class ListVolumesUsed {
 
   private static void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
     volumes.add(getLogURI(logEntry.filename));
-    for (String logSet : logEntry.logSet) {
-      volumes.add(getLogURI(logSet));
-    }
   }
 
   private static void listZookeeper() throws Exception {
@@ -120,6 +118,20 @@ public class ListVolumesUsed {
     }
 
     System.out.println("Listing volumes referenced in " + name + " deletes section (volume replacement occurrs at deletion time)");
+
+    for (String volume : volumes)
+      System.out.println("\tVolume : " + volume);
+
+    volumes.clear();
+    scanner.clearColumns();
+    scanner.setRange(MetadataSchema.CurrentLogsSection.getRange());
+    Text path = new Text();
+    for (Entry<Key,Value> entry : scanner) {
+      MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
+      volumes.add(getLogURI(path.toString()));
+    }
+
+    System.out.println("Listing volumes referenced in " + name + " current logs section");
 
     for (String volume : volumes)
       System.out.println("\tVolume : " + volume);

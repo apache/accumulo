@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.tabletserver.log;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -29,30 +29,29 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Joiner;
-
 public class LogEntry {
-  public KeyExtent extent;
-  public long timestamp;
-  public String server;
-  public String filename;
-  public int tabletId;
-  public Collection<String> logSet;
-
-  public LogEntry() {}
+  public final KeyExtent extent;
+  public final long timestamp;
+  public final String server;
+  public final String filename;
 
   public LogEntry(LogEntry le) {
     this.extent = le.extent;
     this.timestamp = le.timestamp;
     this.server = le.server;
     this.filename = le.filename;
-    this.tabletId = le.tabletId;
-    this.logSet = new ArrayList<String>(le.logSet);
+  }
+
+  public LogEntry(KeyExtent extent, long timestamp, String server, String filename) {
+    this.extent = extent;
+    this.timestamp = timestamp;
+    this.server = server;
+    this.filename = filename;
   }
 
   @Override
   public String toString() {
-    return extent.toString() + " " + filename + " (" + tabletId + ")";
+    return extent.toString() + " " + filename;
   }
 
   public String getName() {
@@ -65,43 +64,35 @@ public class LogEntry {
     out.writeLong(timestamp);
     out.writeUTF(server);
     out.writeUTF(filename);
-    out.write(tabletId);
-    out.write(logSet.size());
-    for (String s : logSet) {
-      out.writeUTF(s);
-    }
     return Arrays.copyOf(out.getData(), out.getLength());
   }
 
-  public void fromBytes(byte bytes[]) throws IOException {
+  static public LogEntry fromBytes(byte bytes[]) throws IOException {
     DataInputBuffer inp = new DataInputBuffer();
     inp.reset(bytes, bytes.length);
-    extent = new KeyExtent();
+    KeyExtent extent = new KeyExtent();
     extent.readFields(inp);
-    timestamp = inp.readLong();
-    server = inp.readUTF();
-    filename = inp.readUTF();
-    tabletId = inp.read();
-    int count = inp.read();
-    ArrayList<String> logSet = new ArrayList<String>(count);
-    for (int i = 0; i < count; i++)
-      logSet.add(inp.readUTF());
-    this.logSet = logSet;
+    long timestamp = inp.readLong();
+    String server = inp.readUTF();
+    String filename = inp.readUTF();
+    return new LogEntry(extent, timestamp, server, filename);
   }
 
   static private final Text EMPTY_TEXT = new Text();
 
   public static LogEntry fromKeyValue(Key key, Value value) {
-    LogEntry result = new LogEntry();
-    result.extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
+    String qualifier = key.getColumnQualifier().toString();
+    if (qualifier.indexOf('/') < 1) {
+      throw new IllegalArgumentException("Bad key for log entry: " + key);
+    }
+    KeyExtent extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
     String[] parts = key.getColumnQualifier().toString().split("/", 2);
-    result.server = parts[0];
-    result.filename = parts[1];
-    parts = value.toString().split("\\|");
-    result.tabletId = Integer.parseInt(parts[1]);
-    result.logSet = Arrays.asList(parts[0].split(";"));
-    result.timestamp = key.getTimestamp();
-    return result;
+    String server = parts[0];
+    // handle old-style log entries that specify log sets
+    parts = value.toString().split("\\|")[0].split(";");
+    String filename = parts[parts.length - 1];
+    long timestamp = key.getTimestamp();
+    return new LogEntry(extent, timestamp, server, filename);
   }
 
   public Text getRow() {
@@ -112,11 +103,16 @@ public class LogEntry {
     return MetadataSchema.TabletsSection.LogColumnFamily.NAME;
   }
 
+  public String getUniqueID() {
+    String parts[] = filename.split("/");
+    return parts[parts.length - 1];
+  }
+
   public Text getColumnQualifier() {
     return new Text(server + "/" + filename);
   }
 
   public Value getValue() {
-    return new Value((Joiner.on(";").join(logSet) + "|" + tabletId).getBytes());
+    return new Value(filename.getBytes(UTF_8));
   }
 }

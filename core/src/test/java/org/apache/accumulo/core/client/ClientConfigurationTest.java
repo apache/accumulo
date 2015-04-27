@@ -90,7 +90,7 @@ public class ClientConfigurationTest {
 
     // not the recommended way to construct a client configuration, but it works
     PropertiesConfiguration propertiesConfiguration = new PropertiesConfiguration();
-    propertiesConfiguration.setDelimiterParsingDisabled(true);
+    propertiesConfiguration.setListDelimiter('\0');
     propertiesConfiguration.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
     propertiesConfiguration.load(new StringReader(ClientProperty.TRACE_SPAN_RECEIVERS.getKey() + "=" + val));
     ClientConfiguration conf = new ClientConfiguration(propertiesConfiguration);
@@ -99,10 +99,10 @@ public class ClientConfigurationTest {
     assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
     assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
 
-    // incorrect usage that results in not being able to use multi-valued properties
+    // incorrect usage that results in not being able to use multi-valued properties unless commas are escaped
     conf = new ClientConfiguration(new PropertiesConfiguration("multi-valued.client.conf"));
-    assertNotEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(3, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
+    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
     assertNotEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
     assertEquals(3, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
 
@@ -122,5 +122,18 @@ public class ClientConfigurationTest {
     assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
     assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
     assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+  }
+
+  @Test
+  public void testGetAllPropertiesWithPrefix() {
+    ClientConfiguration conf = new ClientConfiguration();
+    conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first", "1st");
+    conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second", "2nd");
+    conf.addProperty("other", "value");
+
+    Map<String, String> props = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
+    assertEquals(2, props.size());
+    assertEquals("1st", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first"));
+    assertEquals("2nd", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second"));
   }
 }

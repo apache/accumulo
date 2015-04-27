@@ -48,16 +48,13 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -130,22 +127,16 @@ public class CloseWriteAheadLogReferencesTest {
   public void findOneWalFromMetadata() throws Exception {
     Connector conn = createMock(Connector.class);
     BatchScanner bs = createMock(BatchScanner.class);
-
     // Fake out some data
     final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-    LogEntry logEntry = new LogEntry();
-    logEntry.extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
-    logEntry.filename = "hdfs://localhost:8020/accumulo/wal/tserver+port/" + UUID.randomUUID();
-    logEntry.server = "tserver1";
-    logEntry.tabletId = 1;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
+    String file = "hdfs://localhost:8020/accumulo/wal/tserver1+9997/" + UUID.randomUUID();
+    data.add(entry("tserver1:9997[1234567890]", file));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
     expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(TabletsSection.getRange()));
+    bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
     expectLastCall().once();
-    bs.fetchColumnFamily(LogColumnFamily.NAME);
+    bs.fetchColumnFamily(CurrentLogsSection.COLF);
     expectLastCall().once();
     expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
 
@@ -163,54 +154,12 @@ public class CloseWriteAheadLogReferencesTest {
 
     // Validate
     Set<String> wals = refs.getReferencedWals(conn);
-    Assert.assertEquals(Collections.singleton(logEntry.filename), wals);
+    Assert.assertEquals(Collections.singleton(file), wals);
 
     verify(conn, bs);
   }
 
-  @Test
-  public void findManyWalFromSingleMetadata() throws Exception {
-    Connector conn = createMock(Connector.class);
-    BatchScanner bs = createMock(BatchScanner.class);
-
-    // Fake out some data
-    final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-    LogEntry logEntry = new LogEntry();
-    logEntry.extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
-    logEntry.filename = "hdfs://localhost:8020/accumulo/wal/tserver+port/" + UUID.randomUUID();
-    logEntry.server = "tserver1";
-    logEntry.tabletId = 1;
-    // Multiple DFSLoggers
-    logEntry.logSet = Sets.newHashSet(logEntry.filename, "hdfs://localhost:8020/accumulo/wal/tserver+port/" + UUID.randomUUID());
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(TabletsSection.getRange()));
-    expectLastCall().once();
-    bs.fetchColumnFamily(LogColumnFamily.NAME);
-    expectLastCall().once();
-    expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
-
-      @Override
-      public Iterator<Entry<Key,Value>> answer() throws Throwable {
-        return data.iterator();
-      }
-
-    });
-    // Close the bs
-    bs.close();
-    expectLastCall().once();
-
-    replay(conn, bs);
-
-    // Validate
-    Set<String> wals = refs.getReferencedWals(conn);
-    Assert.assertEquals(logEntry.logSet, wals);
-
-    verify(conn, bs);
-  }
-
+  // This is a silly test now
   @Test
   public void findManyRefsToSingleWalFromMetadata() throws Exception {
     Connector conn = createMock(Connector.class);
@@ -220,31 +169,14 @@ public class CloseWriteAheadLogReferencesTest {
 
     // Fake out some data
     final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-    LogEntry logEntry = new LogEntry();
-    logEntry.extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
-    logEntry.filename = "hdfs://localhost:8020/accumulo/wal/tserver+port/" + uuid;
-    logEntry.server = "tserver1";
-    logEntry.tabletId = 1;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("1"), new Text("c"), new Text("b"));
-    logEntry.server = "tserver1";
-    logEntry.tabletId = 2;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("1"), null, new Text("c"));
-    logEntry.server = "tserver1";
-    logEntry.tabletId = 3;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
+    String filename = "hdfs://localhost:8020/accumulo/wal/tserver+9997/" + uuid;
+    data.add(entry("tserver1:9997[0123456789]", filename));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
     expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(TabletsSection.getRange()));
+    bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
     expectLastCall().once();
-    bs.fetchColumnFamily(LogColumnFamily.NAME);
+    bs.fetchColumnFamily(CurrentLogsSection.COLF);
     expectLastCall().once();
     expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
 
@@ -262,7 +194,7 @@ public class CloseWriteAheadLogReferencesTest {
 
     // Validate
     Set<String> wals = refs.getReferencedWals(conn);
-    Assert.assertEquals(Collections.singleton(logEntry.filename), wals);
+    Assert.assertEquals(Collections.singleton(filename), wals);
 
     verify(conn, bs);
   }
@@ -272,59 +204,22 @@ public class CloseWriteAheadLogReferencesTest {
     Connector conn = createMock(Connector.class);
     BatchScanner bs = createMock(BatchScanner.class);
 
-    String file1 = "hdfs://localhost:8020/accumulo/wal/tserver1+port/" + UUID.randomUUID(), file2 = "hdfs://localhost:8020/accumulo/wal/tserver2+port/"
-        + UUID.randomUUID(), file3 = "hdfs://localhost:8020/accumulo/wal/tserver3+port/" + UUID.randomUUID();
+    String file1 = "hdfs://localhost:8020/accumulo/wal/tserver1+9997/" + UUID.randomUUID();
+    String file2 = "hdfs://localhost:8020/accumulo/wal/tserver2+9997/" + UUID.randomUUID();
+    String file3 = "hdfs://localhost:8020/accumulo/wal/tserver3+9997/" + UUID.randomUUID();
 
     // Fake out some data
     final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-    LogEntry logEntry = new LogEntry();
-    logEntry.extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
-    logEntry.filename = file1;
-    logEntry.server = "tserver1";
-    logEntry.tabletId = 1;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
 
-    logEntry.extent = new KeyExtent(new Text("5"), null, null);
-    logEntry.tabletId = 2;
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("3"), new Text("b"), new Text("a"));
-    logEntry.filename = file2;
-    logEntry.server = "tserver2";
-    logEntry.tabletId = 3;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("3"), new Text("c"), new Text("b"));
-    logEntry.tabletId = 4;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("4"), new Text("5"), new Text("0"));
-    logEntry.filename = file3;
-    logEntry.server = "tserver3";
-    logEntry.tabletId = 5;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("4"), new Text("8"), new Text("5"));
-    logEntry.server = "tserver3";
-    logEntry.tabletId = 7;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-
-    logEntry.extent = new KeyExtent(new Text("4"), null, new Text("8"));
-    logEntry.server = "tserver3";
-    logEntry.tabletId = 15;
-    logEntry.logSet = Collections.singleton(logEntry.filename);
-    data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
+    data.add(entry("tserver1:9997[1234567890]", file1));
+    data.add(entry("tserver2:9997[1234567891]", file2));
+    data.add(entry("tserver3:9997[1234567891]", file3));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
     expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(TabletsSection.getRange()));
+    bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
     expectLastCall().once();
-    bs.fetchColumnFamily(LogColumnFamily.NAME);
+    bs.fetchColumnFamily(CurrentLogsSection.COLF);
     expectLastCall().once();
     expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
 
@@ -345,6 +240,11 @@ public class CloseWriteAheadLogReferencesTest {
     Assert.assertEquals(Sets.newHashSet(file1, file2, file3), wals);
 
     verify(conn, bs);
+  }
+
+  private static Entry<Key,Value> entry(String session, String file) {
+    Key key = new Key(new Text(CurrentLogsSection.getRowPrefix() + session), CurrentLogsSection.COLF, new Text(file));
+    return Maps.immutableEntry(key, new Value());
   }
 
   @Test

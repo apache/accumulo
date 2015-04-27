@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
@@ -86,7 +85,7 @@ public class CommitSession {
     return committer;
   }
 
-  public boolean beginUpdatingLogsUsed(ArrayList<DfsLogger> copy, boolean mincFinish) {
+  public boolean beginUpdatingLogsUsed(DfsLogger copy, boolean mincFinish) {
     return committer.beginUpdatingLogsUsed(memTable, copy, mincFinish);
   }
 

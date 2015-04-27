@@ -153,6 +153,19 @@ public class StatusUtil {
   /**
    * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
    */
+  public static Status openWithUnknownLength(long timeCreated) {
+    Builder builder = Status.newBuilder();
+    builder.setBegin(0);
+    builder.setEnd(0);
+    builder.setInfiniteEnd(true);
+    builder.setClosed(false);
+    builder.setCreatedTime(timeCreated);
+    return builder.build();
+  }
+
+  /**
+   * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
+   */
   public static Status openWithUnknownLength() {
     return INF_END_REPLICATION_STATUS;
   }

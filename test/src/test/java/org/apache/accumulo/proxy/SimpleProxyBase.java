@@ -116,6 +116,11 @@ import com.google.common.net.HostAndPort;
  */
 public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 10*60;
+  }
+
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
   private TServer proxyServer;
   private int proxyPort;
@@ -1033,10 +1038,14 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
 
-    try {
-      client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
-      fail("constraint did not fire");
-    } catch (MutationsRejectedException ex) {}
+    while (true) {
+      try {
+        client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
+        UtilWaitThread.sleep(1000);
+      } catch (MutationsRejectedException ex) {
+        break;
+      }
+    }
 
     client.removeConstraint(creds, TABLE_TEST, 2);
 
@@ -1044,7 +1053,14 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     assertEquals(1, client.listConstraints(creds, TABLE_TEST).size());
 
-    client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
+    while (true) {
+      try {
+        client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
+        break;
+      } catch (MutationsRejectedException ex) {
+        UtilWaitThread.sleep(1000);
+      }
+    }
     assertScan(new String[][] {{"row1", "cf", "cq", "x"}}, TABLE_TEST);
     // splits, merge
     client.addSplits(creds, TABLE_TEST, new HashSet<ByteBuffer>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
@@ -1072,7 +1088,9 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     try {
       client.checkIteratorConflicts(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
       fail("checkIteratorConflicts did not throw an exception");
-    } catch (Exception ex) {}
+    } catch (Exception ex) {
+      System.out.println("Ignoring " + ex.toString());
+    }
     client.deleteRows(creds, TABLE_TEST, null, null);
     client.removeIterator(creds, TABLE_TEST, "test", EnumSet.allOf(IteratorScope.class));
     String expected[][] = new String[10][];

@@ -154,7 +154,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, String configFile) throws ConfigurationException {
     super(propertiesConfiguration);
     // Don't do list interpolation
-    propertiesConfiguration.setDelimiterParsingDisabled(true);
+    this.setListDelimiter('\0');
+    propertiesConfiguration.setListDelimiter('\0');
     propertiesConfiguration.load(configFile);
   }
 
@@ -165,21 +166,22 @@ public class ClientConfiguration extends CompositeConfiguration {
   private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, File configFile) throws ConfigurationException {
     super(propertiesConfiguration);
     // Don't do list interpolation
-    propertiesConfiguration.setDelimiterParsingDisabled(true);
+    this.setListDelimiter('\0');
+    propertiesConfiguration.setListDelimiter('\0');
     propertiesConfiguration.load(configFile);
   }
 
   public ClientConfiguration(List<? extends Configuration> configs) {
     super(configs);
     // Don't do list interpolation
-    this.setDelimiterParsingDisabled(true);
+    this.setListDelimiter('\0');
     for (Configuration c : configs) {
       if (c instanceof AbstractConfiguration) {
         AbstractConfiguration abstractConfiguration = (AbstractConfiguration) c;
         if (!abstractConfiguration.isDelimiterParsingDisabled() && abstractConfiguration.getListDelimiter() != '\0') {
           log.warn("Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config " +
               "properties may be unavailable");
-          abstractConfiguration.setDelimiterParsingDisabled(true);
+          abstractConfiguration.setListDelimiter('\0');
         }
       }
     }
@@ -228,7 +230,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   public static ClientConfiguration deserialize(String serializedConfig) {
     PropertiesConfiguration propConfig = new PropertiesConfiguration();
-    propConfig.setDelimiterParsingDisabled(true);
+    propConfig.setListDelimiter('\0');
     try {
       propConfig.load(new StringReader(serializedConfig));
     } catch (ConfigurationException e) {
@@ -302,8 +304,12 @@ public class ClientConfiguration extends CompositeConfiguration {
   public Map<String,String> getAllPropertiesWithPrefix(ClientProperty property) {
     checkType(property, PropertyType.PREFIX);
 
-    Map<String,String> propMap = new HashMap<String,String>();
-    Iterator<?> iter = this.getKeys(property.getKey());
+    Map<String,String> propMap = new HashMap<>();
+    String prefix = property.getKey();
+    if (prefix.endsWith(".")) {
+      prefix = prefix.substring(0, prefix.length() - 1);
+    }
+    Iterator<?> iter = this.getKeys(prefix);
     while (iter.hasNext()) {
       String p = (String) iter.next();
       propMap.put(p, getString(p));

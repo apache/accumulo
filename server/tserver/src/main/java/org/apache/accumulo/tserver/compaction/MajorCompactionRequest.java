@@ -22,7 +22,9 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -54,8 +56,17 @@ public class MajorCompactionRequest implements Cloneable {
     this.files = mcr.files;
   }
 
-  public KeyExtent getExtent() {
-    return extent;
+  /**
+   * @return org.apache.accumulo.core.data.KeyExtent
+   * @deprecated since 1.7. Use {@link #getTabletId()} instead.
+   */
+  @Deprecated
+  public org.apache.accumulo.core.data.KeyExtent getExtent() {
+    return new org.apache.accumulo.core.data.KeyExtent(extent.getTableId(), extent.getEndRow(), extent.getPrevEndRow());
+  }
+
+  public TabletId getTabletId() {
+    return new TabletIdImpl(extent);
   }
 
   public MajorCompactionReason getReason() {

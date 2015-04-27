@@ -19,7 +19,6 @@ package org.apache.accumulo.core.iterators.system;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -63,6 +62,17 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
 
   private boolean onlySwitchAfterRow;
 
+  // Synchronization on copies synchronizes operations across all deep copies of this instance.
+  //
+  // This implementation assumes that there is one thread reading data (a scan) from all deep copies
+  // and that another thread may call switch at any point. A single scan may have multiple deep
+  // copies of this iterator if other iterators above this one duplicate their source. For example,
+  // if an IntersectingIterator over two columns was configured, `copies` would contain two SSIs
+  // instead of just one SSI. The two instances in `copies` would both be at the same "level"
+  // in the tree of iterators for the scan. If multiple instances of SSI are configure in the iterator
+  // tree (e.g. priority 8 and priority 12), each instance would share their own `copies` e.g.
+  // SSI@priority8:copies1[...], SSI@priority12:copies2[...]
+
   private final List<SourceSwitchingIterator> copies;
 
   private SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow, List<SourceSwitchingIterator> copies) {
@@ -73,7 +83,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   public SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow) {
-    this(source, onlySwitchAfterRow, Collections.synchronizedList(new ArrayList<SourceSwitchingIterator>()));
+    this(source, onlySwitchAfterRow, new ArrayList<SourceSwitchingIterator>());
   }
 
   public SourceSwitchingIterator(DataSource source) {
@@ -81,8 +91,10 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public synchronized SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies);
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    synchronized (copies) {
+      return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies);
+    }
   }
 
   @Override
@@ -107,10 +119,12 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
 
   @Override
   public void next() throws IOException {
-    readNext(false);
+    synchronized (copies) {
+      readNext(false);
+    }
   }
 
-  private synchronized void readNext(boolean initialSeek) throws IOException {
+  private void readNext(boolean initialSeek) throws IOException {
 
     // check of initialSeek second is intentional so that it does not short
     // circuit the call to switchSource
@@ -156,18 +170,20 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    this.range = range;
-    this.inclusive = inclusive;
-    this.columnFamilies = columnFamilies;
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    synchronized (copies) {
+      this.range = range;
+      this.inclusive = inclusive;
+      this.columnFamilies = columnFamilies;
 
-    if (iter == null)
-      iter = source.iterator();
+      if (iter == null)
+        iter = source.iterator();
 
-    readNext(true);
+      readNext(true);
+    }
   }
 
-  private synchronized void _switchNow() throws IOException {
+  private void _switchNow() throws IOException {
     if (onlySwitchAfterRow)
       throw new IllegalStateException("Can only switch on row boundries");
 
@@ -186,14 +202,15 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public synchronized void setInterruptFlag(AtomicBoolean flag) {
-    if (copies.size() != 1)
-      throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
+  public void setInterruptFlag(AtomicBoolean flag) {
+    synchronized (copies) {
+      if (copies.size() != 1)
+        throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
 
-    if (iter != null)
-      ((InterruptibleIterator) iter).setInterruptFlag(flag);
+      if (iter != null)
+        ((InterruptibleIterator) iter).setInterruptFlag(flag);
 
-    source.setInterruptFlag(flag);
+      source.setInterruptFlag(flag);
+    }
   }
-
 }

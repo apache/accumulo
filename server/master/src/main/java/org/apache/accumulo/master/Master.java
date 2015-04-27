@@ -422,6 +422,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           perm.grantNamespacePermission(user, Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.READ);
         }
         perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
+
+        // add the currlog location for root tablet current logs
+        zoo.putPersistentData(ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS, new byte[0], NodeExistsPolicy.SKIP);
         haveUpgradedZooKeeper = true;
       } catch (Exception ex) {
         // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility

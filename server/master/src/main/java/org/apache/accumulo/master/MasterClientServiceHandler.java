@@ -173,7 +173,8 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
           scanner.setRange(MetadataSchema.TabletsSection.getRange());
         } else {
           scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-          scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
+          Range range = new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange();
+          scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
         }
         TabletsSection.ServerColumnFamily.FLUSH_COLUMN.fetch(scanner);
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
