@@ -106,6 +106,10 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * Returns top key. Can be called 0 or more times without affecting behavior of next() or hasTop(). Note that in minor compaction scope and in non-full major
    * compaction scopes the iterator may see deletion entries. These entries should be preserved by all iterators except ones that are strictly scan-time
    * iterators that will never be configured for the minc or majc scopes. Deletion entries are only removed during full major compactions.
+   * <p>
+   * For performance reasons, iterators reserve the right to reuse objects returned by <tt>getTopKey</tt> when {@link #next()} is called, changing the data
+   * that the object references. Iterators that need to save an object returned by <tt>getTopKey</tt> ought to copy the object's data into a new object
+   * in order to avoid aliasing bugs.
    *
    * @return <tt>K</tt>
    * @exception IllegalStateException
@@ -117,6 +121,10 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
 
   /**
    * Returns top value. Can be called 0 or more times without affecting behavior of next() or hasTop().
+   * <p>
+   * For performance reasons, iterators reserve the right to reuse objects returned by <tt>getTopValue</tt> when {@link #next()} is called, changing the
+   * underlying data that the object references. Iterators that need to save an object returned by <tt>getTopValue</tt> ought to copy the object's data
+   * into a new object in order to avoid aliasing bugs.
    *
    * @return <tt>V</tt>
    * @exception IllegalStateException

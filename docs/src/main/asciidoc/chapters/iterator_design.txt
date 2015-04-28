@@ -119,8 +119,9 @@ Range. For example, a regular expression Iterator would consume all records whic
 pattern before returning from `seek`.
 
 It is important to retain the original Range passed to this method to know when this Iterator should stop
-reading more Key-Value pairs. Ignoring this will typically not result in errors; however, it will result
-in wasted time from unnecessary computation.
+reading more Key-Value pairs. Ignoring this typically does not affect scans from a Scanner, but it
+will result in duplicate keys emitting from a BatchScan if the scanned table has more than one tablet.
+Best practice is to never emit entries outside the seek range.
 
 ==== `next`
 
@@ -145,8 +146,21 @@ alter the internal state of the Iterator.
 
 These methods simply return the current Key-Value pair for this iterator. If `hasTop` returns true,
 both of these methods should return non-null objects. If `hasTop` returns false, it is undefined
-what these methods should return. Multiple calls to these methods should not alter the state
-of the Iterator like `hasTop`.
+what these methods should return. Like `hasTop`, multiple calls to these methods should not alter
+the state of the Iterator.
+
+Users should take caution when either
+
+1. caching the Key/Value from `getTopKey`/`getTopValue`, for use after calling `next` on the source iterator.
+In this case, the cached Key/Value object is aliased to the reference returned by the source iterator.
+Iterators may reuse the same Key/Value object in a `next` call for performance reasons, changing the data
+that the cached Key/Value object references and resulting in a logic bug.
+2. modifying the Key/Value from `getTopKey`/`getTopValue`. If the source iterator reuses data stored in the Key/Value,
+then the source iterator may use the modified data that the Key/Value references. This may/may not result in a logic bug.
+
+In both cases, copying the Key/Value's data into a new object ensures iterator correctness. If neither case applies,
+it is safe to not copy the Key/Value.  The general guideline is to be aware of who else may use Key/Value objects
+returned from `getTopKey`/`getTopValue`.
 
 ==== `deepCopy`
 
@@ -154,8 +168,9 @@ The `deepCopy` method is similar to the `clone` method from the Java `Cloneable`
 Implementations of this method should return a new object of the same type as the Accumulo Iterator
 instance it was called on. Any internal state from the instance `deepCopy` was called
 on should be carried over to the returned copy. The returned copy should be ready to have
-`seek` called on it. It is unspecified if `init` will be called on the original object or the
-copy before or after `deepCopy` is called.
+`seek` called on it. The SortedKeyValueIterator interface guarantees that `init` will be called on
+an iterator before `deepCopy` and that `init` will not be called on the iterator returned by
+`deepCopy`.
 
 Typically, implementations of `deepCopy` call a copy-constructor which will initialize
 internal data structures. As with `seek`, it is common for the `IteratorEnvironment`
