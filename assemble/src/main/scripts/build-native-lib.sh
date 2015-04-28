@@ -22,6 +22,8 @@
 #   1 = Failed to create a temp dir in target
 #   2 = Failed to run build_native_library.sh
 #   3 = Failed to find libaccumulo.so after successful build_native_library.sh
+#   4 = Target doesn't exist (invoke build)
+#   5 = Accumulo tarball doesn't exist (invoke assembly profile)
 #
 
 LIBRARY_NAME="libaccumulo.so"
@@ -32,11 +34,18 @@ fi
 
 TARGET="$(pwd)/target"
 
+test -d ${TARGET} || exit 4
+
 # Make a temp dir in target
 TMP_DIR=$(mktemp -d ${TARGET}/accumulo-native.XXXX) || exit 1
 
 # Find the tarball 
-TARBALL=$(find target -name 'accumulo-*.tar.gz' | head -n1)
+TARBALL=$(find ${TARGET} -name 'accumulo-*.tar.gz' | head -n1)
+
+if [ -z "${TARBALL}" ]; then
+  echo "Could not find Accumulo tarball. Did you invoke assemble profile?"
+  exit 5
+fi
 
 echo "Building native library from ${TARBALL}"
 
