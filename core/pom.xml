@@ -179,7 +179,7 @@
                 <include>org[.]apache[.]accumulo[.]core[.]client[.].*</include>
                 <include>org[.]apache[.]accumulo[.]core[.]data[.].*</include>
                 <include>org[.]apache[.]accumulo[.]core[.]security[.].*</include>
-		<!-- The following types are not advertised as in API, but are
+                <!-- The following types are not advertised as in API, but are
 		     used in a such a way by API classes that we want to
 		     ensure they do not reference non public API types.
 		     Ideally no new uses of these classes would occur in the
@@ -196,17 +196,17 @@
                 <exclude>org[.]apache[.]accumulo[.]core[.]client[.]mock[.].*</exclude>
               </excludes>
               <allows>
-		<!--Allow API data types to reference thrift types, but do not
+                <!--Allow API data types to reference thrift types, but do not
 		     analyze thrift types -->
                 <allow>org[.]apache[.]accumulo[.].*[.]thrift[.].*</allow>
-		<!--ClientConfiguration indirectly extends
+                <!--ClientConfiguration indirectly extends
 		     AbstractConfiguration and EventSource.  These two types
 		     bring in many types from apache commons.  Added these two
 		     types instead of all of the types they reference.-->
                 <allow>org[.]apache[.]commons[.]configuration[.]Configuration</allow>
                 <allow>org[.]apache[.]commons[.]configuration[.]AbstractConfiguration</allow>
                 <allow>org[.]apache[.]commons[.]configuration[.]event[.]EventSource</allow>
-		<!--Type from hadoop used in API.  If adding a new type from
+                <!--Type from hadoop used in API.  If adding a new type from
 		     Hadoop to the Accumulo API ensure its annotated as
 		     stable.-->
                 <allow>org[.]apache[.]hadoop[.]conf[.]Configuration</allow>
