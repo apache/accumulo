@@ -71,6 +71,8 @@ public class RestoreZookeeper {
         else
           cwd.push(root);
         create(root, "", UTF_8.name());
+      } else if ("ephemeral".equals(name)) {
+        cwd.push("");
       }
     }
 
