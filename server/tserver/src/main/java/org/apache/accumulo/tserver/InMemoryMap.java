@@ -17,11 +17,8 @@
 package org.apache.accumulo.tserver;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,7 +47,6 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
@@ -71,121 +67,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-class MemKeyComparator implements Comparator<Key>, Serializable {
-
-  private static final long serialVersionUID = 1L;
-
-  @Override
-  public int compare(Key k1, Key k2) {
-    int cmp = k1.compareTo(k2);
-
-    if (cmp == 0) {
-      if (k1 instanceof MemKey)
-        if (k2 instanceof MemKey)
-          cmp = ((MemKey) k2).kvCount - ((MemKey) k1).kvCount;
-        else
-          cmp = 1;
-      else if (k2 instanceof MemKey)
-        cmp = -1;
-    }
-
-    return cmp;
-  }
-}
-
-class PartialMutationSkippingIterator extends SkippingIterator implements InterruptibleIterator {
-
-  private int kvCount;
-
-  public PartialMutationSkippingIterator(SortedKeyValueIterator<Key,Value> source, int maxKVCount) {
-    setSource(source);
-    this.kvCount = maxKVCount;
-  }
-
-  @Override
-  protected void consume() throws IOException {
-    while (getSource().hasTop() && ((MemKey) getSource().getTopKey()).kvCount > kvCount)
-      getSource().next();
-  }
-
-  @Override
-  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new PartialMutationSkippingIterator(getSource().deepCopy(env), kvCount);
-  }
-
-  @Override
-  public void setInterruptFlag(AtomicBoolean flag) {
-    ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
-  }
-
-}
-
-class MemKeyConversionIterator extends WrappingIterator implements InterruptibleIterator {
-  private MemKey currKey = null;
-  private Value currVal = null;
-
-  public MemKeyConversionIterator(SortedKeyValueIterator<Key,Value> source) {
-    super();
-    setSource(source);
-  }
-
-  @Override
-  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new MemKeyConversionIterator(getSource().deepCopy(env));
-  }
-
-  @Override
-  public Key getTopKey() {
-    return currKey;
-  }
-
-  @Override
-  public Value getTopValue() {
-    return currVal;
-  }
-
-  private void getTopKeyVal() {
-    Key k = super.getTopKey();
-    Value v = super.getTopValue();
-    if (k instanceof MemKey || k == null) {
-      currKey = (MemKey) k;
-      currVal = v;
-      return;
-    }
-    currVal = new Value(v);
-    int mc = MemValue.splitKVCount(currVal);
-    currKey = new MemKey(k, mc);
-
-  }
-
-  @Override
-  public void next() throws IOException {
-    super.next();
-    if (hasTop())
-      getTopKeyVal();
-  }
-
-  @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    super.seek(range, columnFamilies, inclusive);
-
-    if (hasTop())
-      getTopKeyVal();
-
-    Key k = range.getStartKey();
-    if (k instanceof MemKey && hasTop()) {
-      while (hasTop() && currKey.compareTo(k) < 0)
-        next();
-    }
-  }
-
-  @Override
-  public void setInterruptFlag(AtomicBoolean flag) {
-    ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
-  }
-
-}
 
 public class InMemoryMap {
   private SimpleMap map = null;

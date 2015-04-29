@@ -18,48 +18,6 @@
 package org.apache.accumulo.core.compaction;
 
 import java.util.Map;
-import java.util.regex.Pattern;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-
-import com.google.common.base.Preconditions;
-
-interface Type {
-  String convert(String str);
-}
-
-class SizeType implements Type {
-  @Override
-  public String convert(String str) {
-    long size = AccumuloConfiguration.getMemoryInBytes(str);
-    Preconditions.checkArgument(size > 0);
-    return Long.toString(size);
-  }
-}
-
-class PatternType implements Type {
-  @Override
-  public String convert(String str) {
-    // ensure it compiles
-    Pattern.compile(str);
-    return str;
-  }
-}
-
-class UIntType implements Type {
-  @Override
-  public String convert(String str) {
-    Preconditions.checkArgument(Integer.parseInt(str) > 0);
-    return str;
-  }
-}
-
-class StringType implements Type {
-  @Override
-  public String convert(String str) {
-    return str;
-  }
-}
 
 public enum CompactionSettings {
 

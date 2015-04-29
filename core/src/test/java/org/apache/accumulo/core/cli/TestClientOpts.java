@@ -263,5 +263,10 @@ public class TestClientOpts {
     public boolean equals(Object o) {
       return o instanceof EmptyToken;
     }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
   }
 }
