@@ -94,6 +94,7 @@ import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
 import org.apache.accumulo.shell.commands.DebugCommand;
+import org.apache.accumulo.shell.commands.DeleteAuthsCommand;
 import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
@@ -402,7 +403,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
     Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),
-        new PasswdCommand(), new SetAuthsCommand(), new UsersCommand()};
+        new PasswdCommand(), new SetAuthsCommand(), new UsersCommand(), new DeleteAuthsCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
     commandGrouping.put("-- Shell Execution Commands -------------", execCommands);
