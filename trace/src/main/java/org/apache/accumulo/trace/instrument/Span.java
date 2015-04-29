@@ -52,23 +52,33 @@ public class Span extends org.apache.accumulo.core.trace.Span implements Cloudtr
   }
 
   @Override
+  public long getStartTimeMillis() {
+    return span.getStartTimeMillis();
+  }
+
+  @Override
+  public long getStopTimeMillis() {
+    return span.getStopTimeMillis();
+  }
+
+  @Override
   public long accumulatedMillis() {
-    return getAccumulatedMillis();
+    return span.getAccumulatedMillis();
   }
 
   @Override
   public boolean running() {
-    return isRunning();
+    return span.isRunning();
   }
 
   @Override
   public String description() {
-    return getDescription();
+    return span.getDescription();
   }
 
   @Override
   public long spanId() {
-    return getSpanId();
+    return span.getSpanId();
   }
 
   @Override
@@ -78,7 +88,7 @@ public class Span extends org.apache.accumulo.core.trace.Span implements Cloudtr
 
   @Override
   public long parentId() {
-    return getParentId();
+    return span.getParentId();
   }
 
   @Override

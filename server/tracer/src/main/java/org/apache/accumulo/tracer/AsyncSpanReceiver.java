@@ -18,7 +18,6 @@ package org.apache.accumulo.tracer;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.AbstractQueue;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +37,8 @@ import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.TimelineAnnotation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Deliver Span information periodically to a destination.
@@ -64,7 +65,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   protected abstract void send(Destination resource, RemoteSpan span) throws Exception;
 
-  protected abstract SpanKey getSpanKey(Map<ByteBuffer,ByteBuffer> data);
+  protected abstract SpanKey getSpanKey(Map<String,String> data);
 
   Timer timer = new Timer("SpanSender", true);
   protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
@@ -140,12 +141,12 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     }
   }
 
-  public static Map<ByteBuffer,ByteBuffer> convertToByteBuffers(Map<byte[],byte[]> bytesMap) {
+  public static Map<String,String> convertToStrings(Map<byte[],byte[]> bytesMap) {
     if (bytesMap == null)
       return null;
-    Map<ByteBuffer,ByteBuffer> result = new HashMap<ByteBuffer,ByteBuffer>();
+    Map<String,String> result = new HashMap<>();
     for (Entry<byte[],byte[]> bytes : bytesMap.entrySet()) {
-      result.put(ByteBuffer.wrap(bytes.getKey()), ByteBuffer.wrap(bytes.getValue()));
+      result.put(new String(bytes.getKey(), UTF_8), new String(bytes.getValue(), UTF_8));
     }
     return result;
   }
@@ -162,7 +163,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   @Override
   public void receiveSpan(Span s) {
-    Map<ByteBuffer,ByteBuffer> data = convertToByteBuffers(s.getKVAnnotations());
+    Map<String,String> data = convertToStrings(s.getKVAnnotations());
 
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
