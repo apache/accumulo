@@ -27,29 +27,6 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
-class FinishCancelCompaction extends MasterRepo {
-  private static final long serialVersionUID = 1L;
-  private String tableId;
-
-  public FinishCancelCompaction(String tableId) {
-    this.tableId = tableId;
-  }
-
-  @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
-    Utils.getReadLock(tableId, tid).unlock();
-    return null;
-  }
-
-  @Override
-  public void undo(long tid, Master environment) throws Exception {
-
-  }
-}
-
-/**
- *
- */
 public class CancelCompactions extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
