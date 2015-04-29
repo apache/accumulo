@@ -33,8 +33,8 @@ struct RemoteSpan {
    6:i64 start, 
    7:i64 stop, 
    8:string description, 
-   10:map<binary, binary> data,
-   11:list<Annotation> annotations
+   9:map<string, string> data,
+   10:list<Annotation> annotations
 }
 
 service SpanReceiver {

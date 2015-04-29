@@ -17,9 +17,7 @@
 package org.apache.accumulo.monitor.servlets.trace;
 
 import static java.lang.Math.min;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.ByteBuffer;
 import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -167,11 +165,9 @@ public class ShowTrace extends Basic {
       sb.append("  <table class='indent,noborder'>\n");
       if (hasData) {
         sb.append("  <tr><th>Key</th><th>Value</th></tr>\n");
-        for (Entry<ByteBuffer,ByteBuffer> entry : node.data.entrySet()) {
-          String key = new String(entry.getKey().array(), entry.getKey().arrayOffset(), entry.getKey().limit(), UTF_8);
-          String value = new String(entry.getValue().array(), entry.getValue().arrayOffset(), entry.getValue().limit(), UTF_8);
-          sb.append("  <tr><td>" + BasicServlet.sanitize(key) + "</td>");
-          sb.append("<td>" + BasicServlet.sanitize(value) + "</td></tr>\n");
+        for (Entry<String,String> entry : node.data.entrySet()) {
+          sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
+          sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
         }
       }
       if (hasAnnotations) {

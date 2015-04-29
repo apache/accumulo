@@ -16,12 +16,9 @@
  */
 package org.apache.accumulo.tracer;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
@@ -84,11 +81,11 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
     }
   }
 
-  private static final ByteBuffer DEST = ByteBuffer.wrap("dest".getBytes(UTF_8));
+  private static final String DEST = "dest";
 
   @Override
-  protected String getSpanKey(Map<ByteBuffer,ByteBuffer> data) {
-    String dest = new String(data.get(DEST).array());
+  protected String getSpanKey(Map<String,String> data) {
+    String dest = data.get(DEST);
     if (dest != null && dest.startsWith(THRIFT)) {
       String hostAddress = dest.substring(THRIFT.length());
       String[] hostAddr = hostAddress.split(":", 2);

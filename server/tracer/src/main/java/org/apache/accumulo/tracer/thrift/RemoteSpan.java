@@ -59,8 +59,8 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField START_FIELD_DESC = new org.apache.thrift.protocol.TField("start", org.apache.thrift.protocol.TType.I64, (short)6);
   private static final org.apache.thrift.protocol.TField STOP_FIELD_DESC = new org.apache.thrift.protocol.TField("stop", org.apache.thrift.protocol.TType.I64, (short)7);
   private static final org.apache.thrift.protocol.TField DESCRIPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("description", org.apache.thrift.protocol.TType.STRING, (short)8);
-  private static final org.apache.thrift.protocol.TField DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("data", org.apache.thrift.protocol.TType.MAP, (short)10);
-  private static final org.apache.thrift.protocol.TField ANNOTATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("annotations", org.apache.thrift.protocol.TType.LIST, (short)11);
+  private static final org.apache.thrift.protocol.TField DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("data", org.apache.thrift.protocol.TType.MAP, (short)9);
+  private static final org.apache.thrift.protocol.TField ANNOTATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("annotations", org.apache.thrift.protocol.TType.LIST, (short)10);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -76,7 +76,7 @@ import org.slf4j.LoggerFactory;
   public long start; // required
   public long stop; // required
   public String description; // required
-  public Map<ByteBuffer,ByteBuffer> data; // required
+  public Map<String,String> data; // required
   public List<Annotation> annotations; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -89,8 +89,8 @@ import org.slf4j.LoggerFactory;
     START((short)6, "start"),
     STOP((short)7, "stop"),
     DESCRIPTION((short)8, "description"),
-    DATA((short)10, "data"),
-    ANNOTATIONS((short)11, "annotations");
+    DATA((short)9, "data"),
+    ANNOTATIONS((short)10, "annotations");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -121,9 +121,9 @@ import org.slf4j.LoggerFactory;
           return STOP;
         case 8: // DESCRIPTION
           return DESCRIPTION;
-        case 10: // DATA
+        case 9: // DATA
           return DATA;
-        case 11: // ANNOTATIONS
+        case 10: // ANNOTATIONS
           return ANNOTATIONS;
         default:
           return null;
@@ -192,8 +192,8 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.DATA, new org.apache.thrift.meta_data.FieldMetaData("data", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true), 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     tmpMap.put(_Fields.ANNOTATIONS, new org.apache.thrift.meta_data.FieldMetaData("annotations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Annotation.class))));
@@ -213,7 +213,7 @@ import org.slf4j.LoggerFactory;
     long start,
     long stop,
     String description,
-    Map<ByteBuffer,ByteBuffer> data,
+    Map<String,String> data,
     List<Annotation> annotations)
   {
     this();
@@ -254,7 +254,7 @@ import org.slf4j.LoggerFactory;
       this.description = other.description;
     }
     if (other.isSetData()) {
-      Map<ByteBuffer,ByteBuffer> __this__data = new HashMap<ByteBuffer,ByteBuffer>(other.data);
+      Map<String,String> __this__data = new HashMap<String,String>(other.data);
       this.data = __this__data;
     }
     if (other.isSetAnnotations()) {
@@ -480,18 +480,18 @@ import org.slf4j.LoggerFactory;
     return (this.data == null) ? 0 : this.data.size();
   }
 
-  public void putToData(ByteBuffer key, ByteBuffer val) {
+  public void putToData(String key, String val) {
     if (this.data == null) {
-      this.data = new HashMap<ByteBuffer,ByteBuffer>();
+      this.data = new HashMap<String,String>();
     }
     this.data.put(key, val);
   }
 
-  public Map<ByteBuffer,ByteBuffer> getData() {
+  public Map<String,String> getData() {
     return this.data;
   }
 
-  public RemoteSpan setData(Map<ByteBuffer,ByteBuffer> data) {
+  public RemoteSpan setData(Map<String,String> data) {
     this.data = data;
     return this;
   }
@@ -620,7 +620,7 @@ import org.slf4j.LoggerFactory;
       if (value == null) {
         unsetData();
       } else {
-        setData((Map<ByteBuffer,ByteBuffer>)value);
+        setData((Map<String,String>)value);
       }
       break;
 
@@ -1109,17 +1109,17 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 10: // DATA
+          case 9: // DATA
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
-                struct.data = new HashMap<ByteBuffer,ByteBuffer>(2*_map0.size);
+                struct.data = new HashMap<String,String>(2*_map0.size);
                 for (int _i1 = 0; _i1 < _map0.size; ++_i1)
                 {
-                  ByteBuffer _key2;
-                  ByteBuffer _val3;
-                  _key2 = iprot.readBinary();
-                  _val3 = iprot.readBinary();
+                  String _key2;
+                  String _val3;
+                  _key2 = iprot.readString();
+                  _val3 = iprot.readString();
                   struct.data.put(_key2, _val3);
                 }
                 iprot.readMapEnd();
@@ -1129,7 +1129,7 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 11: // ANNOTATIONS
+          case 10: // ANNOTATIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list4 = iprot.readListBegin();
@@ -1197,10 +1197,10 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(DATA_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.data.size()));
-          for (Map.Entry<ByteBuffer, ByteBuffer> _iter7 : struct.data.entrySet())
+          for (Map.Entry<String, String> _iter7 : struct.data.entrySet())
           {
-            oprot.writeBinary(_iter7.getKey());
-            oprot.writeBinary(_iter7.getValue());
+            oprot.writeString(_iter7.getKey());
+            oprot.writeString(_iter7.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -1294,10 +1294,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetData()) {
         {
           oprot.writeI32(struct.data.size());
-          for (Map.Entry<ByteBuffer, ByteBuffer> _iter9 : struct.data.entrySet())
+          for (Map.Entry<String, String> _iter9 : struct.data.entrySet())
           {
-            oprot.writeBinary(_iter9.getKey());
-            oprot.writeBinary(_iter9.getValue());
+            oprot.writeString(_iter9.getKey());
+            oprot.writeString(_iter9.getValue());
           }
         }
       }
@@ -1351,13 +1351,13 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(8)) {
         {
           org.apache.thrift.protocol.TMap _map11 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.data = new HashMap<ByteBuffer,ByteBuffer>(2*_map11.size);
+          struct.data = new HashMap<String,String>(2*_map11.size);
           for (int _i12 = 0; _i12 < _map11.size; ++_i12)
           {
-            ByteBuffer _key13;
-            ByteBuffer _val14;
-            _key13 = iprot.readBinary();
-            _val14 = iprot.readBinary();
+            String _key13;
+            String _val14;
+            _key13 = iprot.readString();
+            _val14 = iprot.readString();
             struct.data.put(_key13, _val14);
           }
         }

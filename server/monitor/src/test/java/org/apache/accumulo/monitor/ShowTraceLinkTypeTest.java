@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -27,7 +26,7 @@ import org.junit.Test;
 
 public class ShowTraceLinkTypeTest {
   private static RemoteSpan rs(long start, long stop, String description) {
-    return new RemoteSpan("sender", "svc", 0l, 0l, 0l, start, stop, description, Collections.<ByteBuffer,ByteBuffer> emptyMap(),
+    return new RemoteSpan("sender", "svc", 0l, 0l, 0l, start, stop, description, Collections.<String,String> emptyMap(),
         Collections.<Annotation> emptyList());
   }
 
