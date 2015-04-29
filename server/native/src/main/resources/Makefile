@@ -48,9 +48,10 @@ test : $(NATIVE_LIB) testJavaHome runTests
 testJavaHome :
 	@echo JAVA_HOME is $(JAVA_HOME)
 
-runTests : $(NATIVE_LIB) $(TESTSRCS)
+runTests : $(NATIVE_LIB) $(TESTSRCS) $(OUTPUT_DIR)
 	$(CXX) -g -Wall -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include/darwin -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB) $(MAVERICK_FLAGS)
 	LD_LIBRARY_PATH=./ ./$@ 20 20 20 20 20 20 20 20 true
+	if [ ! -z "$(OUTPUT_DIR)" ]; then cp $(NATIVE_LIB) $(OUTPUT_DIR); fi
 
 clean :
 	rm -f $(NATIVE_LIB) runTests
