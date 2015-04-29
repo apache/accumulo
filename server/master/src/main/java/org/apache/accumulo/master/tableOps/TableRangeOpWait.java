@@ -22,6 +22,8 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Merge makes things hard.
@@ -37,6 +39,7 @@ import org.apache.hadoop.io.Text;
  * and prevent merges (writes) while they run. Merge operations will lock out some operations while they run.
  */
 class TableRangeOpWait extends MasterRepo {
+  private static final Logger log = LoggerFactory.getLogger(TableRangeOpWait.class);
 
   private static final long serialVersionUID = 1L;
   private String tableId;

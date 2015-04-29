@@ -57,7 +57,7 @@ import com.google.common.base.Joiner;
 
 public class TableDiskUsage {
 
-  private static final Logger log = LoggerFactory.getLogger(Logger.class);
+  private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
   private int nextInternalId = 0;
   private Map<String,Integer> internalIds = new HashMap<String,Integer>();
   private Map<Integer,String> externalIds = new HashMap<Integer,String>();

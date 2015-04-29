@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Namespaces;
-import org.apache.accumulo.core.client.impl.SecurityOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -65,7 +64,7 @@ import org.slf4j.LoggerFactory;
  * Utility class for performing various security operations with the appropriate checks
  */
 public class SecurityOperation {
-  private static final Logger log = LoggerFactory.getLogger(SecurityOperationsImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
 
   protected Authorizor authorizor;
   protected Authenticator authenticator;

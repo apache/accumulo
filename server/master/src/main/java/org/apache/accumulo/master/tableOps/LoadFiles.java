@@ -33,10 +33,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.Tracer;
@@ -58,7 +58,7 @@ class LoadFiles extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private static ExecutorService threadPool = null;
-  private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
+  private static final Logger log = LoggerFactory.getLogger(LoadFiles.class);
 
   private String tableId;
   private String source;

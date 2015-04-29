@@ -44,7 +44,7 @@ import com.beust.jcommander.Parameter;
  * Simple example for reading random batches of data from Accumulo. See docs/examples/README.batch for instructions.
  */
 public class RandomBatchScanner {
-  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(RandomBatchScanner.class);
 
   /**
    * Generate a number of ranges, each covering a single random row.
