@@ -33,8 +33,12 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImportTable extends MasterRepo {
+  private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
+
   private static final long serialVersionUID = 1L;
 
   private ImportedTableInfo tableInfo;

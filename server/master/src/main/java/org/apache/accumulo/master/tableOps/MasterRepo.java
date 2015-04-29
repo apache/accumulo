@@ -18,13 +18,10 @@ package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class MasterRepo implements Repo<Master> {
 
   private static final long serialVersionUID = 1L;
-  protected static final Logger log = LoggerFactory.getLogger(MasterRepo.class);
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {

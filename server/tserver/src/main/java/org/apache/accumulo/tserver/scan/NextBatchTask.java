@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class NextBatchTask extends ScanTask<ScanBatch> {
 
-  private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
+  private static final Logger log = LoggerFactory.getLogger(NextBatchTask.class);
 
   private final long scanID;
 

@@ -43,7 +43,7 @@ class SetupPermissions extends MasterRepo {
         try {
           security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
         } catch (ThriftSecurityException e) {
-          LoggerFactory.getLogger(FinishCreateTable.class).error("{}", e.getMessage(), e);
+          LoggerFactory.getLogger(SetupPermissions.class).error("{}", e.getMessage(), e);
           throw e;
         }
       }

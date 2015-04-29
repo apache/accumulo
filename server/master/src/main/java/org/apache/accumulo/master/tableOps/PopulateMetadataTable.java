@@ -49,10 +49,13 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 
 class PopulateMetadataTable extends MasterRepo {
+  private static final Logger log = LoggerFactory.getLogger(PopulateMetadataTable.class);
 
   private static final long serialVersionUID = 1L;
 

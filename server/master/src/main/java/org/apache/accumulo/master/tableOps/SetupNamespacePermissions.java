@@ -42,7 +42,7 @@ class SetupNamespacePermissions extends MasterRepo {
       try {
         security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user, namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(FinishCreateNamespace.class).error("{}", e.getMessage(), e);
+        LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
         throw e;
       }
     }
