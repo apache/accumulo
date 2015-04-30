@@ -45,11 +45,18 @@ public class AddSplitsCommand extends Command {
       final String f = cl.getOptionValue(optSplitsFile.getOpt());
 
       String line;
-      java.util.Scanner file = new java.util.Scanner(new File(f), UTF_8.name());
-      while (file.hasNextLine()) {
-        line = file.nextLine();
-        if (!line.isEmpty()) {
-          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
+      java.util.Scanner file = null;
+      try {
+        file = new java.util.Scanner(new File(f), UTF_8.name());
+        while (file.hasNextLine()) {
+          line = file.nextLine();
+          if (!line.isEmpty()) {
+            splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
+          }
+        }
+      } finally {
+        if (file != null) {
+          file.close();
         }
       }
       file.close();
