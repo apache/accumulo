@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ActionStats implements org.apache.thrift.TBase<ActionStats, ActionStats._Fields>, java.io.Serializable, Cloneable, Comparable<ActionStats> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ActionStats implements org.apache.thrift.TBase<ActionStats, ActionStats._Fields>, java.io.Serializable, Cloneable, Comparable<ActionStats> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ActionStats");
 
   private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.I32, (short)1);
@@ -76,7 +76,7 @@ import org.slf4j.LoggerFactory;
   public double queueSumDev; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     STATUS((short)1, "status"),
     ELAPSED((short)2, "elapsed"),
     NUM((short)3, "num"),

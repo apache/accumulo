@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum IteratorScope implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum IteratorScope implements org.apache.thrift.TEnum {
   MINC(0),
   MAJC(1),
   SCAN(2);

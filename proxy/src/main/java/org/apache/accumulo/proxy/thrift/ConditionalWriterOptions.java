@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ConditionalWriterOptions implements org.apache.thrift.TBase<ConditionalWriterOptions, ConditionalWriterOptions._Fields>, java.io.Serializable, Cloneable, Comparable<ConditionalWriterOptions> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ConditionalWriterOptions implements org.apache.thrift.TBase<ConditionalWriterOptions, ConditionalWriterOptions._Fields>, java.io.Serializable, Cloneable, Comparable<ConditionalWriterOptions> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ConditionalWriterOptions");
 
   private static final org.apache.thrift.protocol.TField MAX_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("maxMemory", org.apache.thrift.protocol.TType.I64, (short)1);
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
   public Set<ByteBuffer> authorizations; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     MAX_MEMORY((short)1, "maxMemory"),
     TIMEOUT_MS((short)2, "timeoutMs"),
     THREADS((short)3, "threads"),

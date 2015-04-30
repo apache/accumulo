@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum ConfigurationType implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum ConfigurationType implements org.apache.thrift.TEnum {
   CURRENT(0),
   SITE(1),
   DEFAULT(2);

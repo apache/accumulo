@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletSplit._Fields>, java.io.Serializable, Cloneable, Comparable<TabletSplit> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletSplit._Fields>, java.io.Serializable, Cloneable, Comparable<TabletSplit> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TabletSplit");
 
   private static final org.apache.thrift.protocol.TField OLD_TABLET_FIELD_DESC = new org.apache.thrift.protocol.TField("oldTablet", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
   public List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     OLD_TABLET((short)1, "oldTablet"),
     NEW_TABLETS((short)2, "newTablets");
 

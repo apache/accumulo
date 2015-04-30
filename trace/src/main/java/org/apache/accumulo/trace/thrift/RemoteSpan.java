@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class RemoteSpan implements org.apache.thrift.TBase<RemoteSpan, RemoteSpan._Fields>, java.io.Serializable, Cloneable, Comparable<RemoteSpan> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class RemoteSpan implements org.apache.thrift.TBase<RemoteSpan, RemoteSpan._Fields>, java.io.Serializable, Cloneable, Comparable<RemoteSpan> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("RemoteSpan");
 
   private static final org.apache.thrift.protocol.TField SENDER_FIELD_DESC = new org.apache.thrift.protocol.TField("sender", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
   public Map<String,String> data; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SENDER((short)1, "sender"),
     SVC((short)2, "svc"),
     TRACE_ID((short)3, "traceId"),

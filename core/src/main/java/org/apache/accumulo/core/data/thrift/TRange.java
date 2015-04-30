@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TRange implements org.apache.thrift.TBase<TRange, TRange._Fields>, java.io.Serializable, Cloneable, Comparable<TRange> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class TRange implements org.apache.thrift.TBase<TRange, TRange._Fields>, java.io.Serializable, Cloneable, Comparable<TRange> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TRange");
 
   private static final org.apache.thrift.protocol.TField START_FIELD_DESC = new org.apache.thrift.protocol.TField("start", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
   public boolean infiniteStopKey; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     START((short)1, "start"),
     STOP((short)2, "stop"),
     START_KEY_INCLUSIVE((short)3, "startKeyInclusive"),

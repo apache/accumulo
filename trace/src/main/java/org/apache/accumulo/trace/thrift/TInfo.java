@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TInfo> {
+@SuppressWarnings({"unchecked", "rawtypes", "unused"}) public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TInfo> {
 
   private static final long serialVersionUID = -4659975753252858243l; // See ACCUMULO-3132
 
@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
   public long parentId; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TRACE_ID((short)1, "traceId"),
     PARENT_ID((short)2, "parentId");
 

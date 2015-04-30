@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum ConditionalStatus implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum ConditionalStatus implements org.apache.thrift.TEnum {
   ACCEPTED(0),
   REJECTED(1),
   VIOLATED(2),

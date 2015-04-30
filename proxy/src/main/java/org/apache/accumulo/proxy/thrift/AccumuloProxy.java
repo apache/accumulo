@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class AccumuloProxy {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class AccumuloProxy {
 
   public interface Iface {
 
@@ -12719,7 +12719,7 @@ import org.slf4j.LoggerFactory;
     public Map<String,String> loginProperties; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       PRINCIPAL((short)1, "principal"),
       LOGIN_PROPERTIES((short)2, "loginProperties");
 
@@ -13225,7 +13225,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH2((short)1, "ouch2");
 
@@ -13694,7 +13694,7 @@ import org.slf4j.LoggerFactory;
     public String constraintClassName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       CONSTRAINT_CLASS_NAME((short)3, "constraintClassName");
@@ -14261,7 +14261,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -14919,7 +14919,7 @@ import org.slf4j.LoggerFactory;
     public Set<ByteBuffer> splits; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       SPLITS((short)3, "splits");
@@ -15533,7 +15533,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -16095,7 +16095,7 @@ import org.slf4j.LoggerFactory;
     public Set<IteratorScope> scopes; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       SETTING((short)3, "setting"),
@@ -16815,7 +16815,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -17377,7 +17377,7 @@ import org.slf4j.LoggerFactory;
     public Set<IteratorScope> scopes; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       SETTING((short)3, "setting"),
@@ -18097,7 +18097,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -18655,7 +18655,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -19118,7 +19118,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch1; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -19484,7 +19484,7 @@ import org.slf4j.LoggerFactory;
     public Set<String> propertiesToExclude; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       NEW_TABLE_NAME((short)3, "newTableName"),
@@ -20444,7 +20444,7 @@ import org.slf4j.LoggerFactory;
     public TableExistsException ouch4; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3"),
@@ -21112,7 +21112,7 @@ import org.slf4j.LoggerFactory;
     public boolean wait; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
@@ -22137,7 +22137,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -22695,7 +22695,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -23162,7 +23162,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -23728,7 +23728,7 @@ import org.slf4j.LoggerFactory;
     public TimeType type; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       VERSIONING_ITER((short)3, "versioningIter"),
@@ -24401,7 +24401,7 @@ import org.slf4j.LoggerFactory;
     public TableExistsException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -24959,7 +24959,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -25426,7 +25426,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -25988,7 +25988,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer endRow; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
@@ -26673,7 +26673,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -27233,7 +27233,7 @@ import org.slf4j.LoggerFactory;
     public String exportDir; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       EXPORT_DIR((short)3, "exportDir");
@@ -27798,7 +27798,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -28362,7 +28362,7 @@ import org.slf4j.LoggerFactory;
     public boolean wait; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
@@ -29143,7 +29143,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -29701,7 +29701,7 @@ import org.slf4j.LoggerFactory;
     public Set<String> tables; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLES((short)2, "tables");
 
@@ -30219,7 +30219,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -30929,7 +30929,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -31398,7 +31398,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -32158,7 +32158,7 @@ import org.slf4j.LoggerFactory;
     public IteratorScope scope; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       ITERATOR_NAME((short)3, "iteratorName"),
@@ -32835,7 +32835,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -33506,7 +33506,7 @@ import org.slf4j.LoggerFactory;
     public boolean endInclusive; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       AUTHS((short)3, "auths"),
@@ -34528,7 +34528,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -35195,7 +35195,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -35664,7 +35664,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -36378,7 +36378,7 @@ import org.slf4j.LoggerFactory;
     public boolean setTime; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       IMPORT_DIR((short)3, "importDir"),
@@ -37137,7 +37137,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch4; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH3((short)2, "ouch3"),
       OUCH4((short)3, "ouch4");
@@ -37697,7 +37697,7 @@ import org.slf4j.LoggerFactory;
     public String importDir; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       IMPORT_DIR((short)3, "importDir");
@@ -38262,7 +38262,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -38822,7 +38822,7 @@ import org.slf4j.LoggerFactory;
     public int maxSplits; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       MAX_SPLITS((short)3, "maxSplits");
@@ -39387,7 +39387,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -40090,7 +40090,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer login; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -40455,7 +40455,7 @@ import org.slf4j.LoggerFactory;
     public Set<String> success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -40860,7 +40860,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -41329,7 +41329,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -42084,7 +42084,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -42553,7 +42553,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -43265,7 +43265,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer endRow; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
@@ -43950,7 +43950,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -44510,7 +44510,7 @@ import org.slf4j.LoggerFactory;
     public boolean wait; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       WAIT((short)3, "wait");
@@ -45075,7 +45075,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -45635,7 +45635,7 @@ import org.slf4j.LoggerFactory;
     public boolean wait; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       WAIT((short)3, "wait");
@@ -46200,7 +46200,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -46760,7 +46760,7 @@ import org.slf4j.LoggerFactory;
     public int constraint; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       CONSTRAINT((short)3, "constraint");
@@ -47323,7 +47323,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -47885,7 +47885,7 @@ import org.slf4j.LoggerFactory;
     public Set<IteratorScope> scopes; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       ITER_NAME((short)3, "iterName"),
@@ -48600,7 +48600,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -49160,7 +49160,7 @@ import org.slf4j.LoggerFactory;
     public String property; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       PROPERTY((short)3, "property");
@@ -49725,7 +49725,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -50285,7 +50285,7 @@ import org.slf4j.LoggerFactory;
     public String newTableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       OLD_TABLE_NAME((short)2, "oldTableName"),
       NEW_TABLE_NAME((short)3, "newTableName");
@@ -50852,7 +50852,7 @@ import org.slf4j.LoggerFactory;
     public TableExistsException ouch4; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3"),
@@ -51512,7 +51512,7 @@ import org.slf4j.LoggerFactory;
     public Map<String,Set<String>> groups; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       GROUPS((short)3, "groups");
@@ -52173,7 +52173,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -52735,7 +52735,7 @@ import org.slf4j.LoggerFactory;
     public String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       PROPERTY((short)3, "property"),
@@ -53398,7 +53398,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -53960,7 +53960,7 @@ import org.slf4j.LoggerFactory;
     public int maxSplits; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       RANGE((short)3, "range"),
@@ -54628,7 +54628,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -55338,7 +55338,7 @@ import org.slf4j.LoggerFactory;
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName");
 
@@ -55801,7 +55801,7 @@ import org.slf4j.LoggerFactory;
     public boolean success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -56155,7 +56155,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer login; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -56520,7 +56520,7 @@ import org.slf4j.LoggerFactory;
     public Map<String,String> success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -56932,7 +56932,7 @@ import org.slf4j.LoggerFactory;
     public String asTypeName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       CLASS_NAME((short)3, "className"),
@@ -57597,7 +57597,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -58253,7 +58253,7 @@ import org.slf4j.LoggerFactory;
     public String tserver; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TSERVER((short)2, "tserver");
 
@@ -58718,7 +58718,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -59176,7 +59176,7 @@ import org.slf4j.LoggerFactory;
     public String tserver; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TSERVER((short)2, "tserver");
 
@@ -59643,7 +59643,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -60253,7 +60253,7 @@ import org.slf4j.LoggerFactory;
     public String tserver; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TSERVER((short)2, "tserver");
 
@@ -60720,7 +60720,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -61328,7 +61328,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer login; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -61697,7 +61697,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -62303,7 +62303,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer login; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -62672,7 +62672,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -63278,7 +63278,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer login; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -63643,7 +63643,7 @@ import org.slf4j.LoggerFactory;
     public List<String> success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -64048,7 +64048,7 @@ import org.slf4j.LoggerFactory;
     public String property; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       PROPERTY((short)2, "property");
 
@@ -64513,7 +64513,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -64973,7 +64973,7 @@ import org.slf4j.LoggerFactory;
     public String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       PROPERTY((short)2, "property"),
       VALUE((short)3, "value");
@@ -65536,7 +65536,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -65996,7 +65996,7 @@ import org.slf4j.LoggerFactory;
     public String asTypeName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       CLASS_NAME((short)2, "className"),
       AS_TYPE_NAME((short)3, "asTypeName");
@@ -66561,7 +66561,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -67119,7 +67119,7 @@ import org.slf4j.LoggerFactory;
     public Map<String,String> properties; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       PROPERTIES((short)3, "properties");
@@ -67736,7 +67736,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -68294,7 +68294,7 @@ import org.slf4j.LoggerFactory;
     public Set<ByteBuffer> authorizations; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       AUTHORIZATIONS((short)3, "authorizations");
@@ -68906,7 +68906,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -69366,7 +69366,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer password; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       PASSWORD((short)3, "password");
@@ -69940,7 +69940,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -70400,7 +70400,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer password; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       PASSWORD((short)3, "password");
@@ -70974,7 +70974,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -71432,7 +71432,7 @@ import org.slf4j.LoggerFactory;
     public String user; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user");
 
@@ -71897,7 +71897,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -72355,7 +72355,7 @@ import org.slf4j.LoggerFactory;
     public String user; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user");
 
@@ -72822,7 +72822,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -73433,7 +73433,7 @@ import org.slf4j.LoggerFactory;
     public SystemPermission perm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       /**
@@ -74008,7 +74008,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -74474,7 +74474,7 @@ import org.slf4j.LoggerFactory;
     public TablePermission perm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       TABLE((short)3, "table"),
@@ -75149,7 +75149,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -75713,7 +75713,7 @@ import org.slf4j.LoggerFactory;
     public SystemPermission perm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       /**
@@ -76290,7 +76290,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
@@ -76854,7 +76854,7 @@ import org.slf4j.LoggerFactory;
     public TablePermission perm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       TABLE((short)3, "table"),
@@ -77531,7 +77531,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -78185,7 +78185,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer login; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -78556,7 +78556,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -79267,7 +79267,7 @@ import org.slf4j.LoggerFactory;
     public SystemPermission perm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       /**
@@ -79842,7 +79842,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -80308,7 +80308,7 @@ import org.slf4j.LoggerFactory;
     public TablePermission perm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       USER((short)2, "user"),
       TABLE((short)3, "table"),
@@ -80983,7 +80983,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3");
@@ -81543,7 +81543,7 @@ import org.slf4j.LoggerFactory;
     public BatchScanOptions options; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       OPTIONS((short)3, "options");
@@ -82115,7 +82115,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -82773,7 +82773,7 @@ import org.slf4j.LoggerFactory;
     public ScanOptions options; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       OPTIONS((short)3, "options");
@@ -83345,7 +83345,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -83999,7 +83999,7 @@ import org.slf4j.LoggerFactory;
     public String scanner; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SCANNER((short)1, "scanner");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -84355,7 +84355,7 @@ import org.slf4j.LoggerFactory;
     public UnknownScanner ouch1; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1");
 
@@ -84809,7 +84809,7 @@ import org.slf4j.LoggerFactory;
     public String scanner; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SCANNER((short)1, "scanner");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -85169,7 +85169,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -85830,7 +85830,7 @@ import org.slf4j.LoggerFactory;
     public int k; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SCANNER((short)1, "scanner"),
       K((short)2, "k");
 
@@ -86286,7 +86286,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -86945,7 +86945,7 @@ import org.slf4j.LoggerFactory;
     public String scanner; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SCANNER((short)1, "scanner");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -87299,7 +87299,7 @@ import org.slf4j.LoggerFactory;
     public UnknownScanner ouch1; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -87659,7 +87659,7 @@ import org.slf4j.LoggerFactory;
     public Map<ByteBuffer,List<ColumnUpdate>> cells; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       CELLS((short)3, "cells");
@@ -88328,7 +88328,7 @@ import org.slf4j.LoggerFactory;
     public MutationsRejectedException ouch4; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUTCH1((short)1, "outch1"),
       OUCH2((short)2, "ouch2"),
       OUCH3((short)3, "ouch3"),
@@ -88988,7 +88988,7 @@ import org.slf4j.LoggerFactory;
     public WriterOptions opts; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       OPTS((short)3, "opts");
@@ -89560,7 +89560,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUTCH1((short)1, "outch1"),
       OUCH2((short)2, "ouch2"),
@@ -90216,7 +90216,7 @@ import org.slf4j.LoggerFactory;
     public Map<ByteBuffer,List<ColumnUpdate>> cells; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       WRITER((short)1, "writer"),
       CELLS((short)2, "cells");
 
@@ -90770,7 +90770,7 @@ import org.slf4j.LoggerFactory;
     public String writer; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       WRITER((short)1, "writer");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -91126,7 +91126,7 @@ import org.slf4j.LoggerFactory;
     public MutationsRejectedException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -91582,7 +91582,7 @@ import org.slf4j.LoggerFactory;
     public String writer; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       WRITER((short)1, "writer");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -91938,7 +91938,7 @@ import org.slf4j.LoggerFactory;
     public MutationsRejectedException ouch2; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2");
 
@@ -92400,7 +92400,7 @@ import org.slf4j.LoggerFactory;
     public ConditionalUpdates updates; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       ROW((short)3, "row"),
@@ -93085,7 +93085,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       /**
        * 
        * @see ConditionalStatus
@@ -93755,7 +93755,7 @@ import org.slf4j.LoggerFactory;
     public ConditionalWriterOptions options; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
       TABLE_NAME((short)2, "tableName"),
       OPTIONS((short)3, "options");
@@ -94327,7 +94327,7 @@ import org.slf4j.LoggerFactory;
     public TableNotFoundException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -94983,7 +94983,7 @@ import org.slf4j.LoggerFactory;
     public Map<ByteBuffer,ConditionalUpdates> updates; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       CONDITIONAL_WRITER((short)1, "conditionalWriter"),
       UPDATES((short)2, "updates");
 
@@ -95507,7 +95507,7 @@ import org.slf4j.LoggerFactory;
     public AccumuloSecurityException ouch3; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       OUCH1((short)1, "ouch1"),
       OUCH2((short)2, "ouch2"),
@@ -96225,7 +96225,7 @@ import org.slf4j.LoggerFactory;
     public String conditionalWriter; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       CONDITIONAL_WRITER((short)1, "conditionalWriter");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -96577,7 +96577,7 @@ import org.slf4j.LoggerFactory;
 
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
 ;
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -96825,7 +96825,7 @@ import org.slf4j.LoggerFactory;
     public ByteBuffer row; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       ROW((short)1, "row");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -97190,7 +97190,7 @@ import org.slf4j.LoggerFactory;
     public Range success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -97555,7 +97555,7 @@ import org.slf4j.LoggerFactory;
     public PartialKey part; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       KEY((short)1, "key"),
       /**
        * 
@@ -98024,7 +98024,7 @@ import org.slf4j.LoggerFactory;
     public Key success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TConditionalMutation implements org.apache.thrift.TBase<TConditionalMutation, TConditionalMutation._Fields>, java.io.Serializable, Cloneable, Comparable<TConditionalMutation> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class TConditionalMutation implements org.apache.thrift.TBase<TConditionalMutation, TConditionalMutation._Fields>, java.io.Serializable, Cloneable, Comparable<TConditionalMutation> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TConditionalMutation");
 
   private static final org.apache.thrift.protocol.TField CONDITIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("conditions", org.apache.thrift.protocol.TType.LIST, (short)1);
@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
   public long id; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CONDITIONS((short)1, "conditions"),
     MUTATION((short)2, "mutation"),
     ID((short)3, "id");

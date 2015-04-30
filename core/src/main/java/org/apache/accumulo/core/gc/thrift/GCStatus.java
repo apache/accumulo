@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class GCStatus implements org.apache.thrift.TBase<GCStatus, GCStatus._Fields>, java.io.Serializable, Cloneable, Comparable<GCStatus> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class GCStatus implements org.apache.thrift.TBase<GCStatus, GCStatus._Fields>, java.io.Serializable, Cloneable, Comparable<GCStatus> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("GCStatus");
 
   private static final org.apache.thrift.protocol.TField LAST_FIELD_DESC = new org.apache.thrift.protocol.TField("last", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
   public GcCycleStats currentLog; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     LAST((short)1, "last"),
     LAST_LOG((short)2, "lastLog"),
     CURRENT((short)3, "current"),

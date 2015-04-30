@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class WriterOptions implements org.apache.thrift.TBase<WriterOptions, WriterOptions._Fields>, java.io.Serializable, Cloneable, Comparable<WriterOptions> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class WriterOptions implements org.apache.thrift.TBase<WriterOptions, WriterOptions._Fields>, java.io.Serializable, Cloneable, Comparable<WriterOptions> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("WriterOptions");
 
   private static final org.apache.thrift.protocol.TField MAX_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("maxMemory", org.apache.thrift.protocol.TType.I64, (short)1);
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
   public int threads; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     MAX_MEMORY((short)1, "maxMemory"),
     LATENCY_MS((short)2, "latencyMs"),
     TIMEOUT_MS((short)3, "timeoutMs"),

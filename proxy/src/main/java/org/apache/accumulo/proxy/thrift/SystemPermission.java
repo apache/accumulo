@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum SystemPermission implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum SystemPermission implements org.apache.thrift.TEnum {
   GRANT(0),
   CREATE_TABLE(1),
   DROP_TABLE(2),

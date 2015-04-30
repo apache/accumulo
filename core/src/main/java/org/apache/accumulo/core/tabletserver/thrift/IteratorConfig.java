@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, IteratorConfig._Fields>, java.io.Serializable, Cloneable, Comparable<IteratorConfig> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, IteratorConfig._Fields>, java.io.Serializable, Cloneable, Comparable<IteratorConfig> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("IteratorConfig");
 
   private static final org.apache.thrift.protocol.TField ITERATORS_FIELD_DESC = new org.apache.thrift.protocol.TField("iterators", org.apache.thrift.protocol.TType.LIST, (short)1);
@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
   public List<TIteratorSetting> iterators; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ITERATORS((short)1, "iterators");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

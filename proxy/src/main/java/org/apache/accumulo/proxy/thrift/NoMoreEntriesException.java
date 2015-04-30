@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class NoMoreEntriesException extends TException implements org.apache.thrift.TBase<NoMoreEntriesException, NoMoreEntriesException._Fields>, java.io.Serializable, Cloneable, Comparable<NoMoreEntriesException> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class NoMoreEntriesException extends TException implements org.apache.thrift.TBase<NoMoreEntriesException, NoMoreEntriesException._Fields>, java.io.Serializable, Cloneable, Comparable<NoMoreEntriesException> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("NoMoreEntriesException");
 
   private static final org.apache.thrift.protocol.TField MSG_FIELD_DESC = new org.apache.thrift.protocol.TField("msg", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
   public String msg; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     MSG((short)1, "msg");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

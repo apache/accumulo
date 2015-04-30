@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompaction, ActiveCompaction._Fields>, java.io.Serializable, Cloneable, Comparable<ActiveCompaction> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompaction, ActiveCompaction._Fields>, java.io.Serializable, Cloneable, Comparable<ActiveCompaction> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ActiveCompaction");
 
   private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -88,7 +88,7 @@ import org.slf4j.LoggerFactory;
   public List<IteratorSetting> iterators; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXTENT((short)1, "extent"),
     AGE((short)2, "age"),
     INPUT_FILES((short)3, "inputFiles"),

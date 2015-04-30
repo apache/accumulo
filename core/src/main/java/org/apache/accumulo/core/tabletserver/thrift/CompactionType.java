@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum CompactionType implements org.apache.thrift.TEnum {
+@SuppressWarnings({"unused"}) public enum CompactionType implements org.apache.thrift.TEnum {
   MINOR(0),
   MERGE(1),
   MAJOR(2),

@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class SpanReceiver {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class SpanReceiver {
 
   public interface Iface {
 
@@ -240,7 +240,7 @@ import org.slf4j.LoggerFactory;
     public RemoteSpan span; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SPAN((short)1, "span");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

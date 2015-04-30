@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ScanOptions implements org.apache.thrift.TBase<ScanOptions, ScanOptions._Fields>, java.io.Serializable, Cloneable, Comparable<ScanOptions> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ScanOptions implements org.apache.thrift.TBase<ScanOptions, ScanOptions._Fields>, java.io.Serializable, Cloneable, Comparable<ScanOptions> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ScanOptions");
 
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.SET, (short)1);
@@ -70,7 +70,7 @@ import org.slf4j.LoggerFactory;
   public int bufferSize; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     AUTHORIZATIONS((short)1, "authorizations"),
     RANGE((short)2, "range"),
     COLUMNS((short)3, "columns"),

@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TableInfo> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TableInfo> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TableInfo");
 
   private static final org.apache.thrift.protocol.TField RECS_FIELD_DESC = new org.apache.thrift.protocol.TField("recs", org.apache.thrift.protocol.TType.I64, (short)1);
@@ -84,7 +84,7 @@ import org.slf4j.LoggerFactory;
   public double scanRate; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     RECS((short)1, "recs"),
     RECS_IN_MEMORY((short)2, "recsInMemory"),
     TABLETS((short)3, "tablets"),

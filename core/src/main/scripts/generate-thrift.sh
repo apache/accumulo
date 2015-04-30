@@ -26,23 +26,23 @@
 #   INCLUDED_MODULES should be an array that includes other Maven modules with src/main/thrift directories
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
-[ -z $REQUIRED_THRIFT_VERSION ] && REQUIRED_THRIFT_VERSION='0.9.1'
-[ -z $INCLUDED_MODULES ]        && INCLUDED_MODULES=(../trace)
-[ -z $BASE_OUTPUT_PACKAGE ]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
-[ -z $PACKAGES_TO_GENERATE ]    && PACKAGES_TO_GENERATE=(gc master tabletserver security client.impl data)
-[ -z $BUILD_DIR ]               && BUILD_DIR='target'
-[ -z $LANGUAGES_TO_GENERATE ]   && LANGUAGES_TO_GENERATE=(java)
-[ -z $FINAL_DIR ]               && FINAL_DIR='src/main'
+[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.9.1'
+[[ -z $INCLUDED_MODULES ]]        && INCLUDED_MODULES=(../trace)
+[[ -z $BASE_OUTPUT_PACKAGE ]]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
+[[ -z $PACKAGES_TO_GENERATE ]]    && PACKAGES_TO_GENERATE=(gc master tabletserver security client.impl data)
+[[ -z $BUILD_DIR ]]               && BUILD_DIR='target'
+[[ -z $LANGUAGES_TO_GENERATE ]]   && LANGUAGES_TO_GENERATE=(java)
+[[ -z $FINAL_DIR ]]               && FINAL_DIR='src/main'
 # ========================================================================================================================
 
 fail() {
-  echo $@
+  echo "$@"
   exit 1
 }
 
 # Test to see if we have thrift installed
-VERSION=$(thrift -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l)
-if [ "$VERSION" -ne 1 ] ; then 
+VERSION=$(thrift -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l | sed -e 's/^ *//' -e 's/ *$//')
+if [[ "${VERSION}" != '1' ]] ; then
   # Nope: bail
   echo "****************************************************"
   echo "*** thrift is not available"
@@ -65,15 +65,17 @@ THRIFT_ARGS="${THRIFT_ARGS} -o $BUILD_DIR"
 mkdir -p $BUILD_DIR
 rm -rf $BUILD_DIR/gen-java
 for f in src/main/thrift/*.thrift; do
-  thrift ${THRIFT_ARGS} --gen java $f || fail unable to generate java thrift classes
-  thrift ${THRIFT_ARGS} --gen py $f || fail unable to generate python thrift classes
-  thrift ${THRIFT_ARGS} --gen rb $f || fail unable to generate ruby thrift classes
-  thrift ${THRIFT_ARGS} --gen cpp $f || fail unable to generate cpp thrift classes
+  thrift ${THRIFT_ARGS} --gen java "$f" || fail unable to generate java thrift classes
+  thrift ${THRIFT_ARGS} --gen py "$f" || fail unable to generate python thrift classes
+  thrift ${THRIFT_ARGS} --gen rb "$f" || fail unable to generate ruby thrift classes
+  thrift ${THRIFT_ARGS} --gen cpp "$f" || fail unable to generate cpp thrift classes
 done
 
 # For all generated thrift code, suppress all warnings and add the LICENSE header
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public enum /@SuppressWarnings("all") public enum /'
+cs='@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"})'
+es='@SuppressWarnings({"unused"})'
+find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public class [A-Z]\)/'"$cs"' \1/'
+find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public enum [A-Z]\)/'"$es"' \1/'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   case $lang in
@@ -109,10 +111,10 @@ for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
       continue
       ;;
   esac
-  
-  for file in ${FILE_SUFFIX[@]}; do
+
+  for file in "${FILE_SUFFIX[@]}"; do
     for f in $(find $BUILD_DIR/gen-$lang -name "*$file"); do
-      cat - $f >${f}-with-license <<EOF
+      cat - "$f" > "${f}-with-license" <<EOF
 ${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one or more
 ${LINE_NOTATION} contributor license agreements.  See the NOTICE file distributed with
 ${LINE_NOTATION} this work for additional information regarding copyright ownership.
@@ -135,7 +137,7 @@ done
 # For every generated java file, compare it with the version-controlled one, and copy the ones that have changed into place
 for d in "${PACKAGES_TO_GENERATE[@]}"; do
   for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
-    case $lang in
+    case "$lang" in
       cpp)
         SDIR="${BUILD_DIR}/gen-$lang/"
         DDIR="${FINAL_DIR}/cpp/"
@@ -161,11 +163,11 @@ for d in "${PACKAGES_TO_GENERATE[@]}"; do
         ;;
     esac
     mkdir -p "$DDIR"
-    for file in ${FILE_SUFFIX[@]}; do
-      for f in `find $SDIR -name *$file`; do
-        DEST="$DDIR/`basename $f`"
+    for file in "${FILE_SUFFIX[@]}"; do
+      for f in $(find $SDIR -name *$file); do
+        DEST="$DDIR/$(basename $f)"
         if ! cmp -s "${f}-with-license" "${DEST}" ; then
-          echo cp -f "${f}-with-license" "${DEST}" 
+          echo cp -f "${f}-with-license" "${DEST}"
           cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
         fi
       done

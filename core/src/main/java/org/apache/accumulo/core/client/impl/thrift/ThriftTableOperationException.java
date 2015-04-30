@@ -48,7 +48,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ThriftTableOperationException extends TException implements org.apache.thrift.TBase<ThriftTableOperationException, ThriftTableOperationException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftTableOperationException> {
+@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"}) public class ThriftTableOperationException extends TException implements org.apache.thrift.TBase<ThriftTableOperationException, ThriftTableOperationException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftTableOperationException> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftTableOperationException");
 
   private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)1);
@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
   public String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TABLE_ID((short)1, "tableId"),
     TABLE_NAME((short)2, "tableName"),
     /**
