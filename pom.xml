@@ -119,6 +119,8 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
+    <findbugs.version>3.0.0</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <!-- overwritten in hadoop profiles -->
@@ -522,7 +524,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>${findbugs.version}</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -1186,7 +1188,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>${findbugs.version}</version>
         <configuration>
           <excludeFilterFile>contrib/findbugs-exclude.xml</excludeFilterFile>
           <findbugsXmlOutput>true</findbugsXmlOutput>
