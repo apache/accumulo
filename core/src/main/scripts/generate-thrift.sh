@@ -42,7 +42,7 @@ fail() {
 
 # Test to see if we have thrift installed
 VERSION=$(thrift -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l | sed -e 's/^ *//' -e 's/ *$//')
-if [[ "${VERSION}" != '1' ]] ; then 
+if [[ "${VERSION}" != '1' ]] ; then
   # Nope: bail
   echo "****************************************************"
   echo "*** thrift is not available"
@@ -111,7 +111,7 @@ for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
       continue
       ;;
   esac
-  
+
   for file in "${FILE_SUFFIX[@]}"; do
     for f in $(find $BUILD_DIR/gen-$lang -name "*$file"); do
       cat - "$f" > "${f}-with-license" <<EOF
@@ -167,7 +167,7 @@ for d in "${PACKAGES_TO_GENERATE[@]}"; do
       for f in $(find $SDIR -name *$file); do
         DEST="$DDIR/$(basename $f)"
         if ! cmp -s "${f}-with-license" "${DEST}" ; then
-          echo cp -f "${f}-with-license" "${DEST}" 
+          echo cp -f "${f}-with-license" "${DEST}"
           cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
         fi
       done
