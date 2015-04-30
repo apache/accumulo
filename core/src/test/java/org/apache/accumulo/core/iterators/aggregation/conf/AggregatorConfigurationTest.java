@@ -18,7 +18,6 @@ package org.apache.accumulo.core.iterators.aggregation.conf;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -46,18 +45,22 @@ public class AggregatorConfigurationTest extends TestCase {
 
   private void runTest(Text colf) {
     String encodedCols;
-    PerColumnIteratorConfig ac3 = new PerColumnIteratorConfig(colf, "com.foo.SuperAgg");
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac3 = new org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig(colf,
+        "com.foo.SuperAgg");
     encodedCols = ac3.encodeColumns();
-    PerColumnIteratorConfig ac4 = PerColumnIteratorConfig.decodeColumns(encodedCols, "com.foo.SuperAgg");
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac4 = org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig.decodeColumns(
+        encodedCols, "com.foo.SuperAgg");
 
     assertEquals(colf, ac4.getColumnFamily());
     assertNull(ac4.getColumnQualifier());
   }
 
   private void runTest(Text colf, Text colq) {
-    PerColumnIteratorConfig ac = new PerColumnIteratorConfig(colf, colq, "com.foo.SuperAgg");
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac = new org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig(colf, colq,
+        "com.foo.SuperAgg");
     String encodedCols = ac.encodeColumns();
-    PerColumnIteratorConfig ac2 = PerColumnIteratorConfig.decodeColumns(encodedCols, "com.foo.SuperAgg");
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac2 = org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig.decodeColumns(
+        encodedCols, "com.foo.SuperAgg");
 
     assertEquals(colf, ac2.getColumnFamily());
     assertEquals(colq, ac2.getColumnQualifier());

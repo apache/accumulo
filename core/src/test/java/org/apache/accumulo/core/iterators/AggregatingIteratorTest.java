@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 
@@ -43,20 +42,23 @@ public class AggregatingIteratorTest extends TestCase {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
 
-  public static class SummationAggregator implements Aggregator {
+  public static class SummationAggregator implements org.apache.accumulo.core.iterators.aggregation.Aggregator {
 
     int sum;
 
+    @Override
     public Value aggregate() {
       return new Value((sum + "").getBytes());
     }
 
+    @Override
     public void collect(Value value) {
       int val = Integer.parseInt(value.toString());
 
       sum += val;
     }
 
+    @Override
     public void reset() {
       sum = 0;
 

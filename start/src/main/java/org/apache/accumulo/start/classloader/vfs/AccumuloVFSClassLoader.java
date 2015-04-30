@@ -62,6 +62,7 @@ public class AccumuloVFSClassLoader {
 
   public static class AccumuloVFSClassLoaderShutdownThread implements Runnable {
 
+    @Override
     public void run() {
       try {
         AccumuloVFSClassLoader.close();
@@ -100,7 +101,7 @@ public class AccumuloVFSClassLoader {
 
   public synchronized static <U> Class<? extends U> loadClass(String classname, Class<U> extension) throws ClassNotFoundException {
     try {
-      return (Class<? extends U>) getClassLoader().loadClass(classname).asSubclass(extension);
+      return getClassLoader().loadClass(classname).asSubclass(extension);
     } catch (IOException e) {
       throw new ClassNotFoundException("IO Error loading class " + classname, e);
     }
@@ -326,10 +327,9 @@ public class AccumuloVFSClassLoader {
 
         if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
-          URLClassLoader ucl = (URLClassLoader) classLoader;
           out.print("Level " + classLoaderDescription + " URL classpath items are:");
 
-          for (URL u : ucl.getURLs()) {
+          for (URL u : ((URLClassLoader) classLoader).getURLs()) {
             out.print("\t" + u.toExternalForm());
           }
 

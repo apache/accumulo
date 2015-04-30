@@ -230,17 +230,17 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
 
   static final boolean X = true;
-  static final boolean _ = false;
+  static final boolean O = false;
   // @formatter:off
   static final boolean transitionOK[][] = {
       //                              INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */                   {X,     X,        _,        _,      _,         _,          X},
-      /* HAVE_LOCK */                 {_,     X,        X,        X,      _,         _,          X},
-      /* SAFE_MODE */                 {_,     _,        X,        X,      X,         _,          X},
-      /* NORMAL */                    {_,     _,        X,        X,      X,         _,          X},
-      /* UNLOAD_METADATA_TABLETS */   {_,     _,        X,        X,      X,         X,          X},
-      /* UNLOAD_ROOT_TABLET */        {_,     _,        _,        X,      _,         X,          X},
-      /* STOP */                      {_,     _,        _,        _,      _,         _,          X}};
+      /* INITIAL */                   {X,     X,        O,        O,      O,         O,          X},
+      /* HAVE_LOCK */                 {O,     X,        X,        X,      O,         O,          X},
+      /* SAFE_MODE */                 {O,     O,        X,        X,      X,         O,          X},
+      /* NORMAL */                    {O,     O,        X,        X,      X,         O,          X},
+      /* UNLOAD_METADATA_TABLETS */   {O,     O,        X,        X,      X,         X,          X},
+      /* UNLOAD_ROOT_TABLET */        {O,     O,        O,        X,      O,         X,          X},
+      /* STOP */                      {O,     O,        O,        O,      O,         O,          X}};
   //@formatter:on
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))

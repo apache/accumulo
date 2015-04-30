@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
@@ -42,7 +41,7 @@ import org.apache.log4j.Logger;
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
   private SortedKeyValueIterator<Key,Value> iterator;
-  private ColumnToClassMapping<Aggregator> aggregators;
+  private ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> aggregators;
 
   private Key workKey = new Key();
 
@@ -51,6 +50,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   // private boolean propogateDeletes;
   private static final Logger log = Logger.getLogger(AggregatingIterator.class);
 
+  @Override
   public AggregatingIterator deepCopy(IteratorEnvironment env) {
     return new AggregatingIterator(this, env);
   }
@@ -62,7 +62,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
 
   public AggregatingIterator() {}
 
-  private void aggregateRowColumn(Aggregator aggr) throws IOException {
+  private void aggregateRowColumn(org.apache.accumulo.core.iterators.aggregation.Aggregator aggr) throws IOException {
     // this function assumes that first value is not delete
 
     if (iterator.getTopKey().isDeleted())
@@ -90,14 +90,15 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   private void findTop() throws IOException {
     // check if aggregation is needed
     if (iterator.hasTop()) {
-      Aggregator aggr = aggregators.getObject(iterator.getTopKey());
+      org.apache.accumulo.core.iterators.aggregation.Aggregator aggr = aggregators.getObject(iterator.getTopKey());
       if (aggr != null) {
         aggregateRowColumn(aggr);
       }
     }
   }
 
-  public AggregatingIterator(SortedKeyValueIterator<Key,Value> iterator, ColumnToClassMapping<Aggregator> aggregators) throws IOException {
+  public AggregatingIterator(SortedKeyValueIterator<Key,Value> iterator,
+      ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> aggregators) throws IOException {
     this.iterator = iterator;
     this.aggregators = aggregators;
   }
@@ -167,7 +168,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     this.iterator = source;
 
     try {
-      this.aggregators = new ColumnToClassMapping<Aggregator>(options, Aggregator.class);
+      this.aggregators = new ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator>(options,
+          org.apache.accumulo.core.iterators.aggregation.Aggregator.class);
     } catch (ClassNotFoundException e) {
       log.error(e.toString());
       throw new IllegalArgumentException(e);
@@ -192,9 +194,9 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
       String classname = entry.getValue();
       if (classname == null)
         throw new IllegalArgumentException("classname null");
-      Class<? extends Aggregator> clazz;
+      Class<? extends org.apache.accumulo.core.iterators.aggregation.Aggregator> clazz;
       try {
-        clazz = AccumuloVFSClassLoader.loadClass(classname, Aggregator.class);
+        clazz = AccumuloVFSClassLoader.loadClass(classname, org.apache.accumulo.core.iterators.aggregation.Aggregator.class);
         clazz.newInstance();
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("class not found: " + classname);
