@@ -238,6 +238,23 @@ to load Hadoop from multiple potential locations depending on how Hadoop was ins
 recommended that `general.classpaths` is defined and limited to only the necessary jars to prevent
 extra jars from being unintentionally loaded into Accumulo processes.
 
+==== Hostnames in configuration files
+
+Accumulo has a number of configuration files which can contain references to other hosts in your
+network. All of the "host" configuration files for Accumulo (+gc+, +masters+, +slaves+, +monitor+,
++tracers+) as well as +instance.volumes+ in accumulo-site.xml must contain some host reference.
+
+While IP address, short hostnames, or fully qualified domain names (FQDN) are all technically valid, it
+is good practice to always use FQDNs for both Accumulo and other processes in your Hadoop cluster.
+Failing to consistently use FQDNs can have unexpected consequences in how Accumulo uses the FileSystem.
+
+A common way for this problem can be observed is via applications that use Bulk Ingest. The Accumulo
+Master coordinates moving the input files to Bulk Ingest to an Accumulo-managed directory. However,
+Accumulo cannot safely move files across different Hadoop FileSystems. This is problematic because
+Accumulo also cannot make reliable assertions across what is the same FileSystem which is specified
+with different names. Naively, while 127.0.0.1:8020 might be a valid identifier for an HDFS instance,
+Accumulo identifies +localhost:8020+ as a different HDFS instance than +127.0.0.1:8020+.
+
 ==== Deploy Configuration
 
 Copy the masters, slaves, accumulo-env.sh, and if necessary, accumulo-site.xml
@@ -295,6 +312,13 @@ Accumulo has the ability for users to add custom tags to tables.  This allows
 applications to set application-level metadata about a table.  These tags can be
 anything from a table description, administrator notes, date created, etc.
 This is done by naming and setting a property with a prefix +table.custom.*+.
+
+Currently, table properties are stored in ZooKeeper. This means that the number
+and size of custom properties should be restricted on the order of 10's of properties
+at most without any properties exceeding 1MB in size. ZooKeeper's performance can be
+very sensitive to an excessive number of nodes and the sizes of the nodes. Applications
+which leverage the user of custom properties should take these warnings into
+consideration. There is no enforcement of these warnings via the API.
 
 === Initialization
 

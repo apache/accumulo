@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>16</version>
+    <version>17</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -119,6 +119,8 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
+    <findbugs.version>3.0.0</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <!-- overwritten in hadoop profiles -->
@@ -522,7 +524,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>${findbugs.version}</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -946,6 +948,7 @@
                 <property name="eachLine" value="true" />
               </module>
               <module name="TreeWalker">
+                <module name="OneTopLevelClass" />
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="\s+$" />
                   <property name="message" value="Line has trailing whitespace." />
@@ -1093,20 +1096,6 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <dependencies>
-          <!-- workaround for RAT-158 -->
-          <dependency>
-            <groupId>org.apache.maven.doxia</groupId>
-            <artifactId>doxia-core</artifactId>
-            <version>1.6</version>
-            <exclusions>
-              <exclusion>
-                <groupId>xerces</groupId>
-                <artifactId>xercesImpl</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-        </dependencies>
         <executions>
           <execution>
             <id>check-licenses</id>
@@ -1199,7 +1188,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>${findbugs.version}</version>
         <configuration>
           <excludeFilterFile>contrib/findbugs-exclude.xml</excludeFilterFile>
           <findbugsXmlOutput>true</findbugsXmlOutput>

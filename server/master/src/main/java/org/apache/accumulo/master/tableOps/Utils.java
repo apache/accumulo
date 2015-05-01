@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
+  private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   static void checkTableDoesNotExist(Instance instance, String tableName, String tableId, TableOperation operation) throws ThriftTableOperationException {
 
@@ -69,14 +70,13 @@ public class Utils {
       });
       return new String(nid, UTF_8);
     } catch (Exception e1) {
-      LoggerFactory.getLogger(CreateTable.class).error("Failed to assign tableId to " + tableName, e1);
+      log.error("Failed to assign tableId to " + tableName, e1);
       throw new ThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
 
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
-  private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   public static long reserveTable(String tableId, long tid, boolean writeLock, boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(tableId, tid, writeLock).tryLock()) {

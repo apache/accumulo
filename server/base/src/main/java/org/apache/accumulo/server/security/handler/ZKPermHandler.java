@@ -46,11 +46,8 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class ZKPermHandler implements PermissionHandler {
-  private static final Logger log = LoggerFactory.getLogger(ZKAuthorizor.class);
+  private static final Logger log = LoggerFactory.getLogger(ZKPermHandler.class);
   private static PermissionHandler zkPermHandlerInstance = null;
 
   private String ZKUserPath;

@@ -29,53 +29,11 @@ import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.hadoop.io.Text;
-
-/**
- * Merge makes things hard.
- *
- * Typically, a client will read the list of tablets, and begin an operation on that tablet at the location listed in the metadata table. When a tablet splits,
- * the information read from the metadata table doesn't match reality, so the operation fails, and must be retried. But the operation will take place either on
- * the parent, or at a later time on the children. It won't take place on just half of the tablet.
- *
- * However, when a merge occurs, the operation may have succeeded on one section of the merged area, and not on the others, when the merge occurs. There is no
- * way to retry the request at a later time on an unmodified tablet.
- *
- * The code below uses read-write lock to prevent some operations while a merge is taking place. Normal operations, like bulk imports, will grab the read lock
- * and prevent merges (writes) while they run. Merge operations will lock out some operations while they run.
- */
-class TableRangeOpWait extends MasterRepo {
-
-  private static final long serialVersionUID = 1L;
-  private String tableId;
-
-  public TableRangeOpWait(String tableId) {
-    this.tableId = tableId;
-  }
-
-  @Override
-  public long isReady(long tid, Master env) throws Exception {
-    Text tableIdText = new Text(tableId);
-    if (!env.getMergeInfo(tableIdText).getState().equals(MergeState.NONE)) {
-      return 50;
-    }
-    return 0;
-  }
-
-  @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
-    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
-    Text tableIdText = new Text(tableId);
-    MergeInfo mergeInfo = master.getMergeInfo(tableIdText);
-    log.info("removing merge information " + mergeInfo);
-    master.clearMergeState(tableIdText);
-    Utils.unreserveNamespace(namespaceId, tid, false);
-    Utils.unreserveTable(tableId, tid, true);
-    return null;
-  }
-
-}
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableRangeOp extends MasterRepo {
+  private static final Logger log = LoggerFactory.getLogger(TableRangeOp.class);
 
   private static final long serialVersionUID = 1L;
 

@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * addition of the {@link #getPort()} method to retrieve the port used by the ServerSocket.
  */
 public class TNonblockingServerSocket extends TNonblockingServerTransport {
-  private static final Logger log = LoggerFactory.getLogger(TNonblockingServerTransport.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(TNonblockingServerSocket.class);
 
   /**
    * This channel is where all the nonblocking magic happens.

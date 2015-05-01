@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.examples.simple.client.RandomBatchWriter.abs;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -43,46 +41,10 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
- * Internal class used to verify validity of data read.
- */
-class CountingVerifyingReceiver {
-  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
-
-  long count = 0;
-  int expectedValueSize = 0;
-  HashMap<Text,Boolean> expectedRows;
-
-  CountingVerifyingReceiver(HashMap<Text,Boolean> expectedRows, int expectedValueSize) {
-    this.expectedRows = expectedRows;
-    this.expectedValueSize = expectedValueSize;
-  }
-
-  public void receive(Key key, Value value) {
-
-    String row = key.getRow().toString();
-    long rowid = Integer.parseInt(row.split("_")[1]);
-
-    byte expectedValue[] = RandomBatchWriter.createValue(rowid, expectedValueSize);
-
-    if (!Arrays.equals(expectedValue, value.get())) {
-      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue, UTF_8) + " got : " + new String(value.get(), UTF_8));
-    }
-
-    if (!expectedRows.containsKey(key.getRow())) {
-      log.error("Got unexpected key " + key);
-    } else {
-      expectedRows.put(key.getRow(), true);
-    }
-
-    count++;
-  }
-}
-
-/**
  * Simple example for reading random batches of data from Accumulo. See docs/examples/README.batch for instructions.
  */
 public class RandomBatchScanner {
-  private static final Logger log = LoggerFactory.getLogger(CountingVerifyingReceiver.class);
+  private static final Logger log = LoggerFactory.getLogger(RandomBatchScanner.class);
 
   /**
    * Generate a number of ranges, each covering a single random row.

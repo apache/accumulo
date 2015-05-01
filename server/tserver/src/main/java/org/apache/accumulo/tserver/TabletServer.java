@@ -1716,6 +1716,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     @Override
     public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
       String log = logger.getLogFile();
+      // Might be null if there no active logger
+      if (null == log) {
+        return Collections.emptyList();
+      }
       return Collections.singletonList(log);
     }
 

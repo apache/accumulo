@@ -18,7 +18,6 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +75,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   }
 
   @Override
-  synchronized protected String getSpanKey(Map<ByteBuffer,ByteBuffer> data) {
+  synchronized protected String getSpanKey(Map<String,String> data) {
     if (hosts.size() > 0) {
       String host = hosts.get(random.nextInt(hosts.size()));
       return host;
