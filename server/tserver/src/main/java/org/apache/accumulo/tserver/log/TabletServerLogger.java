@@ -180,9 +180,17 @@ public class TabletServerLogger {
     return result.get();
   }
 
+  /**
+   * Get the current WAL file
+   *
+   * @return The name of the current log, or null if there is no current log.
+   */
   public String getLogFile() {
     logIdLock.readLock().lock();
     try {
+      if (null == currentLog) {
+        return null;
+      }
       return currentLog.getFileName();
     } finally {
       logIdLock.readLock().unlock();
