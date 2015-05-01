@@ -296,6 +296,13 @@ applications to set application-level metadata about a table.  These tags can be
 anything from a table description, administrator notes, date created, etc.
 This is done by naming and setting a property with a prefix +table.custom.*+.
 
+Currently, table properties are stored in ZooKeeper. This means that the number
+and size of custom properties should be restricted on the order of 10's of properties
+at most without any properties exceeding 1MB in size. ZooKeeper's performance can be
+very sensitive to an excessive number of nodes and the sizes of the nodes. Applications
+which leverage the user of custom properties should take these warnings into
+consideration. There is no enforcement of these warnings via the API.
+
 === Initialization
 
 Accumulo must be initialized to create the structures it uses internally to locate

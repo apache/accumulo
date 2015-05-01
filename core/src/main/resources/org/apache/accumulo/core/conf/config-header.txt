@@ -52,6 +52,15 @@ All properties have a default value in the source code.  This value has the lowe
 
 While the default value is usually optimal, there are cases where a change can increase query and ingest performance.
 
+==== ZooKeeper Property Considerations
+
+Any properties that are stored in ZooKeeper should consider the limitations of ZooKeeper itself with respect to the
+number of nodes and the size of the node data. Custom table properties and options for Iterators configured on tables
+are two areas in which there aren't any failsafes built into the API that can prevent the user from making this mistake.
+
+While these properties have the ability to add some much needed dynamic configuration tools, use cases which might fall
+into these warnings should be reconsidered.
+
 === Configuration in the Shell
 
 The `config` command in the shell allows you to view the current system configuration.  You can also use the `-t` option to view a table's configuration as below:
