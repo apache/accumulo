@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -67,6 +66,8 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import com.google.common.collect.Multimap;
 
 public class SplitRecoveryIT extends ConfigurableMacIT {
 
@@ -177,11 +178,12 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
     writer.update(m);
 
     if (steps >= 1) {
-      Map<FileRef,Long> bulkFiles = MetadataTableUtil.getBulkFilesLoaded(context, extent);
+      Multimap<Long,FileRef> bulkFiles = MetadataTableUtil.getBulkFilesLoaded(context, extent);
       MasterMetadataUtil.addNewTablet(context, low, "/lowDir", instance, lowDatafileSizes, bulkFiles, TabletTime.LOGICAL_TIME_ID + "0", -1l, -1l, zl);
     }
-    if (steps >= 2)
+    if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
+    }
 
     TabletServer.verifyTabletInformation(context, high, instance, null, "127.0.0.1:0", zl);
 
@@ -189,8 +191,8 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<FileRef,Long> lowBulkFiles = MetadataTableUtil.getBulkFilesLoaded(context, low);
-      Map<FileRef,Long> highBulkFiles = MetadataTableUtil.getBulkFilesLoaded(context, high);
+      Multimap<Long,FileRef> lowBulkFiles = MetadataTableUtil.getBulkFilesLoaded(context, low);
+      Multimap<Long,FileRef> highBulkFiles = MetadataTableUtil.getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);

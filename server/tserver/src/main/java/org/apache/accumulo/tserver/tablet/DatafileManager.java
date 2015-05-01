@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -29,7 +28,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -207,7 +205,6 @@ class DatafileManager {
 
   public void importMapFiles(long tid, Map<FileRef,DataFileValue> pathsString, boolean setTime) throws IOException {
 
-    final KeyExtent extent = tablet.getExtent();
     String bulkDir = null;
 
     Map<FileRef,DataFileValue> paths = new HashMap<FileRef,DataFileValue>();
@@ -235,23 +232,11 @@ class DatafileManager {
 
     }
 
-    if (tablet.getExtent().isRootTablet()) {
-      throw new IllegalArgumentException("Can not import files to root tablet");
+    if (tablet.getExtent().isMeta()) {
+      throw new IllegalArgumentException("Can not import files to a metadata tablet");
     }
 
     synchronized (bulkFileImportLock) {
-      Connector conn;
-      try {
-        conn = tablet.getTabletServer().getConnector();
-      } catch (Exception ex) {
-        throw new IOException(ex);
-      }
-      // Remove any bulk files we've previously loaded and compacted away
-      List<FileRef> files = MetadataTableUtil.getBulkFilesLoaded(conn, extent, tid);
-
-      for (FileRef file : files)
-        if (paths.keySet().remove(file))
-          log.debug("Ignoring request to re-import a file already imported: " + extent + ": " + file);
 
       if (paths.size() > 0) {
         long bulkTime = Long.MIN_VALUE;

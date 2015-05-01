@@ -98,6 +98,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * provides a reference to the metadata table for updates by tablet servers
@@ -924,9 +926,9 @@ public class MetadataTableUtil {
     }
   }
 
-  public static Map<FileRef,Long> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
+  public static Multimap<Long, FileRef> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
     Text metadataRow = extent.getMetadataEntry();
-    Map<FileRef,Long> ret = new HashMap<FileRef,Long>();
+    Multimap<Long, FileRef> ret = HashMultimap.create();
 
     VolumeManager fs = VolumeManagerImpl.get();
     Scanner scanner = new ScannerImpl(context, extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY);
@@ -934,7 +936,7 @@ public class MetadataTableUtil {
     scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
     for (Entry<Key,Value> entry : scanner) {
       Long tid = Long.parseLong(entry.getValue().toString());
-      ret.put(new FileRef(fs, entry.getKey()), tid);
+      ret.put(tid, new FileRef(fs, entry.getKey()));
     }
     return ret;
   }

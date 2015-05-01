@@ -17,6 +17,8 @@
 package org.apache.accumulo.tserver.tablet;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -37,7 +39,9 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -75,6 +79,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -149,6 +155,10 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  *
@@ -243,6 +253,9 @@ public class Tablet implements TabletCommitter {
 
   private final ConfigurationObserver configObserver;
 
+  private final Cache<Long, List<FileRef> > bulkImported = CacheBuilder.newBuilder().expireAfterAccess(4, TimeUnit.HOURS).build();
+
+
   private final int logId;
 
   @Override
@@ -306,13 +319,13 @@ public class Tablet implements TabletCommitter {
 
   public Tablet(TabletServer tabletServer, KeyExtent extent, TabletResourceManager trm, SplitInfo info) throws IOException {
     this(tabletServer, new Text(info.getDir()), extent, trm, info.getDatafiles(), info.getTime(), info.getInitFlushID(), info.getInitCompactID(), info
-        .getLastLocation());
+        .getLastLocation(), info.getBulkImported());
     splitCreationTime = System.currentTimeMillis();
   }
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<FileRef,DataFileValue> datafiles,
-      String time, long initFlushID, long initCompactID, TServerInstance lastLocation) throws IOException {
-    this(tabletServer, extent, location, trm, NO_LOG_ENTRIES, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID, initCompactID);
+      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Multimap<Long, FileRef> bulkImported) throws IOException {
+    this(tabletServer, extent, location, trm, NO_LOG_ENTRIES, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID, initCompactID, bulkImported);
   }
 
   private static String lookupTime(AccumuloConfiguration conf, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -338,7 +351,7 @@ public class Tablet implements TabletCommitter {
   private static SortedMap<FileRef,DataFileValue> lookupDatafiles(AccumuloServerContext context, VolumeManager fs, KeyExtent extent,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
 
-    TreeMap<FileRef,DataFileValue> datafiles = new TreeMap<FileRef,DataFileValue>();
+    TreeMap<FileRef,DataFileValue> result = new TreeMap<FileRef,DataFileValue>();
 
     if (extent.isRootTablet()) { // the meta0 tablet
       Path location = new Path(MetadataTableUtil.getRootTabletDir());
@@ -351,114 +364,128 @@ public class Tablet implements TabletCommitter {
         String filename = path.getName();
         FileRef ref = new FileRef(location.toString() + "/" + filename, path);
         DataFileValue dfv = new DataFileValue(0, 0);
-        datafiles.put(ref, dfv);
+        result.put(ref, dfv);
       }
     } else {
       final Text buffer = new Text();
-      final Text row = extent.getMetadataEntry();
 
       for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
         Key k = entry.getKey();
-        k.getRow(buffer);
-        // Double-check that we have the expected row
-        if (row.equals(buffer)) {
-          k.getColumnFamily(buffer);
-          // Ignore anything but file:
-          if (TabletsSection.DataFileColumnFamily.NAME.equals(buffer)) {
-            FileRef ref = new FileRef(fs, k);
-            datafiles.put(ref, new DataFileValue(entry.getValue().get()));
-          }
+        k.getColumnFamily(buffer);
+        // Ignore anything but file:
+        if (TabletsSection.DataFileColumnFamily.NAME.equals(buffer)) {
+          FileRef ref = new FileRef(fs, k);
+          result.put(ref, new DataFileValue(entry.getValue().get()));
         }
       }
     }
-    return datafiles;
+    return result;
   }
 
-  private static List<LogEntry> lookupLogEntries(AccumuloServerContext context, KeyExtent ke, SortedMap<Key,Value> tabletsKeyValues) {
-    List<LogEntry> logEntries = new ArrayList<LogEntry>();
+  private static List<LogEntry> lookupLogEntries(SortedMap<Key,Value> tabletsKeyValues, AccumuloServerContext context, KeyExtent ke) {
+    List<LogEntry> result = new ArrayList<LogEntry>();
 
-    if (ke.isMeta()) {
+    if (ke.isRootTablet()) {
       try {
-        logEntries = MetadataTableUtil.getLogEntries(context, ke);
+        result = MetadataTableUtil.getLogEntries(context, ke);
       } catch (Exception ex) {
         throw new RuntimeException("Unable to read tablet log entries", ex);
       }
     } else {
       log.debug("Looking at metadata " + tabletsKeyValues);
-      Text row = ke.getMetadataEntry();
       for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
         Key key = entry.getKey();
-        if (key.getRow().equals(row)) {
-          if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
-            logEntries.add(LogEntry.fromKeyValue(key, entry.getValue()));
-          }
+        if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
+          result.add(LogEntry.fromKeyValue(key, entry.getValue()));
         }
       }
     }
 
-    log.debug("got " + logEntries + " for logs for " + ke);
-    return logEntries;
+    log.debug("got " + result + " for logs for " + ke);
+    return result;
   }
 
-  private static Set<FileRef> lookupScanFiles(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) throws IOException {
-    HashSet<FileRef> scanFiles = new HashSet<FileRef>();
+  private static Set<FileRef> lookupScanFiles(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) throws IOException {
+    HashSet<FileRef> result = new HashSet<FileRef>();
 
-    Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && key.getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
-        scanFiles.add(new FileRef(fs, key));
+      if (key.getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
+        result.add(new FileRef(fs, key));
       }
     }
 
-    return scanFiles;
+    return result;
   }
 
-  private static long lookupFlushID(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
-    Text row = extent.getMetadataEntry();
+  private static long lookupFlushID(SortedMap<Key,Value> tabletsKeyValues) {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && TabletsSection.ServerColumnFamily.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+      if (FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
         return Long.parseLong(entry.getValue().toString());
     }
 
     return -1;
   }
 
-  private static long lookupCompactID(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
-    Text row = extent.getMetadataEntry();
+  private static long lookupCompactID(SortedMap<Key,Value> tabletsKeyValues) {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && TabletsSection.ServerColumnFamily.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+      if (COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
         return Long.parseLong(entry.getValue().toString());
     }
 
     return -1;
   }
 
-  private static TServerInstance lookupLastServer(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
+  private static TServerInstance lookupLastServer(SortedMap<Key,Value> tabletsKeyValues) {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-      if (entry.getKey().getColumnFamily().compareTo(TabletsSection.LastLocationColumnFamily.NAME) == 0) {
+      if (entry.getKey().getColumnFamily().compareTo(LastLocationColumnFamily.NAME) == 0) {
         return new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
       }
     }
     return null;
   }
 
+  private static Multimap<Long, FileRef> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
+    Multimap<Long, FileRef> result = HashMultimap.create();
+    for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
+      if (entry.getKey().getColumnFamily().compareTo(BulkFileColumnFamily.NAME) == 0) {
+        result.put(Long.decode(entry.getValue().toString()), new FileRef(fs, entry.getKey()));
+      }
+    }
+    return result;
+  }
+
   public Tablet(TabletServer tabletServer, KeyExtent extent, Text location, TabletResourceManager trm, SortedMap<Key,Value> tabletsKeyValues)
       throws IOException {
-    this(tabletServer, extent, location, trm, lookupLogEntries(tabletServer, extent, tabletsKeyValues), lookupDatafiles(tabletServer,
-        tabletServer.getFileSystem(), extent, tabletsKeyValues), lookupTime(tabletServer.getConfiguration(), extent, tabletsKeyValues), lookupLastServer(
-        extent, tabletsKeyValues), lookupScanFiles(extent, tabletsKeyValues, tabletServer.getFileSystem()), lookupFlushID(extent, tabletsKeyValues),
-        lookupCompactID(extent, tabletsKeyValues));
+    this(tabletServer, extent, location, trm,
+        lookupLogEntries(tabletsKeyValues, tabletServer, extent),
+        lookupDatafiles(tabletServer, tabletServer.getFileSystem(), extent, tabletsKeyValues),
+        lookupTime(tabletServer.getConfiguration(), extent, tabletsKeyValues),
+        lookupLastServer(tabletsKeyValues),
+        lookupScanFiles(tabletsKeyValues, tabletServer.getFileSystem()),
+        lookupFlushID(tabletsKeyValues),
+        lookupCompactID(tabletsKeyValues),
+        lookupBulkImported(tabletsKeyValues, tabletServer.getFileSystem()));
   }
 
   /**
    * yet another constructor - this one allows us to avoid costly lookups into the Metadata table if we already know the files we need - as at split time
    */
-  private Tablet(final TabletServer tabletServer, final KeyExtent extent, final Text location, final TabletResourceManager trm,
-      final List<LogEntry> rawLogEntries, final SortedMap<FileRef,DataFileValue> rawDatafiles, String time, final TServerInstance lastLocation,
-      Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
+  private Tablet(
+      final TabletServer tabletServer,
+      final KeyExtent extent,
+      final Text location,
+      final TabletResourceManager trm,
+      final List<LogEntry> rawLogEntries,
+      final SortedMap<FileRef,DataFileValue> rawDatafiles,
+      String time,
+      final TServerInstance lastLocation,
+      final Set<FileRef> scanFiles,
+      final long initFlushID,
+      final long initCompactID,
+      final Multimap<Long, FileRef> bulkImported) throws IOException {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
@@ -574,14 +601,16 @@ public class Tablet implements TabletCommitter {
 
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
+    for (Long key : bulkImported.keys()) {
+      this.bulkImported.put(key, new ArrayList<FileRef>(bulkImported.get(key)));
+    }
 
     if (!logEntries.isEmpty()) {
       log.info("Starting Write-Ahead Log recovery for " + this.extent);
-      // count[0] = entries used on tablet
-      // count[1] = track max time from walog entries wihtout timestamps
-      final long[] count = new long[2];
+      final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
+      // track max time from walog entries without timestamps
+      final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
       final CommitSession commitSession = getTabletMemory().getCommitSession();
-      count[1] = Long.MIN_VALUE;
       try {
         Set<String> absPaths = new HashSet<String>();
         for (FileRef ref : datafiles.keySet())
@@ -596,20 +625,20 @@ public class Tablet implements TabletCommitter {
               if (!columnUpdate.hasTimestamp()) {
                 // if it is not a user set timestamp, it must have been set
                 // by the system
-                count[1] = Math.max(count[1], columnUpdate.getTimestamp());
+                maxTime.set(Math.max(maxTime.get(), columnUpdate.getTimestamp()));
               }
             }
             getTabletMemory().mutate(commitSession, Collections.singletonList(m));
-            count[0]++;
+            entriesUsedOnTablet.incrementAndGet();
           }
         });
 
-        if (count[1] != Long.MIN_VALUE) {
-          tabletTime.useMaxTimeFromWALog(count[1]);
+        if (maxTime.get() != Long.MIN_VALUE) {
+          tabletTime.useMaxTimeFromWALog(maxTime.get());
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
-        if (count[0] == 0) {
+        if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for " + extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer(), extent, logEntries, tabletServer.getLock());
 
@@ -646,7 +675,7 @@ public class Tablet implements TabletCommitter {
         currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.filename, logEntry.getColumnQualifier().toString()));
       }
 
-      log.info("Write-Ahead Log recovery complete for " + this.extent + " (" + count[0] + " mutations applied, " + getTabletMemory().getNumEntries()
+      log.info("Write-Ahead Log recovery complete for " + this.extent + " (" + entriesUsedOnTablet.get() + " mutations applied, " + getTabletMemory().getNumEntries()
           + " entries created)");
     }
 
@@ -2266,7 +2295,7 @@ public class Tablet implements TabletCommitter {
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
       // finishes.... therefore split could propagate load flags for a finished bulk load... there is a special iterator
       // on the metadata table to clean up this type of garbage
-      Map<FileRef,Long> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(getTabletServer(), extent);
+      Multimap<Long, FileRef> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(getTabletServer(), extent);
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, getTabletServer(), getTabletServer().getLock());
       MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory, getTabletServer().getTabletSession(), lowDatafileSizes, bulkLoadedFiles, time,
@@ -2275,8 +2304,8 @@ public class Tablet implements TabletCommitter {
 
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
 
-      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID, lastLocation));
-      newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID, lastLocation));
+      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, bulkLoadedFiles));
+      newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, bulkLoadedFiles));
 
       long t2 = System.currentTimeMillis();
 
@@ -2349,8 +2378,21 @@ public class Tablet implements TabletCommitter {
         throw new IOException("Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock");
       }
 
-      if (writesInProgress < 0)
+      List<FileRef> alreadyImported = bulkImported.getIfPresent(tid);
+      if (alreadyImported != null) {
+        for (FileRef entry : alreadyImported) {
+          if (fileMap.remove(entry) != null) {
+            log.info("Ignoring import of bulk file already imported: " + entry);
+          }
+        }
+      }
+      if (fileMap.isEmpty()) {
+        return;
+      }
+
+      if (writesInProgress < 0) {
         throw new IllegalStateException("writesInProgress < 0 " + writesInProgress);
+      }
 
       writesInProgress++;
     }
@@ -2372,6 +2414,17 @@ public class Tablet implements TabletCommitter {
         writesInProgress--;
         if (writesInProgress == 0)
           this.notifyAll();
+
+        try {
+          bulkImported.get(tid, new Callable<List<FileRef>>() {
+            @Override
+            public List<FileRef> call() throws Exception {
+              return new ArrayList<FileRef>();
+            }
+          }).addAll(fileMap.keySet());
+        } catch (Exception ex) {
+          log.info(ex.toString(), ex);
+        }
       }
     }
   }
