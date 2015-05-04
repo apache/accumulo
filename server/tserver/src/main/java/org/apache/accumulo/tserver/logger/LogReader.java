@@ -106,7 +106,7 @@ public class LogReader {
         try {
           streams = DfsLogger.readHeaderAndReturnStream(fs, path, SiteConfiguration.getInstance());
         } catch (LogHeaderIncompleteException e) {
-          log.warn("Could not read header for " + path + ". Ignoring...");
+          log.warn("Could not read header for {}. Ignoring...", path);
           continue;
         }
         DataInputStream input = streams.getDecryptingInputStream();

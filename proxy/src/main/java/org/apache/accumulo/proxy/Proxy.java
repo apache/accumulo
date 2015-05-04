@@ -177,7 +177,7 @@ public class Proxy implements KeywordExecutable {
             throw new RuntimeException();
           } finally {
             if (!folder.delete())
-              log.warn("Unexpected error removing " + folder);
+              log.warn("Unexpected error removing {}", folder);
           }
         }
       });
@@ -194,7 +194,7 @@ public class Proxy implements KeywordExecutable {
     while (!server.server.isServing()) {
       Thread.sleep(100);
     }
-    log.info("Proxy server started on " + server.getAddress());
+    log.info("Proxy server started on {}", server.getAddress());
     while (server.server.isServing()) {
       Thread.sleep(1000);
     }
@@ -267,7 +267,7 @@ public class Proxy implements KeywordExecutable {
         }
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-        log.info("Logged in as " + ugi.getUserName());
+        log.info("Logged in as {}", ugi.getUserName());
 
         // The kerberosPrimary set in the SASL server needs to match the principal we're logged in as.
         final String shortName = ugi.getShortUserName();

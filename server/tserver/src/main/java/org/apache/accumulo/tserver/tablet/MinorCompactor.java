@@ -88,7 +88,7 @@ public class MinorCompactor extends Compactor {
     try {
       return Tables.getTableState(tabletServer.getInstance(), extent.getTableId()) == TableState.DELETING;
     } catch (Exception e) {
-      log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
+      log.warn("Failed to determine if table {} was deleting", extent.getTableId(), e);
       return false; // can not get positive confirmation that its deleting.
     }
   }
@@ -96,7 +96,7 @@ public class MinorCompactor extends Compactor {
   @Override
   public CompactionStats call() {
     final String outputFileName = getOutputFile();
-    log.debug("Begin minor compaction " + outputFileName + " " + getExtent());
+    log.debug("Begin minor compaction {} {}", outputFileName, getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;
@@ -119,7 +119,7 @@ public class MinorCompactor extends Compactor {
 
           return ret;
         } catch (IOException e) {
-          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(),outputFileName);
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (RuntimeException e) {
@@ -135,7 +135,7 @@ public class MinorCompactor extends Compactor {
         Random random = new Random();
 
         int sleep = sleepTime + random.nextInt(sleepTime);
-        log.debug("MinC failed sleeping " + sleep + " ms before retrying");
+        log.debug("MinC failed sleeping {}ms before retrying", sleep);
         sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
 

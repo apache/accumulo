@@ -109,7 +109,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       findWalsSpan.stop();
     }
 
-    log.info("Found " + closed.size() + " WALs referenced in metadata in " + sw.toString());
+    log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw.toString());
     sw.reset();
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
@@ -122,7 +122,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       updateReplicationSpan.stop();
     }
 
-    log.info("Closed " + recordsClosed + " WAL replication references in replication table in " + sw.toString());
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw.toString());
   }
 
   /**
@@ -190,7 +190,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
             closeWal(bw, entry.getKey());
             recordsClosed++;
           } catch (MutationsRejectedException e) {
-            log.error("Failed to submit delete mutation for " + entry.getKey());
+            log.error("Failed to submit delete mutation for {}", entry.getKey());
             continue;
           }
         }
@@ -236,7 +236,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         return null;
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host " + e);
+      log.warn("Failed to obtain master host", e);
     }
 
     return null;
@@ -251,7 +251,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       }
       return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, context);
     } catch (Exception e) {
-      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+      log.warn("Issue with masterConnection ({}) {}", address, e, e);
     }
     return null;
   }
@@ -290,10 +290,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
       tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
       return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
     } catch (TTransportException e) {
-      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      log.warn("Failed to fetch active write-ahead logs from {}", server, e);
       return null;
     } catch (TException e) {
-      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      log.warn("Failed to fetch active write-ahead logs from {}", server, e);
       return null;
     } finally {
       ThriftUtil.returnClient(tserverClient);

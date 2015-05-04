@@ -546,7 +546,7 @@ public class TabletServerBatchWriter {
     somethingFailed = true;
     this.serverSideErrors.add(server);
     this.notifyAll();
-    log.error("Server side error on " + server + ": " + e);
+    log.error("Server side error on {}: ", server, e);
   }
 
   private synchronized void updateUnknownErrors(String msg, Throwable t) {
@@ -555,9 +555,9 @@ public class TabletServerBatchWriter {
     this.lastUnknownError = t;
     this.notifyAll();
     if (t instanceof TableDeletedException || t instanceof TableOfflineException || t instanceof TimedOutException)
-      log.debug("{}", msg, t); // this is not unknown
+      log.debug(msg, t); // this is not unknown
     else
-      log.error("{}", msg, t);
+      log.error(msg, t);
   }
 
   private void checkForFailures() throws MutationsRejectedException {
@@ -639,7 +639,7 @@ public class TabletServerBatchWriter {
 
         if (rf != null) {
           if (log.isTraceEnabled())
-            log.trace("tid=" + Thread.currentThread().getId() + "  Requeuing " + rf.size() + " failed mutations");
+            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(), rf.size());
           addFailedMutations(rf);
         }
       } catch (Throwable t) {
@@ -866,8 +866,9 @@ public class TabletServerBatchWriter {
             failures = sendMutationsToTabletServer(location, mutationBatch, timeoutTracker);
             long st2 = System.currentTimeMillis();
             if (log.isTraceEnabled())
-              log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
-                  + String.format("%.2f secs (%,.2f mutations/sec) with %,d failures", (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
+              log.trace("{}",
+                  String.format("sent %,d mutations to %s in %.2f secs (%,.2f mutations/sec) with %,d failures",
+                  count, location, (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
 
             long successBytes = 0;
             for (Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {

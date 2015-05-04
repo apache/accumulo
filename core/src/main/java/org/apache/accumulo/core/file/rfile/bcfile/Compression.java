@@ -27,8 +27,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -38,6 +36,8 @@ import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -48,8 +48,7 @@ import com.google.common.collect.Maps;
  * Compression related stuff.
  */
 public final class Compression {
-  static final Log LOG = LogFactory.getLog(Compression.class);
-
+  private static final Logger log = LoggerFactory.getLogger(Compression.class);
   /**
    * Prevent the instantiation of class.
    */
@@ -133,32 +132,30 @@ public final class Compression {
       private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
 
       @Override
-      public boolean isSupported() {
+      public  boolean isSupported() {
         return codec != null;
       }
 
       @Override
-      public void initializeDefaultCodec() {
-        if (!checked.get()) {
-          checked.set(true);
+      public void initializeDefaultCodec() {if (!checked.get()) {
+          checked .set( true);
           codec = createNewCodec(DEFAULT_BUFFER_SIZE);
         }
       }
 
       @Override
-      CompressionCodec createNewCodec(int bufferSize) {
-        String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
-        String clazz = (extClazz != null) ? extClazz : defaultClazz;
-        try {
-          LOG.info("Trying to load Lzo codec class: " + clazz);
-          Configuration myConf = new Configuration(conf);
+      CompressionCodec createNewCodec(int bufferSize) {String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
+          String clazz = (extClazz != null) ? extClazz : defaultClazz;
+          try {
+            log.info("Trying to load Lzo codec class: {}" , clazz);
+           Configuration myConf = new Configuration(conf);
           // only use the buffersize if > 0, otherwise we'll use
-          // the default defined within the codec
-          if (bufferSize > 0)
+          // the default defined within the codec if (bufferSize > 0)
             myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
           return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
-        } catch (ClassNotFoundException e) {
-          // that is okay
+          } catch (ClassNotFoundException e) {
+            // that is okay
+
         }
         return null;
       }
@@ -367,7 +364,7 @@ public final class Compression {
         String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
         String clazz = (extClazz != null) ? extClazz : defaultClazz;
         try {
-          LOG.info("Trying to load snappy codec class: " + clazz);
+          log.info("Trying to load snappy codec class: {}", clazz);
 
           Configuration myConf = new Configuration(conf);
           // only use the buffersize if > 0, otherwise we'll use
@@ -504,9 +501,9 @@ public final class Compression {
           if (compressor.finished()) {
             // Somebody returns the compressor to CodecPool but is still using
             // it.
-            LOG.warn("Compressor obtained from CodecPool already finished()");
+            log.warn("Compressor obtained from CodecPool already finished()");
           } else {
-            LOG.debug("Got a compressor: " + compressor.hashCode());
+            log.debug("Got a compressor: {}", compressor.hashCode());
           }
           /**
            * Following statement is necessary to get around bugs in 0.18 where a compressor is referenced after returned back to the codec pool.
@@ -520,7 +517,7 @@ public final class Compression {
 
     public void returnCompressor(Compressor compressor) {
       if (compressor != null) {
-        LOG.debug("Return a compressor: " + compressor.hashCode());
+        log.debug("Return a compressor: {}", compressor.hashCode());
         CodecPool.returnCompressor(compressor);
       }
     }
@@ -533,9 +530,9 @@ public final class Compression {
           if (decompressor.finished()) {
             // Somebody returns the decompressor to CodecPool but is still using
             // it.
-            LOG.warn("Decompressor obtained from CodecPool already finished()");
+            log.warn("Decompressor obtained from CodecPool already finished()");
           } else {
-            LOG.debug("Got a decompressor: " + decompressor.hashCode());
+            log.debug("Got a decompressor: {}", decompressor.hashCode());
           }
           /**
            * Following statement is necessary to get around bugs in 0.18 where a decompressor is referenced after returned back to the codec pool.
@@ -550,7 +547,7 @@ public final class Compression {
 
     public void returnDecompressor(Decompressor decompressor) {
       if (decompressor != null) {
-        LOG.debug("Returned a decompressor: " + decompressor.hashCode());
+        log.debug("Returned a decompressor: {}", decompressor.hashCode());
         CodecPool.returnDecompressor(decompressor);
       }
     }

@@ -127,7 +127,7 @@ public class VerifyTabletAssignments {
           try {
             checkTabletServer(context, entry, failures);
           } catch (Exception e) {
-            log.error("Failure on tablet server '" + entry.getKey() + ".", e);
+            log.error("Failure on tablet server ' {}.", entry.getKey(), e);
             failures.addAll(entry.getValue());
           }
         }

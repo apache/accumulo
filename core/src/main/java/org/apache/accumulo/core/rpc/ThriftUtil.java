@@ -341,7 +341,7 @@ public class ThriftUtil {
           try {
             transport = TTimeoutTransport.create(address, timeout);
           } catch (IOException ex) {
-            log.warn("Failed to open transport to " + address);
+            log.warn("Failed to open transport to {}", address);
             throw new TTransportException(ex);
           }
 

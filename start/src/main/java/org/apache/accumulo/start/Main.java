@@ -144,7 +144,7 @@ public class Main {
     try {
       main = classWithMain.getMethod("main", args.getClass());
     } catch (Throwable t) {
-      log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
+      log.error("Could not run main method on '{}'. {}", classWithMain.getName(), t);
     }
     if (main == null || !Modifier.isPublic(main.getModifiers()) || !Modifier.isStatic(main.getModifiers())) {
       System.out.println(classWithMain.getName() + " must implement a public static void main(String args[]) method");
@@ -189,7 +189,7 @@ public class Main {
    *          The {@link Throwable} containing a stack trace to print.
    */
   private static void die(final Throwable t) {
-    log.error("Thread '" + Thread.currentThread().getName() + "' died.", t);
+    log.error("Thread '{}' died. {}", Thread.currentThread().getName(), t);
     System.exit(1);
   }
 
@@ -245,6 +245,6 @@ public class Main {
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {
-    log.warn("Ambiguous duplicate binding for keyword '" + service.keyword() + "' found: " + service.getClass().getName());
+    log.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(), service.getClass().getName());
   }
 }

@@ -78,7 +78,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
           FileSystemManager vfs = AccumuloVFSClassLoader.generateVfs();
           FileObject[] files = AccumuloVFSClassLoader.resolve(vfs, uris);
 
-          log.debug("Rebuilding dynamic classloader using files- " + stringify(files));
+          log.debug("Rebuilding dynamic classloader using files- {}", stringify(files));
 
           VFSClassLoader cl;
           if (preDelegate)
@@ -88,11 +88,11 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
           updateClassloader(files, cl);
           return;
         } catch (Exception e) {
-          log.error("{}", e.getMessage(), e);
+          log.error(e.getMessage(), e);
           try {
             Thread.sleep(DEFAULT_TIMEOUT);
           } catch (InterruptedException ie) {
-            log.error("{}", e.getMessage(), ie);
+            log.error(e.getMessage(), ie);
           }
         }
       }
@@ -153,7 +153,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     monitor.setRecursive(false);
     for (FileObject file : pathsToMonitor) {
       monitor.addFile(file);
-      log.debug("monitoring " + file);
+      log.debug("monitoring {}", file);
     }
     monitor.start();
   }
@@ -177,21 +177,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " created, recreating classloader");
+      log.debug("{} created, recreating classloader", event.getFile().getURL().toString());
     scheduleRefresh();
   }
 
   @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
+      log.debug("{} deleted, recreating classloader", event.getFile().getURL().toString());
     scheduleRefresh();
   }
 
   @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
+      log.debug("{} changed, recreating classloader", event.getFile().getURL().toString());
     scheduleRefresh();
   }
 
@@ -203,7 +203,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
       try {
         buf.append("\t").append(f.getURL().toString()).append("\n");
       } catch (FileSystemException e) {
-        log.error("Error getting URL for file", e);
+        log.error("Error getting URL for file {}", e);
       }
     }
 

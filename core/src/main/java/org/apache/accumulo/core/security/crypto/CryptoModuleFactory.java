@@ -73,14 +73,14 @@ public class CryptoModuleFactory {
 
   @SuppressWarnings({"rawtypes"})
   private static CryptoModule instantiateCryptoModule(String cryptoModuleClassname) {
-    log.debug(String.format("About to instantiate crypto module %s", cryptoModuleClassname));
+    log.debug("About to instantiate crypto module {}", cryptoModuleClassname);
 
     CryptoModule cryptoModule = null;
     Class cryptoModuleClazz = null;
     try {
       cryptoModuleClazz = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname);
     } catch (ClassNotFoundException e1) {
-      log.warn(String.format("Could not find configured crypto module \"%s\".  No encryption will be used.", cryptoModuleClassname));
+      log.warn("Could not find configured crypto module \"{}\".  No encryption will be used.", cryptoModuleClassname);
       return new NullCryptoModule();
     }
 
@@ -96,22 +96,22 @@ public class CryptoModuleFactory {
     }
 
     if (!implementsCryptoModule) {
-      log.warn("Configured Accumulo crypto module \"" + cryptoModuleClassname + "\" does not implement the CryptoModule interface. No encryption will be used.");
+      log.warn("Configured Accumulo crypto module \"{}\" does not implement the CryptoModule interface. No encryption will be used.", cryptoModuleClassname);
       return new NullCryptoModule();
     } else {
       try {
         cryptoModule = (CryptoModule) cryptoModuleClazz.newInstance();
 
-        log.debug("Successfully instantiated crypto module " + cryptoModuleClassname);
+        log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
 
       } catch (InstantiationException e) {
-        log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.", e.getCause().getClass()
-            .getName(), cryptoModuleClassname));
-        log.warn("InstantiationException", e.getCause());
+        log.warn("Got instantiation exception {} when instantiating crypto module \"{}\".  No encryption will be used.", e.getCause().getClass()
+            .getName(), cryptoModuleClassname);
+        log.warn("InstantiationException {}", e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
-        log.warn(String.format("Got illegal access exception when trying to instantiate crypto module \"%s\".  No encryption will be used.",
-            cryptoModuleClassname));
+        log.warn("Got illegal access exception when trying to instantiate crypto module \"{}\".  No encryption will be used.",
+            cryptoModuleClassname);
         log.warn("IllegalAccessException", e);
         return new NullCryptoModule();
       }
@@ -150,14 +150,14 @@ public class CryptoModuleFactory {
   @SuppressWarnings("rawtypes")
   private static SecretKeyEncryptionStrategy instantiateSecreteKeyEncryptionStrategy(String className) {
 
-    log.debug("About to instantiate secret key encryption strategy " + className);
+    log.debug("About to instantiate secret key encryption strategy {}", className);
 
     SecretKeyEncryptionStrategy strategy = null;
     Class keyEncryptionStrategyClazz = null;
     try {
       keyEncryptionStrategyClazz = AccumuloVFSClassLoader.loadClass(className);
     } catch (ClassNotFoundException e1) {
-      log.warn(String.format("Could not find configured secret key encryption strategy \"%s\".  No encryption will be used.", className));
+      log.warn("Could not find configured secret key encryption strategy \"{}\".  No encryption will be used.", className);
       return new NullSecretKeyEncryptionStrategy();
     }
 
@@ -179,16 +179,16 @@ public class CryptoModuleFactory {
       try {
         strategy = (SecretKeyEncryptionStrategy) keyEncryptionStrategyClazz.newInstance();
 
-        log.debug("Successfully instantiated secret key encryption strategy " + className);
+        log.debug("Successfully instantiated secret key encryption strategy {}", className);
 
       } catch (InstantiationException e) {
-        log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.", e
-            .getCause().getClass().getName(), className));
-        log.warn("InstantiationException", e.getCause());
+        log.warn("Got instantiation exception {} when instantiating secret key encryption strategy \"{}\".  No encryption will be used.", e
+            .getCause().getClass().getName(), className);
+        log.warn("InstantiationException {}", e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
-        log.warn(String.format("Got illegal access exception when trying to instantiate secret key encryption strategy \"%s\".  No encryption will be used.",
-            className));
+        log.warn("Got illegal access exception when trying to instantiate secret key encryption strategy \"{}\".  No encryption will be used.",
+            className);
         log.warn("IllegalAccessException", e);
         return new NullSecretKeyEncryptionStrategy();
       }

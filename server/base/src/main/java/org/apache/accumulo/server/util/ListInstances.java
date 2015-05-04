@@ -209,7 +209,7 @@ public class ListInstances {
         try {
           ts.add(UUID.fromString(iid));
         } catch (Exception e) {
-          log.error("Exception: " + e);
+          log.error("Exception: ", e);
         }
       }
     } catch (Exception e) {

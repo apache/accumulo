@@ -124,7 +124,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         Table.ID currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId();
 
         if (!lastTable.equals(currentTable) && (per != null || lastEndRow != null)) {
-          log.info("Metadata inconsistency on table transition : " + lastTable + " " + currentTable + " " + per + " " + lastEndRow);
+          log.info("Metadata inconsistency on table transition : {} {} {} {}", lastTable, currentTable, per, lastEndRow);
 
           currentTabletKeys = null;
           resetScanner();
@@ -139,7 +139,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
 
       if (!perEqual) {
 
-        log.info("Metadata inconsistency : " + per + " != " + lastEndRow + " metadataKey = " + prevEndRowKey);
+        log.info("Metadata inconsistency : {} != {} metadataKey = {}", per, lastEndRow, prevEndRowKey);
 
         currentTabletKeys = null;
         resetScanner();
@@ -217,7 +217,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       }
 
       if (!sawPrevEndRow && tm.size() > 0) {
-        log.warn("Metadata problem : tablet " + curMetaDataRow + " has no prev end row");
+        log.warn("Metadata problem : tablet {} has no prev end row", curMetaDataRow);
         resetScanner();
         curMetaDataRow = null;
         tm.clear();
@@ -249,7 +249,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       range = new Range(new Key(lastTablet).followingKey(PartialKey.ROW), true, this.range.getEndKey(), this.range.isEndKeyInclusive());
     }
 
-    log.info("Resetting " + MetadataTable.NAME + " scanner to " + range);
+    log.info("Resetting {} scanner to {}", MetadataTable.NAME, range);
 
     scanner.setRange(range);
     iter = scanner.iterator();

@@ -226,7 +226,7 @@ public class AdminUtil<T> {
         }
 
       } catch (Exception e) {
-        log.error("Failed to read locks for " + id + " continuing.", e);
+        log.error("Failed to read locks for {} continuing.", id, e);
       }
     }
 

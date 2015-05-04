@@ -85,7 +85,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       try {
         System.loadLibrary("accumulo");
         loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library from " + ldLibraryPath);
+        log.info("Loaded native map shared library from {}", ldLibraryPath);
       } catch (Exception | UnsatisfiedLinkError e) {
         log.error("Tried and failed to load Accumulo native library from {}", ldLibraryPath, e);
       }
@@ -154,18 +154,18 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   }
 
   private static boolean loadNativeLib(File libFile) {
-    log.debug("Trying to load native map library " + libFile);
+    log.debug("Trying to load native map library {}", libFile);
     if (libFile.exists() && libFile.isFile()) {
       try {
         System.load(libFile.getAbsolutePath());
         loadedNativeLibraries.set(true);
-        log.info("Loaded native map shared library " + libFile);
+        log.info("Loaded native map shared library {}", libFile);
         return true;
       } catch (Exception | UnsatisfiedLinkError e) {
         log.error("Tried and failed to load native map library " + libFile, e);
       }
     } else {
-      log.debug("Native map library " + libFile + " not found or is not a file.");
+      log.debug("Native map library {} not found or is not a file.", libFile);
     }
     return false;
   }
@@ -205,9 +205,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         if (allocatedNativeMaps.size() > 0) {
-          log.info("There are " + allocatedNativeMaps.size() + " allocated native maps");
+          log.info("There are {} allocated native maps", allocatedNativeMaps.size());
         }
-        log.debug(totalAllocations + " native maps were allocated");
+        log.debug("{} native maps were allocated", totalAllocations);
       }));
 
       init = true;

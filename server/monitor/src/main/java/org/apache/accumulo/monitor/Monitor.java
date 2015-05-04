@@ -285,7 +285,7 @@ public class Monitor implements HighlyAvailableService {
           Monitor.gcStatus = fetchGcStatus();
         } catch (Exception e) {
           mmi = null;
-          log.info("Error fetching stats: " + e);
+          log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
             MasterClient.close(client);
@@ -412,7 +412,7 @@ public class Monitor implements HighlyAvailableService {
         }
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at " + address, ex);
+      log.warn("Unable to contact the garbage collector at {}", address, ex);
     }
     return result;
   }
@@ -451,7 +451,7 @@ public class Monitor implements HighlyAvailableService {
     int ports[] = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
-        log.debug("Creating monitor on port " + port);
+        log.debug("Creating monitor on port {}", port);
         server = new EmbeddedWebServer(hostname, port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
@@ -481,13 +481,13 @@ public class Monitor implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    log.debug("Using " + advertiseHost + " to advertise monitor location");
+    log.debug("Using {} to advertise monitor location in ZooKeeper", hostname);
 
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
-      log.info("Set monitor address in zookeeper to " + monitorAddress);
+      log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
@@ -509,7 +509,7 @@ public class Monitor implements HighlyAvailableService {
           try {
             Monitor.fetchData();
           } catch (Exception e) {
-            log.warn("{}", e.getMessage(), e);
+            log.warn(e.getMessage(), e);
           }
 
           sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
@@ -525,7 +525,7 @@ public class Monitor implements HighlyAvailableService {
           try {
             Monitor.fetchScans();
           } catch (Exception e) {
-            log.warn("{}", e.getMessage(), e);
+            log.warn(e.getMessage(), e);
           }
           sleepUninterruptibly(5, TimeUnit.SECONDS);
         }
@@ -706,7 +706,7 @@ public class Monitor implements HighlyAvailableService {
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock " + e);
+      log.warn("Failed to get monitor lock", e);
 
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);

@@ -95,8 +95,8 @@ public class GarbageCollectWriteAheadLogs {
     this.liveServers = new LiveTServerSet(context, new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
-        log.debug("New tablet servers noticed: " + added);
-        log.debug("Tablet servers removed: " + deleted);
+        log.debug("New tablet servers noticed: {}", added);
+        log.debug("Tablet servers removed: {}", deleted);
       }
     });
     liveServers.startListeningForTabletServerChanges();
@@ -237,7 +237,7 @@ public class GarbageCollectWriteAheadLogs {
   private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
     for (Pair<WalState,Path> stateFile : collection) {
       Path path = stateFile.getSecond();
-      log.debug("Removing " + stateFile.getFirst() + " WAL " + path);
+      log.debug("Removing {} WAL {}", stateFile.getFirst(), path);
       try {
         if (!useTrash || !fs.moveToTrash(path)) {
           fs.deleteRecursively(path);
@@ -246,7 +246,7 @@ public class GarbageCollectWriteAheadLogs {
       } catch (FileNotFoundException ex) {
         // ignored
       } catch (IOException ex) {
-        log.error("Unable to delete wal " + path + ": " + ex);
+        log.error("Unable to delete wal {}: ", path, ex);
       }
     }
     return status.currentLog.deleted;

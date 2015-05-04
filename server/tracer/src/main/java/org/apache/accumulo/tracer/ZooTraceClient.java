@@ -105,7 +105,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
           // Once this passes, we can issue a shutdown of the pool
           svc.shutdown();
         } catch (Exception e) {
-          log.error("Unabled to get destination tracer hosts in ZooKeeper, will retry in " + retryPause + " milliseconds", e);
+          log.error("Unabled to get destination tracer hosts in ZooKeeper, will retry in {} milliseconds", retryPause, e);
           // We failed to connect to ZK, try again in `retryPause` milliseconds
           svc.schedule(this, retryPause, TimeUnit.MILLISECONDS);
         }
@@ -142,7 +142,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   }
 
   synchronized private void updateHosts(String path, List<String> children) {
-    log.debug("Scanning trace hosts in zookeeper: " + path);
+    log.debug("Scanning trace hosts in zookeeper: {}", path);
     try {
       List<String> hosts = new ArrayList<>();
       for (String child : children) {
@@ -151,7 +151,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       }
       this.hosts.clear();
       this.hosts.addAll(hosts);
-      log.debug("Trace hosts: " + this.hosts);
+      log.debug("Trace hosts: {}", this.hosts);
     } catch (Exception ex) {
       log.error("unable to get destination hosts in zookeeper", ex);
     }

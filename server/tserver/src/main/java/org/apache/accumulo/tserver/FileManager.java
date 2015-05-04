@@ -330,7 +330,7 @@ public class FileManager {
           if (!tablet.isMeta()) {
             filePermits.release(1);
           }
-          log.warn("Failed to open file {} {}  continuing...", file, e.getMessage());
+          log.warn("Failed to open file {} {} continuing...", file, e.getMessage());
         } else {
           // close whatever files were opened
           closeReaders(reservedFiles);
@@ -368,7 +368,7 @@ public class FileManager {
         try {
           reader.closeDeepCopies();
         } catch (IOException e) {
-          log.warn("{}", e.getMessage(), e);
+          log.warn(e.getMessage(), e);
           sawIOException = true;
         }
       }

@@ -127,14 +127,14 @@ public class VerifyIngest {
         }
 
         if (val == null) {
-          log.error("Did not find " + rowKey + " " + colf + " " + colq);
+          log.error("Did not find {} {} {}", rowKey, colf, colq);
           errors++;
         } else {
           recsRead++;
           bytesRead += val.length;
           Value value = new Value(val);
           if (value.compareTo(ev) != 0) {
-            log.error("unexpected value  (" + rowKey + " " + colf + " " + colq + " : saw " + value + " expected " + new Value(ev));
+            log.error("unexpected value  ({} {} {} : saw {} expected {}",rowKey, colf, colq, value, new Value(ev));
             errors++;
           }
         }
@@ -169,19 +169,18 @@ public class VerifyIngest {
           int colNum = getCol(entry.getKey());
 
           if (rowNum != expectedRow) {
-            log.error("rowNum != expectedRow   " + rowNum + " != " + expectedRow);
+            log.error("rowNum != expectedRow   {} != {}", rowNum, expectedRow);
             errors++;
             expectedRow = rowNum;
           }
 
           if (colNum != expectedCol) {
-            log.error("colNum != expectedCol  " + colNum + " != " + expectedCol + "  rowNum : " + rowNum);
+            log.error("colNum != expectedCol  {} != {}  rowNum : {}", colNum, expectedCol, rowNum);
             errors++;
           }
 
           if (expectedRow >= (opts.rows + opts.startRow)) {
-            log.error("expectedRow (" + expectedRow + ") >= (ingestArgs.rows + ingestArgs.startRow)  (" + (opts.rows + opts.startRow)
-                + "), get batch returned data passed end key");
+            log.error("expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get batch returned data passed end key", expectedRow, (opts.rows + opts.startRow));
             errors++;
             break;
           }
@@ -194,13 +193,13 @@ public class VerifyIngest {
           }
 
           if (entry.getValue().compareTo(value) != 0) {
-            log.error("unexpected value, rowNum : " + rowNum + " colNum : " + colNum);
-            log.error(" saw = " + new String(entry.getValue().get()) + " expected = " + new String(value));
+            log.error("unexpected value, rowNum : {} colNum : {}", rowNum, colNum);
+            log.error(" saw = {} expected = {}", new String(entry.getValue().get()), new String(value));
             errors++;
           }
 
           if (opts.timestamp >= 0 && entry.getKey().getTimestamp() != opts.timestamp) {
-            log.error("unexpected timestamp " + entry.getKey().getTimestamp() + ", rowNum : " + rowNum + " colNum : " + colNum);
+            log.error("unexpected timestamp {}, rowNum : {} colNum : {}", entry.getKey().getTimestamp(), rowNum, colNum);
             errors++;
           }
 

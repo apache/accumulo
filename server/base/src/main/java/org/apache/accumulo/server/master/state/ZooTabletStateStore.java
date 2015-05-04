@@ -90,11 +90,11 @@ public class ZooTabletStateStore extends TabletStateStore {
             if (logInfo != null) {
               LogEntry logEntry = LogEntry.fromBytes(logInfo);
               logs.add(Collections.singleton(logEntry.filename));
-              log.debug("root tablet log " + logEntry.filename);
+              log.debug("root tablet log {}", logEntry.filename);
             }
           }
           TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession, currentSession, lastSession, null, logs, false);
-          log.debug("Returning root tablet state: " + result);
+          log.debug("Returning root tablet state: {}", result);
           return result;
         } catch (Exception ex) {
           throw new RuntimeException(ex);

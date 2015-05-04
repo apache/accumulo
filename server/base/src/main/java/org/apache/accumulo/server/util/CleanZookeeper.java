@@ -67,7 +67,7 @@ public class CleanZookeeper {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
               } catch (KeeperException.NoAuthException ex) {
-                log.warn("Unable to delete " + instanceNamePath);
+                log.warn("Unable to delete {}", instanceNamePath);
               }
             }
           }
@@ -76,7 +76,7 @@ public class CleanZookeeper {
           try {
             zk.recursiveDelete(path, NodeMissingPolicy.SKIP);
           } catch (KeeperException.NoAuthException ex) {
-            log.warn("Unable to delete " + path);
+            log.warn("Unable to delete {}", path);
           }
         }
       }

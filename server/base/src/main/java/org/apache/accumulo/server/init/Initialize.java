@@ -224,9 +224,9 @@ public class Initialize implements KeywordExecutable {
     String fsUri = sconf.get(Property.INSTANCE_DFS_URI);
     if (fsUri.equals(""))
       fsUri = FileSystem.getDefaultUri(conf).toString();
-    log.info("Hadoop Filesystem is " + fsUri);
-    log.info("Accumulo data dirs are " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
-    log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
+    log.info("Hadoop Filesystem is {}", fsUri);
+    log.info("Accumulo data dirs are {}", Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
+    log.info("Zookeeper server is {}", sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
@@ -265,7 +265,7 @@ public class Initialize implements KeywordExecutable {
     Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
     String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-    log.error("FATAL It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
+    log.error("FATAL It appears the directories {}", Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
         + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
     String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
@@ -273,16 +273,16 @@ public class Initialize implements KeywordExecutable {
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
 
     if (!instanceVolumes.isEmpty()) {
-      log.error("FATAL: Change the property " + Property.INSTANCE_VOLUMES + " to use different filesystems,");
+      log.error("FATAL: Change the property {} to use different filesystems,", Property.INSTANCE_VOLUMES);
     } else if (!instanceDfsDir.isEmpty()) {
-      log.error("FATAL: Change the property " + INSTANCE_DFS_URI + " to use a different filesystem,");
+      log.error("FATAL: Change the property {} to use a different filesystem,", INSTANCE_DFS_URI);
     } else {
-      log.error("FATAL: You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_VOLUMES + " to use a different filesystem,");
+      log.error("FATAL: You are using the default URI for the filesystem. Set the property {} to use a different filesystem,", Property.INSTANCE_VOLUMES);
     }
-    log.error("FATAL: or change the property " + INSTANCE_DFS_DIR + " to use a different directory.");
-    log.error("FATAL: The current value of " + INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
-    log.error("FATAL: The current value of " + INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
-    log.error("FATAL: The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
+    log.error("FATAL: or change the property {} to use a different directory.", INSTANCE_DFS_DIR);
+    log.error("FATAL: The current value of {} is |{}|", INSTANCE_DFS_URI, instanceDfsUri);
+    log.error("FATAL: The current value of {} is |{}|", INSTANCE_DFS_DIR, instanceDfsDir);
+    log.error("FATAL: The current value of {} is |{}|", Property.INSTANCE_VOLUMES, instanceVolumes);
   }
 
   public boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
@@ -348,7 +348,7 @@ public class Initialize implements KeywordExecutable {
 
         // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
-          log.error("FATAL: Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '" + defaultFsUri + "' was found in the Hadoop configuration");
+          log.error("FATAL: Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '{}' was found in the Hadoop configuration", defaultFsUri);
           log.error("FATAL: Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
         }
       }
@@ -375,7 +375,7 @@ public class Initialize implements KeywordExecutable {
             return false;
           }
 
-          log.info("Logging in as " + accumuloPrincipal + " with " + accumuloKeytab);
+          log.info("Logging in as {} with {}", accumuloPrincipal, accumuloKeytab);
 
           // Login using the keytab as the 'accumulo' user
           UserGroupInformation.loginUserFromKeytab(accumuloPrincipal, accumuloKeytab);
@@ -415,7 +415,7 @@ public class Initialize implements KeywordExecutable {
       fs.mkdirs(iidLocation);
       fs.createNewFile(new Path(iidLocation, uuid.toString()));
       if (print)
-        log.info("Initialized volume " + baseDir);
+        log.info("Initialized volume {}", baseDir);
     }
   }
 
@@ -505,13 +505,13 @@ public class Initialize implements KeywordExecutable {
       try {
         FileStatus fstat = fs.getFileStatus(dir);
         if (!fstat.isDirectory()) {
-          log.error("FATAL: location " + dir + " exists but is not a directory");
+          log.error("FATAL: location {} exists but is not a directory", dir);
           return;
         }
       } catch (FileNotFoundException fnfe) {
         // attempt to create directory, since it doesn't exist
         if (!fs.mkdirs(dir)) {
-          log.error("FATAL: unable to create directory " + dir);
+          log.error("FATAL: unable to create directory {}", dir);
           return;
         }
       }
@@ -721,8 +721,8 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst()))
-        log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS + " and should not appear in " + Property.INSTANCE_VOLUMES
-            + ". It is highly recommended that this property be removed as data could still be written to this volume.");
+        log.error("{} is set to be replaced in {} and should not appear in {}"
+            + ". It is highly recommended that this property be removed as data could still be written to this volume.", aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS,  Property.INSTANCE_VOLUMES);
     }
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {

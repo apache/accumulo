@@ -63,7 +63,7 @@ public class SimpleTimer {
       SimpleTimer.instanceThreadPoolSize = threadPoolSize;
     } else {
       if (SimpleTimer.instanceThreadPoolSize != threadPoolSize) {
-        log.warn("Asked to create SimpleTimer with thread pool size " + threadPoolSize + ", existing instance has " + instanceThreadPoolSize);
+        log.warn("Asked to create SimpleTimer with thread pool size {}, existing instance has {}", threadPoolSize, instanceThreadPoolSize);
       }
     }
     return instance;

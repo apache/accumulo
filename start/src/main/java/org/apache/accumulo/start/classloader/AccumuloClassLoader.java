@@ -179,10 +179,10 @@ public class AccumuloClassLoader {
             for (File jar : extJars)
               urls.add(jar.toURI().toURL());
           } else {
-            log.debug("ignoring classpath entry " + classpath);
+            log.debug("ignoring classpath entry {}", classpath);
           }
         } else {
-          log.debug("ignoring classpath entry " + classpath);
+          log.debug("ignoring classpath entry {}", classpath);
         }
       }
     } else {
@@ -238,7 +238,7 @@ public class AccumuloClassLoader {
 
       ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
 
-      log.debug("Create 2nd tier ClassLoader using URLs: " + urls.toString());
+      log.debug("Create 2nd tier ClassLoader using URLs: {}", urls.toString());
       URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
         @Override
         protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {

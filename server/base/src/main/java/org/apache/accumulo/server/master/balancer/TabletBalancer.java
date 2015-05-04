@@ -162,9 +162,9 @@ public abstract class TabletBalancer {
 
     @Override
     public void run() {
-      balancerLog.warn("Not balancing due to " + migrations.size() + " outstanding migrations.");
+      balancerLog.warn("Not balancing due to {} outstanding migrations.", migrations.size());
       /* TODO ACCUMULO-2938 redact key extents in this output to avoid leaking protected information. */
-      balancerLog.debug("Sample up to 10 outstanding migrations: " + Iterables.limit(migrations, 10));
+      balancerLog.debug("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
     }
   }
 
@@ -206,12 +206,12 @@ public abstract class TabletBalancer {
    *           any other problem
    */
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
-    log.debug("Scanning tablet server " + tserver + " for table " + tableId);
+    log.debug("Scanning tablet server {} for table {}", tserver, tableId);
     Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), context);
     try {
       return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId.canonicalID());
     } catch (TTransportException e) {
-      log.error("Unable to connect to " + tserver + ": " + e);
+      log.error("Unable to connect to {}: ", tserver, e);
     } finally {
       ThriftUtil.returnClient(client);
     }
@@ -231,23 +231,23 @@ public abstract class TabletBalancer {
     List<TabletMigration> result = new ArrayList<>(migrations.size());
     for (TabletMigration m : migrations) {
       if (m.tablet == null) {
-        log.warn("Balancer gave back a null tablet " + m);
+        log.warn("Balancer gave back a null tablet {}", m);
         continue;
       }
       if (m.newServer == null) {
-        log.warn("Balancer did not set the destination " + m);
+        log.warn("Balancer did not set the destination {}",  m);
         continue;
       }
       if (m.oldServer == null) {
-        log.warn("Balancer did not set the source " + m);
+        log.warn("Balancer did not set the source {}",  m);
         continue;
       }
       if (!current.contains(m.oldServer)) {
-        log.warn("Balancer wants to move a tablet from a server that is not current: " + m);
+        log.warn("Balancer wants to move a tablet from a server that is not current: {}", m);
         continue;
       }
       if (!current.contains(m.newServer)) {
-        log.warn("Balancer wants to move a tablet to a server that is not current: " + m);
+        log.warn("Balancer wants to move a tablet to a server that is not current: {}", m);
         continue;
       }
       result.add(m);

@@ -145,7 +145,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public boolean tryLock() {
       if (entry == -1) {
         entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry " + entry + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+        log.info("Added lock entry {} userData {} lockTpye {}", entry,  new String(this.userData, UTF_8), lockType());
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       for (Entry<Long,byte[]> entry : entries.entrySet()) {
@@ -177,7 +177,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public void unlock() {
       if (entry == -1)
         return;
-      log.debug("Removing lock entry " + entry + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+      log.debug("Removing lock entry {} userData {} lockType {}", entry, new String(this.userData, UTF_8), lockType());
       qlock.removeEntry(entry);
       entry = -1;
     }
@@ -207,7 +207,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public boolean tryLock() {
       if (entry == -1) {
         entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry " + entry + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+        log.info("Added lock entry {} userData {} lockType {}", entry, new String(this.userData, UTF_8), lockType());
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();

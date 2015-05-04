@@ -128,7 +128,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
           }
           sent = true;
         } catch (Exception ex) {
-          log.warn("Got error sending to " + dest + ", refreshing client", ex);
+          log.warn("Got error sending to {}, refreshing client", dest, ex);
           clients.remove(dest);
         }
       }
@@ -171,8 +171,8 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       if (sendQueueSize.get() > maxQueueSize) {
         long now = System.currentTimeMillis();
         if (now - lastNotificationOfDroppedSpans > 60 * 1000) {
-          log.warn("Tracing spans are being dropped because there are already " + maxQueueSize + " spans queued for delivery.\n"
-              + "This does not affect performance, security or data integrity, but distributed tracing information is being lost.");
+          log.warn("Tracing spans are being dropped because there are already {} spans queued for delivery.\n" +
+              "This does not affect performance, security or data integrity, but distributed tracing information is being lost.", maxQueueSize);
           lastNotificationOfDroppedSpans = now;
         }
         return;

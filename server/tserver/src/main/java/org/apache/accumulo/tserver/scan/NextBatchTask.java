@@ -91,7 +91,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client, 1);
       addResult(ome);
     } catch (Throwable e) {
-      log.warn("exception while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent), e);
+      log.warn("exception while scanning tablet {}", (scanSession == null ? "(unknown)" : scanSession.extent), e);
       addResult(e);
     } finally {
       runState.set(ScanRunState.FINISHED);

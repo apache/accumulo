@@ -81,7 +81,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
         // Get a transport (cached or not)
         first = pool.getAnyTransport(servers, true).getSecond();
       } catch (TTransportException e) {
-        log.warn("Failed to obtain transport to " + servers);
+        log.warn("Failed to obtain transport to {}", servers);
       }
     }
 
@@ -95,7 +95,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
         // Get a cached transport (should be the first)
         second = pool.getAnyTransport(servers, true).getSecond();
       } catch (TTransportException e) {
-        log.warn("Failed obtain 2nd transport to " + servers);
+        log.warn("Failed obtain 2nd transport to {}", servers);
       }
     }
 
@@ -110,7 +110,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
         // Get a non-cached transport
         third = pool.getAnyTransport(servers, false).getSecond();
       } catch (TTransportException e) {
-        log.warn("Failed obtain 2nd transport to " + servers);
+        log.warn("Failed obtain 2nd transport to {}", servers);
       }
     }
 

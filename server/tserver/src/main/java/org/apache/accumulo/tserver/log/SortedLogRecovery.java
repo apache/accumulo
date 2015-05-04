@@ -101,16 +101,16 @@ public class SortedLogRecovery {
     LastStartToFinish lastStartToFinish = new LastStartToFinish();
     for (int i = 0; i < recoveryLogs.size(); i++) {
       Path logfile = recoveryLogs.get(i);
-      log.info("Looking at mutations from " + logfile + " for " + extent);
+      log.info("Looking at mutations from {} for {}", logfile, extent);
       MultiReader reader = new MultiReader(fs, logfile);
       try {
         try {
           tids[i] = findLastStartToFinish(reader, i, extent, tabletFiles, lastStartToFinish);
         } catch (EmptyMapFileException ex) {
-          log.info("Ignoring empty map file " + logfile);
+          log.info("Ignoring empty map file {}", logfile);
           tids[i] = -1;
         } catch (UnusedException ex) {
-          log.info("Ignoring log file " + logfile + " appears to be unused by " + extent);
+          log.info("Ignoring log file {} appears to be unused by ", logfile, extent);
           tids[i] = -1;
         }
       } finally {
@@ -138,7 +138,7 @@ public class SortedLogRecovery {
           log.warn("Ignoring error closing file");
         }
       }
-      log.info("Recovery complete for " + extent + " using " + logfile);
+      log.info("Recovery complete for {} using{} ", extent, logfile);
     }
   }
 
@@ -180,7 +180,7 @@ public class SortedLogRecovery {
     // find the maximum tablet id... because a tablet may leave a tserver and then come back, in which case it would have a different tablet id
     // for the maximum tablet id, find the minimum sequence #... may be ok to find the max seq, but just want to make the code behave like it used to
     while (reader.next(key, value)) {
-      // log.debug("Event " + key.event + " tablet " + key.tablet);
+
       if (key.event != DEFINE_TABLET)
         break;
       if (key.tablet.equals(extent) || key.tablet.equals(alternative)) {
@@ -195,7 +195,7 @@ public class SortedLogRecovery {
       throw new UnusedException();
     }
 
-    log.debug("Found tid, seq " + tid + " " + defineKey.seq);
+    log.debug("Found tid, seq {} {}", tid, defineKey.seq);
 
     // Scan start/stop events for this tablet
     key = defineKey;
@@ -213,7 +213,7 @@ public class SortedLogRecovery {
         lastStartToFinish.update(fileno, key.seq);
 
         // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
-        log.debug("minor compaction into " + key.filename + " finished, but was still in the METADATA");
+        log.debug("minor compaction into {} finished, but was still in the METADATA", key.filename);
         if (suffixes.contains(getPathSuffix(key.filename)))
           lastStartToFinish.update(-1);
       } else if (key.event == COMPACTION_FINISH) {
@@ -237,7 +237,7 @@ public class SortedLogRecovery {
     LogFileValue value = new LogFileValue();
 
     // Playback mutations after the last stop to finish
-    log.info("Scanning for mutations starting at sequence number " + lastStartToFinish.seq + " for tid " + tid);
+    log.info("Scanning for mutations starting at sequence number {} for tid {}", lastStartToFinish.seq, tid);
     key.event = MUTATION;
     key.tid = tid;
     // the seq number for the minor compaction start is now the same as the

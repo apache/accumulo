@@ -95,7 +95,7 @@ public class WorkMaker {
         // Extract the useful bits from the status key
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
         Table.ID tableId = ReplicationSchema.StatusSection.getTableId(entry.getKey());
-        log.debug("Processing replication status record for " + file + " on table " + tableId);
+        log.debug("Processing replication status record for {} on table {}", file, tableId);
 
         Status status;
         try {
@@ -108,7 +108,7 @@ public class WorkMaker {
         // Don't create the record if we have nothing to do.
         // TODO put this into a filter on serverside
         if (!shouldCreateWork(status)) {
-          log.debug("Not creating work: " + status.toString());
+          log.debug("Not creating work: {}", status.toString());
           continue;
         }
 
@@ -170,7 +170,7 @@ public class WorkMaker {
   }
 
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets, Table.ID sourceTableId) {
-    log.info("Adding work records for " + file + " to targets " + targets);
+    log.info("Adding work records for {} to targets {}", file, targets);
     try {
       Mutation m = new Mutation(file);
 

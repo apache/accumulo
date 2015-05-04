@@ -185,8 +185,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg = "The BatchScanner was unexpectedly closed while this Iterator was still in use.";
-          log.error(shortMsg + " Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
-              + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.");
+          log.error("{} Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
+              + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.", shortMsg);
           throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
@@ -250,7 +250,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (log.isTraceEnabled())
           log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms", failures.size());
-
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -710,7 +709,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         ThriftUtil.returnClient(client);
       }
     } catch (TTransportException e) {
-      log.debug("Server : {} msg : {}", server, e.getMessage());
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
@@ -723,7 +722,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new IOException(e);
     } catch (TSampleNotPresentException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       String tableInfo = "?";
       if (e.getExtent() != null) {
         Table.ID tableId = new KeyExtent(e.getExtent()).getTableId();

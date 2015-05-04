@@ -146,7 +146,7 @@ public class ZooLock implements Watcher {
     if (log.isTraceEnabled()) {
       log.trace("Candidate lock nodes");
       for (String child : children) {
-        log.trace("- " + child);
+        log.trace("- {}", child);
       }
     }
 
@@ -172,26 +172,26 @@ public class ZooLock implements Watcher {
     }
 
     final String lockToWatch = path + "/" + prev;
-    log.trace("Establishing watch on " + lockToWatch);
+    log.trace("Establishing watch on {}", lockToWatch);
     Stat stat = zooKeeper.getStatus(lockToWatch, new Watcher() {
 
       @Override
       public void process(WatchedEvent event) {
         if (log.isTraceEnabled()) {
           log.trace("Processing event:");
-          log.trace("- type  " + event.getType());
-          log.trace("- path  " + event.getPath());
-          log.trace("- state " + event.getState());
+          log.trace("- type  {}", event.getType());
+          log.trace("- path  {}", event.getPath());
+          log.trace("- state {}", event.getState());
         }
         boolean renew = true;
         if (event.getType() == EventType.NodeDeleted && event.getPath().equals(lockToWatch)) {
-          log.trace("Detected deletion of " + lockToWatch + ", attempting to acquire lock");
+          log.trace("Detected deletion of {}, attempting to acquire lock", lockToWatch);
           synchronized (ZooLock.this) {
             try {
               if (asyncLock != null) {
                 lockAsync(myLock, lw);
               } else if (log.isTraceEnabled()) {
-                log.trace("While waiting for another lock " + lockToWatch + " " + myLock + " was deleted");
+                log.trace("While waiting for another lock {} {} was deleted", lockToWatch, myLock);
               }
             } catch (Exception e) {
               if (lock == null) {
@@ -212,7 +212,7 @@ public class ZooLock implements Watcher {
           renew = false;
         }
         if (renew) {
-          log.trace("Renewing watch on " + lockToWatch);
+          log.trace("Renewing watch on {}", lockToWatch);
           try {
             Stat restat = zooKeeper.getStatus(lockToWatch, this);
             if (restat == null) {
@@ -250,7 +250,7 @@ public class ZooLock implements Watcher {
 
     try {
       final String asyncLockPath = zooKeeper.putEphemeralSequential(path + "/" + LOCK_PREFIX, data);
-      log.trace("Ephemeral node " + asyncLockPath + " created");
+      log.trace("Ephemeral node {} created", asyncLockPath);
       Stat stat = zooKeeper.getStatus(asyncLockPath, new Watcher() {
 
         private void failedToAcquireLock() {
@@ -266,7 +266,7 @@ public class ZooLock implements Watcher {
             } else if (asyncLock != null && event.getType() == EventType.NodeDeleted && event.getPath().equals(path + "/" + asyncLock)) {
               failedToAcquireLock();
             } else if (event.getState() != KeeperState.Disconnected && event.getState() != KeeperState.Expired && (lock != null || asyncLock != null)) {
-              log.debug("Unexpected event watching lock node " + event + " " + asyncLockPath);
+              log.debug("Unexpected event watching lock node {} {}", event, asyncLockPath);
               try {
                 Stat stat2 = zooKeeper.getStatus(asyncLockPath, this);
                 if (stat2 == null) {
@@ -277,7 +277,7 @@ public class ZooLock implements Watcher {
                 }
               } catch (Throwable e) {
                 lockWatcher.unableToMonitorLockNode(e);
-                log.error("Failed to stat lock node " + asyncLockPath, e);
+                log.error("Failed to stat lock node {}", asyncLockPath, e);
               }
             }
 
@@ -371,7 +371,7 @@ public class ZooLock implements Watcher {
 
   @Override
   public synchronized void process(WatchedEvent event) {
-    log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
+    log.debug("event {} {} {}", event.getPath(), event.getType(), event.getState());
 
     watchingParent = false;
 
@@ -388,7 +388,7 @@ public class ZooLock implements Watcher {
       } catch (Exception ex) {
         if (lock != null || asyncLock != null) {
           lockWatcher.unableToMonitorLockNode(ex);
-          log.error("Error resetting watch on ZooLock " + lock == null ? asyncLock : lock + " " + event, ex);
+          log.error("Error resetting watch on ZooLock {} {}", lock == null ? asyncLock : lock, event, ex);
         }
       }
 

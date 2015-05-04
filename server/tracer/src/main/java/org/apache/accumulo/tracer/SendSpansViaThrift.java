@@ -53,7 +53,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       int portSeparatorIndex = destination.lastIndexOf(':');
       String host = destination.substring(0, portSeparatorIndex);
       int port = Integer.parseInt(destination.substring(portSeparatorIndex + 1));
-      log.debug("Connecting to " + host + ":" + port);
+      log.debug("Connecting to {}:{}", host, port);
       InetSocketAddress addr = new InetSocketAddress(host, port);
       Socket sock = new Socket();
       sock.connect(addr);
@@ -64,7 +64,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
       log.trace("{}", ex, ex);
       return null;
     } catch (Exception ex) {
-      log.error("{}", ex.getMessage(), ex);
+      log.error(ex.getMessage(), ex);
       return null;
     }
   }

@@ -83,18 +83,18 @@ public class RandomizeVolumes {
     }
     String tblStr = c.tableOperations().tableIdMap().get(tableName);
     if (null == tblStr) {
-      log.error("Could not determine the table ID for table " + tableName);
+      log.error("Could not determine the table ID for table {}", tableName);
       return 2;
     }
     Table.ID tableId = Table.ID.of(tblStr);
     TableState tableState = TableManager.getInstance().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
-      log.info("Taking " + tableName + " offline");
+      log.info("Taking {} offline", tableName);
       c.tableOperations().offline(tableName, true);
-      log.info(tableName + " offline");
+      log.info("{} offline", tableName);
     }
     SimpleThreadPool pool = new SimpleThreadPool(50, "directory maker");
-    log.info("Rewriting entries for " + tableName);
+    log.info("Rewriting entries for {}", tableName);
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     DIRECTORY_COLUMN.fetch(scanner);
     scanner.setRange(TabletsSection.getRange(tableId));
@@ -107,7 +107,7 @@ public class RandomizeVolumes {
         String[] parts = oldLocation.split(Path.SEPARATOR);
         Table.ID tableIdEntry = Table.ID.of(parts[parts.length - 2]);
         if (!tableIdEntry.equals(tableId)) {
-          log.error("Unexpected table id found: " + tableIdEntry + ", expected " + tableId + "; skipping");
+          log.error("Unexpected table id found: {}, expected {}; skipping", tableIdEntry, tableId);
           continue;
         }
         directory = parts[parts.length - 1];
@@ -122,7 +122,7 @@ public class RandomizeVolumes {
           + Path.SEPARATOR + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
-        log.trace("Replacing " + oldLocation + " with " + newLocation);
+        log.trace("Replacing {} with {}", oldLocation, newLocation);
       }
       writer.addMutation(m);
       pool.submit(new Runnable() {
@@ -148,10 +148,10 @@ public class RandomizeVolumes {
         break;
       }
     }
-    log.info("Updated " + count + " entries for table " + tableName);
+    log.info("Updated {} entries for table {}", count, tableName);
     if (TableState.OFFLINE != tableState) {
       c.tableOperations().online(tableName, true);
-      log.info("table " + tableName + " back online");
+      log.info("table {} back online", tableName);
     }
     return 0;
   }

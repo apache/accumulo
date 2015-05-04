@@ -105,11 +105,11 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
         }
       });
       String traceOutput = finalBuffer.toString();
-      log.info("Trace output:" + traceOutput);
+      log.info("Trace output:{}", traceOutput);
       if (traceCount > 0) {
         int lastPos = 0;
         for (String part : "traceTest,close,binMutations".split(",")) {
-          log.info("Looking in trace output for '" + part + "'");
+          log.info("Looking in trace output for '{}'", part);
           int pos = traceOutput.indexOf(part);
           assertTrue("Did not find '" + part + "' in output", pos > 0);
           assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
@@ -117,7 +117,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
         }
         break;
       } else {
-        log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
+        log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
         Thread.sleep(1000);
       }
     }

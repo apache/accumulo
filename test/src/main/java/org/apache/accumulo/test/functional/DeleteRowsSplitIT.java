@@ -72,7 +72,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {
       // create a table
-      log.info("Test " + test);
+      log.info("Test {}", test);
       conn.tableOperations().create(tableName);
 
       // put some data in it

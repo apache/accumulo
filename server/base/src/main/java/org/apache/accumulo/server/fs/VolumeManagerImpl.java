@@ -172,7 +172,7 @@ public class VolumeManagerImpl implements VolumeManager {
     blockSize = correctBlockSize(fs.getConf(), blockSize);
     bufferSize = correctBufferSize(fs.getConf(), bufferSize);
     EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-    log.debug("creating " + logPath + " with CreateFlag set: " + set);
+    log.debug("creating {} with CreateFlag set: {}", logPath, set);
     try {
       return fs.create(logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
     } catch (Exception ex) {
@@ -215,7 +215,7 @@ public class VolumeManagerImpl implements VolumeManager {
           synchronized (WARNED_ABOUT_SYNCONCLOSE) {
             if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
               WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
-              log.warn(DFS_DATANODE_SYNCONCLOSE + " set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss");
+              log.warn("{} set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss", DFS_DATANODE_SYNCONCLOSE);
             }
           }
         }
@@ -247,7 +247,7 @@ public class VolumeManagerImpl implements VolumeManager {
             }
           }
         } else {
-          log.debug("Could not determine volume for Path: " + path);
+          log.debug("Could not determine volume for Path: {}", path);
         }
 
         return new NonConfiguredVolume(desiredFs);
@@ -471,8 +471,8 @@ public class VolumeManagerImpl implements VolumeManager {
   public String choose(VolumeChooserEnvironment env, String[] options) {
     final String choice = chooser.choose(env, options);
     if (!(ArrayUtils.contains(options, choice))) {
-      log.error("The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; "
-          + "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.");
+      log.error("The configured volume chooser, '{}', or one of its delegates returned a volume not in the set of options provided; "
+          + "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.", chooser.getClass());
       return failsafeChooser.choose(env, options);
     }
     return choice;

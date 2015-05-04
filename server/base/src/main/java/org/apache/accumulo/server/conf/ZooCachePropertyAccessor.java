@@ -103,7 +103,7 @@ public class ZooCachePropertyAccessor {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null) {
-        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+        log.error("Using default value for {} due to improperly formatted {}: {}", key, property.getType(), value);
       }
       if (parent != null) {
         value = parent.get(property);

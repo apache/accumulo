@@ -83,7 +83,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   @Override
   protected void finalize() {
     if (!queryThreadPool.isShutdown()) {
-      log.warn(TabletServerBatchReader.class.getSimpleName() + " not shutdown; did you forget to call close()?", ex);
+      log.warn("{} not shutdown; did you forget to call close()? ", TabletServerBatchReader.class.getSimpleName(), ex);
       close();
     }
   }

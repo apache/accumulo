@@ -130,7 +130,7 @@ public class ZooKeeperStatus implements Runnable {
           }
           update.add(new ZooKeeperState(keeper, mode, clients));
         } catch (Exception ex) {
-          log.info("Exception talking to zookeeper " + keeper, ex);
+          log.info("Exception talking to zookeeper {}", keeper, ex);
           update.add(new ZooKeeperState(keeper, "Down", -1));
         } finally {
           if (transport != null) {

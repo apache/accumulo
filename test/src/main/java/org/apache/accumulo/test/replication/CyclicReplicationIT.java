@@ -173,7 +173,7 @@ public class CyclicReplicationIT {
         master1Cluster.start();
         break;
       } catch (ZooKeeperBindException e) {
-        log.warn("Failed to start ZooKeeper on " + master1Cfg.getZooKeeperPort() + ", will retry");
+        log.warn("Failed to start ZooKeeper on {}, will retry", master1Cfg.getZooKeeperPort());
       }
     }
 
@@ -199,7 +199,7 @@ public class CyclicReplicationIT {
         master2Cluster.start();
         break;
       } catch (ZooKeeperBindException e) {
-        log.warn("Failed to start ZooKeeper on " + master2Cfg.getZooKeeperPort() + ", will retry");
+        log.warn("Failed to start ZooKeeper on {}, will retry", master2Cfg.getZooKeeperPort());
       }
     }
 

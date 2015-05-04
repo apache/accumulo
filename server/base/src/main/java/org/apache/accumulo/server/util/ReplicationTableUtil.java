@@ -179,7 +179,7 @@ public class ReplicationTableUtil {
    */
   public static void updateFiles(ClientContext context, KeyExtent extent, String file, Status stat) {
     if (log.isDebugEnabled()) {
-      log.debug("Updating replication status for " + extent + " with " + file + " using " + ProtobufUtil.toString(stat));
+      log.debug("Updating replication status for {} with {} using {}", extent, file, ProtobufUtil.toString(stat));
     }
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
 
