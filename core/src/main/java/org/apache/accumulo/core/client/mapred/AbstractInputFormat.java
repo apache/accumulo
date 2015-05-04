@@ -53,7 +53,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapred.impl.BatchInputSplit;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
-import org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit;
 import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -396,7 +395,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
-    private org.apache.accumulo.core.client.mapreduce.impl.AccumuloInputSplit aiSplit;
+    private org.apache.accumulo.core.client.mapreduce.RangeInputSplit baseSplit;
     protected ScannerBase scannerBase;
 
 
@@ -423,7 +422,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.7.0
      */
-    private void setupIterators(JobConf job, ScannerBase scanner, String tableName, AccumuloInputSplit split) {
+    private void setupIterators(JobConf job, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
       if (null == split) {
@@ -453,60 +452,75 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      */
     @Deprecated
     protected void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split) {
-      setupIterators(job, (ScannerBase) scanner, tableName, (AccumuloInputSplit) split);
+      setupIterators(job, (ScannerBase) scanner, tableName, split);
     }
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
-      aiSplit = (AccumuloInputSplit) inSplit;
-      log.debug("Initializing input split: " + aiSplit.toString());
+      baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
+      log.debug("Initializing input split: " + baseSplit.toString());
 
-      Instance instance = aiSplit.getInstance(getClientConfiguration(job));
+      Instance instance = baseSplit.getInstance(getClientConfiguration(job));
       if (null == instance) {
         instance = getInstance(job);
       }
 
-      String principal = aiSplit.getPrincipal();
+      String principal = baseSplit.getPrincipal();
       if (null == principal) {
         principal = getPrincipal(job);
       }
 
-      AuthenticationToken token = aiSplit.getToken();
+      AuthenticationToken token = baseSplit.getToken();
       if (null == token) {
         token = getAuthenticationToken(job);
       }
 
-      Authorizations authorizations = aiSplit.getAuths();
+      Authorizations authorizations = baseSplit.getAuths();
       if (null == authorizations) {
         authorizations = getScanAuthorizations(job);
       }
 
-      String table = aiSplit.getTableName();
+      String table = baseSplit.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfig(job, aiSplit.getTableName());
+      InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
       log.debug("Creating connector with user: " + principal);
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
-      if (aiSplit instanceof RangeInputSplit) {
-        RangeInputSplit rangeSplit = (RangeInputSplit) aiSplit;
-        split = rangeSplit;
-        Boolean isOffline = rangeSplit.isOffline();
+      if (baseSplit instanceof BatchInputSplit) {
+        BatchScanner scanner;
+        BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
+
+        try{
+          // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
+          int scanThreads = 1;
+          scanner = instance.getConnector(principal, token).createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
+          setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+
+        scanner.setRanges(multiRangeSplit.getRanges());
+        scannerBase = scanner;
+
+      } else if (baseSplit instanceof RangeInputSplit) {
+        split = (RangeInputSplit) baseSplit;
+        Boolean isOffline = baseSplit.isOffline();
         if (null == isOffline) {
           isOffline = tableConfig.isOfflineScan();
         }
 
-        Boolean isIsolated = rangeSplit.isIsolatedScan();
+        Boolean isIsolated = baseSplit.isIsolatedScan();
         if (null == isIsolated) {
           isIsolated = tableConfig.shouldUseIsolatedScanners();
         }
 
-        Boolean usesLocalIterators = rangeSplit.usesLocalIterators();
+        Boolean usesLocalIterators = baseSplit.usesLocalIterators();
         if (null == usesLocalIterators) {
           usesLocalIterators = tableConfig.shouldUseLocalIterators();
         }
@@ -515,13 +529,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token), aiSplit.getTableId(), authorizations);
+            scanner = new OfflineScanner(instance, new Credentials(principal, token), baseSplit.getTableId(), authorizations);
           } else if (instance instanceof MockInstance) {
-            scanner = instance.getConnector(principal, token).createScanner(aiSplit.getTableName(), authorizations);
+            scanner = instance.getConnector(principal, token).createScanner(baseSplit.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(job);
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
-            scanner = new ScannerImpl(context, aiSplit.getTableId(), authorizations);
+            scanner = new ScannerImpl(context, baseSplit.getTableId(), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -531,35 +545,18 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             log.info("Using local iterators");
             scanner = new ClientSideIteratorScanner(scanner);
           }
-          setupIterators(job, scanner, aiSplit.getTableName(), aiSplit);
+          setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
         } catch (Exception e) {
           throw new IOException(e);
         }
 
-        scanner.setRange(rangeSplit.getRange());
+        scanner.setRange(baseSplit.getRange());
         scannerBase = scanner;
-
-      } else if (aiSplit instanceof BatchInputSplit) {
-        BatchScanner scanner;
-        BatchInputSplit multiRangeSplit = (BatchInputSplit) aiSplit;
-
-        try{
-          // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
-          int scanThreads = 1;
-          scanner = instance.getConnector(principal, token).createBatchScanner(aiSplit.getTableName(), authorizations, scanThreads);
-          setupIterators(job, scanner, aiSplit.getTableName(), aiSplit);
-        } catch (Exception e) {
-          throw new IOException(e);
-        }
-
-        scanner.setRanges(multiRangeSplit.getRanges());
-        scannerBase = scanner;
-
       } else {
-        throw new IllegalArgumentException("Can not initialize from " + aiSplit.getClass().toString());
+        throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass().toString());
       }
 
-      Collection<Pair<Text,Text>> columns = aiSplit.getFetchedColumns();
+      Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();
       if (null == columns) {
         columns = tableConfig.getFetchedColumns();
       }
@@ -595,7 +592,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     public float getProgress() throws IOException {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
-      return aiSplit.getProgress(currentKey);
+      return baseSplit.getProgress(currentKey);
     }
 
     protected Key currentKey = null;

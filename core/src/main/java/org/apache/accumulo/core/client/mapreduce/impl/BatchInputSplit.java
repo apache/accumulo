@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.data.Range;
  * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs.
  * Can contain several Ranges per split.
  */
-public class BatchInputSplit extends AccumuloInputSplit {
+public class BatchInputSplit extends RangeInputSplit {
   private Collection<Range> ranges;
   private float[] rangeProgress = null;
 
@@ -46,7 +47,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
   }
 
   public BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] locations) {
-    super(table, tableId, locations);
+    super(table, tableId, new Range(), locations);
     this.ranges = ranges;
   }
 
@@ -96,7 +97,7 @@ public class BatchInputSplit extends AccumuloInputSplit {
   public long getLength() throws IOException {
     long sum = 0;
     for (Range range : ranges)
-      sum += getRangeLength(range);
+      sum += SplitUtils.getRangeLength(range);
     return sum;
   }
 
@@ -137,5 +138,45 @@ public class BatchInputSplit extends AccumuloInputSplit {
 
   public Collection<Range> getRanges() {
     return ranges;
+  }
+
+  @Override
+  public Range getRange(){
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setRange(Range range){
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Boolean isIsolatedScan() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setIsolatedScan(Boolean isolatedScan) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Boolean isOffline() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setOffline(Boolean offline) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Boolean usesLocalIterators() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setUsesLocalIterators(Boolean localIterators) {
+    throw new UnsupportedOperationException();
   }
 }
