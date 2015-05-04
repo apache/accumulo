@@ -89,7 +89,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))),
-          Collections.<String,String> emptyMap());
+          Collections.<String,String> emptyMap(), namespace);
     } catch (NamespaceNotFoundException e) {
       // should not happen
       throw new AssertionError(e);
@@ -115,7 +115,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_DELETE, args, opts);
+      doNamespaceFateOperation(FateOperation.NAMESPACE_DELETE, args, opts, namespace);
     } catch (NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -129,7 +129,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)), ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<String,String>();
-    doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts);
+    doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
   }
 
   @Override
@@ -234,10 +234,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     return super.addConstraint(namespace, constraintClassName);
   }
 
-  private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException,
+  private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts, String namespace) throws AccumuloSecurityException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     try {
-      return tableOps.doFateOperation(op, args, opts);
+      return tableOps.doFateOperation(op, args, opts, namespace);
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);

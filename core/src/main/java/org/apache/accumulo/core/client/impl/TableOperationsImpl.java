@@ -97,7 +97,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MapCounter;
@@ -257,13 +256,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
-    return doFateOperation(op, args, opts, true);
+  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts, String tableOrNamespaceName) throws AccumuloSecurityException,
+      TableExistsException, TableNotFoundException, AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
+    return doFateOperation(op, args, opts, tableOrNamespaceName, true);
   }
 
-  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean wait) throws AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
+  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts, String tableOrNamespaceName, boolean wait)
+      throws AccumuloSecurityException, TableExistsException, TableNotFoundException, AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     Long opid = null;
 
     try {
@@ -276,14 +275,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       String ret = waitForFateOperation(opid);
       return ret;
     } catch (ThriftSecurityException e) {
-      String tableName = ByteBufferUtil.toString(args.get(0));
       switch (e.getCode()) {
         case TABLE_DOESNT_EXIST:
-          throw new TableNotFoundException(null, tableName, "Target table does not exist");
+          throw new TableNotFoundException(null, tableOrNamespaceName, "Target table does not exist");
         case NAMESPACE_DOESNT_EXIST:
-          throw new NamespaceNotFoundException(null, tableName, "Target namespace does not exist");
+          throw new NamespaceNotFoundException(null, tableOrNamespaceName, "Target namespace does not exist");
         default:
-          String tableInfo = Tables.getPrintableTableInfoFromName(context.getInstance(), tableName);
+          String tableInfo = Tables.getPrintableTableInfoFromName(context.getInstance(), tableOrNamespaceName);
           throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
@@ -297,7 +295,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case NAMESPACE_NOTFOUND:
           throw new NamespaceNotFoundException(e);
         case OFFLINE:
-          throw new TableOfflineException(context.getInstance(), null);
+          throw new TableOfflineException(context.getInstance(), Tables.getTableId(context.getInstance(), tableOrNamespaceName));
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -727,7 +725,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
-      doFateOperation(FateOperation.TABLE_COMPACT, args, opts, config.getWait());
+      doFateOperation(FateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -1423,10 +1421,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return super.addConstraint(tableName, constraintClassName);
   }
 
-  private void doTableFateOperation(String tableName, Class<? extends Exception> namespaceNotFoundExceptionClass, FateOperation op, List<ByteBuffer> args,
-      Map<String,String> opts) throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  private void doTableFateOperation(String tableOrNamespaceName, Class<? extends Exception> namespaceNotFoundExceptionClass, FateOperation op,
+      List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
     try {
-      doFateOperation(op, args, opts);
+      doFateOperation(op, args, opts, tableOrNamespaceName);
     } catch (NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -1437,7 +1435,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } else if (AccumuloException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
         throw new AccumuloException("Cannot create table in non-existent namespace", e);
       } else if (TableNotFoundException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
-        throw new TableNotFoundException(null, tableName, "Namespace not found", e);
+        throw new TableNotFoundException(null, tableOrNamespaceName, "Namespace not found", e);
       } else {
         // should not happen
         throw new AssertionError(e);
