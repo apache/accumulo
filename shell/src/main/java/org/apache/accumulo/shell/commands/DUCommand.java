@@ -45,11 +45,7 @@ public class DUCommand extends Command {
     final SortedSet<String> tables = new TreeSet<String>(Arrays.asList(cl.getArgs()));
 
     if (cl.hasOption(ShellOptions.tableOption)) {
-      String tableName = cl.getOptionValue(ShellOptions.tableOption);
-      if (!shellState.getConnector().tableOperations().exists(tableName)) {
-        throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
-      }
-      tables.add(tableName);
+      tables.add(cl.getOptionValue(ShellOptions.tableOption));
     }
 
     if (cl.hasOption(optNamespace.getOpt())) {
@@ -72,6 +68,13 @@ public class DUCommand extends Command {
     // If we didn't get any tables, and we have a table selected, add the current table
     if (tables.isEmpty() && !shellState.getTableName().isEmpty()) {
       tables.add(shellState.getTableName());
+    }
+
+    // sanity check...make sure the user-specified tables exist
+    for (String tableName : tables) {
+      if (!shellState.getConnector().tableOperations().exists(tableName)) {
+        throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
+      }
     }
 
     try {
