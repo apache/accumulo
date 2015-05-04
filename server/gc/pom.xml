@@ -87,4 +87,15 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+        <artifactId>maven-java-formatter-plugin</artifactId>
+        <configuration>
+          <configFile>${project.basedir}/../../contrib/Eclipse-Accumulo-Codestyle.xml</configFile>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
