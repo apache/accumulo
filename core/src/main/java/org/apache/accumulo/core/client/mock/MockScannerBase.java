@@ -66,7 +66,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     private final Authorizations auths;
 
     MockIteratorEnvironment(Authorizations auths) {
-        this.auths = auths;
+      this.auths = auths;
     }
 
     @Override
@@ -98,7 +98,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
 
     @Override
     public Authorizations getAuthorizations() {
-        return auths;
+      return auths;
     }
 
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
@@ -127,7 +127,8 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Authorizations getAuthorizations() {
+  @Override
+  public Authorizations getAuthorizations() {
     return auths;
   }
 }

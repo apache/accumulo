@@ -84,7 +84,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     int result = 0;
     for (Boolean b : bools) {
       if (b.booleanValue())
-        result ++;
+        result++;
     }
     return result;
   }
@@ -120,7 +120,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     assertEquals("all WALs should be in use", 2, countTrue(walsAfterRoll.values()));
 
     // flush the tables
-    for (String table: new String[] { tableName, MetadataTable.NAME, RootTable.NAME} ) {
+    for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
       c.tableOperations().flush(table, null, null, true);
     }
     UtilWaitThread.sleep(1000);
@@ -147,7 +147,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     // allow a little time for the master to notice ASSIGNED_TO_DEAD_SERVER tablets
     UtilWaitThread.sleep(5 * 1000);
     Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
-    //log.debug("markers " + markers);
+    // log.debug("markers " + markers);
     assertEquals("one tablet should have markers", 1, markers.keySet().size());
     assertEquals("tableId of the keyExtent should be 1", markers.keySet().iterator().next().getTableId(), new Text("1"));
 
@@ -157,7 +157,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     writeSomeData(c, tableName, 100, 100);
 
     Map<String,Boolean> walsAfterRestart = getWals(c, zoo);
-    //log.debug("wals after " + walsAfterRestart);
+    // log.debug("wals after " + walsAfterRestart);
     assertEquals("used WALs after restart should be 1", 1, countTrue(walsAfterRestart.values()));
     control.start(GARBAGE_COLLECTOR);
     UtilWaitThread.sleep(5 * 1000);
@@ -196,8 +196,8 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     bw.close();
   }
 
-  private Map<String, Boolean> getWals(Connector c, ZooKeeper zoo) throws Exception {
-    Map<String, Boolean> result = new HashMap<>();
+  private Map<String,Boolean> getWals(Connector c, ZooKeeper zoo) throws Exception {
+    Map<String,Boolean> result = new HashMap<>();
     Scanner root = c.createScanner(RootTable.NAME, EMPTY);
     root.setRange(CurrentLogsSection.getRange());
     Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY);
@@ -218,8 +218,8 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     return result;
   }
 
-  private Map<KeyExtent, List<String>> getRecoveryMarkers(Connector c) throws Exception {
-    Map<KeyExtent, List<String>> result = new HashMap<>();
+  private Map<KeyExtent,List<String>> getRecoveryMarkers(Connector c) throws Exception {
+    Map<KeyExtent,List<String>> result = new HashMap<>();
     Scanner root = c.createScanner(RootTable.NAME, EMPTY);
     root.setRange(TabletsSection.getRange());
     root.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);

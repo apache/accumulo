@@ -71,7 +71,7 @@ class CleanUp extends MasterRepo {
 
     /*
      * handle the case where we start executing on a new machine where the current time is in the past relative to the previous machine
-     *
+     * 
      * if the new machine has time in the future, that will work ok w/ hasCycled
      */
     if (System.currentTimeMillis() < creationTime) {

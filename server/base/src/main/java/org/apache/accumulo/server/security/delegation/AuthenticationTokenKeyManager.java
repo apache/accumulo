@@ -52,8 +52,7 @@ public class AuthenticationTokenKeyManager extends Daemon {
    * @param tokenMaxLifetime
    *          The lifetime, in milliseconds, of generated AuthenticationKeys (and subsequently delegation tokens).
    */
-  public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr, ZooAuthenticationKeyDistributor dist, long keyUpdateInterval,
-      long tokenMaxLifetime) {
+  public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr, ZooAuthenticationKeyDistributor dist, long keyUpdateInterval, long tokenMaxLifetime) {
     super("Delegation Token Key Manager");
     this.secretManager = mgr;
     this.keyDistributor = dist;

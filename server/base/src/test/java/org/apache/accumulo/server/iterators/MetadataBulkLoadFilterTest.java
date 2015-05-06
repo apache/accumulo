@@ -116,7 +116,7 @@ public class MetadataBulkLoadFilterTest {
 
       @Override
       public Authorizations getAuthorizations() {
-          return null;
+        return null;
       }
 
       @Override

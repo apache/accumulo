@@ -117,11 +117,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
     /*
      * ACCUMULO-3320 WALs cannot be closed while a TabletServer may still use it later.
-     *
+     * 
      * In addition to the WALs that are actively referenced in the metadata table, tservers can also hold on to a WAL that is not presently referenced by any
      * tablet. For example, a tablet could MinC which would end in all logs for that tablet being removed. However, if more data was ingested into the table,
      * the same WAL could be re-used again by that tserver.
-     *
+     * 
      * If this code happened to run after the compaction but before the log is again referenced by a tabletserver, we might delete the WAL reference, only to
      * have it recreated again which causes havoc with the replication status for a table.
      */

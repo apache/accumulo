@@ -1441,7 +1441,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     }
 
-
     @Override
     public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, final TKeyExtent textent) {
 
@@ -1726,8 +1725,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     @Override
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       log.warn("Garbage collector is attempting to remove logs through the tablet server");
-      log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" +
-          "Restart your file Garbage Collector.");
+      log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" + "Restart your file Garbage Collector.");
     }
   }
 
@@ -2111,14 +2109,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         /*
          * @formatter:off If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor
          * compacted.
-         *
+         * 
          * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
-         *
+         * 
          * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
          * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
          * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then
          * have another process failure... this could cause duplicate data to replay.
-         *
+         * 
          * @formatter:on
          */
         if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
@@ -3004,14 +3002,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   // avoid unnecessary redundant markings to meta
-  final ConcurrentHashMap<DfsLogger, EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
+  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
   final Object levelLocks[] = new Object[TabletLevel.values().length];
   {
     for (int i = 0; i < levelLocks.length; i++) {
       levelLocks[i] = new Object();
     }
   }
-
 
   // remove any meta entries after a rolled log is no longer referenced
   Set<DfsLogger> closedLogs = new HashSet<>();

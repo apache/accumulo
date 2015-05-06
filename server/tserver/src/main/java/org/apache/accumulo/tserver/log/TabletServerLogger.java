@@ -210,10 +210,10 @@ public class TabletServerLogger {
       startLogMaker();
       Object next = nextLog.take();
       if (next instanceof Exception) {
-        throw (Exception)next;
+        throw (Exception) next;
       }
       if (next instanceof DfsLogger) {
-        currentLog = (DfsLogger)next;
+        currentLog = (DfsLogger) next;
         logId.incrementAndGet();
         log.info("Using next log " + currentLog.getFileName());
         return;

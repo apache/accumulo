@@ -398,7 +398,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     private org.apache.accumulo.core.client.mapreduce.RangeInputSplit baseSplit;
     protected ScannerBase scannerBase;
 
-
     /**
      * Extracts Iterators settings from the context to be used by RecordReader.
      *
@@ -496,7 +495,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         BatchScanner scanner;
         BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
 
-        try{
+        try {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
           int scanThreads = 1;
           scanner = instance.getConnector(principal, token).createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
@@ -608,7 +607,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     return InputConfigurator.binOffline(tableId, ranges, instance, conn);
   }
 
-
   /**
    * Gets the splits of the tables that have been set on the job by reading the metadata table for the specified ranges.
    *
@@ -646,9 +644,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
 
-      boolean batchScan =  InputConfigurator.isBatchScan(CLASS, job);
-      boolean supportBatchScan =
-        !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+      boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
+      boolean supportBatchScan = !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
         throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
 
@@ -716,7 +713,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           if (batchScan) {
             // group ranges by tablet to be read by a BatchScanner
             ArrayList<Range> clippedRanges = new ArrayList<Range>();
-            for(Range r: extentRanges.getValue())
+            for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});

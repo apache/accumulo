@@ -305,8 +305,8 @@ public class TableOperationsIT extends AccumuloClusterIT {
     Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key,Value> entry : scanner)
       actual.put(entry.getKey(), entry.getValue());
-    Assume.assumeFalse("Compaction successfully occurred due to weird timing but we hoped it would cancel.",
-        HardListIterator.allEntriesToInject.equals(actual));
+    Assume
+        .assumeFalse("Compaction successfully occurred due to weird timing but we hoped it would cancel.", HardListIterator.allEntriesToInject.equals(actual));
     assertTrue("Scan should be empty if compaction canceled. " + "Actual is " + actual, actual.isEmpty());
     connector.tableOperations().delete(tableName);
   }

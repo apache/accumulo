@@ -62,7 +62,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
 
   /**
-   * @deprecated since 1.7.0 was never intended for public use.  However this could have been used by anything extending this class.
+   * @deprecated since 1.7.0 was never intended for public use. However this could have been used by anything extending this class.
    */
   @Deprecated
   public class ScannerTranslator extends ScannerTranslatorImpl {
@@ -209,7 +209,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
         @Override
         public Authorizations getAuthorizations() {
-            return smi.scanner.getAuthorizations();
+          return smi.scanner.getAuthorizations();
         }
       }, false, null);
     } catch (IOException e) {

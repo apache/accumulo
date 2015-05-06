@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * This store removes Repos, in the store it wraps, that are in a finished or new state for more than a configurable time period.
  *

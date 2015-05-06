@@ -105,7 +105,7 @@ public class MinorCompactor extends Compactor {
 
           return ret;
         } catch (IOException e) {
-          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(),getOutputFile());
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile());
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
           reportedProblem = true;
         } catch (RuntimeException e) {

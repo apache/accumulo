@@ -199,7 +199,7 @@ public class ThriftScanner {
   private static long pause(long millis) throws InterruptedException {
     Thread.sleep(millis);
     // wait 2 * last time, with +-10% random jitter
-    return (long)(Math.max(millis * 2, 3000) * (.9 + Math.random() / 5));
+    return (long) (Math.max(millis * 2, 3000) * (.9 + Math.random() / 5));
   }
 
   public static List<KeyValue> scan(ClientContext context, ScanState scanState, int timeOut) throws ScanTimedOutException, AccumuloException,

@@ -19,5 +19,4 @@ package org.apache.accumulo.core.client.lexicoder.impl;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 
-public abstract class AbstractLexicoder<T> extends AbstractEncoder<T> implements Lexicoder<T> {
-}
+public abstract class AbstractLexicoder<T> extends AbstractEncoder<T> implements Lexicoder<T> {}

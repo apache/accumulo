@@ -23,7 +23,7 @@ public class ByteUtilsTest {
 
   private final byte[] empty = new byte[0];
   private final byte[] noSplits = "nosplits".getBytes();
-  private final byte[] splitAt5 = ("1234" + (char)0x00 + "56789").getBytes();
+  private final byte[] splitAt5 = ("1234" + (char) 0x00 + "56789").getBytes();
 
   @Test
   public void testSplit() throws Exception {

@@ -64,7 +64,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
   /*
    * use a thread pool so that reporting a problem never blocks
-   *
+   * 
    * make the thread pool use a bounded queue to avoid the case where problem reports are not being processed because the whole system is in a really bad state
    * (like HDFS is down) and everything is reporting lots of problems, but problem reports can not be processed
    */

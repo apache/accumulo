@@ -364,7 +364,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
    * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
-   *              discourage its use.
+   *             discourage its use.
    */
   @Deprecated
   protected static TabletLocator getTabletLocator(JobContext context, String table) throws TableNotFoundException {
@@ -430,18 +430,18 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     /**
      * Extracts Iterators settings from the context to be used by RecordReader.
      *
-     * @param  context
-     *           the Hadoop context for the configured job
-     * @param  tableName
-     *           the table name for which the scanner is configured
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param tableName
+     *          the table name for which the scanner is configured
      * @return List of iterator settings for given table
      * @since 1.7.0
      */
     protected abstract List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName);
 
     /**
-     * Configures the iterators on a scanner for the given table name.
-     * Will attempt to use configuration from the InputSplit, on failure will try to extract them from TaskAttemptContext.
+     * Configures the iterators on a scanner for the given table name. Will attempt to use configuration from the InputSplit, on failure will try to extract
+     * them from TaskAttemptContext.
      *
      * @param context
      *          the Hadoop context for the configured job
@@ -526,7 +526,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         BatchInputSplit batchSplit = (BatchInputSplit) split;
 
         BatchScanner scanner;
-        try{
+        try {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
           int scanThreads = 1;
           scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(), authorizations, scanThreads);
@@ -691,9 +691,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       String principal = getPrincipal(context);
       AuthenticationToken token = getAuthenticationToken(context);
 
-      boolean batchScan =  InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
-      boolean supportBatchScan =
-        !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+      boolean batchScan = InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
+      boolean supportBatchScan = !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
         throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
 
@@ -743,7 +742,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         throw new IOException(e);
       }
 
-      // all of this code will add either range per  each locations or split ranges and add range-location split
+      // all of this code will add either range per each locations or split ranges and add range-location split
       // Map from Range to Array of Locations, we only use this if we're don't split
       HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
@@ -764,7 +763,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           if (batchScan) {
             // group ranges by tablet to be read by a BatchScanner
             ArrayList<Range> clippedRanges = new ArrayList<Range>();
-            for(Range r: extentRanges.getValue())
+            for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);

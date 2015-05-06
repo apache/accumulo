@@ -98,7 +98,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public float getProgress(Key currentKey) {
     if (currentKey == null)
       return 0f;
-    if(range.contains(currentKey)){
+    if (range.contains(currentKey)) {
       if (range.getStartKey() != null && range.getEndKey() != null) {
         if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
           // just look at the row progress

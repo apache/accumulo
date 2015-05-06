@@ -513,7 +513,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
 
   /*
    * Eviction thread. Sits in waiting state until an eviction is triggered when the cache size grows above the acceptable level.<p>
-   *
+   * 
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
   private static class EvictionThread extends Thread {

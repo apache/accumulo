@@ -114,7 +114,7 @@ public class ClientConfigurationTest {
     assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
 
     // only used internally
-    Map<String, String> map = new HashMap<>();
+    Map<String,String> map = new HashMap<>();
     map.put(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
     map.put(ClientProperty.TRACE_SPAN_RECEIVERS.getKey(), val);
     conf = new ClientConfiguration(new MapConfiguration(map));
@@ -131,7 +131,7 @@ public class ClientConfigurationTest {
     conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second", "2nd");
     conf.addProperty("other", "value");
 
-    Map<String, String> props = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
+    Map<String,String> props = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
     assertEquals(2, props.size());
     assertEquals("1st", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first"));
     assertEquals("2nd", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second"));

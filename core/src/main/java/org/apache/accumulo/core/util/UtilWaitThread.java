@@ -19,7 +19,6 @@ package org.apache.accumulo.core.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class UtilWaitThread {
   private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
 

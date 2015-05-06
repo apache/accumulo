@@ -40,7 +40,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class CountTest extends TestCase {
 
   private static final Logger log = LoggerFactory.getLogger(CountTest.class);

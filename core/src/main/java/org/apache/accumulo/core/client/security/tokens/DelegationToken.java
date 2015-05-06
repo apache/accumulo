@@ -25,7 +25,8 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
  * itself. The delegation token serves as a mechanism to obtain a transient shared secret with Accumulo using a {@link KerberosToken} and then run some task
  * authenticating with that shared secret.
  *
- * <p>Obtain a delegation token by calling {@link SecurityOperations#getDelegationToken(org.apache.accumulo.core.client.admin.DelegationTokenConfig)}
+ * <p>
+ * Obtain a delegation token by calling {@link SecurityOperations#getDelegationToken(org.apache.accumulo.core.client.admin.DelegationTokenConfig)}
  *
  * @since 1.7.0
  */

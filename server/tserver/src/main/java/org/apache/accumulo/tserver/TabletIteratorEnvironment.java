@@ -43,7 +43,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
   private Map<FileRef,DataFileValue> files;
 
-  private final Authorizations authorizations;  // these will only be supplied during scan scope
+  private final Authorizations authorizations; // these will only be supplied during scan scope
 
   public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
     if (scope == IteratorScope.majc)
