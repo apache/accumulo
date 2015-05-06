@@ -86,7 +86,7 @@ public class StatusUtil {
    *          Existing {@link Builder} to use
    * @param recordsReplicated
    *          Offset of records which have been replicated
-   * @returnA {@link Status} tracking data that must be replicated
+   * @return A {@link Status} tracking data that must be replicated
    */
   public static Status replicated(Status.Builder builder, long recordsReplicated) {
     return replicatedAndIngested(builder, recordsReplicated, 0);

@@ -108,7 +108,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
   /**
    * Removes {@link Status} records read from the given {@code bs} and writes a delete, using the given {@code bw}, when that {@link Status} is fully replicated
-   * and closed, as defined by {@link StatusUtil#isSafeForRemoval(Status)}.
+   * and closed, as defined by {@link StatusUtil#isSafeForRemoval(org.apache.accumulo.server.replication.proto.Replication.Status)}.
    *
    * @param conn
    *          A Connector

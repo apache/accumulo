@@ -46,7 +46,10 @@ import com.google.common.base.Predicate;
 public class PreferredVolumeChooser extends RandomVolumeChooser implements VolumeChooser {
   private static final Logger log = LoggerFactory.getLogger(PreferredVolumeChooser.class);
 
-  public static final String PREFERRED_VOLUMES_CUSTOM_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "preferredVolumes";
+  /**
+   * This should match {@link Property#TABLE_ARBITRARY_PROP_PREFIX}
+   */
+  public static final String PREFERRED_VOLUMES_CUSTOM_KEY = "table.custom.preferredVolumes";
   // TODO ACCUMULO-3417 replace this with the ability to retrieve by String key.
   private static final Predicate<String> PREFERRED_VOLUMES_FILTER = new Predicate<String>() {
     @Override
