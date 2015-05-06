@@ -22,14 +22,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.HashMap;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.commons.collections.BufferOverflowException;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -52,11 +56,15 @@ import org.apache.hadoop.io.Text;
  *
  * @see RowFilter
  */
-public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,Value> {
+public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
+
+  public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
+  private static final long DEFAULT_MAX_BUFFER_SIZE = Long.MAX_VALUE;
 
   protected SortedKeyValueIterator<Key,Value> sourceIter;
   private Key topKey = null;
   private Value topValue = null;
+  private long maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
 
   // decode a bunch of key value pairs that have been encoded into a single value
   /**
@@ -71,12 +79,23 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   public abstract Value rowEncoder(List<Key> keys, List<Value> values) throws IOException;
 
   @Override
-  public abstract SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env);
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    RowEncodingIterator newInstance;
+    try {
+      newInstance = this.getClass().newInstance();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    newInstance.sourceIter = sourceIter.deepCopy(env);
+    newInstance.maxBufferSize = maxBufferSize;
+    return newInstance;
+  }
 
   List<Key> keys = new ArrayList<Key>();
   List<Value> values = new ArrayList<Value>();
 
   private void prepKeys() throws IOException {
+    long kvBufSize = 0;
     if (topKey != null)
       return;
     Text currentRow;
@@ -87,8 +106,14 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
       keys.clear();
       values.clear();
       while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
-        keys.add(new Key(sourceIter.getTopKey()));
-        values.add(new Value(sourceIter.getTopValue()));
+        Key sourceTopKey = sourceIter.getTopKey();
+        Value sourceTopValue = sourceIter.getTopValue();
+        keys.add(new Key(sourceTopKey));
+        values.add(new Value(sourceTopValue));
+        kvBufSize += sourceTopKey.getSize() + sourceTopValue.getSize() + 128;
+        if (kvBufSize > maxBufferSize) {
+          throw new BufferOverflowException("Exceeded buffer size of " + maxBufferSize + " for row: " + sourceTopKey.getRow().toString());
+        }
         sourceIter.next();
       }
     } while (!filter(currentRow, keys, values));
@@ -129,6 +154,29 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     sourceIter = source;
+    if (options.containsKey(MAX_BUFFER_SIZE_OPT)) {
+      maxBufferSize = AccumuloConfiguration.getMemoryInBytes(options.get(MAX_BUFFER_SIZE_OPT));
+    }
+  }
+
+  @Override
+  public IteratorOptions describeOptions() {
+    String desc = "This iterator encapsulates an entire row of Key/Value pairs into a single Key/Value pair.";
+    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.";
+    HashMap<String,String> namedOptions = new HashMap<String,String>();
+    namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);
+    return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);
+  }
+
+  @Override
+  public boolean validateOptions(Map<String, String> options) {
+    String maxBufferSizeStr = options.get(MAX_BUFFER_SIZE_OPT);
+    try {
+      AccumuloConfiguration.getMemoryInBytes(maxBufferSizeStr);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to parse opt " + MAX_BUFFER_SIZE_OPT + " " + maxBufferSizeStr, e);
+    }
+    return true;
   }
 
   @Override
