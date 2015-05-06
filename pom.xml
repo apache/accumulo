@@ -735,6 +735,19 @@
                 </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
+                    <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+                    <artifactId>maven-java-formatter-plugin</artifactId>
+                    <versionRange>[0.4,)</versionRange>
+                    <goals>
+                      <goal>format</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <versionRange>[2.13,)</versionRange>
@@ -910,17 +923,21 @@
           <artifactId>maven-java-formatter-plugin</artifactId>
           <version>0.4</version>
           <configuration>
+            <compilerCompliance>${maven.compiler.source}</compilerCompliance>
+            <compilerSource>${maven.compiler.source}</compilerSource>
+            <compilerTargetPlatform>${maven.compiler.target}</compilerTargetPlatform>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
               <exclude>**/proto/*.java</exclude>
             </excludes>
+            <lineEnding>LF</lineEnding>
+            <overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>
           </configuration>
           <dependencies>
             <dependency>
               <groupId>org.eclipse.tycho</groupId>
               <artifactId>org.eclipse.jdt.core</artifactId>
               <version>3.10.0.v20140604-1726</version>
-              <scope>compile</scope>
             </dependency>
           </dependencies>
           <executions>
@@ -976,7 +993,7 @@
               <module name="TreeWalker">
                 <module name="OneTopLevelClass" />
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="[^*]\s+$" />
+                  <property name="format" value="\s+$" />
                   <property name="message" value="Line has trailing whitespace." />
                 </module>
                 <module name="RegexpSinglelineJava">

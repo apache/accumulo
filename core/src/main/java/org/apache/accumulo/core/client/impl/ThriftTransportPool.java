@@ -190,12 +190,10 @@ public class ThriftTransportPool {
     }
 
     final void checkForStuckIO(long threshold) {
-      /*
-       * checking for stuck io needs to be light weight.
-       *
-       * Tried to call System.currentTimeMillis() and Thread.currentThread() before every io operation.... this dramatically slowed things down. So switched to
-       * incrementing a counter before and after each io operation.
-       */
+      // checking for stuck io needs to be light weight.
+
+      // Tried to call System.currentTimeMillis() and Thread.currentThread() before every io operation.... this dramatically slowed things down. So switched to
+      // incrementing a counter before and after each io operation.
 
       if ((ioCount & 1) == 1) {
         // when ioCount is odd, it means I/O is currently happening

@@ -378,6 +378,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
+     *
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
     @Deprecated

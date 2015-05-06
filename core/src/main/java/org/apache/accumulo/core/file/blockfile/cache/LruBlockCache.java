@@ -36,29 +36,29 @@ import org.apache.commons.logging.LogFactory;
 /**
  * A block cache implementation that is memory-aware using {@link HeapSize}, memory-bound using an LRU eviction algorithm, and concurrent: backed by a
  * {@link ConcurrentHashMap} and with a non-blocking eviction thread giving constant-time {@link #cacheBlock} and {@link #getBlock} operations.
- * <p>
  *
+ * <p>
  * Contains three levels of block priority to allow for scan-resistance and in-memory families. A block is added with an inMemory flag if necessary, otherwise a
  * block becomes a single access priority. Once a blocked is accessed again, it changes to multiple access. This is used to prevent scans from thrashing the
  * cache, adding a least-frequently-used element to the eviction algorithm.
- * <p>
  *
+ * <p>
  * Each priority is given its own chunk of the total cache to ensure fairness during eviction. Each priority will retain close to its maximum size, however, if
  * any priority is not using its entire chunk the others are able to grow beyond their chunk size.
- * <p>
  *
+ * <p>
  * Instantiated at a minimum with the total size and average block size. All sizes are in bytes. The block size is not especially important as this cache is
  * fully dynamic in its sizing of blocks. It is only used for pre-allocating data structures and in initial heap estimation of the map.
- * <p>
  *
+ * <p>
  * The detailed constructor defines the sizes for the three priorities (they should total to the maximum size defined). It also sets the levels that trigger and
  * control the eviction thread.
- * <p>
  *
+ * <p>
  * The acceptable size is the cache size level which triggers the eviction process to start. It evicts enough blocks to get the size below the minimum size
  * specified.
- * <p>
  *
+ * <p>
  * Eviction happens in a separate thread and involves a single full-scan of the map. It determines how many bytes must be freed to reach the minimum size, and
  * then while scanning determines the fewest least-recently-used blocks necessary from each of the three priorities (would be 3 times bytes to free). It then
  * uses the priority chunk sizes to evict fairly according to the relative sizes and usage.
@@ -511,9 +511,10 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return this.stats.getEvictedCount();
   }
 
-  /*
-   * Eviction thread. Sits in waiting state until an eviction is triggered when the cache size grows above the acceptable level.<p>
+  /**
+   * Eviction thread. Sits in waiting state until an eviction is triggered when the cache size grows above the acceptable level.
    *
+   * <p>
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
   private static class EvictionThread extends Thread {
