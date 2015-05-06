@@ -176,8 +176,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Determines whether a configuration has auto-adjust ranges enabled.
-   * Must be enabled when {@link #setBatchScan(Job, boolean)} is true.
+   * Determines whether a configuration has auto-adjust ranges enabled. Must be enabled when {@link #setBatchScan(Job, boolean)} is true.
    *
    * @param context
    *          the Hadoop context for the configured job
@@ -297,21 +296,20 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
-   * Using this feature will group Ranges by their source tablet, producing an InputSplit per tablet
-   * rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges.
-   * (ex: when doing quad-tree decomposition for spatial queries)
+   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job. Using this feature will group Ranges by their source tablet,
+   * producing an InputSplit per tablet rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges. (ex: when
+   * doing quad-tree decomposition for spatial queries)
    * <p>
-   * In order to achieve good locality of InputSplits this option always clips the input Ranges to tablet boundaries.
-   * This may result in one input Range contributing to several InputSplits.
+   * In order to achieve good locality of InputSplits this option always clips the input Ranges to tablet boundaries. This may result in one input Range
+   * contributing to several InputSplits.
    * <p>
    * Note: that the value of {@link #setAutoAdjustRanges(Job, boolean)} is ignored and is assumed to be true when BatchScan option is enabled.
    * <p>
    * This configuration is incompatible with:
    * <ul>
-   *   <li>{@link #setOfflineTableScan(org.apache.hadoop.mapreduce.Job, boolean)}</li>
-   *   <li>{@link #setLocalIterators(org.apache.hadoop.mapreduce.Job, boolean)}</li>
-   *   <li>{@link #setScanIsolation(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * <li>{@link #setOfflineTableScan(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * <li>{@link #setLocalIterators(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * <li>{@link #setScanIsolation(org.apache.hadoop.mapreduce.Job, boolean)}</li>
    * </ul>
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -378,6 +376,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
+     * 
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
     @Deprecated

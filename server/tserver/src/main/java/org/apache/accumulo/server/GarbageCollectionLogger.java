@@ -35,8 +35,7 @@ public class GarbageCollectionLogger {
   private long gcTimeIncreasedCount = 0;
   private static long lastMemoryCheckTime = 0;
 
-  public GarbageCollectionLogger() {
-  }
+  public GarbageCollectionLogger() {}
 
   public synchronized void logGCInfo(AccumuloConfiguration conf) {
     final long now = System.currentTimeMillis();

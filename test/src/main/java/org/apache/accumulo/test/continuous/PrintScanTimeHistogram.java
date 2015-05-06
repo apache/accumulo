@@ -45,7 +45,7 @@ public class PrintScanTimeHistogram {
     report = new StringBuilder();
     report.append(String.format("%n *** Find start rows histogram *** %n"));
     fsrHist.print(report);
-    log.info("{}",report);
+    log.info("{}", report);
   }
 
   private static void processFile(InputStream ins, Histogram<String> srqHist, Histogram<String> fsrHist) throws FileNotFoundException, IOException {

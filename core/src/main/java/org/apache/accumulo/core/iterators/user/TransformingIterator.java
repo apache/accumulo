@@ -53,7 +53,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * The TransformingIterator allows portions of a key (except for the row) to be transformed. This iterator handles the details that come with modifying keys
  * (i.e., that the sort order could change). In order to do so, however, the iterator must put all keys sharing the same prefix in memory. Prefix is defined as

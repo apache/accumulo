@@ -926,9 +926,9 @@ public class MetadataTableUtil {
     }
   }
 
-  public static Multimap<Long, FileRef> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
+  public static Multimap<Long,FileRef> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
     Text metadataRow = extent.getMetadataEntry();
-    Multimap<Long, FileRef> ret = HashMultimap.create();
+    Multimap<Long,FileRef> ret = HashMultimap.create();
 
     VolumeManager fs = VolumeManagerImpl.get();
     Scanner scanner = new ScannerImpl(context, extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY);
@@ -1141,8 +1141,8 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void fetchLogsForDeadServer(ClientContext context, ZooLock lock, KeyExtent extent, TServerInstance server, Map<TServerInstance,List<Path>> logsForDeadServers)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public static void fetchLogsForDeadServer(ClientContext context, ZooLock lock, KeyExtent extent, TServerInstance server,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // already cached
     if (logsForDeadServers.containsKey(server)) {
       return;

@@ -19,9 +19,7 @@ package org.apache.accumulo.server;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public enum TabletLevel {
-  ROOT,
-  META,
-  NORMAL;
+  ROOT, META, NORMAL;
 
   public static TabletLevel getLevel(KeyExtent extent) {
     if (!extent.isMeta())

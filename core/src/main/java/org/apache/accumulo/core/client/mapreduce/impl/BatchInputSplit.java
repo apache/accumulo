@@ -30,8 +30,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 
 /**
- * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs.
- * Can contain several Ranges per split.
+ * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs. Can contain several Ranges per split.
  */
 public class BatchInputSplit extends RangeInputSplit {
   private Collection<Range> ranges;
@@ -75,10 +74,12 @@ public class BatchInputSplit extends RangeInputSplit {
               rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
             } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
               // just look at the column family progress
-              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(),
+                  currentKey.getColumnFamilyData());
             } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
               // just look at the column qualifier progress
-              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(),
+                  currentKey.getColumnQualifierData());
             }
           }
           total += rangeProgress[i];
@@ -107,7 +108,7 @@ public class BatchInputSplit extends RangeInputSplit {
 
     int numRanges = in.readInt();
     ranges = new ArrayList<Range>(numRanges);
-    for (int i = 0; i < numRanges; ++i){
+    for (int i = 0; i < numRanges; ++i) {
       Range r = new Range();
       r.readFields(in);
       ranges.add(r);
@@ -119,7 +120,7 @@ public class BatchInputSplit extends RangeInputSplit {
     super.write(out);
 
     out.writeInt(ranges.size());
-    for (Range r: ranges)
+    for (Range r : ranges)
       r.write(out);
   }
 
@@ -141,12 +142,12 @@ public class BatchInputSplit extends RangeInputSplit {
   }
 
   @Override
-  public Range getRange(){
+  public Range getRange() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void setRange(Range range){
+  public void setRange(Range range) {
     throw new UnsupportedOperationException();
   }
 

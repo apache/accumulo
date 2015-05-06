@@ -289,7 +289,7 @@ public class MetadataSchema {
    */
   public static class CurrentLogsSection {
     private static final Section section = new Section(RESERVED_PREFIX + "wal+", true, RESERVED_PREFIX + "wal,", false);
-    private static byte LEFT_BRACKET = (byte)'[';
+    private static byte LEFT_BRACKET = (byte) '[';
     public static final Text COLF = new Text("log");
     public static final Value UNUSED = new Value("unused".getBytes(UTF_8));
 

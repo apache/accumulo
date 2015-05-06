@@ -84,10 +84,10 @@ public class ContinuousBatchWalker {
   /*
    * private static void runSequentialScan(Scanner scanner, List<Range> ranges) { Set<Text> srowsSeen = new HashSet<Text>(); long st1 =
    * System.currentTimeMillis(); int scount = 0; for (Range range : ranges) { scanner.setRange(range);
-   *
+   * 
    * for (Entry<Key,Value> entry : scanner) { srowsSeen.add(entry.getKey().getRow()); scount++; } }
-   *
-   *
+   * 
+   * 
    * long st2 = System.currentTimeMillis(); System.out.println("SRQ "+(st2 - st1)+" "+srowsSeen.size() +" "+scount); }
    */
 

@@ -109,7 +109,8 @@ public class NullScanner implements Scanner {
   @Override
   public void close() {}
 
-  @Override public Authorizations getAuthorizations() {
+  @Override
+  public Authorizations getAuthorizations() {
     return null;
   }
 

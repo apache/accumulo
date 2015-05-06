@@ -41,9 +41,10 @@ final public class SplitInfo {
   private final long initFlushID;
   private final long initCompactID;
   private final TServerInstance lastLocation;
-  private final Multimap<Long, FileRef> bulkImported;
+  private final Multimap<Long,FileRef> bulkImported;
 
-  SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Multimap<Long, FileRef> bulkImported) {
+  SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID, TServerInstance lastLocation,
+      Multimap<Long,FileRef> bulkImported) {
     this.dir = d;
     this.datafiles = dfv;
     this.time = time;
@@ -77,7 +78,7 @@ final public class SplitInfo {
     return lastLocation;
   }
 
-  public Multimap<Long, FileRef> getBulkImported() {
+  public Multimap<Long,FileRef> getBulkImported() {
     return bulkImported;
   }
 

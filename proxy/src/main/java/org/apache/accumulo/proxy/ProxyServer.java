@@ -199,8 +199,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       } else {
         clientConf = ClientConfiguration.loadDefault();
       }
-      instance = new ZooKeeperInstance(clientConf.withInstance(props.getProperty("instance"))
-          .withZkHosts(props.getProperty("zookeepers")));
+      instance = new ZooKeeperInstance(clientConf.withInstance(props.getProperty("instance")).withZkHosts(props.getProperty("zookeepers")));
     }
 
     try {

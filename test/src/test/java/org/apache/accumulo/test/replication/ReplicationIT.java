@@ -133,7 +133,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
   private Multimap<String,String> getLogs(Connector conn) throws TableNotFoundException {
     // Map of server to tableId
-    Multimap<TServerInstance, String> serverToTableID = HashMultimap.create();
+    Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -154,7 +154,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
       Text session = new Text();
       Text hostPort = new Text();
-      MetadataSchema.CurrentLogsSection.getTabletServer(entry.getKey(), hostPort , session);
+      MetadataSchema.CurrentLogsSection.getTabletServer(entry.getKey(), hostPort, session);
       TServerInstance server = new TServerInstance(AddressUtil.parseAddress(hostPort.toString(), false), session.toString());
       for (String tableId : serverToTableID.get(server)) {
         logs.put(new Path(path.toString()).toString(), tableId);

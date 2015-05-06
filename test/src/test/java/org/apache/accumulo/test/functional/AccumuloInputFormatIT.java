@@ -147,7 +147,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     splits = inputFormat.getSplits(job);
     assertEquals(ranges.size(), splits.size());
 
-    //BatchScan not available for offline scans
+    // BatchScan not available for offline scans
     AccumuloInputFormat.setBatchScan(job, true);
     // Reset auto-adjust ranges too
     AccumuloInputFormat.setAutoAdjustRanges(job, true);
@@ -165,7 +165,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
-    //BatchScan not available with isolated iterators
+    // BatchScan not available with isolated iterators
     AccumuloInputFormat.setScanIsolation(job, true);
     try {
       inputFormat.getSplits(job);
@@ -177,7 +177,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
-    //BatchScan not available with local iterators
+    // BatchScan not available with local iterators
     AccumuloInputFormat.setLocalIterators(job, true);
     try {
       inputFormat.getSplits(job);
@@ -185,13 +185,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     } catch (IllegalArgumentException e) {}
     AccumuloInputFormat.setLocalIterators(job, false);
 
-    //Check we are getting back correct type pf split
+    // Check we are getting back correct type pf split
     conn.tableOperations().online(table);
     splits = inputFormat.getSplits(job);
-    for (InputSplit split: splits)
-      assert(split instanceof BatchInputSplit);
+    for (InputSplit split : splits)
+      assert (split instanceof BatchInputSplit);
 
-    //We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job, true)`
+    // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job, true)`
     assertEquals(2, splits.size());
   }
 

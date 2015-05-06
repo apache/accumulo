@@ -49,7 +49,8 @@ import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
  * @since 1.6.0
  */
 
-public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> extends AbstractLexicoder<ComparablePair<A,B>> implements Lexicoder<ComparablePair<A,B>> {
+public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> extends AbstractLexicoder<ComparablePair<A,B>> implements
+    Lexicoder<ComparablePair<A,B>> {
 
   private Lexicoder<A> firstLexicoder;
   private Lexicoder<B> secondLexicoder;

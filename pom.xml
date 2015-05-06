@@ -905,6 +905,32 @@
           <artifactId>apilyzer-maven-plugin</artifactId>
           <version>1.0.1</version>
         </plugin>
+        <plugin>
+          <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+          <artifactId>maven-java-formatter-plugin</artifactId>
+          <version>0.4</version>
+          <configuration>
+            <excludes>
+              <exclude>**/thrift/*.java</exclude>
+              <exclude>**/proto/*.java</exclude>
+            </excludes>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.eclipse.tycho</groupId>
+              <artifactId>org.eclipse.jdt.core</artifactId>
+              <version>3.10.0.v20140604-1726</version>
+              <scope>compile</scope>
+            </dependency>
+          </dependencies>
+          <executions>
+            <execution>
+              <goals>
+                <goal>format</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -950,7 +976,7 @@
               <module name="TreeWalker">
                 <module name="OneTopLevelClass" />
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="\s+$" />
+                  <property name="format" value="[^*]\s+$" />
                   <property name="message" value="Line has trailing whitespace." />
                 </module>
                 <module name="RegexpSinglelineJava">
@@ -1111,6 +1137,13 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
         <inherited>true</inherited>
+      </plugin>
+      <plugin>
+        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+        <artifactId>maven-java-formatter-plugin</artifactId>
+        <configuration>
+          <configFile>${project.basedir}/../contrib/Eclipse-Accumulo-Codestyle.xml</configFile>
+        </configuration>
       </plugin>
     </plugins>
     <extensions>

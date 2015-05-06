@@ -83,7 +83,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-
+   * 
    * <p>
    * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the configuration as a means to pass the token to MapReduce tasks. This
    * information is BASE64 encoded to provide a charset safe conversion to a string, but this conversion is not intended to be secure. {@link PasswordToken} is

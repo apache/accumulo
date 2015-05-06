@@ -79,7 +79,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
 
   /*
    * public TabletIterator(String table, boolean returnPrevEndRow){
-   *
+   * 
    * }
    */
 

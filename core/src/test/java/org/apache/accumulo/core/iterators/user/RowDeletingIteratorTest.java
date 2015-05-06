@@ -74,7 +74,7 @@ public class RowDeletingIteratorTest extends TestCase {
 
     @Override
     public Authorizations getAuthorizations() {
-        return null;
+      return null;
     }
   }
 

@@ -179,8 +179,8 @@ public class ClientConfiguration extends CompositeConfiguration {
       if (c instanceof AbstractConfiguration) {
         AbstractConfiguration abstractConfiguration = (AbstractConfiguration) c;
         if (!abstractConfiguration.isDelimiterParsingDisabled() && abstractConfiguration.getListDelimiter() != '\0') {
-          log.warn("Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config " +
-              "properties may be unavailable");
+          log.warn("Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config "
+              + "properties may be unavailable");
           abstractConfiguration.setListDelimiter('\0');
         }
       }

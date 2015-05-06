@@ -30,7 +30,7 @@ package org.apache.accumulo.core.file.blockfile.cache;
  *
  * <pre>
  * public class SampleObject implements HeapSize {
- *
+ * 
  *   int[] numbers;
  *   int x;
  * }

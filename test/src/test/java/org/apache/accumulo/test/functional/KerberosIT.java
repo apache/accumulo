@@ -499,8 +499,8 @@ public class KerberosIT extends AccumuloIT {
     });
 
     // A restarted master should reuse the same secret key after a restart if the secret key hasn't expired (1day by default)
-    DelegationTokenImpl dt1 = (DelegationTokenImpl)delegationToken1;
-    DelegationTokenImpl dt2 = (DelegationTokenImpl)delegationToken2;
+    DelegationTokenImpl dt1 = (DelegationTokenImpl) delegationToken1;
+    DelegationTokenImpl dt2 = (DelegationTokenImpl) delegationToken2;
     assertEquals(dt1.getIdentifier().getKeyId(), dt2.getIdentifier().getKeyId());
   }
 
@@ -551,7 +551,7 @@ public class KerberosIT extends AccumuloIT {
       }
     });
 
-    AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl)dt).getIdentifier();
+    AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl) dt).getIdentifier();
     assertTrue("Expected identifier to expire in no more than 5 minutes: " + identifier,
         identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000));
   }
