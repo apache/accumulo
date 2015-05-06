@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-
 public class EstimateInMemMapOverhead {
 
   private static void runTest(int numEntries, int keyLen, int colFamLen, int colQualLen, int colVisLen, int dataLen) {

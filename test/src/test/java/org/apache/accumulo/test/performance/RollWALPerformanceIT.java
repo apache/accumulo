@@ -71,14 +71,8 @@ public class RollWALPerformanceIT extends ConfigurableMacIT {
 
     log.info("Starting ingest");
     final long start = System.currentTimeMillis();
-    final String args[] = {
-        "-i", inst.getInstanceName(),
-        "-z", inst.getZooKeepers(),
-        "-u", "root",
-        "-p", ROOT_PASSWORD,
-        "--batchThreads", "2",
-        "--table", tableName,
-        "--num", Long.toString(1000*1000),  // 1M 100 byte entries
+    final String args[] = {"-i", inst.getInstanceName(), "-z", inst.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table",
+        tableName, "--num", Long.toString(1000 * 1000), // 1M 100 byte entries
     };
 
     ContinuousIngest.main(args);
@@ -106,7 +100,7 @@ public class RollWALPerformanceIT extends ConfigurableMacIT {
     c.instanceOperations().setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1G");
     c.tableOperations().flush(MetadataTable.NAME, null, null, true);
     c.tableOperations().flush(RootTable.NAME, null, null, true);
-    for (ProcessReference  tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+    for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
       getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
     }
     getCluster().start();
@@ -118,7 +112,7 @@ public class RollWALPerformanceIT extends ConfigurableMacIT {
     assertTrue(percent < 125.);
   }
 
-  @Test(timeout= 20 * 60 * 1000)
+  @Test(timeout = 20 * 60 * 1000)
   public void testWalPerformance() throws Exception {
     testWalPerformanceOnce();
   }

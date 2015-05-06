@@ -370,12 +370,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   /**
-   * Opens a Write-Ahead Log file and writes the necessary header information and OPEN entry to the file.
-   * The file is ready to be used for ingest if this method returns successfully. If an exception is thrown
-   * from this method, it is the callers responsibility to ensure that {@link #close()} is called to prevent
+   * Opens a Write-Ahead Log file and writes the necessary header information and OPEN entry to the file. The file is ready to be used for ingest if this method
+   * returns successfully. If an exception is thrown from this method, it is the callers responsibility to ensure that {@link #close()} is called to prevent
    * leaking the file handle and/or syncing thread.
    *
-   * @param address The address of the host using this WAL
+   * @param address
+   *          The address of the host using this WAL
    */
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();

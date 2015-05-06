@@ -40,7 +40,6 @@ import org.apache.hadoop.io.MapFile.Reader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class MapFileIterator implements FileSKVIterator {
   private static final Logger log = LoggerFactory.getLogger(MapFileIterator.class);
 

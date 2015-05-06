@@ -59,13 +59,8 @@ public class TraceTableStats {
 
     @Override
     public String toString() {
-      return "{" +
-          "type='" + type + '\'' +
-          ", nonzeroCount=" + nonzeroCount +
-          ", zeroCount=" + zeroCount +
-          ", numTraces=" + traceIds.size() +
-          ", log10SpanLength=" + log10SpanLength +
-          '}';
+      return "{" + "type='" + type + '\'' + ", nonzeroCount=" + nonzeroCount + ", zeroCount=" + zeroCount + ", numTraces=" + traceIds.size()
+          + ", log10SpanLength=" + log10SpanLength + '}';
     }
   }
 
@@ -80,7 +75,7 @@ public class TraceTableStats {
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), Authorizations.EMPTY);
     scanner.setRange(new Range(null, true, "idx:", false));
-    Map<String, SpanTypeCount> counts = new TreeMap<>();
+    Map<String,SpanTypeCount> counts = new TreeMap<>();
     final SpanTypeCount hdfs = new SpanTypeCount();
     hdfs.type = "HDFS";
     final SpanTypeCount accumulo = new SpanTypeCount();
@@ -91,14 +86,13 @@ public class TraceTableStats {
     for (Entry<Key,Value> entry : scanner) {
       numSpans++;
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-      String id = span.getSvc()+":"+span.getDescription().replaceAll("[0-9][0-9][0-9]+", "");
+      String id = span.getSvc() + ":" + span.getDescription().replaceAll("[0-9][0-9][0-9]+", "");
       SpanTypeCount stc = counts.get(id);
       if (stc == null) {
         stc = new SpanTypeCount();
         counts.put(id, stc);
         if (span.description.startsWith("org.apache.hadoop") || span.svc.equals("NameNode") || span.svc.equals("DataNode")
-            || span.description.contains("DFSOutputStream") || span.description.contains("DFSInputStream")
-            || span.description.contains("BlockReader")) {
+            || span.description.contains("DFSOutputStream") || span.description.contains("DFSInputStream") || span.description.contains("BlockReader")) {
           stc.type = hdfs.type;
         } else {
           stc.type = accumulo.type;
@@ -110,18 +104,18 @@ public class TraceTableStats {
       } else {
         increment(accumulo, span);
       }
-      maxSpanLength = Math.max(maxSpanLength, Math.log10(span.stop-span.start));
-      maxSpanLengthMS = Math.max(maxSpanLengthMS, span.stop-span.start);
+      maxSpanLength = Math.max(maxSpanLength, Math.log10(span.stop - span.start));
+      maxSpanLengthMS = Math.max(maxSpanLengthMS, span.stop - span.start);
     }
     System.out.println();
-    System.out.println("log10 max span length "+maxSpanLength+" "+maxSpanLengthMS);
-    System.out.println("Total spans "+numSpans);
+    System.out.println("log10 max span length " + maxSpanLength + " " + maxSpanLengthMS);
+    System.out.println("Total spans " + numSpans);
     System.out.println("Percentage Accumulo nonzero of total " + accumulo.nonzeroCount + "/" + numSpans + " = " + (accumulo.nonzeroCount * 1.0 / numSpans));
     System.out.println(hdfs + ", total " + (hdfs.nonzeroCount + hdfs.zeroCount));
-    System.out.println(accumulo+ ", total " + (accumulo.nonzeroCount + accumulo.zeroCount));
+    System.out.println(accumulo + ", total " + (accumulo.nonzeroCount + accumulo.zeroCount));
     System.out.println();
     System.out.println("source:desc={stats}");
-    for (Entry<String, SpanTypeCount> c : counts.entrySet()) {
+    for (Entry<String,SpanTypeCount> c : counts.entrySet()) {
       System.out.println(c);
     }
   }
@@ -147,7 +141,7 @@ public class TraceTableStats {
       else if (ms <= 1000000)
         incrementIndex(stc.log10SpanLength, 6);
       else
-        throw new IllegalArgumentException("unexpected span length "+ms);
+        throw new IllegalArgumentException("unexpected span length " + ms);
     }
   }
 

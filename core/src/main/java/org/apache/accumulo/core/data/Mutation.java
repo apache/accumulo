@@ -1141,11 +1141,9 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object
-   * containing this Mutation's data.
+   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object containing this Mutation's data.
    *
-   * Note that this method will move the Mutation into a "serialized" state
-   * that will prevent users from adding more data via Mutation#put().
+   * Note that this method will move the Mutation into a "serialized" state that will prevent users from adding more data via Mutation#put().
    *
    * @return a thrift form of this Mutation
    */

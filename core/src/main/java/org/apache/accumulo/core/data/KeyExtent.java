@@ -127,8 +127,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   @Override
   public boolean equals(Object o) {
-    if(o instanceof KeyExtent){
-      return wrapped.equals(((KeyExtent)o).wrapped);
+    if (o instanceof KeyExtent) {
+      return wrapped.equals(((KeyExtent) o).wrapped);
     }
 
     return false;
@@ -179,7 +179,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return wrapped.isRootTablet();
   }
 
-  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> unwrap(Set<KeyExtent> tablets){
+  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> unwrap(Set<KeyExtent> tablets) {
     SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> trans = new TreeSet<>();
     for (KeyExtent wrapper : tablets) {
       trans.add(wrapper.wrapped);
@@ -188,11 +188,11 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return trans;
   }
 
-  private static KeyExtent wrap(org.apache.accumulo.core.data.impl.KeyExtent ke){
+  private static KeyExtent wrap(org.apache.accumulo.core.data.impl.KeyExtent ke) {
     return new KeyExtent(ke.getTableId(), ke.getEndRow(), ke.getPrevEndRow());
   }
 
-  private static SortedSet<KeyExtent> wrap(Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped){
+  private static SortedSet<KeyExtent> wrap(Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped) {
     SortedSet<KeyExtent> wrapped = new TreeSet<>();
     for (org.apache.accumulo.core.data.impl.KeyExtent wrappee : unwrapped) {
       wrapped.add(wrap(wrappee));
@@ -225,7 +225,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public static Mutation getPrevRowUpdateMutation(KeyExtent ke) {
-   return org.apache.accumulo.core.data.impl.KeyExtent.getPrevRowUpdateMutation(ke.wrapped);
+    return org.apache.accumulo.core.data.impl.KeyExtent.getPrevRowUpdateMutation(ke.wrapped);
   }
 
   public static byte[] tableOfMetadataRow(Text row) {
@@ -246,12 +246,13 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public static Set<KeyExtent> findOverlapping(KeyExtent nke, SortedMap<KeyExtent,?> extents) {
     SortedMap<org.apache.accumulo.core.data.impl.KeyExtent,Object> trans = new TreeMap<>();
-    for(Entry<KeyExtent, ?> entry : extents.entrySet()){
+    for (Entry<KeyExtent,?> entry : extents.entrySet()) {
       trans.put(entry.getKey().wrapped, entry.getValue());
     }
 
     return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findOverlapping(nke.wrapped, trans));
   }
+
   public static Text getMetadataEntry(KeyExtent extent) {
     return org.apache.accumulo.core.data.impl.KeyExtent.getMetadataEntry(extent.wrapped);
   }

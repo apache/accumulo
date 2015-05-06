@@ -32,7 +32,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class VisibilityFilter extends Filter {
   protected VisibilityEvaluator ve;
   protected Text defaultVisibility;

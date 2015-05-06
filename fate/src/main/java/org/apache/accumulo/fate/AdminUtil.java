@@ -111,7 +111,7 @@ public class AdminUtil<T> {
             tables.add(lda[0].charAt(0) + ":" + id);
 
           } catch (Exception e) {
-            log.error("{}", e.getMessage(),e);
+            log.error("{}", e.getMessage(), e);
           }
           pos++;
         }

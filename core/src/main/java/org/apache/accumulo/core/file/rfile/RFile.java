@@ -68,7 +68,6 @@ import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class RFile {
 
   public static final String EXTENSION = "rf";
@@ -565,7 +564,7 @@ public class RFile {
           currBlock = getDataBlock(indexEntry);
 
           checkRange = range.afterEndKey(indexEntry.getKey());
-    if (!checkRange)
+          if (!checkRange)
             hasTop = true;
 
         } else {

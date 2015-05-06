@@ -475,7 +475,8 @@ public class ThriftTransportPool {
   }
 
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(), (int) cacheKey.getTimeout(), cacheKey.getSslParams(), cacheKey.getSaslParams());
+    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(), (int) cacheKey.getTimeout(), cacheKey.getSslParams(),
+        cacheKey.getSaslParams());
 
     log.trace("Creating new connection to connection to {}", cacheKey.getServer());
 

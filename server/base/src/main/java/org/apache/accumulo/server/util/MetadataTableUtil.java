@@ -1146,8 +1146,8 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void fetchLogsForDeadServer(ClientContext context, ZooLock lock, KeyExtent extent, TServerInstance server, Map<TServerInstance,List<Path>> logsForDeadServers)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public static void fetchLogsForDeadServer(ClientContext context, ZooLock lock, KeyExtent extent, TServerInstance server,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // already cached
     if (logsForDeadServers.containsKey(server)) {
       return;

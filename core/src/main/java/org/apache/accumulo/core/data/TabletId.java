@@ -26,6 +26,8 @@ import org.apache.hadoop.io.Text;
  */
 public interface TabletId extends Comparable<TabletId> {
   public Text getTableId();
+
   public Text getEndRow();
+
   public Text getPrevEndRow();
 }

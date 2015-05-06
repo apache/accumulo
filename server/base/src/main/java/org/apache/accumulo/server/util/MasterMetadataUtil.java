@@ -281,7 +281,6 @@ public class MasterMetadataUtil {
     }
   }
 
-
   /**
    * Create an update that updates a tablet
    *
@@ -314,7 +313,6 @@ public class MasterMetadataUtil {
       m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
 
     TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(Long.toString(flushId).getBytes(UTF_8)));
-
 
     return m;
   }

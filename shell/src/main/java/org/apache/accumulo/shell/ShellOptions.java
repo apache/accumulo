@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.shell;
 
-
 /**
  * Abstract class to encompass the Options available on the Accumulo Shell
  */

@@ -1441,7 +1441,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     }
 
-
     @Override
     public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, final TKeyExtent textent) {
 
@@ -1726,8 +1725,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     @Override
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       log.warn("Garbage collector is attempting to remove logs through the tablet server");
-      log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" +
-          "Restart your file Garbage Collector.");
+      log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" + "Restart your file Garbage Collector.");
     }
   }
 
@@ -2998,14 +2996,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   // avoid unnecessary redundant markings to meta
-  final ConcurrentHashMap<DfsLogger, EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
+  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
   final Object levelLocks[] = new Object[TabletLevel.values().length];
   {
     for (int i = 0; i < levelLocks.length; i++) {
       levelLocks[i] = new Object();
     }
   }
-
 
   // remove any meta entries after a rolled log is no longer referenced
   Set<DfsLogger> closedLogs = new HashSet<>();

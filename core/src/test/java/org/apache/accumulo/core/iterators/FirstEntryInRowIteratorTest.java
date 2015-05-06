@@ -67,8 +67,7 @@ public class FirstEntryInRowIteratorTest {
       }
 
       @Override
-      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(
-          String arg0) throws IOException {
+      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String arg0) throws IOException {
         return null;
       }
     };

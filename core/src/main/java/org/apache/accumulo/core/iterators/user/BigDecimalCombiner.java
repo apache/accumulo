@@ -101,7 +101,8 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
    * Provides the ability to encode scientific notation.
    *
    */
-  public static class BigDecimalEncoder extends AbstractLexicoder<BigDecimal> implements org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<BigDecimal> {
+  public static class BigDecimalEncoder extends AbstractLexicoder<BigDecimal> implements
+      org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<BigDecimal> {
     @Override
     public byte[] encode(BigDecimal v) {
       return v.toString().getBytes(UTF_8);

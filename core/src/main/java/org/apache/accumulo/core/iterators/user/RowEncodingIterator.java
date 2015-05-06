@@ -169,7 +169,7 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   }
 
   @Override
-  public boolean validateOptions(Map<String, String> options) {
+  public boolean validateOptions(Map<String,String> options) {
     String maxBufferSizeStr = options.get(MAX_BUFFER_SIZE_OPT);
     try {
       AccumuloConfiguration.getMemoryInBytes(maxBufferSizeStr);
