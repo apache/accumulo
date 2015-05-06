@@ -48,8 +48,6 @@ import com.google.common.collect.Iterators;
  *
  * If a tablet that was returned by this iterator is subsequently deleted from the metadata table, then this iterator will throw a TabletDeletedException. This
  * could occur when a table is merged.
- *
- *
  */
 public class TabletIterator implements Iterator<Map<Key,Value>> {
 
@@ -77,18 +75,11 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
     }
   }
 
-  /*
-   * public TabletIterator(String table, boolean returnPrevEndRow){
-   * 
-   * }
-   */
-
   /**
    *
    * @param s
    *          A scanner over the entire metadata table configure to fetch needed columns.
    */
-
   public TabletIterator(Scanner s, Range range, boolean returnPrevEndRow, boolean returnDir) {
     this.scanner = s;
     this.range = range;

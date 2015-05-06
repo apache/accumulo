@@ -69,11 +69,8 @@ class CleanUp extends MasterRepo {
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
-    /*
-     * handle the case where we start executing on a new machine where the current time is in the past relative to the previous machine
-     * 
-     * if the new machine has time in the future, that will work ok w/ hasCycled
-     */
+    // handle the case where we start executing on a new machine where the current time is in the past relative to the previous machine
+    // if the new machine has time in the future, that will work ok w/ hasCycled
     if (System.currentTimeMillis() < creationTime) {
       creationTime = System.currentTimeMillis();
     }

@@ -657,10 +657,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  /*
+  /**
    * The purpose of this code is to ensure that a conditional mutation will not execute when its status is unknown. This allows a user to read the row when the
    * status is unknown and not have to worry about the tserver applying the mutation after the scan.
-   * 
+   *
+   * <p>
    * If a conditional mutation is taking a long time to process, then this method will wait for it to finish... unless this exceeds timeout.
    */
   private void invalidateSession(SessionID sessionId, HostAndPort location) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
