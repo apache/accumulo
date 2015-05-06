@@ -369,6 +369,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return new DFSLoggerInputStreams(input, decryptingInput);
   }
 
+  /**
+   * Opens a Write-Ahead Log file and writes the necessary header information and OPEN entry to the file.
+   * The file is ready to be used for ingest if this method returns successfully. If an exception is thrown
+   * from this method, it is the callers responsibility to ensure that {@link #close()} is called to prevent
+   * leaking the file handle and/or syncing thread.
+   *
+   * @param address The address of the host using this WAL
+   */
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
     log.debug("Address is " + address);
@@ -381,6 +389,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         + Path.SEPARATOR + filename;
 
     metaReference = toString();
+    LoggerOperation op = null;
     try {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
@@ -430,8 +439,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       key.event = OPEN;
       key.tserverSession = filename;
       key.filename = filename;
-      write(key, EMPTY);
-      log.debug("Got new write-ahead log: " + this);
+      op = logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), Durability.SYNC);
     } catch (Exception ex) {
       if (logFile != null)
         logFile.close();
@@ -443,6 +451,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     syncThread = new Daemon(new LoggingRunnable(log, new LogSyncingTask()));
     syncThread.setName("Accumulo WALog thread " + toString());
     syncThread.start();
+    op.await();
+    log.debug("Got new write-ahead log: " + this);
   }
 
   @Override
