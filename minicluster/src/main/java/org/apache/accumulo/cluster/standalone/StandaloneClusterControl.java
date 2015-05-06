@@ -140,7 +140,7 @@ public class StandaloneClusterControl implements ClusterControl {
   public void adminStopAll() throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[] {ACCUMULO_CONF_DIR + accumuloConfDir, SUDO_CMD, "-u", user, accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + accumuloConfDir, accumuloPath, Admin.class.getName(), "stopAll"};
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
@@ -193,7 +193,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void start(ServerType server, String hostname) throws IOException {
-    String[] cmd = new String[] {ACCUMULO_CONF_DIR + accumuloConfDir, SUDO_CMD, "-u", user, startServerPath, hostname, getProcessString(server)};
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + accumuloConfDir, startServerPath, hostname, getProcessString(server)};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
       throw new IOException("Start " + server + " on " + hostname + " failed for execute successfully");
