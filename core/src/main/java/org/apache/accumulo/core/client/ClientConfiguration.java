@@ -31,6 +31,8 @@ import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
@@ -38,6 +40,8 @@ import org.apache.commons.configuration.PropertiesConfiguration;
  * @since 1.6.0
  */
 public class ClientConfiguration extends CompositeConfiguration {
+  private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
+
   public static final String USER_ACCUMULO_DIR_NAME = ".accumulo";
   public static final String USER_CONF_FILENAME = "config";
   public static final String GLOBAL_CONF_FILENAME = "client.conf";
@@ -145,6 +149,10 @@ public class ClientConfiguration extends CompositeConfiguration {
         if (conf.canRead()) {
           configs.add(new PropertiesConfiguration(conf));
         }
+      }
+      // We couldn't find the client configuration anywhere
+      if (configs.isEmpty()) {
+        log.warn("Found no client.conf in default paths. Using default client configuration values.");
       }
       return new ClientConfiguration(configs);
     } catch (ConfigurationException e) {

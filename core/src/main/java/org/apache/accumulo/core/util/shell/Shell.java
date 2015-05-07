@@ -431,27 +431,41 @@ public class Shell extends ShellOptions {
     }
   }
 
+  /**
+   * Get the ZooKeepers. Use the value passed in (if there was one), then fall back to the ClientConf, finally trying the accumulo-site.xml.
+   *
+   * @param keepers
+   *          ZooKeepers passed to the shell
+   * @param clientConfig
+   *          ClientConfiguration instance
+   * @return The ZooKeepers to connect to
+   */
+  static String getZooKeepers(String keepers, ClientConfiguration clientConfig, AccumuloConfiguration conf) {
+    if (null != keepers) {
+      return keepers;
+    }
+
+    if (clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
+      return clientConfig.get(ClientProperty.INSTANCE_ZK_HOST);
+    }
+
+    return conf.get(Property.INSTANCE_ZK_HOST);
+  }
+
   /*
    * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig, so that we can fail over to accumulo-site.xml or
    * HDFS config if they're unspecified.
    */
-  private static Instance getZooInstance(String instanceName, String keepers, ClientConfiguration clientConfig) {
+  private static Instance getZooInstance(String instanceName, String keepersOption, ClientConfiguration clientConfig) {
     UUID instanceId = null;
     if (instanceName == null) {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
-    if (keepers == null) {
-      keepers = clientConfig.get(ClientProperty.INSTANCE_ZK_HOST);
-    }
-    if (instanceName == null || keepers == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
-      if (instanceName == null) {
-        Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
-        instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
-      }
-      if (keepers == null) {
-        keepers = conf.get(Property.INSTANCE_ZK_HOST);
-      }
+    AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
+    String keepers = getZooKeepers(keepersOption, clientConfig, conf);
+    if (instanceName == null) {
+      Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
+      instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
     }
     if (instanceId != null) {
       return new ZooKeeperInstance(clientConfig.withInstance(instanceId).withZkHosts(keepers));

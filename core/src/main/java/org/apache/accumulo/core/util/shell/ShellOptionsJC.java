@@ -26,7 +26,12 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.Logger;
@@ -275,6 +280,13 @@ public class ShellOptionsJC {
     if (useSsl()) {
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
     }
+
+    // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
+    if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
+      AccumuloConfiguration siteConf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
+      clientConfig.withZkHosts(siteConf.get(Property.INSTANCE_ZK_HOST));
+    }
+
     return clientConfig;
   }
 
