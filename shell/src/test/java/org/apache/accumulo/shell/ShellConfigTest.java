@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.shell;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -25,10 +26,16 @@ import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
 import jline.console.ConsoleReader;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.shell.ShellTest.TestOutputStream;
 import org.apache.log4j.Level;
 import org.junit.After;
@@ -110,5 +117,34 @@ public class ShellConfigTest {
   public void testTokenAndOptionAndPassword() {
     assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-l", "password=foo", "-p", "bar")));
     assertTrue(output.get().contains(ParameterException.class.getCanonicalName()));
+  }
+
+  @Test
+  public void testZooKeeperHostFallBackToSite() throws Exception {
+    ClientConfiguration clientConfig = new ClientConfiguration();
+    Map<String,String> data = new HashMap<>();
+    data.put(Property.INSTANCE_ZK_HOST.getKey(), "site_hostname");
+    AccumuloConfiguration conf = new ConfigurationCopy(data);
+    assertEquals("site_hostname", Shell.getZooKeepers(null, clientConfig, conf));
+  }
+
+  @Test
+  public void testZooKeeperHostFromClientConfig() throws Exception {
+    ClientConfiguration clientConfig = new ClientConfiguration();
+    clientConfig.withZkHosts("cc_hostname");
+    Map<String,String> data = new HashMap<>();
+    data.put(Property.INSTANCE_ZK_HOST.getKey(), "site_hostname");
+    AccumuloConfiguration conf = new ConfigurationCopy(data);
+    assertEquals("cc_hostname", Shell.getZooKeepers(null, clientConfig, conf));
+  }
+
+  @Test
+  public void testZooKeeperHostFromOption() throws Exception {
+    ClientConfiguration clientConfig = new ClientConfiguration();
+    clientConfig.withZkHosts("cc_hostname");
+    Map<String,String> data = new HashMap<>();
+    data.put(Property.INSTANCE_ZK_HOST.getKey(), "site_hostname");
+    AccumuloConfiguration conf = new ConfigurationCopy(data);
+    assertEquals("opt_hostname", Shell.getZooKeepers("opt_hostname", clientConfig, conf));
   }
 }

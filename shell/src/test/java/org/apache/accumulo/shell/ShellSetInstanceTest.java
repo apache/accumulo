@@ -30,6 +30,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -179,18 +180,14 @@ public class ShellSetInstanceTest {
       expect(clientConf.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
     }
 
-    if (!onlyHosts) {
-      expect(clientConf.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn(null);
-    }
-
     mockStatic(ConfigSanityCheck.class);
     ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
     expectLastCall().atLeastOnce();
     replay(ConfigSanityCheck.class);
 
     if (!onlyHosts) {
-      expect(clientConf.containsKey(Property.INSTANCE_ZK_HOST.getKey())).andReturn(true).atLeastOnce();
-      expect(clientConf.getString(Property.INSTANCE_ZK_HOST.getKey())).andReturn("host1,host2").atLeastOnce();
+      expect(clientConf.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("host1,host2").atLeastOnce();
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
     }
     if (!onlyInstance) {
@@ -240,9 +237,13 @@ public class ShellSetInstanceTest {
     expect(opts.isFake()).andReturn(false);
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(false);
+    expect(clientConf.getKeys()).andReturn(Arrays.asList(ClientProperty.INSTANCE_NAME.getKey(), ClientProperty.INSTANCE_ZK_HOST.getKey()).iterator());
+    expect(clientConf.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey())).andReturn(null);
     if (dashZ) {
       expect(clientConf.withInstance("foo")).andReturn(clientConf);
+      expect(clientConf.getString(ClientProperty.INSTANCE_NAME.getKey())).andReturn("foo");
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
+      expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn("host1,host2");
       List<String> zl = new java.util.ArrayList<String>();
       zl.add("foo");
       zl.add("host1,host2");
@@ -250,7 +251,9 @@ public class ShellSetInstanceTest {
       expectLastCall().anyTimes();
     } else {
       expect(clientConf.withInstance("bar")).andReturn(clientConf);
+      expect(clientConf.getString(ClientProperty.INSTANCE_NAME.getKey())).andReturn("bar");
       expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
+      expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn("host3,host4");
       expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
