@@ -52,6 +52,7 @@ import org.apache.accumulo.tserver.Mutations;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
+import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -237,17 +238,40 @@ public class TabletServerLogger {
     nextLogMaker.submit(new Runnable() {
       @Override
       public void run() {
+        final ServerResources conf = tserver.getServerConfig();
+        final VolumeManager fs = conf.getFileSystem();
         while (!nextLogMaker.isShutdown()) {
+          DfsLogger alog = null;
           try {
             log.debug("Creating next WAL");
-            DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
+            alog = new DfsLogger(conf, syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
-            log.debug("Created next WAL " + alog.getFileName());
+            String fileName = alog.getFileName();
+            log.debug("Created next WAL " + fileName);
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: " + alog.getFileName());
+              log.info("Our WAL was not used for 12 hours: " + fileName);
             }
           } catch (Exception t) {
-            log.error("{}", t.getMessage(), t);
+            log.error("Failed to open WAL", t);
+            if (null != alog) {
+              // It's possible that the sync of the header and OPEN record to the WAL failed
+              // We want to make sure that clean up the resources/thread inside the DfsLogger
+              // object before trying to create a new one.
+              try {
+                alog.close();
+              } catch (IOException e) {
+                log.error("Failed to close WAL after it failed to open", e);
+              }
+              // Try to avoid leaving a bunch of empty WALs lying around
+              try {
+                Path path = alog.getPath();
+                if (fs.exists(path)) {
+                  fs.delete(path);
+                }
+              } catch (IOException e) {
+                log.warn("Failed to delete a WAL that failed to open", e);
+              }
+            }
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
