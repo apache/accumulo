@@ -98,9 +98,9 @@ public class Mutation implements Writable {
     }
   }
 
-  /*
+  /**
    * This is so hashCode & equals can be called without changing this object.
-   * 
+   *
    * It will return a copy of the current data buffer if serialized has not been called previously. Otherwise, this.data will be returned since the buffer is
    * null and will not change.
    */
