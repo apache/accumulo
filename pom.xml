@@ -119,6 +119,8 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- relative path for Eclipse format; should override in child modules if necessary -->
+    <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
     <findbugs.version>3.0.0</findbugs.version>
     <!-- surefire/failsafe plugin option -->
@@ -643,7 +645,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
+            <arguments>-P !autoformat,apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
@@ -1155,13 +1157,6 @@
         <extensions>true</extensions>
         <inherited>true</inherited>
       </plugin>
-      <plugin>
-        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-        <artifactId>maven-java-formatter-plugin</artifactId>
-        <configuration>
-          <configFile>${project.basedir}/../contrib/Eclipse-Accumulo-Codestyle.xml</configFile>
-        </configuration>
-      </plugin>
     </plugins>
     <extensions>
       <extension>
@@ -1304,6 +1299,26 @@
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
+      <id>autoformat</id>
+      <activation>
+        <property>
+          <name>!skipFormat</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+            <artifactId>maven-java-formatter-plugin</artifactId>
+            <configuration>
+              <configFile>${eclipseFormatterStyle}</configFile>
+            </configuration>
           </plugin>
         </plugins>
       </build>
