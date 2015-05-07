@@ -110,6 +110,9 @@
                 <goal>clean</goal>
                 <goal>post-integration-test</goal>
               </goals>
+              <profiles>
+                <profile>!autoformat</profile>
+              </profiles>
             </configuration>
             <executions>
               <execution>

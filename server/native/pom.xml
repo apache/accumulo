@@ -81,6 +81,7 @@
             <configuration>
               <attach>true</attach>
               <appendAssemblyId>false</appendAssemblyId>
+              <finalName>${project.build.finalName}</finalName>
               <descriptors>
                 <descriptor>src/main/assemblies/native-tarball.xml</descriptor>
               </descriptors>
@@ -108,13 +109,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-        <artifactId>maven-java-formatter-plugin</artifactId>
-        <configuration>
-          <configFile>${project.basedir}/../../contrib/Eclipse-Accumulo-Codestyle.xml</configFile>
-        </configuration>
       </plugin>
     </plugins>
   </build>
