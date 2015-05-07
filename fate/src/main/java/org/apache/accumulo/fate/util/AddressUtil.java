@@ -23,7 +23,6 @@ import java.security.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class AddressUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AddressUtil.class);

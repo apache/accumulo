@@ -28,7 +28,6 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Fault tolerant executor
  *

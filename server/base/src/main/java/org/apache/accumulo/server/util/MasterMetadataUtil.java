@@ -70,7 +70,7 @@ public class MasterMetadataUtil {
   private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
   public static void addNewTablet(ClientContext context, KeyExtent extent, String path, TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
-      Multimap<Long, FileRef> bulkLoadedFiles, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
+      Multimap<Long,FileRef> bulkLoadedFiles, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(UTF_8)));
@@ -89,7 +89,7 @@ public class MasterMetadataUtil {
       m.put(DataFileColumnFamily.NAME, entry.getKey().meta(), new Value(entry.getValue().encode()));
     }
 
-    for (Entry<Long, FileRef> entry : bulkLoadedFiles.entries()) {
+    for (Entry<Long,FileRef> entry : bulkLoadedFiles.entries()) {
       byte[] tidBytes = Long.toString(entry.getKey()).getBytes();
       m.put(TabletsSection.BulkFileColumnFamily.NAME, entry.getValue().meta(), new Value(tidBytes));
     }
@@ -283,7 +283,6 @@ public class MasterMetadataUtil {
     }
   }
 
-
   /**
    * Create an update that updates a tablet
    *
@@ -316,7 +315,6 @@ public class MasterMetadataUtil {
       m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
 
     TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(Long.toString(flushId).getBytes(UTF_8)));
-
 
     return m;
   }

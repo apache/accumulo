@@ -38,7 +38,6 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Class that manages distribution of {@link AuthenticationKey}s, Accumulo's secret in the delegation token model, to other Accumulo nodes via ZooKeeper.
  */

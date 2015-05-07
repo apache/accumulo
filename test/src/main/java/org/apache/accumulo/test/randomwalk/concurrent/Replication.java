@@ -69,9 +69,8 @@ public class Replication extends Test {
 
     // Replicate to ourselves
     iOps.setProperty(REPLICATION_NAME.getKey(), instName);
-    iOps.setProperty(REPLICATION_PEERS.getKey() + instName,
-        getPeerConfigurationValue(AccumuloReplicaSystem.class, instName + "," + inst.getZooKeepers()));
-    iOps.setProperty(REPLICATION_PEER_USER.getKey() + instName , env.getUserName());
+    iOps.setProperty(REPLICATION_PEERS.getKey() + instName, getPeerConfigurationValue(AccumuloReplicaSystem.class, instName + "," + inst.getZooKeepers()));
+    iOps.setProperty(REPLICATION_PEER_USER.getKey() + instName, env.getUserName());
     iOps.setProperty(REPLICATION_PEER_PASSWORD.getKey() + instName, env.getPassword());
     // Tweak some replication parameters to make the replication go faster
     iOps.setProperty(MASTER_REPLICATION_SCAN_INTERVAL.getKey(), "1s");
@@ -83,7 +82,8 @@ public class Replication extends Test {
     ReplicationTable.setOnline(c);
     boolean online = ReplicationTable.isOnline(c);
     for (int i = 0; i < 10; i++) {
-      if (online) break;
+      if (online)
+        break;
       UtilWaitThread.sleep(2000);
       online = ReplicationTable.isOnline(c);
     }
@@ -92,7 +92,7 @@ public class Replication extends Test {
     // Make a source and destination table
     final String sourceTable = ("repl-source-" + UUID.randomUUID()).replace('-', '_');
     final String destTable = ("repl-dest-" + UUID.randomUUID()).replace('-', '_');
-    final String tables[] = new String[] { sourceTable, destTable };
+    final String tables[] = new String[] {sourceTable, destTable};
 
     for (String tableName : tables) {
       log.debug("creating " + tableName);
@@ -182,8 +182,8 @@ public class Replication extends Test {
 
   // junit isn't a dependency
   private void assertTrue(String string, boolean test) {
-      if (!test)
-        throw new RuntimeException(string);
+    if (!test)
+      throw new RuntimeException(string);
   }
 
   private static String itos(int i) {

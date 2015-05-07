@@ -48,7 +48,6 @@ public class ActiveCompactionImpl extends ActiveCompaction {
     return Tables.getTableName(instance, new KeyExtent(tac.getExtent()).getTableId().toString());
   }
 
-
   @Override
   @Deprecated
   public org.apache.accumulo.core.data.KeyExtent getExtent() {

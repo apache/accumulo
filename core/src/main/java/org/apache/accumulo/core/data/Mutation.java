@@ -101,8 +101,7 @@ public class Mutation implements Writable {
   /**
    * This is so hashCode and equals can be called without changing this object.
    *
-   * It will return a copy of the current data buffer if serialized has not been
-   * called previously. Otherwise, this.data will be returned since the buffer is
+   * It will return a copy of the current data buffer if serialized has not been called previously. Otherwise, this.data will be returned since the buffer is
    * null and will not change.
    */
   private ByteBuffer serializedSnapshot() {
@@ -1142,11 +1141,9 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object
-   * containing this Mutation's data.
+   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object containing this Mutation's data.
    *
-   * Note that this method will move the Mutation into a "serialized" state
-   * that will prevent users from adding more data via Mutation#put().
+   * Note that this method will move the Mutation into a "serialized" state that will prevent users from adding more data via Mutation#put().
    *
    * @return a thrift form of this Mutation
    */

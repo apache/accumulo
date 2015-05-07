@@ -166,7 +166,7 @@ public class Environment {
     if (null != keytab) {
       File keytabFile = new File(keytab);
       if (!keytabFile.exists() || !keytabFile.isFile()) {
-        throw new IllegalArgumentException("Provided keytab is not a normal file: "+ keytab);
+        throw new IllegalArgumentException("Provided keytab is not a normal file: " + keytab);
       }
       try {
         return new KerberosToken(getUserName(), keytabFile, true);

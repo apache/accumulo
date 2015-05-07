@@ -134,7 +134,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       return security.authenticateUser(credentials, credentials);
     } catch (ThriftSecurityException e) {
-      log.error("ThriftSecurityException",e);
+      log.error("ThriftSecurityException", e);
       throw e;
     }
   }
@@ -144,7 +144,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       return security.authenticateUser(credentials, toAuth);
     } catch (ThriftSecurityException e) {
-      log.error("ThriftSecurityException",e);
+      log.error("ThriftSecurityException", e);
       throw e;
     }
   }

@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Basic Volume implementation that contains a FileSystem and a base path that should be used within that filesystem.
  */

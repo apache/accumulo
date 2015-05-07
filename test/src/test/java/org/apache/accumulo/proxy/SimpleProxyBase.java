@@ -118,7 +118,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 10*60;
+    return 10 * 60;
   }
 
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;

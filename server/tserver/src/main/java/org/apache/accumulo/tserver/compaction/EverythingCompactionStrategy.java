@@ -27,7 +27,7 @@ public class EverythingCompactionStrategy extends CompactionStrategy {
 
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
-      return true; // ACCUMULO-3645 compact for empty files too
+    return true; // ACCUMULO-3645 compact for empty files too
   }
 
   @Override

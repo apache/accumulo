@@ -34,11 +34,11 @@ import org.apache.log4j.Level;
 public class SplitUtils {
 
   /**
-   * Central place to set common split configuration not handled by split constructors.
-   * The intention is to make it harder to miss optional setters in future refactor.
+   * Central place to set common split configuration not handled by split constructors. The intention is to make it harder to miss optional setters in future
+   * refactor.
    */
-  public static void updateSplit(RangeInputSplit split,  Instance instance, InputTableConfig tableConfig,
-                                  String principal, AuthenticationToken token, Authorizations auths, Level logLevel) {
+  public static void updateSplit(RangeInputSplit split, Instance instance, InputTableConfig tableConfig, String principal, AuthenticationToken token,
+      Authorizations auths, Level logLevel) {
     split.setInstanceName(instance.getInstanceName());
     split.setZooKeepers(instance.getZooKeepers());
     split.setMockInstance(instance instanceof MockInstance);

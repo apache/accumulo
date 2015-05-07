@@ -651,17 +651,17 @@ public class MutationTest {
     new Mutation(tm1);
   }
 
-  /* The following two tests assert that no exception is thrown after calling
-   * hashCode or equals on a Mutation. These guard against the condition noted
-   * in ACCUMULO-3718.
+  /*
+   * The following two tests assert that no exception is thrown after calling hashCode or equals on a Mutation. These guard against the condition noted in
+   * ACCUMULO-3718.
    */
   @Test
   public void testPutAfterHashCode() {
     Mutation m = new Mutation("r");
     m.hashCode();
     try {
-        m.put("cf", "cq", "v");
-    } catch(IllegalStateException e) {
+      m.put("cf", "cq", "v");
+    } catch (IllegalStateException e) {
       fail("Calling Mutation#hashCode then Mutation#put should not result in an IllegalStateException.");
     }
   }
@@ -672,9 +672,9 @@ public class MutationTest {
     Mutation m2 = new Mutation("r2");
     m.equals(m2);
     try {
-        m.put("cf", "cq", "v");
-        m2.put("cf", "cq", "v");
-    } catch(IllegalStateException e) {
+      m.put("cf", "cq", "v");
+      m2.put("cf", "cq", "v");
+    } catch (IllegalStateException e) {
       fail("Calling Mutation#equals then Mutation#put should not result in an IllegalStateException.");
     }
   }

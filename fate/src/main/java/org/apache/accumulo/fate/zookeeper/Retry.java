@@ -19,7 +19,6 @@ package org.apache.accumulo.fate.zookeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Encapsulates the retrying implementation for some operation. Provides bounded retry attempts with a bounded, linear backoff.
  */

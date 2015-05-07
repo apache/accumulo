@@ -78,12 +78,17 @@ public class ConcurrencyIT extends AccumuloClusterIT {
     return 2 * 60;
   }
 
-  /*
-   * Below is a diagram of the operations in this test over time.
-   *
-   * Scan 0 |------------------------------| Scan 1 |----------| Minc 1 |-----| Scan 2 |----------| Scan 3 |---------------| Minc 2 |-----| Majc 1 |-----|
-   */
-
+  // @formatter:off
+  // Below is a diagram of the operations in this test over time.
+  //
+  // Scan 0 |------------------------------|
+  // Scan 1 |----------|
+  // Minc 1  |-----|
+  // Scan 2   |----------|
+  // Scan 3               |---------------|
+  // Minc 2                |-----|
+  // Majc 1                       |-----|
+  // @formatter:on
   @Test
   public void run() throws Exception {
     Connector c = getConnector();

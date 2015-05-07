@@ -427,7 +427,7 @@ public class VolumeIT extends ConfigurableMacIT {
     }
 
     Text path = new Text();
-    for (String table : new String[]{RootTable.NAME, MetadataTable.NAME}) {
+    for (String table : new String[] {RootTable.NAME, MetadataTable.NAME}) {
       Scanner meta = conn.createScanner(table, Authorizations.EMPTY);
       meta.setRange(MetadataSchema.CurrentLogsSection.getRange());
       outer: for (Entry<Key,Value> entry : meta) {

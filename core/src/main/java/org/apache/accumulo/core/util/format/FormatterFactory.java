@@ -23,7 +23,6 @@ import org.apache.accumulo.core.data.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class FormatterFactory {
   private static final Logger log = LoggerFactory.getLogger(FormatterFactory.class);
 

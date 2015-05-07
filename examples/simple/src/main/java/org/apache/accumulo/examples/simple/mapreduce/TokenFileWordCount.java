@@ -34,7 +34,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this. This version does not use the ClientOpts
  * class to parse arguments as an example of using AccumuloInputFormat and AccumuloOutputFormat directly. See README.mapred for more details.

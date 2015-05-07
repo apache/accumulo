@@ -46,7 +46,6 @@ public class FastBulkImportIT extends ConfigurableMacIT {
     return 60;
   }
 
-
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(3);
@@ -55,7 +54,6 @@ public class FastBulkImportIT extends ConfigurableMacIT {
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "9999");
     cfg.setProperty(Property.TABLE_FILE_MAX, "9999");
   }
-
 
   @Test
   public void test() throws Exception {
@@ -83,7 +81,8 @@ public class FastBulkImportIT extends ConfigurableMacIT {
     fs.mkdirs(bulkFailures);
     fs.mkdirs(files);
     for (int i = 0; i < 100; i++) {
-      FileSKVWriter writer = FileOperations.getInstance().openWriter(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
+      FileSKVWriter writer = FileOperations.getInstance().openWriter(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf(),
+          AccumuloConfiguration.getDefaultConfiguration());
       writer.startDefaultLocalityGroup();
       for (int j = 0x100; j < 0xfff; j += 3) {
         writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));

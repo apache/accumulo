@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.apache.accumulo.test;
+package org.apache.accumulo.test;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -39,8 +39,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacIT {
   }
 
   @Override
-  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-  }
+  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
   @Test
   public void test() throws Exception {
@@ -50,7 +49,8 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacIT {
 
     final Connector c = getConnector();
     log.info("Creating table " + tableName);
-    c.tableOperations().create(tableName);;
+    c.tableOperations().create(tableName);
+    ;
     final SortedSet<Text> splits = new TreeSet<>();
     for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
       splits.add(new Text(split));

@@ -53,9 +53,7 @@ public class SaslConnectionParams {
    * Enumeration around {@link Sasl#QOP}
    */
   public enum QualityOfProtection {
-    AUTH("auth"),
-    AUTH_INT("auth-int"),
-    AUTH_CONF("auth-conf");
+    AUTH("auth"), AUTH_INT("auth-int"), AUTH_CONF("auth-conf");
 
     private final String quality;
 
@@ -226,6 +224,7 @@ public class SaslConnectionParams {
   public Map<String,String> getSaslProperties() {
     return Collections.unmodifiableMap(saslProperties);
   }
+
   /**
    * The quality of protection used with SASL. See {@link Sasl#QOP} for more information.
    */
@@ -263,7 +262,7 @@ public class SaslConnectionParams {
 
   @Override
   public int hashCode() {
-    HashCodeBuilder hcb = new HashCodeBuilder(23,29);
+    HashCodeBuilder hcb = new HashCodeBuilder(23, 29);
     hcb.append(kerberosServerPrimary).append(saslProperties).append(qop.hashCode()).append(principal).append(mechanism).append(callbackHandler);
     return hcb.toHashCode();
   }

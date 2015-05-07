@@ -253,8 +253,7 @@ public class Tablet implements TabletCommitter {
 
   private final ConfigurationObserver configObserver;
 
-  private final Cache<Long, List<FileRef> > bulkImported = CacheBuilder.newBuilder().expireAfterAccess(4, TimeUnit.HOURS).build();
-
+  private final Cache<Long,List<FileRef>> bulkImported = CacheBuilder.newBuilder().expireAfterAccess(4, TimeUnit.HOURS).build();
 
   private final int logId;
 
@@ -324,7 +323,7 @@ public class Tablet implements TabletCommitter {
   }
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<FileRef,DataFileValue> datafiles,
-      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Multimap<Long, FileRef> bulkImported) throws IOException {
+      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Multimap<Long,FileRef> bulkImported) throws IOException {
     this(tabletServer, extent, location, trm, NO_LOG_ENTRIES, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID, initCompactID, bulkImported);
   }
 
@@ -447,8 +446,8 @@ public class Tablet implements TabletCommitter {
     return null;
   }
 
-  private static Multimap<Long, FileRef> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
-    Multimap<Long, FileRef> result = HashMultimap.create();
+  private static Multimap<Long,FileRef> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
+    Multimap<Long,FileRef> result = HashMultimap.create();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       if (entry.getKey().getColumnFamily().compareTo(BulkFileColumnFamily.NAME) == 0) {
         result.put(Long.decode(entry.getValue().toString()), new FileRef(fs, entry.getKey()));
@@ -459,33 +458,18 @@ public class Tablet implements TabletCommitter {
 
   public Tablet(TabletServer tabletServer, KeyExtent extent, Text location, TabletResourceManager trm, SortedMap<Key,Value> tabletsKeyValues)
       throws IOException {
-    this(tabletServer, extent, location, trm,
-        lookupLogEntries(tabletsKeyValues, tabletServer, extent),
-        lookupDatafiles(tabletServer, tabletServer.getFileSystem(), extent, tabletsKeyValues),
-        lookupTime(tabletServer.getConfiguration(), extent, tabletsKeyValues),
-        lookupLastServer(tabletsKeyValues),
-        lookupScanFiles(tabletsKeyValues, tabletServer.getFileSystem()),
-        lookupFlushID(tabletsKeyValues),
-        lookupCompactID(tabletsKeyValues),
-        lookupBulkImported(tabletsKeyValues, tabletServer.getFileSystem()));
+    this(tabletServer, extent, location, trm, lookupLogEntries(tabletsKeyValues, tabletServer, extent), lookupDatafiles(tabletServer,
+        tabletServer.getFileSystem(), extent, tabletsKeyValues), lookupTime(tabletServer.getConfiguration(), extent, tabletsKeyValues),
+        lookupLastServer(tabletsKeyValues), lookupScanFiles(tabletsKeyValues, tabletServer.getFileSystem()), lookupFlushID(tabletsKeyValues),
+        lookupCompactID(tabletsKeyValues), lookupBulkImported(tabletsKeyValues, tabletServer.getFileSystem()));
   }
 
   /**
    * yet another constructor - this one allows us to avoid costly lookups into the Metadata table if we already know the files we need - as at split time
    */
-  private Tablet(
-      final TabletServer tabletServer,
-      final KeyExtent extent,
-      final Text location,
-      final TabletResourceManager trm,
-      final List<LogEntry> rawLogEntries,
-      final SortedMap<FileRef,DataFileValue> rawDatafiles,
-      String time,
-      final TServerInstance lastLocation,
-      final Set<FileRef> scanFiles,
-      final long initFlushID,
-      final long initCompactID,
-      final Multimap<Long, FileRef> bulkImported) throws IOException {
+  private Tablet(final TabletServer tabletServer, final KeyExtent extent, final Text location, final TabletResourceManager trm,
+      final List<LogEntry> rawLogEntries, final SortedMap<FileRef,DataFileValue> rawDatafiles, String time, final TServerInstance lastLocation,
+      final Set<FileRef> scanFiles, final long initFlushID, final long initCompactID, final Multimap<Long,FileRef> bulkImported) throws IOException {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
@@ -675,8 +659,8 @@ public class Tablet implements TabletCommitter {
         currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.filename, logEntry.getColumnQualifier().toString()));
       }
 
-      log.info("Write-Ahead Log recovery complete for " + this.extent + " (" + entriesUsedOnTablet.get() + " mutations applied, " + getTabletMemory().getNumEntries()
-          + " entries created)");
+      log.info("Write-Ahead Log recovery complete for " + this.extent + " (" + entriesUsedOnTablet.get() + " mutations applied, "
+          + getTabletMemory().getNumEntries() + " entries created)");
     }
 
     String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
@@ -2295,7 +2279,7 @@ public class Tablet implements TabletCommitter {
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
       // finishes.... therefore split could propagate load flags for a finished bulk load... there is a special iterator
       // on the metadata table to clean up this type of garbage
-      Multimap<Long, FileRef> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(getTabletServer(), extent);
+      Multimap<Long,FileRef> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(getTabletServer(), extent);
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, getTabletServer(), getTabletServer().getLock());
       MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory, getTabletServer().getTabletSession(), lowDatafileSizes, bulkLoadedFiles, time,

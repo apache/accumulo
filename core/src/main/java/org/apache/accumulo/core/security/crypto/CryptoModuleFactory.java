@@ -107,12 +107,12 @@ public class CryptoModuleFactory {
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.", e.getCause().getClass()
             .getName(), cryptoModuleClassname));
-        log.warn("InstantiationException",e.getCause());
+        log.warn("InstantiationException", e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
         log.warn(String.format("Got illegal access exception when trying to instantiate crypto module \"%s\".  No encryption will be used.",
             cryptoModuleClassname));
-        log.warn("IllegalAccessException",e);
+        log.warn("IllegalAccessException", e);
         return new NullCryptoModule();
       }
     }
@@ -184,12 +184,12 @@ public class CryptoModuleFactory {
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.", e
             .getCause().getClass().getName(), className));
-        log.warn("InstantiationException",e.getCause());
+        log.warn("InstantiationException", e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
         log.warn(String.format("Got illegal access exception when trying to instantiate secret key encryption strategy \"%s\".  No encryption will be used.",
             className));
-        log.warn("IllegalAccessException",e);
+        log.warn("IllegalAccessException", e);
         return new NullSecretKeyEncryptionStrategy();
       }
     }
