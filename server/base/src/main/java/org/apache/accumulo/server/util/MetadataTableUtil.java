@@ -1056,6 +1056,13 @@ public class MetadataTableUtil {
   public static void addNewLogMarker(ClientContext context, ZooLock zooLock, final TServerInstance tabletSession, final Path filename, TabletLevel level) {
     log.debug("Adding log entry " + filename);
     if (level == TabletLevel.ROOT) {
+      LogEntry log = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(), tabletSession.hostPort(), filename.toString());
+      final byte[] node;
+      try {
+        node = log.toBytes();
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to write to byte array", e);
+      }
       retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
         @Override
         public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException {
@@ -1066,7 +1073,7 @@ public class MetadataTableUtil {
           path.append(CurrentLogsSection.getRowPrefix());
           path.append(tabletSession.toString());
           path.append(uniqueId);
-          rw.putPersistentData(path.toString(), filename.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+          rw.putPersistentData(path.toString(), node, NodeExistsPolicy.OVERWRITE);
         }
       });
     } else {
@@ -1153,7 +1160,9 @@ public class MetadataTableUtil {
           String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
           logs.clear();
           for (String child : rw.getChildren(root)) {
-            logs.add(new Path(new String(rw.getData(root + "/" + child, null), UTF_8)));
+            byte[] data = rw.getData(root + "/" + child, null);
+            LogEntry entry = LogEntry.fromBytes(data);
+            logs.add(new Path(entry.filename));
           }
         }
       });
