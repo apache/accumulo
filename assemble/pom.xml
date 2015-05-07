@@ -298,6 +298,7 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
+                  <finalName>${project.build.finalName}</finalName>
                   <outputDirectory>${DEV_ACCUMULO_HOME}</outputDirectory>
                   <formats>
                     <format>dir</format>

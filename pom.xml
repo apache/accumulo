@@ -142,6 +142,7 @@
     <sealJars>false</sealJars>
     <!-- overwritten in hadoop profiles -->
     <slf4j.version>1.7.5</slf4j.version>
+    <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <!-- Thrift version -->
     <thrift.version>0.9.1</thrift.version>
     <!-- ZooKeeper version -->
@@ -574,6 +575,8 @@
           <artifactId>maven-assembly-plugin</artifactId>
           <configuration>
             <attach>false</attach>
+            <!-- this is for releases; override for other assembly executions -->
+            <finalName>accumulo-${project.version}</finalName>
             <tarLongFileMode>gnu</tarLongFileMode>
           </configuration>
         </plugin>
@@ -646,12 +649,12 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
+            <arguments>-P !autoformat,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>seal-jars,skip-findbugs</releaseProfiles>
+            <releaseProfiles>apache-release,move-source-tarball,seal-jars,skip-findbugs</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -1250,46 +1253,20 @@
   </reporting>
   <profiles>
     <profile>
-      <id>apache-release</id>
+      <id>move-source-tarball</id>
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <dependencies>
-              <dependency>
-                <groupId>org.apache.apache.resources</groupId>
-                <artifactId>apache-source-release-assembly-descriptor</artifactId>
-                <version>1.0.4</version>
-              </dependency>
-            </dependencies>
-            <executions>
-              <execution>
-                <id>source-release-assembly</id>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <phase>validate</phase>
-                <configuration>
-                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
-                  <finalName>accumulo-${project.version}</finalName>
-                  <descriptorRefs>
-                    <descriptorRef>source-release-zip-tar</descriptorRef>
-                  </descriptorRefs>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
+            <inherited>false</inherited>
             <executions>
               <execution>
                 <id>rename-source-release-assembly</id>
                 <goals>
                   <goal>exec</goal>
                 </goals>
-                <phase>validate</phase>
+                <phase>package</phase>
                 <configuration>
                   <executable>mv</executable>
                   <workingDirectory>${project.build.directory}</workingDirectory>
