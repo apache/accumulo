@@ -17,8 +17,9 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -39,12 +40,18 @@ public class GetAuthsCommand extends Command {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     // Sort authorizations
     Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
-    SortedSet<String> set = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
-    for (byte[] auth : auths) {
-      set.add(new String(auth));
-    }
+    List<String> set = sortAuthorizations(auths);
     shellState.getReader().println(StringUtils.join(set, ','));
     return 0;
+  }
+
+  protected List<String> sortAuthorizations(Authorizations auths) {
+    List<String> list = new ArrayList<String>();
+    for (byte[] auth : auths) {
+      list.add(new String(auth));
+    }
+    Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
+    return list;
   }
 
   @Override
