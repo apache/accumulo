@@ -40,7 +40,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -49,6 +48,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 // Verify that a recovery of a log without any mutations removes the log reference
 public class NoMutationRecoveryIT extends AccumuloClusterIT {
@@ -111,7 +112,7 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
 
     Range range = Range.prefix(tableId);
     log.info("Fetching WAL references over " + table);
-    assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME, range)));
+    assertEquals("should not have any refs", 0, Iterables.size(getLogRefs(conn, MetadataTable.NAME, range)));
 
     // Grant permission to the admin user to write to the Metadata table
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
