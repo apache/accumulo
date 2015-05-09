@@ -16,14 +16,11 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
@@ -280,50 +277,5 @@ public class MetadataSchema {
 
       buff.set(buff.getBytes(), section.getRowPrefix().length(), buff.getLength() - section.getRowPrefix().length());
     }
-  }
-
-  /**
-   * Holds references to the WALs in use in a live Tablet Server.
-   * <p>
-   * <code>~wal+tserver:port[sessionId] log:hdfs://localhost:8020/accumulo/wal/tserver+port/WAL  [] -></code>
-   */
-  public static class CurrentLogsSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "wal+", true, RESERVED_PREFIX + "wal,", false);
-    private static byte LEFT_BRACKET = (byte) '[';
-    public static final Text COLF = new Text("log");
-    public static final Value UNUSED = new Value("unused".getBytes(UTF_8));
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-
-    public static void getTabletServer(Key k, Text hostPort, Text session) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(hostPort);
-      Preconditions.checkNotNull(session);
-
-      Text row = new Text();
-      k.getRow(row);
-      if (!row.toString().startsWith(section.getRowPrefix())) {
-        throw new IllegalArgumentException("Bad key " + k.toString());
-      }
-      for (int sessionStart = section.getRowPrefix().length(); sessionStart < row.getLength() - 1; sessionStart++) {
-        if (row.charAt(sessionStart) == LEFT_BRACKET) {
-          hostPort.set(row.getBytes(), section.getRowPrefix().length(), sessionStart - section.getRowPrefix().length());
-          session.set(row.getBytes(), sessionStart + 1, row.getLength() - sessionStart - 2);
-          return;
-        }
-      }
-      throw new IllegalArgumentException("Bad key " + k.toString());
-    }
-
-    public static void getPath(Key k, Text path) {
-      k.getColumnQualifier(path);
-    }
-
   }
 }

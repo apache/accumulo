@@ -68,13 +68,6 @@ public class TabletLocationState {
   final public Collection<Collection<String>> walogs;
   final public boolean chopped;
 
-  public TServerInstance futureOrCurrent() {
-    if (current != null) {
-      return current;
-    }
-    return future;
-  }
-
   @Override
   public String toString() {
     return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");

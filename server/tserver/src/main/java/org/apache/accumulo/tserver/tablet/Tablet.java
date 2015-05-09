@@ -37,7 +37,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -201,7 +200,7 @@ public class Tablet implements TabletCommitter {
   }
 
   // stores info about user initiated major compaction that is waiting on a minor compaction to finish
-  private final CompactionWaitInfo compactionWaitInfo = new CompactionWaitInfo();
+  private CompactionWaitInfo compactionWaitInfo = new CompactionWaitInfo();
 
   static enum CompactionState {
     WAITING_TO_START, IN_PROGRESS
@@ -628,8 +627,8 @@ public class Tablet implements TabletCommitter {
           // the WAL isn't closed (WRT replication Status) and thus we're safe to update its progress.
           Status status = StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
-            log.debug("Writing updated status to metadata table for " + logEntry.filename + " " + ProtobufUtil.toString(status));
-            ReplicationTableUtil.updateFiles(tabletServer, extent, logEntry.filename, status);
+            log.debug("Writing updated status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+            ReplicationTableUtil.updateFiles(tabletServer, extent, logEntry.logSet, status);
           }
         }
 
@@ -641,9 +640,11 @@ public class Tablet implements TabletCommitter {
         }
       }
       // make some closed references that represent the recovered logs
-      currentLogs = new ConcurrentSkipListSet<DfsLogger>();
+      currentLogs = new HashSet<DfsLogger>();
       for (LogEntry logEntry : logEntries) {
-        currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.filename, logEntry.getColumnQualifier().toString()));
+        for (String log : logEntry.logSet) {
+          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log, logEntry.getColumnQualifier().toString()));
+        }
       }
 
       log.info("Write-Ahead Log recovery complete for " + this.extent + " (" + count[0] + " mutations applied, " + getTabletMemory().getNumEntries()
@@ -934,9 +935,7 @@ public class Tablet implements TabletCommitter {
 
     long count = 0;
 
-    String oldName = Thread.currentThread().getName();
     try {
-      Thread.currentThread().setName("Minor compacting " + this.extent);
       Span span = Trace.start("write");
       CompactionStats stats;
       try {
@@ -967,7 +966,6 @@ public class Tablet implements TabletCommitter {
       failed = true;
       throw new RuntimeException(e);
     } finally {
-      Thread.currentThread().setName(oldName);
       try {
         getTabletMemory().finalizeMinC();
       } catch (Throwable t) {
@@ -992,7 +990,7 @@ public class Tablet implements TabletCommitter {
   private synchronized MinorCompactionTask prepareForMinC(long flushId, MinorCompactionReason mincReason) {
     CommitSession oldCommitSession = getTabletMemory().prepareForMinC();
     otherLogs = currentLogs;
-    currentLogs = new ConcurrentSkipListSet<DfsLogger>();
+    currentLogs = new HashSet<DfsLogger>();
 
     FileRef mergeFile = null;
     if (mincReason != MinorCompactionReason.RECOVERY) {
@@ -2376,11 +2374,14 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private ConcurrentSkipListSet<DfsLogger> currentLogs = new ConcurrentSkipListSet<DfsLogger>();
+  private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  // currentLogs may be updated while a tablet is otherwise locked
-  public Set<DfsLogger> getCurrentLogFiles() {
-    return new HashSet<DfsLogger>(currentLogs);
+  public synchronized Set<String> getCurrentLogFiles() {
+    Set<String> result = new HashSet<String>();
+    for (DfsLogger log : currentLogs) {
+      result.add(log.getFileName());
+    }
+    return result;
   }
 
   Set<String> beginClearingUnusedLogs() {
@@ -2439,13 +2440,13 @@ public class Tablet implements TabletCommitter {
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
 
-  public int getLogCount() {
+  public synchronized int getLogCount() {
     return currentLogs.size();
   }
 
   // don't release the lock if this method returns true for success; instead, the caller should clean up by calling finishUpdatingLogsUsed()
   @Override
-  public boolean beginUpdatingLogsUsed(InMemoryMap memTable, DfsLogger more, boolean mincFinish) {
+  public boolean beginUpdatingLogsUsed(InMemoryMap memTable, Collection<DfsLogger> more, boolean mincFinish) {
 
     boolean releaseLock = true;
 
@@ -2482,26 +2483,28 @@ public class Tablet implements TabletCommitter {
 
         int numAdded = 0;
         int numContained = 0;
-        if (addToOther) {
-          if (otherLogs.add(more))
-            numAdded++;
+        for (DfsLogger logger : more) {
+          if (addToOther) {
+            if (otherLogs.add(logger))
+              numAdded++;
 
-          if (currentLogs.contains(more))
-            numContained++;
-        } else {
-          if (currentLogs.add(more))
-            numAdded++;
+            if (currentLogs.contains(logger))
+              numContained++;
+          } else {
+            if (currentLogs.add(logger))
+              numAdded++;
 
-          if (otherLogs.contains(more))
-            numContained++;
+            if (otherLogs.contains(logger))
+              numContained++;
+          }
         }
 
-        if (numAdded > 0 && numAdded != 1) {
+        if (numAdded > 0 && numAdded != more.size()) {
           // expect to add all or none
           throw new IllegalArgumentException("Added subset of logs " + extent + " " + more + " " + currentLogs);
         }
 
-        if (numContained > 0 && numContained != 1) {
+        if (numContained > 0 && numContained != more.size()) {
           // expect to contain all or none
           throw new IllegalArgumentException("Other logs contained subset of logs " + extent + " " + more + " " + otherLogs);
         }

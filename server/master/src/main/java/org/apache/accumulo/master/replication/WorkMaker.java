@@ -107,7 +107,6 @@ public class WorkMaker {
         // Don't create the record if we have nothing to do.
         // TODO put this into a filter on serverside
         if (!shouldCreateWork(status)) {
-          log.debug("Not creating work: " + status.toString());
           continue;
         }
 

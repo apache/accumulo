@@ -202,6 +202,9 @@ public class NullTserver {
     }
 
     @Override
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {}
+
+    @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveCompaction>();
     }
@@ -228,9 +231,6 @@ public class NullTserver {
     public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
       return null;
     }
-
-    @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException { }
   }
 
   static class Opts extends Help {

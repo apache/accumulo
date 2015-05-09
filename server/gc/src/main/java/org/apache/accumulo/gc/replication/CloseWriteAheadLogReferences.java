@@ -37,11 +37,13 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
@@ -182,21 +184,20 @@ public class CloseWriteAheadLogReferences implements Runnable {
     try {
       // TODO Configurable number of threads
       bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-      bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
-      bs.fetchColumnFamily(CurrentLogsSection.COLF);
+      bs.setRanges(Collections.singleton(TabletsSection.getRange()));
+      bs.fetchColumnFamily(LogColumnFamily.NAME);
 
       // For each log key/value in the metadata table
       for (Entry<Key,Value> entry : bs) {
-        if (entry.getValue().equals(CurrentLogsSection.UNUSED)) {
-          continue;
-        }
-        Text tpath = new Text();
-        CurrentLogsSection.getPath(entry.getKey(), tpath);
-        String path = new Path(tpath.toString()).toString();
-        log.debug("Found WAL " + path.toString());
+        // The value may contain multiple WALs
+        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+
+        log.debug("Found WALs for table(" + logEntry.extent.getTableId() + "): " + logEntry.logSet);
 
         // Normalize each log file (using Path) and add it to the set
-        referencedWals.add(normalizedWalPaths.get(path));
+        for (String logFile : logEntry.logSet) {
+          referencedWals.add(normalizedWalPaths.get(logFile));
+        }
       }
     } catch (TableNotFoundException e) {
       // uhhhh

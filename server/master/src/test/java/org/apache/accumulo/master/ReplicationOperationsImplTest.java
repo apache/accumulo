@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master;
 
+import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -305,7 +306,13 @@ public class ReplicationOperationsImplTest {
     bw.addMutation(m);
     bw.close();
 
-    LogEntry logEntry = new LogEntry(new KeyExtent(new Text(tableId1), null, null), System.currentTimeMillis(), "tserver", file1);
+    LogEntry logEntry = new LogEntry();
+    logEntry.extent = new KeyExtent(new Text(tableId1), null, null);
+    logEntry.server = "tserver";
+    logEntry.filename = file1;
+    logEntry.tabletId = 1;
+    logEntry.logSet = Arrays.asList(file1);
+    logEntry.timestamp = System.currentTimeMillis();
 
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);

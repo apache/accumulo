@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -79,7 +78,6 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     cfg.setNumTservers(1);
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, GC_PERIOD_SECONDS + "s");
     // Wait longer to try to let the replication table come online before a cycle runs
     cfg.setProperty(Property.GC_CYCLE_START, "10s");
@@ -104,14 +102,18 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(CurrentLogsSection.getRange());
-    s.fetchColumnFamily(CurrentLogsSection.COLF);
+    Range r = MetadataSchema.TabletsSection.getRange(tableId);
+    s.setRange(r);
+    s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
 
     Set<String> wals = new HashSet<String>();
     for (Entry<Key,Value> entry : s) {
       log.debug("Reading WALs: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
       // hostname:port/uri://path/to/wal
-      String path = new Path(entry.getKey().getColumnQualifier().toString()).toString();
+      String cq = entry.getKey().getColumnQualifier().toString();
+      int index = cq.indexOf('/');
+      // Normalize the path
+      String path = new Path(cq.substring(index + 1)).toString();
       log.debug("Extracted file: " + path);
       wals.add(path);
     }
@@ -226,6 +228,11 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     Assert.assertEquals("Expected Status for file to not be closed", false, status.getClosed());
 
+    log.info("Checking to see that log entries are removed from tablet section after MinC");
+    // After compaction, the log column should be gone from the tablet
+    Set<String> walsAfterMinc = getWalsForTable(table);
+    Assert.assertEquals("Expected to find no WALs for tablet", 0, walsAfterMinc.size());
+
     Set<String> filesForTable = getFilesForTable(table);
     Assert.assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
     log.info("Files for table before MajC: {}", filesForTable);
@@ -250,6 +257,14 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
       Thread.sleep(2000);
       fileExists = fs.exists(fileToBeDeleted);
     }
+
+    // At this point in time, we *know* that the GarbageCollector has run which means that the Status
+    // for our WAL should not be altered.
+
+    log.info("Re-checking that WALs are still not referenced for our table");
+
+    Set<String> walsAfterMajc = getWalsForTable(table);
+    Assert.assertEquals("Expected to find no WALs in tablets section: " + walsAfterMajc, 0, walsAfterMajc.size());
 
     Map<String,Status> fileToStatusAfterMinc = getMetadataStatusForTable(table);
     Assert.assertEquals("Expected to still find only one replication status message: " + fileToStatusAfterMinc, 1, fileToStatusAfterMinc.size());
@@ -311,6 +326,11 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     Assert.assertEquals("Expected Status for file to not be closed", false, status.getClosed());
 
+    log.info("Checking to see that log entries are removed from tablet section after MinC");
+    // After compaction, the log column should be gone from the tablet
+    Set<String> walsAfterMinc = getWalsForTable(table);
+    Assert.assertEquals("Expected to find no WALs for tablet", 0, walsAfterMinc.size());
+
     Set<String> filesForTable = getFilesForTable(table);
     Assert.assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
     log.info("Files for table before MajC: {}", filesForTable);
@@ -338,6 +358,11 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     // At this point in time, we *know* that the GarbageCollector has run which means that the Status
     // for our WAL should not be altered.
+
+    log.info("Re-checking that WALs are still not referenced for our table");
+
+    Set<String> walsAfterMajc = getWalsForTable(table);
+    Assert.assertEquals("Expected to find no WALs in tablets section: " + walsAfterMajc, 0, walsAfterMajc.size());
 
     Map<String,Status> fileToStatusAfterMinc = getMetadataStatusForTable(table);
     Assert.assertEquals("Expected to still find only one replication status message: " + fileToStatusAfterMinc, 1, fileToStatusAfterMinc.size());

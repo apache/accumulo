@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
@@ -29,7 +30,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,7 +45,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -148,8 +147,8 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -1501,7 +1500,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       final AssignmentHandler ah = new AssignmentHandler(extent);
       // final Runnable ah = new LoggingRunnable(log, );
       // Root tablet assignment must take place immediately
-
       if (extent.isRootTablet()) {
         new Daemon("Root Tablet Assignment") {
           @Override
@@ -1694,6 +1692,66 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     @Override
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
+      String myname = getClientAddressString();
+      myname = myname.replace(':', '+');
+      Set<String> loggers = new HashSet<String>();
+      logger.getLogFiles(loggers);
+      Set<String> loggerUUIDs = new HashSet<String>();
+      for (String logger : loggers)
+        loggerUUIDs.add(new Path(logger).getName());
+
+      nextFile: for (String filename : filenames) {
+        String uuid = new Path(filename).getName();
+        // skip any log we're currently using
+        if (loggerUUIDs.contains(uuid))
+          continue nextFile;
+
+        List<Tablet> onlineTabletsCopy = new ArrayList<Tablet>();
+        synchronized (onlineTablets) {
+          onlineTabletsCopy.addAll(onlineTablets.values());
+        }
+        for (Tablet tablet : onlineTabletsCopy) {
+          for (String current : tablet.getCurrentLogFiles()) {
+            if (current.contains(uuid)) {
+              log.info("Attempted to delete " + filename + " from tablet " + tablet.getExtent());
+              continue nextFile;
+            }
+          }
+        }
+
+        try {
+          Path source = new Path(filename);
+          if (TabletServer.this.getConfiguration().getBoolean(Property.TSERV_ARCHIVE_WALOGS)) {
+            Path walogArchive = fs.matchingFileSystem(source, ServerConstants.getWalogArchives());
+            fs.mkdirs(walogArchive);
+            Path dest = new Path(walogArchive, source.getName());
+            log.info("Archiving walog " + source + " to " + dest);
+            if (!fs.rename(source, dest))
+              log.error("rename is unsuccessful");
+          } else {
+            log.info("Deleting walog " + filename);
+            Path sourcePath = new Path(filename);
+            if (!(!TabletServer.this.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE) && fs.moveToTrash(sourcePath))
+                && !fs.deleteRecursively(sourcePath))
+              log.warn("Failed to delete walog " + source);
+            for (String recovery : ServerConstants.getRecoveryDirs()) {
+              Path recoveryPath = new Path(recovery, source.getName());
+              try {
+                if (fs.moveToTrash(recoveryPath) || fs.deleteRecursively(recoveryPath))
+                  log.info("Deleted any recovery log " + filename);
+              } catch (FileNotFoundException ex) {
+                // ignore
+              }
+            }
+          }
+        } catch (IOException e) {
+          log.warn("Error attempting to delete write-ahead log " + filename + ": " + e);
+        }
+      }
+    }
+
+    @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       try {
         checkPermission(credentials, null, "getActiveCompactions");
@@ -1714,23 +1772,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
-      String log = logger.getLogFile();
-      // Might be null if there no active logger
-      if (null == log) {
-        return Collections.emptyList();
-      }
-      return Collections.singletonList(log);
-    }
-
-    @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
-      log.warn("Garbage collector is attempting to remove logs through the tablet server");
-      log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" + "Restart your file Garbage Collector.");
+      Set<String> logs = new HashSet<String>();
+      logger.getLogFiles(logs);
+      return new ArrayList<String>(logs);
     }
   }
 
   private class SplitRunner implements Runnable {
-    private final Tablet tablet;
+    private Tablet tablet;
 
     public SplitRunner(Tablet tablet) {
       this.tablet = tablet;
@@ -1984,7 +2033,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           log.error("Unexpected error ", e);
         }
         log.debug("Unassigning " + tls);
-        TabletStateStore.unassign(TabletServer.this, tls, null);
+        TabletStateStore.unassign(TabletServer.this, tls);
       } catch (DistributedStoreException ex) {
         log.warn("Unable to update storage", ex);
       } catch (KeeperException e) {
@@ -2186,6 +2235,29 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     if (!extent.isMeta()) {
       recoveryLock.unlock();
     }
+  }
+
+  public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
+    if (!this.onlineTablets.containsKey(extent)) {
+      log.info("Not adding " + logs.size() + " logs for extent " + extent + " as alias " + id + " tablet is offline");
+      // minor compaction due to recovery... don't make updates... if it finishes, there will be no WALs,
+      // if it doesn't, we'll need to do the same recovery with the old files.
+      return;
+    }
+
+    log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
+    long now = RelativeTime.currentTimeMillis();
+    List<String> logSet = new ArrayList<String>();
+    for (DfsLogger log : logs)
+      logSet.add(log.getFileName());
+    LogEntry entry = new LogEntry();
+    entry.extent = extent;
+    entry.tabletId = id;
+    entry.timestamp = now;
+    entry.server = logs.get(0).getLogger();
+    entry.filename = logs.get(0).getFileName();
+    entry.logSet = logSet;
+    MetadataTableUtil.addLogEntry(this, entry, getLock());
   }
 
   private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName)
@@ -2906,7 +2978,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
     totalMinorCompactions.incrementAndGet();
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq);
-    markUnusedWALs();
   }
 
   public void minorCompactionStarted(CommitSession tablet, int lastUpdateSequence, String newMapfileLocation) throws IOException {
@@ -2925,11 +2996,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     });
     for (LogEntry entry : sorted) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, entry.filename));
-      finished = SortedLogState.getFinishedMarkerPath(finished);
-      TabletServer.log.info("Looking for " + finished);
-      if (fs.exists(finished)) {
-        recovery = finished.getParent();
+      for (String log : entry.logSet) {
+        Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
+        finished = SortedLogState.getFinishedMarkerPath(finished);
+        TabletServer.log.info("Looking for " + finished);
+        if (fs.exists(finished)) {
+          recovery = finished.getParent();
+          break;
+        }
       }
       if (recovery == null)
         throw new IOException("Unable to find recovery files for extent " + extent + " logEntry: " + entry);
@@ -2966,9 +3040,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   public Collection<Tablet> getOnlineTablets() {
-    synchronized (onlineTablets) {
-      return new ArrayList<Tablet>(onlineTablets.values());
-    }
+    return Collections.unmodifiableCollection(onlineTablets.values());
   }
 
   public VolumeManager getFileSystem() {
@@ -2994,61 +3066,4 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public SecurityOperation getSecurityOperation() {
     return security;
   }
-
-  // avoid unnecessary redundant markings to meta
-  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
-  final Object levelLocks[] = new Object[TabletLevel.values().length];
-  {
-    for (int i = 0; i < levelLocks.length; i++) {
-      levelLocks[i] = new Object();
-    }
-  }
-
-  // remove any meta entries after a rolled log is no longer referenced
-  Set<DfsLogger> closedLogs = new HashSet<>();
-
-  private void markUnusedWALs() {
-    Set<DfsLogger> candidates;
-    synchronized (closedLogs) {
-      candidates = new HashSet<>(closedLogs);
-    }
-    for (Tablet tablet : getOnlineTablets()) {
-      candidates.removeAll(tablet.getCurrentLogFiles());
-    }
-    try {
-      Set<Path> filenames = new HashSet<>();
-      for (DfsLogger candidate : candidates) {
-        filenames.add(candidate.getPath());
-      }
-      MetadataTableUtil.markLogUnused(this, this.getLock(), this.getTabletSession(), filenames);
-      synchronized (closedLogs) {
-        closedLogs.removeAll(candidates);
-      }
-    } catch (AccumuloException ex) {
-      log.info(ex.toString(), ex);
-    }
-  }
-
-  public void addLoggersToMetadata(DfsLogger copy, TabletLevel level) {
-    // serialize the updates to the metadata per level: avoids updating the level more than once
-    // updating one level, may cause updates to other levels, so we need to release the lock on metadataTableLogs
-    synchronized (levelLocks[level.ordinal()]) {
-      EnumSet<TabletLevel> set = null;
-      set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
-      if (set == null || !set.contains(level) || level == TabletLevel.ROOT) {
-        log.info("Writing log marker for level " + level + " " + copy.getFileName());
-        MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getPath(), level);
-      }
-      set = metadataTableLogs.get(copy);
-      set.add(level);
-    }
-  }
-
-  public void walogClosed(DfsLogger currentLog) {
-    metadataTableLogs.remove(currentLog);
-    synchronized (closedLogs) {
-      closedLogs.add(currentLog);
-    }
-  }
-
 }

@@ -248,27 +248,35 @@ public class MasterMetadataUtil {
       if (unusedWalLogs != null) {
         updateRootTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId);
       }
+
       return;
     }
+
     Mutation m = getUpdateForTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId);
+
     MetadataTableUtil.update(context, zooLock, m, extent);
+
   }
 
   /**
    * Update the data file for the root tablet
    */
-  private static void updateRootTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
+  protected static void updateRootTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
       Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    // unusedWalLogs will contain the location/name of each log in a log set
+    // the log set is stored under one of the log names, but not both
+    // find the entry under one of the names and delete it.
     String root = MetadataTableUtil.getZookeeperLogLocation();
+    boolean foundEntry = false;
     for (String entry : unusedWalLogs) {
       String[] parts = entry.split("/");
       String zpath = root + "/" + parts[parts.length - 1];
       while (true) {
         try {
           if (zk.exists(zpath)) {
-            log.debug("Removing WAL reference for root table " + zpath);
             zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
+            foundEntry = true;
           }
           break;
         } catch (KeeperException e) {
@@ -279,6 +287,8 @@ public class MasterMetadataUtil {
         UtilWaitThread.sleep(1000);
       }
     }
+    if (unusedWalLogs.size() > 0 && !foundEntry)
+      log.warn("WALog entry for root tablet did not exist " + unusedWalLogs);
   }
 
   /**
@@ -286,7 +296,7 @@ public class MasterMetadataUtil {
    *
    * @return A Mutation to update a tablet from the given information
    */
-  private static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
+  protected static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
       Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
     Mutation m = new Mutation(extent.getMetadataEntry());
 

@@ -20,33 +20,25 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class BalanceIT extends AccumuloClusterIT {
-  private static final Logger log = LoggerFactory.getLogger(BalanceIT.class);
+public class BalanceIT extends ConfigurableMacIT {
 
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
-
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testBalance() throws Exception {
     String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
-    log.info("Creating table");
+    System.out.println("Creating table");
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (int i = 0; i < 10; i++) {
       splits.add(new Text("" + i));
     }
-    log.info("Adding splits");
+    System.out.println("Adding splits");
     c.tableOperations().addSplits(tableName, splits);
-    log.info("Waiting for balance");
+    System.out.println("Waiting for balance");
     c.instanceOperations().waitForBalance();
   }
 }

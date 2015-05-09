@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Durability;
@@ -37,7 +38,7 @@ public interface TabletCommitter {
   /**
    * If this method returns true, the caller must call {@link #finishUpdatingLogsUsed()} to clean up
    */
-  boolean beginUpdatingLogsUsed(InMemoryMap memTable, DfsLogger copy, boolean mincFinish);
+  boolean beginUpdatingLogsUsed(InMemoryMap memTable, Collection<DfsLogger> copy, boolean mincFinish);
 
   void finishUpdatingLogsUsed();
 

@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -65,7 +63,6 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -74,7 +71,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.replication.StatusFormatter;
@@ -82,6 +79,7 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -126,38 +124,25 @@ public class ReplicationIT extends ConfigurableMacIT {
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_PERIOD, "1s");
     cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   private Multimap<String,String> getLogs(Connector conn) throws TableNotFoundException {
-    // Map of server to tableId
-    Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
-    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(MetadataSchema.TabletsSection.getRange());
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-    for (Entry<Key,Value> entry : scanner) {
-      TServerInstance key = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
-      byte[] tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
-      serverToTableID.put(key, new String(tableId, UTF_8));
-    }
-    // Map of logs to tableId
     Multimap<String,String> logs = HashMultimap.create();
-    scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(MetadataSchema.CurrentLogsSection.getRange());
+    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    scanner.fetchColumnFamily(LogColumnFamily.NAME);
+    scanner.setRange(new Range());
     for (Entry<Key,Value> entry : scanner) {
       if (Thread.interrupted()) {
         return logs;
       }
-      Text path = new Text();
-      MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
-      Text session = new Text();
-      Text hostPort = new Text();
-      MetadataSchema.CurrentLogsSection.getTabletServer(entry.getKey(), hostPort, session);
-      TServerInstance server = new TServerInstance(AddressUtil.parseAddress(hostPort.toString(), false), session.toString());
-      for (String tableId : serverToTableID.get(server)) {
-        logs.put(new Path(path.toString()).toString(), tableId);
+
+      LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+
+      for (String log : logEntry.logSet) {
+        // Need to normalize the log file from LogEntry
+        logs.put(new Path(log).toString(), logEntry.extent.getTableId().toString());
       }
     }
     return logs;
@@ -312,12 +297,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     attempts = 5;
     while (wals.isEmpty() && attempts > 0) {
       s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      s.setRange(MetadataSchema.CurrentLogsSection.getRange());
-      s.fetchColumnFamily(MetadataSchema.CurrentLogsSection.COLF);
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : s) {
-        Text path = new Text();
-        MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
-        wals.add(new Path(path.toString()).toString());
+        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+        wals.add(new Path(logEntry.filename).toString());
       }
       attempts--;
     }
@@ -348,7 +331,18 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
-      writeSomeData(conn, table, 5, 5);
+      BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+
+      for (int j = 0; j < 5; j++) {
+        Mutation m = new Mutation(Integer.toString(j));
+        for (int k = 0; k < 5; k++) {
+          String value = Integer.toString(k);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
     }
 
     // After writing data, still no replication table
@@ -388,7 +382,18 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     // Write some data to table1
-    writeSomeData(conn, table1, 50, 50);
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+
+    for (int rows = 0; rows < 50; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     // After the commit for these mutations finishes, we'll get a replication entry in accumulo.metadata for table1
     // Don't want to compact table1 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
@@ -435,7 +440,18 @@ public class ReplicationIT extends ConfigurableMacIT {
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
 
     // Write some data to table2
-    writeSomeData(conn, table2, 50, 50);
+    bw = conn.createBatchWriter(table2, new BatchWriterConfig());
+
+    for (int rows = 0; rows < 50; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     // After the commit on these mutations, we'll get a replication entry in accumulo.metadata for table2
     // Don't want to compact table2 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
@@ -483,19 +499,6 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
   }
 
-  private void writeSomeData(Connector conn, String table, int rows, int cols) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
-    for (int row = 0; row < rows; row++) {
-      Mutation m = new Mutation(Integer.toString(row));
-      for (int col = 0; col < cols; col++) {
-        String value = Integer.toString(col);
-        m.put(value, "", value);
-      }
-      bw.addMutation(m);
-    }
-    bw.close();
-  }
-
   @Test
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
     final Connector conn = getConnector();
@@ -527,21 +530,53 @@ public class ReplicationIT extends ConfigurableMacIT {
     Thread.sleep(2000);
 
     // Write some data to table1
-    writeSomeData(conn, table1, 200, 500);
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+    for (int rows = 0; rows < 200; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 500; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     conn.tableOperations().create(table2);
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     Thread.sleep(2000);
 
-    writeSomeData(conn, table2, 200, 500);
+    // Write some data to table2
+    bw = conn.createBatchWriter(table2, new BatchWriterConfig());
+    for (int rows = 0; rows < 200; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 500; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     conn.tableOperations().create(table3);
     conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     Thread.sleep(2000);
 
-    writeSomeData(conn, table3, 200, 500);
+    // Write some data to table3
+    bw = conn.createBatchWriter(table3, new BatchWriterConfig());
+    for (int rows = 0; rows < 200; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 500; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     // Force a write to metadata for the data written
     for (String table : Arrays.asList(table1, table2, table3)) {
@@ -575,8 +610,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // We should have *some* reference to each log that was seen in the metadata table
     // They might not yet all be closed though (might be newfile)
-    Assert.assertTrue("Metadata log distribution: " + logs + "replFiles " + replFiles, logs.keySet().containsAll(replFiles));
-    Assert.assertTrue("Difference between replication entries and current logs is bigger than one", logs.keySet().size() - replFiles.size() <= 1);
+    Assert.assertEquals("Metadata log distribution: " + logs, logs.keySet(), replFiles);
 
     for (String replFile : replFiles) {
       Path p = new Path(replFile);
@@ -664,11 +698,44 @@ public class ReplicationIT extends ConfigurableMacIT {
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
-      writeSomeData(conn, table1, 200, 500);
+      // Write some data to table1
+      BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+      for (int rows = 0; rows < 200; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 500; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
 
-      writeSomeData(conn, table2, 200, 500);
+      bw.close();
 
-      writeSomeData(conn, table3, 200, 500);
+      // Write some data to table2
+      bw = conn.createBatchWriter(table2, new BatchWriterConfig());
+      for (int rows = 0; rows < 200; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 500; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
+
+      // Write some data to table3
+      bw = conn.createBatchWriter(table3, new BatchWriterConfig());
+      for (int rows = 0; rows < 200; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 500; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
 
       // Flush everything to try to make the replication records
       for (String table : Arrays.asList(table1, table2, table3)) {
@@ -721,7 +788,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     Set<String> wals = new HashSet<>();
     for (Entry<Key,Value> entry : s) {
       LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-      wals.add(new Path(logEntry.filename).toString());
+      for (String file : logEntry.logSet) {
+        Path p = new Path(file);
+        wals.add(p.toString());
+      }
     }
 
     log.warn("Found wals {}", wals);
@@ -798,7 +868,9 @@ public class ReplicationIT extends ConfigurableMacIT {
   public void singleTableWithSingleTarget() throws Exception {
     // We want to kill the GC so it doesn't come along and close Status records and mess up the comparisons
     // against expected Status messages.
-    getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
+    for (ProcessReference proc : cluster.getProcesses().get(ServerType.GARBAGE_COLLECTOR)) {
+      cluster.killProcess(ServerType.GARBAGE_COLLECTOR, proc);
+    }
 
     Connector conn = getConnector();
     String table1 = "table1";
@@ -832,7 +904,17 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     // Write some data to table1
-    writeSomeData(conn, table1, 2000, 50);
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+    for (int rows = 0; rows < 2000; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     // Make sure the replication table is online at this point
     boolean online = ReplicationTable.isOnline(conn);
@@ -919,7 +1001,17 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     // Write some more data so that we over-run the single WAL
-    writeSomeData(conn, table1, 3000, 50);
+    bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+    for (int rows = 0; rows < 3000; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
 
     log.info("Issued compaction for table");
     conn.tableOperations().compact(table1, null, null, true, true);
@@ -992,7 +1084,17 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     // Write some data to table1
-    writeSomeData(conn, table1, 2000, 50);
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+    for (int rows = 0; rows < 2000; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
     conn.tableOperations().flush(table1, null, null, true);
 
     String tableId = conn.tableOperations().tableIdMap().get(table1);
@@ -1048,7 +1150,10 @@ public class ReplicationIT extends ConfigurableMacIT {
 
   @Test
   public void replicationRecordsAreClosedAfterGarbageCollection() throws Exception {
-    getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
+    Collection<ProcessReference> gcProcs = cluster.getProcesses().get(ServerType.GARBAGE_COLLECTOR);
+    for (ProcessReference ref : gcProcs) {
+      cluster.killProcess(ServerType.GARBAGE_COLLECTOR, ref);
+    }
 
     final Connector conn = getConnector();
 
@@ -1079,6 +1184,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     String table1 = "table1", table2 = "table2", table3 = "table3";
 
+    BatchWriter bw;
     try {
       conn.tableOperations().create(table1);
       conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
@@ -1087,19 +1193,51 @@ public class ReplicationIT extends ConfigurableMacIT {
           ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
 
       // Write some data to table1
-      writeSomeData(conn, table1, 200, 500);
+      bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+      for (int rows = 0; rows < 200; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 500; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
 
       conn.tableOperations().create(table2);
       conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
       conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
-      writeSomeData(conn, table2, 200, 500);
+      // Write some data to table2
+      bw = conn.createBatchWriter(table2, new BatchWriterConfig());
+      for (int rows = 0; rows < 200; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 500; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
 
       conn.tableOperations().create(table3);
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
-      writeSomeData(conn, table3, 200, 500);
+      // Write some data to table3
+      bw = conn.createBatchWriter(table3, new BatchWriterConfig());
+      for (int rows = 0; rows < 200; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 500; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
 
       // Flush everything to try to make the replication records
       for (String table : Arrays.asList(table1, table2, table3)) {
@@ -1113,8 +1251,11 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Kill the tserver(s) and restart them
     // to ensure that the WALs we previously observed all move to closed.
-    cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
-    cluster.getClusterControl().start(ServerType.TABLET_SERVER);
+    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+      cluster.killProcess(ServerType.TABLET_SERVER, proc);
+    }
+
+    cluster.exec(TabletServer.class);
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : Arrays.asList(table1, table2, table3)) {
@@ -1215,7 +1356,9 @@ public class ReplicationIT extends ConfigurableMacIT {
   @Test
   public void replicatedStatusEntriesAreDeleted() throws Exception {
     // Just stop it now, we'll restart it after we restart the tserver
-    getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
+    for (ProcessReference proc : getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR)) {
+      getCluster().killProcess(ServerType.GARBAGE_COLLECTOR, proc);
+    }
 
     final Connector conn = getConnector();
     log.info("Got connector to MAC");
@@ -1251,7 +1394,17 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertNotNull("Could not determine table id for " + table1, tableId);
 
     // Write some data to table1
-    writeSomeData(conn, table1, 2000, 50);
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+    for (int rows = 0; rows < 2000; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
     conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure the replication table exists at this point
@@ -1269,35 +1422,14 @@ public class ReplicationIT extends ConfigurableMacIT {
     // Grant ourselves the write permission for later
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
-    log.info("Checking for replication entries in replication");
-    // Then we need to get those records over to the replication table
-    Scanner s;
-    Set<String> entries = new HashSet<>();
-    for (int i = 0; i < 5; i++) {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      s.setRange(ReplicationSection.getRange());
-      entries.clear();
-      for (Entry<Key,Value> entry : s) {
-        entries.add(entry.getKey().getRow().toString());
-        log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
-      }
-      if (!entries.isEmpty()) {
-        log.info("Replication entries {}", entries);
-        break;
-      }
-      Thread.sleep(1000);
-    }
-
-    Assert.assertFalse("Did not find any replication entries in the replication table", entries.isEmpty());
-
     // Find the WorkSection record that will be created for that data we ingested
     boolean notFound = true;
+    Scanner s;
     for (int i = 0; i < 10 && notFound; i++) {
       try {
         s = ReplicationTable.getScanner(conn);
         WorkSection.limit(s);
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
-        log.info("Found entry: " + e.getKey().toStringNoTruncate());
         Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
@@ -1348,61 +1480,69 @@ public class ReplicationIT extends ConfigurableMacIT {
     log.info("Killing tserver");
     // Kill the tserver(s) and restart them
     // to ensure that the WALs we previously observed all move to closed.
-    cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
+    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+      cluster.killProcess(ServerType.TABLET_SERVER, proc);
+    }
 
     log.info("Starting tserver");
-    cluster.getClusterControl().start(ServerType.TABLET_SERVER);
+    cluster.exec(TabletServer.class);
 
     log.info("Waiting to read tables");
-    UtilWaitThread.sleep(2 * 3 * 1000);
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : new String[] {MetadataTable.NAME, table1}) {
       Iterators.size(conn.createScanner(table, Authorizations.EMPTY).iterator());
     }
 
-    log.info("Recovered metadata:");
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    for (Entry<Key,Value> entry : s) {
-      log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
+    log.info("Checking for replication entries in replication");
+    // Then we need to get those records over to the replication table
+    boolean foundResults = false;
+    for (int i = 0; i < 5; i++) {
+      s = ReplicationTable.getScanner(conn);
+      int count = 0;
+      for (Entry<Key,Value> entry : s) {
+        count++;
+        log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
+      }
+      if (count > 0) {
+        foundResults = true;
+        break;
+      }
+      Thread.sleep(1000);
     }
 
-    cluster.getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
+    Assert.assertTrue("Did not find any replication entries in the replication table", foundResults);
+
+    getCluster().exec(SimpleGarbageCollector.class);
 
     // Wait for a bit since the GC has to run (should be running after a one second delay)
     waitForGCLock(conn);
 
     Thread.sleep(1000);
 
-    log.info("After GC");
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    for (Entry<Key,Value> entry : s) {
-      log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
-    }
-
     // We expect no records in the metadata table after compaction. We have to poll
     // because we have to wait for the StatusMaker's next iteration which will clean
     // up the dangling *closed* records after we create the record in the replication table.
     // We need the GC to close the file (CloseWriteAheadLogReferences) before we can remove the record
     log.info("Checking metadata table for replication entries");
-    Set<String> remaining = new HashSet<>();
+    foundResults = true;
     for (int i = 0; i < 10; i++) {
       s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       s.setRange(ReplicationSection.getRange());
-      remaining.clear();
+      long size = 0;
       for (Entry<Key,Value> e : s) {
-        remaining.add(e.getKey().getRow().toString());
+        size++;
+        log.info("{}={}", e.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(e.getValue().get())));
       }
-      remaining.retainAll(entries);
-      if (remaining.isEmpty()) {
+      if (size == 0) {
+        foundResults = false;
         break;
       }
-      log.info("remaining {}", remaining);
       Thread.sleep(2000);
       log.info("");
     }
 
-    Assert.assertTrue("Replication status messages were not cleaned up from metadata table", remaining.isEmpty());
+    Assert.assertFalse("Replication status messages were not cleaned up from metadata table", foundResults);
 
     /**
      * After we close out and subsequently delete the metadata record, this will propagate to the replication table, which will cause those records to be
@@ -1415,10 +1555,10 @@ public class ReplicationIT extends ConfigurableMacIT {
       recordsFound = 0;
       for (Entry<Key,Value> entry : s) {
         recordsFound++;
-        log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+        log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
       }
 
-      if (recordsFound <= 2) {
+      if (0 == recordsFound) {
         break;
       } else {
         Thread.sleep(1000);
@@ -1426,6 +1566,6 @@ public class ReplicationIT extends ConfigurableMacIT {
       }
     }
 
-    Assert.assertTrue("Found unexpected replication records in the replication table", recordsFound <= 2);
+    Assert.assertEquals("Found unexpected replication records in the replication table", 0, recordsFound);
   }
 }

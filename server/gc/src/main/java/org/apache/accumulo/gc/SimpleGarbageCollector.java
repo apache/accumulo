@@ -569,6 +569,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         replSpan.stop();
       }
 
+      // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
         GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash());

@@ -60,11 +60,6 @@ import com.google.common.net.HostAndPort;
 public class ProxyDurabilityIT extends ConfigurableMacIT {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
-
-  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
@@ -116,7 +111,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     assertEquals(0, count(tableName));
 
     ConditionalWriterOptions cfg = new ConditionalWriterOptions();
-    cfg.setDurability(Durability.SYNC);
+    cfg.setDurability(Durability.LOG);
     String cwriter = client.createConditionalWriter(login, tableName, cfg);
     ConditionalUpdates updates = new ConditionalUpdates();
     updates.addToConditions(new Condition(new Column(bytes("cf"), bytes("cq"), bytes(""))));
@@ -125,7 +120,7 @@ public class ProxyDurabilityIT extends ConfigurableMacIT {
     assertEquals(ConditionalStatus.ACCEPTED, status.get(bytes("row")));
     assertEquals(1, count(tableName));
     restartTServer();
-    assertEquals(1, count(tableName));
+    assertEquals(0, count(tableName));
 
     proxyServer.stop();
   }

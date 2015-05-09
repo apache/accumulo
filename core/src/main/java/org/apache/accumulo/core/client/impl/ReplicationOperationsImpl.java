@@ -153,7 +153,9 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     try {
       for (Entry<Key,Value> entry : metaBs) {
         LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-        wals.add(new Path(logEntry.filename).toString());
+        for (String log : logEntry.logSet) {
+          wals.add(new Path(log).toString());
+        }
       }
     } finally {
       metaBs.close();

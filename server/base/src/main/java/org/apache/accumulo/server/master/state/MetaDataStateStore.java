@@ -17,9 +17,6 @@
 package org.apache.accumulo.server.master.state;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -30,14 +27,9 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 public class MetaDataStateStore extends TabletStateStore {
-  private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
 
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
@@ -67,7 +59,7 @@ public class MetaDataStateStore extends TabletStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state, targetTableName);
+    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state);
   }
 
   @Override
@@ -124,7 +116,7 @@ public class MetaDataStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
 
     BatchWriter writer = createBatchWriter();
     try {
@@ -132,15 +124,6 @@ public class MetaDataStateStore extends TabletStateStore {
         Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
           tls.current.clearLocation(m);
-          if (logsForDeadServers != null) {
-            List<Path> logs = logsForDeadServers.get(tls.current);
-            if (logs != null) {
-              for (Path log : logs) {
-                LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
-                m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
-              }
-            }
-          }
         }
         if (tls.future != null) {
           tls.future.clearFutureLocation(m);
@@ -161,31 +144,5 @@ public class MetaDataStateStore extends TabletStateStore {
   @Override
   public String name() {
     return "Normal Tablets";
-  }
-
-  @Override
-  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<Path>> logs) throws DistributedStoreException {
-    BatchWriter writer = createBatchWriter();
-    try {
-      for (Entry<TServerInstance,List<Path>> entry : logs.entrySet()) {
-        if (entry.getValue().isEmpty()) {
-          continue;
-        }
-        Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
-        for (Path log : entry.getValue()) {
-          m.put(MetadataSchema.CurrentLogsSection.COLF, new Text(log.toString()), MetadataSchema.CurrentLogsSection.UNUSED);
-        }
-        writer.addMutation(m);
-      }
-    } catch (Exception ex) {
-      log.error("Error marking logs as unused: " + logs);
-      throw new DistributedStoreException(ex);
-    } finally {
-      try {
-        writer.close();
-      } catch (MutationsRejectedException e) {
-        throw new DistributedStoreException(e);
-      }
-    }
   }
 }

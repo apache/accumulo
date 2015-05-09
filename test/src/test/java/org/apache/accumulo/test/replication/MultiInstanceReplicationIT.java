@@ -148,7 +148,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);

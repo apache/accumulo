@@ -141,7 +141,6 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     boolean chopped = false;
 
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
-
       Key key = entry.getKey();
       Text row = key.getRow();
       Text cf = key.getColumnFamily();
@@ -174,9 +173,8 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       }
     }
     if (extent == null) {
-      String msg = "No prev-row for key extent " + decodedRow;
-      log.error(msg);
-      throw new BadLocationStateException(msg, k.getRow());
+      log.warn("No prev-row for key extent: " + decodedRow);
+      return null;
     }
     return new TabletLocationState(extent, future, current, last, walogs, chopped);
   }

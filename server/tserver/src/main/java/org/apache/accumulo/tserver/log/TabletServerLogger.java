@@ -21,16 +21,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -39,9 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -76,22 +72,20 @@ public class TabletServerLogger {
 
   private final TabletServer tserver;
 
-  // The current logger
-  private DfsLogger currentLog = null;
-  private final SynchronousQueue<Object> nextLog = new SynchronousQueue<>();
-  private ThreadPoolExecutor nextLogMaker;
+  // The current log set: always updated to a new set with every change of loggers
+  private final List<DfsLogger> loggers = new ArrayList<DfsLogger>();
 
-  // The current generation of logs.
-  // Because multiple threads can be using a log at one time, a log
+  // The current generation of logSet.
+  // Because multiple threads can be using a log set at one time, a log
   // failure is likely to affect multiple threads, who will all attempt to
-  // create a new log. This will cause many unnecessary updates to the
+  // create a new logSet. This will cause many unnecessary updates to the
   // metadata table.
   // We'll use this generational counter to determine if another thread has
-  // already fetched a new log.
-  private final AtomicInteger logId = new AtomicInteger();
+  // already fetched a new logSet.
+  private AtomicInteger logSetId = new AtomicInteger();
 
   // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
-  private final ReentrantReadWriteLock logIdLock = new ReentrantReadWriteLock();
+  private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
 
   private final AtomicInteger seqGen = new AtomicInteger();
 
@@ -152,74 +146,62 @@ public class TabletServerLogger {
     this.flushCounter = flushCounter;
   }
 
-  private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
-    final AtomicReference<DfsLogger> result = new AtomicReference<DfsLogger>();
-    testLockAndRun(logIdLock, new TestCallWithWriteLock() {
+  private int initializeLoggers(final List<DfsLogger> copy) throws IOException {
+    final int[] result = {-1};
+    testLockAndRun(logSetLock, new TestCallWithWriteLock() {
       @Override
       boolean test() {
-        result.set(currentLog);
-        if (currentLog != null)
-          logIdOut.set(logId.get());
-        return currentLog == null;
+        copy.clear();
+        copy.addAll(loggers);
+        if (!loggers.isEmpty())
+          result[0] = logSetId.get();
+        return loggers.isEmpty();
       }
 
       @Override
       void withWriteLock() throws IOException {
         try {
-          createLogger();
-          result.set(currentLog);
-          if (currentLog != null)
-            logIdOut.set(logId.get());
+          createLoggers();
+          copy.clear();
+          copy.addAll(loggers);
+          if (copy.size() > 0)
+            result[0] = logSetId.get();
           else
-            logIdOut.set(-1);
+            result[0] = -1;
         } catch (IOException e) {
           log.error("Unable to create loggers", e);
         }
       }
     });
-    return result.get();
+    return result[0];
   }
 
-  /**
-   * Get the current WAL file
-   *
-   * @return The name of the current log, or null if there is no current log.
-   */
-  public String getLogFile() {
-    logIdLock.readLock().lock();
+  public void getLogFiles(Set<String> loggersOut) {
+    logSetLock.readLock().lock();
     try {
-      if (null == currentLog) {
-        return null;
+      for (DfsLogger logger : loggers) {
+        loggersOut.add(logger.getFileName());
       }
-      return currentLog.getFileName();
     } finally {
-      logIdLock.readLock().unlock();
+      logSetLock.readLock().unlock();
     }
   }
 
-  synchronized private void createLogger() throws IOException {
-    if (!logIdLock.isWriteLockedByCurrentThread()) {
+  synchronized private void createLoggers() throws IOException {
+    if (!logSetLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("createLoggers should be called with write lock held!");
     }
 
-    if (currentLog != null) {
-      throw new IllegalStateException("createLoggers should not be called when current log is set");
+    if (loggers.size() != 0) {
+      throw new IllegalStateException("createLoggers should not be called when loggers.size() is " + loggers.size());
     }
 
     try {
-      startLogMaker();
-      Object next = nextLog.take();
-      if (next instanceof Exception) {
-        throw (Exception) next;
-      }
-      if (next instanceof DfsLogger) {
-        currentLog = (DfsLogger) next;
-        logId.incrementAndGet();
-        log.info("Using next log " + currentLog.getFileName());
-        return;
-      } else {
-        throw new RuntimeException("Error: unexpected type seen: " + next);
-      }
+      DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
+      alog.open(tserver.getClientAddressString());
+      loggers.add(alog);
+      logSetId.incrementAndGet();
+      return;
     } catch (Exception t) {
       walErrors.put(System.currentTimeMillis(), "");
       if (walErrors.size() >= HALT_AFTER_ERROR_COUNT) {
@@ -229,63 +211,22 @@ public class TabletServerLogger {
     }
   }
 
-  private synchronized void startLogMaker() {
-    if (nextLogMaker != null) {
-      return;
-    }
-    nextLogMaker = new SimpleThreadPool(1, "WALog creator");
-    nextLogMaker.submit(new Runnable() {
-      @Override
-      public void run() {
-        while (!nextLogMaker.isShutdown()) {
-          try {
-            log.debug("Creating next WAL");
-            DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
-            alog.open(tserver.getClientAddressString());
-            log.debug("Created next WAL " + alog.getFileName());
-            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: " + alog.getFileName());
-            }
-          } catch (Exception t) {
-            log.error("{}", t.getMessage(), t);
-            try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // ignore
-            }
-          }
-        }
-      }
-    });
-  }
-
-  public void resetLoggers() throws IOException {
-    logIdLock.writeLock().lock();
-    try {
-      close();
-    } finally {
-      logIdLock.writeLock().unlock();
-    }
-  }
-
   synchronized private void close() throws IOException {
-    if (!logIdLock.isWriteLockedByCurrentThread()) {
+    if (!logSetLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");
     }
     try {
-      if (null != currentLog) {
+      for (DfsLogger logger : loggers) {
         try {
-          currentLog.close();
+          logger.close();
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Throwable ex) {
-          log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
-        } finally {
-          this.tserver.walogClosed(currentLog);
+          log.error("Unable to cleanly close log " + logger.getFileName() + ": " + ex, ex);
         }
-        currentLog = null;
-        logSizeEstimate.set(0);
       }
+      loggers.clear();
+      logSizeEstimate.set(0);
     } catch (Throwable t) {
       throw new IOException(t);
     }
@@ -302,7 +243,7 @@ public class TabletServerLogger {
 
   private int write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
     // Work very hard not to lock this during calls to the outside world
-    int currentLogId = logId.get();
+    int currentLogSet = logSetId.get();
 
     int seq = -1;
     int attempt = 1;
@@ -310,22 +251,20 @@ public class TabletServerLogger {
     while (!success) {
       try {
         // get a reference to the loggers that no other thread can touch
-        DfsLogger copy = null;
-        AtomicInteger currentId = new AtomicInteger(-1);
-        copy = initializeLoggers(currentId);
-        currentLogId = currentId.get();
+        ArrayList<DfsLogger> copy = new ArrayList<DfsLogger>();
+        currentLogSet = initializeLoggers(copy);
 
         // add the logger to the log set for the memory in the tablet,
         // update the metadata table if we've never used this tablet
 
-        if (currentLogId == logId.get()) {
+        if (currentLogSet == logSetId.get()) {
           for (CommitSession commitSession : sessions) {
             if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
               try {
                 // Scribble out a tablet definition and then write to the metadata table
                 defineTablet(commitSession);
-                if (currentLogId == logId.get())
-                  tserver.addLoggersToMetadata(copy, TabletLevel.getLevel(commitSession.getExtent()));
+                if (currentLogSet == logSetId.get())
+                  tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }
@@ -333,29 +272,39 @@ public class TabletServerLogger {
               // Need to release
               KeyExtent extent = commitSession.getExtent();
               if (ReplicationConfigurationUtil.isEnabled(extent, tserver.getTableConfiguration(extent))) {
-                Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + copy.getFileName());
+                Set<String> logs = new HashSet<String>();
+                for (DfsLogger logger : copy) {
+                  logs.add(logger.getFileName());
+                }
+                Status status = StatusUtil.fileCreated(System.currentTimeMillis());
+                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + logs);
                 // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(), copy.getFileName(), status);
+                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(), logs, status);
               }
             }
           }
         }
 
         // Make sure that the logs haven't changed out from underneath our copy
-        if (currentLogId == logId.get()) {
+        if (currentLogSet == logSetId.get()) {
 
           // write the mutation to the logs
           seq = seqGen.incrementAndGet();
           if (seq < 0)
             throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
-          LoggerOperation lop = writer.write(copy, seq);
-          if (lop != null) {
+          ArrayList<LoggerOperation> queuedOperations = new ArrayList<LoggerOperation>(copy.size());
+          for (DfsLogger wal : copy) {
+            LoggerOperation lop = writer.write(wal, seq);
+            if (lop != null)
+              queuedOperations.add(lop);
+          }
+
+          for (LoggerOperation lop : queuedOperations) {
             lop.await();
           }
 
           // double-check: did the log set change?
-          success = (currentLogId == logId.get());
+          success = (currentLogSet == logSetId.get());
         }
       } catch (DfsLogger.LogClosedException ex) {
         log.debug("Logs closed while writing, retrying " + attempt);
@@ -370,13 +319,13 @@ public class TabletServerLogger {
       // Some sort of write failure occurred. Grab the write lock and reset the logs.
       // But since multiple threads will attempt it, only attempt the reset when
       // the logs haven't changed.
-      final int finalCurrent = currentLogId;
+      final int finalCurrent = currentLogSet;
       if (!success) {
-        testLockAndRun(logIdLock, new TestCallWithWriteLock() {
+        testLockAndRun(logSetLock, new TestCallWithWriteLock() {
 
           @Override
           boolean test() {
-            return finalCurrent == logId.get();
+            return finalCurrent == logSetId.get();
           }
 
           @Override
@@ -389,7 +338,7 @@ public class TabletServerLogger {
     }
     // if the log gets too big, reset it .. grab the write lock first
     logSizeEstimate.addAndGet(4 * 3); // event, tid, seq overhead
-    testLockAndRun(logIdLock, new TestCallWithWriteLock() {
+    testLockAndRun(logSetLock, new TestCallWithWriteLock() {
       @Override
       boolean test() {
         return logSizeEstimate.get() > maxSize;
