@@ -48,7 +48,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
@@ -214,8 +213,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     List<String> children = zoo.getChildren(zpath, null);
     for (String child : children) {
       byte[] data = zoo.getData(zpath + "/" + child, null, null);
-      LogEntry entry = LogEntry.fromBytes(data);
-      result.put(entry.filename, true);
+      result.put(new String(data), true);
     }
     return result;
   }
