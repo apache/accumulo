@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -55,7 +54,6 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -78,7 +76,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
@@ -86,10 +83,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
-
-  // The order of these is _very_ important. Must read from current_logs, then walogs because ZooTabletStateStore writes to
-  // walogs and then removes from current_logs
-  private static final String[] ZK_LOG_SUFFIXES = new String[] {RootTable.ZROOT_TABLET_CURRENT_LOGS, RootTable.ZROOT_TABLET_WALOGS};
 
   private final AccumuloServerContext context;
   private final VolumeManager fs;
@@ -118,26 +111,6 @@ public class GarbageCollectWriteAheadLogs {
       }
     });
     liveServers.startListeningForTabletServerChanges();
-  }
-
-  /**
-   * Creates a new GC WAL object. Meant for testing -- allows mocked objects.
-   *
-   * @param context
-   *          the collection server's context
-   * @param fs
-   *          volume manager to use
-   * @param useTrash
-   *          true to move files to trash rather than delete them
-   * @param liveTServerSet
-   *          a started LiveTServerSet instance
-   */
-  @VisibleForTesting
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash, LiveTServerSet liveTServerSet) throws IOException {
-    this.context = context;
-    this.fs = fs;
-    this.useTrash = useTrash;
-    this.liveServers = liveTServerSet;
   }
 
   public void collect(GCStatus status) {
@@ -397,6 +370,9 @@ public class GarbageCollectWriteAheadLogs {
     return metaScanner;
   }
 
+
+
+
   /**
    * Scans log markers. The map passed in is populated with the logs for dead servers.
    *
@@ -404,10 +380,16 @@ public class GarbageCollectWriteAheadLogs {
    *          map of dead server to log file entries
    * @return total number of log files
    */
-  private long getCurrent(Map<TServerInstance,Set<Path>> unusedLogs, Set<TServerInstance> currentServers) throws Exception {
-    // Logs for the Root table are stored in ZooKeeper.
-    Set<Path> rootWALs = getRootLogs(ZooReaderWriter.getInstance(), context.getInstance());
-
+  private long getCurrent(Map<TServerInstance, Set<Path> > unusedLogs, Set<TServerInstance> currentServers) throws Exception {
+    Set<Path> rootWALs = new HashSet<>();
+    // Get entries in zookeeper:
+    String zpath = ZooUtil.getRoot(context.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
+    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    List<String> children = zoo.getChildren(zpath);
+    for (String child : children) {
+      LogEntry entry = LogEntry.fromBytes(zoo.getData(zpath + "/" + child, null));
+      rootWALs.add(new Path(entry.filename));
+    }
     long count = 0;
 
     // get all the WAL markers that are not in zookeeper for dead servers
@@ -421,13 +403,10 @@ public class GarbageCollectWriteAheadLogs {
     Text filename = new Text();
     while (entries.hasNext()) {
       Entry<Key,Value> entry = entries.next();
-
       CurrentLogsSection.getTabletServer(entry.getKey(), hostAndPort, sessionId);
       CurrentLogsSection.getPath(entry.getKey(), filename);
       TServerInstance tsi = new TServerInstance(HostAndPort.fromString(hostAndPort.toString()), sessionId.toString());
       Path path = new Path(filename.toString());
-
-      // A log is unused iff it's for a tserver which we don't know about or the log is marked as unused and it's not listed as used by the Root table
       if (!currentServers.contains(tsi) || entry.getValue().equals(CurrentLogsSection.UNUSED) && !rootWALs.contains(path)) {
         Set<Path> logs = unusedLogs.get(tsi);
         if (logs == null) {
@@ -441,88 +420,34 @@ public class GarbageCollectWriteAheadLogs {
 
     // scan HDFS for logs for dead servers
     for (Volume volume : VolumeManagerImpl.get().getVolumes()) {
-      addUnusedWalsFromVolume(volume.getFileSystem().listFiles(volume.prefixChild(ServerConstants.WAL_DIR), true), unusedLogs, context.getConnector()
-          .getInstance().getZooKeepersSessionTimeOut());
+      RemoteIterator<LocatedFileStatus> iter =  volume.getFileSystem().listFiles(volume.prefixChild(ServerConstants.WAL_DIR), true);
+      while (iter.hasNext()) {
+        LocatedFileStatus next = iter.next();
+        // recursive listing returns directories, too
+        if (next.isDirectory()) {
+          continue;
+        }
+        // make sure we've waited long enough for zookeeper propagation
+        if (System.currentTimeMillis() - next.getModificationTime() < context.getConnector().getInstance().getZooKeepersSessionTimeOut()) {
+          continue;
+        }
+        Path path = next.getPath();
+        String hostPlusPort = path.getParent().getName();
+        // server is still alive, or has a replacement
+        TServerInstance instance = liveServers.find(hostPlusPort);
+        if (instance != null) {
+          continue;
+        }
+        TServerInstance fake = new TServerInstance(hostPlusPort, 0L);
+        Set<Path> paths = unusedLogs.get(fake);
+        if (paths == null) {
+          paths = new HashSet<>();
+        }
+        paths.add(path);
+        unusedLogs.put(fake, paths);
+      }
     }
     return count;
-  }
-
-  /**
-   * Fetch the WALs which are, or were, referenced by the Root Table
-   *
-   * @return The Set of WALs which are needed by the Root Table
-   */
-  Set<Path> getRootLogs(final ZooReader zoo, Instance instance) throws Exception {
-    final HashSet<Path> rootWALs = new HashSet<>();
-    final String zkRoot = ZooUtil.getRoot(instance);
-
-    // Get entries in zookeeper -- order in ZK_LOG_SUFFIXES is _very_ important
-    for (String pathSuffix : ZK_LOG_SUFFIXES) {
-      addLogsForNode(zoo, zkRoot + pathSuffix, rootWALs);
-    }
-
-    return rootWALs;
-  }
-
-  /**
-   * Read all WALs from the given path in ZooKeeper and add the paths to each WAL to the provided <code>rootWALs</code>
-   *
-   * @param reader
-   *          A reader to ZooKeeper
-   * @param zpath
-   *          The base path to read in ZooKeeper
-   * @param rootWALs
-   *          A Set to collect the WALs in
-   */
-  void addLogsForNode(ZooReader reader, String zpath, HashSet<Path> rootWALs) throws Exception {
-    // Get entries in zookeeper:
-    List<String> children = reader.getChildren(zpath);
-    for (String child : children) {
-      LogEntry entry = LogEntry.fromBytes(reader.getData(zpath + "/" + child, null));
-      rootWALs.add(new Path(entry.filename));
-    }
-  }
-
-  /**
-   * Given a traversal over the <code>wals</code> directory on a {@link Volume}, add all unused WALs
-   *
-   * @param iter
-   *          Iterator over files in the <code>wals</code> directory
-   * @param unusedLogs
-   *          Map tracking unused WALs by server
-   */
-  void addUnusedWalsFromVolume(RemoteIterator<LocatedFileStatus> iter, Map<TServerInstance,Set<Path>> unusedLogs, int zkTimeout) throws Exception {
-    while (iter.hasNext()) {
-      LocatedFileStatus next = iter.next();
-      // recursive listing returns directories, too
-      if (next.isDirectory()) {
-        continue;
-      }
-      // make sure we've waited long enough for zookeeper propagation
-      //
-      // We aren't guaranteed to see the updates through the live tserver set just because the time since the file was
-      // last modified is longer than the ZK timeout.
-      // 1. If we think the server is alive, but it's actually dead, we'll grab it on a later cycle. Which is OK.
-      // 2. If we think the server is dead but it happened to be restarted it's possible to have a server which would differ only by session.
-      // This is also OK because the new TServer will create a new WAL.
-      if (System.currentTimeMillis() - next.getModificationTime() < zkTimeout) {
-        continue;
-      }
-      Path path = next.getPath();
-      String hostPlusPort = path.getParent().getName();
-      // server is still alive, or has a replacement (same host+port, different session)
-      TServerInstance instance = liveServers.find(hostPlusPort);
-      if (instance != null) {
-        continue;
-      }
-      TServerInstance fake = new TServerInstance(hostPlusPort, 0L);
-      Set<Path> paths = unusedLogs.get(fake);
-      if (paths == null) {
-        paths = new HashSet<>();
-      }
-      paths.add(path);
-      unusedLogs.put(fake, paths);
-    }
   }
 
 }
