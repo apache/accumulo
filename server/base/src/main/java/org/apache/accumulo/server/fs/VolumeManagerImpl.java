@@ -67,11 +67,10 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<String>();
 
-  Map<String,Volume> volumesByName;
-  Multimap<URI,Volume> volumesByFileSystemUri;
-  Volume defaultVolume;
-  AccumuloConfiguration conf;
-  VolumeChooser chooser;
+  private final Map<String,Volume> volumesByName;
+  private final Multimap<URI,Volume> volumesByFileSystemUri;
+  private final Volume defaultVolume;
+  private final VolumeChooser chooser;
 
   protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume, AccumuloConfiguration conf) {
     this.volumesByName = volumes;
@@ -79,7 +78,6 @@ public class VolumeManagerImpl implements VolumeManager {
     // We may have multiple directories used in a single FileSystem (e.g. testing)
     this.volumesByFileSystemUri = HashMultimap.create();
     invertVolumesByFileSystem(volumesByName, volumesByFileSystemUri);
-    this.conf = conf;
     ensureSyncIsEnabled();
     // Keep in sync with default type in the property definition.
     chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new PerTableVolumeChooser());
