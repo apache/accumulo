@@ -162,6 +162,16 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       return baos.toByteArray();
     }
 
+    /**
+     * @deprecated Since 1.7.0
+     */
+    @Override
+    @Deprecated
+    public List<V> decode(byte[] b) {
+      // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      return super.decode(b);
+    }
+
     @Override
     protected List<V> decodeUnchecked(byte[] b, int offset, int origLen) {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, origLen));
@@ -213,6 +223,16 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         sb.append(Long.toString(la.get(i)));
       }
       return sb.toString().getBytes(UTF_8);
+    }
+
+    /**
+     * @deprecated Since 1.7.0
+     */
+    @Override
+    @Deprecated
+    public List<Long> decode(byte[] b) {
+      // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      return super.decode(b);
     }
 
     @Override

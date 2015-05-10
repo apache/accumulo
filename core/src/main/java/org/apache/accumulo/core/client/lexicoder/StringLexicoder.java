@@ -34,6 +34,16 @@ public class StringLexicoder extends AbstractLexicoder<String> implements Lexico
     return data.getBytes(UTF_8);
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public String decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected String decodeUnchecked(byte[] data, int offset, int len) {
     return new String(data, offset, len, UTF_8);

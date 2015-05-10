@@ -56,6 +56,16 @@ public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> implements Le
     return concat(encElements);
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public List<LT> decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected List<LT> decodeUnchecked(byte[] b, int offset, int len) {
 

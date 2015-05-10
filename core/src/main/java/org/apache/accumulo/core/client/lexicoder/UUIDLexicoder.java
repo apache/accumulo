@@ -56,6 +56,16 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> implements Lexicoder<
     }
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public UUID decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected UUID decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
     try {

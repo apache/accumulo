@@ -65,6 +65,16 @@ public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> exte
     return concat(escape(firstLexicoder.encode(data.getFirst())), escape(secondLexicoder.encode(data.getSecond())));
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public ComparablePair<A,B> decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected ComparablePair<A,B> decodeUnchecked(byte[] data, int offset, int len) {
 

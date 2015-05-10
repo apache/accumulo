@@ -34,6 +34,16 @@ public class DateLexicoder extends AbstractLexicoder<Date> implements Lexicoder<
     return longEncoder.encode(data.getTime());
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public Date decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected Date decodeUnchecked(byte[] data, int offset, int len) {
     return new Date(longEncoder.decodeUnchecked(data, offset, len));

@@ -133,6 +133,16 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       return baos.toByteArray();
     }
 
+    /**
+     * @deprecated Since 1.7.0
+     */
+    @Override
+    @Deprecated
+    public Long decode(byte[] b) {
+      // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      return super.decode(b);
+    }
+
     @Override
     protected Long decodeUnchecked(byte[] b, int offset, int len) {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, len));
@@ -160,6 +170,16 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       b[6] = (byte) (l >>> 8);
       b[7] = (byte) (l >>> 0);
       return b;
+    }
+
+    /**
+     * @deprecated Since 1.7.0
+     */
+    @Override
+    @Deprecated
+    public Long decode(byte[] b) {
+      // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      return super.decode(b);
     }
 
     @Override
@@ -190,6 +210,16 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     @Override
     public byte[] encode(Long v) {
       return Long.toString(v).getBytes(UTF_8);
+    }
+
+    /**
+     * @deprecated Since 1.7.0
+     */
+    @Override
+    @Deprecated
+    public Long decode(byte[] b) {
+      // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      return super.decode(b);
     }
 
     @Override
