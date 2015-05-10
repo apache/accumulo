@@ -38,13 +38,9 @@ public class DoubleLexicoder extends AbstractLexicoder<Double> implements Lexico
     return longEncoder.encode(l);
   }
 
-  /**
-   * @deprecated Since 1.7.0
-   */
   @Override
-  @Deprecated
   public Double decode(byte[] b) {
-    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 
