@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -143,11 +145,16 @@ public class LargestFirstMemoryManager implements MemoryManager {
     return mincIdleThresholds.get(tableId);
   }
 
+  boolean tableExists(Instance instance, String tableId) {
+    return Tables.exists(instance, tableId);
+  }
+
   @Override
   public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {
     if (maxMemory < 0)
       throw new IllegalStateException("need to initialize " + LargestFirstMemoryManager.class.getName());
 
+    final Instance instance = config.getInstance();
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
     mincIdleThresholds.clear();
@@ -164,6 +171,12 @@ public class LargestFirstMemoryManager implements MemoryManager {
 
     // find the largest and most idle tablets
     for (TabletState ts : tablets) {
+      // Make sure that the table still exists
+      if (!tableExists(instance, ts.getExtent().getTableId().toString())) {
+        log.info("Ignoring extent for deleted table: " + ts.getExtent());
+        continue;
+      }
+
       final long memTabletSize = ts.getMemTableSize();
       final long minorCompactingSize = ts.getMinorCompactingMemTableSize();
       final long idleTime = now - Math.max(ts.getLastCommitTime(), ZERO_TIME);
