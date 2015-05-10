@@ -34,6 +34,16 @@ public class TextLexicoder extends AbstractLexicoder<Text> implements Lexicoder<
     return TextUtil.getBytes(data);
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public Text decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected Text decodeUnchecked(byte[] data, int offset, int len) {
     Text text = new Text();

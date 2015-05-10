@@ -33,6 +33,16 @@ public class IntegerLexicoder extends AbstractLexicoder<Integer> implements Lexi
     return uil.encode(i ^ 0x80000000);
   }
 
+  /**
+   * @deprecated Since 1.7.0
+   */
+  @Override
+  @Deprecated
+  public Integer decode(byte[] b) {
+    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    return super.decode(b);
+  }
+
   @Override
   protected Integer decodeUnchecked(byte[] data, int offset, int len) {
     return uil.decodeUnchecked(data, offset, len) ^ 0x80000000;

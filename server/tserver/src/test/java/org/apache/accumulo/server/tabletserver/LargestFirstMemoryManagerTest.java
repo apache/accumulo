@@ -33,6 +33,8 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import com.google.common.base.Function;
+
 public class LargestFirstMemoryManagerTest {
 
   private static final long ZERO = System.currentTimeMillis();
@@ -160,6 +162,52 @@ public class LargestFirstMemoryManagerTest {
     assertEquals(k("b"), result.tabletsToMinorCompact.get(0));
   }
 
+  @Test
+  public void testDeletedTable() throws Exception {
+    final String deletedTableId = "1";
+    Function<String,Boolean> existenceCheck = new Function<String,Boolean>() {
+      public Boolean apply(String tableId) {
+        return !deletedTableId.equals(tableId);
+      }
+    };
+    LargestFirstMemoryManagerWithExistenceCheck mgr = new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
+    ServerConfiguration config = new ServerConfiguration() {
+      ServerConfigurationFactory delegate = new ServerConfigurationFactory(new MockInstance());
+
+      @Override
+      public AccumuloConfiguration getConfiguration() {
+        return DefaultConfiguration.getInstance();
+      }
+
+      @Override
+      public TableConfiguration getTableConfiguration(String tableId) {
+        return delegate.getTableConfiguration(tableId);
+      }
+
+      @Override
+      public TableConfiguration getTableConfiguration(KeyExtent extent) {
+        return delegate.getTableConfiguration(extent);
+      }
+
+      @Override
+      public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
+        return delegate.getNamespaceConfiguration(namespaceId);
+      }
+
+      @Override
+      public Instance getInstance() {
+        return delegate.getInstance();
+      }
+    };
+    mgr.init(config);
+    MemoryManagementActions result;
+    // one tablet is really big and the other is for a nonexistent table
+    KeyExtent extent = new KeyExtent(new Text("2"), new Text("j"), null);
+    result = mgr.getMemoryManagementActions(tablets(t(extent, ZERO, ONE_GIG, 0), t(k("j"), ZERO, ONE_GIG, 0)));
+    assertEquals(1, result.tabletsToMinorCompact.size());
+    assertEquals(extent, result.tabletsToMinorCompact.get(0));
+  }
+
   private static class LargestFirstMemoryManagerUnderTest extends LargestFirstMemoryManager {
 
     public long currentTime = ZERO;
@@ -174,6 +222,25 @@ public class LargestFirstMemoryManagerTest {
       return 15 * 60 * 1000;
     }
 
+    @Override
+    boolean tableExists(Instance instance, String tableId) {
+      return true;
+    }
+  }
+
+  private static class LargestFirstMemoryManagerWithExistenceCheck extends LargestFirstMemoryManagerUnderTest {
+
+    Function<String,Boolean> existenceCheck;
+
+    public LargestFirstMemoryManagerWithExistenceCheck(Function<String,Boolean> existenceCheck) {
+      super();
+      this.existenceCheck = existenceCheck;
+    }
+
+    @Override
+    boolean tableExists(Instance instance, String tableId) {
+      return existenceCheck.apply(tableId);
+    }
   }
 
   private static KeyExtent k(String endRow) {

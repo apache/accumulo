@@ -225,6 +225,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       Iterators.size(ReplicationTable.getScanner(connMaster).iterator());
       log.info("TabletServer is online");
 
+      while (!ReplicationTable.isOnline(connMaster)) {
+        log.info("Replication table still offline, waiting");
+        Thread.sleep(5000);
+      }
+
       log.info("");
       log.info("Fetching metadata records:");
       for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
@@ -409,6 +414,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       // Read the data -- the tserver is back up and running
       Iterators.size(connMaster.createScanner(masterTable1, Authorizations.EMPTY).iterator());
 
+      while (!ReplicationTable.isOnline(connMaster)) {
+        log.info("Replication table still offline, waiting");
+        Thread.sleep(5000);
+      }
+
       // Wait for both tables to be replicated
       log.info("Waiting for {} for {}", filesFor1, masterTable1);
       connMaster.replicationOperations().drain(masterTable1, filesFor1);
@@ -515,6 +525,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     }
 
     cluster.exec(TabletServer.class);
+
+    while (!ReplicationTable.isOnline(connMaster)) {
+      log.info("Replication table still offline, waiting");
+      Thread.sleep(5000);
+    }
 
     Iterators.size(connMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
 
@@ -637,6 +652,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       }
 
       cluster.exec(TabletServer.class);
+
+      while (!ReplicationTable.isOnline(connMaster)) {
+        log.info("Replication table still offline, waiting");
+        Thread.sleep(5000);
+      }
 
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
