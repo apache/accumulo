@@ -74,13 +74,9 @@ public class ULongLexicoder extends AbstractLexicoder<Long> implements Lexicoder
     return l;
   }
 
-  /**
-   * @deprecated Since 1.7.0
-   */
   @Override
-  @Deprecated
   public Long decode(byte[] b) {
-    // This concrete implementation is provided for backwards compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 }
