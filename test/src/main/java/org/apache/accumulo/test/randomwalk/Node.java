@@ -89,7 +89,7 @@ public abstract class Node {
     }
 
     File libdir = new File(acuHome + "/lib");
-    for (String jar : "accumulo-core accumulo-server-base accumulo-fate accumulo-trace libthrift".split(" ")) {
+    for (String jar : "accumulo-core accumulo-server-base accumulo-fate accumulo-trace libthrift htrace-core".split(" ")) {
       retval += String.format(",%s/%s.jar", libdir.getAbsolutePath(), jar);
     }
 
