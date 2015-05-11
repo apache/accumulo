@@ -58,7 +58,7 @@ forcibly shut down after 5 seconds.
 <p>Update your <code>$ACCUMULO_HOME/conf/slaves</code> (or <code>$ACCUMULO_CONF_DIR/slaves</code>) file to account for the addition; at a minimum this needs to be on the host(s) being added, but in practice it's good to ensure consistent configuration across all nodes.</p>
 
 <pre>
-$ACCUMULO_HOME/bin/accumulo admin start &gt;host(s)&gt; {&lt;host&gt; ...}
+$ACCUMULO_HOME/bin/accumulo admin start &lt;host(s)&gt; {&lt;host&gt; ...}
 </pre>
 
 <p>Alternatively, you can ssh to each of the hosts you want to add and run <code>$ACCUMULO_HOME/bin/start-here.sh</code>.</p>
@@ -70,7 +70,7 @@ $ACCUMULO_HOME/bin/accumulo admin start &gt;host(s)&gt; {&lt;host&gt; ...}
 <p>If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet server. Accumulo will automatically rebalance the tablets across the available tablet servers.</p>
 
 <pre>
-$ACCUMULO_HOME/bin/accumulo admin stop &gt;host(s)&gt; {&lt;host&gt; ...}
+$ACCUMULO_HOME/bin/accumulo admin stop &lt;host(s)&gt; {&lt;host&gt; ...}
 </pre>
 
 <p>Alternatively, you can ssh to each of the hosts you want to remove and run <code>$ACCUMULO_HOME/bin/stop-here.sh</code>.</p>
@@ -133,6 +133,18 @@ that swappiness be set to zero.
 <pre>
  # sysctl -w vm.swappiness=0
  # echo "vm.swappiness = 0" &gt;&gt; /etc/sysctl.conf
+</pre>
+
+<h3>Zone reclaim mode</h3>
+
+<p>Turn off zone reclaim mode. See this great article for all the
+<a href="http://engineering.linkedin.com/performance/optimizing-linux-memory-management-low-latency-high-throughput-databases">
+details on why.
+</a>
+
+<pre>
+ # sysctl -w vm.zone_reclaim_mode=0
+ # echo "vm.zone_reclaim_mode = 0" &gt;&gt; /etc/sysctl.conf
 </pre>
 
 <h3>Hadoop timeouts</h3>
