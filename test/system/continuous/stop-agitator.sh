@@ -29,16 +29,16 @@ CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
 . "$CONTINUOUS_CONF_DIR/continuous-env.sh"
 
 # Try to use sudo when we wouldn't normally be able to kill the processes
-[[ -n $USER ]] || USER=$(whoami)
-if [[ $USER == root ]]; then
+[[ -n $AGITATOR_USER ]] || AGITATOR_USER=$(whoami)
+if [[ $AGITATOR_USER == root ]]; then
   echo "Stopping all processes matching 'agitator.pl' as root"
   pkill -f agitator.pl 2>/dev/null
-elif [[ $USER == "$ACCUMULO_USER" ]];  then
+elif [[ $AGITATOR_USER == "$ACCUMULO_USER" ]];  then
   echo "Stopping all processes matching 'datanode-agitator.pl' as $HDFS_USER"
   sudo -u "$HDFS_USER" pkill -f datanode-agitator.pl 2>/dev/null
   echo "Stopping all processes matching 'hdfs-agitator.pl' as $HDFS_USER"
   sudo -u "$HDFS_USER" pkill -f hdfs-agitator.pl 2>/dev/null
-  echo "Stopping all processes matching 'agitator.pl' as $USER"
+  echo "Stopping all processes matching 'agitator.pl' as $AGITATOR_USER"
   pkill -f agitator.pl 2>/dev/null 2>/dev/null
 else
   echo "Stopping all processes matching 'datanode-agitator.pl' as $HDFS_USER"

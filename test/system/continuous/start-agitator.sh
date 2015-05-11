@@ -34,8 +34,8 @@ mkdir -p "$CONTINUOUS_LOG_DIR"
 LOG_BASE="${CONTINUOUS_LOG_DIR}/$(date +%Y%m%d%H%M%S)_$(hostname)"
 
 # Start agitators for datanodes, tservers, and the master
-[[ -n $USER ]] || USER=$(whoami)
-if [[ $USER == root ]];  then
+[[ -n $AGITATOR_USER ]] || AGITATOR_USER=$(whoami)
+if [[ $AGITATOR_USER == root ]];  then
   echo "Running master-agitator and tserver-agitator as $ACCUMULO_USER using su. Running datanode-agitator as $HDFS_USER using su."
 
   # Change to the correct user if started as root
@@ -45,8 +45,8 @@ if [[ $USER == root ]];  then
 
   su -c "nohup ${bin}/datanode-agitator.pl $DATANODE_KILL_SLEEP_TIME $DATANODE_RESTART_SLEEP_TIME $HADOOP_PREFIX $DATANODE_MIN_KILL $DATANODE_MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &" -m - "$HDFS_USER"
 
-elif [[ $USER == "$ACCUMULO_USER" ]]; then
-  echo "Running master-agitator and tserver-agitator as $USER Running datanode-agitator as $HDFS_USER using sudo."
+elif [[ $AGITATOR_USER == "$ACCUMULO_USER" ]]; then
+  echo "Running master-agitator and tserver-agitator as $AGITATOR_USER Running datanode-agitator as $HDFS_USER using sudo."
   # Just run the master-agitator if we're the accumulo user
   nohup "${bin}/master-agitator.pl" "$MASTER_KILL_SLEEP_TIME" "$MASTER_RESTART_SLEEP_TIME" >"${LOG_BASE}_master-agitator.out" 2>"${LOG_BASE}_master-agitator.err" &
 
