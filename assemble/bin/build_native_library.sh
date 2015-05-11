@@ -37,7 +37,7 @@ if [[ ! -f $native_tarball ]]; then
 fi
 
 # Make the destination for the native library
-mkdir -p "${final_native_target}"
+mkdir -p "${final_native_target}" || exit 1
 
 # Make a directory for us to unpack the native source into
 TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
@@ -53,7 +53,7 @@ fi
 # Move to the first (only) directory in our unpacked tarball
 native_dir=$(find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d)
 
-cd "${native_dir}"
+cd "${native_dir}" || exit 1
 
 # Make the native library
 export USERFLAGS="$@"
@@ -66,7 +66,7 @@ if [[ $? != 0 ]]; then
 fi
 
 # "install" the artifact
-cp libaccumulo.* "${final_native_target}"
+cp libaccumulo.* "${final_native_target}" || exit 1
 
 # Clean up our temp directory
 rm -rf "${TMP_DIR}"
