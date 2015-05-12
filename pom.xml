@@ -955,15 +955,6 @@
             </execution>
           </executions>
         </plugin>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes>
-              <exclude>DEPENDENCIES</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
