@@ -40,8 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MiniAccumuloClusterExistingZooKeepersTest {
-  private static final File BASE_DIR = new File(
-          System.getProperty("user.dir") + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
+  private static final File BASE_DIR = new File(System.getProperty("user.dir") + "/target/mini-tests/"
+      + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
 
   private static final String SECRET = "superSecret";
 
@@ -62,7 +62,7 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
     zooKeeper = new TestingServer();
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, SECRET);
-    config.setExistingZooKeepers(zooKeeper.getConnectString());
+    config.getImpl().setExistingZooKeepers(zooKeeper.getConnectString());
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
   }

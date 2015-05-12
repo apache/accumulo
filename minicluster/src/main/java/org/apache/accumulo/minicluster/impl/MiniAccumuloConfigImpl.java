@@ -324,7 +324,7 @@ public class MiniAccumuloConfigImpl {
    * Configure an existing ZooKeeper instance to use. Calling this method is optional. If not set, a new ZooKeeper instance is created.
    *
    * @param existingZooKeepers
-   *          Connection string for a already-running ZooKeeper instance
+   *          Connection string for a already-running ZooKeeper instance. A null value will turn off this feature.
    *
    * @since 1.8.0
    */
