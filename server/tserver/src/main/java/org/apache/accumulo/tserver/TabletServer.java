@@ -223,6 +223,7 @@ import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.session.UpdateSession;
+import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.CompactionInfo;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
@@ -2422,6 +2423,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     };
     SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
+
+    final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
+    SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS);
 
     HostAndPort masterHost;
     while (!serverStopRequested) {
