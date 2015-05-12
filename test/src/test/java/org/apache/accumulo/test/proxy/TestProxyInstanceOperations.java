@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.proxy;
+package org.apache.accumulo.test.proxy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.proxy.Proxy;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;

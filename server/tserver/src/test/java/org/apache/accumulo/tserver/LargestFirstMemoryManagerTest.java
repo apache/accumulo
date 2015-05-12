@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.tserver;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,6 +30,9 @@ import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
+import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
+import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -166,6 +169,7 @@ public class LargestFirstMemoryManagerTest {
   public void testDeletedTable() throws Exception {
     final String deletedTableId = "1";
     Function<String,Boolean> existenceCheck = new Function<String,Boolean>() {
+      @Override
       public Boolean apply(String tableId) {
         return !deletedTableId.equals(tableId);
       }
@@ -223,7 +227,7 @@ public class LargestFirstMemoryManagerTest {
     }
 
     @Override
-    boolean tableExists(Instance instance, String tableId) {
+    protected boolean tableExists(Instance instance, String tableId) {
       return true;
     }
   }
@@ -238,7 +242,7 @@ public class LargestFirstMemoryManagerTest {
     }
 
     @Override
-    boolean tableExists(Instance instance, String tableId) {
+    protected boolean tableExists(Instance instance, String tableId) {
       return existenceCheck.apply(tableId);
     }
   }

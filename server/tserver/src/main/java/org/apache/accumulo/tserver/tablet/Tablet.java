@@ -2792,8 +2792,8 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  public Map<Long, List<FileRef>> getBulkIngestedFiles() {
-    return new HashMap<Long, List<FileRef>>(bulkImported.asMap());
+  public Map<Long,List<FileRef>> getBulkIngestedFiles() {
+    return new HashMap<Long,List<FileRef>>(bulkImported.asMap());
   }
 
   public void cleanupBulkLoadedFiles(Set<Long> tids) {

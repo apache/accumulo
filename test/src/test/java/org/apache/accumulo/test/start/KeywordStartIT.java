@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.start;
+package org.apache.accumulo.test.start;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,6 +52,7 @@ import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tracer.TracerExecutable;

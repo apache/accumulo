@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.proxy;
+package org.apache.accumulo.test.proxy;
 
-import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 
 /**
  *
  */
-public class TCompactProxyIT extends SimpleProxyBase {
+public class TJsonProtocolProxyIT extends SimpleProxyBase {
 
-  private static final TCompactProtocol.Factory factory = new TCompactProtocol.Factory();
+  private static final TJSONProtocol.Factory factory = new TJSONProtocol.Factory();
 
   @Override
   public TProtocolFactory getProtocol() {

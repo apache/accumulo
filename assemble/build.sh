@@ -48,17 +48,12 @@ if [[ $1 = '--create-release-candidate' ]]; then
   cacheGPG
   # create a release candidate from a branch
   run mvn clean release:clean release:prepare release:perform
-elif [[ $1 = '--seal-jars' ]]; then
-  cacheGPG
-  # build a tag, but with sealed jars
-  run mvn clean install \
-   -P apache-release,seal-jars,thrift,assemble,docs
 elif [[ $1 = '--test' ]]; then
   cacheGPG
   # build a tag, but with tests
   run mvn clean install \
-   -P apache-release,thrift,assemble,docs
+   -P apache-release,thrift,assemble,docs,accumulo-release
 else
-  fail "Missing one of: --create-release-candidate, --test, --seal-jars"
+  fail "Missing one of: --create-release-candidate, --test"
 fi
 

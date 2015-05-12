@@ -139,7 +139,6 @@
     <powermock.version>1.5</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
-    <sealJars>false</sealJars>
     <!-- overwritten in hadoop profiles -->
     <slf4j.version>1.7.5</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
@@ -628,7 +627,7 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Sealed>${sealJars}</Sealed>
+                <Sealed>true</Sealed>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
               </manifestEntries>
             </archive>
@@ -654,7 +653,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>apache-release,move-source-tarball,seal-jars,skip-findbugs,!test-accumulo-maven-plugin</releaseProfiles>
+            <releaseProfiles>apache-release,accumulo-release,!test-accumulo-maven-plugin</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -1253,7 +1252,14 @@
   </reporting>
   <profiles>
     <profile>
-      <id>move-source-tarball</id>
+      <id>accumulo-release</id>
+      <properties>
+        <!-- some properties to make the release build a bit faster -->
+        <checkstyle.skip>true</checkstyle.skip>
+        <findbugs.skip>true</findbugs.skip>
+        <skipITs>true</skipITs>
+        <skipTests>true</skipTests>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -1314,24 +1320,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <!-- Seal jars and skip tests when the
-           apache-release profile is activated. -->
-      <id>seal-jars</id>
-      <properties>
-        <sealJars>true</sealJars>
-        <skipITs>true</skipITs>
-        <skipTests>true</skipTests>
-      </properties>
-    </profile>
-    <profile>
-      <!-- Skip findbugs executing when the
-           apache-release profile is activated. -->
-      <id>skip-findbugs</id>
-      <properties>
-        <findbugs.skip>true</findbugs.skip>
-      </properties>
     </profile>
     <profile>
       <!-- Minimal testing profile. (a.k.a. SunnyDay) -->

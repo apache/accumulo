@@ -183,14 +183,14 @@ public class Main {
     System.out.println("accumulo " + kwString + " | <accumulo class> args");
   }
 
-  static Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
+  public static Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
     if (servicesMap == null) {
       servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
     }
     return servicesMap;
   }
 
-  static Map<String,KeywordExecutable> checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
+  public static Map<String,KeywordExecutable> checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
     TreeSet<String> blacklist = new TreeSet<>();
     TreeMap<String,KeywordExecutable> results = new TreeMap<>();
     for (KeywordExecutable service : services) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.security;
+package org.apache.accumulo.test.server.security;
 
 import static org.junit.Assert.assertEquals;
 
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.junit.Test;
 
