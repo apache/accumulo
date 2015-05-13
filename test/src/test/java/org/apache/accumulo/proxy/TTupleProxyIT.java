@@ -16,18 +16,18 @@
  */
 package org.apache.accumulo.proxy;
 
-import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.protocol.TTupleProtocol;
+import org.junit.BeforeClass;
 
 /**
  *
  */
 public class TTupleProxyIT extends SimpleProxyBase {
 
-  private static final TTupleProtocol.Factory factory = new TTupleProtocol.Factory();
-
-  @Override
-  public TProtocolFactory getProtocol() {
-    return factory;
+  @BeforeClass
+  public static void setProtocol() throws Exception {
+    SimpleProxyBase.factory = new TTupleProtocol.Factory();
+    setUpProxy();
   }
+
 }

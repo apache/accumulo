@@ -17,17 +17,17 @@
 package org.apache.accumulo.proxy;
 
 import org.apache.thrift.protocol.TJSONProtocol;
-import org.apache.thrift.protocol.TProtocolFactory;
+import org.junit.BeforeClass;
 
 /**
  *
  */
 public class TJsonProtocolProxyIT extends SimpleProxyBase {
 
-  private static final TJSONProtocol.Factory factory = new TJSONProtocol.Factory();
-
-  @Override
-  public TProtocolFactory getProtocol() {
-    return factory;
+  @BeforeClass
+  public static void setProtocol() throws Exception {
+    SimpleProxyBase.factory = new TJSONProtocol.Factory();
+    setUpProxy();
   }
+
 }
