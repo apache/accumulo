@@ -17,17 +17,16 @@
 package org.apache.accumulo.test.proxy;
 
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TProtocolFactory;
+import org.junit.BeforeClass;
 
 /**
  *
  */
 public class TCompactProxyIT extends SimpleProxyBase {
 
-  private static final TCompactProtocol.Factory factory = new TCompactProtocol.Factory();
-
-  @Override
-  public TProtocolFactory getProtocol() {
-    return factory;
+  @BeforeClass
+  public static void setProtocol() throws Exception {
+    SimpleProxyBase.factory = new TCompactProtocol.Factory();
+    setUpProxy();
   }
 }

@@ -17,17 +17,17 @@
 package org.apache.accumulo.test.proxy;
 
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocolFactory;
+import org.junit.BeforeClass;
 
 /**
  *
  */
 public class TBinaryProxyIT extends SimpleProxyBase {
 
-  private static final TBinaryProtocol.Factory factory = new TBinaryProtocol.Factory();
-
-  @Override
-  public TProtocolFactory getProtocol() {
-    return factory;
+  @BeforeClass
+  public static void setProtocol() throws Exception {
+    SimpleProxyBase.factory = new TBinaryProtocol.Factory();
+    setUpProxy();
   }
+
 }
