@@ -102,11 +102,13 @@ public class StandaloneClusterControl implements ClusterControl {
   public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[2 + args.length];
-    cmd[0] = accumuloPath;
-    cmd[1] = clz.getName();
+    String[] cmd = new String[3 + args.length];
+    // Make sure we always set the right ACCUMULO_CONF_DIR
+    cmd[0] = ACCUMULO_CONF_DIR + confDir;
+    cmd[1] = accumuloPath;
+    cmd[2] = clz.getName();
     // Quote the arguments to prevent shell expansion
-    for (int i = 0, j = 2; i < args.length; i++, j++) {
+    for (int i = 0, j = 3; i < args.length; i++, j++) {
       cmd[j] = "'" + args[i] + "'";
     }
     log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
@@ -141,6 +143,7 @@ public class StandaloneClusterControl implements ClusterControl {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
     String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + accumuloConfDir, accumuloPath, Admin.class.getName(), "stopAll"};
+    // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
