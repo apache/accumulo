@@ -64,12 +64,8 @@ public class StandaloneClusterControl implements ClusterControl {
   public StandaloneClusterControl(String user, String accumuloHome, String accumuloConfDir) {
     this.user = user;
     this.options = new RemoteShellOptions();
-    try {
-      this.accumuloHome = new File(accumuloHome).getCanonicalPath();
-      this.accumuloConfDir = new File(accumuloConfDir).getCanonicalPath();
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to compute canonical path", e);
-    }
+    this.accumuloHome = accumuloHome;
+    this.accumuloConfDir = accumuloConfDir;
 
     File bin = new File(accumuloHome, "bin");
     this.startServerPath = new File(bin, START_SERVER_SCRIPT).getAbsolutePath();
