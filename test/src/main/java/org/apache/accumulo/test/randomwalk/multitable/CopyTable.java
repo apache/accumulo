@@ -59,6 +59,9 @@ public class CopyTable extends Test {
     args[1] = getMapReduceJars();
     args[2] = env.getUserName();
     args[3] = env.getPassword();
+    if (null == args[3]) {
+      args[3] = env.getKeytab();
+    }
     args[4] = srcTableName;
     args[5] = env.getInstance().getInstanceName();
     args[6] = env.getConfigProperty("ZOOKEEPERS");
