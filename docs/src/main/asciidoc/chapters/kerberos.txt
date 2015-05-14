@@ -146,36 +146,59 @@ all Accumulo servers must share the same instance and realm principal components
 A number of properties need to be changed to account to properly configure servers
 in +accumulo-site.xml+.
 
-* *general.kerberos.keytab*=_/etc/security/keytabs/accumulo.service.keytab_
-** The path to the keytab for Accumulo on local filesystem.
-** Change the value to the actual path on your system.
-* *general.kerberos.principal*=_accumulo/_HOST@REALM_
-** The Kerberos principal for Accumulo, needs to match the keytab.
-** "_HOST" can be used instead of the actual hostname in the principal and will be
-automatically expanded to the current FQDN which reduces the configuration file burden.
-* *instance.rpc.sasl.enabled*=_true_
-** Enables SASL for the Thrift Servers (supports GSSAPI)
-* *instance.security.authenticator*=_org.apache.accumulo.server.security.handler.KerberosAuthenticator_
-** Configures Accumulo to use the Kerberos principal as the Accumulo username/principal
-* *instance.security.authorizor*=_org.apache.accumulo.server.security.handler.KerberosAuthorizor_
-** Configures Accumulo to use the Kerberos principal for authorization purposes
-* *instance.security.permissionHandler*=_org.apache.accumulo.server.security.handler.KerberosPermissionHandler_
-** Configures Accumulo to use the Kerberos principal for permission purposes
-* *trace.token.type*=_org.apache.accumulo.core.client.security.tokens.KerberosToken_
-** Configures the Accumulo Tracer to use the KerberosToken for authentication when
-serializing traces to the trace table.
-* *trace.user*=_accumulo/_HOST@REALM_
-** The tracer process needs valid credentials to serialize traces to Accumulo.
-** While the other server processes are creating a SystemToken from the provided keytab and principal, we can
-still use a normal KerberosToken and the same keytab/principal to serialize traces. Like
-non-Kerberized instances, the table must be created and permissions granted to the trace.user.
-** The same +_HOST+ replacement is performed on this value, substituted the FQDN for +_HOST+.
-* *general.delegation.token.lifetime*=_7d_
-** The length of time that the server-side secret used to create delegation tokens is valid.
-   After a server-side secret expires, a delegation token created with that secret is no longer valid.
-* *general.delegation.token.update.interval*=_1d_
-** The frequency in which new server-side secrets should be generated to create delegation
-   tokens for clients. Generating new secrets reduces the likelihood of cryptographic attacks.
+[options="header"]
+|=================================================================
+|Key | Default Value | Description
+|general.kerberos.keytab                 |/etc/security/keytabs/accumulo.service.keytab |
+The path to the keytab for Accumulo on local filesystem. Change the value to the actual path on your system.
+
+|general.kerberos.principal              |accumulo/_HOST@REALM |
+The Kerberos principal for Accumulo, needs to match the keytab. "_HOST" can be used instead of the actual hostname in the principal and will be automatically expanded to the current FQDN which reduces the configuration file burden.
+
+|instance.rpc.sasl.enabled               |true |
+Enables SASL for the Thrift Servers (supports GSSAPI)
+
+|rpc.sasl.qop                            |auth |
+One of "auth", "auth-int", or "auth-conf". These map to the SASL defined properties for
+quality of protection. "auth" is authentication only. "auth-int" is authentication and data
+integrity. "auth-conf" is authentication, data integrity and confidentiality.
+
+
+|instance.security.authenticator         |
+org.apache.accumulo.server.security.
+handler.KerberosAuthenticator |
+Configures Accumulo to use the Kerberos principal as the Accumulo username/principal
+
+|instance.security.authorizor            |
+org.apache.accumulo.server.security.
+handler.KerberosAuthorizor |
+Configures Accumulo to use the Kerberos principal for authorization purposes
+
+|instance.security.permissionHandler     |
+org.apache.accumulo.server.security.
+handler.KerberosPermissionHandler|
+Configures Accumulo to use the Kerberos principal for permission purposes
+
+|trace.token.type                        |
+org.apache.accumulo.core.client.
+security.tokens.KerberosToken |
+Configures the Accumulo Tracer to use the KerberosToken for authentication when serializing traces to the trace table.
+
+|trace.user                              |accumulo/_HOST@REALM |
+The tracer process needs valid credentials to serialize traces to Accumulo. While the other server processes are
+creating a SystemToken from the provided keytab and principal, we can still use a normal KerberosToken and the same
+keytab/principal to serialize traces. Like non-Kerberized instances, the table must be created and permissions granted
+to the trace.user. The same +_HOST+ replacement is performed on this value, substituted the FQDN for +_HOST+.
+
+|general.delegation.token.lifetime       |7d |
+The length of time that the server-side secret used to create delegation tokens is valid. After a server-side secret
+expires, a delegation token created with that secret is no longer valid.
+
+|general.delegation.token.update.interval|1d |
+The frequency in which new server-side secrets should be generated to create delegation tokens for clients. Generating
+new secrets reduces the likelihood of cryptographic attacks.
+
+|=================================================================
 
 Although it should be a prerequisite, it is ever important that you have DNS properly
 configured for your nodes and that Accumulo is configured to use the FQDN. It
