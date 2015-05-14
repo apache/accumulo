@@ -320,7 +320,7 @@ public class FileManager {
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(tablet.toString(), ProblemType.FILE_READ, file, e));
+        ProblemReports.getInstance(context).report(new ProblemReport(tablet.getTableId().toString(), ProblemType.FILE_READ, file, e));
 
         if (continueOnFailure) {
           // release the permit for the file that failed to open
