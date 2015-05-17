@@ -35,8 +35,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,11 +47,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
-public class CleanTmpIT extends AccumuloClusterIT {
+public class CleanTmpIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(CleanTmpIT.class);
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
     cfg.setNumTservers(1);
     // use raw local file system so walogs sync and flush will work
@@ -95,7 +93,7 @@ public class CleanTmpIT extends AccumuloClusterIT {
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Path file = new Path(entry.getKey().getColumnQualifier().toString());
 
-    FileSystem fs = getFileSystem();
+    FileSystem fs = getCluster().getFileSystem();
     assertTrue("Could not find file: " + file, fs.exists(file));
     Path tabletDir = file.getParent();
     assertNotNull("Tablet dir should not be null", tabletDir);
@@ -103,8 +101,8 @@ public class CleanTmpIT extends AccumuloClusterIT {
     // Make the file
     fs.create(tmp).close();
     log.info("Created tmp file {}", tmp.toString());
-    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    getCluster().stop();
+    getCluster().start();
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
     assertEquals(2, Iterators.size(scanner.iterator()));
