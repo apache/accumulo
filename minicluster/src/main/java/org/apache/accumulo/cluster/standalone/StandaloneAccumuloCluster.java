@@ -49,7 +49,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   private Instance instance;
   private ClientConfiguration clientConf;
-  private String accumuloHome, accumuloConfDir, hadoopConfDir;
+  private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
   private Path tmp;
   private List<ClusterUser> users;
   private String serverUser;
@@ -74,12 +74,20 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.accumuloHome = accumuloHome;
   }
 
-  public String getAccumuloConfDir() {
-    return accumuloConfDir;
+  public String getClientAccumuloConfDir() {
+    return clientAccumuloConfDir;
   }
 
-  public void setAccumuloConfDir(String accumuloConfDir) {
-    this.accumuloConfDir = accumuloConfDir;
+  public void setClientAccumuloConfDir(String accumuloConfDir) {
+    this.clientAccumuloConfDir = accumuloConfDir;
+  }
+
+  public String getServerAccumuloConfDir() {
+    return serverAccumuloConfDir;
+  }
+
+  public void setServerAccumuloConfDir(String accumuloConfDir) {
+    this.serverAccumuloConfDir = accumuloConfDir;
   }
 
   public String getHadoopConfDir() {
@@ -119,7 +127,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public StandaloneClusterControl getClusterControl() {
     return new StandaloneClusterControl(serverUser, null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
-        null == accumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : accumuloConfDir);
+        null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : clientAccumuloConfDir,
+        null == serverAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : serverAccumuloConfDir);
   }
 
   @Override
