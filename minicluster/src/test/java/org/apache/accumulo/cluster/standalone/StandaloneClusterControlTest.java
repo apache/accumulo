@@ -24,12 +24,12 @@ public class StandaloneClusterControlTest {
 
   @Test
   public void testPaths() {
-    String accumuloHome = "/usr/lib/accumulo", accumuloConfDir = "/etc/accumulo/conf";
+    String accumuloHome = "/usr/lib/accumulo", accumuloConfDir = "/etc/accumulo/conf", accumuloServerConfDir = "/etc/accumulo/conf/server";
 
-    StandaloneClusterControl control = new StandaloneClusterControl("accumulo", accumuloHome, accumuloConfDir);
+    StandaloneClusterControl control = new StandaloneClusterControl("accumulo", accumuloHome, accumuloConfDir, accumuloServerConfDir);
 
     assertEquals(accumuloHome, control.accumuloHome);
-    assertEquals(accumuloConfDir, control.accumuloConfDir);
+    assertEquals(accumuloConfDir, control.clientAccumuloConfDir);
 
     assertEquals(accumuloHome + "/bin/accumulo", control.accumuloPath);
     assertEquals(accumuloHome + "/bin/start-server.sh", control.startServerPath);
