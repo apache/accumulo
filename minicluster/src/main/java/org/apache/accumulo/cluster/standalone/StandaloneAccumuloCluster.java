@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -31,8 +32,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,6 +47,9 @@ import org.slf4j.LoggerFactory;
 public class StandaloneAccumuloCluster implements AccumuloCluster {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
+
+  static final List<ServerType> ALL_SERVER_TYPES = Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER,
+      ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private Instance instance;
   private ClientConfiguration clientConf;
@@ -137,9 +141,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
-    control.exec(SetGoalState.class, new String[] {"NORMAL"});
+    control.setGoalState(MasterGoalState.NORMAL.toString());
 
-    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+    for (ServerType type : ALL_SERVER_TYPES) {
       control.startAllServers(type);
     }
   }
@@ -150,7 +154,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
-    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+    for (ServerType type : ALL_SERVER_TYPES) {
       control.stopAllServers(type);
     }
   }
