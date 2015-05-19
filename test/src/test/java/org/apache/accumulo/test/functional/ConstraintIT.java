@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -41,8 +42,11 @@ import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConstraintIT extends AccumuloClusterIT {
+  private static final Logger log = LoggerFactory.getLogger(ConstraintIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -59,12 +63,24 @@ public class ConstraintIT extends AccumuloClusterIT {
       c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
     }
 
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-    // logger.setLevel(Level.TRACE);
+    // A static sleep to just let ZK do its thing
+    Thread.sleep(10 * 1000);
+
+    // Then check that the client has at least gotten the updates
+    for (String table : tableNames) {
+      log.debug("Checking constraints on {}", table);
+      Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
+      while (!constraints.containsKey(NumericValueConstraint.class.getName()) || !constraints.containsKey(AlphaNumKeyConstraint.class.getName())) {
+        log.debug("Failed to verify constraints. Sleeping and retrying");
+        Thread.sleep(2000);
+        constraints = c.tableOperations().listConstraints(table);
+      }
+      log.debug("Verified all constraints on {}", table);
+    }
+
+    log.debug("Verified constraints on all tables. Running tests");
 
     test1(tableNames[0]);
-
-    // logger.setLevel(Level.TRACE);
 
     test2(tableNames[1], false);
     test2(tableNames[2], true);
