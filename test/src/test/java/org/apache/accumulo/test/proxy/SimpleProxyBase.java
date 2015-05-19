@@ -202,7 +202,9 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   public void teardown() throws Exception {
     if (null != table) {
       try {
-        client.deleteTable(creds, table);
+        if (client.tableExists(creds, table)) {
+          client.deleteTable(creds, table);
+        }
       } catch (Exception e) {
         log.warn("Failed to delete test table", e);
       }
@@ -1114,6 +1116,12 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     writerOptions.setThreads(1);
     writerOptions.setTimeoutMs(100000);
 
+    Map<String,Integer> constraints = client.listConstraints(creds, table);
+    while (!constraints.containsKey(NumericValueConstraint.class.getName())) {
+      log.info("Constraints don't contain NumericValueConstraint");
+      Thread.sleep(2000);
+    }
+
     String batchWriter = client.createWriter(creds, table, writerOptions);
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
@@ -1127,6 +1135,12 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     } catch (MutationsRejectedException e) {}
 
     client.removeConstraint(creds, table, 2);
+
+    constraints = client.listConstraints(creds, table);
+    while (constraints.containsKey(NumericValueConstraint.class.getName())) {
+      log.info("Constraints still contains NumericValueConstraint");
+      Thread.sleep(2000);
+    }
 
     assertScan(new String[][] {}, table);
 
