@@ -351,7 +351,7 @@ public final class Utils {
 
     @Override
     public int hashCode() {
-      return (major << 16 + minor);
+      return ((major << 16) + minor);
     }
   }
 

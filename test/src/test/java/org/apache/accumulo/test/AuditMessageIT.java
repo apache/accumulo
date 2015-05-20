@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -124,7 +125,9 @@ public class AuditMessageIT extends ConfigurableMacIT {
     System.out.println("Start of captured audit messages for step " + stepName);
 
     ArrayList<String> result = new ArrayList<String>();
-    for (File file : getCluster().getConfig().getLogDir().listFiles()) {
+    File[] files = getCluster().getConfig().getLogDir().listFiles();
+    assertNotNull(files);
+    for (File file : files) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
         LineIterator it = FileUtils.lineIterator(file, UTF_8.name());

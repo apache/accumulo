@@ -160,7 +160,7 @@ public class Table {
       String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, table, !showLegend);
       sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show").append("&nbsp;Legend</a>\n");
       if (showLegend)
-        sb.append("<div class='left ").append(showLegend ? "show" : "hide").append("'><dl>\n");
+        sb.append("<div class='left show'><dl>\n");
     }
     for (int i = 0; i < columns.size(); ++i) {
       TableColumn<?> col = columns.get(i);

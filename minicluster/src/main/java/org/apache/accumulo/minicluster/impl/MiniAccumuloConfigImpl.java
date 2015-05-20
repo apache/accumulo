@@ -108,8 +108,12 @@ public class MiniAccumuloConfigImpl {
     if (this.getDir().exists() && !this.getDir().isDirectory())
       throw new IllegalArgumentException("Must pass in directory, " + this.getDir() + " is a file");
 
-    if (this.getDir().exists() && this.getDir().list().length != 0)
-      throw new IllegalArgumentException("Directory " + this.getDir() + " is not empty");
+    if (this.getDir().exists()) {
+      String[] children = this.getDir().list();
+      if (children != null && children.length != 0) {
+        throw new IllegalArgumentException("Directory " + this.getDir() + " is not empty");
+      }
+    }
 
     if (!initialized) {
       libDir = new File(dir, "lib");

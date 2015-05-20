@@ -205,13 +205,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private boolean containsSiteFile(File f) {
-    return f.isDirectory() && f.listFiles(new FileFilter() {
+    if (!f.isDirectory()) {
+      return false;
+    } else {
+      File[] files = f.listFiles(new FileFilter() {
 
-      @Override
-      public boolean accept(File pathname) {
-        return pathname.getName().endsWith("site.xml");
-      }
-    }).length > 0;
+        @Override
+        public boolean accept(File pathname) {
+          return pathname.getName().endsWith("site.xml");
+        }
+      });
+      return files != null && files.length > 0;
+    }
   }
 
   private void append(StringBuilder classpathBuilder, URL url) throws URISyntaxException {
