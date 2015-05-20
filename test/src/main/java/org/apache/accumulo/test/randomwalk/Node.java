@@ -77,13 +77,15 @@ public abstract class Node {
 
     File zkLib = new File(zkHome);
     String[] files = zkLib.list();
-    for (int i = 0; i < files.length; i++) {
-      String f = files[i];
-      if (f.matches("^zookeeper-.+jar$")) {
-        if (retval == null) {
-          retval = String.format("%s/%s", zkLib.getAbsolutePath(), f);
-        } else {
-          retval += String.format(",%s/%s", zkLib.getAbsolutePath(), f);
+    if (files != null) {
+      for (int i = 0; i < files.length; i++) {
+        String f = files[i];
+        if (f.matches("^zookeeper-.+jar$")) {
+          if (retval == null) {
+            retval = String.format("%s/%s", zkLib.getAbsolutePath(), f);
+          } else {
+            retval += String.format(",%s/%s", zkLib.getAbsolutePath(), f);
+          }
         }
       }
     }

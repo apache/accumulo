@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -190,6 +191,7 @@ public class AccumuloFileOutputFormatTest {
         return file.getName().startsWith("part-m-");
       }
     });
+    assertNotNull(files);
     if (content) {
       assertEquals(1, files.length);
       assertTrue(files[0].exists());

@@ -182,7 +182,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     @Override
     public int compareTo(Delayed o) {
       QCMutation oqcm = (QCMutation) o;
-      return Long.valueOf(resetTime).compareTo(Long.valueOf(oqcm.resetTime));
+      return Long.compare(resetTime, oqcm.resetTime);
     }
 
     @Override

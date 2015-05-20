@@ -73,7 +73,7 @@ public class NumberType<T extends Number> extends CellType<T> {
     else if (o2 == null)
       return 1;
     else
-      return Double.valueOf(o1.doubleValue()).compareTo(o2.doubleValue());
+      return Double.compare(o1.doubleValue(), o2.doubleValue());
   }
 
   public static String commas(long i) {
