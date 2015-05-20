@@ -67,6 +67,7 @@ public class MiniAccumuloConfigImpl {
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
   private long zooKeeperStartupTime = 20 * 1000;
+  private String existingZooKeepers;
 
   private long defaultMemorySize = 128 * 1024 * 1024;
 
@@ -161,10 +162,17 @@ public class MiniAccumuloConfigImpl {
 
       if (existingInstance == null || !existingInstance) {
         existingInstance = false;
-        // zookeeper port should be set explicitly in this class, not just on the site config
-        if (zooKeeperPort == 0)
-          zooKeeperPort = PortUtils.getRandomFreePort();
-        siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
+        String zkHost;
+        if (useExistingZooKeepers()) {
+          zkHost = existingZooKeepers;
+        } else {
+          // zookeeper port should be set explicitly in this class, not just on the site config
+          if (zooKeeperPort == 0)
+            zooKeeperPort = PortUtils.getRandomFreePort();
+
+          zkHost = "localhost:" + zooKeeperPort;
+        }
+        siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), zkHost);
       }
       initialized = true;
     }
@@ -317,6 +325,19 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
+   * Configure an existing ZooKeeper instance to use. Calling this method is optional. If not set, a new ZooKeeper instance is created.
+   *
+   * @param existingZooKeepers
+   *          Connection string for a already-running ZooKeeper instance. A null value will turn off this feature.
+   *
+   * @since 1.8.0
+   */
+  public MiniAccumuloConfigImpl setExistingZooKeepers(String existingZooKeepers) {
+    this.existingZooKeepers = existingZooKeepers;
+    return this;
+  }
+
+  /**
    * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
    *
    * @param serverType
@@ -386,6 +407,14 @@ public class MiniAccumuloConfigImpl {
 
   public long getZooKeeperStartupTime() {
     return zooKeeperStartupTime;
+  }
+
+  public String getExistingZooKeepers() {
+    return existingZooKeepers;
+  }
+
+  public boolean useExistingZooKeepers() {
+    return existingZooKeepers != null && !existingZooKeepers.isEmpty();
   }
 
   File getLibDir() {

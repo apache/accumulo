@@ -119,6 +119,8 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- Curator version -->
+    <curator.version>2.7.1</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
@@ -352,6 +354,16 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
         <version>2.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.curator</groupId>
+        <artifactId>curator-framework</artifactId>
+        <version>${curator.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.curator</groupId>
+        <artifactId>curator-test</artifactId>
+        <version>${curator.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>

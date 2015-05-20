@@ -75,6 +75,7 @@ public class MiniAccumuloRunner {
   private static final String NUM_T_SERVERS_PROP = "numTServers";
   private static final String DIRECTORY_PROP = "directory";
   private static final String INSTANCE_NAME_PROP = "instanceName";
+  private static final String EXISTING_ZOO_KEEPERS_PROP = "existingZooKeepers";
 
   private static void printProperties() {
     System.out.println("#mini Accumulo cluster runner properties.");
@@ -93,6 +94,7 @@ public class MiniAccumuloRunner {
     System.out.println("#" + TSERVER_MEMORY_PROP + "=128M");
     System.out.println("#" + ZOO_KEEPER_MEMORY_PROP + "=128M");
     System.out.println("#" + JDWP_ENABLED_PROP + "=false");
+    System.out.println("#" + EXISTING_ZOO_KEEPERS_PROP + "=localhost:2181");
 
     System.out.println();
     System.out.println("# Configuration normally placed in accumulo-site.xml can be added using a site. prefix.");
@@ -167,6 +169,8 @@ public class MiniAccumuloRunner {
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_STARTUP_TIME_PROP))
       config.setZooKeeperStartupTime(Long.parseLong(opts.prop.getProperty(ZOO_KEEPER_STARTUP_TIME_PROP)));
+    if (opts.prop.containsKey(EXISTING_ZOO_KEEPERS_PROP))
+      config.getImpl().setExistingZooKeepers(opts.prop.getProperty(EXISTING_ZOO_KEEPERS_PROP));
     if (opts.prop.containsKey(JDWP_ENABLED_PROP))
       config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty(JDWP_ENABLED_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP))
