@@ -19,9 +19,9 @@ package org.apache.accumulo.test.randomwalk.multitable;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
@@ -74,9 +74,7 @@ public class CopyTool extends Configured implements Tool {
     final AuthenticationToken token;
     if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
       // Use the Kerberos creds to request a DelegationToken for MapReduce to use
-      final String keytab = args[1];
-
-      // Better be logged in. Could use the keytab, but we're already logged in soo..
+      // We could use the specified keytab (args[1]), but we're already logged in and don't need to, so we can just use the current user
       KerberosToken kt = new KerberosToken();
       try {
         UserGroupInformation user = UserGroupInformation.getCurrentUser();
