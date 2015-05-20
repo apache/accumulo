@@ -104,9 +104,9 @@ then
 fi
 export HADOOP_PREFIX
 
-NUMA=`which numactl 2>/dev/null`
-NUMACTL_EXISTS="$?"
-NUMACTL_ARGS="--interleave=all"
+NUMA=$(which numactl 2>/dev/null)
+NUMACTL_EXISTS=$?
+NUMACTL_ARGS='--interleave=all'
 if [[ ${NUMACTL_EXISTS} -eq 0 ]] ; then
   export NUMA_CMD="${NUMA} ${NUMACTL_ARGS}"
 else

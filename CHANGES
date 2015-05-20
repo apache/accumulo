@@ -474,6 +474,7 @@ Release Notes - Accumulo - Version 1.7.0
     * [ACCUMULO-3791] - Agitator start/stop scripts collide variable names
     * [ACCUMULO-3792] - org.apache.accumulo.test.randomwalk.Node#getMapReduceJars needs to include htrace
     * [ACCUMULO-3800] - Extra DEPENDENCIES file after new apache.pom
+    * [ACCUMULO-3803] - Resurrect mapreduce.lib.util for 1.7.0
 
 ** Improvement
     * [ACCUMULO-898] - look into replacing cloudtrace
