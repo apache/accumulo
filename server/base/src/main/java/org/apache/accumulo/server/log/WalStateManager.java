@@ -153,9 +153,10 @@ public class WalStateManager {
     try {
       String path = root();
       for (String child : zoo.getChildren(path)) {
-        List<UUID> logs = result.get(child);
+        TServerInstance inst = new TServerInstance(child);
+        List<UUID> logs = result.get(inst);
         if (logs == null) {
-          result.put(new TServerInstance(child), logs = new ArrayList<>());
+          result.put(inst, logs = new ArrayList<>());
         }
         for (String idString : zoo.getChildren(path + "/" + child)) {
           logs.add(UUID.fromString(idString));
