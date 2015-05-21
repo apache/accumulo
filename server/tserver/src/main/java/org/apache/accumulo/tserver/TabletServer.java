@@ -161,6 +161,8 @@ import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalMarker.WalMarkerException;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
@@ -319,6 +321,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final ServerConfigurationFactory confFactory;
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
+  private final WalMarker walMarker;
 
   public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) {
     super(confFactory);
@@ -364,6 +367,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TabletLocator.clearLocators();
       }
     }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+    walMarker = new WalMarker(instance, ZooReaderWriter.getInstance());
 
     // Create the secret manager
     setSecretManager(new AuthenticationTokenSecretManager(instance, aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
@@ -2381,6 +2385,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
     announceExistence();
+    try {
+      walMarker.initWalMarker(getTabletSession());
+    } catch (Exception e) {
+      log.error("Unable to create WAL marker node in zookeeper", e);
+      throw new RuntimeException(e);
+    }
 
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
 
@@ -3020,39 +3030,31 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       candidates.removeAll(tablet.getCurrentLogFiles());
     }
     try {
-      Set<Path> filenames = new HashSet<>();
+      TServerInstance session = this.getTabletSession();
       for (DfsLogger candidate : candidates) {
-        filenames.add(candidate.getPath());
+        log.info("Marking " + candidate.getPath() + " as unreferenced");
+        walMarker.walUnreferenced(session, candidate.getPath());
       }
-      MetadataTableUtil.markLogUnused(this, this.getLock(), this.getTabletSession(), filenames);
       synchronized (closedLogs) {
         closedLogs.removeAll(candidates);
       }
-    } catch (AccumuloException ex) {
+    } catch (WalMarkerException ex) {
       log.info(ex.toString(), ex);
     }
   }
 
-  public void addLoggersToMetadata(DfsLogger copy, TabletLevel level) {
-    // serialize the updates to the metadata per level: avoids updating the level more than once
-    // updating one level, may cause updates to other levels, so we need to release the lock on metadataTableLogs
-    synchronized (levelLocks[level.ordinal()]) {
-      EnumSet<TabletLevel> set = null;
-      set = metadataTableLogs.putIfAbsent(copy, EnumSet.of(level));
-      if (set == null || !set.contains(level) || level == TabletLevel.ROOT) {
-        log.info("Writing log marker for level " + level + " " + copy.getFileName());
-        MetadataTableUtil.addNewLogMarker(this, this.getLock(), this.getTabletSession(), copy.getPath(), level);
-      }
-      set = metadataTableLogs.get(copy);
-      set.add(level);
-    }
+  public void addNewLogMarker(DfsLogger copy) throws WalMarkerException {
+    log.info("Writing log marker for " + copy.getPath());
+    walMarker.addNewWalMarker(getTabletSession(), copy.getPath());
   }
 
-  public void walogClosed(DfsLogger currentLog) {
+  public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
     metadataTableLogs.remove(currentLog);
     synchronized (closedLogs) {
       closedLogs.add(currentLog);
     }
+    log.info("Marking " + currentLog.getPath() + " as closed");
+    walMarker.closeWal(getTabletSession(), currentLog.getPath());
   }
 
 }

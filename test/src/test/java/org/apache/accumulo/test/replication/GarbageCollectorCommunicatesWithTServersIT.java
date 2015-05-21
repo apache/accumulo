@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -47,7 +46,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalMarker.WalState;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -103,20 +105,14 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(CurrentLogsSection.getRange());
-    s.fetchColumnFamily(CurrentLogsSection.COLF);
+    WalMarker wals = new WalMarker(conn.getInstance(), ZooReaderWriter.getInstance());
 
-    Set<String> wals = new HashSet<String>();
-    for (Entry<Key,Value> entry : s) {
-      log.debug("Reading WALs: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
-      // hostname:port/uri://path/to/wal
-      String path = new Path(entry.getKey().getColumnQualifier().toString()).toString();
-      log.debug("Extracted file: " + path);
-      wals.add(path);
+    Set<String> result = new HashSet<String>();
+    for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+      log.debug("Reading WALs: {}={}", entry.getKey(), entry.getValue());
+      result.add(entry.getKey().toString());
     }
-
-    return wals;
+    return result;
   }
 
   /**

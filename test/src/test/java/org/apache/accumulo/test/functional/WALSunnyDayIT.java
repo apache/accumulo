@@ -45,17 +45,18 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterControl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalMarker.WalState;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.WatchedEvent;
@@ -199,23 +200,10 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
 
   private Map<String,Boolean> getWals(Connector c, ZooKeeper zoo) throws Exception {
     Map<String,Boolean> result = new HashMap<>();
-    Scanner root = c.createScanner(RootTable.NAME, EMPTY);
-    root.setRange(CurrentLogsSection.getRange());
-    Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY);
-    meta.setRange(root.getRange());
-    Iterator<Entry<Key,Value>> both = Iterators.concat(root.iterator(), meta.iterator());
-    while (both.hasNext()) {
-      Entry<Key,Value> entry = both.next();
-      Text path = new Text();
-      CurrentLogsSection.getPath(entry.getKey(), path);
-      result.put(path.toString(), entry.getValue().get().length == 0);
-    }
-    String zpath = ZooUtil.getRoot(c.getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS;
-    List<String> children = zoo.getChildren(zpath, null);
-    for (String child : children) {
-      byte[] data = zoo.getData(zpath + "/" + child, null, null);
-      LogEntry entry = LogEntry.fromBytes(data);
-      result.put(entry.filename, true);
+    WalMarker wals = new WalMarker(c.getInstance(), ZooReaderWriter.getInstance());
+    for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+      // WALs are in use if they are not unreferenced
+      result.put(entry.getKey().toString(), entry.getValue() != WalState.UNREFERENCED);
     }
     return result;
   }

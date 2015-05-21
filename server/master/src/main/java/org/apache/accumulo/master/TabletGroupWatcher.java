@@ -68,6 +68,7 @@ import org.apache.accumulo.master.state.TableStats;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.log.WalMarker;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.ClosableIterator;
@@ -82,6 +83,7 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -126,6 +128,8 @@ class TabletGroupWatcher extends Daemon {
     Thread.currentThread().setName("Watching " + store.name());
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
+
+    WalMarker wals = new WalMarker(master.getInstance(), ZooReaderWriter.getInstance());
 
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
@@ -242,7 +246,10 @@ class TabletGroupWatcher extends Daemon {
                 assignedToDeadServers.add(tls);
                 if (server.equals(this.master.migrations.get(tls.extent)))
                   this.master.migrations.remove(tls.extent);
-                MetadataTableUtil.fetchLogsForDeadServer(master, master.getMasterLock(), tls.extent, tls.futureOrCurrent(), logsForDeadServers);
+                TServerInstance tserver = tls.futureOrCurrent();
+                if (!logsForDeadServers.containsKey(tserver)) {
+                  logsForDeadServers.put(tserver, wals.getWalsInUse(tserver));
+                }
                 break;
               case UNASSIGNED:
                 // maybe it's a finishing migration
@@ -276,7 +283,9 @@ class TabletGroupWatcher extends Daemon {
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
                 assignedToDeadServers.add(tls);
-                MetadataTableUtil.fetchLogsForDeadServer(master, master.getMasterLock(), tls.extent, tls.futureOrCurrent(), logsForDeadServers);
+                if (!logsForDeadServers.containsKey(tls.futureOrCurrent())) {
+                  logsForDeadServers.put(tls.futureOrCurrent(), wals.getWalsInUse(tls.futureOrCurrent()));
+                }
                 break;
               case HOSTED:
                 TServerConnection conn = this.master.tserverSet.getConnection(server);
@@ -296,7 +305,6 @@ class TabletGroupWatcher extends Daemon {
         }
 
         flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, unassigned);
-        store.markLogsAsUnused(master, logsForDeadServers);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(masterState);

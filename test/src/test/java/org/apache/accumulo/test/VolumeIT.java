@@ -65,7 +65,10 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
+import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalMarker.WalState;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -375,8 +378,7 @@ public class VolumeIT extends ConfigurableMacIT {
     bw.close();
   }
 
-  private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths) throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, MutationsRejectedException {
+  private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths) throws Exception {
 
     Connector conn = getConnector();
 
@@ -426,19 +428,14 @@ public class VolumeIT extends ConfigurableMacIT {
       Assert.fail("Unexpected volume " + path);
     }
 
-    Text path = new Text();
-    for (String table : new String[] {RootTable.NAME, MetadataTable.NAME}) {
-      Scanner meta = conn.createScanner(table, Authorizations.EMPTY);
-      meta.setRange(MetadataSchema.CurrentLogsSection.getRange());
-      outer: for (Entry<Key,Value> entry : meta) {
-        MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
-        for (int i = 0; i < paths.length; i++) {
-          if (path.toString().startsWith(paths[i].toString())) {
-            continue outer;
-          }
+    WalMarker wals = new WalMarker(conn.getInstance(), ZooReaderWriter.getInstance());
+    outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+      for (Path path : paths) {
+        if (entry.getKey().toString().startsWith(path.toString())) {
+          continue outer;
         }
-        Assert.fail("Unexpected volume " + path);
       }
+      Assert.fail("Unexpected volume " + entry.getKey());
     }
 
     // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -

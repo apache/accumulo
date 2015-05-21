@@ -16,153 +16,200 @@
  */
 package org.apache.accumulo.gc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.gc.thrift.GCStatus;
+import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalMarker.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class GarbageCollectWriteAheadLogsTest {
 
-  private Map<TServerInstance,Set<Path>> runTest(LiveTServerSet tserverSet, String tserver, long modificationTime) throws Exception {
-    // Mocks
+  private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
+  private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
+  private final UUID id = UUID.randomUUID();
+  private final Map<TServerInstance,List<UUID>> markers = Collections.singletonMap(server1, Collections.singletonList(id));
+  private final Map<TServerInstance,List<UUID>> markers2 = Collections.singletonMap(server2, Collections.singletonList(id));
+  private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
+  private final KeyExtent extent = new KeyExtent(new Text("1<"), new Text(new byte[] {0}));
+  private final Collection<Collection<String>> walogs = Collections.emptyList();
+  private final TabletLocationState tabletAssignedToServer1;
+  private final TabletLocationState tabletAssignedToServer2;
+  {
+    try {
+      tabletAssignedToServer1 = new TabletLocationState(extent, (TServerInstance) null, server1, (TServerInstance) null, walogs, false);
+      tabletAssignedToServer2 = new TabletLocationState(extent, (TServerInstance) null, server2, (TServerInstance) null, walogs, false);
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  private final Iterable<TabletLocationState> tabletOnServer1List = Collections.singletonList(tabletAssignedToServer1);
+  private final Iterable<TabletLocationState> tabletOnServer2List = Collections.singletonList(tabletAssignedToServer2);
+  private final List<Entry<Key,Value>> emptyList = Collections.emptyList();
+  private final Iterator<Entry<Key,Value>> emptyKV = emptyList.iterator();
+
+  @Test
+  public void testRemoveUnusedLog() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    final LocatedFileStatus fileStatus = EasyMock.createMock(LocatedFileStatus.class);
+    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
 
-    // Concrete objs
-    GarbageCollectWriteAheadLogs gcWals = new GarbageCollectWriteAheadLogs(context, fs, true, tserverSet);
+    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
-    RemoteIterator<LocatedFileStatus> iter = new RemoteIterator<LocatedFileStatus>() {
-      boolean returnedOnce = false;
+    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
+    EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
+    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<WalState,Path>(WalState.UNREFERENCED, path));
+    EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
+    marker.removeWalMarker(server1, id);
+    EasyMock.expectLastCall().once();
+    EasyMock.replay(context, fs, marker, tserverSet);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false, tserverSet, marker, tabletOnServer1List) {
       @Override
-      public boolean hasNext() throws IOException {
-        return !returnedOnce;
-      }
-
-      @Override
-      public LocatedFileStatus next() throws IOException {
-        returnedOnce = true;
-        return fileStatus;
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) throws IOException, KeeperException, InterruptedException {
+        return 0;
       }
     };
-
-    Map<TServerInstance,Set<Path>> unusedLogs = new HashMap<>();
-
-    // Path is /accumulo/wals/host+port/UUID
-    Path walPath = new Path("/accumulo/wals/" + tserver + "/" + UUID.randomUUID().toString());
-    EasyMock.expect(fileStatus.getPath()).andReturn(walPath).anyTimes();
-
-    EasyMock.expect(fileStatus.getModificationTime()).andReturn(modificationTime);
-    EasyMock.expect(fileStatus.isDirectory()).andReturn(false);
-
-    EasyMock.replay(context, fs, fileStatus, tserverSet);
-
-    gcWals.addUnusedWalsFromVolume(iter, unusedLogs, 0);
-
-    EasyMock.verify(context, fs, fileStatus, tserverSet);
-
-    return unusedLogs;
+    gc.collect(status);
+    EasyMock.verify(context, fs, marker, tserverSet);
   }
 
   @Test
-  public void testUnnoticedServerFailure() throws Exception {
-    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    TServerInstance tserverInstance = EasyMock.createMock(TServerInstance.class);
-    String tserver = "host1+9997";
-
-    // We find the TServer
-    EasyMock.expect(tserverSet.find(tserver)).andReturn(tserverInstance);
-
-    // But the modificationTime for the WAL was _way_ in the past.
-    long modificationTime = 0l;
-
-    // If the modification time for a WAL was significantly in the past (so far that the server _should_ have died
-    // by now) but the GC hasn't observed via ZK Watcher that the server died, we would not treat the
-    // WAL as unused.
-    Map<TServerInstance,Set<Path>> unusedLogs = runTest(tserverSet, tserver, modificationTime);
-
-    // We think the server is still alive, therefore we don't call the WAL unused.
-    assertEquals(0, unusedLogs.size());
-  }
-
-  @Test
-  public void testUnnoticedServerRestart() throws Exception {
-    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    String tserver = "host1+9997";
-
-    // The server was _once_ alive, but we saw it died.
-    // Before the LiveTServerSet gets the Watcher that it's back online (with a new session)
-    // the GC runs
-    EasyMock.expect(tserverSet.find(tserver)).andReturn(null);
-
-    // Modification time for the WAL was _way_ in the past.
-    long modificationTime = 0l;
-
-    Map<TServerInstance,Set<Path>> unusedLogs = runTest(tserverSet, tserver, modificationTime);
-
-    // If the same server comes back, it will use a new WAL, not the old one. The log should be unused
-    assertEquals(1, unusedLogs.size());
-  }
-
-  @Test
-  public void testAllRootLogsInZk() throws Exception {
-    // Mocks
+  public void testKeepClosedLog() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    WalMarker marker = EasyMock.createMock(WalMarker.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Instance instance = EasyMock.createMock(Instance.class);
-    ZooReader zoo = EasyMock.createMock(ZooReader.class);
 
-    // Fake out some WAL references
-    final String instanceId = UUID.randomUUID().toString();
-    final List<String> currentLogs = Arrays.asList("2");
-    final List<String> walogs = Arrays.asList("1");
-    LogEntry currentLogEntry = new LogEntry(new KeyExtent(new Text("+r"), null, null), 2, "host1:9997", "/accumulo/wals/host1+9997/2");
-    LogEntry prevLogEntry = new LogEntry(new KeyExtent(new Text("+r"), null, null), 1, "host1:9997", "/accumulo/wals/host1+9997/1");
+    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
-    GarbageCollectWriteAheadLogs gcWals = new GarbageCollectWriteAheadLogs(context, fs, true, tserverSet);
+    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+    EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
+    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<WalState,Path>(WalState.CLOSED, path));
+    EasyMock.replay(context, marker, tserverSet, fs);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false, tserverSet, marker, tabletOnServer1List) {
+      @Override
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) throws IOException, KeeperException, InterruptedException {
+        return 0;
+      }
+    };
+    gc.collect(status);
+    EasyMock.verify(context, marker, tserverSet, fs);
+  }
 
-    // Define the expectations
-    EasyMock.expect(instance.getInstanceID()).andReturn(instanceId).anyTimes();
-    EasyMock.expect(zoo.getChildren(Constants.ZROOT + "/" + instanceId + RootTable.ZROOT_TABLET_CURRENT_LOGS)).andReturn(currentLogs);
-    EasyMock.expect(zoo.getChildren(Constants.ZROOT + "/" + instanceId + RootTable.ZROOT_TABLET_WALOGS)).andReturn(walogs);
+  @Test
+  public void deleteUnreferenceLogOnDeadServer() throws Exception {
+    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
+    Connector conn = EasyMock.createMock(Connector.class);
+    Scanner scanner = EasyMock.createMock(Scanner.class);
 
-    EasyMock.expect(zoo.getData(Constants.ZROOT + "/" + instanceId + RootTable.ZROOT_TABLET_CURRENT_LOGS + "/2", null)).andReturn(currentLogEntry.toBytes());
-    EasyMock.expect(zoo.getData(Constants.ZROOT + "/" + instanceId + RootTable.ZROOT_TABLET_WALOGS + "/1", null)).andReturn(prevLogEntry.toBytes());
+    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
+    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+    EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
+    EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
+    EasyMock.expect(context.getConnector()).andReturn(conn);
+    EasyMock.expect(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)).andReturn(scanner);
+    scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+    EasyMock.expectLastCall().once();
+    scanner.setRange(MetadataSchema.ReplicationSection.getRange());
+    EasyMock.expectLastCall().once();
+    EasyMock.expect(scanner.iterator()).andReturn(emptyKV);
+    EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
+    marker.removeWalMarker(server2, id);
+    EasyMock.expectLastCall().once();
+    marker.forget(server2);
+    EasyMock.expectLastCall().once();
+    EasyMock.replay(context, fs, marker, tserverSet, conn, scanner);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false, tserverSet, marker, tabletOnServer1List);
+    gc.collect(status);
+    EasyMock.verify(context, fs, marker, tserverSet, conn, scanner);
+  }
 
-    EasyMock.replay(instance, zoo);
+  @Test
+  public void ignoreReferenceLogOnDeadServer() throws Exception {
+    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
+    Connector conn = EasyMock.createMock(Connector.class);
+    Scanner scanner = EasyMock.createMock(Scanner.class);
 
-    // Ensure that we see logs from both current_logs and walogs
-    Set<Path> rootWals = gcWals.getRootLogs(zoo, instance);
+    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
+    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+    EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
+    EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
+    EasyMock.expect(context.getConnector()).andReturn(conn);
+    EasyMock.expect(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)).andReturn(scanner);
+    scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+    EasyMock.expectLastCall().once();
+    scanner.setRange(MetadataSchema.ReplicationSection.getRange());
+    EasyMock.expectLastCall().once();
+    EasyMock.expect(scanner.iterator()).andReturn(emptyKV);
+    EasyMock.replay(context, fs, marker, tserverSet, conn, scanner);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false, tserverSet, marker, tabletOnServer2List);
+    gc.collect(status);
+    EasyMock.verify(context, fs, marker, tserverSet, conn, scanner);
+  }
 
-    EasyMock.verify(instance, zoo);
+  @Test
+  public void replicationDelaysFileCollection() throws Exception {
+    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
+    Connector conn = EasyMock.createMock(Connector.class);
+    Scanner scanner = EasyMock.createMock(Scanner.class);
+    String row = MetadataSchema.ReplicationSection.getRowPrefix() + path.toString();
+    String colf = MetadataSchema.ReplicationSection.COLF.toString();
+    String colq = "1";
+    Map<Key, Value> replicationWork = Collections.singletonMap(new Key(row, colf, colq), new Value(new byte[0]));
 
-    assertEquals(2, rootWals.size());
-    assertTrue("Expected to find WAL from walogs", rootWals.remove(new Path("/accumulo/wals/host1+9997/1")));
-    assertTrue("Expected to find WAL from current_logs", rootWals.remove(new Path("/accumulo/wals/host1+9997/2")));
+
+    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
+
+    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+    EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
+    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<WalState,Path>(WalState.UNREFERENCED, path));
+    EasyMock.expect(context.getConnector()).andReturn(conn);
+    EasyMock.expect(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)).andReturn(scanner);
+    scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+    EasyMock.expectLastCall().once();
+    scanner.setRange(MetadataSchema.ReplicationSection.getRange());
+    EasyMock.expectLastCall().once();
+    EasyMock.expect(scanner.iterator()).andReturn(replicationWork.entrySet().iterator());
+    EasyMock.replay(context, fs, marker, tserverSet, conn, scanner);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false, tserverSet, marker, tabletOnServer1List);
+    gc.collect(status);
+    EasyMock.verify(context, fs, marker, tserverSet, conn, scanner);
   }
 }
