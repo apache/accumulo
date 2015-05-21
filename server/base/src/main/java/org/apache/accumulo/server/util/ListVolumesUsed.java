@@ -34,7 +34,7 @@ import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 
@@ -125,7 +125,7 @@ public class ListVolumesUsed {
 
     volumes.clear();
 
-    WalMarker wals = new WalMarker(conn.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
     for (Path path : wals.getAllState().keySet()) {
       volumes.add(getLogURI(path.toString()));
     }

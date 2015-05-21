@@ -36,14 +36,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 
 /*
- * WAL Markers.  This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs
+ * This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs
  * in use by tablet servers and the replication machinery.
  *
  * The Master needs to know the state of the WALs to mark tablets during recovery.
  * The GC needs to know when a log is no longer needed so it can be removed.
  * The replication mechanism needs to know when a log is closed and can be forwarded to the destination table.
  *
- * The state of the WALs is kept in Zookeeper under <root>/wals.
+ * The state of the WALs is kept in Zookeeper under /accumulo/<instanceid>/wals.
  * For each server, there is a znode formatted like the TServerInstance.toString(): "host:port[sessionid]".
  * Under the server znode, is a node for each log, using the UUID for the log.
  * In each of the WAL znodes, is the current state of the log, and the full path to the log.
@@ -58,7 +58,7 @@ import org.apache.zookeeper.KeeperException;
  * The GC will defer log removal until replication is finished with it.
  *
  */
-public class WalMarker {
+public class WalStateManager {
 
   public class WalMarkerException extends Exception {
     static private final long serialVersionUID = 1L;
@@ -82,7 +82,7 @@ public class WalMarker {
   private final Instance instance;
   private final ZooReaderWriter zoo;
 
-  public WalMarker(Instance instance, ZooReaderWriter zoo) {
+  public WalStateManager(Instance instance, ZooReaderWriter zoo) {
     this.instance = instance;
     this.zoo = zoo;
   }

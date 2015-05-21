@@ -65,8 +65,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
-import org.apache.accumulo.server.log.WalMarker;
-import org.apache.accumulo.server.log.WalMarker.WalState;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
@@ -428,7 +428,7 @@ public class VolumeIT extends ConfigurableMacIT {
       Assert.fail("Unexpected volume " + path);
     }
 
-    WalMarker wals = new WalMarker(conn.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
     outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       for (Path path : paths) {
         if (entry.getKey().toString().startsWith(path.toString())) {

@@ -76,8 +76,8 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.log.WalMarker;
-import org.apache.accumulo.server.log.WalMarker.WalState;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusCombiner;
@@ -149,7 +149,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
     // Map of logs to tableId
     Multimap<String,String> logs = HashMultimap.create();
-    WalMarker wals = new WalMarker(conn.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
         Pair<WalState,Path> state = wals.state(entry.getKey(), id);
@@ -161,7 +161,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     return logs;
   }
 
-  private Multimap<String,String> getAllLogs(Connector conn) throws TableNotFoundException {
+  private Multimap<String,String> getAllLogs(Connector conn) throws Exception {
     Multimap<String,String> logs = getLogs(conn);
     try {
       Scanner scanner = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
@@ -333,7 +333,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Set<String> wals = Sets.newHashSet();
     attempts = 5;
     while (wals.isEmpty() && attempts > 0) {
-      WalMarker markers = new WalMarker(conn.getInstance(), ZooReaderWriter.getInstance());
+      WalStateManager markers = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
         wals.add(entry.getKey().toString());
       }

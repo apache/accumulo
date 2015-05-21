@@ -52,8 +52,8 @@ import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterControl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.log.WalMarker;
-import org.apache.accumulo.server.log.WalMarker.WalState;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -200,7 +200,7 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
 
   private Map<String,Boolean> getWals(Connector c, ZooKeeper zoo) throws Exception {
     Map<String,Boolean> result = new HashMap<>();
-    WalMarker wals = new WalMarker(c.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(c.getInstance(), ZooReaderWriter.getInstance());
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       // WALs are in use if they are not unreferenced
       result.put(entry.getKey().toString(), entry.getValue() != WalState.UNREFERENCED);

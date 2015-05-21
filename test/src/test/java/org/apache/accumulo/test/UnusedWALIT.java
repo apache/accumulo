@@ -35,7 +35,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
@@ -122,7 +122,7 @@ public class UnusedWALIT extends ConfigurableMacIT {
   }
 
   private int getWALCount(Connector c) throws Exception {
-    WalMarker wals = new WalMarker(c.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(c.getInstance(), ZooReaderWriter.getInstance());
     int result = 0;
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       result += entry.getValue().size();

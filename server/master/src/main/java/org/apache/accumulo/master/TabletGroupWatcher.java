@@ -68,7 +68,7 @@ import org.apache.accumulo.master.state.TableStats;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.log.WalMarker;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.ClosableIterator;
@@ -129,7 +129,7 @@ class TabletGroupWatcher extends Daemon {
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
 
-    WalMarker wals = new WalMarker(master.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(master.getInstance(), ZooReaderWriter.getInstance());
 
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events

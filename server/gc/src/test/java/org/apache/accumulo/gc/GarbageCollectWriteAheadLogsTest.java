@@ -38,8 +38,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.WalMarker;
-import org.apache.accumulo.server.log.WalMarker.WalState;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -78,7 +78,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void testRemoveUnusedLog() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
@@ -105,7 +105,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void testKeepClosedLog() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
@@ -128,7 +128,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void deleteUnreferenceLogOnDeadServer() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Connector conn = EasyMock.createMock(Connector.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
@@ -159,7 +159,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void ignoreReferenceLogOnDeadServer() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Connector conn = EasyMock.createMock(Connector.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
@@ -185,7 +185,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void replicationDelaysFileCollection() throws Exception {
     AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    WalMarker marker = EasyMock.createMock(WalMarker.class);
+    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Connector conn = EasyMock.createMock(Connector.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
