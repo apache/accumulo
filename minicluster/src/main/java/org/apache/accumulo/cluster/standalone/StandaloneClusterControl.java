@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -30,6 +33,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.commons.lang.StringUtils;
@@ -144,6 +149,26 @@ public class StandaloneClusterControl implements ClusterControl {
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
+    }
+  }
+
+  /**
+   * Wrapper around SetGoalState using the "server" <code>ACCUMULO_CONF_DIR</code>
+   *
+   * @param goalState
+   *          The goal state to set
+   * @throws IOException
+   *           If SetGoalState returns a non-zero result
+   */
+  public void setGoalState(String goalState) throws IOException {
+    checkNotNull(goalState, "Goal state must not be null");
+    checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
+    File confDir = getConfDir();
+    String master = getHosts(new File(confDir, "masters")).get(0);
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + serverAccumuloConfDir, accumuloPath, SetGoalState.class.getName(), goalState};
+    Entry<Integer,String> pair = exec(master, cmd);
+    if (0 != pair.getKey().intValue()) {
+      throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
     }
   }
 

@@ -826,7 +826,7 @@ maximizing stability in a VM environment, including some of the common failure
 modes that are more common when running in VMs.
 
 ==== Known failure modes: Setup and Troubleshooting
-In addition to the general failure modes of running Sqrrl, VMs can introduce a
+In addition to the general failure modes of running Accumulo, VMs can introduce a
 couple of environmental challenges that can affect process stability. Clock
 drift is something that is more common in VMs, especially when VMs are
 suspended and resumed. Clock drift can cause Accumulo servers to assume that

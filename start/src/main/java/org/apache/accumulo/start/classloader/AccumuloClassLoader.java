@@ -251,8 +251,11 @@ public class AccumuloClassLoader {
       return;
     if (file.isDirectory()) {
       File[] children = file.listFiles();
-      for (File child : children)
-        findMavenTargetClasses(paths, child, depth + 1);
+      if (children != null) {
+        for (File child : children) {
+          findMavenTargetClasses(paths, child, depth + 1);
+        }
+      }
     } else if ("pom.xml".equals(file.getName())) {
       paths.add(file.getParentFile().getAbsolutePath() + File.separator + "target" + File.separator + "classes");
     }

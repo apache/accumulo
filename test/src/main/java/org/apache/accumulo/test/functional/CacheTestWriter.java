@@ -120,6 +120,9 @@ public class CacheTestWriter {
       while (true) {
 
         File[] files = reportDir.listFiles();
+        if (files == null) {
+          throw new IllegalStateException("report directory is inaccessible");
+        }
 
         System.out.println("files.length " + files.length);
 

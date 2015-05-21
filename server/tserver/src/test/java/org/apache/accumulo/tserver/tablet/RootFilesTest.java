@@ -102,8 +102,11 @@ public class RootFilesTest {
 
     public void assertFiles(String... files) {
       HashSet<String> actual = new HashSet<String>();
-      for (File file : rootTabletDir.listFiles()) {
-        actual.add(file.getName());
+      File[] children = rootTabletDir.listFiles();
+      if (children != null) {
+        for (File file : children) {
+          actual.add(file.getName());
+        }
       }
 
       HashSet<String> expected = new HashSet<String>();
