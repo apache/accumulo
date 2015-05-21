@@ -99,10 +99,6 @@ if [ -z "${ACCUMULO_LOG_DIR}" ]; then
    exit 1
 fi
 
-if [ ! -d "${ACCUMULO_LOG_DIR}" ]; then
-   mkdir -p "$ACCUMULO_LOG_DIR"
-fi
-
 # Export the variables just in case they are not exported
 # This makes them available to java
 export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME
