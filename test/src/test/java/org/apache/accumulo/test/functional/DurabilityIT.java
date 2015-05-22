@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,10 +37,13 @@ import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
 public class DurabilityIT extends ConfigurableMacIT {
+  private static final Logger log = LoggerFactory.getLogger(DurabilityIT.class);
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -82,17 +86,21 @@ public class DurabilityIT extends ConfigurableMacIT {
     TableOperations tableOps = getConnector().tableOperations();
     String tableNames[] = init();
     // write some gunk, delete the table to keep that table from messing with the performance numbers of successive calls
+    // sync
     long t0 = writeSome(tableNames[0], N);
     tableOps.delete(tableNames[0]);
+    // flush
     long t1 = writeSome(tableNames[1], N);
     tableOps.delete(tableNames[1]);
+    // log
     long t2 = writeSome(tableNames[2], N);
     tableOps.delete(tableNames[2]);
+    // none
     long t3 = writeSome(tableNames[3], N);
     tableOps.delete(tableNames[3]);
     System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
-    assertTrue("flush-only should be faster than sync", t0 > t1);
-    assertTrue("sync should be faster than log", t1 > t2);
+    assertTrue("flush should be faster than sync", t0 > t1);
+    assertTrue("log should be faster than flush", t1 > t2);
     assertTrue("no durability should be faster than log", t2 > t3);
   }
 
@@ -185,21 +193,27 @@ public class DurabilityIT extends ConfigurableMacIT {
   }
 
   private long writeSome(String table, long count) throws Exception {
-    long now = System.currentTimeMillis();
-    Connector c = getConnector();
-    BatchWriter bw = c.createBatchWriter(table, null);
-    for (int i = 1; i < count + 1; i++) {
-      Mutation m = new Mutation("" + i);
-      m.put("", "", "");
-      bw.addMutation(m);
-      if (i % (Math.max(1, count / 100)) == 0) {
-        bw.flush();
+    int iterations = 5;
+    long[] attempts = new long[iterations];
+    for (int attempt = 0; attempt < iterations; attempt++) {
+      long now = System.currentTimeMillis();
+      Connector c = getConnector();
+      BatchWriter bw = c.createBatchWriter(table, null);
+      for (int i = 1; i < count + 1; i++) {
+        Mutation m = new Mutation("" + i);
+        m.put("", "", "");
+        bw.addMutation(m);
+        if (i % (Math.max(1, count / 100)) == 0) {
+          bw.flush();
+        }
       }
+      bw.close();
+      attempts[attempt] = System.currentTimeMillis() - now;
     }
-    bw.close();
-    long result = System.currentTimeMillis() - now;
-    // c.tableOperations().flush(table, null, null, true);
-    return result;
+    Arrays.sort(attempts);
+    log.info("Attempt durations: {}", Arrays.toString(attempts));
+    // Return the median duration
+    return attempts[2];
   }
 
 }
