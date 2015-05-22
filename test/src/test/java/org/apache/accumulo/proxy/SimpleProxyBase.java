@@ -1121,17 +1121,30 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       Thread.sleep(2000);
     }
 
-    String batchWriter = client.createWriter(creds, table, writerOptions);
-    client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-    client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-    try {
-      client.flush(batchWriter);
+    boolean success = false;
+    for (int i = 0; i < 5; i++) {
+      String batchWriter = client.createWriter(creds, table, writerOptions);
+      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+      try {
+        client.flush(batchWriter);
+        log.debug("Constraint failed to fire. Waiting and retrying");
+        Thread.sleep(5000);
+        continue;
+      } catch (MutationsRejectedException ex) {}
+      try {
+        client.closeWriter(batchWriter);
+        log.debug("Constraint failed to fire. Waiting and retrying");
+        Thread.sleep(5000);
+        continue;
+      } catch (MutationsRejectedException e) {}
+      success = true;
+      break;
+    }
+
+    if (!success) {
       fail("constraint did not fire");
-    } catch (MutationsRejectedException ex) {}
-    try {
-      client.closeWriter(batchWriter);
-      fail("constraint did not fire");
-    } catch (MutationsRejectedException e) {}
+    }
 
     client.removeConstraint(creds, table, 2);
 
@@ -1143,7 +1156,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     assertScan(new String[][] {}, table);
 
-    UtilWaitThread.sleep(2000);
+    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
@@ -1151,11 +1164,25 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     writerOptions.setThreads(1);
     writerOptions.setTimeoutMs(100000);
 
-    batchWriter = client.createWriter(creds, table, writerOptions);
+    success = false;
+    for (int i = 0; i < 5; i++) {
+      try {
+        String batchWriter = client.createWriter(creds, table, writerOptions);
 
-    client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-    client.flush(batchWriter);
-    client.closeWriter(batchWriter);
+        client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+        client.flush(batchWriter);
+        client.closeWriter(batchWriter);
+        success = true;
+        break;
+      } catch (MutationsRejectedException e) {
+        log.info("Mutations were rejected, assuming constraint is still active", e);
+        Thread.sleep(5000);
+      }
+    }
+
+    if (!success) {
+      fail("Failed to successfully write data after constraint was removed");
+    }
 
     assertScan(new String[][] {{"row1", "cf", "cq", "x"}}, table);
 
