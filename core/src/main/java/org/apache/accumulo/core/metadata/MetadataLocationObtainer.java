@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -56,11 +57,12 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetadataLocationObtainer implements TabletLocationObtainer {
-  private static final Logger log = Logger.getLogger(MetadataLocationObtainer.class);
+  private static final Logger log = LoggerFactory.getLogger(MetadataLocationObtainer.class);
+
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
 
@@ -77,10 +79,14 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throws AccumuloSecurityException, AccumuloException {
 
     try {
-      OpTimer opTimer = null;
-      if (log.isTraceEnabled())
-        opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
-            + src.tablet_extent + " tserver=" + src.tablet_location);
+
+      OpTimer timer = null;
+
+      if (log.isTraceEnabled()) {
+        log.trace("tid={} Looking up in {} row={} extent={} tserver={}", Thread.currentThread().getId(), src.tablet_extent.getTableId(),
+            TextUtil.truncate(row), src.tablet_extent, src.tablet_location);
+        timer = new OpTimer().start();
+      }
 
       Range range = new Range(row, true, stopRow, true);
 
@@ -106,8 +112,11 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         decodeRows(encodedResults, results);
       }
 
-      if (opTimer != null)
-        opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
+      if (timer != null) {
+        timer.stop();
+        log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(), results.size(), src.tablet_extent,
+            String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+      }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
 
@@ -115,15 +124,15 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
-        log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
+        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.getTableId(), src.tablet_location);
       throw ase;
     } catch (NotServingTabletException e) {
       if (log.isTraceEnabled())
-        log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " not serving " + src.tablet_extent);
+        log.trace("{} lookup failed, {} not serving {}", src.tablet_extent.getTableId(), src.tablet_location, src.tablet_extent);
       parent.invalidateCache(src.tablet_extent);
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
-        log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
+        log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);
       parent.invalidateCache(context.getInstance(), src.tablet_location);
     }
 
@@ -176,14 +185,14 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (failures.size() > 0) {
         // invalidate extents in parents cache
         if (log.isTraceEnabled())
-          log.trace("lookupTablets failed for " + failures.size() + " extents");
+          log.trace("lookupTablets failed for {} extents", failures.size());
         parent.invalidateCache(failures.keySet());
       }
     } catch (IOException e) {
-      log.trace("lookupTablets failed server=" + tserver, e);
+      log.trace("lookupTablets failed server={}", tserver, e);
       parent.invalidateCache(context.getInstance(), tserver);
     } catch (AccumuloServerException e) {
-      log.trace("lookupTablets failed server=" + tserver, e);
+      log.trace("lookupTablets failed server={}", tserver, e);
       throw e;
     }
 

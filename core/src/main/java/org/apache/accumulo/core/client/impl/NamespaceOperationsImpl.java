@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -50,14 +51,14 @@ import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private final ClientContext context;
   private TableOperationsImpl tableOps;
 
-  private static final Logger log = Logger.getLogger(TableOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
 
   public NamespaceOperationsImpl(ClientContext context, TableOperationsImpl tableOps) {
     checkArgument(context != null, "context is null");
@@ -67,9 +68,22 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public SortedSet<String> list() {
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of namespaces...");
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Fetching list of namespaces...", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
     TreeSet<String> namespaces = new TreeSet<String>(Namespaces.getNameToIdMap(context.getInstance()).keySet());
-    opTimer.stop("Fetched " + namespaces.size() + " namespaces in %DURATION%");
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(), namespaces.size(),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
     return namespaces;
   }
 
@@ -77,9 +91,20 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public boolean exists(String namespace) {
     checkArgument(namespace != null, "namespace is null");
 
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if namespace " + namespace + " exists...");
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(), namespace);
+      timer = new OpTimer().start();
+    }
+
     boolean exists = Namespaces.getNameToIdMap(context.getInstance()).containsKey(namespace);
-    opTimer.stop("Checked existance of " + exists + " in %DURATION%");
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists, String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
     return exists;
   }
 
@@ -103,7 +128,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
       Credentials credentials = context.getCredentials();
-      log.debug(credentials.getPrincipal() + " attempted to delete the " + namespaceId + " namespace");
+      log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
       throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 

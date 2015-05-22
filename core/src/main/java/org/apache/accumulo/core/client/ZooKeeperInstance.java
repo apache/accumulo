@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -43,8 +44,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.commons.configuration.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -62,7 +63,7 @@ import org.apache.log4j.Logger;
 
 public class ZooKeeperInstance implements Instance {
 
-  private static final Logger log = Logger.getLogger(ZooKeeperInstance.class);
+  private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);
 
   private String instanceId = null;
   private String instanceName = null;
@@ -187,9 +188,20 @@ public class ZooKeeperInstance implements Instance {
   public List<String> getMasterLocations() {
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
 
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
     byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
-    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
 
     if (loc == null) {
       return Collections.emptyList();
@@ -202,9 +214,20 @@ public class ZooKeeperInstance implements Instance {
   public String getRootTabletLocation() {
     String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
 
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up root tablet location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
     byte[] loc = zooCache.get(zRootLocPath);
-    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
 
     if (loc == null) {
       return null;

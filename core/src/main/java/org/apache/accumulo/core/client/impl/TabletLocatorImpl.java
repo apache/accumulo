@@ -48,14 +48,14 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TabletLocatorImpl extends TabletLocator {
 
-  private static final Logger log = Logger.getLogger(TabletLocatorImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
 
   // there seems to be a bug in TreeMap.tailMap related to
   // putting null in the treemap.. therefore instead of
@@ -144,7 +144,7 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (log.isTraceEnabled())
-        log.trace("Tablet server " + tl.tablet_location + " " + tl.tablet_session + " no longer holds its lock");
+        log.trace("Tablet server {} {} no longer holds its lock", tl.tablet_location, tl.tablet_session);
 
       invalidLocks.add(lock);
 
@@ -166,9 +166,12 @@ public class TabletLocatorImpl extends TabletLocator {
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    OpTimer opTimer = null;
-    if (log.isTraceEnabled())
-      opTimer = new OpTimer(log, Level.TRACE).start("Binning " + mutations.size() + " mutations for table " + tableId);
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Binning {} mutations for table {}", Thread.currentThread().getId(), mutations.size(), tableId);
+      timer = new OpTimer().start();
+    }
 
     ArrayList<T> notInCache = new ArrayList<T>();
     Text row = new Text();
@@ -228,8 +231,12 @@ public class TabletLocatorImpl extends TabletLocator {
       }
     }
 
-    if (opTimer != null)
-      opTimer.stop("Binned " + mutations.size() + " mutations for table " + tableId + " to " + binnedMutations.size() + " tservers in %DURATION%");
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Binned {} mutations for table {} to {} tservers in {}", Thread.currentThread().getId(), mutations.size(), tableId,
+          binnedMutations.size(), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
   }
 
   private <T extends Mutation> boolean addMutation(Map<String,TabletServerMutations<T>> binnedMutations, T mutation, TabletLocation tl,
@@ -326,9 +333,12 @@ public class TabletLocatorImpl extends TabletLocator {
      * should not log.
      */
 
-    OpTimer opTimer = null;
-    if (log.isTraceEnabled())
-      opTimer = new OpTimer(log, Level.TRACE).start("Binning " + ranges.size() + " ranges for table " + tableId);
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Binning {} ranges for table {}", Thread.currentThread().getId(), ranges.size(), tableId);
+      timer = new OpTimer().start();
+    }
 
     LockCheckerSession lcSession = new LockCheckerSession();
 
@@ -360,8 +370,11 @@ public class TabletLocatorImpl extends TabletLocator {
       }
     }
 
-    if (opTimer != null)
-      opTimer.stop("Binned " + ranges.size() + " ranges for table " + tableId + " to " + binnedRanges.size() + " tservers in %DURATION%");
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Binned {} ranges for table {} to {} tservers in {}", Thread.currentThread().getId(), ranges.size(), tableId, binnedRanges.size(),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
 
     return failures;
   }
@@ -375,7 +388,7 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     if (log.isTraceEnabled())
-      log.trace("Invalidated extent=" + failedExtent);
+      log.trace("Invalidated extent={}", failedExtent);
   }
 
   @Override
@@ -387,7 +400,7 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     if (log.isTraceEnabled())
-      log.trace("Invalidated " + keySet.size() + " cache entries for table " + tableId);
+      log.trace("Invalidated {} cache entries for table {}", keySet.size(), tableId);
   }
 
   @Override
@@ -408,7 +421,7 @@ public class TabletLocatorImpl extends TabletLocator {
     lockChecker.invalidateCache(server);
 
     if (log.isTraceEnabled())
-      log.trace("invalidated " + invalidatedCount + " cache entries  table=" + tableId + " server=" + server);
+      log.trace("invalidated {} cache entries  table={} server={}", invalidatedCount, tableId, server);
 
   }
 
@@ -423,17 +436,19 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     if (log.isTraceEnabled())
-      log.trace("invalidated all " + invalidatedCount + " cache entries for table=" + tableId);
+      log.trace("invalidated all {} cache entries for table={}", invalidatedCount, tableId);
   }
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
 
-    OpTimer opTimer = null;
-    if (log.isTraceEnabled())
-      opTimer = new OpTimer(log, Level.TRACE).start("Locating tablet  table=" + tableId + " row=" + TextUtil.truncate(row) + "  skipRow=" + skipRow + " retry="
-          + retry);
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Locating tablet  table={} row={} skipRow={} retry={}", Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow, retry);
+      timer = new OpTimer().start();
+    }
 
     while (true) {
 
@@ -443,12 +458,15 @@ public class TabletLocatorImpl extends TabletLocator {
       if (retry && tl == null) {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         if (log.isTraceEnabled())
-          log.trace("Failed to locate tablet containing row " + TextUtil.truncate(row) + " in table " + tableId + ", will retry...");
+          log.trace("Failed to locate tablet containing row {} in table {}, will retry...", TextUtil.truncate(row), tableId);
         continue;
       }
 
-      if (opTimer != null)
-        opTimer.stop("Located tablet " + (tl == null ? null : tl.tablet_extent) + " at " + (tl == null ? null : tl.tablet_location) + " in %DURATION%");
+      if (timer != null) {
+        timer.stop();
+        log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(), (tl == null ? "null" : tl.tablet_extent), (tl == null ? "null"
+            : tl.tablet_location), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+      }
 
       return tl;
     }

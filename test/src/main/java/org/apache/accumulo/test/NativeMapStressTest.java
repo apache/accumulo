@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -32,12 +34,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NativeMapStressTest {
 
-  private static final Logger log = Logger.getLogger(NativeMapStressTest.class);
+  private static final Logger log = LoggerFactory.getLogger(NativeMapStressTest.class);
 
   public static void main(String[] args) {
     testLotsOfMapDeletes(true);
@@ -69,9 +71,13 @@ public class NativeMapStressTest {
 
           Random r = new Random();
 
-          OpTimer opTimer = new OpTimer(log, Level.INFO);
+          OpTimer timer = null;
+          AtomicLong nextOpid = new AtomicLong();
 
-          opTimer.start("Creating map of size " + mapSizePerThread);
+          if (log.isInfoEnabled()) {
+            log.info("tid={} oid={} Creating map of size {}", Thread.currentThread().getId(), nextOpid.get(), mapSizePerThread);
+            timer = new OpTimer().start();
+          }
 
           for (int i = 0; i < mapSizePerThread; i++) {
             String row = String.format("r%08d", i);
@@ -79,9 +85,17 @@ public class NativeMapStressTest {
             put(nm, row, val, i);
           }
 
-          opTimer.stop("Created map of size " + nm.size() + " in %DURATION%");
+          if (timer != null) {
 
-          opTimer.start("Doing " + getsPerThread + " gets()");
+            // stop and log created elapsed time
+            timer.stop();
+            log.info("tid={} oid={} Created map of size {} in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(), nm.size(),
+                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+
+            // start timer for gets
+            log.info("tid={} oid={} Doing {} gets()", Thread.currentThread().getId(), nextOpid.get(), getsPerThread);
+            timer.reset().start();
+          }
 
           for (int i = 0; i < getsPerThread; i++) {
             String row = String.format("r%08d", r.nextInt(mapSizePerThread));
@@ -89,15 +103,23 @@ public class NativeMapStressTest {
 
             Value value = nm.get(new Key(new Text(row)));
             if (value == null || !value.toString().equals(val)) {
-              log.error("nm.get(" + row + ") failed");
+              log.error("nm.get({}) failed", row);
             }
           }
 
-          opTimer.stop("Finished " + getsPerThread + " gets in %DURATION%");
+          if (timer != null) {
+
+            // stop and log created elapsed time
+            timer.stop();
+            log.info("tid={} oid={} Finished {} gets in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(), getsPerThread,
+                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+
+            // start timer for random iterations
+            log.info("tid={} oid={} Doing {} random iterations", Thread.currentThread().getId(), nextOpid.get(), getsPerThread);
+            timer.reset().start();
+          }
 
           int scanned = 0;
-
-          opTimer.start("Doing " + getsPerThread + " random iterations");
 
           for (int i = 0; i < getsPerThread; i++) {
             int startRow = r.nextInt(mapSizePerThread);
@@ -113,7 +135,7 @@ public class NativeMapStressTest {
 
               Entry<Key,Value> entry = iter.next();
               if (!entry.getValue().toString().equals(val2) || !entry.getKey().equals(new Key(new Text(row2)))) {
-                log.error("nm.iter(" + row2 + ") failed row = " + row + " count = " + count + " row2 = " + row + " val2 = " + val2);
+                log.error("nm.iter({}) failed row = {} count = {} row2 = {} val2 = {}", row2, row, count, row, val2);
               }
 
               count++;
@@ -122,7 +144,14 @@ public class NativeMapStressTest {
             scanned += count;
           }
 
-          opTimer.stop("Finished " + getsPerThread + " random iterations (scanned = " + scanned + ") in %DURATION%");
+          if (timer != null) {
+
+            // stop and log created elapsed time
+            timer.stop();
+            log.info("tid={} oid={} Finished {}  random iterations (scanned = {}) in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(),
+                getsPerThread, scanned, String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+
+          }
 
           nm.delete();
         }
@@ -138,7 +167,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '" + thread.getName() + "'.", e);
+        log.error("Could not join thread '{}'.", thread.getName(), e);
         throw new RuntimeException(e);
       }
     }
@@ -200,7 +229,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '" + thread.getName() + "'.", e);
+        log.error("Could not join thread '{}'.", thread.getName(), e);
         throw new RuntimeException(e);
       }
     }
@@ -261,7 +290,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '" + thread.getName() + "'.", e);
+        log.error("Could not join thread '{}'.", thread.getName(), e);
         throw new RuntimeException(e);
       }
     }

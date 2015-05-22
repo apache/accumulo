@@ -109,11 +109,11 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.net.HostAndPort;
@@ -122,7 +122,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 public class TableOperationsImpl extends TableOperationsHelper {
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
-  private static final Logger log = Logger.getLogger(TableOperations.class);
+  private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
   private final ClientContext context;
 
   public TableOperationsImpl(ClientContext context) {
@@ -132,9 +132,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public SortedSet<String> list() {
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of tables...");
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
     TreeSet<String> tableNames = new TreeSet<String>(Tables.getNameToIdMap(context.getInstance()).keySet());
-    opTimer.stop("Fetched " + tableNames.size() + " table names in %DURATION%");
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(), tableNames.size(),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
     return tableNames;
   }
 
@@ -144,9 +157,20 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
 
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + " exists...");
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Checking if table {} exists...", Thread.currentThread().getId(), tableName);
+      timer = new OpTimer().start();
+    }
+
     boolean exists = Tables.getNameToIdMap(context.getInstance()).containsKey(tableName);
-    opTimer.stop("Checked existance of " + exists + " in %DURATION%");
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists, String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
     return exists;
   }
 
@@ -308,7 +332,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         try {
           finishFateOperation(opid);
         } catch (Exception e) {
-          log.warn(e.getMessage(), e);
+          log.warn("Exception thrown while finishing fate table operation", e);
         }
     }
   }
@@ -439,17 +463,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
         try {
           TabletClientService.Client client = ThriftUtil.getTServerClient(address, context);
           try {
-            OpTimer opTimer = null;
-            if (log.isTraceEnabled())
-              opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + address + " at " + split);
+
+            OpTimer timer = null;
+
+            if (log.isTraceEnabled()) {
+              log.trace("tid={} Splitting tablet {} on {} at {}", Thread.currentThread().getId(), tl.tablet_extent, address, split);
+              timer = new OpTimer().start();
+            }
 
             client.splitTablet(Tracer.traceInfo(), context.rpcCreds(), tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
 
             // just split it, might as well invalidate it in the cache
             tabLocator.invalidateCache(tl.tablet_extent);
 
-            if (opTimer != null)
-              opTimer.stop("Split tablet in %DURATION%");
+            if (timer != null) {
+              timer.stop();
+              log.trace("Split tablet in {}", String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+            }
+
           } finally {
             ThriftUtil.returnClient(client);
           }
@@ -468,8 +499,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           // Do not silently spin when we repeatedly fail to get the location for a tablet
           locationFailures++;
           if (5 == locationFailures || 0 == locationFailures % 50) {
-            log.warn("Having difficulty locating hosting tabletserver for split " + split + " on table " + tableName + ". Seen " + locationFailures
-                + " failures.");
+            log.warn("Having difficulty locating hosting tabletserver for split {} on table {}. Seen {} failures.", split, tableName, locationFailures);
           }
 
           tabLocator.invalidateCache(tl.tablet_extent);
@@ -542,7 +572,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw (AccumuloSecurityException) e.getCause();
         }
 
-        log.info(e.getMessage() + " ... retrying ...");
+        log.info("{} ... retrying ...", e.getMessage());
         sleepUninterruptibly(3, TimeUnit.SECONDS);
       }
     }
@@ -794,7 +824,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case TABLE_DOESNT_EXIST:
           throw new TableNotFoundException(tableId, null, e.getMessage(), e);
         default:
-          log.debug("flush security exception on table id " + tableId);
+          log.debug("flush security exception on table id {}", tableId);
           throw new AccumuloSecurityException(e.user, e.code, e);
       }
     } catch (ThriftTableOperationException e) {
@@ -1154,8 +1184,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           waitTime = waitFor * 10;
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
-        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
-            + " sleeping:" + waitTime + "ms");
+        log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms", waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
         sleepUninterruptibly(waitTime, TimeUnit.MILLISECONDS);
       } else {
         break;
@@ -1271,7 +1300,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (pair == null) {
           log.debug("Disk usage request failed.  Pair is null.  Retrying request...", e);
         } else {
-          log.debug("Disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
+          log.debug("Disk usage request failed {}, retrying ... ", pair.getFirst(), e);
         }
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (TException e) {
@@ -1337,13 +1366,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       for (Entry<String,String> entry : props.entrySet()) {
         if (Property.isClassProperty(entry.getKey()) && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
-          Logger.getLogger(this.getClass()).info(
-              "Imported table sets '" + entry.getKey() + "' to '" + entry.getValue() + "'.  Ensure this class is on Accumulo classpath.");
+          LoggerFactory.getLogger(this.getClass()).info("Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.", entry.getKey(),
+              entry.getValue());
         }
       }
 
     } catch (IOException ioe) {
-      Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
+      LoggerFactory.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : {}", ioe.getMessage());
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(importDir.getBytes(UTF_8)));

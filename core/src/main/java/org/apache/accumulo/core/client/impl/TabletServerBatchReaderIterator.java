@@ -34,6 +34,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -63,18 +64,18 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.wrappers.TraceRunnable;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
-  private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
 
   private final ClientContext context;
   private final Instance instance;
@@ -246,7 +247,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled())
-          log.trace("Failed to bin " + failures.size() + " ranges, tablet locations were null, retrying in 100ms");
+          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms", failures.size());
+
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -280,7 +282,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     if (log.isTraceEnabled())
-      log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
+      log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
 
     try {
       Thread.sleep(failSleepTime);
@@ -363,10 +365,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
           locator.invalidateCache(context.getInstance(), tsLocation);
         }
-        log.debug(e.getMessage(), e);
+        log.debug("IOException thrown", e);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
-        log.debug(e.getMessage(), e);
+        log.debug("AccumuloSecurityException thrown", e);
 
         Tables.clearCache(instance);
         if (!Tables.exists(instance, table))
@@ -375,9 +377,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           fatalException = e;
       } catch (Throwable t) {
         if (queryThreadPool.isShutdown())
-          log.debug(t.getMessage(), t);
+          log.debug("Caught exception, but queryThreadPool is shutdown", t);
         else
-          log.warn(t.getMessage(), t);
+          log.warn("Caught exception, but queryThreadPool is not shutdown", t);
         fatalException = t;
       } finally {
         semaphore.release();
@@ -389,17 +391,17 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             try {
               processFailures(failures, receiver, columns);
             } catch (TableNotFoundException e) {
-              log.debug(e.getMessage(), e);
+              log.debug("{}", e.getMessage(), e);
               fatalException = e;
             } catch (AccumuloException e) {
-              log.debug(e.getMessage(), e);
+              log.debug("{}", e.getMessage(), e);
               fatalException = e;
             } catch (AccumuloSecurityException e) {
               e.setTableInfo(getTableInfo());
-              log.debug(e.getMessage(), e);
+              log.debug("{}", e.getMessage(), e);
               fatalException = e;
             } catch (Throwable t) {
-              log.debug(t.getMessage(), t);
+              log.debug("{}", t.getMessage(), t);
               fatalException = t;
             }
 
@@ -625,8 +627,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
       try {
 
-        OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Starting multi scan, tserver=" + server + "  #tablets=" + requested.size() + "  #ranges="
-            + sumSizes(requested.values()) + " ssil=" + options.serverSideIteratorList + " ssio=" + options.serverSideIteratorOptions);
+        OpTimer timer = null;
+
+        if (log.isTraceEnabled()) {
+          log.trace("tid={} Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}", Thread.currentThread().getId(), server,
+              requested.size(), sumSizes(requested.values()), options.serverSideIteratorList, options.serverSideIteratorOptions);
+
+          timer = new OpTimer().start();
+        }
 
         TabletType ttype = TabletType.type(requested.keySet());
         boolean waitForWrites = !ThriftScanner.serversWaitedForWrites.get(ttype).contains(server);
@@ -641,8 +649,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         MultiScanResult scanResult = imsr.result;
 
-        opTimer.stop("Got 1st multi scan results, #results=" + scanResult.results.size() + (scanResult.more ? "  scanID=" + imsr.scanID : "")
-            + " in %DURATION%");
+        if (timer != null) {
+          timer.stop();
+          log.trace("tid={} Got 1st multi scan results, #results={} {} in {}", Thread.currentThread().getId(), scanResult.results.size(),
+              (scanResult.more ? "scanID=" + imsr.scanID : ""), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+        }
 
         ArrayList<Entry<Key,Value>> entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
         for (TKeyValue kv : scanResult.results) {
@@ -657,14 +668,24 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         trackScanning(failures, unscanned, scanResult);
 
+        AtomicLong nextOpid = new AtomicLong();
+
         while (scanResult.more) {
 
           timeoutTracker.check();
 
-          opTimer.start("Continuing multi scan, scanid=" + imsr.scanID);
+          if (timer != null) {
+            log.trace("tid={} oid={} Continuing multi scan, scanid={}", Thread.currentThread().getId(), nextOpid.get(), imsr.scanID);
+            timer.reset().start();
+          }
+
           scanResult = client.continueMultiScan(Tracer.traceInfo(), imsr.scanID);
-          opTimer.stop("Got more multi scan results, #results=" + scanResult.results.size() + (scanResult.more ? "  scanID=" + imsr.scanID : "")
-              + " in %DURATION%");
+
+          if (timer != null) {
+            timer.stop();
+            log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(),
+                scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          }
 
           entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
           for (TKeyValue kv : scanResult.results) {
@@ -686,20 +707,20 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         ThriftUtil.returnClient(client);
       }
     } catch (TTransportException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage());
+      log.debug("Server : {} msg : {}", server, e.getMessage());
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TApplicationException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new AccumuloServerException(server, e);
     } catch (NoSuchScanIDException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new IOException(e);
     } catch (TException e) {
-      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } finally {

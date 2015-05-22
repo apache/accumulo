@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -52,10 +53,9 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import com.google.common.base.Joiner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
@@ -78,17 +78,26 @@ public class HdfsZooInstance implements Instance {
 
   private static ZooCache zooCache;
   private static String instanceId = null;
-  private static final Logger log = Logger.getLogger(HdfsZooInstance.class);
+  private static final Logger log = LoggerFactory.getLogger(HdfsZooInstance.class);
 
   @Override
   public String getRootTabletLocation() {
     String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
 
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zoocache.");
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up root tablet location in zoocache.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
 
     byte[] loc = zooCache.get(zRootLocPath);
 
-    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
 
     if (loc == null) {
       return null;
@@ -102,11 +111,20 @@ public class HdfsZooInstance implements Instance {
 
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
 
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up master location in zoocache.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
 
     byte[] loc = ZooLock.getLockData(zooCache, masterLocPath, null);
 
-    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
 
     if (loc == null) {
       return Collections.emptyList();
@@ -133,7 +151,7 @@ public class HdfsZooInstance implements Instance {
         throw new RuntimeException(e);
       }
       Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
-      log.trace("Looking for instanceId from " + instanceIdPath);
+      log.trace("Looking for instanceId from {}", instanceIdPath);
       String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, acuConf);
       instanceId = instanceIdFromFile;
     }
