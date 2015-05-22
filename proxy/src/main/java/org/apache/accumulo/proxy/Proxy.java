@@ -238,6 +238,11 @@ public class Proxy implements KeywordExecutable {
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         log.info("Logged in as " + ugi.getUserName());
 
+        // The kerberosPrimary set in the SASL server needs to match the principal we're logged in as.
+        final String shortName = ugi.getShortUserName();
+        log.info("Setting server primary to {}", shortName);
+        clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, shortName);
+
         KerberosToken token = new KerberosToken();
         saslParams = new SaslServerConnectionParams(clientConf, token, null);
 
