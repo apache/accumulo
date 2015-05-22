@@ -17,8 +17,17 @@
 package org.apache.accumulo.cluster.standalone;
 
 import static org.junit.Assert.assertEquals;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.aryEq;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
+import org.easymock.EasyMock;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 public class StandaloneClusterControlTest {
 
@@ -35,4 +44,39 @@ public class StandaloneClusterControlTest {
     assertEquals(accumuloHome + "/bin/start-server.sh", control.startServerPath);
   }
 
+  @Test
+  public void mapreduceLaunchesLocally() throws Exception {
+    final String toolPath = "/usr/lib/accumulo/bin/tool.sh";
+    final String jar = "/home/user/my_project.jar";
+    final Class<?> clz = Object.class;
+    final String myClass = clz.getName();
+    StandaloneClusterControl control = EasyMock.createMockBuilder(StandaloneClusterControl.class).addMockedMethod("exec", String.class, String[].class)
+        .addMockedMethod("getToolPath").addMockedMethod("getJarFromClass", Class.class).createMock();
+
+    final String[] toolArgs = new String[] {"-u", "user", "-p", "password"};
+    final String[] expectedCommands = new String[3 + toolArgs.length];
+
+    int i = 0;
+    expectedCommands[i++] = toolPath;
+    expectedCommands[i++] = jar;
+    expectedCommands[i++] = myClass;
+    for (int j = 0; j < toolArgs.length; j++) {
+      expectedCommands[i + j] = quote(toolArgs[j]);
+    }
+
+    expect(control.getToolPath()).andReturn(toolPath);
+    expect(control.getJarFromClass(anyObject(Class.class))).andReturn(jar);
+    expect(control.exec(eq("localhost"), aryEq(expectedCommands))).andReturn(Maps.immutableEntry(0, ""));
+
+    replay(control);
+
+    // Give a fake Class -- we aren't verifying the actual class passed in
+    control.execMapreduceWithStdout(clz, toolArgs);
+
+    verify(control);
+  }
+
+  private String quote(String word) {
+    return "'" + word + "'";
+  }
 }

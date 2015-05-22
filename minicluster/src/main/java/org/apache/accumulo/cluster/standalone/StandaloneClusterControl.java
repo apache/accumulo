@@ -79,6 +79,10 @@ public class StandaloneClusterControl implements ClusterControl {
     this.toolPath = new File(bin, TOOL_SCRIPT).getAbsolutePath();
   }
 
+  String getToolPath() {
+    return this.toolPath;
+  }
+
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
     RemoteShell shell = new RemoteShell(hostname, command, options);
     try {
@@ -118,10 +122,19 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args) throws IOException {
-    File confDir = getConfDir();
-    String master = getHosts(new File(confDir, "masters")).get(0);
+    String host = "localhost";
     String[] cmd = new String[3 + args.length];
-    cmd[0] = toolPath;
+    cmd[0] = getToolPath();
+    cmd[1] = getJarFromClass(clz);
+    cmd[2] = clz.getName();
+    for (int i = 0, j = 3; i < args.length; i++, j++) {
+      cmd[j] = "'" + args[i] + "'";
+    }
+    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), host);
+    return exec(host, cmd);
+  }
+
+  String getJarFromClass(Class<?> clz) {
     CodeSource source = clz.getProtectionDomain().getCodeSource();
     if (null == source) {
       throw new RuntimeException("Could not get CodeSource for class");
@@ -131,13 +144,7 @@ public class StandaloneClusterControl implements ClusterControl {
     if (!jar.endsWith(".jar")) {
       throw new RuntimeException("Need to have a jar to run mapreduce: " + jar);
     }
-    cmd[1] = jar;
-    cmd[2] = clz.getName();
-    for (int i = 0, j = 3; i < args.length; i++, j++) {
-      cmd[j] = "'" + args[i] + "'";
-    }
-    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
-    return exec(master, cmd);
+    return jar;
   }
 
   @Override
