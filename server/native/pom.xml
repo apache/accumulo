@@ -27,6 +27,9 @@
   <packaging>pom</packaging>
   <name>Native Libraries</name>
   <description>C++ native libraries for improved performance in Apache Accumulo.</description>
+  <properties>
+    <CXX>g++</CXX>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -104,6 +107,7 @@
               <workingDirectory>${project.build.directory}/${project.artifactId}-${project.version}/${project.artifactId}-${project.version}</workingDirectory>
               <arguments>
                 <argument>test</argument>
+                <argument>CXX=${CXX}</argument>
                 <argument>OUTPUT_DIR=${project.build.directory}</argument>
               </arguments>
             </configuration>
