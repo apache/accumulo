@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tracer;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.AbstractQueue;
@@ -27,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.tracer.thrift.Annotation;
@@ -37,8 +40,6 @@ import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.TimelineAnnotation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Deliver Span information periodically to a destination.
@@ -69,6 +70,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   Timer timer = new Timer("SpanSender", true);
   protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  protected final AtomicInteger sendQueueSize = new AtomicInteger(0);
   int maxQueueSize = 5000;
   long lastNotificationOfDroppedSpans = 0;
   int minSpanSize = 1;
@@ -112,6 +114,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
           sendQueue.remove();
           sendQueue.notifyAll();
         }
+        sendQueueSize.decrementAndGet();
         continue;
       }
       SpanKey dest = getSpanKey(s.data);
@@ -130,6 +133,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
             sendQueue.remove();
             sendQueue.notifyAll();
           }
+          sendQueueSize.decrementAndGet();
           sent = true;
         } catch (Exception ex) {
           log.warn("Got error sending to " + dest + ", refreshing client", ex);
@@ -168,7 +172,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
       List<Annotation> annotations = convertToAnnotations(s.getTimelineAnnotations());
-      if (sendQueue.size() > maxQueueSize) {
+      if (sendQueueSize.get() > maxQueueSize) {
         long now = System.currentTimeMillis();
         if (now - lastNotificationOfDroppedSpans > 60 * 1000) {
           log.warn("Tracing spans are being dropped because there are already " + maxQueueSize + " spans queued for delivery.\n"
@@ -179,6 +183,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       }
       sendQueue.add(new RemoteSpan(host, service == null ? s.getProcessId() : service, s.getTraceId(), s.getSpanId(), s.getParentId(), s.getStartTimeMillis(),
           s.getStopTimeMillis(), s.getDescription(), data, annotations));
+      sendQueueSize.incrementAndGet();
     }
   }
 
