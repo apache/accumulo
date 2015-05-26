@@ -170,7 +170,7 @@ public class Monitor {
   private ZooLock monitorLock;
 
   private static final String DEFAULT_INSTANCE_NAME = "(Unavailable)";
-  public static AtomicReference<String> cachedInstanceName = new AtomicReference<String>(DEFAULT_INSTANCE_NAME);
+  public static final AtomicReference<String> cachedInstanceName = new AtomicReference<String>(DEFAULT_INSTANCE_NAME);
 
   private static class EventCounter {
 
