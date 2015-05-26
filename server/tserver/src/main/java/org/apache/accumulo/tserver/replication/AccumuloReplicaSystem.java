@@ -484,7 +484,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           span.stop();
         }
 
-        log.debug("Recorded updated status for {}: {}", p, currentStatus);
+        log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
 
         // If we don't have any more work, just quit
         if (!StatusUtil.isWorkRequired(currentStatus)) {
