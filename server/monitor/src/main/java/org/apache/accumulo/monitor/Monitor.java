@@ -58,7 +58,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.monitor.servlets.DefaultServlet;
 import org.apache.accumulo.monitor.servlets.GcStatusServlet;
 import org.apache.accumulo.monitor.servlets.JSONServlet;
@@ -171,7 +170,8 @@ public class Monitor {
 
   private ZooLock monitorLock;
 
-  public static AtomicReference<String> cachedInstanceName = new AtomicReference<String>("(Unavailable)");
+  private static final String DEFAULT_INSTANCE_NAME = "(Unavailable)";
+  public static AtomicReference<String> cachedInstanceName = new AtomicReference<String>(DEFAULT_INSTANCE_NAME);
 
   private static class EventCounter {
 
@@ -249,12 +249,12 @@ public class Monitor {
 
     synchronized (Monitor.class) {
       // Learn our instance name asynchronously so we don't hang up if zookeeper is down
-      if (Monitor.cachedInstanceName.get() == null) {
+      if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
         SimpleTimer.getInstance().schedule(new TimerTask() {
           @Override
           public void run() {
             synchronized (Monitor.class) {
-              if (cachedInstanceName.get() == null) {
+              if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
                 cachedInstanceName.set(HdfsZooInstance.getInstance().getInstanceName());
               }
             }
