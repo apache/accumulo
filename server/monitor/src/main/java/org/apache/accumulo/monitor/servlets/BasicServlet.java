@@ -26,7 +26,6 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
 import java.util.List;
-import java.util.TimerTask;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -39,7 +38,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -47,7 +45,6 @@ abstract public class BasicServlet extends HttpServlet {
 
   private static final long serialVersionUID = 1L;
   protected static final Logger log = Logger.getLogger(BasicServlet.class);
-  static String cachedInstanceName = null;
   private String bannerText;
   private String bannerColor;
   private String bannerBackground;
@@ -108,21 +105,6 @@ abstract public class BasicServlet extends HttpServlet {
         // ignore improperly formatted user cookie
       }
     }
-    synchronized (BasicServlet.class) {
-      // Learn our instance name asynchronously so we don't hang up if zookeeper is down
-      if (cachedInstanceName == null) {
-        SimpleTimer.getInstance(Monitor.getContext().getConfiguration()).schedule(new TimerTask() {
-          @Override
-          public void run() {
-            synchronized (BasicServlet.class) {
-              if (cachedInstanceName == null) {
-                cachedInstanceName = Monitor.getContext().getInstance().getInstanceName();
-              }
-            }
-          }
-        }, 1000);
-      }
-    }
 
     // BEGIN PAGE
     sb.append("<!--\n");
@@ -172,8 +154,8 @@ abstract public class BasicServlet extends HttpServlet {
     }
     sb.append("<div id='headertitle'>");
     sb.append("<h1>").append(getTitle(req)).append("</h1></div>\n");
-    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(cachedInstanceName).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;").append(Constants.VERSION)
-        .append("\n");
+    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(Monitor.cachedInstanceName.get()).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;")
+        .append(Constants.VERSION).append("\n");
     sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(Monitor.getContext().getInstance().getInstanceID()).append("</span>\n");
     sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span>");
     sb.append("</div>\n"); // end <div id='subheader'>

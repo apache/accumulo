@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -87,6 +89,7 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
@@ -166,6 +169,9 @@ public class Monitor {
 
   private ZooLock monitorLock;
 
+  private static final String DEFAULT_INSTANCE_NAME = "(Unavailable)";
+  public static AtomicReference<String> cachedInstanceName = new AtomicReference<String>(DEFAULT_INSTANCE_NAME);
+
   private static class EventCounter {
 
     Map<String,Pair<Long,Long>> prevSamples = new HashMap<String,Pair<Long,Long>>();
@@ -238,6 +244,22 @@ public class Monitor {
     long currentTime = System.currentTimeMillis();
     if (currentTime - lastRecalc < REFRESH_TIME * 1000)
       return;
+
+    synchronized (Monitor.class) {
+      // Learn our instance name asynchronously so we don't hang up if zookeeper is down
+      if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
+        SimpleTimer.getInstance(config.getConfiguration()).schedule(new TimerTask() {
+          @Override
+          public void run() {
+            synchronized (Monitor.class) {
+              if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
+                cachedInstanceName.set(HdfsZooInstance.getInstance().getInstanceName());
+              }
+            }
+          }
+        }, 0);
+      }
+    }
 
     synchronized (Monitor.class) {
       if (fetching)
