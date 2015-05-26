@@ -21,11 +21,14 @@ import javax.servlet.http.HttpServlet;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.StringUtils;
+import org.eclipse.jetty.security.ConstraintMapping;
+import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 public class EmbeddedWebServer {
@@ -78,11 +81,26 @@ public class EmbeddedWebServer {
     connector.setHost(host);
     connector.setPort(port);
 
-    handler = new ServletContextHandler(server, "/", new SessionHandler(), null, null, null);
+    handler = new ServletContextHandler(server, "/", new SessionHandler(), new ConstraintSecurityHandler(), null, null);
+    disableTrace("/");
   }
 
   public void addServlet(Class<? extends HttpServlet> klass, String where) {
     handler.addServlet(klass, where);
+  }
+
+  private void disableTrace(String where) {
+    Constraint constraint = new Constraint();
+    constraint.setName("Disable TRACE");
+    constraint.setAuthenticate(true); // require auth, but no roles defined, so it'll never match
+
+    ConstraintMapping mapping = new ConstraintMapping();
+    mapping.setConstraint(constraint);
+    mapping.setMethod("TRACE");
+    mapping.setPathSpec(where);
+
+    ConstraintSecurityHandler security = (ConstraintSecurityHandler) handler.getSecurityHandler();
+    security.addConstraintMapping(mapping);
   }
 
   public int getPort() {
