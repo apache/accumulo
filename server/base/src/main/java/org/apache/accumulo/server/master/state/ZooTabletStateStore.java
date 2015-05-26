@@ -27,9 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -183,8 +181,6 @@ public class ZooTabletStateStore extends TabletStateStore {
             throw new DistributedStoreException(ex);
           }
           store.put(RootTable.ZROOT_TABLET_WALOGS + "/" + logEntry.getUniqueID(), value);
-          store.remove(RootTable.ZROOT_TABLET_CURRENT_LOGS + "/" + MetadataSchema.CurrentLogsSection.getRowPrefix() + tls.current.toString()
-              + logEntry.getUniqueID());
         }
       }
     }
@@ -197,10 +193,4 @@ public class ZooTabletStateStore extends TabletStateStore {
   public String name() {
     return "Root Table";
   }
-
-  @Override
-  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<Path>> logs) {
-    // the root table is not replicated, so unassigning the root tablet has removed the current log marker
-  }
-
 }

@@ -19,7 +19,7 @@ package org.apache.accumulo.start.classloader.vfs.providers;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.test.AccumuloDFSBase;
+import org.apache.accumulo.start.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;

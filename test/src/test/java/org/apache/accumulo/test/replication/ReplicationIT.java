@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -65,7 +67,7 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -74,6 +76,8 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusCombiner;
@@ -81,6 +85,7 @@ import org.apache.accumulo.server.replication.StatusFormatter;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -131,7 +136,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private Multimap<String,String> getLogs(Connector conn) throws TableNotFoundException {
+  private Multimap<String,String> getLogs(Connector conn) throws Exception {
     // Map of server to tableId
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -144,21 +149,39 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
     // Map of logs to tableId
     Multimap<String,String> logs = HashMultimap.create();
-    scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(MetadataSchema.CurrentLogsSection.getRange());
-    for (Entry<Key,Value> entry : scanner) {
-      if (Thread.interrupted()) {
-        return logs;
+    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+    for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
+      for (UUID id : entry.getValue()) {
+        Pair<WalState,Path> state = wals.state(entry.getKey(), id);
+        for (String tableId : serverToTableID.get(entry.getKey())) {
+          logs.put(state.getSecond().toString(), tableId);
+        }
       }
-      Text path = new Text();
-      MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
-      Text session = new Text();
-      Text hostPort = new Text();
-      MetadataSchema.CurrentLogsSection.getTabletServer(entry.getKey(), hostPort, session);
-      TServerInstance server = new TServerInstance(AddressUtil.parseAddress(hostPort.toString(), false), session.toString());
-      for (String tableId : serverToTableID.get(server)) {
-        logs.put(new Path(path.toString()).toString(), tableId);
+    }
+    return logs;
+  }
+
+  private Multimap<String,String> getAllLogs(Connector conn) throws Exception {
+    Multimap<String,String> logs = getLogs(conn);
+    try {
+      Scanner scanner = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
+      StatusSection.limit(scanner);
+      Text buff = new Text();
+      for (Entry<Key,Value> entry : scanner) {
+        if (Thread.interrupted()) {
+          Thread.currentThread().interrupt();
+          return logs;
+        }
+
+        StatusSection.getFile(entry.getKey(), buff);
+        String file = buff.toString();
+        StatusSection.getTableId(entry.getKey(), buff);
+        String tableId = buff.toString();
+
+        logs.put(file, tableId);
       }
+    } catch (TableOfflineException e) {
+      log.debug("Replication table isn't online yet");
     }
     return logs;
   }
@@ -308,16 +331,11 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     Set<String> wals = Sets.newHashSet();
-    Scanner s;
     attempts = 5;
     while (wals.isEmpty() && attempts > 0) {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      s.setRange(MetadataSchema.CurrentLogsSection.getRange());
-      s.fetchColumnFamily(MetadataSchema.CurrentLogsSection.COLF);
-      for (Entry<Key,Value> entry : s) {
-        Text path = new Text();
-        MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
-        wals.add(new Path(path.toString()).toString());
+      WalStateManager markers = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+      for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
+        wals.add(entry.getKey().toString());
       }
       attempts--;
     }
@@ -510,9 +528,9 @@ public class ReplicationIT extends ConfigurableMacIT {
         // when that happens
         while (keepRunning.get()) {
           try {
-            logs.putAll(getLogs(conn));
-          } catch (TableNotFoundException e) {
-            log.error("Metadata table doesn't exist");
+            logs.putAll(getAllLogs(conn));
+          } catch (Exception e) {
+            log.error("Error getting logs", e);
           }
         }
       }
@@ -569,6 +587,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     while (observedLogs.hasNext()) {
       Entry<String,String> observedLog = observedLogs.next();
       if (replicationTableId.equals(observedLog.getValue())) {
+        log.info("Removing {} because its tableId is for the replication table", observedLog);
         observedLogs.remove();
       }
     }
@@ -578,9 +597,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertTrue("Metadata log distribution: " + logs + "replFiles " + replFiles, logs.keySet().containsAll(replFiles));
     Assert.assertTrue("Difference between replication entries and current logs is bigger than one", logs.keySet().size() - replFiles.size() <= 1);
 
+    final Configuration conf = new Configuration();
     for (String replFile : replFiles) {
       Path p = new Path(replFile);
-      FileSystem fs = p.getFileSystem(new Configuration());
+      FileSystem fs = p.getFileSystem(conf);
       Assert.assertTrue("File does not exist anymore, it was likely incorrectly garbage collected: " + p, fs.exists(p));
     }
   }
@@ -631,53 +651,31 @@ public class ReplicationIT extends ConfigurableMacIT {
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
     conn.tableOperations().deleteRows(ReplicationTable.NAME, null, null);
 
-    final AtomicBoolean keepRunning = new AtomicBoolean(true);
-    final Set<String> metadataWals = new HashSet<>();
-
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        // Should really be able to interrupt here, but the Scanner throws a fit to the logger
-        // when that happens
-        while (keepRunning.get()) {
-          try {
-            metadataWals.addAll(getLogs(conn).keySet());
-          } catch (Exception e) {
-            log.error("Metadata table doesn't exist");
-          }
-        }
-      }
-
-    });
-
-    t.start();
-
     String table1 = "table1", table2 = "table2", table3 = "table3";
-    try {
-      conn.tableOperations().create(table1);
-      conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-      conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
-      conn.tableOperations().create(table2);
-      conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-      conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
-      conn.tableOperations().create(table3);
-      conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-      conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+    conn.tableOperations().create(table1);
+    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
+    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+    conn.tableOperations().create(table2);
+    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
+    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+    conn.tableOperations().create(table3);
+    conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
+    conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
-      writeSomeData(conn, table1, 200, 500);
+    writeSomeData(conn, table1, 200, 500);
 
-      writeSomeData(conn, table2, 200, 500);
+    writeSomeData(conn, table2, 200, 500);
 
-      writeSomeData(conn, table3, 200, 500);
+    writeSomeData(conn, table3, 200, 500);
 
-      // Flush everything to try to make the replication records
-      for (String table : Arrays.asList(table1, table2, table3)) {
-        conn.tableOperations().flush(table, null, null, true);
-      }
+    // Flush everything to try to make the replication records
+    for (String table : Arrays.asList(table1, table2, table3)) {
+      conn.tableOperations().flush(table, null, null, true);
+    }
 
-    } finally {
-      keepRunning.set(false);
-      t.join(5000);
+    // Flush everything to try to make the replication records
+    for (String table : Arrays.asList(table1, table2, table3)) {
+      conn.tableOperations().flush(table, null, null, true);
     }
 
     for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3)) {

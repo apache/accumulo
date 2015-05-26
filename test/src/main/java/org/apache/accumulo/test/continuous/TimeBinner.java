@@ -94,6 +94,9 @@ public class TimeBinner {
 
         switch (operation) {
           case AMM_HACK1: {
+            if (opts.dataColumn < 2) {
+              throw new IllegalArgumentException("--dataColumn must be at least 2");
+            }
             double data_min = Double.parseDouble(tokens[opts.dataColumn - 2]);
             double data_max = Double.parseDouble(tokens[opts.dataColumn - 1]);
 

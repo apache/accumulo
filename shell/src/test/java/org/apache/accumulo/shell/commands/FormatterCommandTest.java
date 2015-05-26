@@ -167,7 +167,7 @@ public class FormatterCommandTest {
       sb.append(key).append(tab);
 
       for (byte b : v.get()) {
-        if ((b >= 48 && b <= 57) || (b >= 97 || b <= 102)) {
+        if ((b >= 48 && b <= 57) || (b >= 97 && b <= 102)) {
           sb.append(String.format("0x%x ", Integer.valueOf(b)));
         }
       }

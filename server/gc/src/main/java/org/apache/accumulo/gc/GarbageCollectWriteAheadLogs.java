@@ -30,36 +30,24 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
@@ -67,34 +55,25 @@ import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.replication.StatusUtil;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.net.HostAndPort;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
-
-  // The order of these is _very_ important. Must read from current_logs, then walogs because ZooTabletStateStore writes to
-  // walogs and then removes from current_logs
-  private static final String[] ZK_LOG_SUFFIXES = new String[] {RootTable.ZROOT_TABLET_CURRENT_LOGS, RootTable.ZROOT_TABLET_WALOGS};
 
   private final AccumuloServerContext context;
   private final VolumeManager fs;
   private final boolean useTrash;
   private final LiveTServerSet liveServers;
+  private final WalStateManager walMarker;
+  private final Iterable<TabletLocationState> store;
 
   /**
    * Creates a new GC WAL object.
@@ -106,7 +85,7 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs, boolean useTrash) throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -118,6 +97,13 @@ public class GarbageCollectWriteAheadLogs {
       }
     });
     liveServers.startListeningForTabletServerChanges();
+    this.walMarker = new WalStateManager(context.getInstance(), ZooReaderWriter.getInstance());
+    this.store = new Iterable<TabletLocationState>() {
+      @Override
+      public Iterator<TabletLocationState> iterator() {
+        return Iterators.concat(new RootTabletStateStore(context).iterator(), new MetaDataStateStore(context).iterator());
+      }
+    };
   }
 
   /**
@@ -133,32 +119,45 @@ public class GarbageCollectWriteAheadLogs {
    *          a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash, LiveTServerSet liveTServerSet) throws IOException {
+  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash, LiveTServerSet liveTServerSet, WalStateManager walMarker,
+      Iterable<TabletLocationState> store) throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
     this.liveServers = liveTServerSet;
+    this.walMarker = walMarker;
+    this.store = store;
   }
 
   public void collect(GCStatus status) {
 
     Span span = Trace.start("getCandidates");
     try {
-      Set<TServerInstance> currentServers = liveServers.getCurrentServers();
-
       status.currentLog.started = System.currentTimeMillis();
 
-      Map<TServerInstance,Set<Path>> candidates = new HashMap<>();
-      long count = getCurrent(candidates, currentServers);
+      Map<TServerInstance,Set<UUID>> logsByServer = new HashMap<>();
+      Map<UUID,Pair<WalState,Path>> logsState = new HashMap<>();
+      // Scan for log file info first: the order is important
+      // Consider:
+      // * get live servers
+      // * new server gets a lock, creates a log
+      // * get logs
+      // * the log appears to belong to a dead server
+      long count = getCurrent(logsByServer, logsState);
       long fileScanStop = System.currentTimeMillis();
 
-      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count, candidates.size(), (fileScanStop - status.currentLog.started) / 1000.));
+      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count, logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
       status.currentLog.candidates = count;
       span.stop();
 
+      // now it's safe to get the liveServers
+      Set<TServerInstance> currentServers = liveServers.getCurrentServers();
+
+      Map<UUID,TServerInstance> uuidToTServer;
       span = Trace.start("removeEntriesInUse");
       try {
-        count = removeEntriesInUse(candidates, status, currentServers);
+        uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState);
+        count = uuidToTServer.size();
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
@@ -171,7 +170,7 @@ public class GarbageCollectWriteAheadLogs {
 
       span = Trace.start("removeReplicationEntries");
       try {
-        count = removeReplicationEntries(candidates, status);
+        count = removeReplicationEntries(uuidToTServer);
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
         return;
@@ -184,14 +183,15 @@ public class GarbageCollectWriteAheadLogs {
 
       span = Trace.start("removeFiles");
 
-      count = removeFiles(candidates, status);
+      logsState.keySet().retainAll(uuidToTServer.keySet());
+      count = removeFiles(logsState.values(), status);
 
       long removeStop = System.currentTimeMillis();
-      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, candidates.size(), (removeStop - logEntryScanStop) / 1000.));
+      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, logsByServer.size(), (removeStop - logEntryScanStop) / 1000.));
       span.stop();
 
       span = Trace.start("removeMarkers");
-      count = removeTabletServerMarkers(candidates);
+      count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
       long removeMarkersStop = System.currentTimeMillis();
       log.info(String.format("%d markers removed in %.2f seconds", count, (removeMarkersStop - removeStop) / 1000.));
       span.stop();
@@ -207,50 +207,43 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  private long removeTabletServerMarkers(Map<TServerInstance,Set<Path>> candidates) {
+  private long removeTabletServerMarkers(Map<UUID,TServerInstance> uidMap, Map<TServerInstance,Set<UUID>> candidates, Set<TServerInstance> liveServers) {
     long result = 0;
+    // remove markers for files removed
     try {
-      BatchWriter root = null;
-      BatchWriter meta = null;
-      try {
-        root = context.getConnector().createBatchWriter(RootTable.NAME, null);
-        meta = context.getConnector().createBatchWriter(MetadataTable.NAME, null);
-        for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
-          Mutation m = new Mutation(CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
-          for (Path path : entry.getValue()) {
-            m.putDelete(CurrentLogsSection.COLF, new Text(path.toString()));
-            result++;
-          }
-          root.addMutation(m);
-          meta.addMutation(m);
-        }
-      } finally {
-        if (meta != null) {
-          meta.close();
-        }
-        if (root != null) {
-          root.close();
-        }
+      for (Entry<UUID,TServerInstance> entry : uidMap.entrySet()) {
+        walMarker.removeWalMarker(entry.getValue(), entry.getKey());
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
+    // remove parent znode for dead tablet servers
+    for (Entry<TServerInstance,Set<UUID>> entry : candidates.entrySet()) {
+      if (!liveServers.contains(entry.getKey())) {
+        log.info("Removing znode for " + entry.getKey());
+        try {
+          walMarker.forget(entry.getKey());
+        } catch (WalMarkerException ex) {
+          log.info("Error removing znode for " + entry.getKey() + " " + ex.toString());
+        }
+      }
+    }
     return result;
   }
 
-  private long removeFiles(Map<TServerInstance,Set<Path>> candidates, final GCStatus status) {
-    for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
-      for (Path path : entry.getValue()) {
-        log.debug("Removing unused WAL for server " + entry.getKey() + " log " + path);
-        try {
-          if (!useTrash || !fs.moveToTrash(path))
-            fs.deleteRecursively(path);
-          status.currentLog.deleted++;
-        } catch (FileNotFoundException ex) {
-          // ignored
-        } catch (IOException ex) {
-          log.error("Unable to delete wal " + path + ": " + ex);
+  private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
+    for (Pair<WalState,Path> stateFile : collection) {
+      Path path = stateFile.getSecond();
+      log.debug("Removing " + stateFile.getFirst() + " WAL " + path);
+      try {
+        if (!useTrash || !fs.moveToTrash(path)) {
+          fs.deleteRecursively(path);
         }
+        status.currentLog.deleted++;
+      } catch (FileNotFoundException ex) {
+        // ignored
+      } catch (IOException ex) {
+        log.error("Unable to delete wal " + path + ": " + ex);
       }
     }
     return status.currentLog.deleted;
@@ -260,269 +253,107 @@ public class GarbageCollectWriteAheadLogs {
     return UUID.fromString(path.getName());
   }
 
-  private long removeEntriesInUse(Map<TServerInstance,Set<Path>> candidates, GCStatus status, Set<TServerInstance> liveServers) throws IOException,
-      KeeperException, InterruptedException {
+  private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates, Set<TServerInstance> liveServers,
+      Map<UUID,Pair<WalState,Path>> logsState) throws IOException, KeeperException, InterruptedException {
 
-    // remove any entries if there's a log reference, or a tablet is still assigned to the dead server
-
-    Map<UUID,TServerInstance> walToDeadServer = new HashMap<>();
-    for (Entry<TServerInstance,Set<Path>> entry : candidates.entrySet()) {
-      for (Path file : entry.getValue()) {
-        walToDeadServer.put(path2uuid(file), entry.getKey());
+    Map<UUID,TServerInstance> result = new HashMap<>();
+    for (Entry<TServerInstance,Set<UUID>> entry : candidates.entrySet()) {
+      for (UUID id : entry.getValue()) {
+        result.put(id, entry.getKey());
       }
     }
-    long count = 0;
-    RootTabletStateStore root = new RootTabletStateStore(context);
-    MetaDataStateStore meta = new MetaDataStateStore(context);
-    Iterator<TabletLocationState> states = Iterators.concat(root.iterator(), meta.iterator());
+
+    // remove any entries if there's a log reference (recovery hasn't finished)
+    Iterator<TabletLocationState> states = store.iterator();
     while (states.hasNext()) {
-      count++;
       TabletLocationState state = states.next();
+
+      // Tablet is still assigned to a dead server. Master has moved markers and reassigned it
+      // Easiest to just ignore all the WALs for the dead server.
       if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-        candidates.remove(state.current);
+        Set<UUID> idsToIgnore = candidates.remove(state.current);
+        if (idsToIgnore != null) {
+          for (UUID id : idsToIgnore) {
+            result.remove(id);
+          }
+        }
       }
+      // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
+      // that made the WALs.
       for (Collection<String> wals : state.walogs) {
         for (String wal : wals) {
           UUID walUUID = path2uuid(new Path(wal));
-          TServerInstance dead = walToDeadServer.get(walUUID);
-          if (dead != null) {
-            Iterator<Path> iter = candidates.get(dead).iterator();
-            while (iter.hasNext()) {
-              if (path2uuid(iter.next()).equals(walUUID)) {
-                iter.remove();
-                break;
-              }
+          TServerInstance dead = result.get(walUUID);
+          // There's a reference to a log file, so skip that server's logs
+          Set<UUID> idsToIgnore = candidates.remove(dead);
+          if (idsToIgnore != null) {
+            for (UUID id : idsToIgnore) {
+              result.remove(id);
             }
           }
         }
       }
     }
-    return count;
+
+    // Remove OPEN and CLOSED logs for live servers: they are still in use
+    for (TServerInstance liveServer : liveServers) {
+      Set<UUID> idsForServer = candidates.get(liveServer);
+      // Server may not have any logs yet
+      if (idsForServer != null) {
+        for (UUID id : idsForServer) {
+          Pair<WalState,Path> stateFile = logsState.get(id);
+          if (stateFile.getFirst() != WalState.UNREFERENCED) {
+            result.remove(id);
+          }
+        }
+      }
+    }
+    return result;
   }
 
-  protected int removeReplicationEntries(Map<TServerInstance,Set<Path>> candidates, GCStatus status) throws IOException, KeeperException, InterruptedException {
+  protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) throws IOException, KeeperException, InterruptedException {
     Connector conn;
     try {
       conn = context.getConnector();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Failed to get connector", e);
+      final Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+      scanner.setRange(MetadataSchema.ReplicationSection.getRange());
+      for (Entry<Key,Value> entry : scanner) {
+        Text file = new Text();
+        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
+        UUID id = path2uuid(new Path(file.toString()));
+        candidates.remove(id);
+        log.info("Ignore closed log " + id + " because it is being replicated");
+      }
+
+      return candidates.size();
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      log.error("Failed to scan metadata table", e);
       throw new IllegalArgumentException(e);
     }
-
-    int count = 0;
-
-    Iterator<Entry<TServerInstance,Set<Path>>> walIter = candidates.entrySet().iterator();
-
-    while (walIter.hasNext()) {
-      Entry<TServerInstance,Set<Path>> wal = walIter.next();
-      Iterator<Path> paths = wal.getValue().iterator();
-      while (paths.hasNext()) {
-        Path fullPath = paths.next();
-        if (neededByReplication(conn, fullPath)) {
-          log.debug("Removing WAL from candidate deletion as it is still needed for replication: {}", fullPath);
-          // If we haven't already removed it, check to see if this WAL is
-          // "in use" by replication (needed for replication purposes)
-          status.currentLog.inUse++;
-          paths.remove();
-        } else {
-          log.debug("WAL not needed for replication {}", fullPath);
-        }
-      }
-      if (wal.getValue().isEmpty()) {
-        walIter.remove();
-      }
-      count++;
-    }
-
-    return count;
   }
 
   /**
-   * Determine if the given WAL is needed for replication
+   * Scans log markers. The map passed in is populated with the log ids.
    *
-   * @param wal
-   *          The full path (URI)
-   * @return True if the WAL is still needed by replication (not a candidate for deletion)
-   */
-  protected boolean neededByReplication(Connector conn, Path wal) {
-    log.info("Checking replication table for " + wal);
-
-    Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
-
-    // TODO Push down this filter to the tserver to only return records
-    // that are not completely replicated and convert this loop into a
-    // `return s.iterator.hasNext()` statement
-    for (Entry<Key,Value> entry : iter) {
-      try {
-        Status status = Status.parseFrom(entry.getValue().get());
-        log.info("Checking if {} is safe for removal with {}", wal, ProtobufUtil.toString(status));
-        if (!StatusUtil.isSafeForRemoval(status)) {
-          return true;
-        }
-      } catch (InvalidProtocolBufferException e) {
-        log.error("Could not deserialize Status protobuf for " + entry.getKey(), e);
-      }
-    }
-
-    return false;
-  }
-
-  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, Path wal) {
-    Scanner metaScanner;
-    try {
-      metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
-    // Need to add in the replication section prefix
-    metaScanner.setRange(Range.exact(ReplicationSection.getRowPrefix() + wal));
-    // Limit the column family to be sure
-    metaScanner.fetchColumnFamily(ReplicationSection.COLF);
-
-    try {
-      Scanner replScanner = ReplicationTable.getScanner(conn);
-
-      // Scan only the Status records
-      StatusSection.limit(replScanner);
-
-      // Only look for this specific WAL
-      replScanner.setRange(Range.exact(wal.toString()));
-
-      return Iterables.concat(metaScanner, replScanner);
-    } catch (ReplicationTableOfflineException e) {
-      // do nothing
-    }
-
-    return metaScanner;
-  }
-
-  /**
-   * Scans log markers. The map passed in is populated with the logs for dead servers.
-   *
-   * @param unusedLogs
+   * @param logsByServer
    *          map of dead server to log file entries
    * @return total number of log files
    */
-  private long getCurrent(Map<TServerInstance,Set<Path>> unusedLogs, Set<TServerInstance> currentServers) throws Exception {
-    // Logs for the Root table are stored in ZooKeeper.
-    Set<Path> rootWALs = getRootLogs(ZooReaderWriter.getInstance(), context.getInstance());
+  private long getCurrent(Map<TServerInstance,Set<UUID>> logsByServer, Map<UUID,Pair<WalState,Path>> logState) throws Exception {
 
-    long count = 0;
-
-    // get all the WAL markers that are not in zookeeper for dead servers
-    Scanner rootScanner = context.getConnector().createScanner(RootTable.NAME, Authorizations.EMPTY);
-    rootScanner.setRange(CurrentLogsSection.getRange());
-    Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    metaScanner.setRange(CurrentLogsSection.getRange());
-    Iterator<Entry<Key,Value>> entries = Iterators.concat(rootScanner.iterator(), metaScanner.iterator());
-    Text hostAndPort = new Text();
-    Text sessionId = new Text();
-    Text filename = new Text();
-    while (entries.hasNext()) {
-      Entry<Key,Value> entry = entries.next();
-
-      CurrentLogsSection.getTabletServer(entry.getKey(), hostAndPort, sessionId);
-      CurrentLogsSection.getPath(entry.getKey(), filename);
-      TServerInstance tsi = new TServerInstance(HostAndPort.fromString(hostAndPort.toString()), sessionId.toString());
-      Path path = new Path(filename.toString());
-
-      // A log is unused iff it's for a tserver which we don't know about or the log is marked as unused and it's not listed as used by the Root table
-      if (!currentServers.contains(tsi) || entry.getValue().equals(CurrentLogsSection.UNUSED) && !rootWALs.contains(path)) {
-        Set<Path> logs = unusedLogs.get(tsi);
-        if (logs == null) {
-          unusedLogs.put(tsi, logs = new HashSet<Path>());
-        }
-        if (logs.add(path)) {
-          count++;
-        }
+    // get all the unused WALs in zookeeper
+    long result = 0;
+    Map<TServerInstance,List<UUID>> markers = walMarker.getAllMarkers();
+    for (Entry<TServerInstance,List<UUID>> entry : markers.entrySet()) {
+      HashSet<UUID> ids = new HashSet<>(entry.getValue().size());
+      for (UUID id : entry.getValue()) {
+        ids.add(id);
+        logState.put(id, walMarker.state(entry.getKey(), id));
+        result++;
       }
+      logsByServer.put(entry.getKey(), ids);
     }
-
-    // scan HDFS for logs for dead servers
-    for (Volume volume : VolumeManagerImpl.get().getVolumes()) {
-      addUnusedWalsFromVolume(volume.getFileSystem().listFiles(volume.prefixChild(ServerConstants.WAL_DIR), true), unusedLogs, context.getConnector()
-          .getInstance().getZooKeepersSessionTimeOut());
-    }
-    return count;
+    return result;
   }
-
-  /**
-   * Fetch the WALs which are, or were, referenced by the Root Table
-   *
-   * @return The Set of WALs which are needed by the Root Table
-   */
-  Set<Path> getRootLogs(final ZooReader zoo, Instance instance) throws Exception {
-    final HashSet<Path> rootWALs = new HashSet<>();
-    final String zkRoot = ZooUtil.getRoot(instance);
-
-    // Get entries in zookeeper -- order in ZK_LOG_SUFFIXES is _very_ important
-    for (String pathSuffix : ZK_LOG_SUFFIXES) {
-      addLogsForNode(zoo, zkRoot + pathSuffix, rootWALs);
-    }
-
-    return rootWALs;
-  }
-
-  /**
-   * Read all WALs from the given path in ZooKeeper and add the paths to each WAL to the provided <code>rootWALs</code>
-   *
-   * @param reader
-   *          A reader to ZooKeeper
-   * @param zpath
-   *          The base path to read in ZooKeeper
-   * @param rootWALs
-   *          A Set to collect the WALs in
-   */
-  void addLogsForNode(ZooReader reader, String zpath, HashSet<Path> rootWALs) throws Exception {
-    // Get entries in zookeeper:
-    List<String> children = reader.getChildren(zpath);
-    for (String child : children) {
-      LogEntry entry = LogEntry.fromBytes(reader.getData(zpath + "/" + child, null));
-      rootWALs.add(new Path(entry.filename));
-    }
-  }
-
-  /**
-   * Given a traversal over the <code>wals</code> directory on a {@link Volume}, add all unused WALs
-   *
-   * @param iter
-   *          Iterator over files in the <code>wals</code> directory
-   * @param unusedLogs
-   *          Map tracking unused WALs by server
-   */
-  void addUnusedWalsFromVolume(RemoteIterator<LocatedFileStatus> iter, Map<TServerInstance,Set<Path>> unusedLogs, int zkTimeout) throws Exception {
-    while (iter.hasNext()) {
-      LocatedFileStatus next = iter.next();
-      // recursive listing returns directories, too
-      if (next.isDirectory()) {
-        continue;
-      }
-      // make sure we've waited long enough for zookeeper propagation
-      //
-      // We aren't guaranteed to see the updates through the live tserver set just because the time since the file was
-      // last modified is longer than the ZK timeout.
-      // 1. If we think the server is alive, but it's actually dead, we'll grab it on a later cycle. Which is OK.
-      // 2. If we think the server is dead but it happened to be restarted it's possible to have a server which would differ only by session.
-      // This is also OK because the new TServer will create a new WAL.
-      if (System.currentTimeMillis() - next.getModificationTime() < zkTimeout) {
-        continue;
-      }
-      Path path = next.getPath();
-      String hostPlusPort = path.getParent().getName();
-      // server is still alive, or has a replacement (same host+port, different session)
-      TServerInstance instance = liveServers.find(hostPlusPort);
-      if (instance != null) {
-        continue;
-      }
-      TServerInstance fake = new TServerInstance(hostPlusPort, 0L);
-      Set<Path> paths = unusedLogs.get(fake);
-      if (paths == null) {
-        paths = new HashSet<>();
-      }
-      paths.add(path);
-      unusedLogs.put(fake, paths);
-    }
-  }
-
 }

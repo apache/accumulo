@@ -41,7 +41,7 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.TabletLevel;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -235,7 +235,7 @@ public class TabletServerLogger {
       return;
     }
     nextLogMaker = new SimpleThreadPool(1, "WALog creator");
-    nextLogMaker.submit(new Runnable() {
+    nextLogMaker.submit(new LoggingRunnable(log, new Runnable() {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();
@@ -248,6 +248,7 @@ public class TabletServerLogger {
             alog.open(tserver.getClientAddressString());
             String fileName = alog.getFileName();
             log.debug("Created next WAL " + fileName);
+            tserver.addNewLogMarker(alog);
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
               log.info("Our WAL was not used for 12 hours: " + fileName);
             }
@@ -280,7 +281,7 @@ public class TabletServerLogger {
           }
         }
       }
-    });
+    }));
   }
 
   public void resetLoggers() throws IOException {
@@ -348,8 +349,6 @@ public class TabletServerLogger {
               try {
                 // Scribble out a tablet definition and then write to the metadata table
                 defineTablet(commitSession);
-                if (currentLogId == logId.get())
-                  tserver.addLoggersToMetadata(copy, TabletLevel.getLevel(commitSession.getExtent()));
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }

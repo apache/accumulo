@@ -34,8 +34,9 @@ import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 
 /**
  *
@@ -123,15 +124,13 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
 
     volumes.clear();
-    scanner.clearColumns();
-    scanner.setRange(MetadataSchema.CurrentLogsSection.getRange());
-    Text path = new Text();
-    for (Entry<Key,Value> entry : scanner) {
-      MetadataSchema.CurrentLogsSection.getPath(entry.getKey(), path);
+
+    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+    for (Path path : wals.getAllState().keySet()) {
       volumes.add(getLogURI(path.toString()));
     }
 
-    System.out.println("Listing volumes referenced in " + name + " current logs section");
+    System.out.println("Listing volumes referenced in " + name + " current logs");
 
     for (String volume : volumes)
       System.out.println("\tVolume : " + volume);

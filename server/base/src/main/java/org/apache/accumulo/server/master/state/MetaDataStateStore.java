@@ -19,7 +19,6 @@ package org.apache.accumulo.server.master.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -33,11 +32,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 public class MetaDataStateStore extends TabletStateStore {
-  private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
 
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
@@ -163,29 +159,4 @@ public class MetaDataStateStore extends TabletStateStore {
     return "Normal Tablets";
   }
 
-  @Override
-  public void markLogsAsUnused(AccumuloServerContext context, Map<TServerInstance,List<Path>> logs) throws DistributedStoreException {
-    BatchWriter writer = createBatchWriter();
-    try {
-      for (Entry<TServerInstance,List<Path>> entry : logs.entrySet()) {
-        if (entry.getValue().isEmpty()) {
-          continue;
-        }
-        Mutation m = new Mutation(MetadataSchema.CurrentLogsSection.getRowPrefix() + entry.getKey().toString());
-        for (Path log : entry.getValue()) {
-          m.put(MetadataSchema.CurrentLogsSection.COLF, new Text(log.toString()), MetadataSchema.CurrentLogsSection.UNUSED);
-        }
-        writer.addMutation(m);
-      }
-    } catch (Exception ex) {
-      log.error("Error marking logs as unused: " + logs);
-      throw new DistributedStoreException(ex);
-    } finally {
-      try {
-        writer.close();
-      } catch (MutationsRejectedException e) {
-        throw new DistributedStoreException(e);
-      }
-    }
-  }
 }

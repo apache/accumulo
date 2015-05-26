@@ -42,12 +42,22 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
 
   // HostAndPort is not Serializable
   private transient HostAndPort location;
-  private String session;
-  private String cachedStringRepresentation;
+  private final String session;
+  private final String cachedStringRepresentation;
 
   public TServerInstance(HostAndPort address, String session) {
     this.location = address;
     this.session = session;
+    this.cachedStringRepresentation = hostPort() + "[" + session + "]";
+  }
+
+  public TServerInstance(String formattedString) {
+    int pos = formattedString.indexOf("[");
+    if (pos < 0 || !formattedString.endsWith("]")) {
+      throw new IllegalArgumentException(formattedString);
+    }
+    this.location = HostAndPort.fromString(formattedString.substring(0, pos));
+    this.session = formattedString.substring(pos + 1, formattedString.length() - 1);
     this.cachedStringRepresentation = hostPort() + "[" + session + "]";
   }
 

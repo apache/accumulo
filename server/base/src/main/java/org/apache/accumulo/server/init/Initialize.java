@@ -88,6 +88,7 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -549,6 +550,7 @@ public class Initialize implements KeywordExecutable {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_BASE, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_TSERVERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
   }
 
   private String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
@@ -704,7 +706,7 @@ public class Initialize implements KeywordExecutable {
 
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
-      if (aBasePath.equals(replacementVolume.getSecond()))
+      if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS + " and should not appear in " + Property.INSTANCE_VOLUMES
             + ". It is highly recommended that this property be removed as data could still be written to this volume.");
     }

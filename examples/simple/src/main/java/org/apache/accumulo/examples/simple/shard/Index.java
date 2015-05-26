@@ -70,8 +70,11 @@ public class Index {
 
   public static void index(int numPartitions, File src, String splitRegex, BatchWriter bw) throws Exception {
     if (src.isDirectory()) {
-      for (File child : src.listFiles()) {
-        index(numPartitions, child, splitRegex, bw);
+      File[] files = src.listFiles();
+      if (files != null) {
+        for (File child : files) {
+          index(numPartitions, child, splitRegex, bw);
+        }
       }
     } else {
       FileReader fr = new FileReader(src);

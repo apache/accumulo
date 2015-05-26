@@ -68,7 +68,7 @@ public class FastBulkImportIT extends ConfigurableMacIT {
     }
     c.tableOperations().addSplits(tableName, splits);
 
-    log.info("Creating bulk import files");
+    log.info("Creating lots of bulk import files");
     FileSystem fs = getCluster().getFileSystem();
     Path basePath = getCluster().getTemporaryPath();
     CachedConfiguration.setInstance(fs.getConf());

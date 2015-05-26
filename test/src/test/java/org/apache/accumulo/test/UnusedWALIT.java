@@ -18,7 +18,9 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -30,10 +32,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -118,13 +122,12 @@ public class UnusedWALIT extends ConfigurableMacIT {
   }
 
   private int getWALCount(Connector c) throws Exception {
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(CurrentLogsSection.getRange());
-    try {
-      return Iterators.size(s.iterator());
-    } finally {
-      s.close();
+    WalStateManager wals = new WalStateManager(c.getInstance(), ZooReaderWriter.getInstance());
+    int result = 0;
+    for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
+      result += entry.getValue().size();
     }
+    return result;
   }
 
   private void writeSomeData(Connector conn, String table, int startRow, int rowCount, int startCol, int colCount) throws Exception {

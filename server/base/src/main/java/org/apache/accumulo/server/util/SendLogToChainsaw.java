@@ -90,7 +90,7 @@ public class SendLogToChainsaw extends XMLLayout {
       throw new IllegalArgumentException(directory + " is not a directory or is not readable.");
     }
 
-    if (logFiles.length == 0) {
+    if (logFiles == null || logFiles.length == 0) {
       throw new IllegalArgumentException("No files match the supplied filter.");
     }
 

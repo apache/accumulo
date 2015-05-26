@@ -18,7 +18,7 @@ package org.apache.accumulo.start.classloader.vfs.providers;
 
 import java.net.URL;
 
-import org.apache.accumulo.test.AccumuloDFSBase;
+import org.apache.accumulo.start.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
 import org.apache.commons.vfs2.FileObject;

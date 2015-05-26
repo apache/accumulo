@@ -17,11 +17,11 @@
 package org.apache.accumulo.gc.replication;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -37,7 +37,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -48,8 +47,12 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
+import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -58,9 +61,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -158,58 +158,30 @@ public class CloseWriteAheadLogReferences implements Runnable {
     log.info("Closed " + recordsClosed + " WAL replication references in replication table in " + sw.toString());
   }
 
+  static final EnumSet<WalState> NOT_OPEN = EnumSet.complementOf(EnumSet.of(WalState.OPEN));
+
   /**
-   * Construct the set of referenced WALs from the metadata table
+   * Construct the set of referenced WALs from zookeeper
    *
    * @param conn
    *          Connector
    * @return The Set of WALs that are referenced in the metadata table
    */
   protected HashSet<String> getReferencedWals(Connector conn) {
-    // Make a bounded cache to alleviate repeatedly creating the same Path object
-    final LoadingCache<String,String> normalizedWalPaths = CacheBuilder.newBuilder().maximumSize(1024).concurrencyLevel(1)
-        .build(new CacheLoader<String,String>() {
-
-          @Override
-          public String load(String key) {
-            return new Path(key).toString();
-          }
-
-        });
+    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
 
     HashSet<String> referencedWals = new HashSet<>();
-    BatchScanner bs = null;
     try {
-      // TODO Configurable number of threads
-      bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-      bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
-      bs.fetchColumnFamily(CurrentLogsSection.COLF);
-
-      // For each log key/value in the metadata table
-      for (Entry<Key,Value> entry : bs) {
-        if (entry.getValue().equals(CurrentLogsSection.UNUSED)) {
-          continue;
+      for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+        if (NOT_OPEN.contains(entry.getValue())) {
+          Path path = entry.getKey();
+          log.debug("Found WAL " + path.toString());
+          referencedWals.add(path.toString());
         }
-        Text tpath = new Text();
-        CurrentLogsSection.getPath(entry.getKey(), tpath);
-        String path = new Path(tpath.toString()).toString();
-        log.debug("Found WAL " + path.toString());
-
-        // Normalize each log file (using Path) and add it to the set
-        referencedWals.add(normalizedWalPaths.get(path));
       }
-    } catch (TableNotFoundException e) {
-      // uhhhh
+    } catch (WalMarkerException e) {
       throw new RuntimeException(e);
-    } catch (ExecutionException e) {
-      log.error("Failed to normalize WAL file path", e);
-      throw new RuntimeException(e);
-    } finally {
-      if (null != bs) {
-        bs.close();
-      }
     }
-
     return referencedWals;
   }
 

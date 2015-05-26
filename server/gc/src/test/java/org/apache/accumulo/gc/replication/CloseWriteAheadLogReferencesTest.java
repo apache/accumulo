@@ -18,11 +18,8 @@ package org.apache.accumulo.gc.replication;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,9 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.UUID;
 
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -49,7 +44,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.CurrentLogsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -70,8 +64,6 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
 public class CloseWriteAheadLogReferencesTest {
@@ -121,130 +113,6 @@ public class CloseWriteAheadLogReferencesTest {
 
     replay(inst, factory, siteConfig);
     refs = new CloseWriteAheadLogReferences(new AccumuloServerContext(factory));
-  }
-
-  @Test
-  public void findOneWalFromMetadata() throws Exception {
-    Connector conn = createMock(Connector.class);
-    BatchScanner bs = createMock(BatchScanner.class);
-    // Fake out some data
-    final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-    String file = "hdfs://localhost:8020/accumulo/wal/tserver1+9997/" + UUID.randomUUID();
-    data.add(entry("tserver1:9997[1234567890]", file));
-
-    // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
-    expectLastCall().once();
-    bs.fetchColumnFamily(CurrentLogsSection.COLF);
-    expectLastCall().once();
-    expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
-
-      @Override
-      public Iterator<Entry<Key,Value>> answer() throws Throwable {
-        return data.iterator();
-      }
-
-    });
-    // Close the bs
-    bs.close();
-    expectLastCall().once();
-
-    replay(conn, bs);
-
-    // Validate
-    Set<String> wals = refs.getReferencedWals(conn);
-    Assert.assertEquals(Collections.singleton(file), wals);
-
-    verify(conn, bs);
-  }
-
-  // This is a silly test now
-  @Test
-  public void findManyRefsToSingleWalFromMetadata() throws Exception {
-    Connector conn = createMock(Connector.class);
-    BatchScanner bs = createMock(BatchScanner.class);
-
-    String uuid = UUID.randomUUID().toString();
-
-    // Fake out some data
-    final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-    String filename = "hdfs://localhost:8020/accumulo/wal/tserver+9997/" + uuid;
-    data.add(entry("tserver1:9997[0123456789]", filename));
-
-    // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
-    expectLastCall().once();
-    bs.fetchColumnFamily(CurrentLogsSection.COLF);
-    expectLastCall().once();
-    expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
-
-      @Override
-      public Iterator<Entry<Key,Value>> answer() throws Throwable {
-        return data.iterator();
-      }
-
-    });
-    // Close the bs
-    bs.close();
-    expectLastCall().once();
-
-    replay(conn, bs);
-
-    // Validate
-    Set<String> wals = refs.getReferencedWals(conn);
-    Assert.assertEquals(Collections.singleton(filename), wals);
-
-    verify(conn, bs);
-  }
-
-  @Test
-  public void findRefsToManyWalsFromMetadata() throws Exception {
-    Connector conn = createMock(Connector.class);
-    BatchScanner bs = createMock(BatchScanner.class);
-
-    String file1 = "hdfs://localhost:8020/accumulo/wal/tserver1+9997/" + UUID.randomUUID();
-    String file2 = "hdfs://localhost:8020/accumulo/wal/tserver2+9997/" + UUID.randomUUID();
-    String file3 = "hdfs://localhost:8020/accumulo/wal/tserver3+9997/" + UUID.randomUUID();
-
-    // Fake out some data
-    final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
-
-    data.add(entry("tserver1:9997[1234567890]", file1));
-    data.add(entry("tserver2:9997[1234567891]", file2));
-    data.add(entry("tserver3:9997[1234567891]", file3));
-
-    // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
-    bs.setRanges(Collections.singleton(CurrentLogsSection.getRange()));
-    expectLastCall().once();
-    bs.fetchColumnFamily(CurrentLogsSection.COLF);
-    expectLastCall().once();
-    expect(bs.iterator()).andAnswer(new IAnswer<Iterator<Entry<Key,Value>>>() {
-
-      @Override
-      public Iterator<Entry<Key,Value>> answer() throws Throwable {
-        return data.iterator();
-      }
-
-    });
-    // Close the bs
-    bs.close();
-    expectLastCall().once();
-
-    replay(conn, bs);
-
-    // Validate
-    Set<String> wals = refs.getReferencedWals(conn);
-    Assert.assertEquals(Sets.newHashSet(file1, file2, file3), wals);
-
-    verify(conn, bs);
-  }
-
-  private static Entry<Key,Value> entry(String session, String file) {
-    Key key = new Key(new Text(CurrentLogsSection.getRowPrefix() + session), CurrentLogsSection.COLF, new Text(file));
-    return Maps.immutableEntry(key, new Value());
   }
 
   @Test

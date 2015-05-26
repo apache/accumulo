@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -31,8 +32,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,9 +48,12 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
+  static final List<ServerType> ALL_SERVER_TYPES = Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER,
+      ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
+
   private Instance instance;
   private ClientConfiguration clientConf;
-  private String accumuloHome, accumuloConfDir, hadoopConfDir;
+  private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
   private Path tmp;
   private List<ClusterUser> users;
   private String serverUser;
@@ -74,12 +78,20 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.accumuloHome = accumuloHome;
   }
 
-  public String getAccumuloConfDir() {
-    return accumuloConfDir;
+  public String getClientAccumuloConfDir() {
+    return clientAccumuloConfDir;
   }
 
-  public void setAccumuloConfDir(String accumuloConfDir) {
-    this.accumuloConfDir = accumuloConfDir;
+  public void setClientAccumuloConfDir(String accumuloConfDir) {
+    this.clientAccumuloConfDir = accumuloConfDir;
+  }
+
+  public String getServerAccumuloConfDir() {
+    return serverAccumuloConfDir;
+  }
+
+  public void setServerAccumuloConfDir(String accumuloConfDir) {
+    this.serverAccumuloConfDir = accumuloConfDir;
   }
 
   public String getHadoopConfDir() {
@@ -119,7 +131,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public StandaloneClusterControl getClusterControl() {
     return new StandaloneClusterControl(serverUser, null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
-        null == accumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : accumuloConfDir);
+        null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : clientAccumuloConfDir,
+        null == serverAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : serverAccumuloConfDir);
   }
 
   @Override
@@ -128,9 +141,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
-    control.exec(SetGoalState.class, new String[] {"NORMAL"});
+    control.setGoalState(MasterGoalState.NORMAL.toString());
 
-    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+    for (ServerType type : ALL_SERVER_TYPES) {
       control.startAllServers(type);
     }
   }
@@ -141,7 +154,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
-    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+    for (ServerType type : ALL_SERVER_TYPES) {
       control.stopAllServers(type);
     }
   }

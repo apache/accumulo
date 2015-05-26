@@ -52,7 +52,7 @@ public final class SystemCredentials extends Credentials {
 
   private final TCredentials AS_THRIFT;
 
-  SystemCredentials(Instance instance, String principal, AuthenticationToken token) {
+  public SystemCredentials(Instance instance, String principal, AuthenticationToken token) {
     super(principal, token);
     AS_THRIFT = super.toThrift(instance);
   }

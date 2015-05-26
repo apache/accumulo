@@ -41,7 +41,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -253,7 +253,7 @@ public class Tablet implements TabletCommitter {
 
   private final ConfigurationObserver configObserver;
 
-  private final Cache<Long,List<FileRef>> bulkImported = CacheBuilder.newBuilder().expireAfterAccess(4, TimeUnit.HOURS).build();
+  private final Cache<Long,List<FileRef>> bulkImported = CacheBuilder.newBuilder().build();
 
   private final int logId;
 
@@ -586,7 +586,7 @@ public class Tablet implements TabletCommitter {
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
     for (Long key : bulkImported.keys()) {
-      this.bulkImported.put(key, new ArrayList<FileRef>(bulkImported.get(key)));
+      this.bulkImported.put(key, new CopyOnWriteArrayList<FileRef>(bulkImported.get(key)));
     }
 
     if (!logEntries.isEmpty()) {
@@ -2789,6 +2789,16 @@ public class Tablet implements TabletCommitter {
       log.warn("Failed to create dir for tablet in table " + tableId + " in volume " + volume + " + will retry ...");
       UtilWaitThread.sleep(3000);
 
+    }
+  }
+
+  public Map<Long,List<FileRef>> getBulkIngestedFiles() {
+    return new HashMap<Long,List<FileRef>>(bulkImported.asMap());
+  }
+
+  public void cleanupBulkLoadedFiles(Set<Long> tids) {
+    for (Long tid : tids) {
+      bulkImported.invalidate(tid);
     }
   }
 
