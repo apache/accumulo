@@ -131,7 +131,9 @@ public class ReplicationProcessor implements Processor {
 
     log.debug("Replicating {} to {} using {}", filePath, target, replica.getClass().getName());
 
-    replica.replicate(filePath, status, target, getHelper());
+    Status newStatus = replica.replicate(filePath, status, target, getHelper());
+
+    log.debug("Finished replicating {}. Original status: {}, New status: {}", filePath, status, newStatus);
   }
 
   protected ReplicaSystemHelper getHelper() {
