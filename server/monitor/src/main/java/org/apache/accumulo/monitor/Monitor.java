@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TimerTask;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -56,6 +58,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.monitor.servlets.DefaultServlet;
 import org.apache.accumulo.monitor.servlets.GcStatusServlet;
 import org.apache.accumulo.monitor.servlets.JSONServlet;
@@ -85,6 +88,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -167,6 +171,8 @@ public class Monitor {
 
   private ZooLock monitorLock;
 
+  public static AtomicReference<String> cachedInstanceName = new AtomicReference<String>("(Unavailable)");
+
   private static class EventCounter {
 
     Map<String,Pair<Long,Long>> prevSamples = new HashMap<String,Pair<Long,Long>>();
@@ -240,6 +246,22 @@ public class Monitor {
     long currentTime = System.currentTimeMillis();
     if (currentTime - lastRecalc < REFRESH_TIME * 1000)
       return;
+
+    synchronized (Monitor.class) {
+      // Learn our instance name asynchronously so we don't hang up if zookeeper is down
+      if (Monitor.cachedInstanceName.get() == null) {
+        SimpleTimer.getInstance().schedule(new TimerTask() {
+          @Override
+          public void run() {
+            synchronized (Monitor.class) {
+              if (cachedInstanceName.get() == null) {
+                cachedInstanceName.set(HdfsZooInstance.getInstance().getInstanceName());
+              }
+            }
+          }
+        }, 0);
+      }
+    }
 
     synchronized (Monitor.class) {
       if (fetching)
