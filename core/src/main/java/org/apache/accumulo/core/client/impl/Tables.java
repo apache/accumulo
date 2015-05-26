@@ -236,7 +236,7 @@ public class Tables {
 
     // We might get null out of ZooCache if this tableID doesn't exist
     if (null == n) {
-      throw new IllegalArgumentException("Table with id " + tableId + " does not exist");
+      throw new IllegalArgumentException(new TableNotFoundException(tableId, null, null));
     }
 
     return new String(n, UTF_8);

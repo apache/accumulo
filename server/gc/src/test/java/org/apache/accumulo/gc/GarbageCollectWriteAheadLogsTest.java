@@ -192,8 +192,7 @@ public class GarbageCollectWriteAheadLogsTest {
     String row = MetadataSchema.ReplicationSection.getRowPrefix() + path.toString();
     String colf = MetadataSchema.ReplicationSection.COLF.toString();
     String colq = "1";
-    Map<Key, Value> replicationWork = Collections.singletonMap(new Key(row, colf, colq), new Value(new byte[0]));
-
+    Map<Key,Value> replicationWork = Collections.singletonMap(new Key(row, colf, colq), new Value(new byte[0]));
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 

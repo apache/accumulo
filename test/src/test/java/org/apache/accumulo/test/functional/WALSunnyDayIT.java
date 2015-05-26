@@ -38,6 +38,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -59,9 +60,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -97,29 +95,23 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     MiniAccumuloClusterControl control = mac.getClusterControl();
     control.stop(GARBAGE_COLLECTOR);
     Connector c = getConnector();
-    ZooKeeper zoo = new ZooKeeper(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut(), new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        log.info(event.toString());
-      }
-    });
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     writeSomeData(c, tableName, 1, 1);
 
     // wal markers are added lazily
-    Map<String,Boolean> wals = getWals(c, zoo);
-    assertEquals(wals.toString(), 1, wals.size());
+    Map<String,Boolean> wals = getWals(c);
+    assertEquals(wals.toString(), 2, wals.size());
     for (Boolean b : wals.values()) {
       assertTrue("logs should be in use", b.booleanValue());
     }
 
     // roll log, get a new next
     writeSomeData(c, tableName, 1000, 50);
-    Map<String,Boolean> walsAfterRoll = getWals(c, zoo);
-    assertEquals("should have 3 WALs after roll", 2, walsAfterRoll.size());
+    Map<String,Boolean> walsAfterRoll = getWals(c);
+    assertEquals("should have 3 WALs after roll", 3, walsAfterRoll.size());
     assertTrue("new WALs should be a superset of the old WALs", walsAfterRoll.keySet().containsAll(wals.keySet()));
-    assertEquals("all WALs should be in use", 2, countTrue(walsAfterRoll.values()));
+    assertEquals("all WALs should be in use", 3, countTrue(walsAfterRoll.values()));
 
     // flush the tables
     for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
@@ -127,16 +119,16 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     }
     UtilWaitThread.sleep(1000);
     // rolled WAL is no longer in use, but needs to be GC'd
-    Map<String,Boolean> walsAfterflush = getWals(c, zoo);
-    assertEquals(walsAfterflush.toString(), 2, walsAfterflush.size());
-    assertEquals("inUse should be 1", 1, countTrue(walsAfterflush.values()));
+    Map<String,Boolean> walsAfterflush = getWals(c);
+    assertEquals(walsAfterflush.toString(), 3, walsAfterflush.size());
+    assertEquals("inUse should be 2", 2, countTrue(walsAfterflush.values()));
 
     // let the GC run for a little bit
     control.start(GARBAGE_COLLECTOR);
     UtilWaitThread.sleep(5 * 1000);
     // make sure the unused WAL goes away
-    Map<String,Boolean> walsAfterGC = getWals(c, zoo);
-    assertEquals(walsAfterGC.toString(), 1, walsAfterGC.size());
+    Map<String,Boolean> walsAfterGC = getWals(c);
+    assertEquals(walsAfterGC.toString(), 2, walsAfterGC.size());
     control.stop(GARBAGE_COLLECTOR);
     // restart the tserver, but don't run recovery on all tablets
     control.stop(TABLET_SERVER);
@@ -158,14 +150,14 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     verifySomeData(c, tableName, 1000 * 50 + 1);
     writeSomeData(c, tableName, 100, 100);
 
-    Map<String,Boolean> walsAfterRestart = getWals(c, zoo);
+    Map<String,Boolean> walsAfterRestart = getWals(c);
     // log.debug("wals after " + walsAfterRestart);
-    assertEquals("used WALs after restart should be 1", 1, countTrue(walsAfterRestart.values()));
+    assertEquals("used WALs after restart should be 4", 4, countTrue(walsAfterRestart.values()));
     control.start(GARBAGE_COLLECTOR);
     UtilWaitThread.sleep(5 * 1000);
-    Map<String,Boolean> walsAfterRestartAndGC = getWals(c, zoo);
-    assertEquals("wals left should be 1", 1, walsAfterRestartAndGC.size());
-    assertEquals("logs in use should be 1", 1, countTrue(walsAfterRestartAndGC.values()));
+    Map<String,Boolean> walsAfterRestartAndGC = getWals(c);
+    assertEquals("wals left should be 2", 2, walsAfterRestartAndGC.size());
+    assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
   }
 
   private void verifySomeData(Connector c, String tableName, int expected) throws Exception {
@@ -198,9 +190,11 @@ public class WALSunnyDayIT extends ConfigurableMacIT {
     bw.close();
   }
 
-  private Map<String,Boolean> getWals(Connector c, ZooKeeper zoo) throws Exception {
+  private Map<String,Boolean> getWals(Connector c) throws Exception {
     Map<String,Boolean> result = new HashMap<>();
-    WalStateManager wals = new WalStateManager(c.getInstance(), ZooReaderWriter.getInstance());
+    Instance i = c.getInstance();
+    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+    WalStateManager wals = new WalStateManager(c.getInstance(), zk);
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       // WALs are in use if they are not unreferenced
       result.put(entry.getKey().toString(), entry.getValue() != WalState.UNREFERENCED);

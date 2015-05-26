@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
@@ -105,7 +106,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
-    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+    Instance i = conn.getInstance();
+    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+    WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
 
     Set<String> result = new HashSet<String>();
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
@@ -285,7 +288,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     log.info("Checking that metadata only has one WAL recorded for this table");
 
     Set<String> wals = getWalsForTable(table);
-    Assert.assertEquals("Expected to only find one WAL for the table", 1, wals.size());
+    Assert.assertEquals("Expected to only find two WAL for the table", 2, wals.size());
 
     log.info("Compacting the table which will remove all WALs from the tablets");
 

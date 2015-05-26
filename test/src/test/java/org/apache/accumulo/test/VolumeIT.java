@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -428,7 +429,9 @@ public class VolumeIT extends ConfigurableMacIT {
       Assert.fail("Unexpected volume " + path);
     }
 
-    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+    Instance i = conn.getInstance();
+    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+    WalStateManager wals = new WalStateManager(i, zk);
     outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       for (Path path : paths) {
         if (entry.getKey().toString().startsWith(path.toString())) {

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -149,7 +150,9 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
     // Map of logs to tableId
     Multimap<String,String> logs = HashMultimap.create();
-    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+    Instance i = conn.getInstance();
+    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+    WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
         Pair<WalState,Path> state = wals.state(entry.getKey(), id);
@@ -332,8 +335,10 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     Set<String> wals = Sets.newHashSet();
     attempts = 5;
+    Instance i = conn.getInstance();
+    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
-      WalStateManager markers = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+      WalStateManager markers = new WalStateManager(i, zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
         wals.add(entry.getKey().toString());
       }

@@ -260,7 +260,7 @@ public class TabletServerLogger {
               // object before trying to create a new one.
               try {
                 alog.close();
-              } catch (IOException e) {
+              } catch (Exception e) {
                 log.error("Failed to close WAL after it failed to open", e);
               }
               // Try to avoid leaving a bunch of empty WALs lying around
@@ -269,7 +269,7 @@ public class TabletServerLogger {
                 if (fs.exists(path)) {
                   fs.delete(path);
                 }
-              } catch (IOException e) {
+              } catch (Exception e) {
                 log.warn("Failed to delete a WAL that failed to open", e);
               }
             }

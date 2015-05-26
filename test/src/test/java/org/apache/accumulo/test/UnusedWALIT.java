@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -51,6 +52,8 @@ import com.google.common.collect.Iterators;
 // It would be useful to have an IT that will test this situation.
 public class UnusedWALIT extends ConfigurableMacIT {
 
+  private ZooReaderWriter zk;
+
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     final long logSize = 1024 * 1024 * 10;
@@ -75,16 +78,19 @@ public class UnusedWALIT extends ConfigurableMacIT {
     c.tableOperations().create(bigTable);
     c.tableOperations().create(lilTable);
 
+    Instance i = c.getInstance();
+    zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+
     // put some data in a log that should be replayed for both tables
     writeSomeData(c, bigTable, 0, 10, 0, 10);
     scanSomeData(c, bigTable, 0, 10, 0, 10);
     writeSomeData(c, lilTable, 0, 1, 0, 1);
     scanSomeData(c, lilTable, 0, 1, 0, 1);
-    assertEquals(1, getWALCount(c));
+    assertEquals(2, getWALCount(i, zk));
 
     // roll the logs by pushing data into bigTable
     writeSomeData(c, bigTable, 0, 3000, 0, 1000);
-    assertEquals(2, getWALCount(c));
+    assertEquals(3, getWALCount(i, zk));
 
     // put some data in the latest log
     writeSomeData(c, lilTable, 1, 10, 0, 10);
@@ -121,8 +127,8 @@ public class UnusedWALIT extends ConfigurableMacIT {
     assertEquals(row, startRow + rowCount);
   }
 
-  private int getWALCount(Connector c) throws Exception {
-    WalStateManager wals = new WalStateManager(c.getInstance(), ZooReaderWriter.getInstance());
+  private int getWALCount(Instance i, ZooReaderWriter zk) throws Exception {
+    WalStateManager wals = new WalStateManager(i, zk);
     int result = 0;
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       result += entry.getValue().size();

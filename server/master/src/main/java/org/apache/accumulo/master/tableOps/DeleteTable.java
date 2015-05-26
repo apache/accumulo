@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -35,16 +36,31 @@ public class DeleteTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+    try {
+      String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+      return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
+          + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+    } catch (IllegalArgumentException ex) {
+      if (ex.getCause() != null && ex.getCause() instanceof TableNotFoundException) {
+        return 0;
+      }
+      throw ex;
+    }
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-    TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
-    environment.getEventCoordinator().event("deleting table %s ", tableId);
-    return new CleanUp(tableId, namespaceId);
+    try {
+      String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+      TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
+      environment.getEventCoordinator().event("deleting table %s ", tableId);
+      return new CleanUp(tableId, namespaceId);
+    } catch (IllegalArgumentException ex) {
+      if (ex.getCause() != null && ex.getCause() instanceof TableNotFoundException) {
+        return null;
+      }
+      throw ex;
+    }
   }
 
   @Override
