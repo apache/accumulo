@@ -113,6 +113,11 @@ public class WorkMaker {
         // Get the table configuration for the table specified by the status record
         tableConf = context.getServerConfigurationFactory().getTableConfiguration(tableId.toString());
 
+        // getTableConfiguration(String) returns null if the table no longer exists
+        if (null == tableConf) {
+          continue;
+        }
+
         // Pull the relevant replication targets
         // TODO Cache this instead of pulling it every time
         Map<String,String> replicationTargets = getReplicationTargets(tableConf);
