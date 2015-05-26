@@ -201,7 +201,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     log.info("Checking that metadata only has one WAL recorded for this table");
 
     Set<String> wals = getWalsForTable(table);
-    Assert.assertEquals("Expected to only find one WAL for the table", 1, wals.size());
+    Assert.assertEquals("Expected to only find two WALs for the table", 2, wals.size());
 
     log.info("Compacting the table which will remove all WALs from the tablets");
 
