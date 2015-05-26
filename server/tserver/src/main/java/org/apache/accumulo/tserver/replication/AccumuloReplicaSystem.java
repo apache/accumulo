@@ -362,7 +362,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, final UserGroupInformation accumuloUgi)
       throws TTransportException, AccumuloException, AccumuloSecurityException {
 
-    log.info("Replication WAL to peer tserver");
+    log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
     final DataInputStream input;
     Span span = Trace.start("Read WAL header");
@@ -396,7 +396,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span.stop();
     }
 
-    log.info("Skipping unwanted data in WAL");
+    log.debug("Skipping unwanted data in WAL");
     span = Trace.start("Consume WAL prefix");
     span.data("file", p.toString());
     try {
@@ -410,7 +410,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span.stop();
     }
 
-    log.info("Sending batches of data to peer tserver");
+    log.debug("Sending batches of data to peer tserver");
 
     Status lastStatus = status, currentStatus = status;
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
@@ -484,6 +484,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           span.stop();
         }
 
+        log.debug("Recorded updated status for {}: {}", p, currentStatus);
+
         // If we don't have any more work, just quit
         if (!StatusUtil.isWorkRequired(currentStatus)) {
           return currentStatus;
@@ -528,15 +530,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     public ReplicationStats execute(Client client) throws Exception {
       WalReplication edits = getWalEdits(target, input, p, status, sizeLimit, tids);
 
-      log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'", (Long.MAX_VALUE == edits.entriesConsumed) ? "all"
-          : edits.entriesConsumed, edits.sizeInBytes, p);
+      log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
+          (Long.MAX_VALUE == edits.entriesConsumed) ? "all remaining" : edits.entriesConsumed, edits.sizeInBytes, p);
 
       // If we have some edits to send
       if (0 < edits.walEdits.getEditsSize()) {
-        log.info("Sending {} edits", edits.walEdits.getEditsSize());
+        log.debug("Sending {} edits", edits.walEdits.getEditsSize());
         long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
         if (entriesReplicated != edits.numUpdates) {
           log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
+        } else {
+          log.debug("Replicated {} edits", entriesReplicated);
         }
 
         // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
