@@ -20,13 +20,16 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>1.7.0-SNAPSHOT</version>
+    <version>1.7.1-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-native</artifactId>
   <packaging>pom</packaging>
   <name>Native Libraries</name>
   <description>C++ native libraries for improved performance in Apache Accumulo.</description>
+  <properties>
+    <CXX>g++</CXX>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -104,6 +107,7 @@
               <workingDirectory>${project.build.directory}/${project.artifactId}-${project.version}/${project.artifactId}-${project.version}</workingDirectory>
               <arguments>
                 <argument>test</argument>
+                <argument>CXX=${CXX}</argument>
                 <argument>OUTPUT_DIR=${project.build.directory}</argument>
               </arguments>
             </configuration>

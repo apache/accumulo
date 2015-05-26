@@ -79,8 +79,10 @@ public class UndefinedAnalyzer {
         }
       });
 
-      for (File log : ingestLogs) {
-        parseLog(log);
+      if (ingestLogs != null) {
+        for (File log : ingestLogs) {
+          parseLog(log);
+        }
       }
     }
 
@@ -175,53 +177,55 @@ public class UndefinedAnalyzer {
       String currentYear = (Calendar.getInstance().get(Calendar.YEAR)) + "";
       String currentMonth = (Calendar.getInstance().get(Calendar.MONTH) + 1) + "";
 
-      for (File masterLog : masterLogs) {
+      if (masterLogs != null) {
+        for (File masterLog : masterLogs) {
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(masterLog), UTF_8));
-        String line;
-        try {
-          while ((line = reader.readLine()) != null) {
-            if (line.contains("TABLET_LOADED")) {
-              String[] tokens = line.split("\\s+");
-              String tablet = tokens[8];
-              String server = tokens[10];
+          BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(masterLog), UTF_8));
+          String line;
+          try {
+            while ((line = reader.readLine()) != null) {
+              if (line.contains("TABLET_LOADED")) {
+                String[] tokens = line.split("\\s+");
+                String tablet = tokens[8];
+                String server = tokens[10];
 
-              int pos1 = -1;
-              int pos2 = -1;
-              int pos3 = -1;
+                int pos1 = -1;
+                int pos2 = -1;
+                int pos3 = -1;
 
-              for (int i = 0; i < tablet.length(); i++) {
-                if (tablet.charAt(i) == '<' || tablet.charAt(i) == ';') {
-                  if (pos1 == -1) {
-                    pos1 = i;
-                  } else if (pos2 == -1) {
-                    pos2 = i;
-                  } else {
-                    pos3 = i;
+                for (int i = 0; i < tablet.length(); i++) {
+                  if (tablet.charAt(i) == '<' || tablet.charAt(i) == ';') {
+                    if (pos1 == -1) {
+                      pos1 = i;
+                    } else if (pos2 == -1) {
+                      pos2 = i;
+                    } else {
+                      pos3 = i;
+                    }
                   }
                 }
-              }
 
-              if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
-                String tid = tablet.substring(0, pos1);
-                String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
-                String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
-                if (tid.equals(tableId)) {
-                  // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
-                  Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
-                  // System.out.println(" "+date);
+                if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
+                  String tid = tablet.substring(0, pos1);
+                  String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
+                  String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
+                  if (tid.equals(tableId)) {
+                    // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
+                    Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
+                    // System.out.println(" "+date);
 
-                  assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
+                    assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
 
+                  }
+                } else if (!tablet.startsWith("!0")) {
+                  System.err.println("Cannot parse tablet " + tablet);
                 }
-              } else if (!tablet.startsWith("!0")) {
-                System.err.println("Cannot parse tablet " + tablet);
-              }
 
+              }
             }
+          } finally {
+            reader.close();
           }
-        } finally {
-          reader.close();
         }
       }
     }

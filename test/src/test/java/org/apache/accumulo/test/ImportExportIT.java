@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -37,6 +40,7 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
@@ -85,14 +89,22 @@ public class ImportExportIT extends AccumuloClusterIT {
     // Must exist on the filesystem the cluster is running.
     FileSystem fs = cluster.getFileSystem();
     Path tmp = cluster.getTemporaryPath();
+    log.info("Using FileSystem: " + fs);
     Path baseDir = new Path(tmp, getClass().getName());
-    fs.mkdirs(baseDir);
+    if (fs.exists(baseDir)) {
+      log.info("{} exists on filesystem, deleting", baseDir);
+      assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
+    }
+    log.info("Creating {}", baseDir);
+    assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
     Path exportDir = new Path(baseDir, "export");
     Path importDir = new Path(baseDir, "import");
     for (Path p : new Path[] {exportDir, importDir}) {
-      fs.delete(p, true);
-      fs.mkdirs(p);
+      assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
     }
+
+    FsShell fsShell = new FsShell(fs.getConf());
+    assertEquals("Failed to chmod " + baseDir, 0, fsShell.run(new String[] {"-chmod", "-R", "777", baseDir.toString()}));
 
     log.info("Exporting table to {}", exportDir);
     log.info("Importing table from {}", importDir);

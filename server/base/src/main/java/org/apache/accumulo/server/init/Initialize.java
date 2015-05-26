@@ -703,7 +703,7 @@ public class Initialize implements KeywordExecutable {
 
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
-      if (aBasePath.equals(replacementVolume.getSecond()))
+      if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS + " and should not appear in " + Property.INSTANCE_VOLUMES
             + ". It is highly recommended that this property be removed as data could still be written to this volume.");
     }

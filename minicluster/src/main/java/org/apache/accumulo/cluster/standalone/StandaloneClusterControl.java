@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -30,6 +33,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.commons.lang.StringUtils;
@@ -52,29 +57,30 @@ public class StandaloneClusterControl implements ClusterControl {
   private static final String ACCUMULO_CONF_DIR = "ACCUMULO_CONF_DIR=";
 
   protected String user;
-  protected String accumuloHome, accumuloConfDir;
+  protected String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir;
   protected RemoteShellOptions options;
 
   protected String startServerPath, accumuloPath, toolPath;
 
   public StandaloneClusterControl(String user) {
-    this(user, System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"));
+    this(user, System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"), System.getenv("ACCUMULO_CONF_DIR"));
   }
 
-  public StandaloneClusterControl(String user, String accumuloHome, String accumuloConfDir) {
+  public StandaloneClusterControl(String user, String accumuloHome, String clientAccumuloConfDir, String serverAccumuloConfDir) {
     this.user = user;
     this.options = new RemoteShellOptions();
-    try {
-      this.accumuloHome = new File(accumuloHome).getCanonicalPath();
-      this.accumuloConfDir = new File(accumuloConfDir).getCanonicalPath();
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to compute canonical path", e);
-    }
+    this.accumuloHome = accumuloHome;
+    this.clientAccumuloConfDir = clientAccumuloConfDir;
+    this.serverAccumuloConfDir = serverAccumuloConfDir;
 
     File bin = new File(accumuloHome, "bin");
     this.startServerPath = new File(bin, START_SERVER_SCRIPT).getAbsolutePath();
     this.accumuloPath = new File(bin, ACCUMULO_SCRIPT).getAbsolutePath();
     this.toolPath = new File(bin, TOOL_SCRIPT).getAbsolutePath();
+  }
+
+  String getToolPath() {
+    return this.toolPath;
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
@@ -102,11 +108,13 @@ public class StandaloneClusterControl implements ClusterControl {
   public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[2 + args.length];
-    cmd[0] = accumuloPath;
-    cmd[1] = clz.getName();
+    String[] cmd = new String[3 + args.length];
+    // Make sure we always set the right ACCUMULO_CONF_DIR
+    cmd[0] = ACCUMULO_CONF_DIR + clientAccumuloConfDir;
+    cmd[1] = accumuloPath;
+    cmd[2] = clz.getName();
     // Quote the arguments to prevent shell expansion
-    for (int i = 0, j = 2; i < args.length; i++, j++) {
+    for (int i = 0, j = 3; i < args.length; i++, j++) {
       cmd[j] = "'" + args[i] + "'";
     }
     log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
@@ -114,10 +122,19 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args) throws IOException {
-    File confDir = getConfDir();
-    String master = getHosts(new File(confDir, "masters")).get(0);
+    String host = "localhost";
     String[] cmd = new String[3 + args.length];
-    cmd[0] = toolPath;
+    cmd[0] = getToolPath();
+    cmd[1] = getJarFromClass(clz);
+    cmd[2] = clz.getName();
+    for (int i = 0, j = 3; i < args.length; i++, j++) {
+      cmd[j] = "'" + args[i] + "'";
+    }
+    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), host);
+    return exec(host, cmd);
+  }
+
+  String getJarFromClass(Class<?> clz) {
     CodeSource source = clz.getProtectionDomain().getCodeSource();
     if (null == source) {
       throw new RuntimeException("Could not get CodeSource for class");
@@ -127,23 +144,38 @@ public class StandaloneClusterControl implements ClusterControl {
     if (!jar.endsWith(".jar")) {
       throw new RuntimeException("Need to have a jar to run mapreduce: " + jar);
     }
-    cmd[1] = jar;
-    cmd[2] = clz.getName();
-    for (int i = 0, j = 3; i < args.length; i++, j++) {
-      cmd[j] = "'" + args[i] + "'";
-    }
-    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
-    return exec(master, cmd);
+    return jar;
   }
 
   @Override
   public void adminStopAll() throws IOException {
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);
-    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + accumuloConfDir, accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + serverAccumuloConfDir, accumuloPath, Admin.class.getName(), "stopAll"};
+    // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey().intValue()) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
+    }
+  }
+
+  /**
+   * Wrapper around SetGoalState using the "server" <code>ACCUMULO_CONF_DIR</code>
+   *
+   * @param goalState
+   *          The goal state to set
+   * @throws IOException
+   *           If SetGoalState returns a non-zero result
+   */
+  public void setGoalState(String goalState) throws IOException {
+    checkNotNull(goalState, "Goal state must not be null");
+    checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
+    File confDir = getConfDir();
+    String master = getHosts(new File(confDir, "masters")).get(0);
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + serverAccumuloConfDir, accumuloPath, SetGoalState.class.getName(), goalState};
+    Entry<Integer,String> pair = exec(master, cmd);
+    if (0 != pair.getKey().intValue()) {
+      throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
     }
   }
 
@@ -193,7 +225,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void start(ServerType server, String hostname) throws IOException {
-    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + accumuloConfDir, startServerPath, hostname, getProcessString(server)};
+    String[] cmd = new String[] {SUDO_CMD, "-u", user, ACCUMULO_CONF_DIR + serverAccumuloConfDir, startServerPath, hostname, getProcessString(server)};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
       throw new IOException("Start " + server + " on " + hostname + " failed for execute successfully");
@@ -320,7 +352,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   protected File getConfDir() {
-    String confPath = null == accumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : accumuloConfDir;
+    String confPath = null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : clientAccumuloConfDir;
     File confDir;
     if (null == confPath) {
       String homePath = null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome;

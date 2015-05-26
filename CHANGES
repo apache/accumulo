@@ -467,10 +467,14 @@ Release Notes - Accumulo - Version 1.7.0
     * [ACCUMULO-3778] - Minor javadoc bugs
     * [ACCUMULO-3779] - Shell fails to connect to ZooKeeper when client.conf doesn't exist
     * [ACCUMULO-3784] - getauths command line option squashes visibilities that differ only in case
+    * [ACCUMULO-3786] - build_native_library.sh could use more error checking
     * [ACCUMULO-3788] - ContinuousBatchWalker fails trying to set ranges on closed batchscanner
     * [ACCUMULO-3789] - Code compiled against 1.6 lexicoders can't run in 1.7
     * [ACCUMULO-3790] - MultiInstanceReplicationIT.dataWasReplicatedToThePeerWithoutDrain occasionally fails
     * [ACCUMULO-3791] - Agitator start/stop scripts collide variable names
+    * [ACCUMULO-3792] - org.apache.accumulo.test.randomwalk.Node#getMapReduceJars needs to include htrace
+    * [ACCUMULO-3800] - Extra DEPENDENCIES file after new apache.pom
+    * [ACCUMULO-3803] - Resurrect mapreduce.lib.util for 1.7.0
 
 ** Improvement
     * [ACCUMULO-898] - look into replacing cloudtrace

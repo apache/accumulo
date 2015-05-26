@@ -232,19 +232,20 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         // If we are past the target, this is a valid result
         if (docIDCompare < 0) {
           break;
-        }
-        // if this source is not yet at the currentCQ then advance in this source
-        if (docIDCompare > 0) {
+        } else if (docIDCompare > 0) {
+          // if this source is not yet at the currentCQ then advance in this source
+
           // seek forwards
           Key seekKey = buildKey(currentPartition, sources[sourceID].term, currentDocID);
           sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
           continue;
-        }
-        // if we are equal to the target, this is an invalid result.
-        // Force the entire process to go to the next row.
-        // We are advancing column 0 because we forced that column to not contain a !
-        // when we did the init()
-        if (docIDCompare == 0) {
+        } else {
+          // docIDCompare == 0
+
+          // if we are equal to the target, this is an invalid result.
+          // Force the entire process to go to the next row.
+          // We are advancing column 0 because we forced that column to not contain a !
+          // when we did the init()
           sources[0].iter.next();
           advancedCursor = true;
           break;

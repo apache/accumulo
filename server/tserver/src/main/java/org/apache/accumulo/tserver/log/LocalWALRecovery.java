@@ -135,47 +135,50 @@ public class LocalWALRecovery implements Runnable {
       }
       log.info("Copying WALs to " + options.destination);
 
-      for (File file : localDirectory.listFiles()) {
-        String name = file.getName();
-        try {
-          UUID.fromString(name);
-        } catch (IllegalArgumentException ex) {
-          log.info("Ignoring non-log file " + file.getAbsolutePath());
-          continue;
-        }
-
-        LogFileKey key = new LogFileKey();
-        LogFileValue value = new LogFileValue();
-
-        log.info("Openning local log " + file.getAbsolutePath());
-
-        Path localWal = new Path(file.toURI());
-        FileSystem localFs = FileSystem.getLocal(fs.getConf());
-
-        Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
-        // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));
-        Path tmp = new Path(options.destination + "/" + name + ".copy");
-        FSDataOutputStream writer = fs.create(tmp);
-        while (reader.next(key, value)) {
+      File[] files = localDirectory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          String name = file.getName();
           try {
-            key.write(writer);
-            value.write(writer);
-          } catch (EOFException ex) {
-            break;
+            UUID.fromString(name);
+          } catch (IllegalArgumentException ex) {
+            log.info("Ignoring non-log file " + file.getAbsolutePath());
+            continue;
           }
-        }
-        writer.close();
-        reader.close();
-        fs.rename(tmp, new Path(tmp.getParent(), name));
 
-        if (options.deleteLocal) {
-          if (file.delete()) {
-            log.info("Copied and deleted: " + name);
-          } else {
-            log.info("Failed to delete: " + name + " (but it is safe for you to delete it manually).");
+          LogFileKey key = new LogFileKey();
+          LogFileValue value = new LogFileValue();
+
+          log.info("Openning local log " + file.getAbsolutePath());
+
+          Path localWal = new Path(file.toURI());
+          FileSystem localFs = FileSystem.getLocal(fs.getConf());
+
+          Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
+          // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));
+          Path tmp = new Path(options.destination + "/" + name + ".copy");
+          FSDataOutputStream writer = fs.create(tmp);
+          while (reader.next(key, value)) {
+            try {
+              key.write(writer);
+              value.write(writer);
+            } catch (EOFException ex) {
+              break;
+            }
           }
-        } else {
-          log.info("Safe to delete: " + name);
+          writer.close();
+          reader.close();
+          fs.rename(tmp, new Path(tmp.getParent(), name));
+
+          if (options.deleteLocal) {
+            if (file.delete()) {
+              log.info("Copied and deleted: " + name);
+            } else {
+              log.info("Failed to delete: " + name + " (but it is safe for you to delete it manually).");
+            }
+          } else {
+            log.info("Safe to delete: " + name);
+          }
         }
       }
     }

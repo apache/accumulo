@@ -48,7 +48,7 @@ else
 fi
 
 for signal in TERM KILL; do
-   for svc in tserver gc master monitor logger tracer; do
+   for svc in tserver gc master monitor tracer; do
       PID=$(ps -ef | egrep "${ACCUMULO}" | grep "Main $svc" | grep -v grep | grep -v stop-here.sh | awk '{print $2}' | head -1)
       if [[ -n $PID ]]; then
          echo "Stopping ${svc} on ${HOSTNAME} with signal ${signal}"

@@ -14,20 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.proxy;
-
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.junit.BeforeClass;
-
 /**
- *
+ * @deprecated since 1.6.0; This package was moved out of the public API.
+ * @since 1.5.0
  */
-public class TBinaryProxyIT extends SimpleProxyBase {
+package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-  @BeforeClass
-  public static void setProtocol() throws Exception {
-    SimpleProxyBase.factory = new TBinaryProtocol.Factory();
-    setUpProxy();
-  }
-
-}

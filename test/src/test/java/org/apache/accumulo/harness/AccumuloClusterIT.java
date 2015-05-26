@@ -133,7 +133,8 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
             conf.getAccumuloServerUser());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
-        standaloneCluster.setAccumuloConfDir(conf.getAccumuloConfDir());
+        standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
+        standaloneCluster.setServerAccumuloConfDir(conf.getServerAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
 
         // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in as SIMPLE instead of KERBEROS
