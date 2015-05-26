@@ -112,7 +112,6 @@ master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}"
 gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
 tserver) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
 monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
-logger)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_LOGGER_OPTS}" ;;
 *)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
 esac
 
@@ -135,10 +134,6 @@ fi
 if [ -z "${ACCUMULO_LOG_DIR}" ]; then
    echo "ACCUMULO_LOG_DIR is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
-fi
-
-if [ ! -d "${ACCUMULO_LOG_DIR}" ]; then
-   mkdir -p "$ACCUMULO_LOG_DIR"
 fi
 
 # This is default for hadoop 2.x;
