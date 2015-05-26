@@ -383,12 +383,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
       } catch (IOException e) {
-        synchronized (failures) {
-          failures.putAll(tsFailures);
-          failures.putAll(unscanned);
-        }
+        if (!TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) {
+          synchronized (failures) {
+            failures.putAll(tsFailures);
+            failures.putAll(unscanned);
+          }
 
-        locator.invalidateCache(tsLocation);
+          locator.invalidateCache(tsLocation);
+        }
         log.debug(e.getMessage(), e);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
