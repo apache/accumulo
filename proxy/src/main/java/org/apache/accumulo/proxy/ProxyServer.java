@@ -1139,21 +1139,29 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public void updateAndFlush(ByteBuffer login, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells)
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, org.apache.accumulo.proxy.thrift.MutationsRejectedException, TException {
+    BatchWriterPlusException bwpe = null;
     try {
-      BatchWriterPlusException bwpe = getWriter(login, tableName, null);
+      bwpe = getWriter(login, tableName, null);
       addCellsToWriter(cells, bwpe);
       if (bwpe.exception != null)
         throw bwpe.exception;
       bwpe.writer.flush();
-      bwpe.writer.close();
     } catch (Exception e) {
       handleExceptionMRE(e);
+    } finally {
+      if (null != bwpe) {
+        try {
+          bwpe.writer.close();
+        } catch (MutationsRejectedException e) {
+          handleExceptionMRE(e);
+        }
+      }
     }
   }
 
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
 
-  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) {
+  void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) {
     if (bwpe.exception != null)
       return;
 
@@ -1277,7 +1285,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     return bwpe;
   }
 
-  private BatchWriterPlusException getWriter(ByteBuffer login, String tableName, WriterOptions opts) throws Exception {
+  BatchWriterPlusException getWriter(ByteBuffer login, String tableName, WriterOptions opts) throws Exception {
     BatchWriterConfig cfg = new BatchWriterConfig();
     if (opts != null) {
       if (opts.maxMemory != 0)
