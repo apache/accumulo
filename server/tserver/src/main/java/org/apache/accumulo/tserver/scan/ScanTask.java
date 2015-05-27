@@ -99,7 +99,7 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
           stateStr = "INITIAL";
           break;
         default:
-          stateStr = "UNKONWN";
+          stateStr = "UNKNOWN";
           break;
       }
       throw new IllegalStateException("Tried to get result twice [state=" + stateStr + "(" + st + ")]");
