@@ -1122,7 +1122,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     }
 
     boolean success = false;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 15; i++) {
       String batchWriter = client.createWriter(creds, table, writerOptions);
       client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
       client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
@@ -1165,7 +1165,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     writerOptions.setTimeoutMs(100000);
 
     success = false;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 15; i++) {
       try {
         String batchWriter = client.createWriter(creds, table, writerOptions);
 
@@ -1658,15 +1658,29 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, table);
 
-    // test a mutation that violated a constraint
-    updates.clear();
-    updates.put(s2bb("00347"),
-        new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890")), Arrays.asList(newColUpdate("data", "count", "A"))));
+    ConditionalStatus status = null;
+    for (int i = 0; i < 20; i++) {
+      // test a mutation that violated a constraint
+      updates.clear();
+      updates.put(s2bb("00347"),
+          new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890")), Arrays.asList(newColUpdate("data", "count", "A"))));
 
-    results = client.updateRowsConditionally(cwid, updates);
+      results = client.updateRowsConditionally(cwid, updates);
 
-    assertEquals(1, results.size());
-    assertEquals(ConditionalStatus.VIOLATED, results.get(s2bb("00347")));
+      assertEquals(1, results.size());
+      status = results.get(s2bb("00347"));
+      if (ConditionalStatus.VIOLATED != status) {
+        log.info("ConditionalUpdate was not rejected by server due to table constraint. Sleeping and retrying");
+        Thread.sleep(3000);
+        continue;
+      }
+
+      assertEquals(ConditionalStatus.VIOLATED, status);
+      break;
+    }
+
+    // Final check to make sure we succeeded and didn't exceed the retries
+    assertEquals(ConditionalStatus.VIOLATED, status);
 
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, table);
