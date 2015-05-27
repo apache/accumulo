@@ -771,8 +771,25 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (state.get() == CANCELED)
         throw new CancellationException();
 
-      if (localRQ == null && state.get() == ADDED)
-        throw new IllegalStateException("Tried to get result twice");
+      if (localRQ == null) {
+        int st = state.get();
+        String stateStr;
+        switch (st) {
+          case ADDED:
+            stateStr = "ADDED";
+            break;
+          case CANCELED:
+            stateStr = "CANCELED";
+            break;
+          case INITIAL:
+            stateStr = "INITIAL";
+            break;
+          default:
+            stateStr = "UNKNOWN";
+            break;
+        }
+        throw new IllegalStateException("Tried to get result twice [state=" + stateStr + "(" + st + ")]");
+      }
 
       Object r = localRQ.poll(timeout, unit);
 
