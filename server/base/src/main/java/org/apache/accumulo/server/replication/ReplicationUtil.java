@@ -132,6 +132,11 @@ public class ReplicationUtil {
       }
 
       TableConfiguration tableConf = context.getServerConfigurationFactory().getTableConfiguration(localId);
+      if (null == tableConf) {
+        log.trace("Could not get configuration for table {} (it no longer exists)", table);
+        continue;
+      }
+
       for (Entry<String,String> prop : tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET).entrySet()) {
         String peerName = prop.getKey().substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
         String remoteIdentifier = prop.getValue();
