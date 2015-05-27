@@ -133,6 +133,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
         synchronized (sendQueue) {
           sendQueue.clear();
           sendQueue.notifyAll();
+          sendQueueSize.set(0);
         }
       }
     } else {
