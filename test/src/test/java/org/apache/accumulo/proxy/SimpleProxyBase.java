@@ -130,7 +130,9 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
   private static TServer proxyServer;
   private static int proxyPort;
-  private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
+
+  private TestProxyClient proxyClient;
+  private org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
 
   private static Map<String,String> properties = new HashMap<>();
   private static ByteBuffer creds = null;
@@ -168,8 +170,6 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), factory, props).server;
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
-    client = new TestProxyClient("localhost", proxyPort, factory).proxy();
-    creds = client.login("root", properties);
   }
 
   @AfterClass
@@ -185,6 +185,11 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Before
   public void setup() throws Exception {
+    // Create a new client for each test
+    proxyClient = new TestProxyClient("localhost", proxyPort, factory);
+    client = proxyClient.proxy();
+    creds = client.login("root", properties);
+
     // Create 'user'
     client.createLocalUser(creds, "user", s2bb(SharedMiniClusterIT.getRootPassword()));
     // Log in as 'user'
@@ -207,6 +212,11 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       } catch (Exception e) {
         log.warn("Failed to delete test table", e);
       }
+    }
+
+    // Close the transport after the test
+    if (null != proxyClient) {
+      proxyClient.close();
     }
   }
 
@@ -1119,6 +1129,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     while (!constraints.containsKey(NumericValueConstraint.class.getName())) {
       log.info("Constraints don't contain NumericValueConstraint");
       Thread.sleep(2000);
+      constraints = client.listConstraints(creds, table);
     }
 
     boolean success = false;
@@ -1152,6 +1163,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     while (constraints.containsKey(NumericValueConstraint.class.getName())) {
       log.info("Constraints still contains NumericValueConstraint");
       Thread.sleep(2000);
+      constraints = client.listConstraints(creds, table);
     }
 
     assertScan(new String[][] {}, table);
@@ -1191,44 +1203,73 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test
   public void testTableConstraints() throws Exception {
+    log.debug("Setting NumericValueConstraint on " + table);
 
     // constraints
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
 
     // zookeeper propagation time
-    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+    Thread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+
+    log.debug("Attempting to verify client-side that constraints are observed");
+
+    Map<String,Integer> constraints = client.listConstraints(creds, table);
+    while (!constraints.containsKey(NumericValueConstraint.class.getName())) {
+      log.debug("Constraints don't contain NumericValueConstraint");
+      Thread.sleep(2000);
+      constraints = client.listConstraints(creds, table);
+    }
 
     assertEquals(2, client.listConstraints(creds, table).size());
+    log.debug("Verified client-side that constraints exist");
 
     // Write data that satisfies the constraint
     client.updateAndFlush(creds, table, mutation("row1", "cf", "cq", "123"));
+
+    log.debug("Successfully wrote data that satisfies the constraint");
+    log.debug("Trying to write data that the constraint should reject");
 
     // Expect failure on data that fails the constraint
     while (true) {
       try {
         client.updateAndFlush(creds, table, mutation("row1", "cf", "cq", "x"));
-        UtilWaitThread.sleep(1000);
+        log.debug("Expected mutation to be rejected, but was not. Waiting and retrying");
+        Thread.sleep(5000);
       } catch (MutationsRejectedException ex) {
         break;
       }
     }
 
+    log.debug("Saw expected failure on data which fails the constraint");
+
+    log.debug("Removing constraint from table");
     client.removeConstraint(creds, table, 2);
 
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
-    assertEquals(1, client.listConstraints(creds, table).size());
+    constraints = client.listConstraints(creds, table);
+    while (constraints.containsKey(NumericValueConstraint.class.getName())) {
+      log.debug("Constraints contains NumericValueConstraint");
+      Thread.sleep(2000);
+      constraints = client.listConstraints(creds, table);
+    }
 
+    assertEquals(1, client.listConstraints(creds, table).size());
+    log.debug("Verified client-side that the constraint was removed");
+
+    log.debug("Attempting to write mutation that should succeed after constraints was removed");
     // Make sure we can write the data after we removed the constraint
     while (true) {
       try {
         client.updateAndFlush(creds, table, mutation("row1", "cf", "cq", "x"));
         break;
       } catch (MutationsRejectedException ex) {
-        UtilWaitThread.sleep(1000);
+        log.debug("Expected mutation accepted, but was not. Waiting and retrying");
+        Thread.sleep(5000);
       }
     }
 
+    log.debug("Verifying that record can be read from the table");
     assertScan(new String[][] {{"row1", "cf", "cq", "x"}}, table);
   }
 
@@ -1534,6 +1575,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test
   public void testConditionalWriter() throws Exception {
+    log.debug("Adding constraint {} to {}", table, NumericValueConstraint.class.getName());
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
@@ -1659,7 +1701,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, table);
 
     ConditionalStatus status = null;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 30; i++) {
       // test a mutation that violated a constraint
       updates.clear();
       updates.put(s2bb("00347"),
@@ -1671,7 +1713,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       status = results.get(s2bb("00347"));
       if (ConditionalStatus.VIOLATED != status) {
         log.info("ConditionalUpdate was not rejected by server due to table constraint. Sleeping and retrying");
-        Thread.sleep(3000);
+        Thread.sleep(5000);
         continue;
       }
 
