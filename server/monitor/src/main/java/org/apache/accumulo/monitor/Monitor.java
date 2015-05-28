@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -105,7 +106,7 @@ public class Monitor {
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
 
   private static final int REFRESH_TIME = 5;
-  private static long lastRecalc = 0L;
+  private static AtomicLong lastRecalc = new AtomicLong(0L);
   private static double totalIngestRate = 0.0;
   private static double totalQueryRate = 0.0;
   private static double totalScanRate = 0.0;
@@ -242,7 +243,7 @@ public class Monitor {
 
     // only recalc every so often
     long currentTime = System.currentTimeMillis();
-    if (currentTime - lastRecalc < REFRESH_TIME * 1000)
+    if (currentTime - lastRecalc.get() < REFRESH_TIME * 1000)
       return;
 
     synchronized (Monitor.class) {
@@ -376,7 +377,7 @@ public class Monitor {
     } finally {
       synchronized (Monitor.class) {
         fetching = false;
-        lastRecalc = currentTime;
+        lastRecalc.set(currentTime);
       }
     }
   }
