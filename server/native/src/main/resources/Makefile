@@ -30,12 +30,19 @@ ifeq ($(shell uname),Linux)
 endif
 
 ifeq ($(shell uname),Darwin)
-	JAVA_HOME=$(shell /usr/libexec/java_home)
+	JAVA_HOME=$(shell env | grep "^JAVA_HOME=" | cut -d= -f2)
+	ifeq ($(strip $(JAVA_HOME)),)
+		JAVA_HOME=$(shell /usr/libexec/java_home)
+	endif
 	NATIVE_LIB:= libaccumulo.dylib
 ifneq (,$(findstring 10.9,$(shell sw_vers -productVersion)))
 	MAVERICKFLAGS=-stdlib=libstdc++
 endif
 	CXXFLAGS=-dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -Ijavah $(USERFLAGS) $(MAVERICK_FLAGS)
+endif
+
+ifeq (,$(wildcard $(JAVA_HOME)/bin/javah))
+$(error "JAVA_HOME does not point to a JDK. Exiting...")
 endif
 
 all : $(NATIVE_LIB)
