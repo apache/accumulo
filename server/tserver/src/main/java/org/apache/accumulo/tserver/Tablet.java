@@ -3657,12 +3657,10 @@ public class Tablet {
 
   private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  public Set<String> getCurrentLogFiles() {
+  public synchronized Set<String> getCurrentLogFiles() {
     Set<String> result = new HashSet<String>();
-    synchronized (currentLogs) {
-      for (DfsLogger log : currentLogs) {
-        result.add(log.getFileName());
-      }
+    for (DfsLogger log : currentLogs) {
+      result.add(log.getFileName());
     }
     return result;
   }
