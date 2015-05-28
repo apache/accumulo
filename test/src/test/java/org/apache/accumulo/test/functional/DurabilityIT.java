@@ -130,7 +130,8 @@ public class DurabilityIT extends ConfigurableMacIT {
     // we're probably going to lose something the the log setting
     writeSome(tableNames[2], N);
     restartTServer();
-    assertTrue(N >= readSome(tableNames[2]));
+    long numResults = readSome(tableNames[2]);
+    assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
     cleanup(tableNames);
   }
 
@@ -140,7 +141,8 @@ public class DurabilityIT extends ConfigurableMacIT {
     // probably won't get any data back without logging
     writeSome(tableNames[3], N);
     restartTServer();
-    assertTrue(N > readSome(tableNames[3]));
+    long numResults = readSome(tableNames[3]);
+    assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
     cleanup(tableNames);
   }
 
@@ -152,7 +154,8 @@ public class DurabilityIT extends ConfigurableMacIT {
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
     writeSome(tableName, N);
     restartTServer();
-    assertTrue(N > readSome(tableName));
+    long numResults = readSome(tableName);
+    assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
     writeSome(tableName, N);
     restartTServer();
