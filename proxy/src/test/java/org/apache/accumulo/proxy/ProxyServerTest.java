@@ -48,7 +48,7 @@ public class ProxyServerTest {
     MutationsRejectedException mre = EasyMock.createMock(MutationsRejectedException.class);
 
     final ByteBuffer login = ByteBuffer.wrap("my_login".getBytes(UTF_8));
-    final String tableName = "table1"; 
+    final String tableName = "table1";
     final Map<ByteBuffer,List<ColumnUpdate>> cells = new HashMap<ByteBuffer,List<ColumnUpdate>>();
 
     EasyMock.expect(server.getWriter(login, tableName, null)).andReturn(bwpe);
@@ -83,7 +83,7 @@ public class ProxyServerTest {
     MutationsRejectedException mre = EasyMock.createMock(MutationsRejectedException.class);
 
     final ByteBuffer login = ByteBuffer.wrap("my_login".getBytes(UTF_8));
-    final String tableName = "table1"; 
+    final String tableName = "table1";
     final Map<ByteBuffer,List<ColumnUpdate>> cells = new HashMap<ByteBuffer,List<ColumnUpdate>>();
 
     EasyMock.expect(server.getWriter(login, tableName, null)).andReturn(bwpe);
@@ -110,5 +110,5 @@ public class ProxyServerTest {
 
     EasyMock.verify(server, writer, mre);
   }
-  
+
 }
