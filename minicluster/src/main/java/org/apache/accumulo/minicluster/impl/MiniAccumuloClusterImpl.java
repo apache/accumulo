@@ -791,7 +791,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return stats;
   }
 
-  public MiniDFSCluster getMiniDfs() {
+  public synchronized MiniDFSCluster getMiniDfs() {
     return this.miniDFS;
   }
 
