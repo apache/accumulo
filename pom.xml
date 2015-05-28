@@ -755,8 +755,8 @@
                 <module name="OuterTypeFilename" />
                 <module name="LineLength">
                   <!-- needs extra, because Eclipse formatter ignores the ending left brace -->
-                  <property name="max" value="200"/>
-                  <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+                  <property name="max" value="200" />
+                  <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                 </module>
                 <module name="AvoidStarImport" />
                 <module name="UnusedImports">
