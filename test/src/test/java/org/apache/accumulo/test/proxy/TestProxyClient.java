@@ -60,6 +60,13 @@ public class TestProxyClient {
     transport.open();
   }
 
+  public synchronized void close() {
+    if (null != transport) {
+      transport.close();
+      transport = null;
+    }
+  }
+
   public AccumuloProxy.Client proxy() {
     return proxy;
   }

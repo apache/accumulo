@@ -24,38 +24,57 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Range;
 import com.google.common.net.HostAndPort;
 
 // ACCUMULO-2757 - make sure we don't make too many more watchers
 public class WatchTheWatchCountIT extends ConfigurableMacIT {
+  private static final Logger log = LoggerFactory.getLogger(WatchTheWatchCountIT.class);
+
+  public int defaultOverrideSeconds() {
+    return 60;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(3);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    for (String tableName : this.getUniqueNames(3)) {
+    String[] tableNames = getUniqueNames(3);
+    for (String tableName : tableNames) {
       c.tableOperations().create(tableName);
     }
     c.tableOperations().list();
     String zooKeepers = c.getInstance().getZooKeepers();
-    HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
-    Socket socket = new Socket(hostAndPort.getHostText(), hostAndPort.getPort());
-    try {
-      socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
-      byte[] buffer = new byte[1024];
-      int n = socket.getInputStream().read(buffer);
-      String response = new String(buffer, 0, n);
-      long total = Long.parseLong(response.split(":")[1].trim());
-      assertTrue("Total watches was not greater than 500, but was " + total, total > 500);
-      assertTrue("Total watches was not less than 675, but was " + total, total < 675);
-    } finally {
-      socket.close();
+    final Range<Long> expectedWatcherRange = Range.open(475l, 700l);
+    long total = 0;
+    final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
+    for (int i = 0; i < 5; i++) {
+      Socket socket = new Socket(hostAndPort.getHostText(), hostAndPort.getPort());
+      try {
+        socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
+        byte[] buffer = new byte[1024];
+        int n = socket.getInputStream().read(buffer);
+        String response = new String(buffer, 0, n);
+        total = Long.parseLong(response.split(":")[1].trim());
+        log.info("Total: {}", total);
+        if (expectedWatcherRange.contains(total)) {
+          break;
+        }
+        log.debug("Expected number of watchers to be contained in {}, but actually was {}. Sleeping and retrying", expectedWatcherRange, total);
+        Thread.sleep(5000);
+      } finally {
+        socket.close();
+      }
     }
+
+    assertTrue("Expected number of watchers to be contained in " + expectedWatcherRange + ", but actually was " + total, expectedWatcherRange.contains(total));
   }
 
 }

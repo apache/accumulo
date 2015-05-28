@@ -545,6 +545,7 @@ public class Tablet implements TabletCommitter {
     tableConfiguration.addObserver(configObserver = new ConfigurationObserver() {
 
       private void reloadConstraints() {
+        log.debug("Reloading constraints for extent: " + extent);
         constraintChecker.set(new ConstraintChecker(tableConfiguration));
       }
 
