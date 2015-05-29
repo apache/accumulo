@@ -127,7 +127,9 @@ public class ConfigurableMacIT extends AccumuloIT {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
-    cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
+    String nativePathInDevTree = NativeMapIT.nativeMapLocation().getAbsolutePath();
+    String nativePathInMapReduce = new File(System.getProperty("user.dir")).toString();
+    cfg.setNativeLibPaths(nativePathInDevTree, nativePathInMapReduce);
     cfg.setProperty(Property.GC_FILE_ARCHIVE, Boolean.TRUE.toString());
     Configuration coreSite = new Configuration(false);
     configure(cfg, coreSite);
