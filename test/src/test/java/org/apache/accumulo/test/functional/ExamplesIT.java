@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -74,6 +75,7 @@ import org.apache.accumulo.examples.simple.mapreduce.WordCount;
 import org.apache.accumulo.examples.simple.mapreduce.bulk.BulkIngestExample;
 import org.apache.accumulo.examples.simple.mapreduce.bulk.GenerateTestData;
 import org.apache.accumulo.examples.simple.mapreduce.bulk.SetupTable;
+import org.apache.accumulo.examples.simple.mapreduce.bulk.VerifyIngest;
 import org.apache.accumulo.examples.simple.shard.ContinuousQuery;
 import org.apache.accumulo.examples.simple.shard.Index;
 import org.apache.accumulo.examples.simple.shard.Query;
@@ -446,21 +448,26 @@ public class ExamplesIT extends AccumuloClusterIT {
       fs.delete(p, true);
     }
     goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data");
-    String[] args;
+
+    List<String> commonArgs = new ArrayList<>(Arrays.asList(new String[] {"-i", instance, "-z", keepers, "-u", user, "--table", tableName}));
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName};
+      commonArgs.add("--keytab");
+      commonArgs.add(keytab);
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName};
+      commonArgs.add("-p");
+      commonArgs.add(passwd);
     }
-    goodExec(SetupTable.class, args);
-    if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName, "--inputDir", dir + "/tmp/input", "--workDir",
-          dir + "/tmp"};
-    } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--inputDir", dir + "/tmp/input", "--workDir",
-          dir + "/tmp"};
-    }
-    goodExec(BulkIngestExample.class, args);
+
+    List<String> args = new ArrayList<>(commonArgs);
+    goodExec(SetupTable.class, args.toArray(new String[0]));
+
+    args = new ArrayList<>(commonArgs);
+    args.addAll(Arrays.asList(new String[] {"--inputDir", dir + "/tmp/input", "--workDir", dir + "/tmp"}));
+    goodExec(BulkIngestExample.class, args.toArray(new String[0]));
+
+    args = new ArrayList<>(commonArgs);
+    args.addAll(Arrays.asList(new String[] {"--start-row", "0", "--count", "10000"}));
+    goodExec(VerifyIngest.class, args.toArray(new String[0]));
   }
 
   @Test
