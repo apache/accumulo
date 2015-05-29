@@ -151,7 +151,7 @@ public class ServerConfigurationFactory {
     // Can't hold the lock during the construction and validation of the config,
     // which would result in creating multiple objects for the same id.
     //
-    // ACCUMULO-3859 We _cannot_ all multiple instances to be created for a table. If the TableConfiguration
+    // ACCUMULO-3859 We _cannot_ allow multiple instances to be created for a table. If the TableConfiguration
     // instance a Tablet holds is not the same as the one cached here, any ConfigurationObservers that
     // Tablet sets will never see updates from ZooKeeper which means that things like constraints and
     // default visibility labels will never be updated in a Tablet until it is reloaded.
