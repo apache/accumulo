@@ -1283,33 +1283,6 @@
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
       </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <inherited>false</inherited>
-            <executions>
-              <execution>
-                <id>rename-source-release-assembly</id>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <phase>package</phase>
-                <configuration>
-                  <executable>mv</executable>
-                  <workingDirectory>${project.build.directory}</workingDirectory>
-                  <commandlineArgs>-n accumulo-${project.version}-source-release.tar.gz accumulo-${project.version}-src.tar.gz</commandlineArgs>
-                  <successCodes>
-                    <successCode>0</successCode>
-                    <successCode>1</successCode>
-                  </successCodes>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
     <profile>
       <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
