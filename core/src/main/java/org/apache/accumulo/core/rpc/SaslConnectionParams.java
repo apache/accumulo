@@ -130,7 +130,13 @@ public class SaslConnectionParams {
   protected final Map<String,String> saslProperties;
 
   public SaslConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
-    this(new ClientConfiguration(new MapConfiguration(getProperties(conf))), token);
+    this(new ClientConfiguration(createMapConfiguration(conf)), token);
+  }
+
+  private static MapConfiguration createMapConfiguration(AccumuloConfiguration conf) {
+    MapConfiguration mapConf = new MapConfiguration(getProperties(conf));
+    mapConf.setListDelimiter('\0');
+    return mapConf;
   }
 
   public SaslConnectionParams(ClientConfiguration conf, AuthenticationToken token) {
