@@ -50,7 +50,8 @@ public class Trace {
     org.apache.htrace.Span span = org.apache.htrace.Trace.currentSpan();
     if (span != null) {
       span.stop();
-      org.apache.htrace.Tracer.getInstance().continueSpan(null);
+      // close() will no-op, but ensure safety if the implementation changes
+      org.apache.htrace.Tracer.getInstance().continueSpan(null).close();
     }
   }
 

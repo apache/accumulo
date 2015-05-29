@@ -64,7 +64,8 @@ public class Trace extends org.apache.accumulo.core.trace.Trace {
   public static void endThread(Span span) {
     if (span != null) {
       span.stop();
-      org.apache.htrace.Tracer.getInstance().continueSpan(null);
+      // close() will no-op, but ensure safety if the implementation changes
+      org.apache.htrace.Tracer.getInstance().continueSpan(null).close();
     }
   }
 

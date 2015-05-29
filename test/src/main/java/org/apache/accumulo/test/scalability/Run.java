@@ -68,7 +68,11 @@ public class Run {
         fis.close();
       }
       fis = new FileInputStream(testPath);
-      testProps.load(fis);
+      try {
+        testProps.load(fis);
+      } finally {
+        fis.close();
+      }
     } catch (Exception e) {
       log.error("Error loading config file.", e);
     }

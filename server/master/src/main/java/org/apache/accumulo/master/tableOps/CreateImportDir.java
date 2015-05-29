@@ -48,6 +48,10 @@ class CreateImportDir extends MasterRepo {
     log.info("Looking for matching filesystem for " + exportDir + " from options " + Arrays.toString(tableDirs));
     Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
     log.info("Chose base table directory of " + base);
+    // Sanity check that a valid FileSystem was found for the exportDir
+    if (null == base) {
+      throw new RuntimeException("Could not determine matching FileSystem for " + exportDir);
+    }
     Path directory = new Path(base, tableInfo.tableId);
 
     Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
