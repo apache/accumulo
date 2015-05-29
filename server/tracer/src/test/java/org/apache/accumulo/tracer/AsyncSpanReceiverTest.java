@@ -16,17 +16,17 @@
  */
 package org.apache.accumulo.tracer;
 
-import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.apache.htrace.HTraceConfiguration;
-import org.apache.htrace.Span;
-import org.apache.htrace.impl.MilliSpan;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.accumulo.tracer.thrift.RemoteSpan;
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.Span;
+import org.apache.htrace.impl.MilliSpan;
+import org.junit.Test;
 
 public class AsyncSpanReceiverTest {
   static class TestReceiver extends AsyncSpanReceiver<String,String> {
@@ -51,7 +51,7 @@ public class AsyncSpanReceiverTest {
     }
 
     @Override
-    protected String getSpanKey(Map data) {
+    protected String getSpanKey(Map<String,String> data) {
       return "DEST";
     }
 
