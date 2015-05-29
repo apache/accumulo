@@ -55,7 +55,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   public static final String SEND_TIMER_MILLIS = "tracer.send.timer.millis";
   public static final String QUEUE_SIZE = "tracer.queue.size";
-  private static final String SPAN_MIN_MS = "tracer.span.min.ms";
+  public static final String SPAN_MIN_MS = "tracer.span.min.ms";
 
   private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
 
@@ -109,14 +109,6 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     while (!sendQueue.isEmpty()) {
       boolean sent = false;
       RemoteSpan s = sendQueue.peek();
-      if (s.stop - s.start < minSpanSize) {
-        synchronized (sendQueue) {
-          sendQueue.remove();
-          sendQueue.notifyAll();
-          sendQueueSize.decrementAndGet();
-        }
-        continue;
-      }
       SpanKey dest = getSpanKey(s.data);
       Destination client = clients.get(dest);
       if (client == null) {
@@ -167,6 +159,10 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   @Override
   public void receiveSpan(Span s) {
+    if (s.getStopTimeMillis() - s.getStartTimeMillis() < minSpanSize) {
+      return;
+    }
+
     Map<String,String> data = convertToStrings(s.getKVAnnotations());
 
     SpanKey dest = getSpanKey(data);
