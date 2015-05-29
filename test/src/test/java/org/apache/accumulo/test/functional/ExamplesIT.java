@@ -71,6 +71,7 @@ import org.apache.accumulo.examples.simple.mapreduce.WordCount;
 import org.apache.accumulo.examples.simple.mapreduce.bulk.BulkIngestExample;
 import org.apache.accumulo.examples.simple.mapreduce.bulk.GenerateTestData;
 import org.apache.accumulo.examples.simple.mapreduce.bulk.SetupTable;
+import org.apache.accumulo.examples.simple.mapreduce.bulk.VerifyIngest;
 import org.apache.accumulo.examples.simple.shard.ContinuousQuery;
 import org.apache.accumulo.examples.simple.shard.Index;
 import org.apache.accumulo.examples.simple.shard.Query;
@@ -352,6 +353,7 @@ public class ExamplesIT extends AccumuloClusterIT {
     goodExec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName);
     goodExec(BulkIngestExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--inputDir", dir + "/tmp/input",
         "--workDir", dir + "/tmp");
+    goodExec(VerifyIngest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--start-row", "0", "--count", "10000");
   }
 
   @Test
