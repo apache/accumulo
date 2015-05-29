@@ -231,7 +231,8 @@ public class CloneTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
 
-  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
+  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
+      throws ThriftTableOperationException {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
@@ -239,7 +240,15 @@ public class CloneTable extends MasterRepo {
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
     Instance inst = HdfsZooInstance.getInstance();
-    cloneInfo.srcNamespaceId = Tables.getNamespaceId(inst, cloneInfo.srcTableId);
+    try {
+      cloneInfo.srcNamespaceId = Tables.getNamespaceId(inst, cloneInfo.srcTableId);
+    } catch (IllegalArgumentException e) {
+      if (inst == null || cloneInfo.srcTableId == null) {
+        // just throw the exception if the illegal argument was thrown by the argument checker and not due to table non-existence
+        throw e;
+      }
+      throw new ThriftTableOperationException(cloneInfo.srcTableId, "", TableOperation.CLONE, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+    }
   }
 
   @Override
