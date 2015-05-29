@@ -219,7 +219,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     Assert.assertEquals("Expected to only find one replication status message", 1, fileToStatus.size());
 
     String walName = fileToStatus.keySet().iterator().next();
-    Assert.assertEquals("Expected log file name from tablet to equal replication entry", wals.iterator().next(), walName);
+    wals.retainAll(fileToStatus.keySet());
+    Assert.assertEquals(1, wals.size());
 
     Status status = fileToStatus.get(walName);
 

@@ -349,8 +349,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     // We should find an entry in tablet and in the repl row
     Assert.assertEquals("Rows found: " + replRows, 1, replRows.size());
 
-    // This should be the same set of WALs that we also are using
-    Assert.assertEquals(replRows, wals);
+    // There should only be one extra WALog that replication doesn't know about
+    replRows.removeAll(wals);
+    Assert.assertEquals(2, wals.size());
+    Assert.assertEquals(0, replRows.size());
   }
 
   @Test
