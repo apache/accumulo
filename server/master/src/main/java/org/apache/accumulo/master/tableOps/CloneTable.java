@@ -19,8 +19,11 @@ package org.apache.accumulo.master.tableOps;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -30,14 +33,24 @@ public class CloneTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
 
-  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
+  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
+      throws ThriftTableOperationException {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
     cloneInfo.tableName = tableName;
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
-    cloneInfo.srcNamespaceId = Tables.getNamespaceId(HdfsZooInstance.getInstance(), cloneInfo.srcTableId);
+    Instance inst = HdfsZooInstance.getInstance();
+    try {
+      cloneInfo.srcNamespaceId = Tables.getNamespaceId(inst, cloneInfo.srcTableId);
+    } catch (IllegalArgumentException e) {
+      if (inst == null || cloneInfo.srcTableId == null) {
+        // just throw the exception if the illegal argument was thrown by the argument checker and not due to table non-existence
+        throw e;
+      }
+      throw new ThriftTableOperationException(cloneInfo.srcTableId, "", TableOperation.CLONE, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+    }
   }
 
   @Override
