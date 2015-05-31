@@ -20,7 +20,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
@@ -56,7 +55,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process gcProcess = null;
   Process monitor = null;
   Process tracer = null;
-  List<Process> tabletServerProcesses = Collections.synchronizedList(new ArrayList<Process>());
+  final List<Process> tabletServerProcesses = new ArrayList<Process>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
     Preconditions.checkNotNull(cluster);
@@ -228,23 +227,21 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case TABLET_SERVER:
-        if (tabletServerProcesses != null) {
-          synchronized (tabletServerProcesses) {
-            try {
-              for (Process tserver : tabletServerProcesses) {
-                try {
-                  cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-                } catch (ExecutionException e) {
-                  log.warn("TabletServer did not fully stop after 30 seconds", e);
-                } catch (TimeoutException e) {
-                  log.warn("TabletServer did not fully stop after 30 seconds", e);
-                } catch (InterruptedException e) {
-                  Thread.currentThread().interrupt();
-                }
+        synchronized (tabletServerProcesses) {
+          try {
+            for (Process tserver : tabletServerProcesses) {
+              try {
+                cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException e) {
+                log.warn("TabletServer did not fully stop after 30 seconds", e);
+              } catch (TimeoutException e) {
+                log.warn("TabletServer did not fully stop after 30 seconds", e);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
               }
-            } finally {
-              tabletServerProcesses.clear();
             }
+          } finally {
+            tabletServerProcesses.clear();
           }
         }
         break;
