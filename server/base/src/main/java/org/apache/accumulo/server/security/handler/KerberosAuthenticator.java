@@ -171,8 +171,12 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public synchronized void dropUser(String user) throws AccumuloSecurityException {
-    user = Base64.encodeBase64String(user.getBytes(UTF_8));
-    zkAuthenticator.dropUser(user);
+    final String encodedUser = Base64.encodeBase64String(user.getBytes(UTF_8));
+    try {
+      zkAuthenticator.dropUser(encodedUser);
+    } catch (AccumuloSecurityException e) {
+      throw new AccumuloSecurityException(user, e.asThriftException().getCode(), e.getCause());
+    }
   }
 
   @Override
