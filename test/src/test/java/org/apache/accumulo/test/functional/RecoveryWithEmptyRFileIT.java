@@ -32,7 +32,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -105,7 +104,6 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
     }
     scan.close();
     assertEquals(0l, cells);
-    FileSystem.closeAll();
   }
 
 }
