@@ -17,7 +17,6 @@
 package org.apache.accumulo.gc.replication;
 
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -44,7 +43,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -102,54 +100,23 @@ public class CloseWriteAheadLogReferences implements Runnable {
     }
 
     Span findWalsSpan = Trace.start("findReferencedWals");
-    HashSet<String> referencedWals = null;
+    HashSet<String> closed = null;
     try {
       sw.start();
-      referencedWals = getReferencedWals(conn);
+      closed = getClosedLogs(conn);
     } finally {
       sw.stop();
       findWalsSpan.stop();
     }
 
-    log.info("Found " + referencedWals.size() + " WALs referenced in metadata in " + sw.toString());
-    log.debug("Referenced WALs: " + referencedWals);
+    log.info("Found " + closed.size() + " WALs referenced in metadata in " + sw.toString());
     sw.reset();
-
-    // ACCUMULO-3320 WALs cannot be closed while a TabletServer may still use it later.
-    //
-    // In addition to the WALs that are actively referenced in the metadata table, tservers can also hold on to a WAL that is not presently referenced by any
-    // tablet. For example, a tablet could MinC which would end in all logs for that tablet being removed. However, if more data was ingested into the table,
-    // the same WAL could be re-used again by that tserver.
-    //
-    // If this code happened to run after the compaction but before the log is again referenced by a tabletserver, we might delete the WAL reference, only to
-    // have it recreated again which causes havoc with the replication status for a table.
-    final TInfo tinfo = Tracer.traceInfo();
-    Set<String> activeWals;
-    Span findActiveWalsSpan = Trace.start("findActiveWals");
-    try {
-      sw.start();
-      activeWals = getActiveWals(tinfo);
-    } finally {
-      sw.stop();
-      findActiveWalsSpan.stop();
-    }
-
-    if (null == activeWals) {
-      log.warn("Could not compute the set of currently active WALs. Not closing any files");
-      return;
-    }
-
-    log.debug("Got active WALs from all tservers " + activeWals);
-
-    referencedWals.addAll(activeWals);
-
-    log.info("Found " + activeWals.size() + " WALs actively in use by TabletServers in " + sw.toString());
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
     long recordsClosed = 0;
     try {
       sw.start();
-      recordsClosed = updateReplicationEntries(conn, referencedWals);
+      recordsClosed = updateReplicationEntries(conn, closed);
     } finally {
       sw.stop();
       updateReplicationSpan.stop();
@@ -158,8 +125,6 @@ public class CloseWriteAheadLogReferences implements Runnable {
     log.info("Closed " + recordsClosed + " WAL replication references in replication table in " + sw.toString());
   }
 
-  static final EnumSet<WalState> NOT_OPEN = EnumSet.complementOf(EnumSet.of(WalState.OPEN));
-
   /**
    * Construct the set of referenced WALs from zookeeper
    *
@@ -167,22 +132,22 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *          Connector
    * @return The Set of WALs that are referenced in the metadata table
    */
-  protected HashSet<String> getReferencedWals(Connector conn) {
+  protected HashSet<String> getClosedLogs(Connector conn) {
     WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
 
-    HashSet<String> referencedWals = new HashSet<>();
+    HashSet<String> result = new HashSet<>();
     try {
       for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
-        if (NOT_OPEN.contains(entry.getValue())) {
+        if (entry.getValue() == WalState.UNREFERENCED || entry.getValue() == WalState.CLOSED) {
           Path path = entry.getKey();
-          log.debug("Found WAL " + path.toString());
-          referencedWals.add(path.toString());
+          log.debug("Found closed WAL " + path.toString());
+          result.add(path.toString());
         }
       }
     } catch (WalMarkerException e) {
       throw new RuntimeException(e);
     }
-    return referencedWals;
+    return result;
   }
 
   /**
@@ -289,39 +254,6 @@ public class CloseWriteAheadLogReferences implements Runnable {
       log.warn("Issue with masterConnection (" + address + ") " + e, e);
     }
     return null;
-  }
-
-  /**
-   * Fetch the set of WALs in use by tabletservers
-   *
-   * @return Set of WALs in use by tservers, null if they cannot be computed for some reason
-   */
-  protected Set<String> getActiveWals(TInfo tinfo) {
-    List<String> tservers = getActiveTservers(tinfo);
-
-    // Compute the total set of WALs used by tservers
-    Set<String> walogs = null;
-    if (null != tservers) {
-      walogs = new HashSet<String>();
-      // TODO If we have a lot of tservers, this might start to take a fair amount of time
-      // Consider adding a threadpool to parallelize the requests.
-      // Alternatively, we might have to move to a solution that doesn't involve tserver RPC
-      for (String tserver : tservers) {
-        HostAndPort address = HostAndPort.fromString(tserver);
-        List<String> activeWalsForServer = getActiveWalsForServer(tinfo, address);
-        if (null == activeWalsForServer) {
-          log.debug("Could not fetch active wals from " + address);
-          return null;
-        }
-        log.debug("Got raw active wals for " + address + ", " + activeWalsForServer);
-        for (String activeWal : activeWalsForServer) {
-          // Normalize the WAL URI
-          walogs.add(new Path(activeWal).toString());
-        }
-      }
-    }
-
-    return walogs;
   }
 
   /**

@@ -257,7 +257,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     Assert.assertEquals("Status before and after MinC should be identical", fileToStatus, fileToStatusAfterMinc);
   }
 
-  @Test
+  @Test(timeout = 2 * 60 * 1000)
   public void testUnreferencedWalInTserverIsClosed() throws Exception {
     final String[] names = getUniqueNames(2);
     // `table` will be replicated, `otherTable` is only used to roll the WAL on the tserver
@@ -305,7 +305,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     Assert.assertEquals("Expected to only find one replication status message", 1, fileToStatus.size());
 
     String walName = fileToStatus.keySet().iterator().next();
-    Assert.assertEquals("Expected log file name from tablet to equal replication entry", wals.iterator().next(), walName);
+    Assert.assertTrue("Expected log file name from tablet to equal replication entry", wals.contains(walName));
 
     Status status = fileToStatus.get(walName);
 
@@ -341,8 +341,6 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     Map<String,Status> fileToStatusAfterMinc = getMetadataStatusForTable(table);
     Assert.assertEquals("Expected to still find only one replication status message: " + fileToStatusAfterMinc, 1, fileToStatusAfterMinc.size());
-
-    Assert.assertEquals("Status before and after MinC should be identical", fileToStatus, fileToStatusAfterMinc);
 
     /*
      * To verify that the WALs is still getting closed, we have to force the tserver to close the existing WAL and open a new one instead. The easiest way to do

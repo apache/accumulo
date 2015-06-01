@@ -20,12 +20,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -49,7 +46,6 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -64,7 +60,6 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
-import com.google.common.net.HostAndPort;
 
 public class CloseWriteAheadLogReferencesTest {
 
@@ -177,68 +172,4 @@ public class CloseWriteAheadLogReferencesTest {
     Assert.assertFalse(status.getClosed());
   }
 
-  @Test
-  public void getActiveWals() throws Exception {
-    CloseWriteAheadLogReferences closeWals = EasyMock.createMockBuilder(CloseWriteAheadLogReferences.class).addMockedMethod("getActiveTservers")
-        .addMockedMethod("getActiveWalsForServer").createMock();
-    TInfo tinfo = EasyMock.createMock(TInfo.class);
-
-    List<String> tservers = Arrays.asList("localhost:12345", "localhost:12346");
-    EasyMock.expect(closeWals.getActiveTservers(tinfo)).andReturn(tservers);
-    int numWals = 0;
-    for (String tserver : tservers) {
-      EasyMock.expect(closeWals.getActiveWalsForServer(tinfo, HostAndPort.fromString(tserver))).andReturn(Arrays.asList("/wal" + numWals));
-      numWals++;
-    }
-
-    EasyMock.replay(closeWals);
-
-    Set<String> wals = closeWals.getActiveWals(tinfo);
-
-    EasyMock.verify(closeWals);
-
-    Set<String> expectedWals = new HashSet<String>();
-    for (int i = 0; i < numWals; i++) {
-      expectedWals.add("/wal" + i);
-    }
-
-    Assert.assertEquals(expectedWals, wals);
-  }
-
-  @Test
-  public void offlineMaster() throws Exception {
-    CloseWriteAheadLogReferences closeWals = EasyMock.createMockBuilder(CloseWriteAheadLogReferences.class).addMockedMethod("getActiveTservers")
-        .addMockedMethod("getActiveWalsForServer").createMock();
-    TInfo tinfo = EasyMock.createMock(TInfo.class);
-
-    EasyMock.expect(closeWals.getActiveTservers(tinfo)).andReturn(null);
-
-    EasyMock.replay(closeWals);
-
-    Set<String> wals = closeWals.getActiveWals(tinfo);
-
-    EasyMock.verify(closeWals);
-
-    Assert.assertNull("Expected to get null for active WALs", wals);
-  }
-
-  @Test
-  public void offlineTserver() throws Exception {
-    CloseWriteAheadLogReferences closeWals = EasyMock.createMockBuilder(CloseWriteAheadLogReferences.class).addMockedMethod("getActiveTservers")
-        .addMockedMethod("getActiveWalsForServer").createMock();
-    TInfo tinfo = EasyMock.createMock(TInfo.class);
-
-    List<String> tservers = Arrays.asList("localhost:12345", "localhost:12346");
-    EasyMock.expect(closeWals.getActiveTservers(tinfo)).andReturn(tservers);
-    EasyMock.expect(closeWals.getActiveWalsForServer(tinfo, HostAndPort.fromString("localhost:12345"))).andReturn(Arrays.asList("/wal" + 0));
-    EasyMock.expect(closeWals.getActiveWalsForServer(tinfo, HostAndPort.fromString("localhost:12346"))).andReturn(null);
-
-    EasyMock.replay(closeWals);
-
-    Set<String> wals = closeWals.getActiveWals(tinfo);
-
-    EasyMock.verify(closeWals);
-
-    Assert.assertNull("Expected to get null for active WALs", wals);
-  }
 }
