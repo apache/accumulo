@@ -49,7 +49,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -209,7 +208,7 @@ public class CloneTestIT extends AccumuloClusterIT {
     writeData(table3, c).close();
     c.tableOperations().flush(table3, null, null, true);
     // check for files
-    FileSystem fs = FileSystem.get(new Configuration());
+    FileSystem fs = getCluster().getFileSystem();
     String id = c.tableOperations().tableIdMap().get(table3);
     FileStatus[] status = fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id));
     assertTrue(status.length > 0);

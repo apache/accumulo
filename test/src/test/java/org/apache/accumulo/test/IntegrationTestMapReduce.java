@@ -32,8 +32,11 @@ import org.apache.hadoop.mapreduce.lib.input.NLineInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
+import org.junit.runner.notification.Failure;
+import org.junit.runner.notification.RunListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +55,27 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
       } catch (ClassNotFoundException e) {
         log.debug("Error finding class {}", className, e);
         context.write(new IntWritable(-1), new Text(e.toString()));
+        return;
       }
       JUnitCore core = new JUnitCore();
+      core.addListener(new RunListener() {
+
+        @Override
+        public void testStarted(Description description) throws Exception {
+          log.info("Starting {}", description);
+        }
+
+        @Override
+        public void testFinished(Description description) throws Exception {
+          log.info("Finished {}", description);
+        }
+
+        @Override
+        public void testFailure(Failure failure) throws Exception {
+          log.info("Test failed: {}", failure.getDescription(), failure.getException());
+        }
+
+      });
       log.info("Running test {}", className);
       Result result = core.run(test);
       if (result.wasSuccessful()) {

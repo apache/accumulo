@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -57,7 +58,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.bouncycastle.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -242,7 +242,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     // Use the rfile which was just replaced by the MajC to determine when the GC has ran
     Path fileToBeDeleted = new Path(filesForTable.iterator().next());
-    FileSystem fs = fileToBeDeleted.getFileSystem(new Configuration());
+    FileSystem fs = getCluster().getFileSystem();
 
     boolean fileExists = fs.exists(fileToBeDeleted);
     while (fileExists) {
@@ -327,7 +327,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
 
     // Use the rfile which was just replaced by the MajC to determine when the GC has ran
     Path fileToBeDeleted = new Path(filesForTable.iterator().next());
-    FileSystem fs = fileToBeDeleted.getFileSystem(new Configuration());
+    FileSystem fs = getCluster().getFileSystem();
 
     boolean fileExists = fs.exists(fileToBeDeleted);
     while (fileExists) {

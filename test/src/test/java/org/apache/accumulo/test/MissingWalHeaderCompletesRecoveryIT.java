@@ -105,7 +105,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
   public void testEmptyWalRecoveryCompletes() throws Exception {
     Connector conn = getConnector();
     MiniAccumuloClusterImpl cluster = getCluster();
-    FileSystem fs = FileSystem.get(new Configuration());
+    FileSystem fs = cluster.getFileSystem();
 
     // Fake out something that looks like host:port, it's irrelevant
     String fakeServer = "127.0.0.1:12345";
@@ -157,7 +157,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
     Connector conn = getConnector();
     MiniAccumuloClusterImpl cluster = getCluster();
-    FileSystem fs = FileSystem.get(new Configuration());
+    FileSystem fs = getCluster().getFileSystem();
 
     // Fake out something that looks like host:port, it's irrelevant
     String fakeServer = "127.0.0.1:12345";
