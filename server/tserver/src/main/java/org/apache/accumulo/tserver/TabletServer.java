@@ -2206,7 +2206,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     private ZooCache masterLockCache = new ZooCache();
 
     private void checkPermission(TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
-      boolean fatal = false;
       try {
         log.debug("Got " + request + " message from user: " + credentials.getPrincipal());
         if (!security.canPerformSystemActions(credentials)) {
@@ -2217,18 +2216,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
         if (SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
           log.fatal("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
-          fatal = true;
         }
         throw e;
-      } finally {
-        if (fatal) {
-          Halt.halt(1, new Runnable() {
-            @Override
-            public void run() {
-              logGCInfo(getSystemConfiguration());
-            }
-          });
-        }
       }
 
       if (tabletServerLock == null || !tabletServerLock.wasLockAcquired()) {
