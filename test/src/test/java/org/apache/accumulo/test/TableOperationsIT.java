@@ -61,7 +61,6 @@ import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -305,9 +304,26 @@ public class TableOperationsIT extends AccumuloClusterIT {
     Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key,Value> entry : scanner)
       actual.put(entry.getKey(), entry.getValue());
-    Assume
-        .assumeFalse("Compaction successfully occurred due to weird timing but we hoped it would cancel.", HardListIterator.allEntriesToInject.equals(actual));
-    assertTrue("Scan should be empty if compaction canceled. " + "Actual is " + actual, actual.isEmpty());
+    switch (actual.size()) {
+      case 3:
+        // Compaction cancel didn't happen in time
+        assertTrue(HardListIterator.allEntriesToInject.equals(actual));
+        break;
+      case 2:
+        // Compacted the first tablet (-inf, f)
+        assertEquals(HardListIterator.allEntriesToInject.headMap(new Key("f")), actual);
+        break;
+      case 1:
+        // Compacted the second tablet [f, +inf)
+        assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key("f")), actual);
+        break;
+      case 0:
+        // Cancelled the compaction before it ran. No generated entries.
+        break;
+      default:
+        Assert.fail("Unexpected number of entries");
+        break;
+    }
     connector.tableOperations().delete(tableName);
   }
 
