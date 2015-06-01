@@ -51,7 +51,7 @@ public class VerifyIngest {
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(opts.getTableName(), opts.auths);
 
-    scanner.setRange(new Range(new Text(String.format("row_%08d", opts.startRow)), null));
+    scanner.setRange(new Range(new Text(String.format("row_%010d", opts.startRow)), null));
 
     Iterator<Entry<Key,Value>> si = scanner.iterator();
 
@@ -62,26 +62,30 @@ public class VerifyIngest {
       if (si.hasNext()) {
         Entry<Key,Value> entry = si.next();
 
-        if (!entry.getKey().getRow().toString().equals(String.format("row_%08d", i))) {
-          log.error("unexpected row key " + entry.getKey().getRow().toString() + " expected " + String.format("row_%08d", i));
+        if (!entry.getKey().getRow().toString().equals(String.format("row_%010d", i))) {
+          log.error("unexpected row key " + entry.getKey().getRow().toString() + " expected " + String.format("row_%010d", i));
           ok = false;
         }
 
-        if (!entry.getValue().toString().equals(String.format("value_%08d", i))) {
-          log.error("unexpected value " + entry.getValue().toString() + " expected " + String.format("value_%08d", i));
+        if (!entry.getValue().toString().equals(String.format("value_%010d", i))) {
+          log.error("unexpected value " + entry.getValue().toString() + " expected " + String.format("value_%010d", i));
           ok = false;
         }
 
       } else {
-        log.error("no more rows, expected " + String.format("row_%08d", i));
+        log.error("no more rows, expected " + String.format("row_%010d", i));
         ok = false;
         break;
       }
 
     }
 
-    if (ok)
+    if (ok) {
       System.out.println("OK");
+      System.exit(0);
+    } else {
+      System.exit(1);
+    }
   }
 
 }

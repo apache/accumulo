@@ -81,7 +81,10 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     DelegationTokenConfig cfg = identifier.getConfig();
 
     long now = System.currentTimeMillis();
-    final AuthenticationKey secretKey = currentKey;
+    final AuthenticationKey secretKey;
+    synchronized (this) {
+      secretKey = currentKey;
+    }
     identifier.setKeyId(secretKey.getKeyId());
     identifier.setIssueDate(now);
     long expiration = now + tokenMaxLifetime;

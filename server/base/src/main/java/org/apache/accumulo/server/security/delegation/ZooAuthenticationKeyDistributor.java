@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -46,7 +47,7 @@ public class ZooAuthenticationKeyDistributor {
 
   private final ZooReaderWriter zk;
   private final String baseNode;
-  private boolean initialized = false;
+  private AtomicBoolean initialized = new AtomicBoolean(false);
 
   public ZooAuthenticationKeyDistributor(ZooReaderWriter zk, String baseNode) {
     checkNotNull(zk);
@@ -59,7 +60,7 @@ public class ZooAuthenticationKeyDistributor {
    * Ensures that ZooKeeper is in a correct state to perform distribution of {@link AuthenticationKey}s.
    */
   public synchronized void initialize() throws KeeperException, InterruptedException {
-    if (initialized) {
+    if (initialized.get()) {
       return;
     }
 
@@ -74,7 +75,7 @@ public class ZooAuthenticationKeyDistributor {
         Id actualId = actualAcl.getId();
         // The expected outcome from ZooUtil.PRIVATE
         if (actualAcl.getPerms() == expectedAcl.getPerms() && actualId.getScheme().equals("digest") && actualId.getId().startsWith("accumulo:")) {
-          initialized = true;
+          initialized.set(true);
           return;
         }
       } else {
@@ -85,7 +86,7 @@ public class ZooAuthenticationKeyDistributor {
       throw new IllegalStateException("Delegation token secret key node in ZooKeeper is not protected.");
     }
 
-    initialized = true;
+    initialized.set(true);
   }
 
   /**
@@ -94,7 +95,7 @@ public class ZooAuthenticationKeyDistributor {
    * @return A list of {@link AuthenticationKey}s
    */
   public List<AuthenticationKey> getCurrentKeys() throws KeeperException, InterruptedException {
-    checkState(initialized, "Not initialized");
+    checkState(initialized.get(), "Not initialized");
     List<String> children = zk.getChildren(baseNode);
 
     // Shortcircuit to avoid a list creation
@@ -127,7 +128,7 @@ public class ZooAuthenticationKeyDistributor {
    *          The key to add to ZooKeeper
    */
   public synchronized void advertise(AuthenticationKey newKey) throws KeeperException, InterruptedException {
-    checkState(initialized, "Not initialized");
+    checkState(initialized.get(), "Not initialized");
     checkNotNull(newKey);
 
     // Make sure the node doesn't already exist
@@ -161,7 +162,7 @@ public class ZooAuthenticationKeyDistributor {
    *          The key to remove from ZooKeeper
    */
   public synchronized void remove(AuthenticationKey key) throws KeeperException, InterruptedException {
-    checkState(initialized, "Not initialized");
+    checkState(initialized.get(), "Not initialized");
     checkNotNull(key);
 
     String path = qualifyPath(key);

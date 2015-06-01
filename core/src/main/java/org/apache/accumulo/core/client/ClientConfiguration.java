@@ -261,6 +261,7 @@ public class ClientConfiguration extends CompositeConfiguration {
         clientConfPaths.add(System.getenv("ACCUMULO_HOME") + File.separator + "conf" + File.separator + GLOBAL_CONF_FILENAME);
       }
       clientConfPaths.add("/etc/accumulo/" + GLOBAL_CONF_FILENAME);
+      clientConfPaths.add("/etc/accumulo/conf/" + GLOBAL_CONF_FILENAME);
     }
     return clientConfPaths;
   }
