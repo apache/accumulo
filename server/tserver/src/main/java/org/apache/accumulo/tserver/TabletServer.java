@@ -1381,7 +1381,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     private void checkPermission(TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
-      boolean fatal = false;
       try {
         log.trace("Got " + request + " message from user: " + credentials.getPrincipal());
         if (!security.canPerformSystemActions(credentials)) {
@@ -1392,18 +1391,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
         if (getCredentials().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
           log.error("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
-          fatal = true;
         }
         throw e;
-      } finally {
-        if (fatal) {
-          Halt.halt(1, new Runnable() {
-            @Override
-            public void run() {
-              gcLogger.logGCInfo(TabletServer.this.getConfiguration());
-            }
-          });
-        }
       }
 
       if (tabletServerLock == null || !tabletServerLock.wasLockAcquired()) {
