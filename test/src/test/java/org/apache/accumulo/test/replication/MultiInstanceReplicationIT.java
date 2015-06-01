@@ -216,6 +216,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
       final Set<String> filesNeedingReplication = connMaster.replicationOperations().referencedFiles(masterTable);
 
+      log.info("Files to replicate: " + filesNeedingReplication);
+
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);
       }
@@ -403,6 +405,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       Set<String> filesFor1 = connMaster.replicationOperations().referencedFiles(masterTable1), filesFor2 = connMaster.replicationOperations().referencedFiles(
           masterTable2);
 
+      log.info("Files to replicate for table1: " + filesFor1);
+      log.info("Files to replicate for table2: " + filesFor2);
+
       // Restart the tserver to force a close on the WAL
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -519,6 +524,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     log.info("Wrote all data to master cluster");
 
     Set<String> files = connMaster.replicationOperations().referencedFiles(masterTable);
+
+    log.info("Files to replicate:" + files);
 
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
