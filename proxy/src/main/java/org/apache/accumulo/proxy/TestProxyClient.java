@@ -26,17 +26,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.security.sasl.SaslException;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.rpc.UGIAssumingTransport;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -57,6 +62,22 @@ public class TestProxyClient {
     final TProtocol protocol = protoFactory.getProtocol(transport);
     proxy = new AccumuloProxy.Client(protocol);
     transport.open();
+  }
+
+  public TestProxyClient(String host, int port, TProtocolFactory protoFactory, String proxyPrimary, UserGroupInformation ugi) throws SaslException,
+      TTransportException {
+    TSocket socket = new TSocket(host, port);
+    TSaslClientTransport saslTransport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, host, Collections.singletonMap("javax.security.sasl.qop",
+        "auth"), null, socket);
+
+    transport = new UGIAssumingTransport(saslTransport, ugi);
+
+    // UGI transport will perform the doAs for us
+    transport.open();
+
+    AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
+    final TProtocol protocol = protoFactory.getProtocol(transport);
+    proxy = factory.getClient(protocol);
   }
 
   public synchronized void close() {

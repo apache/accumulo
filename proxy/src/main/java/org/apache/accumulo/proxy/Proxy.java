@@ -178,6 +178,11 @@ public class Proxy implements KeywordExecutable {
   }
 
   public static ServerAddress createProxyServer(HostAndPort address, TProtocolFactory protocolFactory, Properties properties) throws Exception {
+    return createProxyServer(address, protocolFactory, properties, ClientConfiguration.loadDefault());
+  }
+
+  public static ServerAddress createProxyServer(HostAndPort address, TProtocolFactory protocolFactory, Properties properties, ClientConfiguration clientConf)
+      throws Exception {
     final int numThreads = Integer.parseInt(properties.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
     final long maxFrameSize = AccumuloConfiguration.getMemoryInBytes(properties.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
     final int simpleTimerThreadpoolSize = Integer.parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
@@ -205,7 +210,6 @@ public class Proxy implements KeywordExecutable {
       serverType = ThriftServerType.get(serverTypeStr);
     }
 
-    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
     SslConnectionParams sslParams = null;
     SaslServerConnectionParams saslParams = null;
     switch (serverType) {
@@ -213,7 +217,7 @@ public class Proxy implements KeywordExecutable {
         sslParams = SslConnectionParams.forClient(ClientContext.convertClientConfig(clientConf));
         break;
       case SASL:
-        if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey())) {
+        if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
           // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
           log.error("FATAL: SASL thrift server was requested but it is disabled in client configuration");
           throw new RuntimeException("SASL is not enabled in configuration");
