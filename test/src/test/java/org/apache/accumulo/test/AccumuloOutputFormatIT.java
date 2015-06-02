@@ -82,8 +82,8 @@ public class AccumuloOutputFormatIT {
 
   @Test
   public void testMapred() throws Exception {
-
-    ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+    ClientConfiguration clientConfig = accumulo.getClientConfig();
+    ZooKeeperInstance instance = new ZooKeeperInstance(clientConfig);
     Connector connector = instance.getConnector("root", new PasswordToken(secret));
     // create a table and put some data in it
     connector.tableOperations().create(TABLE);
@@ -98,7 +98,7 @@ public class AccumuloOutputFormatIT {
     batchConfig.setMaxMemory(Long.MAX_VALUE);
     AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
     AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
-    AccumuloOutputFormat.setZooKeeperInstance(job, new ClientConfiguration().withInstance(instance.getInstanceName()).withZkHosts(instance.getZooKeepers()));
+    AccumuloOutputFormat.setZooKeeperInstance(job, clientConfig);
     AccumuloOutputFormat.setConnectorInfo(job, "root", new PasswordToken(secret));
     RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 

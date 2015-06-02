@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterIT.class);
-  private static final String TRUE = Boolean.toString(true);
+  public static final String TRUE = Boolean.toString(true);
 
   private static String principal = "root";
   private static String rootPassword;
@@ -157,6 +157,10 @@ public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterU
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static TestingKdc getKdc() {
+    return krb;
   }
 
   @Override
