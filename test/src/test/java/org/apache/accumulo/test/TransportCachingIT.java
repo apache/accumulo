@@ -55,8 +55,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
   public void testCachedTransport() {
     Connector conn = getConnector();
     Instance instance = conn.getInstance();
-    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-    clientConf.withInstance(instance.getInstanceName()).withZkHosts(instance.getZooKeepers());
+    ClientConfiguration clientConf = cluster.getClientConfig();
     ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
     long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
