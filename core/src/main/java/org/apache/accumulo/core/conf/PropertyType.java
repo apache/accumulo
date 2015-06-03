@@ -74,7 +74,7 @@ public enum PropertyType {
 
   STRING("string", ".*",
       "An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies."), BOOLEAN(
-      "boolean", "(?:true|false)", "Has a value of either 'true' or 'false'"), URI("uri", ".*", "A valid URI");
+      "boolean", "(?:True|true|False|false)", "Has a value of either 'true' or 'false'"), URI("uri", ".*", "A valid URI");
 
   private String shortname, format;
   private Pattern regex;

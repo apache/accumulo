@@ -20,6 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.Test;
 
 public class PropertyTypeTest {
@@ -69,5 +72,17 @@ public class PropertyTypeTest {
   public void testIsValidFormat_RegexAbsent() {
     // assertTrue(PropertyType.PREFIX.isValidFormat("whatever")); currently forbidden
     assertTrue(PropertyType.PREFIX.isValidFormat(null));
+  }
+
+  @Test
+  public void testBooleans() {
+    List<String> goodValues = Arrays.asList("True", "true", "False", "false");
+    for (String value : goodValues) {
+      assertTrue(value + " should be a valid boolean format", PropertyType.BOOLEAN.isValidFormat(value));
+    }
+    List<String> badValues = Arrays.asList("foobar", "tRUE", "fAlSe");
+    for (String value : badValues) {
+      assertFalse(value + " should not be a valid boolean format", PropertyType.BOOLEAN.isValidFormat(value));
+    }
   }
 }
