@@ -86,9 +86,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     this.conf = getConfiguration(type);
     this.clientConfFile = clientConfFile;
-    this.clientConf = ClientConfiguration.loadDefault();
     try {
-      clientConf.addConfiguration(new ClientConfiguration(clientConfFile));
+      this.clientConf = new ClientConfiguration(clientConfFile);
     } catch (ConfigurationException e) {
       throw new RuntimeException("Failed to load client configuration from " + clientConfFile);
     }
