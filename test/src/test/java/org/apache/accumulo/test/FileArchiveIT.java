@@ -29,13 +29,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
@@ -91,7 +89,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     log.info("File for table: " + file);
 
-    FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = getCluster().getFileSystem();
     int i = 0;
     while (fs.exists(p)) {
       i++;
@@ -148,7 +146,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     log.info("File for table: " + file);
 
-    FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = getCluster().getFileSystem();
     int i = 0;
     while (fs.exists(p)) {
       i++;
@@ -206,7 +204,7 @@ public class FileArchiveIT extends ConfigurableMacIT {
 
     log.info("File for table: " + file);
 
-    FileSystem fs = LocalFileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = getCluster().getFileSystem();
     int i = 0;
     while (fs.exists(p)) {
       i++;
