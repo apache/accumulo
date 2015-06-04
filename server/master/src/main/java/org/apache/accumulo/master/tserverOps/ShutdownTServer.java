@@ -77,7 +77,7 @@ public class ShutdownTServer extends MasterRepo {
           log.error("Error talking to tablet server " + server + ": " + ex);
         }
 
-        // If the connection was non-null and we could coomunicate with it
+        // If the connection was non-null and we could communicate with it
         // give the master some more time to tell it to stop and for the
         // tserver to ack the request and stop itself.
         return 1000;

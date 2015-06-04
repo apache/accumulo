@@ -31,6 +31,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -54,12 +55,17 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +73,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.net.HostAndPort;
 
@@ -362,9 +369,12 @@ public class Admin implements KeywordExecutable {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
+    final Instance instance = context.getInstance();
+    final String zTServerRoot = getTServersZkPath(instance);
+    final ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String server : servers) {
       HostAndPort address = AddressUtil.parseAddress(server, context.getConfiguration().getPort(Property.TSERV_CLIENTPORT));
-      final String finalServer = address.toString();
+      final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
       log.info("Stopping server " + finalServer);
       MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
         @Override
@@ -372,6 +382,39 @@ public class Admin implements KeywordExecutable {
           client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
         }
       });
+    }
+  }
+
+  /**
+   * Get the parent ZNode for tservers for the given instance
+   *
+   * @param instance
+   *          The Instance
+   * @return The tservers znode for the instance
+   */
+  static String getTServersZkPath(Instance instance) {
+    Preconditions.checkNotNull(instance);
+    final String instanceRoot = ZooUtil.getRoot(instance);
+    return instanceRoot + Constants.ZTSERVERS;
+  }
+
+  /**
+   * Look up the TabletServers in ZooKeeper and try to find a sessionID for this server reference
+   *
+   * @param hostAndPort
+   *          The host and port for a TabletServer
+   * @return The host and port with the session ID in square-brackets appended, or the original value.
+   */
+  static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache, String hostAndPort) {
+    try {
+      long sessionId = ZooLock.getSessionId(zooCache, zTServerRoot + "/" + hostAndPort);
+      if (0 == sessionId) {
+        return hostAndPort;
+      }
+      return hostAndPort + "[" + sessionId + "]";
+    } catch (InterruptedException | KeeperException e) {
+      log.warn("Failed to communicate with ZooKeeper to find session ID for TabletServer.");
+      return hostAndPort;
     }
   }
 
