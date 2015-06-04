@@ -68,7 +68,7 @@ public class AdminTest {
 
     EasyMock.replay(zc);
 
-    assertEquals(server + "[" + session + "]", Admin.qualifyWithZooKeeperSessionId(root, zc, server));
+    assertEquals(server + "[" + Long.toHexString(session) + "]", Admin.qualifyWithZooKeeperSessionId(root, zc, server));
 
     EasyMock.verify(zc);
   }
