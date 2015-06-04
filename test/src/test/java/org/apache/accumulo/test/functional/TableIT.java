@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -90,7 +89,7 @@ public class TableIT extends AccumuloClusterIT {
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     assertTrue(Iterators.size(s.iterator()) > 0);
 
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = getCluster().getFileSystem();
     assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
     to.delete(tableName);
     assertEquals(0, Iterators.size(s.iterator()));
