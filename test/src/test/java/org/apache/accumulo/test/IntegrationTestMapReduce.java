@@ -47,8 +47,11 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
   public static class TestMapper extends Mapper<LongWritable,Text,IntWritable,Text> {
 
     @Override
-    protected void map(LongWritable key, Text value, Mapper<LongWritable,Text,IntWritable,Text>.Context context) throws IOException, InterruptedException {
+    protected void map(LongWritable key, Text value, final Mapper<LongWritable,Text,IntWritable,Text>.Context context) throws IOException, InterruptedException {
       String className = value.toString();
+      if (className.trim().isEmpty()) {
+        return;
+      }
       Class<? extends Object> test = null;
       try {
         test = Class.forName(className);
@@ -63,27 +66,35 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         @Override
         public void testStarted(Description description) throws Exception {
           log.info("Starting {}", description);
+          context.progress();
         }
 
         @Override
         public void testFinished(Description description) throws Exception {
           log.info("Finished {}", description);
+          context.progress();
         }
 
         @Override
         public void testFailure(Failure failure) throws Exception {
           log.info("Test failed: {}", failure.getDescription(), failure.getException());
+          context.progress();
         }
 
       });
       log.info("Running test {}", className);
-      Result result = core.run(test);
-      if (result.wasSuccessful()) {
-        log.info("{} was successful", className);
-        context.write(new IntWritable(0), value);
-      } else {
-        log.info("{} failed", className);
-        context.write(new IntWritable(1), value);
+      try {
+        Result result = core.run(test);
+        if (result.wasSuccessful()) {
+          log.info("{} was successful", className);
+          context.write(new IntWritable(0), value);
+        } else {
+          log.info("{} failed", className);
+          context.write(new IntWritable(1), value);
+        }
+      } catch (Exception e) {
+        // most likely JUnit issues, like no tests to run
+        log.info("Test failed: {}", className, e);
       }
     }
   }
