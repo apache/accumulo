@@ -112,6 +112,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     List<String> tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(2, tabletServers.size());
     String doomed = tabletServers.get(0);
+    log.info("Stopping " + doomed);
     assertEquals(0, cluster.exec(Admin.class, "stop", doomed).waitFor());
     tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(1, tabletServers.size());

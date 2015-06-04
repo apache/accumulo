@@ -411,7 +411,7 @@ public class Admin implements KeywordExecutable {
       if (0 == sessionId) {
         return hostAndPort;
       }
-      return hostAndPort + "[" + sessionId + "]";
+      return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
     } catch (InterruptedException | KeeperException e) {
       log.warn("Failed to communicate with ZooKeeper to find session ID for TabletServer.");
       return hostAndPort;
