@@ -296,9 +296,14 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     }
 
     long tid = master.fate.startTransaction();
+
+    log.debug("Seeding FATE op to shutdown " + tabletServer + " with tid " + tid);
+
     master.fate.seedTransaction(tid, new TraceRepo<Master>(new ShutdownTServer(doomed, force)), false);
     master.fate.waitForCompletion(tid);
     master.fate.delete(tid);
+
+    log.debug("FATE op shutting down " + tabletServer + " finished");
   }
 
   @Override
