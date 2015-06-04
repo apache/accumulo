@@ -42,9 +42,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Convenience class which starts a single MAC instance for a test to leverage.
  *
- * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the logical place) because we need to start the MiniAccumuloCluster in
- * a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation, the actual test classes
- * can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
+ * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the logical place) because we need to start the
+ * MiniAccumuloCluster in a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation,
+ * the actual test classes can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
  */
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);

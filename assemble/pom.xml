@@ -223,17 +223,6 @@
   </build>
   <profiles>
     <profile>
-      <id>test-jar</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-test</artifactId>
-          <version>${project.version}</version>
-          <classifier>tests</classifier>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
       <id>apache-release</id>
       <build>
         <plugins>
