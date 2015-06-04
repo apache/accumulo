@@ -23,7 +23,7 @@ import java.io.File;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // ACCUMULO-118/ACCUMULO-2504
-public class BulkImportVolumeIT extends AccumuloClusterIT {
+public class BulkImportVolumeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(BulkImportVolumeIT.class);
 
   File volDirBase = null;

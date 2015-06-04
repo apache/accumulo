@@ -44,7 +44,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 
-public class RestartIT extends AccumuloClusterIT {
+public class RestartIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(RestartIT.class);
 
   @Override

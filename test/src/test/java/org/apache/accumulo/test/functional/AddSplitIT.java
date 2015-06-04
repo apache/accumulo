@@ -35,11 +35,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class AddSplitIT extends AccumuloClusterIT {
+public class AddSplitIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

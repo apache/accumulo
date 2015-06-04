@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.FileStatus;
@@ -60,7 +60,7 @@ import org.junit.Test;
 /**
  *
  */
-public class CloneTestIT extends AccumuloClusterIT {
+public class CloneTestIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

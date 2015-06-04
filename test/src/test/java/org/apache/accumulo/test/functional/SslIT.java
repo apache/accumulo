@@ -29,7 +29,7 @@ import org.junit.Test;
  * clusters with `mvn verify -DuseSslForIT`
  *
  */
-public class SslIT extends ConfigurableMacIT {
+public class SslIT extends ConfigurableMacBase {
   @Override
   public int defaultTimeoutSeconds() {
     return 6 * 60;

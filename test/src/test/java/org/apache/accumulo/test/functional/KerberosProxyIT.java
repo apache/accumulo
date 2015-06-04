@@ -37,7 +37,7 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.UGIAssumingTransport;
-import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Tests impersonation of clients by the proxy over SASL
  */
-public class KerberosProxyIT extends AccumuloIT {
+public class KerberosProxyIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosProxyIT.class);
 
   @Rule

@@ -36,13 +36,13 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class SplitRecoveryIT extends AccumuloClusterIT {
+public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   private Mutation m(String row) {
     Mutation result = new Mutation(row);

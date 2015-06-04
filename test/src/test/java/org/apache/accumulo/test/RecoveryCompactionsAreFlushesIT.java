@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -41,7 +41,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterators;
 
 // Accumulo3010
-public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterIT {
+public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {

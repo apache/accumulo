@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.junit.Assert;
@@ -38,7 +38,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableConfigurationUpdateIT extends AccumuloClusterIT {
+public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TableConfigurationUpdateIT.class);
 
   @Override

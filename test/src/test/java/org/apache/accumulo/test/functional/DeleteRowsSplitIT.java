@@ -35,14 +35,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // attempt to reproduce ACCUMULO-315
-public class DeleteRowsSplitIT extends AccumuloClusterIT {
+public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

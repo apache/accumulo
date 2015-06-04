@@ -48,7 +48,7 @@ import org.apache.accumulo.proxy.thrift.Durability;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.thrift.protocol.TJSONProtocol;
@@ -58,7 +58,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
-public class ProxyDurabilityIT extends ConfigurableMacIT {
+public class ProxyDurabilityIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

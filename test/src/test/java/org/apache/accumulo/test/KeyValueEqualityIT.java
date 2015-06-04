@@ -27,11 +27,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class KeyValueEqualityIT extends AccumuloClusterIT {
+public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {

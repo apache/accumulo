@@ -43,7 +43,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MapReduceIT extends ConfigurableMacIT {
+public class MapReduceIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

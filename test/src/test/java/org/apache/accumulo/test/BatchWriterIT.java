@@ -21,10 +21,10 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
-public class BatchWriterIT extends AccumuloClusterIT {
+public class BatchWriterIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {

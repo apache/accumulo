@@ -62,7 +62,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.MiniClusterHarness;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.proxy.Proxy;
@@ -128,7 +128,7 @@ import com.google.common.net.HostAndPort;
 /**
  * Call every method on the proxy and try to verify that it works.
  */
-public abstract class SimpleProxyBase extends SharedMiniClusterIT {
+public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(SimpleProxyBase.class);
 
   @Override
@@ -156,7 +156,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   }
 
   private static boolean isKerberosEnabled() {
-    return SharedMiniClusterIT.TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION));
+    return SharedMiniClusterBase.TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION));
   }
 
   /**
@@ -165,7 +165,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   public static void setUpProxy() throws Exception {
     assertNotNull("Implementations must initialize the TProtocolFactory", factory);
 
-    Connector c = SharedMiniClusterIT.getConnector();
+    Connector c = SharedMiniClusterBase.getConnector();
     Instance inst = c.getInstance();
     waitForAccumulo(c);
 
@@ -210,14 +210,14 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     } else {
       clientPrincipal = "root";
       tokenClass = PasswordToken.class.getName();
-      properties.put("password", SharedMiniClusterIT.getRootPassword());
+      properties.put("password", SharedMiniClusterBase.getRootPassword());
       hostname = "localhost";
     }
 
     props.put("tokenClass", tokenClass);
 
-    ClientConfiguration clientConfig = SharedMiniClusterIT.getCluster().getClientConfig();
-    String clientConfPath = new File(SharedMiniClusterIT.getCluster().getConfig().getConfDir(), "client.conf").getAbsolutePath();
+    ClientConfiguration clientConfig = SharedMiniClusterBase.getCluster().getClientConfig();
+    String clientConfPath = new File(SharedMiniClusterBase.getCluster().getConfig().getConfDir(), "client.conf").getAbsolutePath();
     props.put("clientConfigurationFile", clientConfPath);
     properties.put("clientConfigurationFile", clientConfPath);
 
@@ -273,7 +273,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       creds = client.login("root", properties);
 
       // Create 'user'
-      client.createLocalUser(creds, "user", s2bb(SharedMiniClusterIT.getRootPassword()));
+      client.createLocalUser(creds, "user", s2bb(SharedMiniClusterBase.getRootPassword()));
       // Log in as 'user'
       badLogin = client.login("user", properties);
       // Drop 'user', invalidating the credentials
@@ -483,7 +483,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     if (!isKerberosEnabled()) {
       try {
         // Not really a relevant test for kerberos
-        client.authenticateUser(badLogin, "root", s2pp(SharedMiniClusterIT.getRootPassword()));
+        client.authenticateUser(badLogin, "root", s2pp(SharedMiniClusterBase.getRootPassword()));
         fail("Expected AccumuloSecurityException");
       } catch (AccumuloSecurityException e) {
         // Expected
@@ -620,7 +620,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void importDirectoryLoginFailure() throws Exception {
-    MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+    MiniAccumuloClusterImpl cluster = SharedMiniClusterBase.getCluster();
     Path base = cluster.getTemporaryPath();
     Path importDir = new Path(base, "importDir");
     Path failuresDir = new Path(base, "failuresDir");
@@ -739,7 +739,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+      MiniAccumuloClusterImpl cluster = SharedMiniClusterBase.getCluster();
       Path base = cluster.getTemporaryPath();
       Path importDir = new Path(base, "importDir");
       Path failuresDir = new Path(base, "failuresDir");
@@ -959,7 +959,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   @Test
   public void testSiteConfiguration() throws Exception {
     // get something we know is in the site config
-    MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+    MiniAccumuloClusterImpl cluster = SharedMiniClusterBase.getCluster();
     Map<String,String> cfg = client.getSiteConfiguration(creds);
     assertTrue(cfg.get("instance.dfs.dir").startsWith(cluster.getConfig().getAccumuloDir().getAbsolutePath()));
   }
@@ -1150,7 +1150,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       // Can't really authenticate "badly" at the application level w/ kerberos. It's going to fail to even set up an RPC
     } else {
       // check password
-      assertTrue(client.authenticateUser(creds, "root", s2pp(SharedMiniClusterIT.getRootPassword())));
+      assertTrue(client.authenticateUser(creds, "root", s2pp(SharedMiniClusterBase.getRootPassword())));
       assertFalse(client.authenticateUser(creds, "root", s2pp("")));
     }
   }
@@ -1672,7 +1672,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertScan(expected, table);
 
     // export/import
-    MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+    MiniAccumuloClusterImpl cluster = SharedMiniClusterBase.getCluster();
     FileSystem fs = cluster.getFileSystem();
     Path base = cluster.getTemporaryPath();
     Path dir = new Path(base, "test");
@@ -1750,7 +1750,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test
   public void bulkImport() throws Exception {
-    MiniAccumuloClusterImpl cluster = SharedMiniClusterIT.getCluster();
+    MiniAccumuloClusterImpl cluster = SharedMiniClusterBase.getCluster();
     FileSystem fs = cluster.getFileSystem();
     Path base = cluster.getTemporaryPath();
     Path dir = new Path(base, "test");

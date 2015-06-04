@@ -37,7 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-public class CompactionIT extends AccumuloClusterIT {
+public class CompactionIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
   @Override

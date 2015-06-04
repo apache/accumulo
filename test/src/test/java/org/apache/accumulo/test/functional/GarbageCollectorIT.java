@@ -70,7 +70,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class GarbageCollectorIT extends ConfigurableMacIT {
+public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
 
   @Override

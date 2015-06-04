@@ -46,7 +46,7 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
@@ -61,7 +61,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
-public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacIT {
+public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration coreSite) {

@@ -42,12 +42,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Convenience class which starts a single MAC instance for a test to leverage.
  *
- * There isn't a good way to build this off of the {@link AccumuloClusterIT} (as would be the logical place) because we need to start the MiniAccumuloCluster in
+ * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the logical place) because we need to start the MiniAccumuloCluster in
  * a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation, the actual test classes
  * can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
  */
-public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterUsers {
-  private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterIT.class);
+public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
+  private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
 
   private static String principal = "root";
@@ -81,7 +81,7 @@ public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterU
       token = new PasswordToken(rootPassword);
     }
 
-    cluster = harness.create(SharedMiniClusterIT.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token, krb);
+    cluster = harness.create(SharedMiniClusterBase.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token, krb);
     cluster.start();
 
     if (null != krb) {
@@ -175,7 +175,7 @@ public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterU
   @Override
   public ClusterUser getUser(int offset) {
     if (null == krb) {
-      String user = SharedMiniClusterIT.class.getName() + "_" + testName.getMethodName() + "_" + offset;
+      String user = SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {

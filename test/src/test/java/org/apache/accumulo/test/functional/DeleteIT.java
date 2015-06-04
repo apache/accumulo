@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import com.google.common.base.Charsets;
 
-public class DeleteIT extends AccumuloClusterIT {
+public class DeleteIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

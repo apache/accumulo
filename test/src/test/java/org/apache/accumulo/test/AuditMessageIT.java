@@ -50,7 +50,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.hadoop.io.Text;
@@ -64,7 +64,7 @@ import org.junit.Test;
  * MiniAccumuloClusterTest sets up the log4j stuff differently to an installed instance, instead piping everything through stdout and writing to a set location
  * so we have to find the logs and grep the bits we need out.
  */
-public class AuditMessageIT extends ConfigurableMacIT {
+public class AuditMessageIT extends ConfigurableMacBase {
 
   private static final String AUDIT_USER_1 = "AuditUser1";
   private static final String AUDIT_USER_2 = "AuditUser2";

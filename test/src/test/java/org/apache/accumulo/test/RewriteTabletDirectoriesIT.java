@@ -44,7 +44,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.RandomizeVolumes;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -52,7 +52,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-3263
-public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
+public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

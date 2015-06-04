@@ -41,14 +41,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-public class MultiTableBatchWriterIT extends AccumuloClusterIT {
+public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   private Connector connector;
   private MultiTableBatchWriter mtbw;

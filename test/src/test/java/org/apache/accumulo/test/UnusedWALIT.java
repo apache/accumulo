@@ -39,7 +39,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
@@ -50,7 +50,7 @@ import com.google.common.collect.Iterators;
 // "tablets will now have log references that contain no data,
 // so it may be marked with 3 WALs, the first with data, the 2nd without, a 3rd with data.
 // It would be useful to have an IT that will test this situation.
-public class UnusedWALIT extends ConfigurableMacIT {
+public class UnusedWALIT extends ConfigurableMacBase {
 
   private ZooReaderWriter zk;
 

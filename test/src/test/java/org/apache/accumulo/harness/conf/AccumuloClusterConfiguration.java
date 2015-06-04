@@ -18,7 +18,7 @@ package org.apache.accumulo.harness.conf;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
+import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 
 /**
  * Base functionality that must be provided as configuration to the test

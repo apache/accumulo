@@ -41,7 +41,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Start a new table, create many splits, and offline before they can rebalance. Then try to have a different table balance
  */
-public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
+public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private static Logger log = LoggerFactory.getLogger(BalanceInPresenceOfOfflineTableIT.class);
 

@@ -39,10 +39,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.Test;
 
-public class SystemCredentialsIT extends ConfigurableMacIT {
+public class SystemCredentialsIT extends ConfigurableMacBase {
 
   private static final int FAIL_CODE = 7, BAD_PASSWD_FAIL_CODE = 8;
 

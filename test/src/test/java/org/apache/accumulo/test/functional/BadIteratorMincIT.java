@@ -31,13 +31,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class BadIteratorMincIT extends AccumuloClusterIT {
+public class BadIteratorMincIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

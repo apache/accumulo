@@ -62,7 +62,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
@@ -88,7 +88,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-public class ShellServerIT extends SharedMiniClusterIT {
+public class ShellServerIT extends SharedMiniClusterBase {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 

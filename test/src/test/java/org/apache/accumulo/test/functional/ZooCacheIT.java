@@ -28,7 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ZooCacheIT extends ConfigurableMacIT {
+public class ZooCacheIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

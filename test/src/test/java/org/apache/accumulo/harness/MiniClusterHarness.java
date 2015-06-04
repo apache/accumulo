@@ -72,24 +72,24 @@ public class MiniClusterHarness {
     return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()), token, kdc);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloIT testBase, AuthenticationToken token) throws Exception {
+  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloIT testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
+  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
     return create(testBase, token, kdc, MiniClusterConfigurationCallback.NO_CALLBACK);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloIT testBase, AuthenticationToken token, TestingKdc kdc, MiniClusterConfigurationCallback configCallback)
+  public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token, TestingKdc kdc, MiniClusterConfigurationCallback configCallback)
       throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, configCallback, kdc);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
+  public MiniAccumuloClusterImpl create(AccumuloClusterHarness testBase, AuthenticationToken token, TestingKdc kdc) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase, kdc);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, MiniClusterConfigurationCallback callback) throws Exception {
+  public MiniAccumuloClusterImpl create(AccumuloClusterHarness testBase, AuthenticationToken token, MiniClusterConfigurationCallback callback) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, callback);
   }
 
@@ -118,7 +118,7 @@ public class MiniClusterHarness {
       rootPasswd = UUID.randomUUID().toString();
     }
 
-    File baseDir = AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName);
+    File baseDir = AccumuloClusterHarness.createTestDir(testClassName + "_" + testMethodName);
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, rootPasswd);
 
     // Enable native maps by default
@@ -128,7 +128,7 @@ public class MiniClusterHarness {
     Configuration coreSite = new Configuration(false);
 
     // Setup SSL and credential providers if the properties request such
-    configureForEnvironment(cfg, getClass(), AccumuloClusterIT.getSslDir(baseDir), coreSite, kdc);
+    configureForEnvironment(cfg, getClass(), AccumuloClusterHarness.getSslDir(baseDir), coreSite, kdc);
 
     // Invoke the callback for tests to configure MAC before it starts
     configCallback.configureMiniCluster(cfg, coreSite);

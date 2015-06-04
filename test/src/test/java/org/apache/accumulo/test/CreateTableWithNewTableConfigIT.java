@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -43,7 +43,7 @@ import com.google.common.collect.Iterators;
 /**
  *
  */
-public class CreateTableWithNewTableConfigIT extends SharedMiniClusterIT {
+public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
   static private final Logger log = LoggerFactory.getLogger(CreateTableWithNewTableConfigIT.class);
 
   @Override

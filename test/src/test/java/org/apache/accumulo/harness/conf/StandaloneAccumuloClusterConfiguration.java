@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
+import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;

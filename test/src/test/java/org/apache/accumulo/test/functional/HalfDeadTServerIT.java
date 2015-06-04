@@ -43,7 +43,7 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class HalfDeadTServerIT extends ConfigurableMacIT {
+public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

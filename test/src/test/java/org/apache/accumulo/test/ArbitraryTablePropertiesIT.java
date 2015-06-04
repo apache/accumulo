@@ -25,13 +25,13 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
+public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ArbitraryTablePropertiesIT.class);
 
   @Override

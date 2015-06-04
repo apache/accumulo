@@ -65,7 +65,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class WALSunnyDayIT extends ConfigurableMacIT {
+public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private static final Text CF = new Text(new byte[0]);
 

@@ -36,11 +36,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Merge;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MergeIT extends AccumuloClusterIT {
+public class MergeIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {

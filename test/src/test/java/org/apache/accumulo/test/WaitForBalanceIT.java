@@ -33,13 +33,13 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class WaitForBalanceIT extends ConfigurableMacIT {
+public class WaitForBalanceIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

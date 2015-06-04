@@ -27,10 +27,10 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
-public class UsersIT extends AccumuloClusterIT {
+public class UsersIT extends AccumuloClusterHarness {
 
   @Test
   public void testCreateExistingUser() throws Exception {

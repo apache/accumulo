@@ -34,8 +34,8 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -51,10 +51,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for testing. Tests using these typically do very disruptive things
- * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterIT} instead.
+ * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterHarness} instead.
  */
-public class ConfigurableMacIT extends AccumuloIT {
-  public static final Logger log = LoggerFactory.getLogger(ConfigurableMacIT.class);
+public class ConfigurableMacBase extends AccumuloITBase {
+  public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);
 
   protected MiniAccumuloClusterImpl cluster;
 

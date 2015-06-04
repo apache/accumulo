@@ -40,7 +40,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class SessionDurabilityIT extends ConfigurableMacIT {
+public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

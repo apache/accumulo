@@ -25,13 +25,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-3692
-public class BalanceWithOfflineTableIT extends ConfigurableMacIT {
+public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

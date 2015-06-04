@@ -34,7 +34,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -44,7 +44,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
+public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

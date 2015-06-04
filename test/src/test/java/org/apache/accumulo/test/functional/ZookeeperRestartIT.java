@@ -40,7 +40,7 @@ import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class ZookeeperRestartIT extends ConfigurableMacIT {
+public class ZookeeperRestartIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

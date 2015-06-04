@@ -31,7 +31,7 @@ import com.google.common.collect.Range;
 import com.google.common.net.HostAndPort;
 
 // ACCUMULO-2757 - make sure we don't make too many more watchers
-public class WatchTheWatchCountIT extends ConfigurableMacIT {
+public class WatchTheWatchCountIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(WatchTheWatchCountIT.class);
 
   public int defaultOverrideSeconds() {

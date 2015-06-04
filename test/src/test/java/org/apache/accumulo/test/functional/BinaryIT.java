@@ -22,12 +22,12 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestBinaryRows;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BinaryIT extends AccumuloClusterIT {
+public class BinaryIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

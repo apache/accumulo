@@ -37,13 +37,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class BatchWriterFlushIT extends AccumuloClusterIT {
+public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   private static final int NUM_TO_FLUSH = 100000;
 

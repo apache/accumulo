@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
  * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling CleanUp.shutdown().
  *
  * Because this is destructive across the current context classloader, the normal teardown methods will fail (because they attempt to create a Connector). Until
- * the ZooKeeperInstance and Connector are self-contained WRT resource management, we can't leverage the AccumuloClusterIT.
+ * the ZooKeeperInstance and Connector are self-contained WRT resource management, we can't leverage the AccumuloClusterBase.
  */
-public class CleanUpIT extends SharedMiniClusterIT {
+public class CleanUpIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
 
   @Override

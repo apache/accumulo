@@ -59,8 +59,8 @@ import com.google.common.base.Preconditions;
 /**
  * General Integration-Test base class that provides access to an Accumulo instance for testing. This instance could be MAC or a standalone instance.
  */
-public abstract class AccumuloClusterIT extends AccumuloIT implements MiniClusterConfigurationCallback, ClusterUsers {
-  private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);
+public abstract class AccumuloClusterHarness extends AccumuloITBase implements MiniClusterConfigurationCallback, ClusterUsers {
+  private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);
   private static final String TRUE = Boolean.toString(true);
 
   public static enum ClusterType {

@@ -36,7 +36,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -56,7 +56,7 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
+public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
 
   private boolean rootHasWritePermission;

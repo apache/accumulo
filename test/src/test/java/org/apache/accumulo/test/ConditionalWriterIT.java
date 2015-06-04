@@ -81,7 +81,7 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -101,7 +101,7 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-public class ConditionalWriterIT extends AccumuloClusterIT {
+public class ConditionalWriterIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override

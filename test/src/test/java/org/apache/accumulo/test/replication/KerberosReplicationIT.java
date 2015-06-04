@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
@@ -62,7 +62,7 @@ import com.google.common.collect.Iterators;
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
-public class KerberosReplicationIT extends AccumuloIT {
+public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 
   private static TestingKdc kdc;

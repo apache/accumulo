@@ -43,7 +43,7 @@ import org.junit.Test;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
-public class RegexGroupBalanceIT extends ConfigurableMacIT {
+public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {

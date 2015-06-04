@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
+import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

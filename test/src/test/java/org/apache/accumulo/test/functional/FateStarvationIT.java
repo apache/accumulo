@@ -24,7 +24,7 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -32,7 +32,7 @@ import org.junit.Test;
 /**
  * See ACCUMULO-779
  */
-public class FateStarvationIT extends AccumuloClusterIT {
+public class FateStarvationIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

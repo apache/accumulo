@@ -31,14 +31,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MasterAssignmentIT extends AccumuloClusterIT {
+public class MasterAssignmentIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

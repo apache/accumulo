@@ -24,8 +24,8 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -65,7 +65,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
   @Override
   public String getAdminPrincipal() {
     if (saslEnabled) {
-      return AccumuloClusterIT.getKdc().getRootUser().getPrincipal();
+      return AccumuloClusterHarness.getKdc().getRootUser().getPrincipal();
     } else {
       String principal = conf.get(ACCUMULO_MINI_PRINCIPAL_KEY);
       if (null == principal) {
@@ -84,7 +84,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
       conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
       UserGroupInformation.setConfiguration(conf);
 
-      ClusterUser rootUser = AccumuloClusterIT.getKdc().getRootUser();
+      ClusterUser rootUser = AccumuloClusterHarness.getKdc().getRootUser();
       try {
         return new KerberosToken(rootUser.getPrincipal(), rootUser.getKeytab(), true);
       } catch (IOException e) {

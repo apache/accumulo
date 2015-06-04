@@ -48,7 +48,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
-public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
+public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

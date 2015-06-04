@@ -52,7 +52,7 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -69,7 +69,7 @@ import com.google.common.net.HostAndPort;
  * ACCUMULO-3302 series of tests which ensure that a WAL is prematurely closed when a TServer may still continue to use it. Checking that no tablet references a
  * WAL is insufficient to determine if a WAL will never be used in the future.
  */
-public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacIT {
+public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
 
   private final int GC_PERIOD_SECONDS = 1;
@@ -367,7 +367,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     conn.tableOperations().flush(otherTable, null, null, true);
 
     // Get the tservers which the master deems as active
-    final ClientContext context = new ClientContext(conn.getInstance(), new Credentials("root", new PasswordToken(ConfigurableMacIT.ROOT_PASSWORD)),
+    final ClientContext context = new ClientContext(conn.getInstance(), new Credentials("root", new PasswordToken(ConfigurableMacBase.ROOT_PASSWORD)),
         getClientConfig());
     List<String> tservers = MasterClient.execute(context, new ClientExecReturn<List<String>,MasterClientService.Client>() {
       @Override

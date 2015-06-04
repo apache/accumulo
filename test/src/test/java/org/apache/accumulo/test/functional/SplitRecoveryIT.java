@@ -69,7 +69,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Multimap;
 
-public class SplitRecoveryIT extends ConfigurableMacIT {
+public class SplitRecoveryIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

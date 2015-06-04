@@ -44,7 +44,7 @@ import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -52,7 +52,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
+public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

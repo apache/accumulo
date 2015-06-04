@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Methods, setup and/or infrastructure which are common to any Accumulo integration test.
  */
-public class AccumuloIT {
-  private static final Logger log = LoggerFactory.getLogger(AccumuloIT.class);
+public class AccumuloITBase {
+  private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
   @Rule
   public TestName testName = new TestName();

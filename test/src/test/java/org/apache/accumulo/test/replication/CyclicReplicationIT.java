@@ -48,7 +48,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
@@ -158,7 +158,7 @@ public class CyclicReplicationIT {
       master1Cfg.setInstanceName("master1");
 
       // Set up SSL if needed
-      ConfigurableMacIT.configureForEnvironment(master1Cfg, this.getClass(), ConfigurableMacIT.getSslDir(master1Dir));
+      ConfigurableMacBase.configureForEnvironment(master1Cfg, this.getClass(), ConfigurableMacBase.getSslDir(master1Dir));
 
       master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
       master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");

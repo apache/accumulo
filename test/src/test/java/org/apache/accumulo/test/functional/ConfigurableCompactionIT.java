@@ -46,7 +46,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class ConfigurableCompactionIT extends ConfigurableMacIT {
+public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

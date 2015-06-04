@@ -18,10 +18,10 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
-public class CreateManyScannersIT extends AccumuloClusterIT {
+public class CreateManyScannersIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

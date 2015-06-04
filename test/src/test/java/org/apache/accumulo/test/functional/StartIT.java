@@ -20,11 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.start.TestMain;
 import org.junit.Test;
 
-public class StartIT extends AccumuloClusterIT {
+public class StartIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

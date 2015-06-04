@@ -45,7 +45,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -62,7 +62,7 @@ import com.google.common.collect.Sets;
  * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information in the metadata table when there is no work to be done on
  * the tablet (see ACCUMULO-3580)
  */
-public class TabletStateChangeIteratorIT extends SharedMiniClusterIT {
+public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
 
   @Override
   public int defaultTimeoutSeconds() {

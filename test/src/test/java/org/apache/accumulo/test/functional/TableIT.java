@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -47,7 +47,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class TableIT extends AccumuloClusterIT {
+public class TableIT extends AccumuloClusterHarness {
 
   @Override
   protected int defaultTimeoutSeconds() {

@@ -32,7 +32,7 @@ import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class ShutdownIT extends ConfigurableMacIT {
+public class ShutdownIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

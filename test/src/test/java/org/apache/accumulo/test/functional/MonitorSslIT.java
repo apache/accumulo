@@ -47,7 +47,7 @@ import org.junit.Test;
  * Check SSL for the Monitor
  *
  */
-public class MonitorSslIT extends ConfigurableMacIT {
+public class MonitorSslIT extends ConfigurableMacBase {
   @BeforeClass
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("SSL");

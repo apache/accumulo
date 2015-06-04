@@ -27,13 +27,13 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogicalTimeIT extends AccumuloClusterIT {
+public class LogicalTimeIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LogicalTimeIT.class);
 
   @Override

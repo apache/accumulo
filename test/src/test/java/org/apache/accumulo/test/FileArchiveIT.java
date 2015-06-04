@@ -31,7 +31,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -43,7 +43,7 @@ import com.google.common.collect.Iterables;
 /**
  * Tests that files are archived instead of deleted when configured.
  */
-public class FileArchiveIT extends ConfigurableMacIT {
+public class FileArchiveIT extends ConfigurableMacBase {
 
   @Override
   public int defaultTimeoutSeconds() {

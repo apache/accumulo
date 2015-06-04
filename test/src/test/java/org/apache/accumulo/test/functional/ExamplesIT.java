@@ -80,7 +80,7 @@ import org.apache.accumulo.examples.simple.shard.ContinuousQuery;
 import org.apache.accumulo.examples.simple.shard.Index;
 import org.apache.accumulo.examples.simple.shard.Query;
 import org.apache.accumulo.examples.simple.shard.Reverse;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
@@ -103,7 +103,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-public class ExamplesIT extends AccumuloClusterIT {
+public class ExamplesIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ExamplesIT.class);
   private static final BatchWriterOpts bwOpts = new BatchWriterOpts();
   private static final BatchWriterConfig bwc = new BatchWriterConfig();

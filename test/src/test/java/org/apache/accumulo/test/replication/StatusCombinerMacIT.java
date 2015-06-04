@@ -37,7 +37,7 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
@@ -47,7 +47,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
-public class StatusCombinerMacIT extends SharedMiniClusterIT {
+public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Override
   public int defaultTimeoutSeconds() {

@@ -25,7 +25,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.master.Master;
 import org.junit.Test;
 
-public class BackupMasterIT extends ConfigurableMacIT {
+public class BackupMasterIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

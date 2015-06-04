@@ -31,7 +31,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,7 +39,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-3327
-public class FastBulkImportIT extends ConfigurableMacIT {
+public class FastBulkImportIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {

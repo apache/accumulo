@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-public class DurabilityIT extends ConfigurableMacIT {
+public class DurabilityIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(DurabilityIT.class);
 
   @Override

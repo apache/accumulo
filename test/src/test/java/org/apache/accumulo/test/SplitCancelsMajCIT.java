@@ -31,13 +31,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-2862
-public class SplitCancelsMajCIT extends SharedMiniClusterIT {
+public class SplitCancelsMajCIT extends SharedMiniClusterBase {
 
   @Override
   public int defaultTimeoutSeconds() {
