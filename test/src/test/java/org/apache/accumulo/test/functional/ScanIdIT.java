@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -148,7 +149,22 @@ public class ScanIdIT extends AccumuloClusterIT {
 
     for (String tserver : tservers) {
 
-      List<ActiveScan> activeScans = conn.instanceOperations().getActiveScans(tserver);
+      List<ActiveScan> activeScans = null;
+      for (int i = 0; i < 10; i++) {
+        try {
+          activeScans = conn.instanceOperations().getActiveScans(tserver);
+          break;
+        } catch (AccumuloException e) {
+          if (e.getCause() instanceof TableNotFoundException) {
+            log.debug("Got TableNotFoundException, will retry");
+            Thread.sleep(200);
+            continue;
+          }
+          throw e;
+        }
+      }
+
+      assertNotNull("Repeatedly got exception trying to active scans", activeScans);
 
       log.debug("TServer {} has {} active scans", tserver, activeScans.size());
 
