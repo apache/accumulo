@@ -20,6 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.hamcrest.CoreMatchers;
@@ -65,6 +68,19 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     rootPath = mac.getConfig().getDir().getAbsolutePath();
   }
 
+  private static void copyStreamToFileSystem(FileSystem fs, InputStream stream, Path path) throws IOException {
+    byte[] buffer = new byte[10 * 1024];
+    try (FSDataOutputStream dest = fs.create(path); InputStream closeMe = stream) {
+      while (true) {
+        int n = stream.read(buffer, 0, buffer.length);
+        if (n <= 0) {
+          break;
+        }
+        dest.write(buffer, 0, n);
+      }
+    }
+  }
+
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
@@ -78,7 +94,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     scanCheck(c, tableName, "Test");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
-    fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerX.jar"), jarPath);
+    copyStreamToFileSystem(fs, this.getClass().getResourceAsStream("/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
@@ -86,7 +102,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
     scanCheck(c, tableName, "TestX");
     fs.delete(jarPath, true);
-    fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerY.jar"), jarPath);
+    copyStreamToFileSystem(fs, this.getClass().getResourceAsStream("/TestCombinerY.jar"), jarPath);
     UtilWaitThread.sleep(5000);
     scanCheck(c, tableName, "TestY");
     fs.delete(jarPath, true);

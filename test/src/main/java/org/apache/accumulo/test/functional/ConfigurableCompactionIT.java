@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,6 +40,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -99,9 +101,9 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   public void testPerTableClasspath() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
+    File destFile = installJar(getCluster().getConfig().getAccumuloDir(), "/TestCompactionStrat.jar");
     c.tableOperations().create(tableName);
-    c.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
-        System.getProperty("user.dir") + "/src/test/resources/TestCompactionStrat.jar");
+    c.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
     c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
     // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are compacted.
@@ -115,6 +117,12 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     while (countFiles(c, tableName) != 7) {
       UtilWaitThread.sleep(200);
     }
+  }
+
+  private static File installJar(File destDir, String jarFile) throws IOException {
+    File destName = new File(destDir, new File(jarFile).getName());
+    FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile), destName);
+    return destName;
   }
 
   private void writeFlush(Connector conn, String tablename, String row) throws Exception {

@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -41,8 +43,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.functional.ConfigurableCompactionIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -128,9 +132,12 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
+    File target = new File(System.getProperty("user.dir"), "target");
+    target.mkdirs();
+    Assert.assertTrue(target.exists() && target.isDirectory());
+    File destFile = installJar(target, "/TestCompactionStrat.jar");
     c.tableOperations().create(tableName);
-    c.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
-        System.getProperty("user.dir") + "/src/test/resources/TestCompactionStrat.jar");
+    c.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
     c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
 
     c.tableOperations().addSplits(tableName, new TreeSet<Text>(Arrays.asList(new Text("efg"))));
@@ -152,6 +159,12 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
     Assert.assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
+  }
+
+  private static File installJar(File destDir, String jarFile) throws IOException {
+    File destName = new File(destDir, new File(jarFile).getName());
+    FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile), destName);
+    return destName;
   }
 
   @Test

@@ -43,8 +43,8 @@ public class MonitorLoggingIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     File confDir = cfg.getConfDir();
     try {
-      FileUtils.copyFileToDirectory(new File(MonitorLoggingIT.class.getResource("/conf/generic_logger.xml").toURI()), confDir);
-      FileUtils.copyFileToDirectory(new File(MonitorLoggingIT.class.getResource("/conf/monitor_logger.xml").toURI()), confDir);
+      FileUtils.copyInputStreamToFile(MonitorLoggingIT.class.getResourceAsStream("/conf/generic_logger.xml"), new File(confDir, "generic_logger.xml"));
+      FileUtils.copyInputStreamToFile(MonitorLoggingIT.class.getResourceAsStream("/conf/monitor_logger.xml"), new File(confDir, "monitor_logger.xml"));
     } catch (Exception e) {
       log.error("Failed to copy Log4J XML files to conf dir", e);
     }

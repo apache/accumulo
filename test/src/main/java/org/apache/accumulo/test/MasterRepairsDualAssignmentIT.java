@@ -40,6 +40,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.master.state.ClosableIterator;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -147,8 +148,8 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   private void waitForCleanStore(MetaDataStateStore store) {
     while (true) {
-      try {
-        Iterators.size(store.iterator());
+      try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
+        Iterators.size(iter);
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

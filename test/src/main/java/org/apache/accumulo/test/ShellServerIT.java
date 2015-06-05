@@ -1378,11 +1378,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     File fooFilterJar = File.createTempFile("FooFilter", ".jar", new File(rootPath));
 
-    FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooFilter.jar"), fooFilterJar);
     fooFilterJar.deleteOnExit();
 
     File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
-    FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooConstraint.jar"), fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
     ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + ","

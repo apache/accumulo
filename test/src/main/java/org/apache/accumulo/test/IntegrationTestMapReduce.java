@@ -52,6 +52,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
       if (className.trim().isEmpty()) {
         return;
       }
+      log.info("Running test {}", className);
       Class<? extends Object> test = null;
       try {
         test = Class.forName(className);
@@ -82,7 +83,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         }
 
       });
-      log.info("Running test {}", className);
+      context.setStatus(test.getSimpleName());
       try {
         Result result = core.run(test);
         if (result.wasSuccessful()) {
