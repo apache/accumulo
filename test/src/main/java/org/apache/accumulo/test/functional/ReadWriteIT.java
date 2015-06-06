@@ -22,9 +22,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,6 +43,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
@@ -128,7 +140,29 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         Thread.sleep(2000);
       }
     }
-    URL url = new URL("http://" + monitorLocation);
+    String scheme = "http://";
+    if (getCluster() instanceof StandaloneAccumuloCluster) {
+      StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
+      File accumuloSite = new File(standaloneCluster.getServerAccumuloConfDir(), "accumulo-site.xml");
+      if (accumuloSite.isFile()) {
+        Configuration conf = new Configuration(false);
+        conf.addResource(new Path(accumuloSite.toURI()));
+        String monitorSslKeystore = conf.get(Property.MONITOR_SSL_KEYSTORE.getKey());
+        if (null != monitorSslKeystore) {
+          log.info("Setting scheme to HTTPS since monitor ssl keystore configuration was observed in {}", accumuloSite);
+          scheme = "https://";
+          SSLContext ctx = SSLContext.getInstance("SSL");
+          TrustManager[] tm = new TrustManager[] {new TestTrustManager()};
+          ctx.init(new KeyManager[0], tm, new SecureRandom());
+          SSLContext.setDefault(ctx);
+          HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+          HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
+        }
+      } else {
+        log.info("{} is not a normal file, not checking for monitor running with SSL", accumuloSite);
+      }
+    }
+    URL url = new URL(scheme + monitorLocation);
     log.debug("Fetching web page " + url);
     String result = FunctionalTestUtils.readAll(url.openStream());
     assertTrue(result.length() > 100);
@@ -451,6 +485,26 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       }
     }
     return groups;
+  }
+
+  private static class TestTrustManager implements X509TrustManager {
+    @Override
+    public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
+      return null;
+    }
+  }
+
+  private static class TestHostnameVerifier implements HostnameVerifier {
+    @Override
+    public boolean verify(String hostname, SSLSession session) {
+      return true;
+    }
   }
 
 }
