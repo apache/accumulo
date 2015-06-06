@@ -1182,7 +1182,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     if (!isKerberosEnabled()) {
       password = s2bb("");
       client.changeLocalUserPassword(creds, user, password);
-      assertTrue(client.authenticateUser(creds, user, s2pp(password.toString())));
+      assertTrue(client.authenticateUser(creds, user, s2pp(new String(password.array(), password.position(), password.limit()))));
     }
 
     if (isKerberosEnabled()) {
@@ -1201,7 +1201,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       }
     } else {
       // check login with new password
-      client.login(user, s2pp(password.toString()));
+      client.login(user, s2pp(new String(password.array(), password.position(), password.limit())));
     }
   }
 
@@ -1236,7 +1236,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
       userName = getUniqueNames(1)[0];
       // create a user
       client.createLocalUser(creds, userName, password);
-      user = client.login(userName, s2pp(password.toString()));
+      user = client.login(userName, s2pp(new String(password.array(), password.position(), password.limit())));
     }
 
     // check permission failure
