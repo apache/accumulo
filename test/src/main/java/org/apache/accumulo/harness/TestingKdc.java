@@ -56,7 +56,8 @@ public class TestingKdc {
 
   private static File computeKdcDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    targetDir.mkdirs();
+    if (!targetDir.exists())
+      Assert.assertTrue(targetDir.mkdirs());
     Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
 
     // Create the directories: target/kerberos/minikdc

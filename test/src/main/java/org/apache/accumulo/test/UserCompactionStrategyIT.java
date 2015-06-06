@@ -133,7 +133,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
     File target = new File(System.getProperty("user.dir"), "target");
-    target.mkdirs();
+    Assert.assertTrue(target.mkdirs());
     Assert.assertTrue(target.exists() && target.isDirectory());
     File destFile = installJar(target, "/TestCompactionStrat.jar");
     c.tableOperations().create(tableName);
