@@ -187,7 +187,7 @@ public class KerberosProxyIT extends AccumuloIT {
         ugi = UserGroupInformation.getCurrentUser();
       } catch (IOException ex) {
         log.info("Login as root is failing", ex);
-        Thread.sleep(1000);
+        Thread.sleep(3000);
         continue;
       }
 
@@ -206,7 +206,7 @@ public class KerberosProxyIT extends AccumuloIT {
         Throwable cause = e.getCause();
         if (null != cause && cause instanceof ConnectException) {
           log.info("Proxy not yet up, waiting");
-          Thread.sleep(1000);
+          Thread.sleep(3000);
           continue;
         }
       } finally {
