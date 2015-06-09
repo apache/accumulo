@@ -622,7 +622,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>seal-jars,skip-findbugs</releaseProfiles>
+            <releaseProfiles>seal-jars,skip-findbugs,skip-plugin-its-with-skipTests</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>

@@ -83,46 +83,56 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-invoker-plugin</artifactId>
+        <configuration>
+          <noLog>true</noLog>
+          <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+          <pomIncludes>
+            <pomInclude>*/pom.xml</pomInclude>
+          </pomIncludes>
+          <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+          <settingsFile>src/it/settings.xml</settingsFile>
+          <goals>
+            <goal>clean</goal>
+            <goal>post-integration-test</goal>
+          </goals>
+        </configuration>
+        <executions>
+          <execution>
+            <id>integration-test</id>
+            <goals>
+              <goal>install</goal>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
     <profile>
-      <id>test-accumulo-maven-plugin</id>
+      <id>skip-plugin-its-with-skipTests</id>
       <activation>
         <property>
-          <name>!skipITs</name>
+          <name>skipTests</name>
         </property>
       </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-invoker-plugin</artifactId>
-            <configuration>
-              <noLog>true</noLog>
-              <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-              <pomIncludes>
-                <pomInclude>*/pom.xml</pomInclude>
-              </pomIncludes>
-              <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
-              <settingsFile>src/it/settings.xml</settingsFile>
-              <goals>
-                <goal>clean</goal>
-                <goal>post-integration-test</goal>
-              </goals>
-            </configuration>
-            <executions>
-              <execution>
-                <id>integration-test</id>
-                <goals>
-                  <goal>install</goal>
-                  <goal>run</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
+      <properties>
+        <invoker.skip>true</invoker.skip>
+      </properties>
+    </profile>
+    <profile>
+      <id>skip-plugin-its-with-skipITs</id>
+      <activation>
+        <property>
+          <name>skipITs</name>
+        </property>
+      </activation>
+      <properties>
+        <invoker.skip>true</invoker.skip>
+      </properties>
     </profile>
   </profiles>
 </project>
