@@ -496,6 +496,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   @Override
   public synchronized void start() throws IOException, InterruptedException {
+    if (config.useMiniDFS() && miniDFS == null) {
+      throw new IllegalStateException("Cannot restart mini when using miniDFS");
+    }
+
     MiniAccumuloClusterControl control = getClusterControl();
 
     if (config.useExistingInstance()) {
