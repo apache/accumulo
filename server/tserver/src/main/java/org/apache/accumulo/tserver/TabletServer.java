@@ -1713,6 +1713,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           Path source = new Path(filename);
           if (TabletServer.this.getConfiguration().getBoolean(Property.TSERV_ARCHIVE_WALOGS)) {
             Path walogArchive = fs.matchingFileSystem(source, ServerConstants.getWalogArchives());
+            if (walogArchive == null) {
+              throw new IOException(filename + " is not in a volume configured for Accumulo");
+            }
+
             fs.mkdirs(walogArchive);
             Path dest = new Path(walogArchive, source.getName());
             log.info("Archiving walog " + source + " to " + dest);
