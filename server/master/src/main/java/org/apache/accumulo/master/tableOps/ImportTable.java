@@ -435,6 +435,10 @@ class CreateImportDir extends MasterRepo {
 
     log.info("Looking for matching filesystem for " + exportDir + " from options " + Arrays.toString(tableDirs));
     Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
+    if (base == null) {
+      throw new IOException(tableInfo.exportDir + " is not in a volume configured for Accumulo");
+    }
+
     log.info("Chose base table directory of " + base);
     Path directory = new Path(base, tableInfo.tableId);
 

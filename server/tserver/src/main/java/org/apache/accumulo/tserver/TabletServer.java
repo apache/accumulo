@@ -294,7 +294,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static long jitter(long ms) {
     Random r = new Random();
     // add a random 10% wait
-    return (long)((1. + (r.nextDouble() / 10)) * ms);
+    return (long) ((1. + (r.nextDouble() / 10)) * ms);
   }
 
   private synchronized static void logGCInfo(AccumuloConfiguration conf) {
@@ -2538,6 +2538,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           Path source = new Path(filename);
           if (acuConf.getBoolean(Property.TSERV_ARCHIVE_WALOGS)) {
             Path walogArchive = fs.matchingFileSystem(source, ServerConstants.getWalogArchives());
+            if (walogArchive == null) {
+              throw new IOException(filename + " is not in a volume configured for Accumulo");
+            }
+
             fs.mkdirs(walogArchive);
             Path dest = new Path(walogArchive, source.getName());
             log.info("Archiving walog " + source + " to " + dest);
