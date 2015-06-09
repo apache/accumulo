@@ -28,9 +28,11 @@ import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -492,6 +494,11 @@ public class MiniAccumuloConfigImpl {
     return useMiniDFS;
   }
 
+  /**
+   * Configures this cluster to use miniDFS instead of the local {@link FileSystem}. Using this feature will not allow you to re-start
+   * {@link MiniAccumuloCluster} by calling {@link MiniAccumuloCluster#start()} after {@link MiniAccumuloCluster#stop()}, because the underlying miniDFS cannot
+   * be restarted.
+   */
   public void useMiniDFS(boolean useMiniDFS) {
     this.useMiniDFS = useMiniDFS;
   }
