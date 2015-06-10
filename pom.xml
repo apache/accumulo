@@ -654,7 +654,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>apache-release,move-source-tarball,seal-jars,skip-findbugs,!test-accumulo-maven-plugin</releaseProfiles>
+            <releaseProfiles>apache-release,move-source-tarball,seal-jars,skip-findbugs,skip-plugin-its-with-skipTests</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
