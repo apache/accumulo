@@ -133,7 +133,7 @@ This vote will end on $votedate
 
 Thanks!
 
-P.S. Hint: downlaod the whole staging repo with
+P.S. Hint: download the whole staging repo with
     wget -erobots=off -r -l inf -np -nH \\
     https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo/
     # note the trailing slash is needed
