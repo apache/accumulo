@@ -21,9 +21,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -65,7 +64,7 @@ public class CredentialProviderFactoryShim {
   private static Boolean hadoopClassesAvailable = null;
 
   // access to cachedProviders should be synchronized when necessary (for example see getCredentialProviders)
-  private static final Map<String,List<Object>> cachedProviders = new HashMap<String,List<Object>>();
+  private static final ConcurrentHashMap<String,List<Object>> cachedProviders = new ConcurrentHashMap<String,List<Object>>();
 
   /**
    * Determine if we can load the necessary CredentialProvider classes. Only loaded the first time, so subsequent invocations of this method should return fast.
@@ -210,8 +209,9 @@ public class CredentialProviderFactoryShim {
       return null;
     }
 
-    if (cachedProviders.containsKey(path)) {
-      return cachedProviders.get(path);
+    List<Object> providersList = cachedProviders.get(path);
+    if (providersList != null) {
+      return providersList;
     }
 
     // Call CredentialProviderFactory.getProviders(Configuration)
@@ -231,15 +231,13 @@ public class CredentialProviderFactoryShim {
 
     // Cast the Object to List<Object> (actually List<CredentialProvider>)
     try {
-      List<Object> providersList = (List<Object>) providersObj;
-      synchronized (cachedProviders) {
-        if (cachedProviders.containsKey(path)) {
-          return cachedProviders.get(path);
-        } else {
-          cachedProviders.put(path, providersList);
-        }
+      providersList = (List<Object>) providersObj;
+      List<Object> previousValue = cachedProviders.putIfAbsent(path, providersList);
+      if (previousValue != null) {
+        return previousValue;
+      } else {
+        return providersList;
       }
-      return providersList;
     } catch (ClassCastException e) {
       log.error("Expected a List from {} method", HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, e);
       return null;
