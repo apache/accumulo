@@ -58,6 +58,7 @@ public class ShutdownTServer extends MasterRepo {
     // only send this request once
     if (!requestedShutdown) {
       master.shutdownTServer(server);
+      requestedShutdown = true;
     }
 
     if (master.onlineTabletServers().contains(server)) {
