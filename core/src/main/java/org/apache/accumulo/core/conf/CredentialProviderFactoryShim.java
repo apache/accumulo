@@ -21,7 +21,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -61,6 +63,9 @@ public class CredentialProviderFactoryShim {
   private static Method createCredentialEntryMethod = null;
   private static Method flushMethod = null;
   private static Boolean hadoopClassesAvailable = null;
+
+  // access to cachedProviders should be synchronized when necessary (for example see getCredentialProviders)
+  private static final Map<String,List<Object>> cachedProviders = new HashMap<String,List<Object>>();
 
   /**
    * Determine if we can load the necessary CredentialProvider classes. Only loaded the first time, so subsequent invocations of this method should return fast.
@@ -200,6 +205,15 @@ public class CredentialProviderFactoryShim {
    */
   @SuppressWarnings("unchecked")
   protected static List<Object> getCredentialProviders(Configuration conf) {
+    String path = conf.get(CREDENTIAL_PROVIDER_PATH);
+    if (path == null || path.isEmpty()) {
+      return null;
+    }
+
+    if (cachedProviders.containsKey(path)) {
+      return cachedProviders.get(path);
+    }
+
     // Call CredentialProviderFactory.getProviders(Configuration)
     Object providersObj = null;
     try {
@@ -217,7 +231,15 @@ public class CredentialProviderFactoryShim {
 
     // Cast the Object to List<Object> (actually List<CredentialProvider>)
     try {
-      return (List<Object>) providersObj;
+      List<Object> providersList = (List<Object>) providersObj;
+      synchronized (cachedProviders) {
+        if (cachedProviders.containsKey(path)) {
+          return cachedProviders.get(path);
+        } else {
+          cachedProviders.put(path, providersList);
+        }
+      }
+      return providersList;
     } catch (ClassCastException e) {
       log.error("Expected a List from {} method", HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, e);
       return null;
