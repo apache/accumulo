@@ -66,6 +66,7 @@ Release Notes - Accumulo - Version 1.6.3
     * [ACCUMULO-3875] - Unnecessary synchronization and conditionals in MiniAccumuloClusterControl
     * [ACCUMULO-3880] - Malformed Configuration Causes tservers To Shutdown
     * [ACCUMULO-3889] - Make sure ScanIdIT doesn't fail due to TableNotFoundException
+    * [ACCUMULO-3890] - Use of CredentialProvider results in a lot of NN ops
 
 ** Improvement
     * [ACCUMULO-3638] - adjust warning "Could not parse timeout.factor, defaulting to no timeout."
