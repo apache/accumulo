@@ -27,7 +27,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Range;
 import com.google.common.net.HostAndPort;
 
 // ACCUMULO-2757 - make sure we don't make too many more watchers
@@ -52,7 +51,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
     }
     c.tableOperations().list();
     String zooKeepers = c.getInstance().getZooKeepers();
-    final Range<Long> expectedWatcherRange = Range.open(475l, 700l);
+    final long MIN = 475L;
+    final long MAX = 700L;
     long total = 0;
     final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
     for (int i = 0; i < 5; i++) {
@@ -64,17 +64,18 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
         String response = new String(buffer, 0, n);
         total = Long.parseLong(response.split(":")[1].trim());
         log.info("Total: {}", total);
-        if (expectedWatcherRange.contains(total)) {
+        if (total > MIN && total < MAX) {
           break;
         }
-        log.debug("Expected number of watchers to be contained in {}, but actually was {}. Sleeping and retrying", expectedWatcherRange, total);
+        log.debug("Expected number of watchers to be contained in ({}, {}), but actually was {}. Sleeping and retrying", MIN, MAX, total);
         Thread.sleep(5000);
       } finally {
         socket.close();
       }
     }
 
-    assertTrue("Expected number of watchers to be contained in " + expectedWatcherRange + ", but actually was " + total, expectedWatcherRange.contains(total));
+    assertTrue("Expected number of watchers to be contained in (" + MIN + ", " + MAX + "), but actually was " + total, total > MIN && total < MAX);
+
   }
 
 }
