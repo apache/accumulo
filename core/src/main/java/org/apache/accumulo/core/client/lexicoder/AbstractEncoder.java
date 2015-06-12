@@ -51,7 +51,7 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
     Preconditions.checkNotNull(b, "cannot decode null byte array");
     Preconditions.checkArgument(offset >= 0, "offset %s cannot be negative", offset);
     Preconditions.checkArgument(len >= 0, "length %s cannot be negative", len);
-    Preconditions.checkArgument(offset + len < b.length, "offset + length %s exceeds byte array length %s", (offset + len), b.length);
+    Preconditions.checkArgument(offset + len <= b.length, "offset + length %s exceeds byte array length %s", (offset + len), b.length);
 
     return decodeUnchecked(b, offset, len);
   }
