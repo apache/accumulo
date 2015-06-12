@@ -78,11 +78,6 @@ public abstract class AbstractLexicoderTest extends LexicoderTest {
     } catch (IllegalArgumentException e) {}
 
     try {
-      lexicoder.decode(encoded, encoded.length, 0);
-      fail("Should throw on offset==length.");
-    } catch (IllegalArgumentException e) {}
-
-    try {
       lexicoder.decode(encoded, 0, -1);
       fail("Should throw on negative length.");
     } catch (IllegalArgumentException e) {}
