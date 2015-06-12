@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -43,11 +44,12 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
-    List<Thread> threads = new ArrayList<Thread>();
     final ClientConfiguration clientConfig = getCluster().getClientConfig();
-    for (int i = 0; i < 10; i++) {
+    final int THREADS = 5;
+    ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(THREADS));
+    for (int i = 0; i < THREADS; i++) {
       final int index = i;
-      Thread t = new Thread() {
+      Runnable r = new Runnable() {
         @Override
         public void run() {
           try {
@@ -60,23 +62,24 @@ public class WriteLotsIT extends AccumuloClusterHarness {
             } else {
               opts.setPrincipal(getAdminPrincipal());
             }
+            BatchWriterOpts bwOpts = new BatchWriterOpts();
+            bwOpts.batchMemory = 1024L * 1024;
+            bwOpts.batchThreads = 2;
             TestIngest.ingest(c, opts, new BatchWriterOpts());
           } catch (Exception ex) {
             ref.set(ex);
           }
         }
       };
-      t.start();
-      threads.add(t);
+      tpe.execute(r);
     }
-    for (Thread thread : threads) {
-      thread.join();
-    }
+    tpe.shutdown();
+    tpe.awaitTermination(90, TimeUnit.SECONDS);
     if (ref.get() != null) {
       throw ref.get();
     }
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.rows = 10000 * 10;
+    vopts.rows = 10000 * THREADS;
     vopts.setTableName(tableName);
     if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
       vopts.updateKerberosCredentials(clientConfig);

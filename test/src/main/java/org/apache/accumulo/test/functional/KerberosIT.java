@@ -112,6 +112,7 @@ public class KerberosIT extends AccumuloITBase {
     if (null != krbEnabledForITs) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, krbEnabledForITs);
     }
+    UserGroupInformation.setConfiguration(new Configuration(false));
   }
 
   @Override
@@ -153,19 +154,24 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testAdminUser() throws Exception {
     // Login as the client (provided to `accumulo init` as the "root" user)
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        final Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
 
-    final Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+        // The "root" user should have all system permissions
+        for (SystemPermission perm : SystemPermission.values()) {
+          assertTrue("Expected user to have permission: " + perm, conn.securityOperations().hasSystemPermission(conn.whoami(), perm));
+        }
 
-    // The "root" user should have all system permissions
-    for (SystemPermission perm : SystemPermission.values()) {
-      assertTrue("Expected user to have permission: " + perm, conn.securityOperations().hasSystemPermission(conn.whoami(), perm));
-    }
-
-    // and the ability to modify the root and metadata tables
-    for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)) {
-      assertTrue(conn.securityOperations().hasTablePermission(conn.whoami(), table, TablePermission.ALTER_TABLE));
-    }
+        // and the ability to modify the root and metadata tables
+        for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)) {
+          assertTrue(conn.securityOperations().hasTablePermission(conn.whoami(), table, TablePermission.ALTER_TABLE));
+        }
+        return null;
+      }
+    });
   }
 
   @Test
@@ -179,39 +185,51 @@ public class KerberosIT extends AccumuloITBase {
     // Create a new user
     kdc.createPrincipal(newUserKeytab, newUser);
 
-    newUser = kdc.qualifyUser(newUser);
+    final String newQualifiedUser = kdc.qualifyUser(newUser);
+    final HashSet<String> users = Sets.newHashSet(rootUser.getPrincipal());
 
     // Login as the "root" user
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
-    log.info("Created connector as {}", rootUser.getPrincipal());
-    assertEquals(rootUser.getPrincipal(), conn.whoami());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+        log.info("Created connector as {}", rootUser.getPrincipal());
+        assertEquals(rootUser.getPrincipal(), conn.whoami());
 
-    // Make sure the system user doesn't exist -- this will force some RPC to happen server-side
-    createTableWithDataAndCompact(conn);
+        // Make sure the system user doesn't exist -- this will force some RPC to happen server-side
+        createTableWithDataAndCompact(conn);
 
-    HashSet<String> users = Sets.newHashSet(rootUser.getPrincipal());
-    assertEquals(users, conn.securityOperations().listLocalUsers());
+        assertEquals(users, conn.securityOperations().listLocalUsers());
 
+        return null;
+      }
+    });
     // Switch to a new user
-    UserGroupInformation.loginUserFromKeytab(newUser, newUserKeytab.getAbsolutePath());
-    log.info("Logged in as {}", newUser);
+    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(newQualifiedUser, newUserKeytab.getAbsolutePath());
+    log.info("Logged in as {}", newQualifiedUser);
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(newQualifiedUser, new KerberosToken());
+        log.info("Created connector as {}", newQualifiedUser);
+        assertEquals(newQualifiedUser, conn.whoami());
 
-    conn = mac.getConnector(newUser, new KerberosToken());
-    log.info("Created connector as {}", newUser);
-    assertEquals(newUser, conn.whoami());
+        // The new user should have no system permissions
+        for (SystemPermission perm : SystemPermission.values()) {
+          assertFalse(conn.securityOperations().hasSystemPermission(newQualifiedUser, perm));
+        }
 
-    // The new user should have no system permissions
-    for (SystemPermission perm : SystemPermission.values()) {
-      assertFalse(conn.securityOperations().hasSystemPermission(newUser, perm));
-    }
+        users.add(newQualifiedUser);
 
-    users.add(newUser);
+        // Same users as before, plus the new user we just created
+        assertEquals(users, conn.securityOperations().listLocalUsers());
+        return null;
+      }
 
-    // Same users as before, plus the new user we just created
-    assertEquals(users, conn.securityOperations().listLocalUsers());
+    });
   }
 
   @Test
@@ -225,42 +243,59 @@ public class KerberosIT extends AccumuloITBase {
     // Create some new users
     kdc.createPrincipal(user1Keytab, user1);
 
-    user1 = kdc.qualifyUser(user1);
+    final String qualifiedUser1 = kdc.qualifyUser(user1);
 
     // Log in as user1
-    UserGroupInformation.loginUserFromKeytab(user1, user1Keytab.getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user1, user1Keytab.getAbsolutePath());
     log.info("Logged in as {}", user1);
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        // Indirectly creates this user when we use it
+        Connector conn = mac.getConnector(qualifiedUser1, new KerberosToken());
+        log.info("Created connector as {}", qualifiedUser1);
 
-    // Indirectly creates this user when we use it
-    Connector conn = mac.getConnector(user1, new KerberosToken());
-    log.info("Created connector as {}", user1);
+        // The new user should have no system permissions
+        for (SystemPermission perm : SystemPermission.values()) {
+          assertFalse(conn.securityOperations().hasSystemPermission(qualifiedUser1, perm));
+        }
 
-    // The new user should have no system permissions
-    for (SystemPermission perm : SystemPermission.values()) {
-      assertFalse(conn.securityOperations().hasSystemPermission(user1, perm));
-    }
+        return null;
+      }
+    });
 
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
-    conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
-
-    conn.securityOperations().grantSystemPermission(user1, SystemPermission.CREATE_TABLE);
+    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+        conn.securityOperations().grantSystemPermission(qualifiedUser1, SystemPermission.CREATE_TABLE);
+        return null;
+      }
+    });
 
     // Switch back to the original user
-    UserGroupInformation.loginUserFromKeytab(user1, user1Keytab.getAbsolutePath());
-    conn = mac.getConnector(user1, new KerberosToken());
+    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user1, user1Keytab.getAbsolutePath());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(qualifiedUser1, new KerberosToken());
 
-    // Shouldn't throw an exception since we granted the create table permission
-    final String table = testName.getMethodName() + "_user_table";
-    conn.tableOperations().create(table);
+        // Shouldn't throw an exception since we granted the create table permission
+        final String table = testName.getMethodName() + "_user_table";
+        conn.tableOperations().create(table);
 
-    // Make sure we can actually use the table we made
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", "d");
-    bw.addMutation(m);
-    bw.close();
+        // Make sure we can actually use the table we made
+        BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+        Mutation m = new Mutation("a");
+        m.put("b", "c", "d");
+        bw.addMutation(m);
+        bw.close();
 
-    conn.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
+        conn.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
+        return null;
+      }
+    });
   }
 
   @Test
@@ -274,64 +309,81 @@ public class KerberosIT extends AccumuloITBase {
     // Create some new users -- cannot contain realm
     kdc.createPrincipal(user1Keytab, user1);
 
-    user1 = kdc.qualifyUser(user1);
+    final String qualifiedUser1 = kdc.qualifyUser(user1);
 
     // Log in as user1
-    UserGroupInformation.loginUserFromKeytab(user1, user1Keytab.getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(qualifiedUser1, user1Keytab.getAbsolutePath());
     log.info("Logged in as {}", user1);
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        // Indirectly creates this user when we use it
+        Connector conn = mac.getConnector(qualifiedUser1, new KerberosToken());
+        log.info("Created connector as {}", qualifiedUser1);
 
-    // Indirectly creates this user when we use it
-    Connector conn = mac.getConnector(user1, new KerberosToken());
-    log.info("Created connector as {}", user1);
+        // The new user should have no system permissions
+        for (SystemPermission perm : SystemPermission.values()) {
+          assertFalse(conn.securityOperations().hasSystemPermission(qualifiedUser1, perm));
+        }
+        return null;
+      }
 
-    // The new user should have no system permissions
-    for (SystemPermission perm : SystemPermission.values()) {
-      assertFalse(conn.securityOperations().hasSystemPermission(user1, perm));
-    }
-
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
-    conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+    });
 
     final String table = testName.getMethodName() + "_user_table";
-    conn.tableOperations().create(table);
-
     final String viz = "viz";
 
-    // Give our unprivileged user permission on the table we made for them
-    conn.securityOperations().grantTablePermission(user1, table, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(user1, table, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(user1, table, TablePermission.ALTER_TABLE);
-    conn.securityOperations().grantTablePermission(user1, table, TablePermission.DROP_TABLE);
-    conn.securityOperations().changeUserAuthorizations(user1, new Authorizations(viz));
+    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+        conn.tableOperations().create(table);
+        // Give our unprivileged user permission on the table we made for them
+        conn.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.READ);
+        conn.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.WRITE);
+        conn.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.ALTER_TABLE);
+        conn.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.DROP_TABLE);
+        conn.securityOperations().changeUserAuthorizations(qualifiedUser1, new Authorizations(viz));
+        return null;
+      }
+    });
 
     // Switch back to the original user
-    UserGroupInformation.loginUserFromKeytab(user1, user1Keytab.getAbsolutePath());
-    conn = mac.getConnector(user1, new KerberosToken());
+    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(qualifiedUser1, user1Keytab.getAbsolutePath());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        Connector conn = mac.getConnector(qualifiedUser1, new KerberosToken());
 
-    // Make sure we can actually use the table we made
+        // Make sure we can actually use the table we made
 
-    // Write data
-    final long ts = 1000l;
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
-    bw.addMutation(m);
-    bw.close();
+        // Write data
+        final long ts = 1000l;
+        BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+        Mutation m = new Mutation("a");
+        m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
+        bw.addMutation(m);
+        bw.close();
 
-    // Compact
-    conn.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
+        // Compact
+        conn.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
 
-    // Alter
-    conn.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+        // Alter
+        conn.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
-    // Read (and proper authorizations)
-    Scanner s = conn.createScanner(table, new Authorizations(viz));
-    Iterator<Entry<Key,Value>> iter = s.iterator();
-    assertTrue("No results from iterator", iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
-    assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
-    assertEquals(new Value("d".getBytes()), entry.getValue());
-    assertFalse("Had more results from iterator", iter.hasNext());
+        // Read (and proper authorizations)
+        Scanner s = conn.createScanner(table, new Authorizations(viz));
+        Iterator<Entry<Key,Value>> iter = s.iterator();
+        assertTrue("No results from iterator", iter.hasNext());
+        Entry<Key,Value> entry = iter.next();
+        assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
+        assertEquals(new Value("d".getBytes()), entry.getValue());
+        assertFalse("Had more results from iterator", iter.hasNext());
+        return null;
+      }
+    });
   }
 
   @Test
@@ -389,16 +441,26 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testDelegationTokenAsDifferentUser() throws Exception {
     // Login as the "root" user
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    // As the "root" user, open up the connection and get a delegation token
-    Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
-    log.info("Created connector as {}", rootUser.getPrincipal());
-    assertEquals(rootUser.getPrincipal(), conn.whoami());
-    final AuthenticationToken delegationToken = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+    final AuthenticationToken delegationToken;
+    try {
+      delegationToken = ugi.doAs(new PrivilegedExceptionAction<AuthenticationToken>() {
+        @Override
+        public AuthenticationToken run() throws Exception {
+          // As the "root" user, open up the connection and get a delegation token
+          Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+          log.info("Created connector as {}", rootUser.getPrincipal());
+          assertEquals(rootUser.getPrincipal(), conn.whoami());
+          return conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        }
+      });
+    } catch (UndeclaredThrowableException ex) {
+      throw ex;
+    }
 
-    // The above login with keytab doesn't have a way to logout, so make a fake user that won't have krb credentials
+    // make a fake user that won't have krb credentials
     UserGroupInformation userWithoutPrivs = UserGroupInformation.createUserForTesting("fake_user", new String[0]);
     try {
       // Use the delegation token to try to log in as a different user
@@ -418,7 +480,7 @@ public class KerberosIT extends AccumuloITBase {
     }
   }
 
-  @Test(expected = AccumuloSecurityException.class)
+  @Test
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName.getMethodName();
     final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
@@ -429,17 +491,26 @@ public class KerberosIT extends AccumuloITBase {
     // Create a new user
     kdc.createPrincipal(newUserKeytab, newUser);
 
-    newUser = kdc.qualifyUser(newUser);
+    final String qualifiedNewUser = kdc.qualifyUser(newUser);
 
     // Login as a normal user
-    UserGroupInformation.loginUserFromKeytab(newUser, newUserKeytab.getAbsolutePath());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(qualifiedNewUser, newUserKeytab.getAbsolutePath());
+    try {
+      ugi.doAs(new PrivilegedExceptionAction<Void>() {
+        @Override
+        public Void run() throws Exception {
+          // As the "root" user, open up the connection and get a delegation token
+          Connector conn = mac.getConnector(qualifiedNewUser, new KerberosToken());
+          log.info("Created connector as {}", qualifiedNewUser);
+          assertEquals(qualifiedNewUser, conn.whoami());
 
-    // As the "root" user, open up the connection and get a delegation token
-    Connector conn = mac.getConnector(newUser, new KerberosToken());
-    log.info("Created connector as {}", newUser);
-    assertEquals(newUser, conn.whoami());
-
-    conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+          conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+          return null;
+        }
+      });
+    } catch (UndeclaredThrowableException ex) {
+      assertTrue(ex.getCause() instanceof AccumuloSecurityException);
+    }
   }
 
   @Test

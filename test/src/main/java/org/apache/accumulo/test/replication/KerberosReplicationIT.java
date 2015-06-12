@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import java.security.PrivilegedExceptionAction;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -114,6 +115,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
         cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
         cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
         coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+        coreSite.set("fs.defaultFS", "file:///");
       }
     };
   }
@@ -143,91 +145,99 @@ public class KerberosReplicationIT extends AccumuloITBase {
     if (null != primary) {
       primary.stop();
     }
+    UserGroupInformation.setConfiguration(new Configuration(false));
   }
 
   @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     // Login as the root user
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    final UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().toURI().toString());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        log.info("testing {}", ugi);
+        final KerberosToken token = new KerberosToken();
+        final Connector primaryConn = primary.getConnector(rootUser.getPrincipal(), token);
+        final Connector peerConn = peer.getConnector(rootUser.getPrincipal(), token);
 
-    final KerberosToken token = new KerberosToken();
-    final Connector primaryConn = primary.getConnector(rootUser.getPrincipal(), token);
-    final Connector peerConn = peer.getConnector(rootUser.getPrincipal(), token);
+        ClusterUser replicationUser = kdc.getClientPrincipal(0);
 
-    ClusterUser replicationUser = kdc.getClientPrincipal(0);
+        // Create user for replication to the peer
+        peerConn.securityOperations().createLocalUser(replicationUser.getPrincipal(), null);
 
-    // Create user for replication to the peer
-    peerConn.securityOperations().createLocalUser(replicationUser.getPrincipal(), null);
+        primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + PEER_NAME, replicationUser.getPrincipal());
+        primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEER_KEYTAB.getKey() + PEER_NAME, replicationUser.getKeytab().getAbsolutePath());
 
-    primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + PEER_NAME, replicationUser.getPrincipal());
-    primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEER_KEYTAB.getKey() + PEER_NAME, replicationUser.getKeytab().getAbsolutePath());
+        // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
+        primaryConn.instanceOperations().setProperty(
+            Property.REPLICATION_PEERS.getKey() + PEER_NAME,
+            ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
+                AccumuloReplicaSystem.buildConfiguration(peerConn.getInstance().getInstanceName(), peerConn.getInstance().getZooKeepers())));
 
-    // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-    primaryConn.instanceOperations().setProperty(
-        Property.REPLICATION_PEERS.getKey() + PEER_NAME,
-        ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-            AccumuloReplicaSystem.buildConfiguration(peerConn.getInstance().getInstanceName(), peerConn.getInstance().getZooKeepers())));
+        String primaryTable1 = "primary", peerTable1 = "peer";
 
-    String primaryTable1 = "primary", peerTable1 = "peer";
+        // Create tables
+        primaryConn.tableOperations().create(primaryTable1);
+        String masterTableId1 = primaryConn.tableOperations().tableIdMap().get(primaryTable1);
+        Assert.assertNotNull(masterTableId1);
 
-    // Create tables
-    primaryConn.tableOperations().create(primaryTable1);
-    String masterTableId1 = primaryConn.tableOperations().tableIdMap().get(primaryTable1);
-    Assert.assertNotNull(masterTableId1);
+        peerConn.tableOperations().create(peerTable1);
+        String peerTableId1 = peerConn.tableOperations().tableIdMap().get(peerTable1);
+        Assert.assertNotNull(peerTableId1);
 
-    peerConn.tableOperations().create(peerTable1);
-    String peerTableId1 = peerConn.tableOperations().tableIdMap().get(peerTable1);
-    Assert.assertNotNull(peerTableId1);
+        // Grant write permission
+        peerConn.securityOperations().grantTablePermission(replicationUser.getPrincipal(), peerTable1, TablePermission.WRITE);
 
-    // Grant write permission
-    peerConn.securityOperations().grantTablePermission(replicationUser.getPrincipal(), peerTable1, TablePermission.WRITE);
+        // Replicate this table to the peerClusterName in a table with the peerTableId table id
+        primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION.getKey(), "true");
+        primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
 
-    // Replicate this table to the peerClusterName in a table with the peerTableId table id
-    primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION.getKey(), "true");
-    primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
+        // Write some data to table1
+        BatchWriter bw = primaryConn.createBatchWriter(primaryTable1, new BatchWriterConfig());
+        long masterTable1Records = 0l;
+        for (int rows = 0; rows < 2500; rows++) {
+          Mutation m = new Mutation(primaryTable1 + rows);
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+            masterTable1Records++;
+          }
+          bw.addMutation(m);
+        }
 
-    // Write some data to table1
-    BatchWriter bw = primaryConn.createBatchWriter(primaryTable1, new BatchWriterConfig());
-    long masterTable1Records = 0l;
-    for (int rows = 0; rows < 2500; rows++) {
-      Mutation m = new Mutation(primaryTable1 + rows);
-      for (int cols = 0; cols < 100; cols++) {
-        String value = Integer.toString(cols);
-        m.put(value, "", value);
-        masterTable1Records++;
+        bw.close();
+
+        log.info("Wrote all data to primary cluster");
+
+        Set<String> filesFor1 = primaryConn.replicationOperations().referencedFiles(primaryTable1);
+
+        // Restart the tserver to force a close on the WAL
+        for (ProcessReference proc : primary.getProcesses().get(ServerType.TABLET_SERVER)) {
+          primary.killProcess(ServerType.TABLET_SERVER, proc);
+        }
+        primary.exec(TabletServer.class);
+
+        log.info("Restarted the tserver");
+
+        // Read the data -- the tserver is back up and running and tablets are assigned
+        Iterators.size(primaryConn.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
+
+        // Wait for both tables to be replicated
+        log.info("Waiting for {} for {}", filesFor1, primaryTable1);
+        primaryConn.replicationOperations().drain(primaryTable1, filesFor1);
+
+        long countTable = 0l;
+        for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(primaryTable1));
+        }
+
+        log.info("Found {} records in {}", countTable, peerTable1);
+        Assert.assertEquals(masterTable1Records, countTable);
+
+        return null;
       }
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    log.info("Wrote all data to primary cluster");
-
-    Set<String> filesFor1 = primaryConn.replicationOperations().referencedFiles(primaryTable1);
-
-    // Restart the tserver to force a close on the WAL
-    for (ProcessReference proc : primary.getProcesses().get(ServerType.TABLET_SERVER)) {
-      primary.killProcess(ServerType.TABLET_SERVER, proc);
-    }
-    primary.exec(TabletServer.class);
-
-    log.info("Restarted the tserver");
-
-    // Read the data -- the tserver is back up and running and tablets are assigned
-    Iterators.size(primaryConn.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
-
-    // Wait for both tables to be replicated
-    log.info("Waiting for {} for {}", filesFor1, primaryTable1);
-    primaryConn.replicationOperations().drain(primaryTable1, filesFor1);
-
-    long countTable = 0l;
-    for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
-      countTable++;
-      Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-          .startsWith(primaryTable1));
-    }
-
-    log.info("Found {} records in {}", countTable, peerTable1);
-    Assert.assertEquals(masterTable1Records, countTable);
+    });
   }
 }

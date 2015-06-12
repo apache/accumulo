@@ -46,10 +46,8 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 
 import com.google.common.collect.Iterators;
 
@@ -106,10 +104,6 @@ public class FunctionalTestUtils {
     fs.mkdirs(failPath);
 
     // Ensure server can read/modify files
-    FsShell fsShell = new FsShell(fs.getConf());
-    Assert.assertEquals("Failed to chmod " + dir, 0, fsShell.run(new String[] {"-chmod", "-R", "777", dir}));
-    Assert.assertEquals("Failed to chmod " + failDir, 0, fsShell.run(new String[] {"-chmod", "-R", "777", failDir}));
-
     c.tableOperations().importDirectory(table, dir, failDir, false);
 
     if (fs.listStatus(failPath).length > 0) {
@@ -125,7 +119,7 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void createRFiles(final Connector c, FileSystem fs, String path, int rows, int splits, int threads) throws Exception {
+  static public void createRFiles(final Connector c, final FileSystem fs, String path, int rows, int splits, int threads) throws Exception {
     fs.delete(new Path(path), true);
     ExecutorService threadPool = Executors.newFixedThreadPool(threads);
     final AtomicBoolean fail = new AtomicBoolean(false);
@@ -142,7 +136,7 @@ public class FunctionalTestUtils {
         @Override
         public void run() {
           try {
-            TestIngest.ingest(c, opts, new BatchWriterOpts());
+            TestIngest.ingest(c, fs, opts, new BatchWriterOpts());
           } catch (Exception e) {
             fail.set(true);
           }

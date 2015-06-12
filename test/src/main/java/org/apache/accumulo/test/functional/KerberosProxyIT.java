@@ -123,6 +123,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     if (null != krbEnabledForITs) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, krbEnabledForITs);
     }
+    UserGroupInformation.setConfiguration(new Configuration(false));
   }
 
   private MiniAccumuloClusterImpl mac;
@@ -183,8 +184,7 @@ public class KerberosProxyIT extends AccumuloITBase {
 
       UserGroupInformation ugi;
       try {
-        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
-        ugi = UserGroupInformation.getCurrentUser();
+        ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
       } catch (IOException ex) {
         log.info("Login as root is failing", ex);
         Thread.sleep(3000);
@@ -236,8 +236,7 @@ public class KerberosProxyIT extends AccumuloITBase {
   @Test
   public void testProxyClient() throws Exception {
     ClusterUser rootUser = kdc.getRootUser();
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
 
     TSocket socket = new TSocket(hostname, proxyPort);
     log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
@@ -317,8 +316,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     kdc.createPrincipal(keytab, user);
 
     // Login as the new user
-    UserGroupInformation.loginUserFromKeytab(user, keytab.getAbsolutePath());
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab.getAbsolutePath());
 
     log.info("Logged in as " + ugi);
 
@@ -370,8 +368,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     kdc.createPrincipal(keytab, user);
 
     // Login as the new user
-    UserGroupInformation.loginUserFromKeytab(user, keytab.getAbsolutePath());
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab.getAbsolutePath());
 
     log.info("Logged in as " + ugi);
 

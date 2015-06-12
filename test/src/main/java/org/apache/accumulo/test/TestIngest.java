@@ -200,8 +200,8 @@ public class TestIngest {
     }
   }
 
-  public static void ingest(Connector connector, Opts opts, BatchWriterOpts bwOpts) throws IOException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, MutationsRejectedException, TableExistsException {
+  public static void ingest(Connector connector, FileSystem fs, Opts opts, BatchWriterOpts bwOpts) throws IOException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException, TableExistsException {
     long stopTime;
 
     byte[][] bytevals = generateValues(opts.dataSize);
@@ -218,7 +218,6 @@ public class TestIngest {
 
     if (opts.outputFile != null) {
       Configuration conf = CachedConfiguration.getInstance();
-      FileSystem fs = FileSystem.get(conf);
       writer = FileOperations.getInstance().openWriter(opts.outputFile + "." + RFile.EXTENSION, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
       writer.startDefaultLocalityGroup();
     } else {
@@ -335,5 +334,10 @@ public class TestIngest {
 
     System.out.printf("%,12d records written | %,8d records/sec | %,12d bytes written | %,8d bytes/sec | %6.3f secs   %n", totalValues,
         (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed), elapsed);
+  }
+
+  public static void ingest(Connector c, Opts opts, BatchWriterOpts batchWriterOpts) throws MutationsRejectedException, IOException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TableExistsException {
+    ingest(c, FileSystem.get(CachedConfiguration.getInstance()), opts, batchWriterOpts);
   }
 }

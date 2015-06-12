@@ -20,9 +20,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
@@ -122,12 +123,13 @@ public class CompactionIT extends AccumuloClusterHarness {
 
     final AtomicBoolean fail = new AtomicBoolean(false);
     final ClientConfiguration clientConf = cluster.getClientConfig();
-    for (int count = 0; count < 5; count++) {
-      List<Thread> threads = new ArrayList<Thread>();
+    final int THREADS = 5;
+    for (int count = 0; count < THREADS; count++) {
+      ExecutorService executor = Executors.newFixedThreadPool(THREADS);
       final int span = 500000 / 59;
       for (int i = 0; i < 500000; i += 500000 / 59) {
         final int finalI = i;
-        Thread t = new Thread() {
+        Runnable r = new Runnable() {
           @Override
           public void run() {
             try {
@@ -152,11 +154,10 @@ public class CompactionIT extends AccumuloClusterHarness {
             }
           }
         };
-        t.start();
-        threads.add(t);
+        executor.execute(r);
       }
-      for (Thread t : threads)
-        t.join();
+      executor.shutdown();
+      executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
       assertFalse("Failed to successfully run all threads, Check the test output for error", fail.get());
     }
 

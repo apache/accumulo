@@ -81,6 +81,7 @@
     <module>assemble</module>
     <module>proxy</module>
     <module>test</module>
+    <module>mrit</module>
     <module>minicluster</module>
     <module>docs</module>
     <module>maven-plugin</module>

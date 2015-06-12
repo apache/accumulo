@@ -103,6 +103,7 @@ import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -2241,8 +2242,11 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test
   public void testCompactionStrategy() throws Exception {
-    client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", System.getProperty("user.dir")
-        + "/src/test/resources/TestCompactionStrat.jar");
+    File jarDir = new File(System.getProperty("user.dir"), "target");
+    jarDir.mkdirs();
+    File jarFile = new File(jarDir, "TestCompactionStrat.jar");
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/TestCompactionStrat.jar"), jarFile);
+    client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", jarFile.toString());
     client.setTableProperty(creds, table, Property.TABLE_CLASSPATH.getKey(), "context1");
 
     client.addSplits(creds, table, Collections.singleton(s2bb("efg")));
