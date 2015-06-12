@@ -155,10 +155,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *
    * @param conn
    *          Connector
-   * @param referencedWals
-   *          {@link Set} of paths to WALs that are referenced in the tablets section of the metadata table
+   * @param closedWals
+   *          {@link Set} of paths to WALs that marked as closed or unreferenced in zookeeper
    */
-  protected long updateReplicationEntries(Connector conn, Set<String> referencedWals) {
+  protected long updateReplicationEntries(Connector conn, Set<String> closedWals) {
     BatchScanner bs = null;
     BatchWriter bw = null;
     long recordsClosed = 0;
@@ -181,11 +181,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
         // Ignore things that aren't completely replicated as we can't delete those anyways
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), replFileText);
         String replFile = replFileText.toString();
-        boolean isReferenced = referencedWals.contains(replFile);
+        boolean isClosed = closedWals.contains(replFile);
 
         // We only want to clean up WALs (which is everything but rfiles) and only when
         // metadata doesn't have a reference to the given WAL
-        if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && !isReferenced) {
+        if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && !isClosed) {
           try {
             closeWal(bw, entry.getKey());
             recordsClosed++;

@@ -64,6 +64,7 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -405,6 +406,9 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Create two tables
     conn.tableOperations().create(table1);
     conn.tableOperations().create(table2);
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
+    // wait for permission to propagate
+    Thread.sleep(5000);
 
     // Enable replication on table1
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
@@ -467,13 +471,9 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     // After writing data, we'll get a replication table online
     Assert.assertTrue(ReplicationTable.isOnline(conn));
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
     Set<String> tableIdsForMetadata = Sets.newHashSet(tableIds);
-
-    // Wait to make sure the table permission propagate
-    Thread.sleep(5000);
 
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
@@ -481,6 +481,11 @@ public class ReplicationIT extends ConfigurableMacBase {
     List<Entry<Key,Value>> records = new ArrayList<>();
     for (Entry<Key,Value> metadata : s) {
       records.add(metadata);
+    }
+    s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    for (Entry<Key,Value> replication : s) {
+      records.add(replication);
     }
 
     Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2, records.size());
@@ -580,12 +585,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Sleep a sufficient amount of time to ensure that we get the straggling WALs that might have been created at the end
     Thread.sleep(5000);
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    Set<String> replFiles = new HashSet<>();
-    for (Entry<Key,Value> entry : s) {
-      replFiles.add(entry.getKey().getRow().toString());
-    }
+    Set<String> replFiles = getReferencesToFilesToBeReplicated(conn);
 
     // We might have a WAL that was use solely for the replication table
     // We want to remove that from our list as it should not appear in the replication table
@@ -608,8 +608,25 @@ public class ReplicationIT extends ConfigurableMacBase {
     for (String replFile : replFiles) {
       Path p = new Path(replFile);
       FileSystem fs = p.getFileSystem(conf);
-      Assert.assertTrue("File does not exist anymore, it was likely incorrectly garbage collected: " + p, fs.exists(p));
+      if (!fs.exists(p)) {
+        // double-check: the garbage collector can be fast
+        Set<String> currentSet = getReferencesToFilesToBeReplicated(conn);
+        log.info("Current references {}", currentSet);
+        log.info("Looking for reference to {}", replFile);
+        log.info("Contains? {}", currentSet.contains(replFile));
+        Assert.assertTrue("File does not exist anymore, it was likely incorrectly garbage collected: " + p, !currentSet.contains(replFile));
+      }
     }
+  }
+
+  private Set<String> getReferencesToFilesToBeReplicated(final Connector conn) throws ReplicationTableOfflineException {
+    Scanner s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    Set<String> replFiles = new HashSet<>();
+    for (Entry<Key,Value> entry : s) {
+      replFiles.add(entry.getKey().getRow().toString());
+    }
+    return replFiles;
   }
 
   @Test

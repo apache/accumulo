@@ -39,6 +39,9 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
@@ -315,6 +318,18 @@ public class GarbageCollectWriteAheadLogs {
     Connector conn;
     try {
       conn = context.getConnector();
+      try {
+        final Scanner s = ReplicationTable.getScanner(conn);
+        StatusSection.limit(s);
+        for (Entry<Key,Value> entry : s) {
+          UUID id = path2uuid(new Path(entry.getKey().getRow().toString()));
+          candidates.remove(id);
+          log.info("Ignore closed log " + id + " because it is being replicated");
+        }
+      } catch (ReplicationTableOfflineException ex) {
+        return candidates.size();
+      }
+
       final Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
       scanner.setRange(MetadataSchema.ReplicationSection.getRange());

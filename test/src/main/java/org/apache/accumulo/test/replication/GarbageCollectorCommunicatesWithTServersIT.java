@@ -198,12 +198,10 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Flushing mutations to the server");
     bw.flush();
 
-    log.info("Checking that metadata only has one WAL recorded for this table");
+    log.info("Checking that metadata only has two WALs recorded for this table (inUse, and opened)");
 
     Set<String> wals = getWalsForTable(table);
     Assert.assertEquals("Expected to only find two WALs for the table", 2, wals.size());
-
-    log.info("Compacting the table which will remove all WALs from the tablets");
 
     // Flush our test table to remove the WAL references in it
     conn.tableOperations().flush(table, null, null, true);
