@@ -175,7 +175,6 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     } finally {
       metaBs.close();
     }
-
     return wals;
   }
 }

@@ -28,7 +28,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.continuous.ContinuousIngest;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +39,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_WAL_REPLICATION, "1");
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "10M");
+    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
     cfg.setProperty(Property.TABLE_MINC_LOGS_MAX, "100");
     cfg.setProperty(Property.GC_FILE_ARCHIVE, "false");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
@@ -72,7 +71,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     log.info("Starting ingest");
     final long start = System.currentTimeMillis();
     final String args[] = {"-i", inst.getInstanceName(), "-z", inst.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table",
-        tableName, "--num", Long.toString(1000 * 1000), // 1M 100 byte entries
+        tableName, "--num", Long.toString(50 * 1000), // 50K 100 byte entries
     };
 
     ContinuousIngest.main(args);
@@ -100,9 +99,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     c.instanceOperations().setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1G");
     c.tableOperations().flush(MetadataTable.NAME, null, null, true);
     c.tableOperations().flush(RootTable.NAME, null, null, true);
-    for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
-      getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
-    }
+    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
     getCluster().start();
     long avg2 = getAverage();
     log.info(String.format("Average run time with small WAL %,d with large WAL %,d", avg1, avg2));

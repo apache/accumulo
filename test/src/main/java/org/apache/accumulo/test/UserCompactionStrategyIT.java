@@ -128,12 +128,12 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     // Can't assume that a test-resource will be on the server's classpath
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
 
-    // test pertable classpath + user specified compaction strat
+    // test per-table classpath + user specified compaction strategy
 
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
     File target = new File(System.getProperty("user.dir"), "target");
-    Assert.assertTrue(target.mkdirs());
+    target.mkdirs();
     Assert.assertTrue(target.exists() && target.isDirectory());
     File destFile = installJar(target, "/TestCompactionStrat.jar");
     c.tableOperations().create(tableName);

@@ -16,75 +16,46 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordWriter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
-
-import com.google.common.collect.Maps;
 
 /**
- * Prevent regression of ACCUMULO-3709. Exists as a mini test because mock instance doesn't produce this error when dynamically changing the table permissions.
+ * Prevent regression of ACCUMULO-3709.
  */
-public class AccumuloOutputFormatIT {
+public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   private static final String TABLE = "abc";
-  private MiniAccumuloCluster accumulo;
-  private String secret = "secret";
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
-
-  @Before
-  public void setUp() throws Exception {
-    folder.create();
-    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), secret);
-    Map<String,String> configMap = Maps.newHashMap();
-    configMap.put(Property.TSERV_SESSION_MAXIDLE.toString(), "1");
-    config.setSiteConfig(configMap);
-    config.setNumTservers(1);
-    accumulo = new MiniAccumuloCluster(config);
-    accumulo.start();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    accumulo.stop();
-    folder.delete();
+  @Override
+  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "1");
+    cfg.setNumTservers(1);
   }
 
   @Test
   public void testMapred() throws Exception {
-    ClientConfiguration clientConfig = accumulo.getClientConfig();
-    ZooKeeperInstance instance = new ZooKeeperInstance(clientConfig);
-    Connector connector = instance.getConnector("root", new PasswordToken(secret));
+    Connector connector = getConnector();
     // create a table and put some data in it
     connector.tableOperations().create(TABLE);
 
@@ -98,8 +69,8 @@ public class AccumuloOutputFormatIT {
     batchConfig.setMaxMemory(Long.MAX_VALUE);
     AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
     AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
-    AccumuloOutputFormat.setZooKeeperInstance(job, clientConfig);
-    AccumuloOutputFormat.setConnectorInfo(job, "root", new PasswordToken(secret));
+    AccumuloOutputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
+    AccumuloOutputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
     RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
     try {
@@ -107,8 +78,8 @@ public class AccumuloOutputFormatIT {
         Mutation m = new Mutation(new Text(String.format("%08d", i)));
         for (int j = 0; j < 3; j++) {
           m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
-          writer.write(new Text(TABLE), m);
         }
+        writer.write(new Text(TABLE), m);
       }
 
     } catch (Exception e) {
@@ -118,8 +89,12 @@ public class AccumuloOutputFormatIT {
 
     connector.securityOperations().revokeTablePermission("root", TABLE, TablePermission.WRITE);
 
-    exception.expect(IOException.class);
-    exception.expectMessage("PERMISSION_DENIED");
-    writer.close(null);
+    try {
+      writer.close(null);
+      fail("Did not throw exception");
+    } catch (IOException ex) {
+      log.info(ex.getMessage(), ex);
+      assertTrue(ex.getCause() instanceof MutationsRejectedException);
+    }
   }
 }

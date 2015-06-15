@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -43,7 +44,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -59,7 +59,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -119,7 +118,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     vopts.cols = opts.cols = 1;
     opts.setPrincipal("root");
     vopts.setPrincipal("root");
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
+    TestIngest.ingest(c, cluster.getFileSystem(), opts, new BatchWriterOpts());
     c.tableOperations().compact("test_ingest", null, null, true, true);
     int before = countFiles();
     while (true) {
@@ -148,7 +147,16 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
     Process gc = cluster.exec(SimpleGarbageCollector.class);
     UtilWaitThread.sleep(20 * 1000);
-    String output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
+    String output = "";
+    while (!output.contains("delete candidates has exceeded")) {
+      byte buffer[] = new byte[10 * 1024];
+      try {
+        int n = gc.getInputStream().read(buffer);
+        output = new String(buffer, 0, n, UTF_8);
+      } catch (IOException ex) {
+        break;
+      }
+    }
     gc.destroy();
     assertTrue(output.contains("delete candidates has exceeded"));
   }
@@ -279,9 +287,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private int countFiles() throws Exception {
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path path = new Path(cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf");
-    return Iterators.size(Arrays.asList(fs.globStatus(path)).iterator());
+    return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
   public static void addEntries(Connector conn, BatchWriterOpts bwOpts) throws Exception {

@@ -15,6 +15,7 @@
 
 # Maven ignores
 /target/
+/dependency-reduced-pom.xml
 
 # IDE ignores
 /.settings/

@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -92,7 +91,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.close();
     scanCheck(c, tableName, "Test");
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = getCluster().getFileSystem();
     Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
     copyStreamToFileSystem(fs, this.getClass().getResourceAsStream("/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);

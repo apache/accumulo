@@ -26,10 +26,8 @@ import org.apache.accumulo.test.TestIngest.Opts;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,7 +65,6 @@ public class BulkIT extends AccumuloClusterHarness {
 
   static void runTest(Connector c, FileSystem fs, Path basePath, String principal, String tableName, String filePrefix, String dirSuffix) throws Exception {
     c.tableOperations().create(tableName);
-    CachedConfiguration.setInstance(fs.getConf());
 
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
     fs.delete(base, true);
@@ -84,24 +81,21 @@ public class BulkIT extends AccumuloClusterHarness {
     opts.instance = c.getInstance().getInstanceName();
     opts.cols = 1;
     opts.setTableName(tableName);
-    opts.conf = CachedConfiguration.getInstance();
+    opts.conf = new Configuration(false);
     opts.fs = fs;
     String fileFormat = filePrefix + "rf%02d";
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = new Path(files, String.format(fileFormat, i)).toString();
       opts.startRow = N * i;
-      TestIngest.ingest(c, opts, BWOPTS);
+      TestIngest.ingest(c, fs, opts, BWOPTS);
     }
     opts.outputFile = base + String.format(fileFormat, N);
     opts.startRow = N;
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
-    TestIngest.ingest(c, opts, BWOPTS);
+    TestIngest.ingest(c, fs, opts, BWOPTS);
 
     // Make sure the server can modify the files
-    FsShell fsShell = new FsShell(fs.getConf());
-    Assert.assertEquals("Failed to chmod " + base.toString(), 0, fsShell.run(new String[] {"-chmod", "-R", "777", base.toString()}));
-
     c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(), false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);

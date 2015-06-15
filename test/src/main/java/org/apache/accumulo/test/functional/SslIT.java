@@ -20,7 +20,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
@@ -60,8 +59,8 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void bulk() throws Exception {
-    BulkIT.runTest(getConnector(), FileSystem.getLocal(new Configuration(false)), new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), "root",
-        getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
+    BulkIT.runTest(getConnector(), cluster.getFileSystem(), new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), "root", getUniqueNames(1)[0],
+        this.getClass().getName(), testName.getMethodName());
   }
 
   @Test
