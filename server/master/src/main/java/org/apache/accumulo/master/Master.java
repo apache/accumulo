@@ -1593,7 +1593,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     WalStateManager mgr = new WalStateManager(this.inst, ZooReaderWriter.getInstance());
     for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
       for (Path path : server.getValue()) {
-          mgr.closeWal(server.getKey(), path);
+        mgr.closeWal(server.getKey(), path);
       }
     }
   }
