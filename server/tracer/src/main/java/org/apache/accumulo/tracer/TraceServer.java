@@ -85,6 +85,9 @@ public class TraceServer implements Watcher {
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
   final String table;
+  final private static int BATCH_WRITER_MAX_LATENCY = 5;
+  final private static long SCHEDULE_PERIOD = 1000;
+  final private static long SCHEDULE_DELAY = 1000;
 
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
@@ -233,7 +236,7 @@ public class TraceServer implements Watcher {
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
     registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
-    writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS)));
+    writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }
 
   public void run() throws Exception {
@@ -242,7 +245,7 @@ public class TraceServer implements Watcher {
       public void run() {
         flush();
       }
-    }, 1000, 1000);
+    }, SCHEDULE_DELAY, SCHEDULE_PERIOD);
     server.serve();
   }
 
@@ -272,7 +275,7 @@ public class TraceServer implements Watcher {
   private void resetWriter() {
     BatchWriter writer = null;
     try {
-      writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
+      writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
     } catch (Exception ex) {
       log.warn("Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: " + ex);
       log.debug("batch writer creation failed with exception.", ex);
