@@ -97,6 +97,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -1584,6 +1586,15 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
       return new HashSet<TServerInstance>(serversToShutdown);
+    }
+  }
+
+  public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers) throws WalMarkerException {
+    WalStateManager mgr = new WalStateManager(this.inst, ZooReaderWriter.getInstance());
+    for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
+      for (Path path : server.getValue()) {
+          mgr.closeWal(server.getKey(), path);
+      }
     }
   }
 }

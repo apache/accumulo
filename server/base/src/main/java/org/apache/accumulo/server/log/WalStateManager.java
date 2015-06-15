@@ -34,6 +34,8 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs
@@ -67,6 +69,8 @@ public class WalStateManager {
       super(ex);
     }
   }
+
+  private static final Logger log = LoggerFactory.getLogger(WalStateManager.class);
 
   public final static String ZWALS = "/wals";
 
@@ -113,6 +117,7 @@ public class WalStateManager {
       if (state == WalState.OPEN) {
         policy = NodeExistsPolicy.FAIL;
       }
+      log.debug("Setting {} to {}", path.getName(), state);
       zoo.putPersistentData(root() + "/" + tsi.toString() + "/" + path.getName(), data, policy);
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
@@ -193,6 +198,7 @@ public class WalStateManager {
   // garbage collector knows it's safe to remove the marker for a closed log
   public void removeWalMarker(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
+      log.debug("Removing {}", uuid);
       String path = root() + "/" + instance.toString() + "/" + uuid.toString();
       zoo.delete(path, -1);
     } catch (InterruptedException | KeeperException e) {
@@ -211,8 +217,8 @@ public class WalStateManager {
   }
 
   // tablet server can mark the log as closed (but still needed), for replication to begin
+  // master can mark a log as unreferenced after it has made log recovery markers on the tablets that need to be recovered
   public void closeWal(TServerInstance instance, Path path) throws WalMarkerException {
     updateState(instance, path, WalState.CLOSED);
   }
-
 }

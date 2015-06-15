@@ -435,26 +435,17 @@ public class ReplicationIT extends ConfigurableMacBase {
     Assert.assertTrue("Replication table did not exist", online);
 
     Assert.assertTrue(ReplicationTable.isOnline(conn));
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     // Verify that we found a single replication record that's for table1
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
-    Iterator<Entry<Key,Value>> iter = s.iterator();
-    attempts = 5;
-    while (attempts > 0) {
-      if (!iter.hasNext()) {
-        s.close();
-        Thread.sleep(1000);
-        s = ReplicationTable.getScanner(conn);
-        iter = s.iterator();
-        attempts--;
-      } else {
+    for (int i = 0; i < 5; i++) {
+      if (Iterators.size(s.iterator()) == 1) {
         break;
       }
+      Thread.sleep(1000);
     }
-    Assert.assertTrue(iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
+    Entry<Key,Value> entry = Iterators.getOnlyElement(s.iterator());
     // We should at least find one status record for this table, we might find a second if another log was started from ingesting the data
     Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey()
         .getColumnQualifier().toString());
@@ -469,23 +460,15 @@ public class ReplicationIT extends ConfigurableMacBase {
     // After the commit on these mutations, we'll get a replication entry in accumulo.metadata for table2
     // Don't want to compact table2 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
-    // After writing data, we'll get a replication table online
-    Assert.assertTrue(ReplicationTable.isOnline(conn));
-
     Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
     Set<String> tableIdsForMetadata = Sets.newHashSet(tableIds);
 
+    List<Entry<Key,Value>> records = new ArrayList<>();
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
-
-    List<Entry<Key,Value>> records = new ArrayList<>();
     for (Entry<Key,Value> metadata : s) {
       records.add(metadata);
-    }
-    s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    for (Entry<Key,Value> replication : s) {
-      records.add(replication);
+      log.debug("Meta: {} => {}", metadata.getKey().toStringNoTruncate(), metadata.getValue().toString());
     }
 
     Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2, records.size());
@@ -503,7 +486,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Verify that we found two replication records: one for table1 and one for table2
     s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
-    iter = s.iterator();
+    Iterator<Entry<Key,Value>> iter = s.iterator();
     Assert.assertTrue("Found no records in replication table", iter.hasNext());
     entry = iter.next();
     Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));

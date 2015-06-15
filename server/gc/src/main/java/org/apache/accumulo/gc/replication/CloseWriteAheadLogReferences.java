@@ -185,7 +185,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
         // We only want to clean up WALs (which is everything but rfiles) and only when
         // metadata doesn't have a reference to the given WAL
-        if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && !isClosed) {
+        if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && isClosed) {
           try {
             closeWal(bw, entry.getKey());
             recordsClosed++;
