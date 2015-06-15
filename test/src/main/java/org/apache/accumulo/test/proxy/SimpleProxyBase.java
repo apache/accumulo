@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.proxy;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -145,9 +146,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   private org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
 
   private static Map<String,String> properties = new HashMap<>();
-  private static ByteBuffer creds = null;
   private static String hostname, proxyPrincipal, proxyPrimary, clientPrincipal;
   private static File proxyKeytab, clientKeytab;
+
+  private ByteBuffer creds = null;
 
   // Implementations can set this
   static TProtocolFactory factory = null;
@@ -616,7 +618,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void splitRangeByTabletsLoginFailure() throws Exception {
-    client.splitRangeByTablets(badLogin, table, client.getRowRange(ByteBuffer.wrap("row".getBytes())), 10);
+    client.splitRangeByTablets(badLogin, table, client.getRowRange(ByteBuffer.wrap("row".getBytes(UTF_8))), 10);
   }
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
@@ -794,7 +796,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      client.splitRangeByTablets(creds, doesNotExist, client.getRowRange(ByteBuffer.wrap("row".getBytes())), 10);
+      client.splitRangeByTablets(creds, doesNotExist, client.getRowRange(ByteBuffer.wrap("row".getBytes(UTF_8))), 10);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
@@ -1148,7 +1150,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public void userAuthentication() throws Exception {
     if (isKerberosEnabled()) {
       assertTrue(client.authenticateUser(creds, clientPrincipal, Collections.<String,String> emptyMap()));
-      // Can't really authenticate "badly" at the application level w/ kerberos. It's going to fail to even set up an RPC
+      // Can't really authenticate "badly" at the application level w/ kerberos. It's going to fail to even set up
+      // an RPC
     } else {
       // check password
       assertTrue(client.authenticateUser(creds, "root", s2pp(SharedMiniClusterBase.getRootPassword())));
@@ -1184,7 +1187,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     if (!isKerberosEnabled()) {
       password = s2bb("");
       client.changeLocalUserPassword(creds, user, password);
-      assertTrue(client.authenticateUser(creds, user, s2pp(new String(password.array(), password.position(), password.limit()))));
+      assertTrue(client.authenticateUser(creds, user, s2pp(new String(password.array(), password.position(), password.limit(), UTF_8))));
     }
 
     if (isKerberosEnabled()) {
@@ -1203,7 +1206,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       }
     } else {
       // check login with new password
-      client.login(user, s2pp(new String(password.array(), password.position(), password.limit())));
+      client.login(user, s2pp(new String(password.array(), password.position(), password.limit(), UTF_8)));
     }
   }
 
@@ -1238,7 +1241,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       userName = getUniqueNames(1)[0];
       // create a user
       client.createLocalUser(creds, userName, password);
-      user = client.login(userName, s2pp(new String(password.array(), password.position(), password.limit())));
+      user = client.login(userName, s2pp(new String(password.array(), password.position(), password.limit(), UTF_8)));
     }
 
     // check permission failure
@@ -1268,7 +1271,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       UserGroupInformation.loginUserFromKeytab(clientPrincipal, clientKeytab.getAbsolutePath());
       client = origClient;
     }
-    client.listTables(creds).contains("succcess");
+    assertTrue(client.listTables(creds).contains("success"));
 
     // revoke permissions
     client.revokeSystemPermission(creds, userName, SystemPermission.CREATE_TABLE);
@@ -1684,7 +1687,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     client.exportTable(creds, table, dir.toString());
     // copy files to a new location
     FSDataInputStream is = fs.open(new Path(dir, "distcp.txt"));
-    try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
+    try (BufferedReader r = new BufferedReader(new InputStreamReader(is, UTF_8))) {
       while (true) {
         String line = r.readLine();
         if (line == null)
@@ -1761,7 +1764,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     String filename = dir + "/bulk/import/rfile.rf";
     FileSKVWriter writer = FileOperations.getInstance().openWriter(filename, fs, fs.getConf(), DefaultConfiguration.getInstance());
     writer.startDefaultLocalityGroup();
-    writer.append(new org.apache.accumulo.core.data.Key(new Text("a"), new Text("b"), new Text("c")), new Value("value".getBytes()));
+    writer.append(new org.apache.accumulo.core.data.Key(new Text("a"), new Text("b"), new Text("c")), new Value("value".getBytes(UTF_8)));
     writer.close();
 
     // Create failures directory
@@ -2206,12 +2209,12 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   private Map<ByteBuffer,List<ColumnUpdate>> mutation(String row, String cf, String cq, String value) {
     ColumnUpdate upd = new ColumnUpdate(s2bb(cf), s2bb(cq));
-    upd.setValue(value.getBytes());
+    upd.setValue(value.getBytes(UTF_8));
     return Collections.singletonMap(s2bb(row), Collections.singletonList(upd));
   }
 
   private ByteBuffer s2bb(String cf) {
-    return ByteBuffer.wrap(cf.getBytes());
+    return ByteBuffer.wrap(cf.getBytes(UTF_8));
   }
 
   private Map<String,String> s2pp(String cf) {
@@ -2243,7 +2246,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   @Test
   public void testCompactionStrategy() throws Exception {
     File jarDir = new File(System.getProperty("user.dir"), "target");
-    jarDir.mkdirs();
+    assertTrue(jarDir.mkdirs() || jarDir.isDirectory());
     File jarFile = new File(jarDir, "TestCompactionStrat.jar");
     FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/TestCompactionStrat.jar"), jarFile);
     client.setProperty(creds, Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", jarFile.toString());
