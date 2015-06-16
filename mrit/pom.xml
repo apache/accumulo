@@ -23,7 +23,7 @@
     <version>1.8.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-mrit</artifactId>
-  <name>Test Runner</name>
+  <name>MapReduce Integration Test Runner</name>
   <description>Run Integration Tests Using Map-Reduce</description>
   <dependencies>
     <dependency>
