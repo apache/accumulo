@@ -67,9 +67,9 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     rootPath = mac.getConfig().getDir().getAbsolutePath();
   }
 
-  private static void copyStreamToFileSystem(FileSystem fs, InputStream stream, Path path) throws IOException {
+  private static void copyStreamToFileSystem(FileSystem fs, String jarName, Path path) throws IOException {
     byte[] buffer = new byte[10 * 1024];
-    try (FSDataOutputStream dest = fs.create(path); InputStream closeMe = stream) {
+    try (FSDataOutputStream dest = fs.create(path); InputStream stream = ClassLoaderIT.class.getResourceAsStream(jarName)) {
       while (true) {
         int n = stream.read(buffer, 0, buffer.length);
         if (n <= 0) {
@@ -93,7 +93,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     scanCheck(c, tableName, "Test");
     FileSystem fs = getCluster().getFileSystem();
     Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
-    copyStreamToFileSystem(fs, this.getClass().getResourceAsStream("/TestCombinerX.jar"), jarPath);
+    copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
@@ -101,7 +101,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
     scanCheck(c, tableName, "TestX");
     fs.delete(jarPath, true);
-    copyStreamToFileSystem(fs, this.getClass().getResourceAsStream("/TestCombinerY.jar"), jarPath);
+    copyStreamToFileSystem(fs, "/TestCombinerY.jar", jarPath);
     UtilWaitThread.sleep(5000);
     scanCheck(c, tableName, "TestY");
     fs.delete(jarPath, true);
