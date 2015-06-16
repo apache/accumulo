@@ -757,9 +757,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent tkeyExtent, List<TMutation> tmutations) {
       UpdateSession us = (UpdateSession) sessionManager.reserveSession(updateID);
       if (us == null) {
-        throw new RuntimeException("No Such SessionID");
+        return;
       }
 
+      boolean reserved = true;
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
         setUpdateTablet(us, keyExtent);
@@ -776,11 +777,21 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           long totalQueued = updateTotalQueuedMutationSize(additionalMutationSize);
           long total = TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
           if (totalQueued > total) {
-            flush(us);
+            try {
+              flush(us);
+            } catch (HoldTimeoutException hte) {
+              // Assumption is that the client has timed out and is gone. If thats not the case, then removing the session should cause the client to fail
+              // in such a way that it retries.
+              log.debug("HoldTimeoutException during applyUpdates, removing session");
+              sessionManager.removeSession(updateID, true);
+              reserved = false;
+            }
           }
         }
       } finally {
-        sessionManager.unreserveSession(us);
+        if (reserved) {
+          sessionManager.unreserveSession(us);
+        }
       }
     }
 
@@ -837,10 +848,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
               mutationCount += mutations.size();
 
-            } catch (HoldTimeoutException t) {
-              error = t;
-              log.debug("Giving up on mutations due to a long memory hold time");
-              break;
             } catch (Throwable t) {
               error = t;
               log.error("Unexpected error preparing for commit", error);
@@ -956,6 +963,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       try {
         flush(us);
+      } catch (HoldTimeoutException e) {
+        // Assumption is that the client has timed out and is gone. If thats not the case throw an exception that will cause it to retry.
+        log.debug("HoldTimeoutException during closeUpdate, reporting no such session");
+        throw new NoSuchScanIDException();
       } finally {
         writeTracker.finishWrite(opid);
       }
@@ -995,8 +1006,15 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
       Durability tabletDurability = tablet.getDurability();
 
-      if (!keyExtent.isMeta())
-        TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
+      if (!keyExtent.isMeta()) {
+        try {
+          TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
+        } catch (HoldTimeoutException hte) {
+          // Major hack. Assumption is that the client has timed out and is gone. If thats not the case, then throwing the following will let client know there
+          // was a failure and it should retry.
+          throw new NotServingTabletException(tkeyExtent);
+        }
+      }
 
       final long opid = writeTracker.startWrite(TabletType.type(keyExtent));
 
@@ -1271,8 +1289,15 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (cs == null || cs.interruptFlag.get())
         throw new NoSuchScanIDException();
 
-      if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID))
-        TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
+      if (!cs.tableId.equals(MetadataTable.ID) && !cs.tableId.equals(RootTable.ID)) {
+        try {
+          TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
+        } catch (HoldTimeoutException hte) {
+          // Assumption is that the client has timed out and is gone. If thats not the case throw an exception that will cause it to retry.
+          log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
+          throw new NoSuchScanIDException();
+        }
+      }
 
       Text tid = new Text(cs.tableId);
       long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
