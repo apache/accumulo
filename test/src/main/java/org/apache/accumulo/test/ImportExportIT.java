@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -40,7 +39,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
-import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
@@ -102,9 +100,6 @@ public class ImportExportIT extends AccumuloClusterHarness {
     for (Path p : new Path[] {exportDir, importDir}) {
       assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
     }
-
-    FsShell fsShell = new FsShell(fs.getConf());
-    assertEquals("Failed to chmod " + baseDir, 0, fsShell.run(new String[] {"-chmod", "-R", "777", baseDir.toString()}));
 
     log.info("Exporting table to {}", exportDir);
     log.info("Importing table from {}", importDir);
