@@ -248,7 +248,6 @@
       <directory>../</directory>
       <fileMode>0644</fileMode>
       <includes>
-        <include>CHANGES</include>
         <include>LICENSE</include>
         <include>NOTICE</include>
         <include>README.md</include>
