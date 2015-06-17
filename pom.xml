@@ -72,19 +72,14 @@
     <maven>${maven.min-version}</maven>
   </prerequisites>
   <modules>
-    <module>trace</module>
-    <module>core</module>
-    <module>shell</module>
-    <module>fate</module>
-    <module>start</module>
-    <module>examples/simple</module>
     <module>assemble</module>
-    <module>proxy</module>
-    <module>test</module>
-    <module>mrit</module>
-    <module>minicluster</module>
+    <module>core</module>
     <module>docs</module>
+    <module>examples/simple</module>
+    <module>fate</module>
     <module>maven-plugin</module>
+    <module>minicluster</module>
+    <module>proxy</module>
     <module>server/base</module>
     <module>server/gc</module>
     <module>server/master</module>
@@ -92,6 +87,10 @@
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
+    <module>shell</module>
+    <module>start</module>
+    <module>test</module>
+    <module>trace</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -315,6 +314,12 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-test</artifactId>
+        <version>${project.version}</version>
+        <classifier>mrit</classifier>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>

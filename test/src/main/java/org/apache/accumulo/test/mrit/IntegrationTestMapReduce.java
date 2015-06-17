@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.mrit;
+package org.apache.accumulo.test.mrit;
 
 import java.io.IOException;
 
