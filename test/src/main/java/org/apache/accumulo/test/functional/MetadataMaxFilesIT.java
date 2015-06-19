@@ -18,8 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -49,10 +47,9 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
-    siteConfig.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "10");
-    cfg.setSiteConfig(siteConfig);
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
+    cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
+    cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -69,6 +66,8 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       splits.add(new Text(String.format("%03d", i)));
     }
     c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
+    // propagation time
+    UtilWaitThread.sleep(5 * 1000);
     for (int i = 0; i < 5; i++) {
       String tableName = "table" + i;
       log.info("Creating " + tableName);
@@ -79,22 +78,21 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       c.tableOperations().flush(MetadataTable.NAME, null, null, true);
       c.tableOperations().flush(RootTable.NAME, null, null, true);
     }
-    UtilWaitThread.sleep(20 * 1000);
     log.info("shutting down");
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
     log.info("starting up");
     cluster.start();
 
-    UtilWaitThread.sleep(30 * 1000);
+    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
 
     while (true) {
       MasterMonitorInfo stats = null;
-      Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
       Client client = null;
       try {
         ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
         client = MasterClient.getConnectionWithRetry(context);
+        log.info("Fetching stats");
         stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } finally {
         if (client != null)
@@ -108,6 +106,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           tablets += entry.getValue().onlineTablets;
         }
       }
+      log.info("Online tablets " + tablets);
       if (tablets == 5005)
         break;
       UtilWaitThread.sleep(1000);

@@ -107,7 +107,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ReadWriteIT.class);
 
-  static final int ROWS = 200000;
+  static final int ROWS = 100000;
   static final int COLS = 1;
   static final String COLF = "colf";
 
@@ -443,7 +443,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test
   public void localityGroupChange() throws Exception {
-    // Make changes to locality groups and ensure nothing is lostssh
+    // Make changes to locality groups and ensure nothing is lost
     final Connector connector = getConnector();
     String table = getUniqueNames(1)[0];
     TableOperations to = connector.tableOperations();

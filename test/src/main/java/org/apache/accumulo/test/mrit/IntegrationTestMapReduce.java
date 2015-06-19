@@ -24,7 +24,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -63,11 +62,9 @@ import org.slf4j.LoggerFactory;
  * </pre>
  *
  * Run the class below as a map-reduce job, giving it the lists of tests, and a place to store the results.
+ *
  * <pre>
- * $ yarn jar lib/accumulo-test-mrit.jar \
- *     -libjars lib/native/libaccumulo.so \
- *     -Dmapreduce.map.memory.mb=4000 \
- *     /tmp/tests /tmp/results
+ * $ yarn jar lib/accumulo-test-mrit.jar -libjars lib/native/libaccumulo.so /tmp/tests /tmp/results
  * </pre>
  *
  * The result is a list of IT classes that pass or fail. Those classes that fail will be annotated with the particular test that failed within the class.
@@ -162,16 +159,23 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
     }
     Configuration conf = getConf();
     Job job = Job.getInstance(conf, "accumulo integration test runner");
+    conf = job.getConfiguration();
 
-    // no need to run a test multiple times
-    job.setSpeculativeExecution(false);
+    // some tests take more than 10 minutes
+    conf.setLong(MRJobConfig.TASK_TIMEOUT, 20 * 60 * 1000);
+
+    // minicluster uses a lot of ram
+    conf.setInt(MRJobConfig.MAP_MEMORY_MB, 4000);
 
     // hadoop puts an ancient version of jline on the classpath
     conf.setBoolean(MRJobConfig.MAPREDUCE_JOB_USER_CLASSPATH_FIRST, true);
 
+    // no need to run a test multiple times
+    job.setSpeculativeExecution(false);
+
     // read one line at a time
     job.setInputFormatClass(NLineInputFormat.class);
-    conf.setInt(NLineInputFormat.LINES_PER_MAP, 1);
+    NLineInputFormat.setNumLinesPerSplit(job, 1);
 
     // run the test
     job.setJarByClass(IntegrationTestMapReduce.class);
@@ -179,7 +183,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
 
     // group test by result code
     job.setReducerClass(TestReducer.class);
-    job.setOutputKeyClass(IntWritable.class);
+    job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
 
     FileInputFormat.addInputPath(job, new Path(args[0]));

@@ -20,6 +20,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -95,7 +96,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.Tool;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -235,10 +235,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
       default:
         throw new RuntimeException("Unknown cluster type");
     }
-    if (!new File(dirListDirectory).exists()) {
-      log.info("Skipping test: there's no input here");
-      return;
-    }
+    assumeTrue(new File(dirListDirectory).exists());
     // Index a directory listing on /tmp. If this is running against a standalone cluster, we can't guarantee Accumulo source will be there.
     if (saslEnabled) {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
@@ -383,10 +380,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
   @Test
   public void testShardedIndex() throws Exception {
     File src = new File(System.getProperty("user.dir") + "/src");
-    if (!src.exists()) {
-      log.info("Skipping test: src does not exist");
-      return;
-    }
+    assumeTrue(src.exists());
     String[] names = getUniqueNames(3);
     final String shard = names[0], index = names[1];
     c.tableOperations().create(shard);
@@ -449,7 +443,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
   @Test
   public void testBulkIngest() throws Exception {
     // TODO Figure out a way to run M/R with Kerberos
-    Assume.assumeTrue(getAdminToken() instanceof PasswordToken);
+    assumeTrue(getAdminToken() instanceof PasswordToken);
     String tableName = getUniqueNames(1)[0];
     FileSystem fs = getFileSystem();
     Path p = new Path(dir, "tmp");
@@ -482,7 +476,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
   @Test
   public void testTeraSortAndRead() throws Exception {
     // TODO Figure out a way to run M/R with Kerberos
-    Assume.assumeTrue(getAdminToken() instanceof PasswordToken);
+    assumeTrue(getAdminToken() instanceof PasswordToken);
     String tableName = getUniqueNames(1)[0];
     String[] args;
     if (saslEnabled) {
@@ -525,7 +519,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
   @Test
   public void testWordCount() throws Exception {
     // TODO Figure out a way to run M/R with Kerberos
-    Assume.assumeTrue(getAdminToken() instanceof PasswordToken);
+    assumeTrue(getAdminToken() instanceof PasswordToken);
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     is = new IteratorSetting(10, SummingCombiner.class);

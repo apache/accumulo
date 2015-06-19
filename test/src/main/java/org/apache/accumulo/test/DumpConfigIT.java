@@ -31,14 +31,10 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DumpConfigIT extends ConfigurableMacBase {
-
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -52,6 +48,10 @@ public class DumpConfigIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
+    File target = new File(System.getProperty("user.dir"), "target");
+    target.mkdirs();
+    TemporaryFolder folder = new TemporaryFolder(target);
+    folder.create();
     File siteFileBackup = new File(folder.getRoot(), "accumulo-site.xml.bak");
     assertFalse(siteFileBackup.exists());
     assertEquals(0, exec(Admin.class, new String[] {"dumpConfig", "-a", "-d", folder.getRoot().getPath()}).waitFor());

@@ -315,7 +315,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String exportUri = "file://" + exportDir.toString();
     String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp").toString();
     ts.exec("exporttable -t " + table + " " + exportUri, true);
-    DistCp cp = newDistCp();
+    DistCp cp = newDistCp(new Configuration(false));
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
     if (getCluster().getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it ourselves by hand.
@@ -355,7 +355,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table2, true);
   }
 
-  private DistCp newDistCp() {
+  private DistCp newDistCp(Configuration conf) {
     try {
       @SuppressWarnings("unchecked")
       Constructor<DistCp>[] constructors = (Constructor<DistCp>[]) DistCp.class.getConstructors();
@@ -363,9 +363,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
         Class<?>[] parameterTypes = constructor.getParameterTypes();
         if (parameterTypes.length > 0 && parameterTypes[0].equals(Configuration.class)) {
           if (parameterTypes.length == 1) {
-            return constructor.newInstance(new Configuration());
+            return constructor.newInstance(conf);
           } else if (parameterTypes.length == 2) {
-            return constructor.newInstance(new Configuration(), null);
+            return constructor.newInstance(conf, null);
           }
         }
       }
