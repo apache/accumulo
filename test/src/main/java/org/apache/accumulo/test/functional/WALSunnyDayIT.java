@@ -107,7 +107,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     }
 
     // roll log, get a new next
-    writeSomeData(c, tableName, 1000, 50);
+    writeSomeData(c, tableName, 1001, 50);
     Map<String,Boolean> walsAfterRoll = getWals(c);
     assertEquals("should have 3 WALs after roll", 3, walsAfterRoll.size());
     assertTrue("new WALs should be a superset of the old WALs", walsAfterRoll.keySet().containsAll(wals.keySet()));
@@ -147,7 +147,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
     // put some data in the WAL
     assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
-    verifySomeData(c, tableName, 1000 * 50 + 1);
+    verifySomeData(c, tableName, 1001 * 50 + 1);
     writeSomeData(c, tableName, 100, 100);
 
     Map<String,Boolean> walsAfterRestart = getWals(c);

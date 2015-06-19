@@ -235,6 +235,10 @@ public class ExamplesIT extends AccumuloClusterHarness {
       default:
         throw new RuntimeException("Unknown cluster type");
     }
+    if (!new File(dirListDirectory).exists()) {
+      log.info("Skipping test: there's no input here");
+      return;
+    }
     // Index a directory listing on /tmp. If this is running against a standalone cluster, we can't guarantee Accumulo source will be there.
     if (saslEnabled) {
       args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
@@ -253,7 +257,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
         expectedFile = "accumulo-site.xml";
         break;
       case STANDALONE:
-        // Should be in place on standalone installs (not having ot follow symlinks)
+        // Should be in place on standalone installs (not having to follow symlinks)
         expectedFile = "LICENSE";
         break;
       default:
@@ -378,12 +382,17 @@ public class ExamplesIT extends AccumuloClusterHarness {
 
   @Test
   public void testShardedIndex() throws Exception {
+    File src = new File(System.getProperty("user.dir") + "/src");
+    if (!src.exists()) {
+      log.info("Skipping test: src does not exist");
+      return;
+    }
     String[] names = getUniqueNames(3);
     final String shard = names[0], index = names[1];
     c.tableOperations().create(shard);
     c.tableOperations().create(index);
     bw = c.createBatchWriter(shard, bwc);
-    Index.index(30, new File(System.getProperty("user.dir") + "/src"), "\\W+", bw);
+    Index.index(30, src, "\\W+", bw);
     bw.close();
     BatchScanner bs = c.createBatchScanner(shard, Authorizations.EMPTY, 4);
     List<String> found = Query.query(bs, Arrays.asList("foo", "bar"));
@@ -523,7 +532,12 @@ public class ExamplesIT extends AccumuloClusterHarness {
     SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column(new Text("count"))));
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(tableName, is);
-    fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README.md"), new Path(dir + "/tmp/wc/README.md"));
+    Path readme = new Path(new Path(System.getProperty("user.dir")).getParent(), "README.md");
+    if (!new File(readme.toString()).exists()) {
+      log.info("Not running test: README.md does not exist)");
+      return;
+    }
+    fs.copyFromLocalFile(readme, new Path(dir + "/tmp/wc/README.md"));
     String[] args;
     if (saslEnabled) {
       args = new String[] {"-i", instance, "-u", user, "--keytab", keytab, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName};

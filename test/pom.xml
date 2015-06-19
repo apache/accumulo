@@ -364,6 +364,7 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Sealed>false</Sealed>
+                    <Main-Class>org.apache.accumulo.test.mrit.IntegrationTestMapReduce</Main-Class>
                   </manifestEntries>
                 </transformer>
               </transformers>

@@ -17,7 +17,10 @@
 package org.apache.accumulo.test.mrit;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -25,6 +28,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -40,25 +44,59 @@ import org.junit.runner.notification.RunListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Run the Integration Tests as a Map-Reduce job.
+ * <p>
+ * Each of the Integration tests takes 30s to 20m to run. Using a larger cluster, all the tests can be run in parallel and finish much faster.
+ * <p>
+ * To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the accumulo-test jar file for them.
+ *
+ * <pre>
+ * $ jar -tf lib/accumulo-test.jar | grep IT.class | tr / . | sed -e 's/.class$//' >tests
+ * </pre>
+ *
+ * Put the list of tests into HDFS:
+ *
+ * <pre>
+ * $ hadoop fs -mkdir /tmp
+ * $ hadoop fs -put tests /tmp/tests
+ * </pre>
+ *
+ * Run the class below as a map-reduce job, giving it the lists of tests, and a place to store the results.
+ * <pre>
+ * $ yarn jar lib/accumulo-test-mrit.jar \
+ *     -libjars lib/native/libaccumulo.so \
+ *     -Dmapreduce.map.memory.mb=4000 \
+ *     /tmp/tests /tmp/results
+ * </pre>
+ *
+ * The result is a list of IT classes that pass or fail. Those classes that fail will be annotated with the particular test that failed within the class.
+ */
+
 public class IntegrationTestMapReduce extends Configured implements Tool {
 
   private static final Logger log = LoggerFactory.getLogger(IntegrationTestMapReduce.class);
 
-  public static class TestMapper extends Mapper<LongWritable,Text,IntWritable,Text> {
+  public static class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
+
+    static final Text FAIL = new Text("FAIL");
+    static final Text PASS = new Text("PASS");
+    static final Text ERROR = new Text("ERROR");
 
     @Override
-    protected void map(LongWritable key, Text value, final Mapper<LongWritable,Text,IntWritable,Text>.Context context) throws IOException, InterruptedException {
+    protected void map(LongWritable key, Text value, final Mapper<LongWritable,Text,Text,Text>.Context context) throws IOException, InterruptedException {
       String className = value.toString();
       if (className.trim().isEmpty()) {
         return;
       }
       log.info("Running test {}", className);
+      final List<String> failures = new ArrayList<>();
       Class<? extends Object> test = null;
       try {
         test = Class.forName(className);
       } catch (ClassNotFoundException e) {
         log.debug("Error finding class {}", className, e);
-        context.write(new IntWritable(-1), new Text(e.toString()));
+        context.write(ERROR, new Text(e.toString()));
         return;
       }
       JUnitCore core = new JUnitCore();
@@ -79,6 +117,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         @Override
         public void testFailure(Failure failure) throws Exception {
           log.info("Test failed: {}", failure.getDescription(), failure.getException());
+          failures.add(failure.getDescription().getMethodName());
           context.progress();
         }
 
@@ -88,10 +127,10 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         Result result = core.run(test);
         if (result.wasSuccessful()) {
           log.info("{} was successful", className);
-          context.write(new IntWritable(0), value);
+          context.write(PASS, value);
         } else {
           log.info("{} failed", className);
-          context.write(new IntWritable(1), value);
+          context.write(FAIL, new Text(className + "(" + StringUtils.join(failures, ", ") + ")"));
         }
       } catch (Exception e) {
         // most likely JUnit issues, like no tests to run
@@ -100,14 +139,14 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
     }
   }
 
-  public static class TestReducer extends Reducer<IntWritable,Text,IntWritable,Text> {
+  public static class TestReducer extends Reducer<Text,Text,Text,Text> {
 
     @Override
-    protected void reduce(IntWritable code, Iterable<Text> tests, Reducer<IntWritable,Text,IntWritable,Text>.Context context) throws IOException,
-        InterruptedException {
-      StringBuffer result = new StringBuffer();
+    protected void reduce(Text code, Iterable<Text> tests, Reducer<Text,Text,Text,Text>.Context context) throws IOException, InterruptedException {
+      StringBuffer result = new StringBuffer("\n");
       for (Text test : tests) {
-        result.append(test);
+        result.append("   ");
+        result.append(test.toString());
         result.append("\n");
       }
       context.write(code, new Text(result.toString()));
@@ -119,9 +158,17 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
     // read a list of tests from the input, and print out the results
     if (args.length != 2) {
       System.err.println("Wrong number of args: <input> <output>");
+      return 1;
     }
     Configuration conf = getConf();
     Job job = Job.getInstance(conf, "accumulo integration test runner");
+
+    // no need to run a test multiple times
+    job.setSpeculativeExecution(false);
+
+    // hadoop puts an ancient version of jline on the classpath
+    conf.setBoolean(MRJobConfig.MAPREDUCE_JOB_USER_CLASSPATH_FIRST, true);
+
     // read one line at a time
     job.setInputFormatClass(NLineInputFormat.class);
     conf.setInt(NLineInputFormat.LINES_PER_MAP, 1);

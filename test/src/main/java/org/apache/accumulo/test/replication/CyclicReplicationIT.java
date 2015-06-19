@@ -79,7 +79,7 @@ public class CyclicReplicationIT {
       log.warn("Could not parse timeout.factor, not scaling timeout");
     }
 
-    return new Timeout(scalingFactor * 5 * 60 * 1000);
+    return new Timeout(scalingFactor * 10 * 60 * 1000);
   }
 
   @Rule
