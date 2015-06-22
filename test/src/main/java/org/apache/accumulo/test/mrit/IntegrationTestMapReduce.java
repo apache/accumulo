@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the accumulo-test jar file for them.
  *
  * <pre>
- * $ jar -tf lib/accumulo-test.jar | grep IT.class | tr / . | sed -e 's/.class$//' >tests
+ * $ jar -tf lib/accumulo-test.jar | grep IT.class | tr / . | sed -e 's/.class$//' &gt;tests
  * </pre>
  *
  * Put the list of tests into HDFS:
