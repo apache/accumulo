@@ -101,7 +101,7 @@
             <goals>
               <goal>exec</goal>
             </goals>
-            <phase>integration-test</phase>
+            <phase>package</phase>
             <configuration>
               <executable>make</executable>
               <workingDirectory>${project.build.directory}/${project.artifactId}-${project.version}/${project.artifactId}-${project.version}</workingDirectory>
