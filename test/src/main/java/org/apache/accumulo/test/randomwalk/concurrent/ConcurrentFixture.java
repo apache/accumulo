@@ -37,8 +37,6 @@ public class ConcurrentFixture extends Fixture {
 
   @Override
   public void tearDown(State state) throws Exception {
-    state.remove(CheckBalance.LAST_UNBALANCED_TIME);
-    state.remove(CheckBalance.UNBALANCED_COUNT);
   }
 
   /**
