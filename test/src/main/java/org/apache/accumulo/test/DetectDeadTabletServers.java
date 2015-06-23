@@ -20,18 +20,19 @@ import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -80,11 +81,12 @@ public class DetectDeadTabletServers extends ConfigurableMacIT {
 
   private MasterMonitorInfo getStats(Connector c) throws Exception {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    MasterClientService.Iface client = null;
+    ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
+    Client client = null;
     try {
-      client = MasterClient.getConnectionWithRetry(c.getInstance());
+      client = MasterClient.getConnectionWithRetry(context);
       log.info("Fetching master stats");
-      return client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
+      return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
     } finally {
       if (client != null) {
         MasterClient.close(client);
