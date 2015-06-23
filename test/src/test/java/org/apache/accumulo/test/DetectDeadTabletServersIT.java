@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
-public class DetectDeadTabletServers extends ConfigurableMacIT {
+public class DetectDeadTabletServersIT extends ConfigurableMacIT {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
