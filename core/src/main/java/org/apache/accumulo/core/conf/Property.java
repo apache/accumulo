@@ -239,7 +239,7 @@ public enum Property {
       + "size is ok because of group commit."),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "50M", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
-  TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "30", PropertyType.COUNT,
+  TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300", PropertyType.COUNT,
       "To find a tablets split points, all index files are opened. This setting determines how many index "
           + "files can be opened at once. When there are more index files than this setting multiple passes "
           + "must be made, which is slower. However opening too many files at once can cause problems."),
