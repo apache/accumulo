@@ -949,15 +949,15 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           log.warn("attempting to stop " + server);
           try {
             TServerConnection connection = tserverSet.getConnection(server);
-            if (connection != null)
+            if (connection != null) {
               connection.halt(masterLock);
+            }
           } catch (TTransportException e) {
             // ignore: it's probably down
           } catch (Exception e) {
             log.info("error talking to troublesome tablet server ", e);
           }
           badServers.remove(server);
-          tserverSet.remove(server);
         }
       }
     }
