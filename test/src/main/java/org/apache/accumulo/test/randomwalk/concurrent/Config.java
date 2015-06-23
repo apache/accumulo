@@ -201,7 +201,7 @@ public class Config extends Test {
     Setting setting = tableSettings[choice];
 
     // pick a random table
-    SortedSet<String> namespaces = env.getConnector().namespaceOperations().list();
+    SortedSet<String> namespaces = env.getConnector().namespaceOperations().list().tailSet("nspc").headSet("nspd");
     if (namespaces.isEmpty())
       return;
     String namespace = random.nextSample(namespaces, 1)[0].toString();
