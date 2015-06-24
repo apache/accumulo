@@ -36,9 +36,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
-/**
- * 
- */
 @Path("/tables")
 @Produces(MediaType.APPLICATION_JSON)
 public class TablesResource {
@@ -46,7 +43,7 @@ public class TablesResource {
   @GET
   public List<TableInformation> getTables() {
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
-    SortedMap<String,TableInfo> tableStats = new TreeMap<String,TableInfo>();
+    SortedMap<String,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
@@ -62,7 +59,7 @@ public class TablesResource {
       if (null != tableInfo) {
         Double holdTime = compactingByTable.get(tableId);
         if (holdTime == null)
-          holdTime = new Double(0.);
+          holdTime = Double.valueOf(0.);
 
         tables.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
       }

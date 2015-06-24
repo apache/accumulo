@@ -29,9 +29,6 @@ import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.spi.LoggingEvent;
 
-/**
- * 
- */
 @Path("/logs")
 @Produces(MediaType.APPLICATION_JSON)
 public class LogResource {
@@ -39,7 +36,7 @@ public class LogResource {
   @GET
   public List<LogEvent> getRecentLogs() {
     List<DedupedLogEvent> dedupedLogEvents = LogService.getInstance().getEvents();
-    ArrayList<LogEvent> logEvents = new ArrayList<LogEvent>(dedupedLogEvents.size());
+    ArrayList<LogEvent> logEvents = new ArrayList<>(dedupedLogEvents.size());
 
     final StringBuilder msg = new StringBuilder(64);
     for (DedupedLogEvent dev : dedupedLogEvents) {

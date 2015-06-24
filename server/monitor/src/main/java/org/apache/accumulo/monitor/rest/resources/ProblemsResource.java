@@ -26,9 +26,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemType;
 
-/**
- * 
- */
 @Path("/problems")
 @Produces(MediaType.APPLICATION_JSON)
 public class ProblemsResource {

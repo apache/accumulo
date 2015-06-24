@@ -29,9 +29,6 @@ public class TabletServerTableInformation extends TabletServerInformation {
     super();
   }
 
-  /**
-   * @param tableId
-   */
   public TabletServerTableInformation(String tableId) {
     super();
     this.tableId = tableId;

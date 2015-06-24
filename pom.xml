@@ -91,7 +91,6 @@
     <module>server/gc</module>
     <module>server/master</module>
     <module>server/monitor</module>
-    <!--module>server/monitor-webapp</module-->
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
@@ -167,11 +166,6 @@
         <version>1.48</version>
       </dependency>
       <dependency>
-        <groupId>com.github.ben-manes.caffeine</groupId>
-        <artifactId>caffeine</artifactId>
-        <version>2.3.3</version>
-      </dependency>
-      <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
         <version>${jackson.version}</version>
@@ -200,6 +194,11 @@
         <groupId>com.fasterxml.jackson.module</groupId>
         <artifactId>jackson-module-jaxb-annotations</artifactId>
         <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>2.3.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -338,12 +337,6 @@
         <artifactId>accumulo-monitor</artifactId>
         <version>${project.version}</version>
       </dependency>
-      <!--dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-monitor-webapp</artifactId>
-        <version>${project.version}</version>
-        <type>war</type>
-      </dependency-->
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-native</artifactId>
