@@ -92,7 +92,7 @@ public class BulkIT extends AccumuloClusterIT {
       opts.startRow = N * i;
       TestIngest.ingest(c, opts, BWOPTS);
     }
-    opts.outputFile = base + String.format(fileFormat, N);
+    opts.outputFile = new Path(files, String.format(fileFormat, N)).toString();
     opts.startRow = N;
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
