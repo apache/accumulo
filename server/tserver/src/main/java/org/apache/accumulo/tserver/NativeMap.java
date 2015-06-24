@@ -203,12 +203,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         @Override
         public void run() {
           if (allocatedNativeMaps.size() > 0) {
-            // print to system err in case log4j is shutdown...
-            try {
-              log.warn("There are " + allocatedNativeMaps.size() + " allocated native maps");
-            } catch (Throwable t) {
-              log.error("There are " + allocatedNativeMaps.size() + " allocated native maps");
-            }
+            log.info("There are " + allocatedNativeMaps.size() + " allocated native maps");
           }
 
           log.debug(totalAllocations + " native maps were allocated");
