@@ -48,7 +48,6 @@
         <!-- jetty-servlet only needed by old monitor -->
         <include>org.eclipse.jetty:jetty-servlet</include>
         <include>org.eclipse.jetty:jetty-util</include>
-        <include>org.eclipse.jetty:jetty-continuation</include>
         <include>org.apache.htrace:htrace-core</include>
         <include>org.slf4j:slf4j-api</include>
         <include>org.slf4j:slf4j-log4j12</include>

@@ -43,9 +43,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * 
- */
 @Path("/tservers")
 @Produces({MediaType.APPLICATION_JSON})
 public class TabletServerResource {
@@ -109,7 +106,7 @@ public class TabletServerResource {
         if (null != thriftTableInfo) {
           Double holdTime = compactingByTable.get(tableId);
           if (holdTime == null) {
-            holdTime = new Double(0.);
+            holdTime = Double.valueOf(0.);
           }
 
           TableInformation tableInfo = new TableInformation(tableName, tableId, thriftTableInfo, holdTime, tableManager.getTableState(tableId).name());

@@ -33,9 +33,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.master.state.TabletServerState;
 
-/**
- * 
- */
 @Path("/master")
 @Produces(MediaType.APPLICATION_JSON)
 public class MasterResource {
@@ -96,7 +93,7 @@ public class MasterResource {
       return Collections.emptyMap();
     }
 
-    Map<String,String> readableBadServers = new HashMap<String,String>();
+    Map<String,String> readableBadServers = new HashMap<>();
     for (Entry<String,Byte> badServer : badServers.entrySet()) {
       try {
         TabletServerState state = TabletServerState.getStateById(badServer.getValue());

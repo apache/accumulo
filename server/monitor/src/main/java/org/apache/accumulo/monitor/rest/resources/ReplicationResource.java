@@ -55,8 +55,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-
 /**
  *
  */
@@ -189,7 +187,7 @@ public class ReplicationResource {
   }
 
   protected Map<String,String> invert(Map<String,String> map) {
-    Map<String,String> newMap = Maps.newHashMapWithExpectedSize(map.size());
+    Map<String,String> newMap = new HashMap<>(map.size());
     for (Entry<String,String> entry : map.entrySet()) {
       newMap.put(entry.getValue(), entry.getKey());
     }
