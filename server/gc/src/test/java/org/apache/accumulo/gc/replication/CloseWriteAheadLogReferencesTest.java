@@ -111,7 +111,7 @@ public class CloseWriteAheadLogReferencesTest {
   }
 
   @Test
-  public void unusedWalsAreClosed() throws Exception {
+  public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
     Instance inst = new MockInstance(testName.getMethodName());
     Connector conn = inst.getConnector("root", new PasswordToken(""));
@@ -127,11 +127,11 @@ public class CloseWriteAheadLogReferencesTest {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
-    Assert.assertTrue(status.getClosed());
+    Assert.assertFalse(status.getClosed());
   }
 
   @Test
-  public void usedWalsAreNotClosed() throws Exception {
+  public void closedWalsUpdateStatus() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
     Instance inst = new MockInstance(testName.getMethodName());
@@ -148,7 +148,7 @@ public class CloseWriteAheadLogReferencesTest {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
-    Assert.assertFalse(status.getClosed());
+    Assert.assertTrue(status.getClosed());
   }
 
   @Test
