@@ -79,7 +79,7 @@ public class GarbageCollectionLogger {
       }
     }
 
-    if (mem > lastMemorySize) {
+    if (mem != lastMemorySize) {
       sawChange = true;
     }
 
