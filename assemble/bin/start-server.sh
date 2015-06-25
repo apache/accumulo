@@ -26,72 +26,32 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 script=$( basename "$SOURCE" )
 # Stop: Resolve Script Directory
 
+# Really, we still support the third <long_name> argument, but let's not tell people that..
+usage="Usage: start-server.sh <host> <service>"
+
+# Support the 3-arg invocation for backwards-compat
+if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
+  echo $usage
+  exit 2
+fi
+
 . "$bin"/config.sh
 . "$bin"/config-server.sh
 
 HOST="$1"
-host "$1" >/dev/null 2>/dev/null
-if [[ $? != 0 ]]; then
-   LOGHOST="$1"
-else
-   LOGHOST=$(host "$1" | head -1 | cut -d' ' -f1)
-fi
-ADDRESS=$1
-SERVICE=$2
-LONGNAME=$3
-[[ -z $LONGNAME ]] && LONGNAME=$2
-
-SLAVES=$(wc -l < "${ACCUMULO_CONF_DIR}/slaves")
+SERVICE="$2"
 
 IFCONFIG=/sbin/ifconfig
 [[ ! -x $IFCONFIG ]] && IFCONFIG='/bin/netstat -ie'
-
 
 IP=$($IFCONFIG 2>/dev/null| grep "inet[^6]" | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
 if [[ $? != 0 ]] ; then
    IP=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
 
-# When the hostname provided is the alias/shortname, try to use the FQDN to make
-# sure we send the right address to the Accumulo process.
-if [[ "$HOST" = "$(hostname -s)" ]]; then
-    HOST="$(hostname -f)"
-    ADDRESS="$HOST"
-fi
-
-# ACCUMULO-1985 Allow monitor to bind on all interfaces
-if [[ ${SERVICE} == "monitor" && ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]]; then
-    ADDRESS="0.0.0.0"
-fi
-
-if [[ $HOST == localhost || $HOST == "$(hostname -f)" || $HOST = "$IP" ]]; then
-   PID=$(ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1)
+if [[ $HOST == "localhost" || $HOST == $(hostname -f) || $HOST == $(hostname -s) || $HOST == $IP ]]; then
+   "$bin/start-daemon.sh" "$HOST" "$SERVICE"
 else
-   PID=$($SSH "$HOST" ps -ef | egrep "${ACCUMULO_HOME}/.*/accumulo.*.jar" | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1)
-fi
-
-if [[ -z "$PID" ]]; then
-   echo "Starting $LONGNAME on $HOST"
-   COMMAND="${bin}/accumulo"
-   if [ "${ACCUMULO_WATCHER}" = "true" ]; then
-      COMMAND="${bin}/accumulo_watcher.sh ${LOGHOST}"
-   fi
-
-   if [[ $HOST == localhost || $HOST == "$(hostname -f)" || $HOST = "$IP" ]]; then
-      ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" &
-      MAX_FILES_OPEN=$(ulimit -n)
-   else
-      $SSH "$HOST" "bash -c 'exec nohup ${NUMA_CMD} $COMMAND ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
-      MAX_FILES_OPEN=$($SSH "$HOST" "/usr/bin/env bash -c 'ulimit -n'")
-   fi
-
-   if [[ -n $MAX_FILES_OPEN && -n $SLAVES ]] ; then
-      MAX_FILES_RECOMMENDED=${MAX_FILES_RECOMMENDED:-32768}
-      if (( SLAVES > 10 )) && (( MAX_FILES_OPEN < MAX_FILES_RECOMMENDED ))
-      then
-         echo "WARN : Max open files on $HOST is $MAX_FILES_OPEN, recommend $MAX_FILES_RECOMMENDED" >&2
-      fi
-   fi
-else
-   echo "$HOST : $LONGNAME already running (${PID})"
+   # Ensure that the provided configuration directory is sent with the command
+   echo $($SSH $HOST "bash -c 'ACCUMULO_CONF_DIR=${ACCUMULO_CONF_DIR} $bin/start-daemon.sh \"$HOST\" \"$SERVICE\"'")
 fi

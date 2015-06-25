@@ -15,7 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Guarantees that Accumulo and its environment variables are set.
+# Guarantees that Accumulo and its environment variables are set for start
+# and stop scripts.  Should always be run after config.sh.
 #
 # Parameters checked by script
 #  ACCUMULO_VERIFY_ONLY set to skip actions that would alter the local filesystem
@@ -70,3 +71,12 @@ SSH='ssh -qnf -o ConnectTimeout=2'
 
 # ACCUMULO-1985 provide a way to use the scripts and still bind to all network interfaces
 export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"false"}
+
+if [[ -z "${ACCUMULO_PID_DIR}" ]]; then
+  export ACCUMULO_PID_DIR="${ACCUMULO_HOME}/run"
+fi
+[[ -z ${ACCUMULO_VERIFY_ONLY} ]] && mkdir -p "${ACCUMULO_PID_DIR}" 2>/dev/null
+
+if [[ -z "${ACCUMULO_IDENT_STRING}" ]]; then
+  export ACCUMULO_IDENT_STRING="$USER"
+fi

@@ -34,7 +34,7 @@ echo -n "Starting tablet servers ..."
 count=1
 for server in $(egrep -v '(^#|^\s*$)' "${SLAVES}"); do
    echo -n "."
-   ${bin}/start-server.sh $server tserver "tablet server" &
+   ${bin}/start-server.sh $server tserver &
    if (( ++count % 72 == 0 )) ;
    then
       echo
