@@ -49,7 +49,7 @@ public class DumpConfigIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     File target = new File(System.getProperty("user.dir"), "target");
-    target.mkdirs();
+    assertTrue("target directory should exist", target.exists());
     TemporaryFolder folder = new TemporaryFolder(target);
     folder.create();
     File siteFileBackup = new File(folder.getRoot(), "accumulo-site.xml.bak");
