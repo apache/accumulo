@@ -22,7 +22,7 @@ final public class ScanBatch {
   private final boolean more;
   private final List<KVEntry> results;
 
-  ScanBatch(List<KVEntry> results, boolean more) {
+  public ScanBatch(List<KVEntry> results, boolean more) {
     this.results = results;
     this.more = more;
   }

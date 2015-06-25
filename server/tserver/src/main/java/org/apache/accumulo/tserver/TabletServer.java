@@ -526,8 +526,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           throw (NotServingTabletException) e.getCause();
         else if (e.getCause() instanceof TooManyFilesException)
           throw new org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException(scanSession.extent.toThrift());
-        else
+        else if (e.getCause() instanceof IOException) {
+          UtilWaitThread.sleep(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS);
+          List<KVEntry> empty = Collections.emptyList();
+          bresult = new ScanBatch(empty, true);
+          scanSession.nextBatchTask = null;
+        } else {
           throw new RuntimeException(e);
+        }
       } catch (CancellationException ce) {
         sessionManager.removeSession(scanID);
         Tablet tablet = onlineTablets.get(scanSession.extent);
