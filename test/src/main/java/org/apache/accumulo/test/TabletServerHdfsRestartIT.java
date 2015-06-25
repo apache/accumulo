@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -58,7 +57,6 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
     }
     bw.close();
     conn.tableOperations().flush(tableName, null, null, true);
-    Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
 
     // Kill dfs
     cluster.getMiniDfs().restartNameNode(false);
