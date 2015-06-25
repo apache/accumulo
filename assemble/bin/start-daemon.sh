@@ -28,6 +28,24 @@ script=$( basename "$SOURCE" )
 
 usage="Usage: start-daemon.sh <host> <service>"
 
+rotate_log () {
+  logfile=$1;
+  max_retained=$2;
+  if [[ ! $max_retained =~ ^[0-9]+$ ]] || [[ $max_retained -lt 1 ]] ; then
+    echo "ACCUMULO_NUM_OUT_FILES should be a positive number, but was '$max_retained'"
+    exit 1
+  fi
+
+  if [ -f "$logfile" ]; then # rotate logs
+    while [ $max_retained -gt 1 ]; do
+      prev=`expr $max_retained - 1`
+      [ -f "$logfile.$prev" ] && mv -f "$logfile.$prev" "$logfile.$max_retained"
+      max_retained=$prev
+    done
+    mv -f "$logfile" "$logfile.$max_retained";
+  fi
+}
+
 if [[ $# -ne 2 ]]; then
   echo $usage
   exit 2
@@ -78,8 +96,15 @@ if [ "${ACCUMULO_WATCHER}" = "true" ]; then
    COMMAND="${bin}/accumulo_watcher.sh ${LOGHOST}"
 fi
 
+OUTFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out"
+ERRFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err"
+
+# Rotate the .out and .err files
+rotate_log "$OUTFILE" ${ACCUMULO_NUM_OUT_FILES}
+rotate_log "$ERRFILE" ${ACCUMULO_NUM_OUT_FILES}
+
 # Fork the process, store the pid
-nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" < /dev/null &
+nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"$OUTFILE" 2>"$ERRFILE" < /dev/null &
 echo $! > ${PID_FILE}
 
 # Check the max open files limit and selectively warn

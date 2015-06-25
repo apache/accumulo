@@ -76,3 +76,5 @@ export OOM_RETRIES="5"
 export ZKLOCK_TIMESPAN="600"
 export ZKLOCK_RETRIES="5"
 
+# The number of .out and .err files per process to retain
+# export ACCUMULO_NUM_OUT_FILES=5

@@ -80,3 +80,6 @@ fi
 if [[ -z "${ACCUMULO_IDENT_STRING}" ]]; then
   export ACCUMULO_IDENT_STRING="$USER"
 fi
+
+# The number of .out and .err files to retain
+export ACCUMULO_NUM_OUT_FILES=${ACCUMULO_NUM_OUT_FILES:-5}
