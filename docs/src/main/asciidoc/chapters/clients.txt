@@ -271,6 +271,9 @@ An example of the BatchScanner can be found at
 
 The proxy API allows the interaction with Accumulo with languages other than Java.
 A proxy server is provided in the codebase and a client can further be generated.
+The proxy API can also be used instead of the traditional ZooKeeperInstance class to
+provide a single TCP port in which clients can be securely routed through a firewall,
+without requiring access to all tablet servers in the cluster.
 
 ==== Prequisites
 
@@ -349,8 +352,22 @@ Next, add some data:
 // first, create a writer on the server
 String writer = client.createWriter(token, "myTable", new WriterOptions());
 
+//rowid
+ByteBuffer rowid = ByteBuffer.wrap("UUID".getBytes());
+
+//mutation like class
+ColumnUpdate cu = new ColumnUpdate();
+cu.setColFamily("MyFamily".getBytes());
+cu.setColQualifier("MyQualifier".getBytes());
+cu.setColVisibility("VisLabel".getBytes());
+cu.setValue("Some Value.".getBytes());
+
+List<ColumnUpdate> updates = new ArrayList<ColumnUpdate>();
+updates.add(cu);
+
 // build column updates
-Map<ByteBuffer, List<ColumnUpdate> cells> cellsToUpdate = //...
+Map<ByteBuffer, List<ColumnUpdate>> cellsToUpdate = new HashMap<ByteBuffer, List<ColumnUpdate>>();
+cellsToUpdate.put(rowid, updates);
 
 // send updates to the server
 client.updateAndFlush(writer, "myTable", cellsToUpdate);
