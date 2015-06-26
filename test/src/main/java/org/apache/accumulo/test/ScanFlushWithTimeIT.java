@@ -57,9 +57,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
     c.tableOperations().attachIterator(tableName, setting);
     log.info("Splitting the table");
     SortedSet<Text> partitionKeys = new TreeSet<>();
-    for (int i = 1; i < 10; i++) {
-      partitionKeys.add(new Text("" + i));
-    }
+    partitionKeys.add(new Text("5"));
     c.tableOperations().addSplits(tableName, partitionKeys);
     log.info("waiting for zookeeper propagation");
     UtilWaitThread.sleep(5 * 1000);
@@ -76,15 +74,13 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
     log.info("Scanner");
     Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
     s.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-    s.setBatchSize(100);
-    testScanner(s, 500);
+    testScanner(s, 1200);
 
     log.info("IsolatedScanner");
     IsolatedScanner is = new IsolatedScanner(s);
-    is.setBatchTimeout(500, TimeUnit.MILLISECONDS);
     is.setReadaheadThreshold(1);
     // buffers an entire row
-    testScanner(is, 1200);
+    testScanner(is, 2200);
 
     log.info("BatchScanner");
     BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 5);
