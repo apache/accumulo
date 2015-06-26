@@ -635,7 +635,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             Translators.RT));
         InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(), thriftTabletRanges,
             Translator.translate(columns, Translators.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
-            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
+            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites, options.batchTimeOut);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 

@@ -42,6 +42,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -718,7 +719,7 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges, HashSet<Column> columnSet, List<KVEntry> results, long maxResultsSize)
+  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges, HashSet<Column> columnSet, List<KVEntry> results, long maxResultsSize, long batchTimeOut)
       throws IOException {
 
     LookupResult lookupResult = new LookupResult();
@@ -730,9 +731,16 @@ public class Tablet implements TabletCommitter {
     if (columnSet.size() > 0)
       cfset = LocalityGroupUtil.families(columnSet);
 
+    long returnTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
+      batchTimeOut = 0;
+    }
+
     for (Range range : ranges) {
 
-      if (exceededMemoryUsage || tabletClosed) {
+      boolean timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
+
+      if (exceededMemoryUsage || tabletClosed || timesUp) {
         lookupResult.unfinishedRanges.add(range);
         continue;
       }
@@ -756,7 +764,9 @@ public class Tablet implements TabletCommitter {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          if (exceededMemoryUsage) {
+          timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
+
+          if (exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key, false);
             break;
           }
@@ -815,7 +825,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public LookupResult lookup(List<Range> ranges, HashSet<Column> columns, Authorizations authorizations, List<KVEntry> results, long maxResultSize,
-      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag) throws IOException {
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, long batchTimeOut) throws IOException {
 
     if (ranges.size() == 0) {
       return new LookupResult();
@@ -833,13 +843,13 @@ public class Tablet implements TabletCommitter {
       tabletRange.clip(range);
     }
 
-    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag);
+    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, batchTimeOut);
 
     LookupResult result = null;
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
-      result = lookup(iter, ranges, columns, results, maxResultSize);
+      result = lookup(iter, ranges, columns, results, maxResultSize, batchTimeOut);
       return result;
     } catch (IOException ioe) {
       dataSource.close(true);
@@ -857,10 +867,14 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns) throws IOException {
+  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns, long batchTimeOut) throws IOException {
 
     // log.info("In nextBatch..");
 
+    long stopTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
+      batchTimeOut = 0;
+    }
     List<KVEntry> results = new ArrayList<KVEntry>();
     Key key = null;
 
@@ -890,7 +904,9 @@ public class Tablet implements TabletCommitter {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      if (resultSize >= maxResultsSize || results.size() >= num) {
+      boolean timesUp = batchTimeOut > 0 && System.nanoTime() >= stopTime;
+
+      if (resultSize >= maxResultsSize || results.size() >= num || timesUp) {
         continueKey = new Key(key);
         skipContinueKey = true;
         break;
@@ -931,12 +947,12 @@ public class Tablet implements TabletCommitter {
   }
 
   public Scanner createScanner(Range range, int num, Set<Column> columns, Authorizations authorizations, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag) {
+      Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag, long batchTimeOut) {
     // do a test to see if this range falls within the tablet, if it does not
     // then clip will throw an exception
     extent.toDataRange().clip(range);
 
-    ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, isolated);
+    ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, isolated, batchTimeOut);
     return new Scanner(this, range, opts);
   }
 

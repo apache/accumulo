@@ -80,7 +80,7 @@ public class ThriftScanner {
 
   public static boolean getBatchFromServer(ClientContext context, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, int size,
-      Authorizations authorizations, boolean retry) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
+      Authorizations authorizations, boolean retry, long batchTimeOut) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
 
@@ -91,13 +91,13 @@ public class ThriftScanner {
       try {
         // not reading whole rows (or stopping on row boundries) so there is no need to enable isolation below
         ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
-            serverSideIteratorOptions, false);
+            serverSideIteratorOptions, false, batchTimeOut);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold);
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold, scanState.batchTimeOut);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
 
@@ -133,6 +133,7 @@ public class ThriftScanner {
     Text startRow;
     boolean skipStartRow;
     long readaheadThreshold;
+    long batchTimeOut;
 
     Range range;
 
@@ -152,13 +153,14 @@ public class ThriftScanner {
     Map<String,Map<String,String>> serverSideIteratorOptions;
 
     public ScanState(ClientContext context, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
-        List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
+        List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long batchTimeOut) {
       this(context, tableId, authorizations, range, fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, isolated,
-          Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
+          Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, batchTimeOut);
     }
 
     public ScanState(ClientContext context, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
-        List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold) {
+        List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold,
+        long batchTimeOut) {
       this.context = context;
       ;
       this.authorizations = authorizations;
@@ -186,7 +188,7 @@ public class ThriftScanner {
 
       this.isolated = isolated;
       this.readaheadThreshold = readaheadThreshold;
-
+      this.batchTimeOut = batchTimeOut;
     }
   }
 
@@ -409,7 +411,7 @@ public class ThriftScanner {
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
         InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold);
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold, scanState.batchTimeOut);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 

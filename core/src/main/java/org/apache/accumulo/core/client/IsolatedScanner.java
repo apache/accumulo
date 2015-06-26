@@ -226,6 +226,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     this.scanner = scanner;
     this.range = scanner.getRange();
     this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
+    this.batchTimeOut = scanner.getBatchTimeout(TimeUnit.MILLISECONDS);
     this.batchSize = scanner.getBatchSize();
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     this.bufferFactory = bufferFactory;

@@ -52,13 +52,13 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface extends org.apache.accumulo.core.client.impl.thrift.ClientService.Iface {
 
-    public org.apache.accumulo.core.data.thrift.InitialScan startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.data.thrift.InitialScan startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, long batchTimeOut) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, org.apache.thrift.TException;
 
     public org.apache.accumulo.core.data.thrift.ScanResult continueScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException, org.apache.thrift.TException;
 
     public void closeScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long scanID) throws org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, long batchTimeOut) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public org.apache.accumulo.core.data.thrift.MultiScanResult continueMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, org.apache.thrift.TException;
 
@@ -118,13 +118,13 @@ import org.slf4j.LoggerFactory;
 
   public interface AsyncIface extends org.apache.accumulo.core.client.impl.thrift.ClientService .AsyncIface {
 
-    public void startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, long batchTimeOut, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void continueScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long scanID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void closeScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long scanID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, long batchTimeOut, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void continueMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long scanID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -202,13 +202,13 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
-    public org.apache.accumulo.core.data.thrift.InitialScan startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, org.apache.thrift.TException
+    public org.apache.accumulo.core.data.thrift.InitialScan startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, long batchTimeOut) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, org.apache.thrift.TException
     {
-      send_startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold);
+      send_startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, batchTimeOut);
       return recv_startScan();
     }
 
-    public void send_startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold) throws org.apache.thrift.TException
+    public void send_startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, long batchTimeOut) throws org.apache.thrift.TException
     {
       startScan_args args = new startScan_args();
       args.setTinfo(tinfo);
@@ -223,6 +223,7 @@ import org.slf4j.LoggerFactory;
       args.setWaitForWrites(waitForWrites);
       args.setIsolated(isolated);
       args.setReadaheadThreshold(readaheadThreshold);
+      args.setBatchTimeOut(batchTimeOut);
       sendBase("startScan", args);
     }
 
@@ -291,13 +292,13 @@ import org.slf4j.LoggerFactory;
       sendBase("closeScan", args);
     }
 
-    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, long batchTimeOut) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_startMultiScan(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites);
+      send_startMultiScan(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, batchTimeOut);
       return recv_startMultiScan();
     }
 
-    public void send_startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws org.apache.thrift.TException
+    public void send_startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, long batchTimeOut) throws org.apache.thrift.TException
     {
       startMultiScan_args args = new startMultiScan_args();
       args.setTinfo(tinfo);
@@ -308,6 +309,7 @@ import org.slf4j.LoggerFactory;
       args.setSsio(ssio);
       args.setAuthorizations(authorizations);
       args.setWaitForWrites(waitForWrites);
+      args.setBatchTimeOut(batchTimeOut);
       sendBase("startMultiScan", args);
     }
 
@@ -956,9 +958,9 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
-    public void startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void startScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, long batchTimeOut, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startScan_call method_call = new startScan_call(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, resultHandler, this, ___protocolFactory, ___transport);
+      startScan_call method_call = new startScan_call(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, batchTimeOut, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -976,7 +978,8 @@ import org.slf4j.LoggerFactory;
       private boolean waitForWrites;
       private boolean isolated;
       private long readaheadThreshold;
-      public startScan_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private long batchTimeOut;
+      public startScan_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, long batchTimeOut, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -990,6 +993,7 @@ import org.slf4j.LoggerFactory;
         this.waitForWrites = waitForWrites;
         this.isolated = isolated;
         this.readaheadThreshold = readaheadThreshold;
+        this.batchTimeOut = batchTimeOut;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1007,6 +1011,7 @@ import org.slf4j.LoggerFactory;
         args.setWaitForWrites(waitForWrites);
         args.setIsolated(isolated);
         args.setReadaheadThreshold(readaheadThreshold);
+        args.setBatchTimeOut(batchTimeOut);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1090,9 +1095,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void startMultiScan(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, long batchTimeOut, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startMultiScan_call method_call = new startMultiScan_call(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, resultHandler, this, ___protocolFactory, ___transport);
+      startMultiScan_call method_call = new startMultiScan_call(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, batchTimeOut, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1106,7 +1111,8 @@ import org.slf4j.LoggerFactory;
       private Map<String,Map<String,String>> ssio;
       private List<ByteBuffer> authorizations;
       private boolean waitForWrites;
-      public startMultiScan_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private long batchTimeOut;
+      public startMultiScan_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>> batch, List<org.apache.accumulo.core.data.thrift.TColumn> columns, List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, long batchTimeOut, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1116,6 +1122,7 @@ import org.slf4j.LoggerFactory;
         this.ssio = ssio;
         this.authorizations = authorizations;
         this.waitForWrites = waitForWrites;
+        this.batchTimeOut = batchTimeOut;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1129,6 +1136,7 @@ import org.slf4j.LoggerFactory;
         args.setSsio(ssio);
         args.setAuthorizations(authorizations);
         args.setWaitForWrites(waitForWrites);
+        args.setBatchTimeOut(batchTimeOut);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -2252,7 +2260,7 @@ import org.slf4j.LoggerFactory;
       public startScan_result getResult(I iface, startScan_args args) throws org.apache.thrift.TException {
         startScan_result result = new startScan_result();
         try {
-          result.success = iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold);
+          result.success = iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold, args.batchTimeOut);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (NotServingTabletException nste) {
@@ -2327,7 +2335,7 @@ import org.slf4j.LoggerFactory;
       public startMultiScan_result getResult(I iface, startMultiScan_args args) throws org.apache.thrift.TException {
         startMultiScan_result result = new startMultiScan_result();
         try {
-          result.success = iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites);
+          result.success = iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.batchTimeOut);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -3042,7 +3050,7 @@ import org.slf4j.LoggerFactory;
       }
 
       public void start(I iface, startScan_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.data.thrift.InitialScan> resultHandler) throws TException {
-        iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold,resultHandler);
+        iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold, args.batchTimeOut,resultHandler);
       }
     }
 
@@ -3194,7 +3202,7 @@ import org.slf4j.LoggerFactory;
       }
 
       public void start(I iface, startMultiScan_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.data.thrift.InitialMultiScan> resultHandler) throws TException {
-        iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites,resultHandler);
+        iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.batchTimeOut,resultHandler);
       }
     }
 
@@ -4463,6 +4471,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TField WAIT_FOR_WRITES_FIELD_DESC = new org.apache.thrift.protocol.TField("waitForWrites", org.apache.thrift.protocol.TType.BOOL, (short)9);
     private static final org.apache.thrift.protocol.TField ISOLATED_FIELD_DESC = new org.apache.thrift.protocol.TField("isolated", org.apache.thrift.protocol.TType.BOOL, (short)10);
     private static final org.apache.thrift.protocol.TField READAHEAD_THRESHOLD_FIELD_DESC = new org.apache.thrift.protocol.TField("readaheadThreshold", org.apache.thrift.protocol.TType.I64, (short)12);
+    private static final org.apache.thrift.protocol.TField BATCH_TIME_OUT_FIELD_DESC = new org.apache.thrift.protocol.TField("batchTimeOut", org.apache.thrift.protocol.TType.I64, (short)13);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -4482,6 +4491,7 @@ import org.slf4j.LoggerFactory;
     public boolean waitForWrites; // required
     public boolean isolated; // required
     public long readaheadThreshold; // required
+    public long batchTimeOut; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -4496,7 +4506,8 @@ import org.slf4j.LoggerFactory;
       AUTHORIZATIONS((short)8, "authorizations"),
       WAIT_FOR_WRITES((short)9, "waitForWrites"),
       ISOLATED((short)10, "isolated"),
-      READAHEAD_THRESHOLD((short)12, "readaheadThreshold");
+      READAHEAD_THRESHOLD((short)12, "readaheadThreshold"),
+      BATCH_TIME_OUT((short)13, "batchTimeOut");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -4535,6 +4546,8 @@ import org.slf4j.LoggerFactory;
             return ISOLATED;
           case 12: // READAHEAD_THRESHOLD
             return READAHEAD_THRESHOLD;
+          case 13: // BATCH_TIME_OUT
+            return BATCH_TIME_OUT;
           default:
             return null;
         }
@@ -4579,6 +4592,7 @@ import org.slf4j.LoggerFactory;
     private static final int __WAITFORWRITES_ISSET_ID = 1;
     private static final int __ISOLATED_ISSET_ID = 2;
     private static final int __READAHEADTHRESHOLD_ISSET_ID = 3;
+    private static final int __BATCHTIMEOUT_ISSET_ID = 4;
     private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -4614,6 +4628,8 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       tmpMap.put(_Fields.READAHEAD_THRESHOLD, new org.apache.thrift.meta_data.FieldMetaData("readaheadThreshold", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+      tmpMap.put(_Fields.BATCH_TIME_OUT, new org.apache.thrift.meta_data.FieldMetaData("batchTimeOut", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(startScan_args.class, metaDataMap);
     }
@@ -4633,7 +4649,8 @@ import org.slf4j.LoggerFactory;
       List<ByteBuffer> authorizations,
       boolean waitForWrites,
       boolean isolated,
-      long readaheadThreshold)
+      long readaheadThreshold,
+      long batchTimeOut)
     {
       this();
       this.tinfo = tinfo;
@@ -4652,6 +4669,8 @@ import org.slf4j.LoggerFactory;
       setIsolatedIsSet(true);
       this.readaheadThreshold = readaheadThreshold;
       setReadaheadThresholdIsSet(true);
+      this.batchTimeOut = batchTimeOut;
+      setBatchTimeOutIsSet(true);
     }
 
     /**
@@ -4708,6 +4727,7 @@ import org.slf4j.LoggerFactory;
       this.waitForWrites = other.waitForWrites;
       this.isolated = other.isolated;
       this.readaheadThreshold = other.readaheadThreshold;
+      this.batchTimeOut = other.batchTimeOut;
     }
 
     public startScan_args deepCopy() {
@@ -4732,6 +4752,8 @@ import org.slf4j.LoggerFactory;
       this.isolated = false;
       setReadaheadThresholdIsSet(false);
       this.readaheadThreshold = 0;
+      setBatchTimeOutIsSet(false);
+      this.batchTimeOut = 0;
     }
 
     public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
@@ -5074,6 +5096,29 @@ import org.slf4j.LoggerFactory;
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __READAHEADTHRESHOLD_ISSET_ID, value);
     }
 
+    public long getBatchTimeOut() {
+      return this.batchTimeOut;
+    }
+
+    public startScan_args setBatchTimeOut(long batchTimeOut) {
+      this.batchTimeOut = batchTimeOut;
+      setBatchTimeOutIsSet(true);
+      return this;
+    }
+
+    public void unsetBatchTimeOut() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __BATCHTIMEOUT_ISSET_ID);
+    }
+
+    /** Returns true if field batchTimeOut is set (has been assigned a value) and false otherwise */
+    public boolean isSetBatchTimeOut() {
+      return EncodingUtils.testBit(__isset_bitfield, __BATCHTIMEOUT_ISSET_ID);
+    }
+
+    public void setBatchTimeOutIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __BATCHTIMEOUT_ISSET_ID, value);
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -5172,6 +5217,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case BATCH_TIME_OUT:
+        if (value == null) {
+          unsetBatchTimeOut();
+        } else {
+          setBatchTimeOut((Long)value);
+        }
+        break;
+
       }
     }
 
@@ -5213,6 +5266,9 @@ import org.slf4j.LoggerFactory;
       case READAHEAD_THRESHOLD:
         return Long.valueOf(getReadaheadThreshold());
 
+      case BATCH_TIME_OUT:
+        return Long.valueOf(getBatchTimeOut());
+
       }
       throw new IllegalStateException();
     }
@@ -5248,6 +5304,8 @@ import org.slf4j.LoggerFactory;
         return isSetIsolated();
       case READAHEAD_THRESHOLD:
         return isSetReadaheadThreshold();
+      case BATCH_TIME_OUT:
+        return isSetBatchTimeOut();
       }
       throw new IllegalStateException();
     }
@@ -5370,6 +5428,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_readaheadThreshold && that_present_readaheadThreshold))
           return false;
         if (this.readaheadThreshold != that.readaheadThreshold)
+          return false;
+      }
+
+      boolean this_present_batchTimeOut = true;
+      boolean that_present_batchTimeOut = true;
+      if (this_present_batchTimeOut || that_present_batchTimeOut) {
+        if (!(this_present_batchTimeOut && that_present_batchTimeOut))
+          return false;
+        if (this.batchTimeOut != that.batchTimeOut)
           return false;
       }
 
@@ -5509,6 +5576,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetBatchTimeOut()).compareTo(other.isSetBatchTimeOut());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetBatchTimeOut()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.batchTimeOut, other.batchTimeOut);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -5607,6 +5684,10 @@ import org.slf4j.LoggerFactory;
       if (!first) sb.append(", ");
       sb.append("readaheadThreshold:");
       sb.append(this.readaheadThreshold);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("batchTimeOut:");
+      sb.append(this.batchTimeOut);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -5821,6 +5902,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 13: // BATCH_TIME_OUT
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.batchTimeOut = iprot.readI64();
+                struct.setBatchTimeOutIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -5925,6 +6014,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(READAHEAD_THRESHOLD_FIELD_DESC);
         oprot.writeI64(struct.readaheadThreshold);
         oprot.writeFieldEnd();
+        oprot.writeFieldBegin(BATCH_TIME_OUT_FIELD_DESC);
+        oprot.writeI64(struct.batchTimeOut);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -5979,7 +6071,10 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetReadaheadThreshold()) {
           optionals.set(11);
         }
-        oprot.writeBitSet(optionals, 12);
+        if (struct.isSetBatchTimeOut()) {
+          optionals.set(12);
+        }
+        oprot.writeBitSet(optionals, 13);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -6048,12 +6143,15 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetReadaheadThreshold()) {
           oprot.writeI64(struct.readaheadThreshold);
         }
+        if (struct.isSetBatchTimeOut()) {
+          oprot.writeI64(struct.batchTimeOut);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, startScan_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(12);
+        BitSet incoming = iprot.readBitSet(13);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -6156,6 +6254,10 @@ import org.slf4j.LoggerFactory;
         if (incoming.get(11)) {
           struct.readaheadThreshold = iprot.readI64();
           struct.setReadaheadThresholdIsSet(true);
+        }
+        if (incoming.get(12)) {
+          struct.batchTimeOut = iprot.readI64();
+          struct.setBatchTimeOutIsSet(true);
         }
       }
     }
@@ -8417,6 +8519,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TField SSIO_FIELD_DESC = new org.apache.thrift.protocol.TField("ssio", org.apache.thrift.protocol.TType.MAP, (short)5);
     private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)6);
     private static final org.apache.thrift.protocol.TField WAIT_FOR_WRITES_FIELD_DESC = new org.apache.thrift.protocol.TField("waitForWrites", org.apache.thrift.protocol.TType.BOOL, (short)7);
+    private static final org.apache.thrift.protocol.TField BATCH_TIME_OUT_FIELD_DESC = new org.apache.thrift.protocol.TField("batchTimeOut", org.apache.thrift.protocol.TType.I64, (short)9);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -8432,6 +8535,7 @@ import org.slf4j.LoggerFactory;
     public Map<String,Map<String,String>> ssio; // required
     public List<ByteBuffer> authorizations; // required
     public boolean waitForWrites; // required
+    public long batchTimeOut; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -8442,7 +8546,8 @@ import org.slf4j.LoggerFactory;
       SSI_LIST((short)4, "ssiList"),
       SSIO((short)5, "ssio"),
       AUTHORIZATIONS((short)6, "authorizations"),
-      WAIT_FOR_WRITES((short)7, "waitForWrites");
+      WAIT_FOR_WRITES((short)7, "waitForWrites"),
+      BATCH_TIME_OUT((short)9, "batchTimeOut");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -8473,6 +8578,8 @@ import org.slf4j.LoggerFactory;
             return AUTHORIZATIONS;
           case 7: // WAIT_FOR_WRITES
             return WAIT_FOR_WRITES;
+          case 9: // BATCH_TIME_OUT
+            return BATCH_TIME_OUT;
           default:
             return null;
         }
@@ -8514,6 +8621,7 @@ import org.slf4j.LoggerFactory;
 
     // isset id assignments
     private static final int __WAITFORWRITES_ISSET_ID = 0;
+    private static final int __BATCHTIMEOUT_ISSET_ID = 1;
     private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -8541,6 +8649,8 @@ import org.slf4j.LoggerFactory;
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true))));
       tmpMap.put(_Fields.WAIT_FOR_WRITES, new org.apache.thrift.meta_data.FieldMetaData("waitForWrites", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.BATCH_TIME_OUT, new org.apache.thrift.meta_data.FieldMetaData("batchTimeOut", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(startMultiScan_args.class, metaDataMap);
     }
@@ -8556,7 +8666,8 @@ import org.slf4j.LoggerFactory;
       List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
       Map<String,Map<String,String>> ssio,
       List<ByteBuffer> authorizations,
-      boolean waitForWrites)
+      boolean waitForWrites,
+      long batchTimeOut)
     {
       this();
       this.tinfo = tinfo;
@@ -8568,6 +8679,8 @@ import org.slf4j.LoggerFactory;
       this.authorizations = authorizations;
       this.waitForWrites = waitForWrites;
       setWaitForWritesIsSet(true);
+      this.batchTimeOut = batchTimeOut;
+      setBatchTimeOutIsSet(true);
     }
 
     /**
@@ -8618,6 +8731,7 @@ import org.slf4j.LoggerFactory;
         this.authorizations = __this__authorizations;
       }
       this.waitForWrites = other.waitForWrites;
+      this.batchTimeOut = other.batchTimeOut;
     }
 
     public startMultiScan_args deepCopy() {
@@ -8635,6 +8749,8 @@ import org.slf4j.LoggerFactory;
       this.authorizations = null;
       setWaitForWritesIsSet(false);
       this.waitForWrites = false;
+      setBatchTimeOutIsSet(false);
+      this.batchTimeOut = 0;
     }
 
     public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
@@ -8895,6 +9011,29 @@ import org.slf4j.LoggerFactory;
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __WAITFORWRITES_ISSET_ID, value);
     }
 
+    public long getBatchTimeOut() {
+      return this.batchTimeOut;
+    }
+
+    public startMultiScan_args setBatchTimeOut(long batchTimeOut) {
+      this.batchTimeOut = batchTimeOut;
+      setBatchTimeOutIsSet(true);
+      return this;
+    }
+
+    public void unsetBatchTimeOut() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __BATCHTIMEOUT_ISSET_ID);
+    }
+
+    /** Returns true if field batchTimeOut is set (has been assigned a value) and false otherwise */
+    public boolean isSetBatchTimeOut() {
+      return EncodingUtils.testBit(__isset_bitfield, __BATCHTIMEOUT_ISSET_ID);
+    }
+
+    public void setBatchTimeOutIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __BATCHTIMEOUT_ISSET_ID, value);
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -8961,6 +9100,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case BATCH_TIME_OUT:
+        if (value == null) {
+          unsetBatchTimeOut();
+        } else {
+          setBatchTimeOut((Long)value);
+        }
+        break;
+
       }
     }
 
@@ -8990,6 +9137,9 @@ import org.slf4j.LoggerFactory;
       case WAIT_FOR_WRITES:
         return Boolean.valueOf(isWaitForWrites());
 
+      case BATCH_TIME_OUT:
+        return Long.valueOf(getBatchTimeOut());
+
       }
       throw new IllegalStateException();
     }
@@ -9017,6 +9167,8 @@ import org.slf4j.LoggerFactory;
         return isSetAuthorizations();
       case WAIT_FOR_WRITES:
         return isSetWaitForWrites();
+      case BATCH_TIME_OUT:
+        return isSetBatchTimeOut();
       }
       throw new IllegalStateException();
     }
@@ -9103,6 +9255,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_waitForWrites && that_present_waitForWrites))
           return false;
         if (this.waitForWrites != that.waitForWrites)
+          return false;
+      }
+
+      boolean this_present_batchTimeOut = true;
+      boolean that_present_batchTimeOut = true;
+      if (this_present_batchTimeOut || that_present_batchTimeOut) {
+        if (!(this_present_batchTimeOut && that_present_batchTimeOut))
+          return false;
+        if (this.batchTimeOut != that.batchTimeOut)
           return false;
       }
 
@@ -9202,6 +9363,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetBatchTimeOut()).compareTo(other.isSetBatchTimeOut());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetBatchTimeOut()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.batchTimeOut, other.batchTimeOut);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -9280,6 +9451,10 @@ import org.slf4j.LoggerFactory;
       if (!first) sb.append(", ");
       sb.append("waitForWrites:");
       sb.append(this.waitForWrites);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("batchTimeOut:");
+      sb.append(this.batchTimeOut);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -9478,6 +9653,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 9: // BATCH_TIME_OUT
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.batchTimeOut = iprot.readI64();
+                struct.setBatchTimeOutIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -9583,6 +9766,9 @@ import org.slf4j.LoggerFactory;
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
+        oprot.writeFieldBegin(BATCH_TIME_OUT_FIELD_DESC);
+        oprot.writeI64(struct.batchTimeOut);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -9625,7 +9811,10 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetWaitForWrites()) {
           optionals.set(7);
         }
-        oprot.writeBitSet(optionals, 8);
+        if (struct.isSetBatchTimeOut()) {
+          optionals.set(8);
+        }
+        oprot.writeBitSet(optionals, 9);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -9695,12 +9884,15 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetWaitForWrites()) {
           oprot.writeBool(struct.waitForWrites);
         }
+        if (struct.isSetBatchTimeOut()) {
+          oprot.writeI64(struct.batchTimeOut);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, startMultiScan_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(8);
+        BitSet incoming = iprot.readBitSet(9);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -9807,6 +9999,10 @@ import org.slf4j.LoggerFactory;
         if (incoming.get(7)) {
           struct.waitForWrites = iprot.readBool();
           struct.setWaitForWritesIsSet(true);
+        }
+        if (incoming.get(8)) {
+          struct.batchTimeOut = iprot.readI64();
+          struct.setBatchTimeOutIsSet(true);
         }
       }
     }

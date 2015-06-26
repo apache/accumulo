@@ -65,10 +65,10 @@ class ScanDataSource implements DataSource {
   private final ScanOptions options;
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag) {
+      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, long batchTimeOut) {
     this.tablet = tablet;
     expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false);
+    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, batchTimeOut);
     this.interruptFlag = interruptFlag;
   }
 

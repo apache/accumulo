@@ -49,6 +49,8 @@ public class ScannerOptions implements ScannerBase {
 
   protected long timeOut = Long.MAX_VALUE;
 
+  protected long batchTimeOut = Long.MAX_VALUE;
+
   private String regexIterName = null;
 
   protected ScannerOptions() {}
@@ -166,6 +168,7 @@ public class ScannerOptions implements ScannerBase {
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
         for (Entry<String,Map<String,String>> entry : es)
           dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<String,String>(entry.getValue()));
+        dst.batchTimeOut = src.batchTimeOut;
       }
     }
   }
@@ -200,5 +203,22 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public Authorizations getAuthorizations() {
     throw new UnsupportedOperationException("No authorizations to return");
+  }
+
+  @Override
+  public void setBatchTimeout(long timeout, TimeUnit timeUnit) {
+    if (timeOut < 0) {
+      throw new IllegalArgumentException("Batch timeout must be positive : " + timeOut);
+    }
+    if (timeout == 0) {
+      this.batchTimeOut = Long.MAX_VALUE;
+    } else {
+      this.batchTimeOut = timeUnit.toMillis(timeout);
+    }
+  }
+
+  @Override
+  public long getBatchTimeout(TimeUnit timeUnit) {
+    return timeUnit.convert(batchTimeOut, TimeUnit.MILLISECONDS);
   }
 }

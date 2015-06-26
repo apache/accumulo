@@ -189,7 +189,7 @@ public class VerifyTabletAssignments {
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
     InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
-        Authorizations.EMPTY.getAuthorizationsBB(), false);
+        Authorizations.EMPTY.getAuthorizationsBB(), false, 0L);
     if (is.result.more) {
       MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
       checkFailures(entry.getKey(), failures, result);

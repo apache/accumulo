@@ -74,6 +74,7 @@ public class TableOperationsImplTest {
     // IsolatedScanner -- make the verification pass, not really relevant
     EasyMock.expect(scanner.getRange()).andReturn(range).anyTimes();
     EasyMock.expect(scanner.getTimeout(TimeUnit.MILLISECONDS)).andReturn(Long.MAX_VALUE);
+    EasyMock.expect(scanner.getBatchTimeout(TimeUnit.MILLISECONDS)).andReturn(Long.MAX_VALUE);
     EasyMock.expect(scanner.getBatchSize()).andReturn(1000);
     EasyMock.expect(scanner.getReadaheadThreshold()).andReturn(100l);
 

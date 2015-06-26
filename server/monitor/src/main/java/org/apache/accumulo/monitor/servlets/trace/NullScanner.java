@@ -123,4 +123,15 @@ public class NullScanner implements Scanner {
   public void setReadaheadThreshold(long batches) {
 
   }
+
+  @Override
+  public void setBatchTimeout(long timeout, TimeUnit milliseconds) {
+
+  }
+
+  @Override
+  public long getBatchTimeout(TimeUnit timeUnit) {
+    return 0;
+  }
+
 }

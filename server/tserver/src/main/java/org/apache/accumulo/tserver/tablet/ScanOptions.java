@@ -35,9 +35,10 @@ final class ScanOptions {
   private final AtomicBoolean interruptFlag;
   private final int num;
   private final boolean isolated;
+  private final long batchTimeOut;
 
   ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      AtomicBoolean interruptFlag, boolean isolated) {
+      AtomicBoolean interruptFlag, boolean isolated, long batchTimeOut) {
     this.num = num;
     this.authorizations = authorizations;
     this.defaultLabels = defaultLabels;
@@ -46,6 +47,7 @@ final class ScanOptions {
     this.ssio = ssio;
     this.interruptFlag = interruptFlag;
     this.isolated = isolated;
+    this.batchTimeOut = batchTimeOut;
   }
 
   public Authorizations getAuthorizations() {
@@ -78,5 +80,9 @@ final class ScanOptions {
 
   public boolean isIsolated() {
     return isolated;
+  }
+
+  public long getBatchTimeOut() {
+    return batchTimeOut;
   }
 }

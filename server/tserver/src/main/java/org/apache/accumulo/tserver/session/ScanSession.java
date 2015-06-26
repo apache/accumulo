@@ -44,9 +44,10 @@ public class ScanSession extends Session {
   public volatile ScanTask<ScanBatch> nextBatchTask;
   public Scanner scanner;
   public final long readaheadThreshold;
+  public final long batchTimeOut;
 
   public ScanSession(TCredentials credentials, KeyExtent extent, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      Authorizations authorizations, long readaheadThreshold) {
+      Authorizations authorizations, long readaheadThreshold, long batchTimeOut) {
     super(credentials);
     this.extent = extent;
     this.columnSet = columnSet;
@@ -54,6 +55,7 @@ public class ScanSession extends Session {
     this.ssio = ssio;
     this.auths = authorizations;
     this.readaheadThreshold = readaheadThreshold;
+    this.batchTimeOut = batchTimeOut;
   }
 
   @Override

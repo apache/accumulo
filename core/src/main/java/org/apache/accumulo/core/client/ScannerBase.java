@@ -154,4 +154,26 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @return The authorizations set on the scanner instance
    */
   Authorizations getAuthorizations();
+
+  /**
+   * This setting determines how long a scanner will wait to fill the returned batch. By default, a scanner wait until the batch is full.
+   *
+   * <p>
+   * Setting the timeout to zero (with any time unit) or {@link Long#MAX_VALUE} (with {@link TimeUnit#MILLISECONDS}) means no timeout.
+   *
+   * @param timeOut
+   *          the length of the timeout
+   * @param timeUnit
+   *          the units of the timeout
+   * @since 1.8.0
+   */
+  void setBatchTimeout(long timeout, TimeUnit milliseconds);
+
+  /**
+   * Returns the timeout to fill a batch in the given TimeUnit.
+   *
+   * @return the batch timeout configured for this scanner
+   * @since 1.8.0
+   */
+  long getBatchTimeout(TimeUnit timeUnit);
 }
