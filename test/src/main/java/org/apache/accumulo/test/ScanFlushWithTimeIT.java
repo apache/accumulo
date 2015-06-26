@@ -69,7 +69,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
       bw.addMutation(m);
     }
     bw.close();
-    log.info("Fetching some entries: should timeout and return timething");
+    log.info("Fetching some entries: should timeout and return something");
 
     log.info("Scanner");
     Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
