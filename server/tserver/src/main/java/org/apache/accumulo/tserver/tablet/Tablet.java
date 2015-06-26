@@ -719,8 +719,8 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges, HashSet<Column> columnSet, List<KVEntry> results, long maxResultsSize, long batchTimeOut)
-      throws IOException {
+  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges, HashSet<Column> columnSet, List<KVEntry> results,
+      long maxResultsSize, long batchTimeOut) throws IOException {
 
     LookupResult lookupResult = new LookupResult();
 
