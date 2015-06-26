@@ -167,7 +167,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          the units of the timeout
    * @since 1.8.0
    */
-  void setBatchTimeout(long timeout, TimeUnit milliseconds);
+  void setBatchTimeout(long timeOut, TimeUnit timeUnit);
 
   /**
    * Returns the timeout to fill a batch in the given TimeUnit.
