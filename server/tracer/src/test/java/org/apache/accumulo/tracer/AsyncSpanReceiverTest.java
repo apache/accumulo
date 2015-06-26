@@ -92,7 +92,7 @@ public class AsyncSpanReceiverTest {
 
   @Test
   public void testKeepAll() throws InterruptedException {
-    try( TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "0")))) {
+    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "0")))) {
 
       receiver.receiveSpan(createSpan(0));
       while (receiver.getQueueSize() > 0) {
