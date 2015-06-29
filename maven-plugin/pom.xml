@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>1.6.3</version>
+    <version>1.6.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
