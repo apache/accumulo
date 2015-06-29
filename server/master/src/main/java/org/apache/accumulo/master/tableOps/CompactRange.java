@@ -23,11 +23,11 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
@@ -53,7 +53,7 @@ public class CompactRange extends MasterRepo {
   private byte[] config;
 
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
-      throws ThriftTableOperationException {
+      throws AcceptableThriftTableOperationException {
 
     Preconditions.checkNotNull(tableId, "Invalid argument: null tableId");
     Preconditions.checkNotNull(iterators, "Invalid argument: null iterator list");
@@ -70,7 +70,7 @@ public class CompactRange extends MasterRepo {
     }
 
     if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
-      throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
           "start row must be less than end row");
   }
 
@@ -105,7 +105,7 @@ public class CompactRange extends MasterRepo {
             log.debug("txidString : " + txidString);
             log.debug("tokens[" + i + "] : " + tokens[i]);
 
-            throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+            throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
                 "Another compaction with iterators and/or a compaction strategy is running");
           }
 
@@ -125,7 +125,7 @@ public class CompactRange extends MasterRepo {
 
       return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
-      throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     }
 
   }

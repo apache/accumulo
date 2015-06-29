@@ -21,11 +21,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
@@ -63,7 +63,7 @@ public class RenameTable extends MasterRepo {
 
     // ensure no attempt is made to rename across namespaces
     if (newTableName.contains(".") && !namespaceId.equals(Namespaces.getNamespaceId(instance, qualifiedNewTableName.getFirst())))
-      throw new ThriftTableOperationException(tableId, oldTableName, TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
+      throw new AcceptableThriftTableOperationException(tableId, oldTableName, TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -84,7 +84,7 @@ public class RenameTable extends MasterRepo {
           if (currentName.equals(newName))
             return null; // assume in this case the operation is running again, so we are done
           if (!currentName.equals(oldName)) {
-            throw new ThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
+            throw new AcceptableThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
                 "Name changed while processing");
           }
           return newName.getBytes(UTF_8);

@@ -20,10 +20,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -34,7 +34,7 @@ public class CloneTable extends MasterRepo {
   private CloneInfo cloneInfo;
 
   public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
-      throws ThriftTableOperationException {
+      throws AcceptableThriftTableOperationException {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
@@ -49,7 +49,8 @@ public class CloneTable extends MasterRepo {
         // just throw the exception if the illegal argument was thrown by the argument checker and not due to table non-existence
         throw e;
       }
-      throw new ThriftTableOperationException(cloneInfo.srcTableId, "", TableOperation.CLONE, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+      throw new AcceptableThriftTableOperationException(cloneInfo.srcTableId, "", TableOperation.CLONE, TableOperationExceptionType.NOTFOUND,
+          "Table does not exist");
     }
   }
 

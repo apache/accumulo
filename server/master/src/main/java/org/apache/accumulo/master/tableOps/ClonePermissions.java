@@ -17,10 +17,10 @@
 package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -61,7 +61,7 @@ class ClonePermissions extends MasterRepo {
     try {
       return new CloneZookeeper(cloneInfo);
     } catch (NamespaceNotFoundException e) {
-      throw new ThriftTableOperationException(null, cloneInfo.tableName, TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
+      throw new AcceptableThriftTableOperationException(null, cloneInfo.tableName, TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
           "Namespace for target table not found");
     }
   }

@@ -31,9 +31,9 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -134,8 +134,8 @@ class PopulateMetadataTable extends MasterRepo {
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
-                throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-                    "File " + oldName + " does not exist in import dir");
+                throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT,
+                    TableOperationExceptionType.OTHER, "File " + oldName + " does not exist in import dir");
               }
 
               cq = new Text(bulkDir + "/" + newName);
@@ -183,7 +183,7 @@ class PopulateMetadataTable extends MasterRepo {
       return new MoveExportedFiles(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading " + path + " " + ioe.getMessage());
     } finally {
       if (zis != null) {

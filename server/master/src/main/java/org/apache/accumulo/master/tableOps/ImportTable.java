@@ -26,9 +26,9 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -77,7 +77,7 @@ public class ImportTable extends MasterRepo {
     }
   }
 
-  public void checkVersions(Master env) throws ThriftTableOperationException {
+  public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
     Integer exportVersion = null;
     Integer dataVersion = null;
@@ -101,17 +101,17 @@ public class ImportTable extends MasterRepo {
       }
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Failed to read export metadata " + ioe.getMessage());
     }
 
     if (exportVersion == null || exportVersion > ExportTable.VERSION)
-      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible export version " + exportVersion);
 
     if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
-      throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER, "Incompatible data version "
-          + exportVersion);
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Incompatible data version " + exportVersion);
   }
 
   @Override

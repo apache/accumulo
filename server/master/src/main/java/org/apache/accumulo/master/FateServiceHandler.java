@@ -529,7 +529,8 @@ class FateServiceHandler implements FateService.Iface {
       return VALID_ID.and(userValidator).validate(tableId);
     } catch (IllegalArgumentException e) {
       String why = e.getMessage();
-      log.warn(why);
+      // Information provided by a client should generate a user-level exception, not a system-level warning.
+      log.debug(why);
       throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.INVALID_NAME, why);
     }
   }
@@ -552,7 +553,8 @@ class FateServiceHandler implements FateService.Iface {
       return validator.validate(arg);
     } catch (IllegalArgumentException e) {
       String why = e.getMessage();
-      log.warn(why);
+      // Information provided by a client should generate a user-level exception, not a system-level warning.
+      log.debug(why);
       throw new ThriftTableOperationException(null, String.valueOf(arg), op, TableOperationExceptionType.INVALID_NAME, why);
     }
   }

@@ -105,7 +105,14 @@ public class Fate<T> {
 
     private void transitionToFailed(long tid, Repo<T> op, Exception e) {
       String tidStr = String.format("%016x", tid);
-      log.warn("Failed to execute Repo, tid=" + tidStr, e);
+      final String msg = "Failed to execute Repo, tid=" + tidStr;
+      // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
+      // as a warning. They're a normal, handled failure condition.
+      if (e instanceof AcceptableException) {
+        log.debug(msg, e.getCause());
+      } else {
+        log.warn(msg, e);
+      }
       store.setProperty(tid, EXCEPTION_PROP, e);
       store.setStatus(tid, TStatus.FAILED_IN_PROGRESS);
       log.info("Updated status for Repo with tid=" + tidStr + " to FAILED_IN_PROGRESS");

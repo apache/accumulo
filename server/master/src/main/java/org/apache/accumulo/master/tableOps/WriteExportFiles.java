@@ -35,10 +35,10 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -74,7 +74,7 @@ class WriteExportFiles extends MasterRepo {
     if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
       Tables.clearCache(conn.getInstance());
       if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
-        throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+        throw new AcceptableThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
             "Table is not offline");
       }
     }
@@ -109,7 +109,7 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.fetchColumnFamily(LogColumnFamily.NAME);
 
     if (metaScanner.iterator().hasNext()) {
-      throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Write ahead logs found for table");
     }
 
@@ -121,7 +121,7 @@ class WriteExportFiles extends MasterRepo {
     try {
       exportTable(master.getFileSystem(), master, tableInfo.tableName, tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
-      throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
     Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
