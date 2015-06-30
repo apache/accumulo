@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,8 +61,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Multimap;
-
 /**
  *
  */
@@ -70,7 +69,7 @@ public class MasterMetadataUtil {
   private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
   public static void addNewTablet(ClientContext context, KeyExtent extent, String path, TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
-      Multimap<Long,FileRef> bulkLoadedFiles, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
+      Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(UTF_8)));
@@ -89,9 +88,11 @@ public class MasterMetadataUtil {
       m.put(DataFileColumnFamily.NAME, entry.getKey().meta(), new Value(entry.getValue().encode()));
     }
 
-    for (Entry<Long,FileRef> entry : bulkLoadedFiles.entries()) {
-      byte[] tidBytes = Long.toString(entry.getKey()).getBytes();
-      m.put(TabletsSection.BulkFileColumnFamily.NAME, entry.getValue().meta(), new Value(tidBytes));
+    for (Entry<Long,? extends Collection<FileRef>> entry : bulkLoadedFiles.entrySet()) {
+      Value tidBytes = new Value(Long.toString(entry.getKey()).getBytes());
+      for (FileRef ref : entry.getValue()) {
+        m.put(TabletsSection.BulkFileColumnFamily.NAME, ref.meta(), new Value(tidBytes));
+      }
     }
 
     MetadataTableUtil.update(context, zooLock, m, extent);

@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -95,8 +96,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 /**
  * provides a reference to the metadata table for updates by tablet servers
@@ -923,9 +922,9 @@ public class MetadataTableUtil {
     }
   }
 
-  public static Multimap<Long,FileRef> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
+  public static Map<Long,? extends Collection<FileRef>> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
     Text metadataRow = extent.getMetadataEntry();
-    Multimap<Long,FileRef> ret = HashMultimap.create();
+    Map<Long,List<FileRef>> result = new HashMap<>();
 
     VolumeManager fs = VolumeManagerImpl.get();
     Scanner scanner = new ScannerImpl(context, extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY);
@@ -933,9 +932,13 @@ public class MetadataTableUtil {
     scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
     for (Entry<Key,Value> entry : scanner) {
       Long tid = Long.parseLong(entry.getValue().toString());
-      ret.put(tid, new FileRef(fs, entry.getKey()));
+      List<FileRef> lst = result.get(tid);
+      if (lst == null) {
+        result.put(tid, lst = new ArrayList<>());
+      }
+      lst.add(new FileRef(fs, entry.getKey()));
     }
-    return ret;
+    return result;
   }
 
   public static void addBulkLoadInProgressFlag(AccumuloServerContext context, String path) {

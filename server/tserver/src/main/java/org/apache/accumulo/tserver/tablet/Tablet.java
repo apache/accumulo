@@ -158,8 +158,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 /**
  *
@@ -324,7 +322,7 @@ public class Tablet implements TabletCommitter {
   }
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<FileRef,DataFileValue> datafiles,
-      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Multimap<Long,FileRef> bulkImported) throws IOException {
+      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Map<Long, ? extends Collection<FileRef>> bulkImported) throws IOException {
     this(tabletServer, extent, location, trm, NO_LOG_ENTRIES, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID, initCompactID, bulkImported);
   }
 
@@ -447,11 +445,16 @@ public class Tablet implements TabletCommitter {
     return null;
   }
 
-  private static Multimap<Long,FileRef> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
-    Multimap<Long,FileRef> result = HashMultimap.create();
+  private static Map<Long, List<FileRef>> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
+    Map<Long,List<FileRef>> result = new HashMap<>();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       if (entry.getKey().getColumnFamily().compareTo(BulkFileColumnFamily.NAME) == 0) {
-        result.put(Long.decode(entry.getValue().toString()), new FileRef(fs, entry.getKey()));
+        Long id = Long.decode(entry.getValue().toString());
+        List<FileRef> lst = result.get(id);
+        if (lst == null) {
+          lst = new ArrayList<FileRef>();
+        }
+        lst.add(new FileRef(fs, entry.getKey()));
       }
     }
     return result;
@@ -470,7 +473,7 @@ public class Tablet implements TabletCommitter {
    */
   private Tablet(final TabletServer tabletServer, final KeyExtent extent, final Text location, final TabletResourceManager trm,
       final List<LogEntry> rawLogEntries, final SortedMap<FileRef,DataFileValue> rawDatafiles, String time, final TServerInstance lastLocation,
-      final Set<FileRef> scanFiles, final long initFlushID, final long initCompactID, final Multimap<Long,FileRef> bulkImported) throws IOException {
+      final Set<FileRef> scanFiles, final long initFlushID, final long initCompactID, final Map<Long, ? extends Collection<FileRef>> bulkImported) throws IOException {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
@@ -587,7 +590,7 @@ public class Tablet implements TabletCommitter {
 
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
-    for (Long key : bulkImported.keys()) {
+    for (Long key : bulkImported.keySet()) {
       this.bulkImported.put(key, new CopyOnWriteArrayList<FileRef>(bulkImported.get(key)));
     }
 
@@ -2293,20 +2296,15 @@ public class Tablet implements TabletCommitter {
 
       String time = tabletTime.getMetadataValue();
 
-      // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
-      // finishes.... therefore split could propagate load flags for a finished bulk load... there is a special iterator
-      // on the metadata table to clean up this type of garbage
-      Multimap<Long,FileRef> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(getTabletServer(), extent);
-
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, getTabletServer(), getTabletServer().getLock());
-      MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory, getTabletServer().getTabletSession(), lowDatafileSizes, bulkLoadedFiles, time,
+      MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory, getTabletServer().getTabletSession(), lowDatafileSizes, getBulkIngestedFiles(), time,
           lastFlushID, lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, getTabletServer(), getTabletServer().getLock());
 
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
 
-      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, bulkLoadedFiles));
-      newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, bulkLoadedFiles));
+      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, getBulkIngestedFiles()));
+      newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, getBulkIngestedFiles()));
 
       long t2 = System.currentTimeMillis();
 

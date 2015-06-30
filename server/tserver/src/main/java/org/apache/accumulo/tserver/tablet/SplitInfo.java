@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.TServerInstance;
-
-import com.google.common.collect.Multimap;
 
 /**
  * operations are disallowed while we split which is ok since splitting is fast
@@ -41,10 +41,10 @@ final public class SplitInfo {
   private final long initFlushID;
   private final long initCompactID;
   private final TServerInstance lastLocation;
-  private final Multimap<Long,FileRef> bulkImported;
+  private final Map<Long, ? extends Collection<FileRef>> bulkImported;
 
   SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID, TServerInstance lastLocation,
-      Multimap<Long,FileRef> bulkImported) {
+      Map<Long, ? extends Collection<FileRef>> bulkImported) {
     this.dir = d;
     this.datafiles = dfv;
     this.time = time;
@@ -78,7 +78,7 @@ final public class SplitInfo {
     return lastLocation;
   }
 
-  public Multimap<Long,FileRef> getBulkImported() {
+  public Map<Long, ? extends Collection<FileRef>> getBulkImported() {
     return bulkImported;
   }
 
