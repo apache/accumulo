@@ -271,13 +271,13 @@ public class IteratorUtil {
       }
     } catch (ClassNotFoundException e) {
       log.error(e.toString());
-      throw new IOException(e);
+      throw new RuntimeException(e);
     } catch (InstantiationException e) {
       log.error(e.toString());
-      throw new IOException(e);
+      throw new RuntimeException(e);
     } catch (IllegalAccessException e) {
       log.error(e.toString());
-      throw new IOException(e);
+      throw new RuntimeException(e);
     }
     return prev;
   }
