@@ -322,7 +322,7 @@ public class Tablet implements TabletCommitter {
   }
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<FileRef,DataFileValue> datafiles,
-      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Map<Long, ? extends Collection<FileRef>> bulkImported) throws IOException {
+      String time, long initFlushID, long initCompactID, TServerInstance lastLocation, Map<Long,? extends Collection<FileRef>> bulkImported) throws IOException {
     this(tabletServer, extent, location, trm, NO_LOG_ENTRIES, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID, initCompactID, bulkImported);
   }
 
@@ -445,7 +445,7 @@ public class Tablet implements TabletCommitter {
     return null;
   }
 
-  private static Map<Long, List<FileRef>> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
+  private static Map<Long,List<FileRef>> lookupBulkImported(SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) {
     Map<Long,List<FileRef>> result = new HashMap<>();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       if (entry.getKey().getColumnFamily().compareTo(BulkFileColumnFamily.NAME) == 0) {
@@ -473,7 +473,8 @@ public class Tablet implements TabletCommitter {
    */
   private Tablet(final TabletServer tabletServer, final KeyExtent extent, final Text location, final TabletResourceManager trm,
       final List<LogEntry> rawLogEntries, final SortedMap<FileRef,DataFileValue> rawDatafiles, String time, final TServerInstance lastLocation,
-      final Set<FileRef> scanFiles, final long initFlushID, final long initCompactID, final Map<Long, ? extends Collection<FileRef>> bulkImported) throws IOException {
+      final Set<FileRef> scanFiles, final long initFlushID, final long initCompactID, final Map<Long,? extends Collection<FileRef>> bulkImported)
+      throws IOException {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
@@ -2297,8 +2298,8 @@ public class Tablet implements TabletCommitter {
       String time = tabletTime.getMetadataValue();
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, getTabletServer(), getTabletServer().getLock());
-      MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory, getTabletServer().getTabletSession(), lowDatafileSizes, getBulkIngestedFiles(), time,
-          lastFlushID, lastCompactID, getTabletServer().getLock());
+      MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory, getTabletServer().getTabletSession(), lowDatafileSizes, getBulkIngestedFiles(),
+          time, lastFlushID, lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, getTabletServer(), getTabletServer().getLock());
 
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);

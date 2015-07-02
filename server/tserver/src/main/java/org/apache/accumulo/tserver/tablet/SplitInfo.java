@@ -41,10 +41,10 @@ final public class SplitInfo {
   private final long initFlushID;
   private final long initCompactID;
   private final TServerInstance lastLocation;
-  private final Map<Long, ? extends Collection<FileRef>> bulkImported;
+  private final Map<Long,? extends Collection<FileRef>> bulkImported;
 
   SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID, TServerInstance lastLocation,
-      Map<Long, ? extends Collection<FileRef>> bulkImported) {
+      Map<Long,? extends Collection<FileRef>> bulkImported) {
     this.dir = d;
     this.datafiles = dfv;
     this.time = time;
@@ -78,7 +78,7 @@ final public class SplitInfo {
     return lastLocation;
   }
 
-  public Map<Long, ? extends Collection<FileRef>> getBulkImported() {
+  public Map<Long,? extends Collection<FileRef>> getBulkImported() {
     return bulkImported;
   }
 
