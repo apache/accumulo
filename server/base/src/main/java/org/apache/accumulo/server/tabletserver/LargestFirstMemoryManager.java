@@ -174,7 +174,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     for (TabletState ts : tablets) {
       // Make sure that the table still exists
       if (!tableExists(instance, ts.getExtent().getTableId().toString())) {
-        log.info("Ignoring extent for deleted table: " + ts.getExtent());
+        log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
         continue;
       }
 
@@ -193,9 +193,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
         } catch (IllegalArgumentException e) {
           Throwable cause = e.getCause();
           if (null != cause && cause instanceof TableNotFoundException) {
-            if (log.isTraceEnabled()) {
-              log.trace("Ignoring extent for deleted table: " + ts.getExtent());
-            }
+            log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
 
             // The table might have been deleted during the iteration of the tablets
             // We just want to eat this exception, do nothing with this tablet, and continue
