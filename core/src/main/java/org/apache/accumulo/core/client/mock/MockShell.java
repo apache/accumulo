@@ -26,10 +26,14 @@ import java.io.Writer;
 
 import jline.console.ConsoleReader;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.ShellOptionsJC;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.io.output.WriterOutputStream;
+import org.apache.commons.vfs2.FileSystemException;
 
 /**
  * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to the Shell for testing purposes.
@@ -162,6 +166,11 @@ public class MockShell extends Shell {
   public void setConsoleWriter(Writer out) {
     setConsoleWriter(new WriterOutputStream(out, UTF_8.name()));
     this.writer = out;
+  }
+
+  @Override
+  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException, FileSystemException {
+    return MockShell.class.getClassLoader();
   }
 
   /**
