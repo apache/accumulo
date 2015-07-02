@@ -63,8 +63,13 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   void updateScanIteratorOption(String iteratorName, String key, String value);
 
   /**
+   * <p>
    * Adds a column family to the list of columns that will be fetched by this scanner. By default when no columns have been added the scanner fetches all
    * columns.
+   *
+   * <p>
+   * When used in conjunction with custom iterators, the set of column families fetched is passed to the top iterator's seek method. Custom iterators may change
+   * this set of column families when calling seek on their source.
    *
    * @param col
    *          the column family to be fetched
@@ -72,8 +77,23 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   void fetchColumnFamily(Text col);
 
   /**
+   * <p>
    * Adds a column to the list of columns that will be fetched by this scanner. The column is identified by family and qualifier. By default when no columns
    * have been added the scanner fetches all columns.
+   *
+   * <p>
+   * <b>WARNING</b>. Using this method with custom iterators may have unexpected results. Iterators have control over which column families are fetched. However
+   * iterators have no control over which column qualifiers are fetched. When this method is called it activates a system iterator that only allows the
+   * requested family/qualifier pairs through. This low level filtering prevents custom iterators from requesting additional column families when calling seek.
+   *
+   * <p>
+   * For an example, assume fetchColumns(A, Q1) and fetchColumns(B,Q1) is called on a scanner and a custom iterator is configured. The families (A,B) will be
+   * passed to the seek method of the custom iterator. If the custom iterator seeks its source iterator using the families (A,B,C), it will never see any data
+   * from C because the system iterator filtering A:Q1 and B:Q1 will prevent the C family from getting through. ACCUMULO-3905 also has an example of the type of
+   * problem this method can cause.
+   *
+   * <p>
+   * tl;dr If using a custom iterator with a seek method that adds column families, then may want to avoid using this method.
    *
    * @param colFam
    *          the column family of the column to be fetched
@@ -100,6 +120,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *
    * @return an iterator over Key,Value pairs which meet the restrictions set on the scanner
    */
+  @Override
   Iterator<Entry<Key,Value>> iterator();
 
   /**
