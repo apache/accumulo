@@ -27,11 +27,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.PerformanceTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 // ACCUMULO-1177
+@Category(PerformanceTest.class)
 public class AssignmentThreadsIT extends ConfigurableMacBase {
 
   @Override

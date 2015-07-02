@@ -115,6 +115,11 @@
     </site>
   </distributionManagement>
   <properties>
+    <!-- No second group of tests run by default (performance tests).
+         Setting this to something that doesn't exist results in nothing being tested. -->
+    <accumulo.extraFailsafeGroups>no.such.tests</accumulo.extraFailsafeGroups>
+    <!-- Interface used to separate tests with JUnit category -->
+    <accumulo.performanceTests>org.apache.accumulo.test.PerformanceTest</accumulo.performanceTests>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
@@ -1137,6 +1142,9 @@
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
+            <configuration>
+              <excludedGroups>${accumulo.performanceTests}</excludedGroups>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1386,6 +1394,33 @@
         <httpclient.version>3.1</httpclient.version>
         <slf4j.version>1.7.5</slf4j.version>
       </properties>
+    </profile>
+    <profile>
+      <id>performanceTests</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <!-- Add an additional execution for performance tests -->
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-failsafe-plugin</artifactId>
+              <executions>
+                <execution>
+                  <!-- Run only the performance tests -->
+                  <id>run-performance-tests</id>
+                  <goals>
+                    <goal>integration-test</goal>
+                    <goal>verify</goal>
+                  </goals>
+                  <configuration>
+                    <groups>${accumulo.performanceTests}</groups>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
     </profile>
   </profiles>
 </project>
