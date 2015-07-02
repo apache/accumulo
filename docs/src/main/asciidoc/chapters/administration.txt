@@ -157,7 +157,7 @@ target directory, the tablet server may not be able to find it. The system can
 also locate the native maps shared library by setting +LD_LIBRARY_PATH+
 (or +DYLD_LIBRARY_PATH+ on Mac OS X) in +$ACCUMULO_HOME/conf/accumulo-env.sh+.
 
-===== Configuration
+===== Native Maps Configuration
 
 As mentioned, Accumulo will use the native libraries if they are found in the expected
 location and if it is not configured to ignore them. Using the native maps over JVM
@@ -305,6 +305,29 @@ property.
 A KeyStore can also be stored in HDFS, which will make the KeyStore readily available to
 all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
 will expect the KeyStore in the same location.
+
+==== Client Configuration
+
+In version 1.6.0, Accumulo includes a new type of configuration file known as a client
+configuration file. One problem with the traditional "site.xml" file that is prevalent
+through Hadoop is that it is a single file used by both clients and servers. This makes
+is very difficult to protect secrets that are only meant for the server processes while
+allowing the clients to connect to the servers.
+
+The client configuration file is a subset of the information stored in accumulo-site.xml
+meant only for consumption by clients of Accumulo. By default, Accumulo checks a number
+of locations for a client configuration by default:
+
+* +${ACCUMULO_CONF_DIR}/client.conf+
+* +/etc/accumulo/client.conf+
+* +/etc/accumulo/conf/client.conf+
+* +~/.accumulo/config+
+
+These files are https://en.wikipedia.org/wiki/.properties[Java Properties files]. These files
+can currently contain information about ZooKeeper servers, RPC properties (such as SSL or SASL
+connectors), distributed tracing properties. Valid properties are defined by the
+https://github.com/apache/accumulo/blob/f1d0ec93d9f13ff84844b5ac81e4a7b383ced467/core/src/main/java/org/apache/accumulo/core/client/ClientConfiguration.java#L54[ClientProperty]
+enum contained in the client API.
 
 ==== Custom Table Tags
 
