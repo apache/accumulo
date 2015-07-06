@@ -159,7 +159,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -2131,12 +2130,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TabletResourceManager trm = resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
         TabletData data;
         if (extent.isRootTablet()) {
-          data = new TabletData(fs, ZooReaderWriter.getInstance());
+          data = new TabletData(fs, ZooReaderWriter.getInstance(), getTableConfiguration(extent));
         } else {
           data = new TabletData(extent, fs, tabletsKeyValues.entrySet().iterator());
         }
-        // this opens the tablet file and fills in the endKey in the extent
-        data.setDirectory(VolumeUtil.switchRootTabletVolume(extent, data.getDirectory()));
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
         // If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.

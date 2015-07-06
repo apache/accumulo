@@ -173,7 +173,7 @@ public class Tablet implements TabletCommitter {
   private final Object timeLock = new Object();
   private long persistedTime;
 
-  private TServerInstance lastLocation;
+  private TServerInstance lastLocation = null;
   private volatile boolean tableDirChecked = false;
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
@@ -309,6 +309,17 @@ public class Tablet implements TabletCommitter {
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent, final TabletResourceManager trm, TabletData data) throws IOException {
 
+    this.tabletServer = tabletServer;
+    this.extent = extent;
+    this.tabletResources = trm;
+    this.lastLocation = data.getLastLocation();
+    this.lastFlushID = data.getFlushID();
+    this.lastCompactID = data.getCompactID();
+    this.splitCreationTime = data.getSplitTime();
+    this.tabletTime = TabletTime.getInstance(data.getTime());
+    this.persistedTime = tabletTime.getTime();
+    this.logId = tabletServer.createLogId(extent);
+
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
       Tables.clearCache(tabletServer.getInstance());
@@ -318,71 +329,28 @@ public class Tablet implements TabletCommitter {
 
     this.tableConfiguration = tblConf;
 
-    TabletFiles tabletPaths = VolumeUtil
-        .updateTabletVolumes(tabletServer, tabletServer.getLock(), tabletServer.getFileSystem(), extent,
-            new TabletFiles(data.getDirectory(), data.getLogEntris(), data.getDataFiles()),
-            ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration));
+    // translate any volume changes
+    VolumeManager fs = tabletServer.getFileSystem();
+    boolean replicationEnabled = ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
+    TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntris(), data.getDataFiles());
+    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer, tabletServer.getLock(), fs, extent, tabletPaths, replicationEnabled);
 
+    // deal with relative path for the directory
     Path locationPath;
-
     if (tabletPaths.dir.contains(":")) {
-      locationPath = new Path(tabletPaths.dir.toString());
+      locationPath = new Path(tabletPaths.dir);
     } else {
-      locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE, extent.getTableId().toString() + tabletPaths.dir.toString());
+      locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE, extent.getTableId().toString() + tabletPaths.dir);
     }
+    this.location = locationPath;
+    this.tabletDirectory = tabletPaths.dir;
+    for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
+      this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<FileRef>(entry.getValue()));
+    }
+    setupDefaultSecurityLabels(extent);
 
     final List<LogEntry> logEntries = tabletPaths.logEntries;
     final SortedMap<FileRef,DataFileValue> datafiles = tabletPaths.datafiles;
-
-    this.location = locationPath;
-    this.lastLocation = data.getLastLocation();
-    this.tabletDirectory = tabletPaths.dir;
-
-    this.extent = extent;
-    this.tabletResources = trm;
-
-    this.lastFlushID = data.getFlushID();
-    this.lastCompactID = data.getCompactID();
-    this.splitCreationTime = data.getSplitTime();
-    String time = data.getTime();
-
-    if (extent.isRootTablet()) {
-      long rtime = Long.MIN_VALUE;
-      for (FileRef ref : datafiles.keySet()) {
-        Path path = ref.path();
-        FileSystem ns = tabletServer.getFileSystem().getVolumeByPath(path).getFileSystem();
-        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), tabletServer.getTableConfiguration(extent));
-        long maxTime = -1;
-        try {
-
-          while (reader.hasTop()) {
-            maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
-            reader.next();
-          }
-
-        } finally {
-          reader.close();
-        }
-
-        if (maxTime > rtime) {
-          time = TabletTime.LOGICAL_TIME_ID + "" + maxTime;
-          rtime = maxTime;
-        }
-      }
-    }
-    if (time == null && datafiles.isEmpty() && extent.equals(RootTable.OLD_EXTENT)) {
-      // recovery... old root tablet has no data, so time doesn't matter:
-      time = TabletTime.LOGICAL_TIME_ID + "" + Long.MIN_VALUE;
-    }
-
-    this.tabletServer = tabletServer;
-    this.logId = tabletServer.createLogId(extent);
-
-    setupDefaultSecurityLabels(extent);
-
-    tabletMemory = new TabletMemory(this);
-    tabletTime = TabletTime.getInstance(time);
-    persistedTime = tabletTime.getTime();
 
     tableConfiguration.addObserver(configObserver = new ConfigurationObserver() {
 
@@ -425,13 +393,10 @@ public class Tablet implements TabletCommitter {
     });
 
     tableConfiguration.getNamespaceConfiguration().addObserver(configObserver);
+    tabletMemory = new TabletMemory(this);
 
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
-    for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
-      this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<FileRef>(entry.getValue()));
-    }
-
     if (!logEntries.isEmpty()) {
       log.info("Starting Write-Ahead Log recovery for " + this.extent);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);

@@ -33,9 +33,12 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -48,9 +51,12 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -119,38 +125,55 @@ public class TabletData {
         }
       }
     }
+    if (time == null && dataFiles.isEmpty() && extent.equals(RootTable.OLD_EXTENT)) {
+      // recovery... old root tablet has no data, so time doesn't matter:
+      time = TabletTime.LOGICAL_TIME_ID + "" + Long.MIN_VALUE;
+    }
   }
 
   // Read basic root table metadata from zookeeper
-  public TabletData(VolumeManager fs, ZooReader rdr) throws IOException {
+  public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf) throws IOException {
     Path location = new Path(MetadataTableUtil.getRootTabletDir());
 
     // cleanReplacement() has special handling for deleting files
     FileStatus[] files = fs.listStatus(location);
     Collection<String> goodPaths = RootFiles.cleanupReplacement(fs, files, true);
+    long rtime = Long.MIN_VALUE;
     for (String good : goodPaths) {
       Path path = new Path(good);
       String filename = path.getName();
       FileRef ref = new FileRef(location.toString() + "/" + filename, path);
       DataFileValue dfv = new DataFileValue(0, 0);
       dataFiles.put(ref, dfv);
+
+      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+      FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), conf);
+      long maxTime = -1;
+      try {
+        while (reader.hasTop()) {
+          maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
+          reader.next();
+        }
+      } finally {
+        reader.close();
+      }
+      if (maxTime > rtime) {
+        time = TabletTime.LOGICAL_TIME_ID + "" + maxTime;
+        rtime = maxTime;
+      }
     }
+
     try {
       logEntris = MetadataTableUtil.getLogEntries(null, RootTable.EXTENT);
     } catch (Exception ex) {
       throw new RuntimeException("Unable to read tablet log entries", ex);
     }
-    directory = MetadataTableUtil.getRootTabletDir();
+    directory = VolumeUtil.switchRootTabletVolume(RootTable.EXTENT, MetadataTableUtil.getRootTabletDir());
   }
 
   // Data pulled from an existing tablet to make a split
-  public TabletData(String tabletDirectory,
-      SortedMap<FileRef,DataFileValue> highDatafileSizes,
-      String time,
-      long lastFlushID,
-      long lastCompactID,
-      TServerInstance lastLocation,
-      Map<Long,List<FileRef>> bulkIngestedFiles) {
+  public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes, String time, long lastFlushID, long lastCompactID,
+      TServerInstance lastLocation, Map<Long,List<FileRef>> bulkIngestedFiles) {
     this.directory = tabletDirectory;
     this.dataFiles = highDatafileSizes;
     this.time = time;
@@ -199,10 +222,6 @@ public class TabletData {
 
   public String getDirectory() {
     return directory;
-  }
-
-  public void setDirectory(String directory) {
-    this.directory = directory;
   }
 
   public long getSplitTime() {
