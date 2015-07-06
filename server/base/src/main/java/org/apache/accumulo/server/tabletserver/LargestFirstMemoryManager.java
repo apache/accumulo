@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -173,7 +174,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     for (TabletState ts : tablets) {
       // Make sure that the table still exists
       if (!tableExists(instance, ts.getExtent().getTableId().toString())) {
-        log.info("Ignoring extent for deleted table: " + ts.getExtent());
+        log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
         continue;
       }
 
@@ -184,10 +185,25 @@ public class LargestFirstMemoryManager implements MemoryManager {
       ingestMemory += memTabletSize;
       if (minorCompactingSize == 0 && memTabletSize > 0) {
         TabletInfo tabletInfo = new TabletInfo(ts.getExtent(), memTabletSize, idleTime, timeMemoryLoad);
-        largestMemTablets.put(timeMemoryLoad, tabletInfo);
-        if (idleTime > getMinCIdleThreshold(ts.getExtent())) {
-          largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
+        try {
+          // If the table was deleted, getMinCIdleThreshold will throw an exception
+          if (idleTime > getMinCIdleThreshold(ts.getExtent())) {
+            largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
+          }
+        } catch (IllegalArgumentException e) {
+          Throwable cause = e.getCause();
+          if (null != cause && cause instanceof TableNotFoundException) {
+            log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
+
+            // The table might have been deleted during the iteration of the tablets
+            // We just want to eat this exception, do nothing with this tablet, and continue
+            continue;
+          }
+
+          throw e;
         }
+        // Only place the tablet into largestMemTablets map when the table still exists
+        largestMemTablets.put(timeMemoryLoad, tabletInfo);
       }
 
       compactionMemory += minorCompactingSize;

@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -95,7 +95,7 @@ class MapImportFileNames extends MasterRepo {
       return new PopulateMetadataTable(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error writing mapping file " + path + " " + ioe.getMessage());
     } finally {
       if (mappingsWriter != null)

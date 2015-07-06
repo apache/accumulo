@@ -24,11 +24,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
@@ -46,15 +46,16 @@ public class Utils {
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  static void checkTableDoesNotExist(Instance instance, String tableName, String tableId, TableOperation operation) throws ThriftTableOperationException {
+  static void checkTableDoesNotExist(Instance instance, String tableName, String tableId, TableOperation operation)
+      throws AcceptableThriftTableOperationException {
 
     String id = Tables.getNameToIdMap(instance).get(tableName);
 
     if (id != null && !id.equals(tableId))
-      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
+      throw new AcceptableThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
   }
 
-  static String getNextTableId(String tableName, Instance instance) throws ThriftTableOperationException {
+  static String getNextTableId(String tableName, Instance instance) throws AcceptableThriftTableOperationException {
 
     String tableId = null;
     try {
@@ -71,7 +72,7 @@ public class Utils {
       return new String(nid, UTF_8);
     } catch (Exception e1) {
       log.error("Failed to assign tableId to " + tableName, e1);
-      throw new ThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
+      throw new AcceptableThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
 
@@ -84,7 +85,7 @@ public class Utils {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
-          throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+          throw new AcceptableThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
       log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
@@ -108,7 +109,7 @@ public class Utils {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId))
-          throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
+          throw new AcceptableThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
       log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
@@ -154,11 +155,11 @@ public class Utils {
   }
 
   static void checkNamespaceDoesNotExist(Instance instance, String namespace, String namespaceId, TableOperation operation)
-      throws ThriftTableOperationException {
+      throws AcceptableThriftTableOperationException {
 
     String n = Namespaces.getNameToIdMap(instance).get(namespace);
 
     if (n != null && !n.equals(namespaceId))
-      throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NAMESPACE_EXISTS, null);
+      throw new AcceptableThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NAMESPACE_EXISTS, null);
   }
 }

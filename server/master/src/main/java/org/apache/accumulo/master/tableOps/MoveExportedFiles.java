@@ -19,9 +19,9 @@ package org.apache.accumulo.master.tableOps;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -50,7 +50,7 @@ class MoveExportedFiles extends MasterRepo {
 
       for (String oldFileName : fileNameMappings.keySet()) {
         if (!fs.exists(new Path(tableInfo.exportDir, oldFileName))) {
-          throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
               "File referenced by exported table does not exists " + oldFileName);
         }
       }
@@ -67,7 +67,7 @@ class MoveExportedFiles extends MasterRepo {
       return new FinishImportTable(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error renaming files " + ioe.getMessage());
     }
   }
