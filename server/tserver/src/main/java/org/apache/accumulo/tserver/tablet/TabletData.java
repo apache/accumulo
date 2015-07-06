@@ -144,13 +144,8 @@ public class TabletData {
   }
 
   // Data pulled from an existing tablet to make a split
-  public TabletData(String tabletDirectory,
-      SortedMap<FileRef,DataFileValue> highDatafileSizes,
-      String time,
-      long lastFlushID,
-      long lastCompactID,
-      TServerInstance lastLocation,
-      Map<Long,List<FileRef>> bulkIngestedFiles) {
+  public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes, String time, long lastFlushID, long lastCompactID,
+      TServerInstance lastLocation, Map<Long,List<FileRef>> bulkIngestedFiles) {
     this.directory = tabletDirectory;
     this.dataFiles = highDatafileSizes;
     this.time = time;
