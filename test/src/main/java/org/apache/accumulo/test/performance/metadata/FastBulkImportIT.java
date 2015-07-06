@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.performance.metadata;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -32,14 +33,21 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 // ACCUMULO-3327
 public class FastBulkImportIT extends ConfigurableMacBase {
+
+  @BeforeClass
+  static public void checkMR() {
+    assumeFalse(IntegrationTestMapReduce.isMapReduce());
+  }
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -53,6 +61,7 @@ public class FastBulkImportIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_BULK_PROCESS_THREADS, "5");
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "9999");
     cfg.setProperty(Property.TABLE_FILE_MAX, "9999");
+    cfg.setProperty(Property.TABLE_DURABILITY, "none");
   }
 
   @Test

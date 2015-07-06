@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.performance;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -30,11 +31,18 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.continuous.ContinuousIngest;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class RollWALPerformanceIT extends ConfigurableMacBase {
+
+  @BeforeClass
+  static public void checkMR() {
+    assumeFalse(IntegrationTestMapReduce.isMapReduce());
+  }
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

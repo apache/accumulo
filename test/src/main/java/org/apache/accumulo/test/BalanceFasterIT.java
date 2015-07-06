@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -35,16 +36,25 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 // ACCUMULO-2952
 public class BalanceFasterIT extends ConfigurableMacBase {
 
+
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(3);
+  }
+
+  @BeforeClass
+  static public void checkMR() {
+    assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 
   @Test(timeout = 90 * 1000)

@@ -74,6 +74,12 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
 
   private static final Logger log = LoggerFactory.getLogger(IntegrationTestMapReduce.class);
 
+  private static boolean isMapReduce = false;
+
+  public static boolean isMapReduce() {
+    return isMapReduce;
+  }
+
   public static class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
 
     static final Text FAIL = new Text("FAIL");

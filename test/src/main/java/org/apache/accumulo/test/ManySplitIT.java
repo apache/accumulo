@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -33,17 +34,25 @@ import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.BeforeClass;
 import org.junit.Test;
-
 
 public class ManySplitIT extends ConfigurableMacBase {
 
   final int SPLITS = 10_000;
 
-  @Test(timeout = 2 * 60 * 1000)
+  @BeforeClass
+  static public void checkMR() {
+    assumeFalse(IntegrationTestMapReduce.isMapReduce());
+  }
+
+  @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
+    assumeFalse(IntegrationTestMapReduce.isMapReduce());
+
     final String tableName = getUniqueNames(1)[0];
 
     log.info("Creating table");
@@ -53,7 +62,7 @@ public class ManySplitIT extends ConfigurableMacBase {
     tableOperations.create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (byte b : "123456789abcde".getBytes(UTF_8)) {
-      splits.add(new Text(new byte[]{'1', ';', b}));
+      splits.add(new Text(new byte[] {'1', ';', b}));
     }
     tableOperations.addSplits(MetadataTable.NAME, splits);
     splits.clear();
@@ -69,7 +78,7 @@ public class ManySplitIT extends ConfigurableMacBase {
         while (!stop.get()) {
           UtilWaitThread.sleep(1000);
           try {
-            log.info("splits: " + tableOperations.listSplits(tableName).size() );
+            log.info("splits: " + tableOperations.listSplits(tableName).size());
           } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
