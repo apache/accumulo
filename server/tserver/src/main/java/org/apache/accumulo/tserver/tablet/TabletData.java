@@ -56,6 +56,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ * Basic information needed to create a tablet.
+ */
 public class TabletData {
   private static Logger log = LoggerFactory.getLogger(TabletData.class);
 
@@ -67,10 +70,10 @@ public class TabletData {
   private long compactID = -1;
   private TServerInstance lastLocation = null;
   private Map<Long,List<FileRef>> bulkImported = new HashMap<>();
-  private String directory = null;
   private long splitTime = 0;
+  private String directory = null;
 
-  // read tablet data from metadata tables
+  // Read tablet data from metadata tables
   public TabletData(KeyExtent extent, VolumeManager fs, Iterator<Entry<Key,Value>> entries) {
     final Text family = new Text();
     Text rowName = extent.getMetadataEntry();
@@ -118,11 +121,11 @@ public class TabletData {
     }
   }
 
-  // read basic root table metadata from zookeeper
+  // Read basic root table metadata from zookeeper
   public TabletData(VolumeManager fs, ZooReader rdr) throws IOException {
     Path location = new Path(MetadataTableUtil.getRootTabletDir());
 
-    // cleanUpFiles() has special handling for deleting files
+    // cleanReplacement() has special handling for deleting files
     FileStatus[] files = fs.listStatus(location);
     Collection<String> goodPaths = RootFiles.cleanupReplacement(fs, files, true);
     for (String good : goodPaths) {
@@ -140,9 +143,14 @@ public class TabletData {
     directory = MetadataTableUtil.getRootTabletDir();
   }
 
-  // split
-  public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes, String time, long lastFlushID, long lastCompactID,
-      TServerInstance lastLocation, Map<Long,List<FileRef>> bulkIngestedFiles) {
+  // Data pulled from an existing tablet to make a split
+  public TabletData(String tabletDirectory,
+      SortedMap<FileRef,DataFileValue> highDatafileSizes,
+      String time,
+      long lastFlushID,
+      long lastCompactID,
+      TServerInstance lastLocation,
+      Map<Long,List<FileRef>> bulkIngestedFiles) {
     this.directory = tabletDirectory;
     this.dataFiles = highDatafileSizes;
     this.time = time;
