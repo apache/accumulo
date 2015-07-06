@@ -45,8 +45,6 @@ import org.junit.Test;
 // ACCUMULO-2952
 public class BalanceFasterIT extends ConfigurableMacBase {
 
-
-
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(3);

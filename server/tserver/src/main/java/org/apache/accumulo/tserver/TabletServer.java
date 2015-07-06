@@ -233,9 +233,9 @@ import org.apache.accumulo.tserver.tablet.Compactor;
 import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
-import org.apache.accumulo.tserver.tablet.SplitInfo;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
+import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
@@ -1876,7 +1876,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private void splitTablet(Tablet tablet) {
     try {
 
-      TreeMap<KeyExtent,SplitInfo> tabletInfo = splitTablet(tablet, null);
+      TreeMap<KeyExtent,TabletData> tabletInfo = splitTablet(tablet, null);
       if (tabletInfo == null) {
         // either split or compact not both
         // were not able to split... so see if a major compaction is
@@ -1892,10 +1892,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
-  private TreeMap<KeyExtent,SplitInfo> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
+  private TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint) throws IOException {
     long t1 = System.currentTimeMillis();
 
-    TreeMap<KeyExtent,SplitInfo> tabletInfo = tablet.split(splitPoint);
+    TreeMap<KeyExtent,TabletData> tabletInfo = tablet.split(splitPoint);
     if (tabletInfo == null) {
       return null;
     }
@@ -1906,11 +1906,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     Tablet[] newTablets = new Tablet[2];
 
-    Entry<KeyExtent,SplitInfo> first = tabletInfo.firstEntry();
+    Entry<KeyExtent,TabletData> first = tabletInfo.firstEntry();
     TabletResourceManager newTrm0 = resourceManager.createTabletResourceManager(first.getKey(), getTableConfiguration(first.getKey()));
     newTablets[0] = new Tablet(TabletServer.this, first.getKey(), newTrm0, first.getValue());
 
-    Entry<KeyExtent,SplitInfo> last = tabletInfo.lastEntry();
+    Entry<KeyExtent,TabletData> last = tabletInfo.lastEntry();
     TabletResourceManager newTrm1 = resourceManager.createTabletResourceManager(last.getKey(), getTableConfiguration(last.getKey()));
     newTablets[1] = new Tablet(TabletServer.this, last.getKey(), newTrm1, last.getValue());
 
@@ -2129,11 +2129,16 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         acquireRecoveryMemory(extent);
 
         TabletResourceManager trm = resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
-
+        TabletData data;
+        if (extent.isRootTablet()) {
+          data = new TabletData(fs, ZooReaderWriter.getInstance());
+        } else {
+          data = new TabletData(extent, fs, tabletsKeyValues.entrySet().iterator());
+        }
         // this opens the tablet file and fills in the endKey in the extent
-        locationToOpen = VolumeUtil.switchRootTabletVolume(extent, locationToOpen);
+        data.setDirectory(VolumeUtil.switchRootTabletVolume(extent, data.getDirectory()));
 
-        tablet = new Tablet(TabletServer.this, extent, locationToOpen, trm, tabletsKeyValues);
+        tablet = new Tablet(TabletServer.this, extent, trm, data);
         // If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
         // There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
         //

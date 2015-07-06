@@ -46,7 +46,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,13 +164,13 @@ public class VolumeUtil {
     }
   }
 
-  public static Text switchRootTabletVolume(KeyExtent extent, Text location) throws IOException {
+  public static String switchRootTabletVolume(KeyExtent extent, String location) throws IOException {
     if (extent.isRootTablet()) {
-      String newLocation = switchVolume(location.toString(), FileType.TABLE, ServerConstants.getVolumeReplacements());
+      String newLocation = switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
       if (newLocation != null) {
         MetadataTableUtil.setRootTabletDir(newLocation);
         log.info("Volume replaced " + extent + " : " + location + " -> " + newLocation);
-        return new Text(new Path(newLocation).toString());
+        return new Path(newLocation).toString();
       }
     }
     return location;
