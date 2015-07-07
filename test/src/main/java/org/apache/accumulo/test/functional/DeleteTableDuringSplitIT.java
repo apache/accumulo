@@ -29,11 +29,14 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.PerformanceTest;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 // ACCUMULO-2361
+@Category(PerformanceTest.class)
 public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
 
   @Override

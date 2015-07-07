@@ -32,11 +32,14 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.continuous.ContinuousIngest;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
+import org.apache.accumulo.test.PerformanceTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category(PerformanceTest.class)
 public class RollWALPerformanceIT extends ConfigurableMacBase {
 
   @BeforeClass
