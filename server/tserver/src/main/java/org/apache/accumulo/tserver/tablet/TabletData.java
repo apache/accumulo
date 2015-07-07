@@ -133,7 +133,9 @@ public class TabletData {
 
   // Read basic root table metadata from zookeeper
   public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf) throws IOException {
-    Path location = new Path(MetadataTableUtil.getRootTabletDir());
+    directory = VolumeUtil.switchRootTableVolume(MetadataTableUtil.getRootTabletDir());
+
+    Path location = new Path(directory);
 
     // cleanReplacement() has special handling for deleting files
     FileStatus[] files = fs.listStatus(location);
@@ -168,7 +170,6 @@ public class TabletData {
     } catch (Exception ex) {
       throw new RuntimeException("Unable to read tablet log entries", ex);
     }
-    directory = VolumeUtil.switchRootTabletVolume(RootTable.EXTENT, MetadataTableUtil.getRootTabletDir());
   }
 
   // Data pulled from an existing tablet to make a split

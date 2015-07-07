@@ -164,14 +164,12 @@ public class VolumeUtil {
     }
   }
 
-  public static String switchRootTabletVolume(KeyExtent extent, String location) throws IOException {
-    if (extent.isRootTablet()) {
-      String newLocation = switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
-      if (newLocation != null) {
-        MetadataTableUtil.setRootTabletDir(newLocation);
-        log.info("Volume replaced " + extent + " : " + location + " -> " + newLocation);
-        return new Path(newLocation).toString();
-      }
+  public static String switchRootTableVolume(String location) throws IOException {
+    String newLocation = switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
+    if (newLocation != null) {
+      MetadataTableUtil.setRootTabletDir(newLocation);
+      log.info("Volume replaced: " + location + " -> " + newLocation);
+      return new Path(newLocation).toString();
     }
     return location;
   }
@@ -244,6 +242,13 @@ public class VolumeUtil {
     }
 
     ret.dir = decommisionedTabletDir(context, zooLock, vm, extent, tabletDir);
+    if (extent.isRootTablet()) {
+      SortedMap<FileRef,DataFileValue> copy = ret.datafiles;
+      ret.datafiles = new TreeMap<>();
+      for (Entry<FileRef,DataFileValue> entry : copy.entrySet()) {
+        ret.datafiles.put(new FileRef(new Path(ret.dir, entry.getKey().path().getName()).toString()), entry.getValue());
+      }
+    }
 
     // method this should return the exact strings that are in the metadata table
     return ret;

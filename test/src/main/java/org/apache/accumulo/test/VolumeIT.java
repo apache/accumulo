@@ -158,7 +158,7 @@ public class VolumeIT extends ConfigurableMacBase {
     List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     long usage = diskUsage.get(0).getUsage().longValue();
-    System.out.println("usage " + usage);
+    log.debug("usage {}", usage);
     assertTrue(usage > 700 && usage < 800);
   }
 
