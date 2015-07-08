@@ -183,7 +183,17 @@ public class SecurityOperation {
           if (!authenticator.userExists(creds.getPrincipal())) {
             // If we call the normal createUser method, it will loop back into this method
             // when it tries to check if the user has permission to create users
-            _createUser(credentials, creds, Authorizations.EMPTY);
+            try {
+              _createUser(credentials, creds, Authorizations.EMPTY);
+            } catch (ThriftSecurityException e) {
+              if (SecurityErrorCode.USER_EXISTS != e.getCode()) {
+                // For Kerberos, a user acct is automatically created because there is no notion of a password
+                // in the traditional sense of Accumulo users. As such, if a user acct already exists when we
+                // try to automatically create a user account, we should avoid returning this exception back to the user.
+                // We want to let USER_EXISTS code pass through and continue
+                throw e;
+              }
+            }
           }
         } catch (AccumuloSecurityException e) {
           log.debug("Failed to determine if user exists", e);

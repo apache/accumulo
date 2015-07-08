@@ -158,7 +158,6 @@ public class KerberosAuthenticator implements Authenticator {
       createUserNodeInZk(Base64.encodeBase64String(principal.getBytes(UTF_8)));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
-        log.error("User already exists in ZooKeeper", e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
       }
       log.error("Failed to create user in ZooKeeper", e);
