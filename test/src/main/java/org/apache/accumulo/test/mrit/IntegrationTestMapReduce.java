@@ -88,11 +88,11 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
 
     @Override
     protected void map(LongWritable key, Text value, final Mapper<LongWritable,Text,Text,Text>.Context context) throws IOException, InterruptedException {
+      isMapReduce = true;
       String className = value.toString();
       if (className.trim().isEmpty()) {
         return;
       }
-      log.info("Running test {}", className);
       final List<String> failures = new ArrayList<>();
       Class<? extends Object> test = null;
       try {
@@ -102,6 +102,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         context.write(ERROR, new Text(e.toString()));
         return;
       }
+      log.info("Running test {}", className);
       JUnitCore core = new JUnitCore();
       core.addListener(new RunListener() {
 
