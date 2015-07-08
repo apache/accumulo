@@ -29,6 +29,10 @@ import org.apache.accumulo.core.data.Range;
  *
  * If you want to lookup a few ranges and expect those ranges to contain a lot of data, then use the Scanner instead. Also, the Scanner will return data in
  * sorted order, this will not.
+ *
+ * A BatchScanner instance will use no more threads than provided in the construction of the BatchScanner
+ * implementation. Multiple invocations of <code>iterator()</code> will all share the same resources of the instance.
+ * A new BatchScanner instance should be created to use allocate additional threads.
  */
 
 public interface BatchScanner extends ScannerBase {
