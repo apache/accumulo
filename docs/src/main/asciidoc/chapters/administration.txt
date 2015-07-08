@@ -49,12 +49,12 @@ their value in conf/accumulo-site.xml.
 |Port | Description | Property Name
 |4445 | Shutdown Port (Accumulo MiniCluster) | n/a
 |4560 | Accumulo monitor (for centralized log display) | monitor.port.log4j
+|9995 | Accumulo HTTP monitor | monitor.port.client
 |9997 | Tablet Server | tserver.port.client
+|9998 | Accumulo GC | gc.port.client
 |9999 | Master Server | master.port.client
 |12234 | Accumulo Tracer | trace.port.client
 |42424 | Accumulo Proxy Server | n/a
-|50091 | Accumulo GC | gc.port.client
-|50095 | Accumulo HTTP monitor | monitor.port.client
 |10001 | Master Replication service | master.replication.coordinator.port
 |10002 | TabletServer Replication service | replication.receipt.service.port
 |====
@@ -434,7 +434,7 @@ when the tablets are re-hosted.
 ==== Accumulo Monitor
 The Accumulo Monitor provides an interface for monitoring the status and health of
 Accumulo components. The Accumulo Monitor provides a web UI for accessing this information at
-+http://_monitorhost_:50095/+.
++http://_monitorhost_:9995/+.
 
 Things highlighted in yellow may be in need of attention.
 If anything is highlighted in red on the monitor page, it is something that definitely needs attention.

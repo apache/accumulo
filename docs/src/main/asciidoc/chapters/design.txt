@@ -175,6 +175,6 @@ grouped by tablet.  TabletServers can quickly apply the mutations from the sorte
 that are destined for the tablets they have now been assigned.
 
 TabletServer failures are noted on the Master's monitor page, accessible via
-+http://master-address:50095/monitor+.
++http://master-address:9995/monitor+.
 
 image::failure_handling.png[width=500]

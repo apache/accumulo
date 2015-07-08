@@ -142,9 +142,9 @@ Accumulo shell.
 
     ./bin/accumulo shell -u root
 
-Use your web browser to connect the Accumulo monitor page on port 50095.
+Use your web browser to connect the Accumulo monitor page on port 9995.
 
-    http://<hostname in conf/monitor>:50095/
+    http://<hostname in conf/monitor>:9995/
 
 When finished, use the following command to stop Accumulo.
 

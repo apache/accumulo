@@ -44,7 +44,7 @@ There's a small web server that collects information about all the
 components that make up a running Accumulo instance. It will highlight
 unusual or unexpected conditions.
 
-*A*: Point your browser to the monitor (typically the master host, on port 50095).  Is anything red or yellow?
+*A*: Point your browser to the monitor (typically the master host, on port 9995).  Is anything red or yellow?
 
 *Q*: My browser is reporting connection refused, and I cannot get to the monitor
 
@@ -65,7 +65,7 @@ from your browser.
 It is sometimes helpful to use a text-only browser to sanity-check the
 monitor while on the machine running the monitor:
 
-    $ links http://localhost:50095
+    $ links http://localhost:9995
 
 *A*: Verify that you are not firewalled from the monitor if it is running on a remote host.
 
