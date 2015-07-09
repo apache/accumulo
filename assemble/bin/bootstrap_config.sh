@@ -134,6 +134,7 @@ _1GB_master="-Xmx128m -Xms128m"
 _1GB_monitor="-Xmx64m -Xms64m"
 _1GB_gc="-Xmx64m -Xms64m"
 _1GB_other="-Xmx128m -Xms64m"
+_1GB_shell="${_1GB_other}"
 
 _1GB_memoryMapMax="256M"
 native_1GB_nativeEnabled="true"
@@ -148,6 +149,7 @@ _2GB_master="-Xmx256m -Xms256m"
 _2GB_monitor="-Xmx128m -Xms64m"
 _2GB_gc="-Xmx128m -Xms128m"
 _2GB_other="-Xmx256m -Xms64m"
+_2GB_shell="${_2GB_other}"
 
 _2GB_memoryMapMax="512M"
 native_2GB_nativeEnabled="true"
@@ -162,6 +164,7 @@ _3GB_master="-Xmx1g -Xms1g"
 _3GB_monitor="-Xmx1g -Xms256m"
 _3GB_gc="-Xmx256m -Xms256m"
 _3GB_other="-Xmx1g -Xms256m"
+_3GB_shell="${_3GB_other}"
 
 _3GB_memoryMapMax="1G"
 native_3GB_nativeEnabled="true"
@@ -176,6 +179,7 @@ _512MB_master="-Xmx128m -Xms128m"
 _512MB_monitor="-Xmx64m -Xms64m"
 _512MB_gc="-Xmx64m -Xms64m"
 _512MB_other="-Xmx128m -Xms64m"
+_512MB_shell="${_512MB_other}"
 
 _512MB_memoryMapMax="80M"
 native_512MB_nativeEnabled="true"
@@ -275,6 +279,7 @@ TSERVER="${TYPE}_${SIZE}_tServer"
 MASTER="_${SIZE}_master"
 MONITOR="_${SIZE}_monitor"
 GC="_${SIZE}_gc"
+SHELL="_${SIZE}_shell"
 OTHER="_${SIZE}_other"
 
 MEMORY_MAP_MAX="_${SIZE}_memoryMapMax"
@@ -296,6 +301,7 @@ sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \
     -e "s/\${masterHigh_masterLow}/${!MASTER}/" \
     -e "s/\${monitorHigh_monitorLow}/${!MONITOR}/" \
     -e "s/\${gcHigh_gcLow}/${!GC}/" \
+    -e "s/\${shellHigh_shellLow}/${!SHELL}/" \
     -e "s/\${otherHigh_otherLow}/${!OTHER}/" \
     ${TEMPLATE_CONF_DIR}/$ACCUMULO_ENV > ${CONF_DIR}/$ACCUMULO_ENV
 
