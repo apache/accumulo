@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -59,7 +60,9 @@ public class SystemCredentialsTest {
 
   @Before
   public void setupInstance() {
-    inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    inst = EasyMock.createMock(Instance.class);
+    EasyMock.expect(inst.getInstanceID()).andReturn(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString()).anyTimes();
+    EasyMock.replay(inst);
   }
 
   /**

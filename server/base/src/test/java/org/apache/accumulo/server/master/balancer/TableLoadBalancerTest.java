@@ -24,12 +24,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -42,12 +41,16 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 
 public class TableLoadBalancerTest {
+
+  private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3", "c4");
 
   static private TServerInstance mkts(String address, String session) throws Exception {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
@@ -71,8 +74,6 @@ public class TableLoadBalancerTest {
     return result;
   }
 
-  static Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(TableLoadBalancerTest.class.getName());
-
   static SortedMap<TServerInstance,TabletServerStatus> state;
 
   static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
@@ -95,6 +96,9 @@ public class TableLoadBalancerTest {
     }
 
     @Override
+    public void init(ServerConfigurationFactory conf) {}
+
+    @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
@@ -107,6 +111,9 @@ public class TableLoadBalancerTest {
       super();
     }
 
+    @Override
+    public void init(ServerConfigurationFactory conf) {}
+
     // use our new classname to test class loading
     @Override
     protected String getLoadBalancerClassNameForTable(String table) {
@@ -118,15 +125,26 @@ public class TableLoadBalancerTest {
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
+
+    @Override
+    protected TableOperations getTableOperations() {
+      TableOperations tops = EasyMock.createMock(TableOperations.class);
+      EasyMock.expect(tops.tableIdMap()).andReturn(TABLE_ID_MAP).anyTimes();
+      EasyMock.replay(tops);
+      return tops;
+    }
   }
 
   @Test
   public void test() throws Exception {
-    Connector c = instance.getConnector("user", new PasswordToken("pass"));
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance) {
+    final Instance inst = EasyMock.createMock(Instance.class);
+    EasyMock.expect(inst.getInstanceID()).andReturn(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString()).anyTimes();
+    EasyMock.replay(inst);
+
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(inst) {
       @Override
       public TableConfiguration getTableConfiguration(String tableId) {
-        return new TableConfiguration(instance, tableId, null) {
+        return new TableConfiguration(inst, tableId, null) {
           @Override
           public String get(Property property) {
             // fake the get table configuration so the test doesn't try to look in zookeeper for per-table classpath stuff
@@ -135,11 +153,8 @@ public class TableLoadBalancerTest {
         };
       }
     };
-    TableOperations tops = c.tableOperations();
-    tops.create("t1");
-    tops.create("t2");
-    tops.create("t3");
-    String t1Id = tops.tableIdMap().get("t1"), t2Id = tops.tableIdMap().get("t2"), t3Id = tops.tableIdMap().get("t3");
+
+    String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"), t3Id = TABLE_ID_MAP.get("t3");
     state = new TreeMap<TServerInstance,TabletServerStatus>();
     TServerInstance svr = mkts("10.0.0.1", "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));

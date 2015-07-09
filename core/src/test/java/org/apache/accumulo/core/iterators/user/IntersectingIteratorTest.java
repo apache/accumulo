@@ -295,30 +295,4 @@ public class IntersectingIteratorTest {
     assertTrue(hitCount == docs.size());
     cleanup();
   }
-
-  @Test
-  public void testWithBatchScanner() throws Exception {
-    Value empty = new Value(new byte[] {});
-    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    Connector connector = inst.getConnector("user", new PasswordToken("pass"));
-    connector.tableOperations().create("index");
-    BatchWriter bw = connector.createBatchWriter("index", new BatchWriterConfig());
-    Mutation m = new Mutation("000012");
-    m.put("rvy", "5000000000000000", empty);
-    m.put("15qh", "5000000000000000", empty);
-    bw.addMutation(m);
-    bw.close();
-
-    BatchScanner bs = connector.createBatchScanner("index", Authorizations.EMPTY, 10);
-    IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
-    IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});
-    bs.addScanIterator(ii);
-    bs.setRanges(Collections.singleton(new Range()));
-    Iterator<Entry<Key,Value>> iterator = bs.iterator();
-    assertTrue(iterator.hasNext());
-    Entry<Key,Value> next = iterator.next();
-    Key key = next.getKey();
-    assertEquals(key.getColumnQualifier(), new Text("5000000000000000"));
-    assertFalse(iterator.hasNext());
-  }
 }

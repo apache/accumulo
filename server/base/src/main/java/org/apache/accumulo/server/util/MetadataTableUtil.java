@@ -94,6 +94,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
@@ -706,10 +707,7 @@ public class MetadataTableUtil {
     return m;
   }
 
-  private static Scanner createCloneScanner(String tableId, Connector conn) throws TableNotFoundException {
-    String tableName = MetadataTable.NAME;
-    if (tableId.equals(MetadataTable.ID))
-      tableName = RootTable.NAME;
+  private static Scanner createCloneScanner(String tableName, String tableId, Connector conn) throws TableNotFoundException {
     Scanner mscanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -721,12 +719,14 @@ public class MetadataTableUtil {
     return mscanner;
   }
 
-  static void initializeClone(String srcTableId, String tableId, Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
+  @VisibleForTesting
+  public static void initializeClone(String tableName, String srcTableId, String tableId, Connector conn, BatchWriter bw) throws TableNotFoundException,
+      MutationsRejectedException {
     TabletIterator ti;
     if (srcTableId.equals(MetadataTable.ID))
-      ti = new TabletIterator(createCloneScanner(srcTableId, conn), new Range(), true, true);
+      ti = new TabletIterator(createCloneScanner(tableName, srcTableId, conn), new Range(), true, true);
     else
-      ti = new TabletIterator(createCloneScanner(srcTableId, conn), new KeyExtent(new Text(srcTableId), null, null).toMetadataRange(), true, true);
+      ti = new TabletIterator(createCloneScanner(tableName, srcTableId, conn), new KeyExtent(new Text(srcTableId), null, null).toMetadataRange(), true, true);
 
     if (!ti.hasNext())
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
@@ -741,10 +741,13 @@ public class MetadataTableUtil {
     return new KeyExtent(new Text("0"), endRow1, null).compareTo(new KeyExtent(new Text("0"), endRow2, null));
   }
 
-  static int checkClone(String srcTableId, String tableId, Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
-    TabletIterator srcIter = new TabletIterator(createCloneScanner(srcTableId, conn), new KeyExtent(new Text(srcTableId), null, null).toMetadataRange(), true,
-        true);
-    TabletIterator cloneIter = new TabletIterator(createCloneScanner(tableId, conn), new KeyExtent(new Text(tableId), null, null).toMetadataRange(), true, true);
+  @VisibleForTesting
+  public static int checkClone(String tableName, String srcTableId, String tableId, Connector conn, BatchWriter bw) throws TableNotFoundException,
+      MutationsRejectedException {
+    TabletIterator srcIter = new TabletIterator(createCloneScanner(tableName, srcTableId, conn),
+        new KeyExtent(new Text(srcTableId), null, null).toMetadataRange(), true, true);
+    TabletIterator cloneIter = new TabletIterator(createCloneScanner(tableName, tableId, conn), new KeyExtent(new Text(tableId), null, null).toMetadataRange(),
+        true, true);
 
     if (!cloneIter.hasNext() || !srcIter.hasNext())
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
@@ -831,12 +834,12 @@ public class MetadataTableUtil {
     while (true) {
 
       try {
-        initializeClone(srcTableId, tableId, conn, bw);
+        initializeClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
 
         // the following loop looks changes in the file that occurred during the copy.. if files were dereferenced then they could have been GCed
 
         while (true) {
-          int rewrites = checkClone(srcTableId, tableId, conn, bw);
+          int rewrites = checkClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
 
           if (rewrites == 0)
             break;

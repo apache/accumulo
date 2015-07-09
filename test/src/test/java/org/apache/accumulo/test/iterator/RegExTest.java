@@ -17,38 +17,29 @@
 package org.apache.accumulo.test.iterator;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
+
 public class RegExTest {
 
-  private static Connector conn;
+  private static TreeMap<Key,Value> data = new TreeMap<>();
 
   @BeforeClass
   public static void setupTests() throws Exception {
-    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(RegExTest.class.getName());
-    conn = inst.getConnector("user", new PasswordToken("pass"));
-    conn.tableOperations().create("ret");
-    BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
 
     ArrayList<Character> chars = new ArrayList<Character>();
     for (char c = 'a'; c <= 'z'; c++)
@@ -59,18 +50,14 @@ public class RegExTest {
 
     // insert some data into accumulo
     for (Character rc : chars) {
-      Mutation m = new Mutation(new Text("r" + rc));
+      String row = "r" + rc;
       for (Character cfc : chars) {
         for (Character cqc : chars) {
           Value v = new Value(("v" + rc + cfc + cqc).getBytes());
-          m.put(new Text("cf" + cfc), new Text("cq" + cqc), v);
+          data.put(new Key(row, "cf" + cfc, "cq" + cqc, "", 9), v);
         }
       }
-
-      bw.addMutation(m);
     }
-
-    bw.close();
   }
 
   private void check(String regex, String val) throws Exception {
@@ -123,42 +110,29 @@ public class RegExTest {
 
   private void runTest(Range range, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
 
-    Scanner s = conn.createScanner("ret", Authorizations.EMPTY);
-    s.setRange(range);
-    setRegexs(s, rowRegEx, cfRegEx, cqRegEx, valRegEx);
-    runTest(s, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
-
-    BatchScanner bs = conn.createBatchScanner("ret", Authorizations.EMPTY, 1);
-    bs.setRanges(Collections.singletonList(range));
-    setRegexs(bs, rowRegEx, cfRegEx, cqRegEx, valRegEx);
-    runTest(bs, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
-    bs.close();
+    SortedKeyValueIterator<Key,Value> source = new SortedMapIterator(data);
+    Set<ByteSequence> es = ImmutableSet.of();
+    IteratorSetting is = new IteratorSetting(50, "regex", RegExFilter.class);
+    RegExFilter.setRegexs(is, rowRegEx, cfRegEx, cqRegEx, valRegEx, false);
+    RegExFilter iter = new RegExFilter();
+    iter.init(source, is.getOptions(), null);
+    iter.seek(range, es, false);
+    runTest(iter, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
   }
 
-  private void setRegexs(ScannerBase scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx) {
-    IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
-    if (rowRegEx != null)
-      regex.addOption(RegExFilter.ROW_REGEX, rowRegEx);
-    if (cfRegEx != null)
-      regex.addOption(RegExFilter.COLF_REGEX, cfRegEx);
-    if (cqRegEx != null)
-      regex.addOption(RegExFilter.COLQ_REGEX, cqRegEx);
-    if (valRegEx != null)
-      regex.addOption(RegExFilter.VALUE_REGEX, valRegEx);
-    scanner.addScanIterator(regex);
-  }
-
-  private void runTest(Iterable<Entry<Key,Value>> scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
+  private void runTest(RegExFilter scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
 
     int counter = 0;
 
-    for (Entry<Key,Value> entry : scanner) {
-      Key k = entry.getKey();
+    while (scanner.hasTop()) {
+      Key k = scanner.getTopKey();
 
       check(rowRegEx, k.getRow());
       check(cfRegEx, k.getColumnFamily());
       check(cqRegEx, k.getColumnQualifier());
-      check(valRegEx, entry.getValue());
+      check(valRegEx, scanner.getTopValue());
+
+      scanner.next();
 
       counter++;
     }

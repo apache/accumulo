@@ -25,17 +25,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
@@ -45,25 +38,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
+
+import com.google.common.collect.ImmutableSet;
 
 public class RowFilterTest {
-
-  @Rule
-  public TestName test = new TestName();
-
-  private Connector conn;
-
-  @Before
-  public void setupInstance() throws Exception {
-    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    conn = instance.getConnector("", new PasswordToken(""));
-  }
 
   public static class SummingRowFilter extends RowFilter {
 
@@ -84,7 +65,7 @@ public class RowFilterTest {
       }
 
       // ensure that seeks are confined to the row
-      rowIterator.seek(new Range(), new HashSet<ByteSequence>(), false);
+      rowIterator.seek(new Range(null, false, firstKey == null ? null : firstKey.getRow(), false), new HashSet<ByteSequence>(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -96,7 +77,7 @@ public class RowFilterTest {
         rowIterator.next();
       }
 
-      return sum == 2 && sum2 == 2;
+      return sum == 2 && sum2 == 0;
     }
 
   }
@@ -144,7 +125,7 @@ public class RowFilterTest {
 
     m = new Mutation("1");
     m.put("cf1", "cq1", "1");
-    m.put("cf1", "cq2", "2");
+    m.put("cf2", "cq2", "2");
     mutations.add(m);
 
     m = new Mutation("2");
@@ -154,7 +135,7 @@ public class RowFilterTest {
 
     m = new Mutation("3");
     m.put("cf1", "cq1", "0");
-    m.put("cf1", "cq2", "2");
+    m.put("cf2", "cq2", "2");
     mutations.add(m);
 
     m = new Mutation("4");
@@ -197,69 +178,63 @@ public class RowFilterTest {
 
   @Test
   public void test1() throws Exception {
-    conn.tableOperations().create("table1");
-    BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
+    ColumnFamilySkippingIterator source = new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
-    for (Mutation m : createMutations()) {
-      bw.addMutation(m);
-    }
-    IteratorSetting is = new IteratorSetting(40, SummingRowFilter.class);
-    conn.tableOperations().attachIterator("table1", is);
+    RowFilter filter = new SummingRowFilter();
+    filter.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
 
-    Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
-    assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
+    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
 
-    scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
-    assertEquals(new HashSet<String>(Arrays.asList("1", "3")), getRows(scanner));
+    assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(filter));
 
-    scanner.clearColumns();
-    scanner.fetchColumn(new Text("cf1"), new Text("cq1"));
-    assertEquals(new HashSet<String>(), getRows(scanner));
+    ByteSequence cf = new ArrayByteSequence("cf2");
 
-    scanner.setRange(new Range("0", "4"));
-    scanner.clearColumns();
-    assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
+    filter.seek(new Range(), ImmutableSet.of(cf), true);
+    assertEquals(new HashSet<String>(Arrays.asList("1", "3", "0", "4")), getRows(filter));
 
-    scanner.setRange(new Range("2"));
-    scanner.clearColumns();
-    assertEquals(new HashSet<String>(Arrays.asList("2")), getRows(scanner));
+    filter.seek(new Range("0", "4"), Collections.<ByteSequence> emptySet(), false);
+    assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(filter));
 
-    scanner.setRange(new Range("4"));
-    scanner.clearColumns();
-    assertEquals(new HashSet<String>(), getRows(scanner));
+    filter.seek(new Range("2"), Collections.<ByteSequence> emptySet(), false);
+    assertEquals(new HashSet<String>(Arrays.asList("2")), getRows(filter));
 
-    scanner.setRange(new Range("4"));
-    scanner.clearColumns();
-    scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
-    scanner.fetchColumn(new Text("cf1"), new Text("cq4"));
-    assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(scanner));
+    filter.seek(new Range("4"), Collections.<ByteSequence> emptySet(), false);
+    assertEquals(new HashSet<String>(), getRows(filter));
+
+    filter.seek(new Range("4"), ImmutableSet.of(cf), true);
+    assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(filter));
 
   }
 
   @Test
   public void testChainedRowFilters() throws Exception {
-    conn.tableOperations().create("chained_row_filters");
-    BatchWriter bw = conn.createBatchWriter("chained_row_filters", new BatchWriterConfig());
-    for (Mutation m : createMutations()) {
-      bw.addMutation(m);
-    }
-    conn.tableOperations().attachIterator("chained_row_filters", new IteratorSetting(40, "trueFilter1", TrueFilter.class));
-    conn.tableOperations().attachIterator("chained_row_filters", new IteratorSetting(41, "trueFilter2", TrueFilter.class));
-    Scanner scanner = conn.createScanner("chained_row_filters", Authorizations.EMPTY);
-    assertEquals(new HashSet<String>(Arrays.asList("0", "1", "2", "3", "4")), getRows(scanner));
+    SortedMapIterator source = new SortedMapIterator(createKeyValues());
+
+    RowFilter filter0 = new TrueFilter();
+    filter0.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+
+    RowFilter filter = new TrueFilter();
+    filter.init(filter0, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+
+    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+
+    assertEquals(new HashSet<String>(Arrays.asList("0", "1", "2", "3", "4")), getRows(filter));
   }
 
   @Test
   public void testFilterConjunction() throws Exception {
-    conn.tableOperations().create("filter_conjunction");
-    BatchWriter bw = conn.createBatchWriter("filter_conjunction", new BatchWriterConfig());
-    for (Mutation m : createMutations()) {
-      bw.addMutation(m);
-    }
-    conn.tableOperations().attachIterator("filter_conjunction", new IteratorSetting(40, "rowZeroOrOne", RowZeroOrOneFilter.class));
-    conn.tableOperations().attachIterator("filter_conjunction", new IteratorSetting(41, "rowOneOrTwo", RowOneOrTwoFilter.class));
-    Scanner scanner = conn.createScanner("filter_conjunction", Authorizations.EMPTY);
-    assertEquals(new HashSet<String>(Arrays.asList("1")), getRows(scanner));
+
+    SortedMapIterator source = new SortedMapIterator(createKeyValues());
+
+    RowFilter filter0 = new RowZeroOrOneFilter();
+    filter0.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+
+    RowFilter filter = new RowOneOrTwoFilter();
+    filter.init(filter0, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+
+    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+
+    assertEquals(new HashSet<String>(Arrays.asList("1")), getRows(filter));
   }
 
   @Test
@@ -308,10 +283,11 @@ public class RowFilterTest {
     assertTrue("Expected next key read to be greater than the previous after deepCopy", lastKeyRead.compareTo(finalKeyRead) < 0);
   }
 
-  private HashSet<String> getRows(Scanner scanner) {
+  private HashSet<String> getRows(RowFilter filter) throws IOException {
     HashSet<String> rows = new HashSet<String>();
-    for (Entry<Key,Value> entry : scanner) {
-      rows.add(entry.getKey().getRow().toString());
+    while (filter.hasTop()) {
+      rows.add(filter.getTopKey().getRowData().toString());
+      filter.next();
     }
     return rows;
   }

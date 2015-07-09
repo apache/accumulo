@@ -24,83 +24,85 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
+
+import com.google.common.collect.ImmutableMap;
 
 public class TransformingIteratorTest {
-  private static final String TABLE_NAME = "test_table";
-  private static Authorizations authorizations = new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
-  private Connector connector;
-  private Scanner scanner;
 
-  @Rule
-  public TestName test = new TestName();
+  private static Authorizations authorizations = new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
+  private static final Map<String,String> EMPTY_OPTS = ImmutableMap.of();
+  private TransformingIterator titer;
+
+  private TreeMap<Key,Value> data = new TreeMap<Key,Value>();
 
   @Before
-  public void setUpMockAccumulo() throws Exception {
-    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    connector = instance.getConnector("user", new PasswordToken("password"));
-    connector.securityOperations().changeUserAuthorizations("user", authorizations);
-
-    if (connector.tableOperations().exists(TABLE_NAME))
-      connector.tableOperations().delete(TABLE_NAME);
-    connector.tableOperations().create(TABLE_NAME);
-    BatchWriterConfig bwCfg = new BatchWriterConfig();
-    bwCfg.setMaxWriteThreads(1);
-
-    BatchWriter bw = connector.createBatchWriter(TABLE_NAME, bwCfg);
-    bw.addMutation(createDefaultMutation("row1"));
-    bw.addMutation(createDefaultMutation("row2"));
-    bw.addMutation(createDefaultMutation("row3"));
-
-    bw.flush();
-    bw.close();
-
-    scanner = connector.createScanner(TABLE_NAME, authorizations);
-    scanner.addScanIterator(new IteratorSetting(20, ReuseIterator.class));
+  public void createData() throws Exception {
+    data.clear();
+    generateRow(data, "row1");
+    generateRow(data, "row2");
+    generateRow(data, "row3");
   }
 
-  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz) {
-    IteratorSetting cfg = new IteratorSetting(21, clazz);
-    cfg.setName("keyTransformIter");
-    TransformingIterator.setAuthorizations(cfg, new Authorizations("vis0", "vis1", "vis2", "vis3"));
-    scanner.addScanIterator(cfg);
+  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz) throws IOException {
+    setUpTransformIterator(clazz, true);
+  }
+
+  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz, boolean setupAuths) throws IOException {
+    SortedMapIterator source = new SortedMapIterator(data);
+    ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(source);
+    VisibilityFilter visFilter = new VisibilityFilter(cfsi, authorizations, new byte[0]);
+    ReuseIterator reuserIter = new ReuseIterator();
+    reuserIter.init(visFilter, EMPTY_OPTS, null);
+    try {
+      titer = clazz.newInstance();
+    } catch (InstantiationException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    IteratorEnvironment iterEnv = EasyMock.createMock(IteratorEnvironment.class);
+    EasyMock.expect(iterEnv.getIteratorScope()).andReturn(IteratorScope.scan).anyTimes();
+    EasyMock.replay(iterEnv);
+
+    Map<String,String> opts;
+    if (setupAuths) {
+      IteratorSetting cfg = new IteratorSetting(21, clazz);
+      TransformingIterator.setAuthorizations(cfg, new Authorizations("vis0", "vis1", "vis2", "vis3"));
+      opts = cfg.getOptions();
+    } else {
+      opts = ImmutableMap.of();
+    }
+    titer.init(reuserIter, opts, iterEnv);
   }
 
   @Test
@@ -134,7 +136,6 @@ public class TransformingIteratorTest {
 
     // Test transforming col fam, col qual, col vis
     for (Class<? extends ReversingKeyTransformingIterator> clazz : classes) {
-      scanner.removeScanIterator("keyTransformIter");
       setUpTransformIterator(clazz);
 
       // All rows with visibilities reversed
@@ -164,7 +165,6 @@ public class TransformingIteratorTest {
     // Source data has vis1, vis2, vis3 so vis0 is a new one that is introduced.
     // Make sure it shows up in the output with the default test auths which include
     // vis0.
-    scanner.removeScanIterator("keyTransformIter");
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     for (int row = 1; row <= 3; ++row) {
@@ -182,13 +182,10 @@ public class TransformingIteratorTest {
   @Test
   public void testCreatingIllegalVisbility() throws Exception {
     // illegal visibility created by transform should be filtered on scan, even if evaluation is done
-    IteratorSetting cfg = new IteratorSetting(21, IllegalVisKeyTransformingIterator.class);
-    cfg.setName("keyTransformIter");
-    scanner.addScanIterator(cfg);
+    setUpTransformIterator(IllegalVisKeyTransformingIterator.class, false);
     checkExpected(new TreeMap<Key,Value>());
 
     // ensure illegal vis is supressed when evaluations is done
-    scanner.removeScanIterator("keyTransformIter");
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class);
     checkExpected(new TreeMap<Key,Value>());
   }
@@ -196,26 +193,24 @@ public class TransformingIteratorTest {
   @Test
   public void testRangeStart() throws Exception {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
-    scanner.setRange(new Range(new Key("row1", "cf2", "cq2", "vis1"), true, new Key("row1", "cf2", "cq3"), false));
 
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     putExpected(expected, 1, 2, 2, 1, PartialKey.ROW_COLFAM_COLQUAL); // before the range start, but transforms in the range
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
 
-    checkExpected(expected);
+    checkExpected(new Range(new Key("row1", "cf2", "cq2", "vis1"), true, new Key("row1", "cf2", "cq3"), false), expected);
   }
 
   @Test
   public void testRangeEnd() throws Exception {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
-    scanner.setRange(new Range(new Key("row1", "cf2", "cq2"), true, new Key("row1", "cf2", "cq2", "vis2"), false));
 
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     // putExpected(expected, 1, 2, 2, 1, part); // transforms vis outside range end
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
     putExpected(expected, 1, 2, 2, 3, PartialKey.ROW_COLFAM_COLQUAL);
 
-    checkExpected(expected);
+    checkExpected(new Range(new Key("row1", "cf2", "cq2"), true, new Key("row1", "cf2", "cq2", "vis2"), false), expected);
   }
 
   @Test
@@ -224,13 +219,12 @@ public class TransformingIteratorTest {
     // Set a range that is before all of the untransformed data. However,
     // the data with untransformed col fam cf3 will transform to cf0 and
     // be inside the range.
-    scanner.setRange(new Range(new Key("row1", "cf0"), true, new Key("row1", "cf1"), false));
 
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     for (int cq = 1; cq <= 3; ++cq)
       for (int cv = 1; cv <= 3; ++cv)
         putExpected(expected, 1, 3, cq, cv, PartialKey.ROW);
-    checkExpected(expected);
+    checkExpected(new Range(new Key("row1", "cf0"), true, new Key("row1", "cf1"), false), expected);
   }
 
   @Test
@@ -238,8 +232,7 @@ public class TransformingIteratorTest {
     // Set a range that's after all data and make sure we don't
     // somehow return something.
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
-    scanner.setRange(new Range(new Key("row4"), null));
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new Range(new Key("row4"), null), new TreeMap<Key,Value>());
   }
 
   @Test
@@ -272,53 +265,47 @@ public class TransformingIteratorTest {
     // put in the expectations.
     int expectedCF = 1;
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
-    scanner.fetchColumnFamily(new Text("cf2"));
 
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     for (int row = 1; row <= 3; ++row)
       for (int cq = 1; cq <= 3; ++cq)
         for (int cv = 1; cv <= 3; ++cv)
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
-    checkExpected(expected);
+    checkExpected(expected, "cf2");
   }
 
   @Test
   public void testDeepCopy() throws Exception {
-    connector.tableOperations().create("shard_table");
-
-    BatchWriter bw = connector.createBatchWriter("shard_table", new BatchWriterConfig());
-
     ColumnVisibility vis1 = new ColumnVisibility("vis1");
     ColumnVisibility vis3 = new ColumnVisibility("vis3");
 
-    Mutation m1 = new Mutation("shard001");
-    m1.put("foo", "doc02", vis1, "");
-    m1.put("dog", "doc02", vis3, "");
-    m1.put("cat", "doc02", vis3, "");
+    data.clear();
 
-    m1.put("bar", "doc03", vis1, "");
-    m1.put("dog", "doc03", vis3, "");
-    m1.put("cat", "doc03", vis3, "");
+    Value ev = new Value("".getBytes());
 
-    bw.addMutation(m1);
-    bw.close();
+    data.put(new Key("shard001", "foo", "doc02", vis1, 78), ev);
+    data.put(new Key("shard001", "dog", "doc02", vis3, 78), ev);
+    data.put(new Key("shard001", "cat", "doc02", vis3, 78), ev);
 
-    BatchScanner bs = connector.createBatchScanner("shard_table", authorizations, 1);
+    data.put(new Key("shard001", "bar", "doc03", vis1, 78), ev);
+    data.put(new Key("shard001", "dog", "doc03", vis3, 78), ev);
+    data.put(new Key("shard001", "cat", "doc03", vis3, 78), ev);
 
-    bs.addScanIterator(new IteratorSetting(21, ColVisReversingKeyTransformingIterator.class));
+    setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
+
+    IntersectingIterator iiIter = new IntersectingIterator();
     IteratorSetting iicfg = new IteratorSetting(22, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(iicfg, new Text[] {new Text("foo"), new Text("dog"), new Text("cat")});
-    bs.addScanIterator(iicfg);
-    bs.setRanges(Collections.singleton(new Range()));
+    iiIter.init(titer, iicfg.getOptions(), null);
 
-    Iterator<Entry<Key,Value>> iter = bs.iterator();
-    assertTrue(iter.hasNext());
-    Key docKey = iter.next().getKey();
+    iiIter.seek(new Range(), new HashSet<ByteSequence>(), false);
+
+    assertTrue(iiIter.hasTop());
+    Key docKey = iiIter.getTopKey();
     assertEquals("shard001", docKey.getRowData().toString());
     assertEquals("doc02", docKey.getColumnQualifierData().toString());
-    assertFalse(iter.hasNext());
-
-    bs.close();
+    iiIter.next();
+    assertFalse(iiIter.hasTop());
   }
 
   @Test
@@ -329,14 +316,13 @@ public class TransformingIteratorTest {
     // put in the expectations.
     int expectedCF = 1;
     setUpTransformIterator(ColFamReversingCompactionKeyTransformingIterator.class);
-    scanner.fetchColumnFamily(new Text("cf2"));
 
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     for (int row = 1; row <= 3; ++row)
       for (int cq = 1; cq <= 3; ++cq)
         for (int cv = 1; cv <= 3; ++cv)
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
-    checkExpected(expected);
+    checkExpected(expected, "cf2");
   }
 
   @Test
@@ -381,9 +367,12 @@ public class TransformingIteratorTest {
   public void testDupes() throws Exception {
     setUpTransformIterator(DupeTransformingIterator.class);
 
+    titer.seek(new Range(), new HashSet<ByteSequence>(), false);
+
     int count = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      Key key = entry.getKey();
+    while (titer.hasTop()) {
+      Key key = titer.getTopKey();
+      titer.next();
       assertEquals("cf1", key.getColumnFamily().toString());
       assertEquals("cq1", key.getColumnQualifier().toString());
       assertEquals("", key.getColumnVisibility().toString());
@@ -429,13 +418,31 @@ public class TransformingIteratorTest {
     return key;
   }
 
-  private void checkExpected(TreeMap<Key,Value> expectedEntries) {
-    for (Entry<Key,Value> entry : scanner) {
-      Entry<Key,Value> expected = expectedEntries.pollFirstEntry();
-      Key actualKey = entry.getKey();
-      Value actualValue = entry.getValue();
+  private void checkExpected(Range range, TreeMap<Key,Value> expectedEntries) throws IOException {
+    checkExpected(range, new HashSet<ByteSequence>(), expectedEntries);
+  }
 
-      assertNotNull("Ran out of expected entries on: " + entry, expected);
+  private void checkExpected(TreeMap<Key,Value> expectedEntries, String... fa) throws IOException {
+
+    HashSet<ByteSequence> families = new HashSet<>();
+    for (String family : fa) {
+      families.add(new ArrayByteSequence(family));
+    }
+
+    checkExpected(new Range(), families, expectedEntries);
+  }
+
+  private void checkExpected(Range range, Set<ByteSequence> families, TreeMap<Key,Value> expectedEntries) throws IOException {
+
+    titer.seek(range, families, families.size() != 0);
+
+    while (titer.hasTop()) {
+      Entry<Key,Value> expected = expectedEntries.pollFirstEntry();
+      Key actualKey = titer.getTopKey();
+      Value actualValue = titer.getTopValue();
+      titer.next();
+
+      assertNotNull("Ran out of expected entries on: " + actualKey, expected);
       assertEquals("Key mismatch", expected.getKey(), actualKey);
       assertEquals("Value mismatch", expected.getValue(), actualValue);
     }
@@ -480,8 +487,8 @@ public class TransformingIteratorTest {
     return new Text(sb.toString());
   }
 
-  private static Mutation createDefaultMutation(String row) {
-    Mutation m = new Mutation(row);
+  private static void generateRow(TreeMap<Key,Value> data, String row) {
+
     for (int cfID = 1; cfID <= 3; ++cfID) {
       for (int cqID = 1; cqID <= 3; ++cqID) {
         for (int cvID = 1; cvID <= 3; ++cvID) {
@@ -491,11 +498,13 @@ public class TransformingIteratorTest {
           long ts = 100 * cfID + 10 * cqID + cvID;
           String val = "val" + ts;
 
-          m.put(cf, cq, new ColumnVisibility(cv), ts, val);
+          Key k = new Key(row, cf, cq, cv, ts);
+          Value v = new Value(val.getBytes());
+          data.put(k, v);
         }
       }
     }
-    return m;
+
   }
 
   private static Key reverseKeyPart(Key originalKey, PartialKey part) {
@@ -664,6 +673,13 @@ public class TransformingIteratorTest {
   public static class ReuseIterator extends WrappingIterator {
     private Key topKey = new Key();
     private Value topValue = new Value();
+
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+      ReuseIterator rei = new ReuseIterator();
+      rei.setSource(getSource().deepCopy(env));
+      return rei;
+    }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
