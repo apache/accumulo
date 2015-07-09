@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,14 +30,12 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -47,13 +49,13 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
-public class IntersectingIteratorTest extends TestCase {
+public class IntersectingIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-  private static final Logger log = Logger.getLogger(IntersectingIterator.class);
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
   TreeMap<Key,Value> map;
@@ -65,10 +67,6 @@ public class IntersectingIteratorTest extends TestCase {
   boolean[] notFlags;
 
   int docid = 0;
-
-  static {
-    log.setLevel(Level.OFF);
-  }
 
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
       HashSet<Text> docs, Text[] negatedColumns) {
@@ -130,16 +128,13 @@ public class IntersectingIteratorTest extends TestCase {
     docid = 0;
   }
 
-  public void testNull() {}
-
-  @Override
-  public void setUp() {
-    Logger.getRootLogger().setLevel(Level.ERROR);
-  }
-
   private static final int NUM_ROWS = 10;
   private static final int NUM_DOCIDS = 1000;
 
+  @Rule
+  public TestName test = new TestName();
+
+  @Test
   public void test1() throws IOException {
     columnFamilies = new Text[2];
     columnFamilies[0] = new Text("C");
@@ -168,6 +163,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test2() throws IOException {
     columnFamilies = new Text[3];
     columnFamilies[0] = new Text("A");
@@ -197,6 +193,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test3() throws IOException {
     columnFamilies = new Text[6];
     columnFamilies[0] = new Text("C");
@@ -234,6 +231,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test4() throws IOException {
     columnFamilies = new Text[3];
     notFlags = new boolean[3];
@@ -270,6 +268,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test6() throws IOException {
     columnFamilies = new Text[1];
     columnFamilies[0] = new Text("C");
@@ -297,9 +296,10 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void testWithBatchScanner() throws Exception {
     Value empty = new Value(new byte[] {});
-    MockInstance inst = new MockInstance("mockabye");
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
     Connector connector = inst.getConnector("user", new PasswordToken("pass"));
     connector.tableOperations().create("index");
     BatchWriter bw = connector.createBatchWriter("index", new BatchWriterConfig());

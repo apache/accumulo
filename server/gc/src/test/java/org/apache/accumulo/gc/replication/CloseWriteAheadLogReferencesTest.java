@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -64,22 +63,28 @@ import com.google.common.collect.Iterables;
 public class CloseWriteAheadLogReferencesTest {
 
   private CloseWriteAheadLogReferences refs;
-  private Instance inst;
+  private Connector conn;
 
   @Rule
   public TestName testName = new TestName();
 
   @Before
+  public void setupInstance() throws Exception {
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(testName.getMethodName());
+    conn = inst.getConnector("root", new PasswordToken(""));
+  }
+
+  @Before
   public void setup() {
-    inst = createMock(Instance.class);
+    Instance mockInst = createMock(Instance.class);
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
-    expect(inst.getInstanceID()).andReturn(testName.getMethodName()).anyTimes();
-    expect(inst.getZooKeepers()).andReturn("localhost").anyTimes();
-    expect(inst.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    expect(mockInst.getInstanceID()).andReturn(testName.getMethodName()).anyTimes();
+    expect(mockInst.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(mockInst.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<String,String>());
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getConfiguration()).andReturn(systemConf).anyTimes();
-    expect(factory.getInstance()).andReturn(inst).anyTimes();
+    expect(factory.getInstance()).andReturn(mockInst).anyTimes();
     expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
@@ -106,16 +111,13 @@ public class CloseWriteAheadLogReferencesTest {
       }
     }).anyTimes();
 
-    replay(inst, factory, siteConfig);
+    replay(mockInst, factory, siteConfig);
     refs = new CloseWriteAheadLogReferences(new AccumuloServerContext(factory));
   }
 
   @Test
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
-    Instance inst = new MockInstance(testName.getMethodName());
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
-
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
     m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
@@ -134,9 +136,6 @@ public class CloseWriteAheadLogReferencesTest {
   public void closedWalsUpdateStatus() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
-    Instance inst = new MockInstance(testName.getMethodName());
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
-
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
     m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
@@ -155,9 +154,6 @@ public class CloseWriteAheadLogReferencesTest {
   public void partiallyReplicatedReferencedWalsAreNotClosed() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
-    Instance inst = new MockInstance(testName.getMethodName());
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
-
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation(file);
     StatusSection.add(m, new Text("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));

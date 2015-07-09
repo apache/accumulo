@@ -31,8 +31,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -181,7 +181,7 @@ public class AccumuloOutputFormatTest {
 
   @Test
   public void testMR() throws Exception {
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
+    Instance mockInstance = new org.apache.accumulo.core.client.mock.MockInstance(INSTANCE_NAME);
     Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
     c.tableOperations().create(TEST_TABLE_2);

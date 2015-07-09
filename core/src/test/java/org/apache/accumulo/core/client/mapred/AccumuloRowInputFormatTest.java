@@ -30,8 +30,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -50,11 +50,12 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class AccumuloRowInputFormatTest {
   private static final String PREFIX = AccumuloRowInputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
 
   private static final String ROW1 = "row1";
@@ -152,13 +153,14 @@ public class AccumuloRowInputFormatTest {
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 3) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table>");
+      if (args.length != 4) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <instanceName>");
       }
 
       String user = args[0];
       String pass = args[1];
       String table = args[2];
+      String instanceName = args[3];
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
@@ -167,7 +169,7 @@ public class AccumuloRowInputFormatTest {
 
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloRowInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AccumuloRowInputFormat.setMockInstance(job, instanceName);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -186,10 +188,13 @@ public class AccumuloRowInputFormatTest {
     }
   }
 
+  @Rule
+  public TestName test = new TestName();
+
   @Test
   public void test() throws Exception {
-    final MockInstance instance = new MockInstance(INSTANCE_NAME);
-    final Connector conn = instance.getConnector("root", new PasswordToken(""));
+    final Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    final Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create(TEST_TABLE_1);
     BatchWriter writer = null;
     try {
@@ -202,7 +207,7 @@ public class AccumuloRowInputFormatTest {
         writer.close();
       }
     }
-    MRTester.main(new String[] {"root", "", TEST_TABLE_1});
+    MRTester.main(new String[] {"root", "", TEST_TABLE_1, inst.getInstanceName()});
     assertNull(e1);
     assertNull(e2);
   }

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -57,11 +56,22 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class AccumuloInputFormatTest {
 
-  private static final String PREFIX = AccumuloInputFormatTest.class.getSimpleName();
+  @Rule
+  public TestName test = new TestName();
+
+  private Instance inst;
+
+  @Before
+  public void setupInstance() throws Exception {
+    inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+  }
 
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
@@ -280,11 +290,9 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testMap() throws Exception {
-    final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-    final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
+    final String TEST_TABLE_1 = test.getMethodName() + "_mapreduce_table_1";
 
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
+    Connector c = inst.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -294,18 +302,16 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_1, INSTANCE_NAME, AccumuloInputFormat.class.getName()}));
+    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_1, inst.getInstanceName(), AccumuloInputFormat.class.getCanonicalName()}));
     assertNull(e1);
     assertNull(e2);
   }
 
   @Test
   public void testMapWithBatchScanner() throws Exception {
-    final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-    final String TEST_TABLE_2 = PREFIX + "_mapreduce_table_2";
+    final String TEST_TABLE_2 = test.getMethodName() + "_mapreduce_table_2";
 
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
+    Connector c = inst.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_2);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -315,7 +321,8 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_2, INSTANCE_NAME, AccumuloInputFormat.class.getName(), "True"}));
+    Assert
+        .assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_2, inst.getInstanceName(), AccumuloInputFormat.class.getCanonicalName(), "True"}));
     assertNull(e1);
     assertNull(e2);
   }
@@ -324,21 +331,20 @@ public class AccumuloInputFormatTest {
   public void testCorrectRangeInputSplits() throws Exception {
     Job job = Job.getInstance(new Configuration(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
 
-    String username = "user", table = "table", instance = "mapreduce_testCorrectRangeInputSplits";
+    String username = "user", table = "table";
     PasswordToken password = new PasswordToken("password");
     Authorizations auths = new Authorizations("foo");
     Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    Instance inst = new MockInstance(instance);
     Connector connector = inst.getConnector(username, password);
     connector.tableOperations().create(table);
 
     AccumuloInputFormat.setConnectorInfo(job, username, password);
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setMockInstance(job, instance);
+    AccumuloInputFormat.setMockInstance(job, inst.getInstanceName());
     AccumuloInputFormat.setScanIsolation(job, isolated);
     AccumuloInputFormat.setLocalIterators(job, localIters);
     AccumuloInputFormat.fetchColumns(job, fetchColumns);
@@ -360,7 +366,7 @@ public class AccumuloInputFormatTest {
     Assert.assertEquals(table, risplit.getTableName());
     Assert.assertEquals(password, risplit.getToken());
     Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(instance, risplit.getInstanceName());
+    Assert.assertEquals(inst.getInstanceName(), risplit.getInstanceName());
     Assert.assertEquals(isolated, risplit.isIsolatedScan());
     Assert.assertEquals(localIters, risplit.usesLocalIterators());
     Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
@@ -372,8 +378,7 @@ public class AccumuloInputFormatTest {
     String user = "testPartialInputSplitUser";
     PasswordToken password = new PasswordToken("");
 
-    MockInstance mockInstance = new MockInstance("testPartialInputSplitDelegationToConfiguration");
-    Connector c = mockInstance.getConnector(user, password);
+    Connector c = inst.getConnector(user, password);
     c.tableOperations().create("testtable");
     BatchWriter bw = c.createBatchWriter("testtable", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -394,8 +399,7 @@ public class AccumuloInputFormatTest {
     String user = "testPartialFailedInputSplit";
     PasswordToken password = new PasswordToken("");
 
-    MockInstance mockInstance = new MockInstance("testPartialFailedInputSplitDelegationToConfiguration");
-    Connector c = mockInstance.getConnector(user, password);
+    Connector c = inst.getConnector(user, password);
     c.tableOperations().create("testtable");
     BatchWriter bw = c.createBatchWriter("testtable", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {

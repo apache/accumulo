@@ -40,6 +40,10 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 public class MockTable {
 
   static class MockMemKey extends Key {

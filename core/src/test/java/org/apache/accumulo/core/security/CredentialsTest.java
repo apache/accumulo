@@ -30,24 +30,37 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.DeprecationUtil;
+import org.easymock.EasyMock;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
-/**
- *
- */
 public class CredentialsTest {
+
+  @Rule
+  public TestName test = new TestName();
+
+  private Instance inst;
+
+  @Before
+  public void setupInstance() {
+    inst = EasyMock.createMock(Instance.class);
+    EasyMock.expect(inst.getInstanceID()).andReturn(test.getMethodName()).anyTimes();
+    EasyMock.replay(inst);
+  }
 
   @Test
   public void testToThrift() throws DestroyFailedException {
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
-    TCredentials tCreds = creds.toThrift(new MockInstance());
+    TCredentials tCreds = creds.toThrift(inst);
     assertEquals("test", tCreds.getPrincipal());
     assertEquals(PasswordToken.class.getName(), tCreds.getTokenClassName());
     assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")), tCreds.getToken());
@@ -55,7 +68,7 @@ public class CredentialsTest {
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
     try {
-      creds.toThrift(new MockInstance());
+      creds.toThrift(inst);
       fail();
     } catch (Exception e) {
       assertTrue(e instanceof RuntimeException);
@@ -67,14 +80,14 @@ public class CredentialsTest {
   @Test
   public void roundtripThrift() throws DestroyFailedException {
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
-    TCredentials tCreds = creds.toThrift(new MockInstance());
+    TCredentials tCreds = creds.toThrift(inst);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
     assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
   }
 
   @Test
   public void testMockConnector() throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
-    Instance inst = new MockInstance();
+    Instance inst = DeprecationUtil.makeMockInstance(test.getMethodName());
     Connector rootConnector = inst.getConnector("root", new PasswordToken());
     PasswordToken testToken = new PasswordToken("testPass");
     rootConnector.securityOperations().createLocalUser("testUser", testToken);

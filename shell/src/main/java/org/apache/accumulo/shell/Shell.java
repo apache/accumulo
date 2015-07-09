@@ -59,7 +59,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -71,6 +70,7 @@ import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -315,7 +315,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     tabCompletion = !options.isTabCompletionDisabled();
 
-    // Use a fake (Mock), ZK, or HdfsZK Accumulo instance
+    // Use a ZK, or HdfsZK Accumulo instance
     setInstance(options);
 
     // AuthenticationToken options
@@ -448,7 +448,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     // should only be one set of instance options set
     instance = null;
     if (options.isFake()) {
-      instance = new MockInstance("fake");
+      instance = DeprecationUtil.makeMockInstance("fake");
     } else {
       String instanceName, hosts;
       if (options.isHdfsZooInstance()) {

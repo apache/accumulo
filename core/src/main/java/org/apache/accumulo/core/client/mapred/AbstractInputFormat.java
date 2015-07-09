@@ -57,7 +57,6 @@ import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -68,6 +67,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputFormat;
@@ -229,7 +229,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param instanceName
    *          the Accumulo instance name
    * @since 1.5.0
+   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
    */
+  @Deprecated
   public static void setMockInstance(JobConf job, String instanceName) {
     InputConfigurator.setMockInstance(CLASS, job, instanceName);
   }
@@ -242,7 +244,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @return an Accumulo instance
    * @since 1.5.0
    * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
-   * @see #setMockInstance(JobConf, String)
    */
   protected static Instance getInstance(JobConf job) {
     return InputConfigurator.getInstance(CLASS, job);
@@ -531,7 +532,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         try {
           if (isOffline) {
             scanner = new OfflineScanner(instance, new Credentials(principal, token), baseSplit.getTableId(), authorizations);
-          } else if (instance instanceof MockInstance) {
+          } else if (DeprecationUtil.isMockInstance(instance)) {
             scanner = instance.getConnector(principal, token).createScanner(baseSplit.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(job);
@@ -632,7 +633,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       Instance instance = getInstance(job);
       String tableId;
       // resolve table name to id once, and use id from this point forward
-      if (instance instanceof MockInstance) {
+      if (DeprecationUtil.isMockInstance(instance)) {
         tableId = "";
       } else {
         try {
@@ -681,7 +682,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           ClientContext context = new ClientContext(getInstance(job), new Credentials(getPrincipal(job), getAuthenticationToken(job)),
               getClientConfiguration(job));
           while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
-            if (!(instance instanceof MockInstance)) {
+            if (!DeprecationUtil.isMockInstance(instance)) {
               if (!Tables.exists(instance, tableId))
                 throw new TableDeletedException(tableId);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
@@ -763,4 +764,5 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     return splits.toArray(new InputSplit[splits.size()]);
   }
+
 }

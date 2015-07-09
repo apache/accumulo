@@ -37,7 +37,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
  * </ol>
  *
  * Otherwise, it behaves as expected.
+ *
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
+@Deprecated
 public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
 
   private final MockAccumulo acc;

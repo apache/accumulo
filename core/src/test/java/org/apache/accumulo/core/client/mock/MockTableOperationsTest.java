@@ -59,16 +59,29 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterators;
 
+@Deprecated
 public class MockTableOperationsTest {
+
+  @Rule
+  public TestName test = new TestName();
+
+  private Connector conn;
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance inst = new MockInstance(test.getMethodName());
+    conn = inst.getConnector("user", new PasswordToken("pass"));
+  }
 
   @Test
   public void testCreateUseVersions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
-    Instance instance = new MockInstance("topstest");
-    Connector conn = instance.getConnector("user", new PasswordToken("pass"));
     String t = "tableName1";
 
     {
@@ -128,8 +141,6 @@ public class MockTableOperationsTest {
 
   @Test
   public void testTableNotFound() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
-    Instance instance = new MockInstance("topstest");
-    Connector conn = instance.getConnector("user", new PasswordToken("pass"));
     IteratorSetting setting = new IteratorSetting(100, "myvers", VersioningIterator.class);
     String t = "tableName";
     try {
@@ -161,7 +172,7 @@ public class MockTableOperationsTest {
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
-      conn.tableOperations().removeIterator(t, null, null);
+      conn.tableOperations().removeIterator(t, null, EnumSet.noneOf(IteratorScope.class));
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
@@ -188,12 +199,10 @@ public class MockTableOperationsTest {
   @Test
   public void testImport() throws Throwable {
     ImportTestFilesAndData dataAndFiles = prepareTestFiles();
-    Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector("user", new PasswordToken(new byte[0]));
-    TableOperations tableOperations = connector.tableOperations();
+    TableOperations tableOperations = conn.tableOperations();
     tableOperations.create("a_table");
     tableOperations.importDirectory("a_table", dataAndFiles.importPath.toString(), dataAndFiles.failurePath.toString(), false);
-    Scanner scanner = connector.createScanner("a_table", new Authorizations());
+    Scanner scanner = conn.createScanner("a_table", new Authorizations());
     Iterator<Entry<Key,Value>> iterator = scanner.iterator();
     for (int i = 0; i < 5; i++) {
       Assert.assertTrue(iterator.hasNext());
@@ -235,18 +244,14 @@ public class MockTableOperationsTest {
 
   @Test(expected = TableNotFoundException.class)
   public void testFailsWithNoTable() throws Throwable {
-    Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector("user", new PasswordToken(new byte[0]));
-    TableOperations tableOperations = connector.tableOperations();
+    TableOperations tableOperations = conn.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
     tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(), testFiles.failurePath.toString(), false);
   }
 
   @Test(expected = IOException.class)
   public void testFailsWithNonEmptyFailureDirectory() throws Throwable {
-    Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector("user", new PasswordToken(new byte[0]));
-    TableOperations tableOperations = connector.tableOperations();
+    TableOperations tableOperations = conn.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
     FileSystem fs = testFiles.failurePath.getFileSystem(new Configuration());
     fs.open(testFiles.failurePath.suffix("/something")).close();
@@ -255,11 +260,9 @@ public class MockTableOperationsTest {
 
   @Test
   public void testDeleteRows() throws Exception {
-    Instance instance = new MockInstance("rows");
-    Connector connector = instance.getConnector("user", new PasswordToken("foo".getBytes()));
-    TableOperations to = connector.tableOperations();
+    TableOperations to = conn.tableOperations();
     to.create("test");
-    BatchWriter bw = connector.createBatchWriter("test", new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (int r = 0; r < 20; r++) {
       Mutation m = new Mutation("" + r);
       for (int c = 0; c < 5; c++) {
@@ -269,7 +272,7 @@ public class MockTableOperationsTest {
     }
     bw.flush();
     to.deleteRows("test", new Text("1"), new Text("2"));
-    Scanner s = connector.createScanner("test", Authorizations.EMPTY);
+    Scanner s = conn.createScanner("test", Authorizations.EMPTY);
     int oneCnt = 0;
     for (Entry<Key,Value> entry : s) {
       char rowStart = entry.getKey().getRow().toString().charAt(0);
@@ -281,11 +284,9 @@ public class MockTableOperationsTest {
 
   @Test
   public void testDeleteRowsWithNullKeys() throws Exception {
-    Instance instance = new MockInstance("rows");
-    Connector connector = instance.getConnector("user", new PasswordToken("foo"));
-    TableOperations to = connector.tableOperations();
+    TableOperations to = conn.tableOperations();
     to.create("test2");
-    BatchWriter bw = connector.createBatchWriter("test2", new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter("test2", new BatchWriterConfig());
     for (int r = 0; r < 30; r++) {
       Mutation m = new Mutation(Integer.toString(r));
       for (int c = 0; c < 5; c++) {
@@ -298,7 +299,7 @@ public class MockTableOperationsTest {
     // test null end
     // will remove rows 4 through 9 (6 * 5 = 30 entries)
     to.deleteRows("test2", new Text("30"), null);
-    Scanner s = connector.createScanner("test2", Authorizations.EMPTY);
+    Scanner s = conn.createScanner("test2", Authorizations.EMPTY);
     int rowCnt = 0;
     for (Entry<Key,Value> entry : s) {
       String rowId = entry.getKey().getRow().toString();
@@ -311,7 +312,7 @@ public class MockTableOperationsTest {
     // test null start
     // will remove 0-1, 10-19, 2
     to.deleteRows("test2", null, new Text("2"));
-    s = connector.createScanner("test2", Authorizations.EMPTY);
+    s = conn.createScanner("test2", Authorizations.EMPTY);
     rowCnt = 0;
     for (Entry<Key,Value> entry : s) {
       char rowStart = entry.getKey().getRow().toString().charAt(0);
@@ -324,7 +325,7 @@ public class MockTableOperationsTest {
     // test null start and end
     // deletes everything still left
     to.deleteRows("test2", null, null);
-    s = connector.createScanner("test2", Authorizations.EMPTY);
+    s = conn.createScanner("test2", Authorizations.EMPTY);
     rowCnt = Iterators.size(s.iterator());
     s.close();
     to.delete("test2");
@@ -334,8 +335,6 @@ public class MockTableOperationsTest {
 
   @Test
   public void testTableIdMap() throws Exception {
-    Instance inst = new MockInstance("testTableIdMap");
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
     TableOperations tops = conn.tableOperations();
     tops.create("foo");
 

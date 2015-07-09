@@ -16,16 +16,17 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashSet;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -36,13 +37,26 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
-public class CloneTest extends TestCase {
+public class CloneTest {
 
+  private Connector conn;
+
+  @Rule
+  public TestName test = new TestName();
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    conn = inst.getConnector("", new PasswordToken(""));
+  }
+
+  @Test
   public void testNoFiles() throws Exception {
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
 
@@ -67,10 +81,8 @@ public class CloneTest extends TestCase {
 
   }
 
+  @Test
   public void testFilesChange() throws Exception {
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
 
@@ -119,10 +131,8 @@ public class CloneTest extends TestCase {
   }
 
   // test split where files of children are the same
+  @Test
   public void testSplit1() throws Exception {
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
@@ -161,10 +171,8 @@ public class CloneTest extends TestCase {
   }
 
   // test split where files of children differ... like majc and split occurred
+  @Test
   public void testSplit2() throws Exception {
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
@@ -232,10 +240,8 @@ public class CloneTest extends TestCase {
   }
 
   // test two tablets splitting into four
+  @Test
   public void testSplit3() throws Exception {
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
@@ -278,11 +284,8 @@ public class CloneTest extends TestCase {
   }
 
   // test cloned marker
+  @Test
   public void testClonedMarker() throws Exception {
-
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
@@ -343,10 +346,8 @@ public class CloneTest extends TestCase {
   }
 
   // test two tablets splitting into four
+  @Test
   public void testMerge() throws Exception {
-    MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", new PasswordToken(""));
-
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));

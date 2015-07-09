@@ -33,14 +33,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.mock.MockShell;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Uses the MockShell to test the shell output with Formatters
+ * Tests the shell output with Formatters
  */
 public class FormatterCommandTest {
   ByteArrayOutputStream out = null;
@@ -57,10 +56,10 @@ public class FormatterCommandTest {
 
     final String[] commands = createCommands();
 
-    in = MockShell.makeCommands(commands);
+    in = org.apache.accumulo.shell.mock.MockShell.makeCommands(commands);
     out = new ByteArrayOutputStream();
 
-    final MockShell shell = new MockShell(in, out);
+    final Shell shell = new org.apache.accumulo.shell.mock.MockShell(in, out);
     assertTrue("Failed to configure shell without error", shell.config(args));
 
     // Can't call createtable in the shell with MockAccumulo

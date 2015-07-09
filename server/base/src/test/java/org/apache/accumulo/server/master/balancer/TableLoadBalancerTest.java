@@ -26,9 +26,9 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -71,7 +71,7 @@ public class TableLoadBalancerTest {
     return result;
   }
 
-  static MockInstance instance = new MockInstance("mockamatic");
+  static Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(TableLoadBalancerTest.class.getName());
 
   static SortedMap<TServerInstance,TabletServerStatus> state;
 

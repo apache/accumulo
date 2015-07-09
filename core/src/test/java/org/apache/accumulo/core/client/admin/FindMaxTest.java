@@ -16,24 +16,28 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.util.ArrayList;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
-public class FindMaxTest extends TestCase {
+public class FindMaxTest {
 
   private static Mutation nm(byte[] row) {
     Mutation m = new Mutation(new Text(row));
@@ -47,8 +51,12 @@ public class FindMaxTest extends TestCase {
     return m;
   }
 
+  @Rule
+  public TestName test = new TestName();
+
+  @Test
   public void test1() throws Exception {
-    MockInstance mi = new MockInstance();
+    Instance mi = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
 
     Connector conn = mi.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");

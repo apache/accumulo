@@ -30,9 +30,9 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,14 +52,11 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
-/**
- *
- */
 public class TokenFileTest {
   private static AssertionError e1 = null;
   private static final String PREFIX = TokenFileTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
   private static final String TEST_TABLE_2 = PREFIX + "_mapred_table_2";
 
@@ -99,14 +96,15 @@ public class TokenFileTest {
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 4) {
-        throw new IllegalArgumentException("Usage : " + MRTokenFileTester.class.getName() + " <user> <token file> <inputtable> <outputtable>");
+      if (args.length != 5) {
+        throw new IllegalArgumentException("Usage : " + MRTokenFileTester.class.getName() + " <user> <token file> <inputtable> <outputtable> <instanceName>");
       }
 
       String user = args[0];
       String tokenFile = args[1];
       String table1 = args[2];
       String table2 = args[3];
+      String instanceName = args[4];
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
@@ -115,7 +113,7 @@ public class TokenFileTest {
 
       AccumuloInputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AccumuloInputFormat.setMockInstance(job, instanceName);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -127,7 +125,7 @@ public class TokenFileTest {
       AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
-      AccumuloOutputFormat.setMockInstance(job, INSTANCE_NAME);
+      AccumuloOutputFormat.setMockInstance(job, instanceName);
 
       job.setNumReduceTasks(0);
 
@@ -145,10 +143,13 @@ public class TokenFileTest {
   @Rule
   public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
+  @Rule
+  public TestName test = new TestName();
+
   @Test
   public void testMR() throws Exception {
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    Connector c = inst.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
     c.tableOperations().create(TEST_TABLE_2);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
@@ -165,7 +166,7 @@ public class TokenFileTest {
     out.println(outString);
     out.close();
 
-    MRTokenFileTester.main(new String[] {"root", tf.getAbsolutePath(), TEST_TABLE_1, TEST_TABLE_2});
+    MRTokenFileTester.main(new String[] {"root", tf.getAbsolutePath(), TEST_TABLE_1, TEST_TABLE_2, inst.getInstanceName()});
     assertNull(e1);
 
     Scanner scanner = c.createScanner(TEST_TABLE_2, new Authorizations());

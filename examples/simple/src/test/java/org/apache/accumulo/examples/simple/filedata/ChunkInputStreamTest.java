@@ -16,22 +16,26 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -41,17 +45,21 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChunkInputStreamTest extends TestCase {
+public class ChunkInputStreamTest {
   private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
   List<Entry<Key,Value>> data;
   List<Entry<Key,Value>> baddata;
   List<Entry<Key,Value>> multidata;
 
-  {
+  @Before
+  public void setupData() {
     data = new ArrayList<Entry<Key,Value>>();
     addData(data, "a", "refs", "id\0ext", "A&B", "ext");
     addData(data, "a", "refs", "id\0name", "A&B", "name");
@@ -227,9 +235,13 @@ public class ChunkInputStreamTest extends TestCase {
     assertFalse(pi.hasNext());
   }
 
+  @Rule
+  public TestName test = new TestName();
+
   @Test
   public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
-    Connector conn = new MockInstance().getConnector("root", new PasswordToken(""));
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
 

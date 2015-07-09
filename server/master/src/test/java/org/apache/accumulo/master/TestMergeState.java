@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -49,13 +48,12 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.google.common.net.HostAndPort;
 
-/**
- *
- */
 public class TestMergeState {
 
   class MockCurrentState implements CurrentState {
@@ -104,9 +102,12 @@ public class TestMergeState {
     bw.close();
   }
 
+  @Rule
+  public TestName test = new TestName();
+
   @Test
   public void test() throws Exception {
-    Instance instance = new MockInstance();
+    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
     AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(instance));
     Connector connector = context.getConnector();
     BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());

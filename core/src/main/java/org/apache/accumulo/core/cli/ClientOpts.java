@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.hadoop.conf.Configuration;
@@ -260,7 +260,7 @@ public class ClientOpts extends Help {
     if (cachedInstance != null)
       return cachedInstance;
     if (mock)
-      return cachedInstance = new MockInstance(instance);
+      return cachedInstance = DeprecationUtil.makeMockInstance(instance);
     return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
   }
 

@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -100,15 +99,17 @@ public class ConfiguratorBaseTest {
     // assertEquals(1234000, ((ZooKeeperInstance) instance).getZooKeepersSessionTimeOut());
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testSetMockInstance() {
+    Class<?> mockClass = org.apache.accumulo.core.client.mock.MockInstance.class;
     Configuration conf = new Configuration();
     ConfiguratorBase.setMockInstance(this.getClass(), conf, "testInstanceName");
     assertEquals("testInstanceName", conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.NAME)));
     assertEquals(null, conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.ZOO_KEEPERS)));
-    assertEquals(MockInstance.class.getSimpleName(), conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
+    assertEquals(mockClass.getSimpleName(), conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
     Instance instance = ConfiguratorBase.getInstance(this.getClass(), conf);
-    assertEquals(MockInstance.class.getName(), instance.getClass().getName());
+    assertEquals(mockClass.getName(), instance.getClass().getName());
   }
 
   @Test

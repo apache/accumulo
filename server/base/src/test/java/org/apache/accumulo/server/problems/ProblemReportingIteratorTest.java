@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.problems;
 
-import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -28,14 +27,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,16 +45,15 @@ public class ProblemReportingIteratorTest {
 
   @Before
   public void setUp() throws Exception {
-    ii = createMock(InterruptibleIterator.class);
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(new MockInstance()));
-    pri = new ProblemReportingIterator(context, TABLE, RESOURCE, false, ii);
+    ii = EasyMock.createMock(InterruptibleIterator.class);
+    pri = new ProblemReportingIterator(null, TABLE, RESOURCE, false, ii);
   }
 
   @Test
   public void testBasicGetters() {
-    Key key = createMock(Key.class);
+    Key key = EasyMock.createMock(Key.class);
     expect(ii.getTopKey()).andReturn(key);
-    Value value = createMock(Value.class);
+    Value value = EasyMock.createMock(Value.class);
     expect(ii.getTopValue()).andReturn(value);
     expect(ii.hasTop()).andReturn(true);
     replay(ii);
@@ -84,7 +80,7 @@ public class ProblemReportingIteratorTest {
 
   @Test
   public void testSeek() throws Exception {
-    Range r = createMock(Range.class);
+    Range r = EasyMock.createMock(Range.class);
     Collection<ByteSequence> f = new java.util.HashSet<ByteSequence>();
     ii.seek(r, f, true);
     replay(ii);

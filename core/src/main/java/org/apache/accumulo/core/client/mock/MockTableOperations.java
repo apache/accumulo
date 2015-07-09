@@ -66,6 +66,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 class MockTableOperations extends TableOperationsHelper {
   private static final Logger log = LoggerFactory.getLogger(MockTableOperations.class);
   private static final byte[] ZERO = {0};

@@ -14,20 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mock;
+package org.apache.accumulo.core.iterators;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-/**
- * @deprecated since 1.8.0; use {@link org.apache.accumulo.core.iterators.IteratorAdapter} instead.
- */
-@Deprecated
-public class IteratorAdapter extends org.apache.accumulo.core.iterators.IteratorAdapter {
+public class IteratorAdapter implements Iterator<Entry<Key,Value>> {
+
+  SortedKeyValueIterator<Key,Value> inner;
 
   public IteratorAdapter(SortedKeyValueIterator<Key,Value> inner) {
-    super(inner);
+    this.inner = inner;
   }
 
+  @Override
+  public boolean hasNext() {
+    return inner.hasTop();
+  }
+
+  @Override
+  public Entry<Key,Value> next() {
+    try {
+      Entry<Key,Value> result = new KeyValue(new Key(inner.getTopKey()), new Value(inner.getTopValue()).get());
+      inner.next();
+      return result;
+    } catch (IOException ex) {
+      throw new NoSuchElementException();
+    }
+  }
+
+  @Override
+  public void remove() {
+    throw new UnsupportedOperationException();
+  }
 }

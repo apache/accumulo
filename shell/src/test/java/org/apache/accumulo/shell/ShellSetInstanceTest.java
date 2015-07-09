@@ -39,7 +39,6 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
@@ -124,12 +123,12 @@ public class ShellSetInstanceTest {
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(true);
     replay(opts);
-    MockInstance theInstance = createMock(MockInstance.class);
-    expectNew(MockInstance.class, "fake").andReturn(theInstance);
-    replay(theInstance, MockInstance.class);
+    org.apache.accumulo.core.client.mock.MockInstance theInstance = createMock(org.apache.accumulo.core.client.mock.MockInstance.class);
+    expectNew(org.apache.accumulo.core.client.mock.MockInstance.class, "fake").andReturn(theInstance);
+    replay(theInstance, org.apache.accumulo.core.client.mock.MockInstance.class);
 
     shell.setInstance(opts);
-    verify(theInstance, MockInstance.class);
+    verify(theInstance, org.apache.accumulo.core.client.mock.MockInstance.class);
   }
 
   @Test

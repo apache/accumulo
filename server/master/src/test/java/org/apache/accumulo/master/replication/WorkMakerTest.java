@@ -23,8 +23,8 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -51,7 +51,7 @@ import com.google.common.collect.Iterables;
 
 public class WorkMakerTest {
 
-  private MockInstance instance;
+  private Instance instance;
   private Connector conn;
 
   @Rule
@@ -60,7 +60,7 @@ public class WorkMakerTest {
 
   @Before
   public void createMockAccumulo() throws Exception {
-    instance = new MockInstance();
+    instance = new org.apache.accumulo.core.client.mock.MockInstance(name.getMethodName());
     context = new AccumuloServerContext(new ServerConfigurationFactory(instance));
     conn = context.getConnector();
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);

@@ -34,6 +34,10 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 class MockNamespaceOperations extends NamespaceOperationsHelper {
 
   private static final Logger log = LoggerFactory.getLogger(MockNamespaceOperations.class);

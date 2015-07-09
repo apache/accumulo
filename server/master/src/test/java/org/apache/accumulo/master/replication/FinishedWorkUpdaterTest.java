@@ -21,8 +21,8 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,7 +52,7 @@ public class FinishedWorkUpdaterTest {
 
   @Before
   public void setup() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
     conn = inst.getConnector("root", new PasswordToken(""));
     updater = new FinishedWorkUpdater(conn);
   }

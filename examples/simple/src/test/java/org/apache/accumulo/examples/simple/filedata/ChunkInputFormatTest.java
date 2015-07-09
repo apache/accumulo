@@ -33,7 +33,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -47,8 +47,11 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class ChunkInputFormatTest {
 
@@ -61,6 +64,17 @@ public class ChunkInputFormatTest {
 
   private static List<Entry<Key,Value>> data;
   private static List<Entry<Key,Value>> baddata;
+
+  private Connector conn;
+
+  @Rule
+  public TestName test = new TestName();
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    conn = instance.getConnector("root", new PasswordToken(""));
+  }
 
   @BeforeClass
   public static void setupClass() {
@@ -243,8 +257,6 @@ public class ChunkInputFormatTest {
 
   @Test
   public void test() throws Exception {
-    MockInstance instance = new MockInstance("instance1");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
 
@@ -256,15 +268,13 @@ public class ChunkInputFormatTest {
     }
     bw.close();
 
-    assertEquals(0, CIFTester.main("instance1", "root", "", "test", CIFTester.TestMapper.class.getName()));
+    assertEquals(0, CIFTester.main(conn.getInstance().getInstanceName(), "root", "", "test", CIFTester.TestMapper.class.getName()));
     assertNull(e1);
     assertNull(e2);
   }
 
   @Test
   public void testErrorOnNextWithoutClose() throws Exception {
-    MockInstance instance = new MockInstance("instance2");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
 
@@ -276,7 +286,7 @@ public class ChunkInputFormatTest {
     }
     bw.close();
 
-    assertEquals(1, CIFTester.main("instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()));
+    assertEquals(1, CIFTester.main(conn.getInstance().getInstanceName(), "root", "", "test", CIFTester.TestNoClose.class.getName()));
     assertNull(e1);
     assertNull(e2);
     assertNotNull(e3);
@@ -284,8 +294,6 @@ public class ChunkInputFormatTest {
 
   @Test
   public void testInfoWithoutChunks() throws Exception {
-    MockInstance instance = new MockInstance("instance3");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (Entry<Key,Value> e : baddata) {
@@ -296,7 +304,7 @@ public class ChunkInputFormatTest {
     }
     bw.close();
 
-    assertEquals(0, CIFTester.main("instance3", "root", "", "test", CIFTester.TestBadData.class.getName()));
+    assertEquals(0, CIFTester.main(conn.getInstance().getInstanceName(), "root", "", "test", CIFTester.TestBadData.class.getName()));
     assertNull(e0);
     assertNull(e1);
     assertNull(e2);

@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -63,14 +62,14 @@ import org.slf4j.LoggerFactory;
 public class ReplicationOperationsImplTest {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplTest.class);
 
-  private MockInstance inst;
+  private Instance inst;
 
   @Rule
   public TestName test = new TestName();
 
   @Before
   public void setup() {
-    inst = new MockInstance(test.getMethodName());
+    inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
   }
 
   /**

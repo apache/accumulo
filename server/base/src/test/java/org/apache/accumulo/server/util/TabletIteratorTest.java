@@ -18,13 +18,11 @@ package org.apache.accumulo.server.util;
 
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,8 +35,18 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TestName;
 
-public class TabletIteratorTest extends TestCase {
+public class TabletIteratorTest {
+
+  @Rule
+  public TestName test = new TestName();
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   class TestTabletIterator extends TabletIterator {
 
@@ -78,8 +86,9 @@ public class TabletIteratorTest extends TestCase {
   }
 
   // simulate a merge happening while iterating over tablets
+  @Test
   public void testMerge() throws Exception {
-    MockInstance mi = new MockInstance();
+    Instance mi = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
     Connector conn = mi.getConnector("", new PasswordToken(""));
 
     KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
@@ -97,11 +106,9 @@ public class TabletIteratorTest extends TestCase {
 
     TestTabletIterator tabIter = new TestTabletIterator(conn);
 
-    try {
-      while (tabIter.hasNext()) {
-        tabIter.next();
-      }
-      assertTrue(false);
-    } catch (TabletDeletedException tde) {}
+    exception.expect(TabletDeletedException.class);
+    while (tabIter.hasNext()) {
+      tabIter.next();
+    }
   }
 }

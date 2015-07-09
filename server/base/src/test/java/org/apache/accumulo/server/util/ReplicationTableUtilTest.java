@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -39,7 +38,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Writer;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -81,7 +79,9 @@ public class ReplicationTableUtilTest {
     EasyMock.replay(writer);
 
     Credentials creds = new Credentials("root", new PasswordToken(""));
-    ClientContext context = new ClientContext(new MockInstance(), creds, new ClientConfiguration());
+    ClientContext context = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(context.getCredentials()).andReturn(creds).anyTimes();
+    EasyMock.replay(context);
 
     // Magic hook to create a Writer
     ReplicationTableUtil.addWriter(creds, writer);

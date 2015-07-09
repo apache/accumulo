@@ -30,8 +30,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -183,7 +183,7 @@ public class AccumuloRowInputFormatTest {
 
   @Test
   public void test() throws Exception {
-    final MockInstance instance = new MockInstance(INSTANCE_NAME);
+    final Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(INSTANCE_NAME);
     final Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create(TEST_TABLE_1);
     BatchWriter writer = null;

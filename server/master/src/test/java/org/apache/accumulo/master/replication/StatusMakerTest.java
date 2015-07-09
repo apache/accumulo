@@ -28,9 +28,9 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -46,6 +46,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -58,12 +59,17 @@ public class StatusMakerTest {
   @Rule
   public TestName test = new TestName();
 
+  private Connector conn;
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    Credentials creds = new Credentials("root", new PasswordToken(""));
+    conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+  }
+
   @Test
   public void statusRecordsCreated() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     String sourceTable = "source";
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
@@ -111,10 +117,6 @@ public class StatusMakerTest {
 
   @Test
   public void openMessagesAreNotDeleted() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     String sourceTable = "source";
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
@@ -151,10 +153,6 @@ public class StatusMakerTest {
 
   @Test
   public void closedMessagesAreDeleted() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     String sourceTable = "source";
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
@@ -198,10 +196,6 @@ public class StatusMakerTest {
 
   @Test
   public void closedMessagesCreateOrderRecords() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     String sourceTable = "source";
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);

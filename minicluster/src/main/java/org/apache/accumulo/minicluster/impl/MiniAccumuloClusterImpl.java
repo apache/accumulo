@@ -78,6 +78,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.master.state.SetGoalState;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -113,8 +114,8 @@ import com.google.common.collect.Maps;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
- * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
- * code against a real Accumulo instance. Its much more accurate for testing than {@link org.apache.accumulo.core.client.mock.MockAccumulo}, but much slower.
+ * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain features for internal testing which have not yet been
+ * promoted to the public API. It's best to use {@link MiniAccumuloCluster} whenever possible. Use of this class risks API breakage between versions.
  *
  * @since 1.6.0
  */

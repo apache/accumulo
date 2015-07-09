@@ -33,8 +33,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
@@ -65,13 +63,17 @@ public class UnorderedWorkAssignerTest {
 
   private AccumuloConfiguration conf;
   private Connector conn;
+  private Connector mockConn;
   private UnorderedWorkAssigner assigner;
 
   @Before
-  public void init() {
+  public void init() throws Exception {
     conf = createMock(AccumuloConfiguration.class);
     conn = createMock(Connector.class);
     assigner = new UnorderedWorkAssigner(conf, conn);
+
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    mockConn = inst.getConnector("root", new PasswordToken(""));
   }
 
   @Test
@@ -128,15 +130,11 @@ public class UnorderedWorkAssignerTest {
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target2.getSourceTableId();
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     // Set the connector
-    assigner.setConnector(conn);
+    assigner.setConnector(mockConn);
 
     // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    mockConn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).setCreatedTime(5l);
     Status status1 = builder.build();
@@ -144,7 +142,7 @@ public class UnorderedWorkAssignerTest {
     Status status2 = builder.build();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
     Mutation m = new Mutation(file1);
@@ -190,18 +188,14 @@ public class UnorderedWorkAssignerTest {
     ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"), target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     // Set the connector
-    assigner.setConnector(conn);
+    assigner.setConnector(mockConn);
 
     // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    mockConn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
 
@@ -261,18 +255,14 @@ public class UnorderedWorkAssignerTest {
 
     queuedWork.add("wal1|" + serializedTarget.toString());
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
     // Set the connector
-    assigner.setConnector(conn);
+    assigner.setConnector(mockConn);
 
     // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    mockConn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     String file1 = "/accumulo/wal/tserver+port/wal1";
     Mutation m = new Mutation(file1);
     WorkSection.add(m, target.toText(), StatusUtil.openWithUnknownLengthValue());

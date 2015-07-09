@@ -49,8 +49,9 @@ import org.apache.hadoop.io.Text;
  * An alternative to Mock Accumulo called MiniAccumuloCluster was introduced in Accumulo 1.5. MiniAccumuloCluster spins up actual Accumulo server processes, can
  * be used for unit testing, and its behavior should match Accumulo. The drawback of MiniAccumuloCluster is that it starts more slowly than Mock Accumulo.
  *
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
-
+@Deprecated
 public class MockInstance implements Instance {
 
   static final String genericAddress = "localhost:1234";

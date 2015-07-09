@@ -17,13 +17,13 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -46,11 +45,25 @@ import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
-public class RegExFilterTest extends TestCase {
+public class RegExFilterTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+
+  private Connector conn;
+
+  @Rule
+  public TestName test = new TestName();
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    conn = instance.getConnector("root", new PasswordToken(""));
+  }
 
   private Key nkv(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
     Key k = nk(row, cf, cq);
@@ -62,6 +75,7 @@ public class RegExFilterTest extends TestCase {
     return new Key(new Text(row), new Text(cf), new Text(cq));
   }
 
+  @Test
   public void test1() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
 
@@ -262,9 +276,6 @@ public class RegExFilterTest extends TestCase {
     System.arraycopy(b1, 0, ball, 0, b1.length);
     ball[b1.length] = (byte) 0;
     System.arraycopy(b2, 0, ball, b1.length + 1, b2.length);
-
-    Instance instance = new MockInstance();
-    Connector conn = instance.getConnector("root", new PasswordToken(new byte[0]));
 
     conn.tableOperations().create(table);
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());

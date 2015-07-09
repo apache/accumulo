@@ -28,8 +28,8 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -66,7 +66,7 @@ public class AccumuloFileOutputFormatTest {
 
   @BeforeClass
   public static void setup() throws Exception {
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
+    Instance mockInstance = new org.apache.accumulo.core.client.mock.MockInstance(INSTANCE_NAME);
     Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(EMPTY_TABLE);
     c.tableOperations().create(TEST_TABLE);

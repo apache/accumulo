@@ -29,8 +29,6 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
@@ -60,13 +58,21 @@ public class SequentialWorkAssignerTest {
 
   private AccumuloConfiguration conf;
   private Connector conn;
+  private Connector mockConn;
   private SequentialWorkAssigner assigner;
 
   @Before
-  public void init() {
+  public void init() throws Exception {
     conf = createMock(AccumuloConfiguration.class);
     conn = createMock(Connector.class);
     assigner = new SequentialWorkAssigner(conf, conn);
+
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    mockConn = inst.getConnector("root", new PasswordToken(""));
+    // Set the connector
+    assigner.setConnector(mockConn);
+    // grant ourselves write to the replication table
+    mockConn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
   }
 
   @Test
@@ -74,18 +80,8 @@ public class SequentialWorkAssignerTest {
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
     Text serializedTarget = target.toText();
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    // Set the connector
-    assigner.setConnector(conn);
-
-    // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
-
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -146,18 +142,8 @@ public class SequentialWorkAssignerTest {
     ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget2 = target2.toText();
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    // Set the connector
-    assigner.setConnector(conn);
-
-    // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
-
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -225,18 +211,8 @@ public class SequentialWorkAssignerTest {
     ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", "1");
     Text serializedTarget2 = target2.toText();
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    // Set the connector
-    assigner.setConnector(conn);
-
-    // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
-
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -345,18 +321,8 @@ public class SequentialWorkAssignerTest {
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
     Text serializedTarget = target.toText();
 
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    // Set the connector
-    assigner.setConnector(conn);
-
-    // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
-
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(mockConn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;

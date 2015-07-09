@@ -24,6 +24,10 @@ import org.apache.accumulo.core.conf.Property;
 
 import com.google.common.base.Predicate;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 class MockConfiguration extends AccumuloConfiguration {
   Map<String,String> map;
 

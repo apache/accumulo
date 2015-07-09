@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -33,7 +35,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -42,13 +43,12 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Base64;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Level;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
@@ -354,7 +354,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (isMockInstance()) {
-      return new MockInstance(getInstanceName());
+      return DeprecationUtil.makeMockInstance(getInstanceName());
     }
 
     if (null == zooKeepers) {
@@ -414,10 +414,18 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.locations = Arrays.copyOf(locations, locations.length);
   }
 
+  /**
+   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
+   */
+  @Deprecated
   public Boolean isMockInstance() {
     return mockInstance;
   }
 
+  /**
+   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
+   */
+  @Deprecated
   public void setMockInstance(Boolean mockInstance) {
     this.mockInstance = mockInstance;
   }

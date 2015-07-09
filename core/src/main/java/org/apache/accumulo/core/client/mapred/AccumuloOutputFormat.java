@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -71,7 +70,7 @@ import org.apache.log4j.Logger;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, String)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)}
  * </ul>
  *
  * Other static methods are optional.
@@ -239,14 +238,16 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Configures a {@link MockInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
    * @param instanceName
    *          the Accumulo instance name
    * @since 1.5.0
+   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
    */
+  @Deprecated
   public static void setMockInstance(JobConf job, String instanceName) {
     OutputConfigurator.setMockInstance(CLASS, job, instanceName);
   }
@@ -259,7 +260,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @return an Accumulo instance
    * @since 1.5.0
    * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
-   * @see #setMockInstance(JobConf, String)
    */
   protected static Instance getInstance(JobConf job) {
     return OutputConfigurator.getInstance(CLASS, job);

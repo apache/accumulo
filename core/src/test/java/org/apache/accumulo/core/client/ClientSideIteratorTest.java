@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -34,7 +33,10 @@ import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class ClientSideIteratorTest {
   List<Key> resultSet1;
@@ -54,7 +56,7 @@ public class ClientSideIteratorTest {
     resultSet3.add(new Key("part2", "", "DOC2"));
   }
 
-  public void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results, final PartialKey pk) {
+  private void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results, final PartialKey pk) {
     int i = 0;
     for (Entry<Key,Value> entry : scanner) {
       assertTrue(entry.getKey().equals(results.get(i++), pk));
@@ -62,10 +64,19 @@ public class ClientSideIteratorTest {
     assertEquals(i, results.size());
   }
 
+  @Rule
+  public TestName test = new TestName();
+
+  private Connector conn;
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    conn = inst.getConnector("root", new PasswordToken(""));
+  }
+
   @Test
   public void testIntersect() throws Exception {
-    Instance instance = new MockInstance("local");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("intersect");
     BatchWriter bw = conn.createBatchWriter("intersect", new BatchWriterConfig());
     Mutation m = new Mutation("part1");
@@ -94,8 +105,6 @@ public class ClientSideIteratorTest {
 
   @Test
   public void testVersioning() throws Exception {
-    final Instance instance = new MockInstance("local");
-    final Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("table");
     conn.tableOperations().removeProperty("table", "table.iterator.scan.vers");
     conn.tableOperations().removeProperty("table", "table.iterator.majc.vers");

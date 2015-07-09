@@ -25,8 +25,8 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -54,7 +54,7 @@ import com.google.common.collect.Iterables;
 public class RemoveCompleteReplicationRecordsTest {
 
   private RemoveCompleteReplicationRecords rcrr;
-  private MockInstance inst;
+  private Instance inst;
   private Connector conn;
 
   @Rule
@@ -62,7 +62,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Before
   public void initialize() throws Exception {
-    inst = new MockInstance(test.getMethodName());
+    inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
     conn = inst.getConnector("root", new PasswordToken(""));
     rcrr = new RemoveCompleteReplicationRecords(conn);
   }

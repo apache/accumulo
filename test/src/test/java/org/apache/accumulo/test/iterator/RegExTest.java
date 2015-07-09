@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,15 +36,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class RegExTest {
 
-  Instance inst = new MockInstance();
-  Connector conn;
+  private static Connector conn;
 
-  @Test
-  public void runTest() throws Exception {
+  @BeforeClass
+  public static void setupTests() throws Exception {
+    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(RegExTest.class.getName());
     conn = inst.getConnector("user", new PasswordToken("pass"));
     conn.tableOperations().create("ret");
     BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
@@ -71,12 +71,6 @@ public class RegExTest {
     }
 
     bw.close();
-
-    runTest1();
-    runTest2();
-    runTest3();
-    runTest4();
-    runTest5();
   }
 
   private void check(String regex, String val) throws Exception {
@@ -92,31 +86,36 @@ public class RegExTest {
     check(regex, val.toString());
   }
 
-  private void runTest1() throws Exception {
+  @Test
+  public void runTest1() throws Exception {
     // try setting all regex
     Range range = new Range(new Text("rf"), true, new Text("rl"), true);
     runTest(range, "r[g-k]", "cf[1-5]", "cq[x-z]", "v[g-k][1-5][t-y]", 5 * 5 * (3 - 1));
   }
 
-  private void runTest2() throws Exception {
+  @Test
+  public void runTest2() throws Exception {
     // try setting only a row regex
     Range range = new Range(new Text("rf"), true, new Text("rl"), true);
     runTest(range, "r[g-k]", null, null, null, 5 * 36 * 36);
   }
 
-  private void runTest3() throws Exception {
+  @Test
+  public void runTest3() throws Exception {
     // try setting only a col fam regex
     Range range = new Range((Key) null, (Key) null);
     runTest(range, null, "cf[a-f]", null, null, 36 * 6 * 36);
   }
 
-  private void runTest4() throws Exception {
+  @Test
+  public void runTest4() throws Exception {
     // try setting only a col qual regex
     Range range = new Range((Key) null, (Key) null);
     runTest(range, null, null, "cq[1-7]", null, 36 * 36 * 7);
   }
 
-  private void runTest5() throws Exception {
+  @Test
+  public void runTest5() throws Exception {
     // try setting only a value regex
     Range range = new Range((Key) null, (Key) null);
     runTest(range, null, null, null, "v[a-c][d-f][g-i]", 3 * 3 * 3);

@@ -23,24 +23,26 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
-/**
- *
- */
 public class SystemCredentialsTest {
 
-  private static MockInstance inst;
+  @Rule
+  public TestName test = new TestName();
+
+  private Instance inst;
 
   @BeforeClass
   public static void setUp() throws IOException {
-    inst = new MockInstance();
     File testInstanceId = new File(new File(new File(new File("target"), "instanceTest"), ServerConstants.INSTANCE_ID_DIR), UUID.fromString(
         "00000000-0000-0000-0000-000000000000").toString());
     if (!testInstanceId.exists()) {
@@ -53,6 +55,11 @@ public class SystemCredentialsTest {
       assertTrue(testInstanceVersion.getParentFile().mkdirs() || testInstanceVersion.getParentFile().isDirectory());
       assertTrue(testInstanceVersion.createNewFile());
     }
+  }
+
+  @Before
+  public void setupInstance() {
+    inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
   }
 
   /**

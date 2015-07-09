@@ -32,9 +32,9 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -47,13 +47,23 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-
-/**
- *
- */
+import org.junit.rules.TestName;
 
 public class RowFilterTest {
+
+  @Rule
+  public TestName test = new TestName();
+
+  private Connector conn;
+
+  @Before
+  public void setupInstance() throws Exception {
+    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
+    conn = instance.getConnector("", new PasswordToken(""));
+  }
 
   public static class SummingRowFilter extends RowFilter {
 
@@ -187,9 +197,6 @@ public class RowFilterTest {
 
   @Test
   public void test1() throws Exception {
-    MockInstance instance = new MockInstance("rft1");
-    Connector conn = instance.getConnector("", new PasswordToken(""));
-
     conn.tableOperations().create("table1");
     BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
 
@@ -231,9 +238,6 @@ public class RowFilterTest {
 
   @Test
   public void testChainedRowFilters() throws Exception {
-    MockInstance instance = new MockInstance("rft1");
-    Connector conn = instance.getConnector("", new PasswordToken(""));
-
     conn.tableOperations().create("chained_row_filters");
     BatchWriter bw = conn.createBatchWriter("chained_row_filters", new BatchWriterConfig());
     for (Mutation m : createMutations()) {
@@ -247,9 +251,6 @@ public class RowFilterTest {
 
   @Test
   public void testFilterConjunction() throws Exception {
-    MockInstance instance = new MockInstance("rft1");
-    Connector conn = instance.getConnector("", new PasswordToken(""));
-
     conn.tableOperations().create("filter_conjunction");
     BatchWriter bw = conn.createBatchWriter("filter_conjunction", new BatchWriterConfig());
     for (Mutation m : createMutations()) {

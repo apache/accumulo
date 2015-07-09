@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -59,12 +58,13 @@ import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class AccumuloInputFormatTest {
 
   private static final String PREFIX = AccumuloInputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
 
   private JobConf job;
@@ -72,6 +72,16 @@ public class AccumuloInputFormatTest {
   @BeforeClass
   public static void setupClass() {
     System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
+  }
+
+  @Rule
+  public TestName test = new TestName();
+
+  private Instance inst;
+
+  @Before
+  public void setupInstance() throws Exception {
+    inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
   }
 
   @Before
@@ -242,13 +252,14 @@ public class AccumuloInputFormatTest {
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 3) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table>");
+      if (args.length != 4) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <instanceName>");
       }
 
       String user = args[0];
       String pass = args[1];
       String table = args[2];
+      String instanceName = args[3];
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
@@ -257,7 +268,7 @@ public class AccumuloInputFormatTest {
 
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
+      AccumuloInputFormat.setMockInstance(job, instanceName);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -278,8 +289,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testMap() throws Exception {
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
+    Connector c = inst.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -289,7 +299,7 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    MRTester.main("root", "", TEST_TABLE_1);
+    MRTester.main("root", "", TEST_TABLE_1, inst.getInstanceName());
     assertNull(e1);
     assertNull(e2);
   }
@@ -298,21 +308,20 @@ public class AccumuloInputFormatTest {
   public void testCorrectRangeInputSplits() throws Exception {
     JobConf job = new JobConf();
 
-    String username = "user", table = "table", instance = "mapred_testCorrectRangeInputSplits";
+    String username = "user", table = "table";
     PasswordToken password = new PasswordToken("password");
     Authorizations auths = new Authorizations("foo");
     Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    Instance inst = new MockInstance(instance);
     Connector connector = inst.getConnector(username, password);
     connector.tableOperations().create(table);
 
     AccumuloInputFormat.setConnectorInfo(job, username, password);
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setMockInstance(job, instance);
+    AccumuloInputFormat.setMockInstance(job, inst.getInstanceName());
     AccumuloInputFormat.setScanIsolation(job, isolated);
     AccumuloInputFormat.setLocalIterators(job, localIters);
     AccumuloInputFormat.fetchColumns(job, fetchColumns);
@@ -334,7 +343,7 @@ public class AccumuloInputFormatTest {
     Assert.assertEquals(table, risplit.getTableName());
     Assert.assertEquals(password, risplit.getToken());
     Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(instance, risplit.getInstanceName());
+    Assert.assertEquals(inst.getInstanceName(), risplit.getInstanceName());
     Assert.assertEquals(isolated, risplit.isIsolatedScan());
     Assert.assertEquals(localIters, risplit.usesLocalIterators());
     Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());

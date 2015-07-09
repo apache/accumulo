@@ -25,15 +25,12 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -48,6 +45,7 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -109,7 +107,9 @@ public class BulkImporterTest {
   public void testFindOverlappingTablets() throws Exception {
     MockTabletLocator locator = new MockTabletLocator();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    ClientContext context = new ClientContext(new MockInstance(), new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    ClientContext context = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    EasyMock.replay(context);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
     FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), context.getConfiguration());

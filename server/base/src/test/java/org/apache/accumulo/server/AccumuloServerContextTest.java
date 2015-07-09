@@ -26,9 +26,9 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -68,7 +68,7 @@ public class AccumuloServerContextTest {
     testUser.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        MockInstance instance = new MockInstance();
+        Instance instance = EasyMock.createMock(Instance.class);
 
         ClientConfiguration clientConf = ClientConfiguration.loadDefault();
         clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");

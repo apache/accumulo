@@ -31,7 +31,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
- * code against a real Accumulo instance. Its much more accurate for testing than {@link org.apache.accumulo.core.client.mock.MockAccumulo}, but much slower.
+ * code against a real Accumulo instance. The use of this utility will yield results which closely match a normal Accumulo instance.
  *
  * @since 1.5.0
  */

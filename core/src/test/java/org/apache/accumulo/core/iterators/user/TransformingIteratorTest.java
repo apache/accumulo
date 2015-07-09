@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,9 +38,9 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -58,7 +59,9 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class TransformingIteratorTest {
   private static final String TABLE_NAME = "test_table";
@@ -66,9 +69,12 @@ public class TransformingIteratorTest {
   private Connector connector;
   private Scanner scanner;
 
+  @Rule
+  public TestName test = new TestName();
+
   @Before
   public void setUpMockAccumulo() throws Exception {
-    MockInstance instance = new MockInstance("test");
+    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
     connector = instance.getConnector("user", new PasswordToken("password"));
     connector.securityOperations().changeUserAuthorizations("user", authorizations);
 
@@ -278,9 +284,6 @@ public class TransformingIteratorTest {
 
   @Test
   public void testDeepCopy() throws Exception {
-    MockInstance instance = new MockInstance("test");
-    Connector connector = instance.getConnector("user", new PasswordToken("password"));
-
     connector.tableOperations().create("shard_table");
 
     BatchWriter bw = connector.createBatchWriter("shard_table", new BatchWriterConfig());
