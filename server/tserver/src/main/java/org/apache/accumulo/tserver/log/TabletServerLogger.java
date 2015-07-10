@@ -92,9 +92,8 @@ public class TabletServerLogger {
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
 
-  private final static int HALT_AFTER_ERROR_COUNT = 5;
-  // Die if we get 5 WAL creation errors in 10 seconds
-  private final Cache<Long,Object> walErrors = CacheBuilder.newBuilder().maximumSize(HALT_AFTER_ERROR_COUNT).expireAfterWrite(10, TimeUnit.SECONDS).build();
+  private final long toleratedFailures;
+  private final Cache<Long,Object> walErrors;
 
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
@@ -139,11 +138,14 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, long toleratedWalCreationFailures,
+      long toleratedFailuresPeriodMillis) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
+    this.toleratedFailures = toleratedWalCreationFailures;
+    this.walErrors = CacheBuilder.newBuilder().maximumSize(toleratedFailures).expireAfterWrite(toleratedFailuresPeriodMillis, TimeUnit.MILLISECONDS).build();
   }
 
   private int initializeLoggers(final List<DfsLogger> copy) throws IOException {
@@ -204,7 +206,7 @@ public class TabletServerLogger {
       return;
     } catch (Exception t) {
       walErrors.put(System.currentTimeMillis(), "");
-      if (walErrors.size() >= HALT_AFTER_ERROR_COUNT) {
+      if (walErrors.size() > toleratedFailures) {
         Halt.halt("Experienced too many errors creating WALs, giving up");
       }
       throw new RuntimeException(t);
