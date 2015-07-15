@@ -86,6 +86,10 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
     static final Text PASS = new Text("PASS");
     static final Text ERROR = new Text("ERROR");
 
+    public static enum TestCounts {
+      PASS, FAIL, ERROR
+    }
+
     @Override
     protected void map(LongWritable key, Text value, final Mapper<LongWritable,Text,Text,Text>.Context context) throws IOException, InterruptedException {
       isMapReduce = true;
@@ -99,6 +103,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         test = Class.forName(className);
       } catch (ClassNotFoundException e) {
         log.debug("Error finding class {}", className, e);
+        context.getCounter(TestCounts.ERROR);
         context.write(ERROR, new Text(e.toString()));
         return;
       }
@@ -131,9 +136,11 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         Result result = core.run(test);
         if (result.wasSuccessful()) {
           log.info("{} was successful", className);
+          context.getCounter(TestCounts.PASS);
           context.write(PASS, value);
         } else {
           log.info("{} failed", className);
+          context.getCounter(TestCounts.FAIL);
           context.write(FAIL, new Text(className + "(" + StringUtils.join(failures, ", ") + ")"));
         }
       } catch (Exception e) {
