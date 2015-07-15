@@ -16,17 +16,13 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public class UtilWaitThread {
-  private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
 
   public static void sleep(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-    }
+    Uninterruptibles.sleepUninterruptibly(millis, TimeUnit.MILLISECONDS);
   }
 }
