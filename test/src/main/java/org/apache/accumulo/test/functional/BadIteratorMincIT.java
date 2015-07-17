@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -30,12 +31,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BadIteratorMincIT extends AccumuloClusterHarness {
 
@@ -61,7 +62,7 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
     bw.close();
 
     c.tableOperations().flush(tableName, null, null, false);
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     // minc should fail, so there should be no files
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
@@ -74,7 +75,7 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
     // remove the bad iterator
     c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
 
-    UtilWaitThread.sleep(5000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
 
     // minc should complete
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
@@ -93,12 +94,12 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
     bw.close();
 
     // make sure property is given time to propagate
-    UtilWaitThread.sleep(500);
+    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
     c.tableOperations().flush(tableName, null, null, false);
 
     // make sure the flush has time to start
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     // this should not hang
     c.tableOperations().delete(tableName);

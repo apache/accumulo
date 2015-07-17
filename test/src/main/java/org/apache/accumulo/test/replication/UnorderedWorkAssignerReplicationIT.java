@@ -45,7 +45,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.replication.UnorderedWorkAssigner;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -67,6 +66,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
@@ -204,7 +204,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
       // Wait for zookeeper updates (configuration) to propagate
-      UtilWaitThread.sleep(3 * 1000);
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
@@ -368,7 +368,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Wait for zookeeper updates (configuration) to propogate
-      UtilWaitThread.sleep(3 * 1000);
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
@@ -632,7 +632,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Wait for zookeeper updates (configuration) to propagate
-      UtilWaitThread.sleep(3 * 1000);
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
@@ -675,7 +675,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
-        UtilWaitThread.sleep(timeoutFactor * 2000);
+        sleepUninterruptibly(timeoutFactor * 2, TimeUnit.SECONDS);
 
         Scanner s = ReplicationTable.getScanner(connMaster);
         WorkSection.limit(s);

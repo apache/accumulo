@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -29,13 +30,13 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class MasterClient {
   private static final Logger log = LoggerFactory.getLogger(MasterClient.class);
@@ -46,7 +47,7 @@ public class MasterClient {
       MasterClientService.Client result = getConnection(context);
       if (result != null)
         return result;
-      UtilWaitThread.sleep(250);
+      sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -97,7 +98,7 @@ public class MasterClient {
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("MasterClient request failed, retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (AccumuloException e) {
@@ -130,7 +131,7 @@ public class MasterClient {
         break;
       } catch (TTransportException tte) {
         log.debug("MasterClient request failed, retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (AccumuloException e) {

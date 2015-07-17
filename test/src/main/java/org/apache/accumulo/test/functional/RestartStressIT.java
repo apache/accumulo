@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -48,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class RestartStressIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(RestartStressIT.class);
@@ -132,7 +132,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
     });
 
     for (int i = 0; i < 2; i++) {
-      UtilWaitThread.sleep(10 * 1000);
+      sleepUninterruptibly(10, TimeUnit.SECONDS);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.startAllServers(ServerType.TABLET_SERVER);
     }

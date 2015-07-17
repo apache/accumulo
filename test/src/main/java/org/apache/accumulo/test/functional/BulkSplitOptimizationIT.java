@@ -18,6 +18,8 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -26,7 +28,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -39,6 +40,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
@@ -103,11 +106,11 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     // initiate splits
     getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
 
-    UtilWaitThread.sleep(2000);
+    sleepUninterruptibly(2, TimeUnit.SECONDS);
 
     // wait until over split threshold -- should be 78 splits
     while (getConnector().tableOperations().listSplits(tableName).size() < 75) {
-      UtilWaitThread.sleep(500);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
 
     FunctionalTestUtils.checkSplits(c, tableName, 50, 100);

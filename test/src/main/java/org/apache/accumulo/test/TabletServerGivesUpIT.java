@@ -19,16 +19,18 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // ACCUMULO-2480
 public class TabletServerGivesUpIT extends ConfigurableMacBase {
@@ -66,7 +68,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
     splitter.start();
     // wait for the tserver to give up on writing to the WAL
     while (conn.instanceOperations().getTabletServers().size() == 1) {
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 

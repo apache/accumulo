@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -34,12 +35,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitIT extends AccumuloClusterHarness {
@@ -101,7 +103,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
       };
       t.start();
 
-      UtilWaitThread.sleep(test * 2);
+      sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
 
       conn.tableOperations().deleteRows(tableName, start, end);
 

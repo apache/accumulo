@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -32,13 +33,14 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class RootTabletLocator extends TabletLocator {
 
@@ -126,7 +128,7 @@ public class RootTabletLocator extends TabletLocator {
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {
-      UtilWaitThread.sleep(500);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       location = getRootTabletLocation(context);
     }
 

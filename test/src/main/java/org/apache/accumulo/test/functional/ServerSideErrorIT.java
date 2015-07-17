@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,10 +33,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ServerSideErrorIT extends AccumuloClusterHarness {
 
@@ -101,7 +103,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       to.removeProperty(tableName, e.getKey());
     }
 
-    UtilWaitThread.sleep(500);
+    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
     // should be able to scan now
     scanner = c.createScanner(tableName, Authorizations.EMPTY);

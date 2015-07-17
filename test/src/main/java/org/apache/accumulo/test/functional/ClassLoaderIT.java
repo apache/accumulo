@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -48,6 +48,8 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
@@ -94,15 +96,15 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     FileSystem fs = getCluster().getFileSystem();
     Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
     copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
     c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
-    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+    sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
     scanCheck(c, tableName, "TestX");
     fs.delete(jarPath, true);
     copyStreamToFileSystem(fs, "/TestCombinerY.jar", jarPath);
-    UtilWaitThread.sleep(5000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     scanCheck(c, tableName, "TestY");
     fs.delete(jarPath, true);
   }

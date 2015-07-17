@@ -18,6 +18,8 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -27,7 +29,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -37,6 +38,8 @@ import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  *
@@ -61,9 +64,9 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl mac = cluster;
       tracer = mac.exec(TraceServer.class);
       while (!conn.tableOperations().exists("trace")) {
-        UtilWaitThread.sleep(1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
-      UtilWaitThread.sleep(5000);
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     log.info("Taking table offline");

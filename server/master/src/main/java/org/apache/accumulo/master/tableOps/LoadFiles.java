@@ -30,6 +30,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.ServerClient;
@@ -42,7 +43,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -52,6 +52,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 class LoadFiles extends MasterRepo {
 
@@ -124,7 +126,7 @@ class LoadFiles extends MasterRepo {
         log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
 
       while (master.onlineTabletServers().size() == 0) {
-        UtilWaitThread.sleep(500);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
 
       // Use the threadpool to assign files one-at-a-time to the server
@@ -167,7 +169,7 @@ class LoadFiles extends MasterRepo {
       filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
         log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10) + " failed");
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       }
     }
 

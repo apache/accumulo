@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -68,7 +69,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -77,6 +77,8 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.security.token.Token;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * An abstract input format to provide shared methods common to all other input format classes. At the very least, any classes inheriting from this class will
@@ -667,7 +669,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           binnedRanges = binOfflineTable(job, tableId, ranges);
           while (binnedRanges == null) {
             // Some tablets were still online, try again
-            UtilWaitThread.sleep(100 + random.nextInt(100)); // sleep randomly between 100 and 200 ms
+            // sleep randomly between 100 and 200 ms
+            sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
             binnedRanges = binOfflineTable(job, tableId, ranges);
           }
         } else {
@@ -686,7 +689,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
-            UtilWaitThread.sleep(100 + random.nextInt(100)); // sleep randomly between 100 and 200 ms
+            // sleep randomly between 100 and 200 ms
+            sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
             tl.invalidateCache();
           }
         }

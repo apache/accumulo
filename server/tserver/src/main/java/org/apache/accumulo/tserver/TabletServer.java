@@ -138,7 +138,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -251,6 +250,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -528,7 +528,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         else if (e.getCause() instanceof TooManyFilesException)
           throw new org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException(scanSession.extent.toThrift());
         else if (e.getCause() instanceof IOException) {
-          UtilWaitThread.sleep(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS);
+          sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
           List<KVEntry> empty = Collections.emptyList();
           bresult = new ScanBatch(empty, true);
           scanSession.nextBatchTask = null;
@@ -1805,7 +1805,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void run() {
       while (!majorCompactorDisabled) {
         try {
-          UtilWaitThread.sleep(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY));
+          sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY), TimeUnit.MILLISECONDS);
 
           TreeMap<KeyExtent,Tablet> copyOnlineTablets = new TreeMap<KeyExtent,Tablet>();
 
@@ -1866,7 +1866,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           }
         } catch (Throwable t) {
           log.error("Unexpected exception in " + Thread.currentThread().getName(), t);
-          UtilWaitThread.sleep(1000);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       }
     }
@@ -2356,7 +2356,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           return;
         }
         log.info("Waiting for tablet server lock");
-        UtilWaitThread.sleep(5000);
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
       }
       String msg = "Too many retries, exiting.";
       log.info(msg);
@@ -2508,7 +2508,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           }
           returnMasterConnection(iface);
 
-          UtilWaitThread.sleep(1000);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");

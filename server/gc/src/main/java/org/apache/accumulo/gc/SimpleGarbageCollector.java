@@ -73,7 +73,6 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -111,6 +110,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class SimpleGarbageCollector extends AccumuloServerContext implements Iface {
@@ -705,7 +705,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         return;
       }
       log.debug("Failed to get GC ZooKeeper lock, will retry");
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 

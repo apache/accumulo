@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,10 +43,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Stat;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  *
@@ -180,7 +181,7 @@ public class IMMLGBenchmark {
 
       conn.tableOperations().setLocalityGroups(table, groups);
       conn.tableOperations().offline(table);
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
       conn.tableOperations().online(table);
     }
   }

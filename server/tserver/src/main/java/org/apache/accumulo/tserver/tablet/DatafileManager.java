@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
@@ -50,6 +50,8 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.tserver.TLevel;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 class DatafileManager {
   private final Logger log = Logger.getLogger(DatafileManager.class);
@@ -353,7 +355,7 @@ class DatafileManager {
         break;
       } catch (IOException ioe) {
         log.warn("Tablet " + tablet.getExtent() + " failed to rename " + newDatafile + " after MinC, will retry in 60 secs...", ioe);
-        UtilWaitThread.sleep(60 * 1000);
+        sleepUninterruptibly(1, TimeUnit.MINUTES);
       }
     } while (true);
 
@@ -426,7 +428,7 @@ class DatafileManager {
         break;
       } catch (IOException e) {
         log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
-        UtilWaitThread.sleep(1 * 1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     } while (true);
 

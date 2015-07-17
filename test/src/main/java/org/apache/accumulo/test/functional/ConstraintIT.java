@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -44,6 +44,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ConstraintIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ConstraintIT.class);
@@ -155,7 +157,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
     // remove the numeric value constraint
     getConnector().tableOperations().removeConstraint(tableName, 2);
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     // now should be able to add a non numeric value
     bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
@@ -178,7 +180,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
     // add a constraint that references a non-existant class
     getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     // add a mutation
     bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
@@ -218,7 +220,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
     // remove the bad constraint
     getConnector().tableOperations().removeConstraint(tableName, 1);
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     // try the mutation again
     bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());

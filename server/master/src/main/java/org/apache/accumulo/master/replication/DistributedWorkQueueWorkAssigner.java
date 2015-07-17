@@ -19,6 +19,7 @@ package org.apache.accumulo.master.replication;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -47,6 +47,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -178,7 +179,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
         workScanner = ReplicationTable.getScanner(conn);
       } catch (ReplicationTableOfflineException e) {
         log.warn("Replication table is offline. Will retry...");
-        UtilWaitThread.sleep(5000);
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
         return;
       }
 

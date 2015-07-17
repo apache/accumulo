@@ -74,7 +74,6 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -91,6 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
@@ -696,7 +696,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout)
         throw new TimedOutException(Collections.singleton(location.toString()));
 
-      UtilWaitThread.sleep(sleepTime);
+      sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
 
     }

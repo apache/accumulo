@@ -36,12 +36,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
@@ -74,7 +74,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
     bw.addMutation(m);
 
-    UtilWaitThread.sleep(500);
+    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
     int count = Iterators.size(scanner.iterator());
 
@@ -82,7 +82,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       throw new Exception("Flushed too soon");
     }
 
-    UtilWaitThread.sleep(1500);
+    sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
 
     count = Iterators.size(scanner.iterator());
 

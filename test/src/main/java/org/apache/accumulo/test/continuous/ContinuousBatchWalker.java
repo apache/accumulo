@@ -35,11 +35,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ContinuousBatchWalker {
 
@@ -76,7 +76,7 @@ public class ContinuousBatchWalker {
 
       runBatchScan(scanOpts.scanBatchSize, bs, batch, ranges);
 
-      UtilWaitThread.sleep(opts.sleepTime);
+      sleepUninterruptibly(opts.sleepTime, TimeUnit.MILLISECONDS);
     }
 
   }
@@ -157,7 +157,7 @@ public class ContinuousBatchWalker {
 
       System.out.println("FSB " + t1 + " " + (t2 - t1) + " " + count);
 
-      UtilWaitThread.sleep(100);
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     }
 
     HashSet<Text> ret = new HashSet<Text>();

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -33,16 +34,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
-import org.apache.accumulo.test.PerformanceTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // ACCUMULO-2952
 @Category(PerformanceTest.class)
@@ -70,7 +71,7 @@ public class BalanceFasterIT extends ConfigurableMacBase {
     }
     conn.tableOperations().addSplits(tableName, splits);
     // give a short wait for balancing
-    UtilWaitThread.sleep(10 * 1000);
+    sleepUninterruptibly(10, TimeUnit.SECONDS);
     // find out where the tabets are
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

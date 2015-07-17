@@ -33,7 +33,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -46,6 +45,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /*
  * Bulk import makes requests of tablet servers, and those requests can take a
@@ -170,7 +171,7 @@ public class BulkImport extends MasterRepo {
         return newBulkDir;
       log.warn("Failed to create " + newBulkDir + " for unknown reason");
 
-      UtilWaitThread.sleep(3000);
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
     }
   }
 

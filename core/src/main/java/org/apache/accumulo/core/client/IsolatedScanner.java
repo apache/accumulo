@@ -28,8 +28,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * A scanner that presents a row isolated view of an accumulo table. Rows are buffered in memory on the client side. If you think your rows may not fit into
@@ -111,7 +112,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
           }
 
           // wait a moment before retrying
-          UtilWaitThread.sleep(100);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
           source = newIterator(seekRange);
         }

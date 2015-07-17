@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -44,6 +44,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ConcurrencyIT extends AccumuloClusterHarness {
 
@@ -117,7 +118,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     ScanTask st1 = new ScanTask(c, tableName, 100);
     st1.start();
 
-    UtilWaitThread.sleep(50);
+    sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
     c.tableOperations().flush(tableName, null, null, true);
 
     for (int i = 0; i < 50; i++) {
@@ -142,7 +143,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     ScanTask st3 = new ScanTask(c, tableName, 150);
     st3.start();
 
-    UtilWaitThread.sleep(50);
+    sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
     c.tableOperations().flush(tableName, null, null, false);
 
     st3.join();

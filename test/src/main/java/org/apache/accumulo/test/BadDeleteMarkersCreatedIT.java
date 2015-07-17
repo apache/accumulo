@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -47,6 +47,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // Accumulo3047
 public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
@@ -158,7 +160,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     c.tableOperations().delete(tableName);
     log.info("Sleeping to let garbage collector run");
     // let gc run
-    UtilWaitThread.sleep(timeoutFactor * 15 * 1000);
+    sleepUninterruptibly(timeoutFactor * 15, TimeUnit.SECONDS);
     log.info("Verifying that delete markers were deleted");
     // look for delete markers
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);

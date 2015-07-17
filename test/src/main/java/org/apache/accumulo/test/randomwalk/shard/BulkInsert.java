@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -47,6 +47,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ToolRunner;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BulkInsert extends Test {
 
@@ -157,7 +159,7 @@ public class BulkInsert extends Test {
           else
             log.debug("Ignoring " + failure.getPath());
         }
-        UtilWaitThread.sleep(3000);
+        sleepUninterruptibly(3, TimeUnit.SECONDS);
       } else
         break;
     }

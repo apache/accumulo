@@ -41,6 +41,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -60,7 +61,6 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -126,6 +126,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Call every method on the proxy and try to verify that it works.
@@ -227,7 +228,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts(hostname, proxyPort), factory, props, clientConfig).server;
     while (!proxyServer.isServing())
-      UtilWaitThread.sleep(100);
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
   }
 
   @AfterClass
@@ -934,7 +935,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       cfg = client.getSystemConfiguration(creds);
       if ("500M".equals(cfg.get("table.split.threshold")))
         break;
-      UtilWaitThread.sleep(200);
+      sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
     }
     assertEquals("500M", cfg.get("table.split.threshold"));
 
@@ -944,7 +945,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       cfg = client.getSystemConfiguration(creds);
       if (!"500M".equals(cfg.get("table.split.threshold")))
         break;
-      UtilWaitThread.sleep(200);
+      sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
     }
     assertNotEquals("500M", cfg.get("table.split.threshold"));
   }
@@ -1032,7 +1033,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
         if (!scans.isEmpty())
           break;
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       }
     }
     t.join();
@@ -1125,7 +1126,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
         if (!compactions.isEmpty())
           break;
       }
-      UtilWaitThread.sleep(10);
+      sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
     }
     t.join();
 
@@ -1366,7 +1367,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public void testBatchWriter() throws Exception {
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
     // zookeeper propagation time
-    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+    sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
 
     WriterOptions writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
@@ -1417,7 +1418,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
     assertScan(new String[][] {}, table);
 
-    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+    sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
 
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
@@ -1494,7 +1495,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     log.debug("Removing constraint from table");
     client.removeConstraint(creds, table, 2);
 
-    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+    sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
 
     constraints = client.listConstraints(creds, table);
     while (constraints.containsKey(NumericValueConstraint.class.getName())) {
@@ -1826,7 +1827,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public void testConditionalWriter() throws Exception {
     log.debug("Adding constraint {} to {}", table, NumericValueConstraint.class.getName());
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
-    UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+    sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
 
     while (!client.listConstraints(creds, table).containsKey(NumericValueConstraint.class.getName())) {
       log.info("Failed to see constraint");

@@ -25,14 +25,16 @@ import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class NativeMapPerformanceTest {
 
@@ -170,7 +172,7 @@ public class NativeMapPerformanceTest {
     System.gc();
     System.gc();
 
-    UtilWaitThread.sleep(3000);
+    sleepUninterruptibly(3, TimeUnit.SECONDS);
 
     System.out.printf("mapType:%10s   put rate:%,6.2f  scan rate:%,6.2f  get rate:%,6.2f  delete time : %6.2f  mem : %,d%n", "" + mapType, (numRows * numCols)
         / ((tpe - tps) / 1000.0), (size) / ((tie - tis) / 1000.0), numLookups / ((tge - tgs) / 1000.0), (tde - tds) / 1000.0, memUsed);

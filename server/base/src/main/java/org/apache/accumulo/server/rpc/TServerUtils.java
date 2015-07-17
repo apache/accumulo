@@ -29,6 +29,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLServerSocket;
 
@@ -39,7 +40,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.util.Halt;
@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Factory methods for creating Thrift server objects
@@ -157,7 +158,7 @@ public class TServerUtils {
             // TTransportException, and with a TSocket created by TSSLTransportFactory, it
             // comes through as caused by a BindException.
             log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
-            UtilWaitThread.sleep(250);
+            sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
           } else {
             // thrift is passing up a nested exception that isn't a BindException,
             // so no reason to believe retrying on a different port would help.

@@ -21,17 +21,18 @@ import static org.junit.Assert.assertTrue;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.accumulo.test.PerformanceTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // ACCUMULO-1177
 @Category(PerformanceTest.class)
@@ -85,7 +86,7 @@ public class AssignmentThreadsIT extends ConfigurableMacBase {
     log.info("Taking table offline, again");
     c.tableOperations().offline(tableName, true);
     // wait >10 seconds for thread pool to update
-    UtilWaitThread.sleep(Math.max(0, now + 11 * 1000 - System.currentTimeMillis()));
+    sleepUninterruptibly(Math.max(0, now + 11 * 1000 - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
     now = System.currentTimeMillis();
     log.info("Bringing table back online");
     c.tableOperations().online(tableName, true);

@@ -28,12 +28,12 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.start.Main;
@@ -42,6 +42,8 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class HalfDeadTServerIT extends ConfigurableMacBase {
 
@@ -139,22 +141,22 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     DumpOutput t = new DumpOutput(tserver.getInputStream());
     try {
       t.start();
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
       // don't need the regular tablet server
       cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
       c.tableOperations().create("test_ingest");
       assertEquals(1, c.instanceOperations().getTabletServers().size());
       int rows = 100 * 1000;
       ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows
           + "");
-      UtilWaitThread.sleep(500);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
       // block I/O with some side-channel trickiness
       File trickFile = new File(trickFilename);
       try {
         assertTrue(trickFile.createNewFile());
-        UtilWaitThread.sleep(seconds * 1000);
+        sleepUninterruptibly(seconds, TimeUnit.SECONDS);
       } finally {
         if (!trickFile.delete()) {
           log.error("Couldn't delete " + trickFile);
@@ -168,7 +170,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         vopts.setPrincipal("root");
         VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
       } else {
-        UtilWaitThread.sleep(5 * 1000);
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
         tserver.waitFor();
         t.join();
         tserver = null;

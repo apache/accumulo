@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.AccumuloServerContext;
@@ -39,6 +38,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // see ACCUMULO-1950
 public class TotalQueuedIT extends ConfigurableMacBase {
@@ -63,7 +63,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
     c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     // get an idea of how fast the syncs occur
     byte row[] = new byte[250];
     BatchWriterConfig cfg = new BatchWriterConfig();
@@ -94,7 +94,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     // Now with a much bigger total queue
     c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "" + LARGE_QUEUE_SIZE);
     c.tableOperations().flush(tableName, null, null, true);
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     bw = c.createBatchWriter(tableName, cfg);
     now = System.currentTimeMillis();
     bytesSent = 0;

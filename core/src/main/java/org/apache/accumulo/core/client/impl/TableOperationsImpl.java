@@ -104,7 +104,6 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -118,6 +117,7 @@ import org.apache.thrift.transport.TTransportException;
 
 import com.google.common.base.Joiner;
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TableOperationsImpl extends TableOperationsHelper {
 
@@ -200,7 +200,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         return client.beginFateOperation(Tracer.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
       }
@@ -218,7 +218,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call executeFateOperation(), retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
       }
@@ -233,7 +233,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         return client.waitForFateOperation(Tracer.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
       }
@@ -249,7 +249,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call finishFateOperation(), retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
       }
@@ -420,7 +420,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while (!successful) {
 
         if (attempt > 0)
-          UtilWaitThread.sleep(100);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
         attempt++;
 
@@ -543,7 +543,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
 
         log.info(e.getMessage() + " ... retrying ...");
-        UtilWaitThread.sleep(3000);
+        sleepUninterruptibly(3, TimeUnit.SECONDS);
       }
     }
 
@@ -769,7 +769,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
-          UtilWaitThread.sleep(100);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           MasterClient.close(client);
         }
@@ -784,7 +784,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
-          UtilWaitThread.sleep(100);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           MasterClient.close(client);
         }
@@ -957,7 +957,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
-      UtilWaitThread.sleep(100 + random.nextInt(100));
+      sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
       binnedRanges.clear();
       tl.invalidateCache();
     }
@@ -1156,7 +1156,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         waitTime = Math.min(5000, waitTime);
         log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
             + " sleeping:" + waitTime + "ms");
-        UtilWaitThread.sleep(waitTime);
+        sleepUninterruptibly(waitTime, TimeUnit.MILLISECONDS);
       } else {
         break;
       }
@@ -1273,7 +1273,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         } else {
           log.debug("Disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
         }
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (TException e) {
         // may be a TApplicationException which indicates error on the server side
         throw new AccumuloException(e);

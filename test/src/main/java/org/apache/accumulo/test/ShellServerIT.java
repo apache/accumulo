@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import jline.console.ConsoleReader;
 
@@ -61,7 +62,6 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -87,6 +87,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ShellServerIT extends SharedMiniClusterBase {
   public static class TestOutputStream extends OutputStream {
@@ -261,7 +262,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // give the tracer some time to start
     while (!tops.exists("trace")) {
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 
@@ -704,7 +705,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         ts.exec("getauths", true, "bar", true);
         passed = true;
       } catch (Exception e) {
-        UtilWaitThread.sleep(300);
+        sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
       }
     }
     assertTrue("Could not successfully see updated authoriations", passed);
@@ -1000,7 +1001,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("constraint -l -t " + table, true, "VisibilityConstraint=2", true);
     ts.exec("constraint -t " + table + " -d 2", true, "Removed constraint 2 from table " + table);
     // wait for zookeeper updates to propagate
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     ts.exec("constraint -l -t " + table, true, "VisibilityConstraint=2", false);
     ts.exec("deletetable -f " + table);
   }
@@ -1196,7 +1197,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan -b 02", true, "value", false);
     ts.exec("interpreter -i org.apache.accumulo.core.util.interpret.HexScanInterpreter", true);
     // Need to allow time for this to propagate through zoocache/zookeeper
-    UtilWaitThread.sleep(3000);
+    sleepUninterruptibly(3, TimeUnit.SECONDS);
 
     ts.exec("interpreter -l", true, "HexScan", true);
     ts.exec("scan -b 02", true, "value", true);
@@ -1265,7 +1266,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // wait for both tservers to start up
       if (ts.output.get().split("\n").length == 3)
         break;
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     }
     assertEquals(3, ts.output.get().split("\n").length);
@@ -1347,7 +1348,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
           log.info("Ignoring scan because of wrong table: " + currentScan);
         }
       }
-      UtilWaitThread.sleep(300);
+      sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
     }
     thread.join();
 
@@ -1391,7 +1392,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
 
-    UtilWaitThread.sleep(200);
+    sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
 
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
@@ -1400,7 +1401,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("insert foo f q v", true);
 
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
     ts.exec("scan -np", true, "foo", false);
 

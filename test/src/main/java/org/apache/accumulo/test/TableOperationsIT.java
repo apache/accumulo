@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.hadoop.io.Text;
@@ -66,6 +66,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TableOperationsIT extends AccumuloClusterHarness {
 
@@ -361,7 +362,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     List<IteratorSetting> list = new ArrayList<>();
     list.add(new IteratorSetting(15, BadIterator.class));
     connector.tableOperations().compact(tableName, null, null, list, true, false); // don't block
-    UtilWaitThread.sleep(2000); // start compaction
+    sleepUninterruptibly(2, TimeUnit.SECONDS); // start compaction
     connector.tableOperations().cancelCompaction(tableName);
 
     Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);

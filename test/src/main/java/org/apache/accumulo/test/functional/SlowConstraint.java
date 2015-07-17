@@ -17,10 +17,12 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.util.UtilWaitThread;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  *
@@ -34,7 +36,7 @@ public class SlowConstraint implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    UtilWaitThread.sleep(20000);
+    sleepUninterruptibly(20, TimeUnit.SECONDS);
     return null;
   }
 

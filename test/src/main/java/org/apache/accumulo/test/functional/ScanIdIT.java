@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -52,12 +53,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * ACCUMULO-2641 Integration test. ACCUMULO-2641 Adds scan id to thrift protocol so that {@code org.apache.accumulo.core.client.admin.ActiveScan.getScanid()}
@@ -127,7 +129,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       if (resultsByWorker.size() < NUM_SCANNERS) {
         log.trace("Results reported {}", resultsByWorker.size());
-        UtilWaitThread.sleep(750);
+        sleepUninterruptibly(750, TimeUnit.MILLISECONDS);
       } else {
         // each worker has reported at least one result.
         testInProgress.set(false);
@@ -135,7 +137,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
         log.debug("Final result count {}", resultsByWorker.size());
 
         // delay to allow scanners to react to end of test and cleanly close.
-        UtilWaitThread.sleep(1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
 
     }
@@ -285,7 +287,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       conn.tableOperations().offline(tableName, true);
 
-      UtilWaitThread.sleep(2000);
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
       conn.tableOperations().online(tableName, true);
 
       for (Text split : conn.tableOperations().listSplits(tableName)) {

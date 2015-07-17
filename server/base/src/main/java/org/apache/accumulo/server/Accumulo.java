@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -54,6 +54,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.zookeeper.KeeperException;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Accumulo {
 
@@ -261,7 +263,7 @@ public class Accumulo {
         // ignored
       } catch (KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
-        UtilWaitThread.sleep(1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     }
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
@@ -291,7 +293,7 @@ public class Accumulo {
         }
       }
       log.info("Backing off due to failure; current sleep period is " + sleep / 1000. + " seconds");
-      UtilWaitThread.sleep(sleep);
+      sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
       sleep = Math.min(60 * 1000, sleep * 2);
     }

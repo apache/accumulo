@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterControl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -64,6 +64,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class WALSunnyDayIT extends ConfigurableMacBase {
 
@@ -117,7 +118,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
       c.tableOperations().flush(table, null, null, true);
     }
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     // rolled WAL is no longer in use, but needs to be GC'd
     Map<String,Boolean> walsAfterflush = getWals(c);
     assertEquals(walsAfterflush.toString(), 3, walsAfterflush.size());
@@ -125,7 +126,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
     // let the GC run for a little bit
     control.start(GARBAGE_COLLECTOR);
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     // make sure the unused WAL goes away
     Map<String,Boolean> walsAfterGC = getWals(c);
     assertEquals(walsAfterGC.toString(), 2, walsAfterGC.size());
@@ -139,7 +140,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     // wait for the metadata table to go back online
     getRecoveryMarkers(c);
     // allow a little time for the master to notice ASSIGNED_TO_DEAD_SERVER tablets
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
     // log.debug("markers " + markers);
     assertEquals("one tablet should have markers", 1, markers.keySet().size());
@@ -154,7 +155,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     // log.debug("wals after " + walsAfterRestart);
     assertEquals("used WALs after restart should be 4", 4, countTrue(walsAfterRestart.values()));
     control.start(GARBAGE_COLLECTOR);
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     Map<String,Boolean> walsAfterRestartAndGC = getWals(c);
     assertEquals("wals left should be 2", 2, walsAfterRestartAndGC.size());
     assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));

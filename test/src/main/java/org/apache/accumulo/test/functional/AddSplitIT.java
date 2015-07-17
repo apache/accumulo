@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -34,10 +35,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class AddSplitIT extends AccumuloClusterHarness {
 
@@ -61,7 +63,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
     c.tableOperations().addSplits(tableName, splits);
 
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
     Collection<Text> actualSplits = c.tableOperations().listSplits(tableName);
 
@@ -81,7 +83,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
     c.tableOperations().addSplits(tableName, splits);
 
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
     actualSplits = c.tableOperations().listSplits(tableName);
 

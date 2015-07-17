@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
@@ -59,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class RestartIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(RestartIT.class);
@@ -190,7 +190,7 @@ public class RestartIT extends AccumuloClusterHarness {
     } while (null != masterLockData);
 
     cluster.start();
-    UtilWaitThread.sleep(5);
+    sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
     control.stopAllServers(ServerType.MASTER);
 
     masterLockData = new byte[0];

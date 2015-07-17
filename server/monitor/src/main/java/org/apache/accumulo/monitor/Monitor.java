@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -54,7 +55,6 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -98,6 +98,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Serve master statistics with an embedded web server.
@@ -289,7 +290,7 @@ public class Monitor {
           }
         }
         if (mmi == null)
-          UtilWaitThread.sleep(1000);
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
       if (mmi != null) {
         int majorCompactions = 0;
@@ -511,7 +512,7 @@ public class Monitor {
             log.warn("{}", e.getMessage(), e);
           }
 
-          UtilWaitThread.sleep(333);
+          sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
         }
 
       }
@@ -526,7 +527,7 @@ public class Monitor {
           } catch (Exception e) {
             log.warn("{}", e.getMessage(), e);
           }
-          UtilWaitThread.sleep(5000);
+          sleepUninterruptibly(5, TimeUnit.SECONDS);
         }
       }
     }), "Scan scanner").start();
@@ -637,7 +638,7 @@ public class Monitor {
 
       monitorLock.tryToCancelAsyncLockOrUnlock();
 
-      UtilWaitThread.sleep(getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL));
+      sleepUninterruptibly(getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL), TimeUnit.MILLISECONDS);
     }
 
     log.info("Got Monitor lock.");

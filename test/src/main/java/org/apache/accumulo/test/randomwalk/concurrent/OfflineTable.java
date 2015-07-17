@@ -19,13 +19,15 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class OfflineTable extends Test {
 
@@ -43,7 +45,7 @@ public class OfflineTable extends Test {
     try {
       conn.tableOperations().offline(tableName, rand.nextBoolean());
       log.debug("Offlined " + tableName);
-      UtilWaitThread.sleep(rand.nextInt(200));
+      sleepUninterruptibly(rand.nextInt(200), TimeUnit.MILLISECONDS);
       conn.tableOperations().online(tableName, rand.nextBoolean());
       log.debug("Onlined " + tableName);
     } catch (TableNotFoundException tne) {

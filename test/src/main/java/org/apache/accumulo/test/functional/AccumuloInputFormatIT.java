@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,7 +43,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -51,6 +51,8 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Before;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
@@ -108,7 +110,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     for (int i = 0; i < 10000; i += 1000)
       splitsToAdd.add(new Text(String.format("%09d", i)));
     conn.tableOperations().addSplits(table, splitsToAdd);
-    UtilWaitThread.sleep(500); // wait for splits to be propagated
+    sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
 
     // get splits without setting any range
     Collection<Text> actualSplits = conn.tableOperations().listSplits(table);

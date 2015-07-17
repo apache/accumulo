@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -43,6 +43,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class MetaGetsReadersIT extends ConfigurableMacBase {
 
@@ -98,7 +99,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     t1.start();
     Thread t2 = slowScan(c, tableName, stop);
     t2.start();
-    UtilWaitThread.sleep(500);
+    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     long now = System.currentTimeMillis();
     Scanner m = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     Iterators.size(m.iterator());

@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,7 +74,6 @@ import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
@@ -158,6 +158,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -697,7 +698,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: " + e);
-        UtilWaitThread.sleep(1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
   }
 
@@ -827,7 +828,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
             log.error("Error cleaning up migrations", ex);
           }
         }
-        UtilWaitThread.sleep(TIME_BETWEEN_MIGRATION_CLEANUPS);
+        sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, TimeUnit.MILLISECONDS);
       }
     }
 
@@ -965,7 +966,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           eventListener.waitForEvents(wait);
         } catch (Throwable t) {
           log.error("Error balancing tablets, will wait for " + WAIT_BETWEEN_ERRORS / ONE_SECOND + " (seconds) and then retry", t);
-          UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
+          sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
         }
       }
     }
@@ -1167,7 +1168,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           log.info("Waiting for AuthenticationTokenKeyManager to be initialized");
           logged = true;
         }
-        UtilWaitThread.sleep(200);
+        sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
       }
       // And log when we are initialized
       log.info("AuthenticationTokenSecretManager is initialized");
@@ -1190,7 +1191,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     masterLock.replaceLockData(address.getBytes());
 
     while (!clientService.isServing()) {
-      UtilWaitThread.sleep(100);
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     }
 
     // Start the daemon to scan the replication table and make units of work
@@ -1229,7 +1230,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
 
     while (clientService.isServing()) {
-      UtilWaitThread.sleep(500);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
     log.info("Shutting down fate.");
     fate.shutdown();
@@ -1345,7 +1346,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
       masterLock.tryToCancelAsyncLockOrUnlock();
 
-      UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
+      sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, TimeUnit.MILLISECONDS);
     }
 
     setMasterState(MasterState.HAVE_LOCK);

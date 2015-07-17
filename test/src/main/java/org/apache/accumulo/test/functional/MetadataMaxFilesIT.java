@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -35,13 +36,14 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
@@ -67,7 +69,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
     }
     c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
     // propagation time
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     for (int i = 0; i < 5; i++) {
       String tableName = "table" + i;
       log.info("Creating " + tableName);
@@ -109,7 +111,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       log.info("Online tablets " + tablets);
       if (tablets == 5005)
         break;
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 }

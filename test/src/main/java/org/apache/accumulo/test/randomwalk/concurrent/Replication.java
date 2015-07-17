@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -47,12 +48,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.io.Text;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Replication extends Test {
 
@@ -84,7 +86,7 @@ public class Replication extends Test {
     for (int i = 0; i < 10; i++) {
       if (online)
         break;
-      UtilWaitThread.sleep(2000);
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
       online = ReplicationTable.isOnline(c);
     }
     assertTrue("Replication table was not online", online);
@@ -105,7 +107,7 @@ public class Replication extends Test {
     tOps.setProperty(sourceTable, TABLE_REPLICATION_TARGET.getKey() + instName, destID);
 
     // zookeeper propagation wait
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
 
     // Maybe split the tables
     Random rand = new Random(System.currentTimeMillis());
@@ -148,7 +150,7 @@ public class Replication extends Test {
     }
 
     // wait a little while for replication to take place
-    UtilWaitThread.sleep(30 * 1000);
+    sleepUninterruptibly(30, TimeUnit.SECONDS);
 
     // check the data
     Scanner scanner = c.createScanner(destTable, Authorizations.EMPTY);

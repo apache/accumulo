@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -42,6 +42,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
@@ -96,7 +98,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
     c.tableOperations().flush(firstTable, null, null, true);
     for (int i = 1; i < tables.length; i++)
       c.tableOperations().clone(firstTable, tables[i], true, null, null);
-    UtilWaitThread.sleep(11 * 1000); // time between checks of the thread pool sizes
+    sleepUninterruptibly(11, TimeUnit.SECONDS); // time between checks of the thread pool sizes
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     for (int i = 1; i < tables.length; i++)
       c.tableOperations().compact(tables[i], null, null, true, false);
@@ -119,7 +121,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
       System.out.println("count " + count);
       if (count > 3)
         return;
-      UtilWaitThread.sleep(500);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
     fail("Could not observe higher number of threads after changing the config");
   }

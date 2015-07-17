@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -60,13 +61,14 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.PreAllocatedArray;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class InMemoryMap {
   private SimpleMap map = null;
@@ -599,7 +601,7 @@ public class InMemoryMap {
     long t1 = System.currentTimeMillis();
 
     while (activeIters.size() > 0 && System.currentTimeMillis() - t1 < waitTime) {
-      UtilWaitThread.sleep(50);
+      sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
     }
 
     if (activeIters.size() > 0) {
@@ -651,7 +653,7 @@ public class InMemoryMap {
         log.error("Failed to create mem dump file ", ioe);
 
         while (activeIters.size() > 0) {
-          UtilWaitThread.sleep(100);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
       }
 

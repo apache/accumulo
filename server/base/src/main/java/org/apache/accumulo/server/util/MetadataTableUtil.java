@@ -74,7 +74,6 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -96,6 +95,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * provides a reference to the metadata table for updates by tablet servers
@@ -162,7 +162,7 @@ public class MetadataTableUtil {
       } catch (TableNotFoundException e) {
         log.error("{}", e.getMessage(), e);
       }
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 
@@ -262,7 +262,7 @@ public class MetadataTableUtil {
       } catch (Exception e) {
         log.error("Unexpected exception {}", e.getMessage(), e);
       }
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 
@@ -854,7 +854,7 @@ public class MetadataTableUtil {
 
         log.debug("Tablets merged in table " + srcTableId + " while attempting to clone, trying again");
 
-        UtilWaitThread.sleep(100);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       }
     }
 

@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -28,7 +29,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.util.UtilWaitThread;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class SlowIterator extends WrappingIterator {
 
@@ -53,13 +55,13 @@ public class SlowIterator extends WrappingIterator {
 
   @Override
   public void next() throws IOException {
-    UtilWaitThread.sleep(sleepTime);
+    sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
     super.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    UtilWaitThread.sleep(seekSleepTime);
+    sleepUninterruptibly(seekSleepTime, TimeUnit.MILLISECONDS);
     super.seek(range, columnFamilies, inclusive);
   }
 

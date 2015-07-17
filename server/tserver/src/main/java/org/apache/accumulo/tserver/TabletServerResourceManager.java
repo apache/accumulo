@@ -42,7 +42,6 @@ import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
@@ -64,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
@@ -448,7 +448,7 @@ public class TabletServerResourceManager {
           log.error("Minor compactions for memory managment failed", t);
         }
 
-        UtilWaitThread.sleep(250);
+        sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
       }
     }
 

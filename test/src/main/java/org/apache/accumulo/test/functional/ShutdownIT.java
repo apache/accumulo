@@ -21,16 +21,18 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ShutdownIT extends ConfigurableMacBase {
 
@@ -43,7 +45,7 @@ public class ShutdownIT extends ConfigurableMacBase {
   public void shutdownDuringIngest() throws Exception {
     Process ingest = cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD,
         "--createTable");
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     ingest.destroy();
   }
@@ -54,7 +56,7 @@ public class ShutdownIT extends ConfigurableMacBase {
         cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable")
             .waitFor());
     Process verify = cluster.exec(VerifyIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD);
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     verify.destroy();
   }
@@ -65,7 +67,7 @@ public class ShutdownIT extends ConfigurableMacBase {
         cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable")
             .waitFor());
     Process deleter = cluster.exec(TestRandomDeletes.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD);
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     deleter.destroy();
   }
@@ -89,7 +91,7 @@ public class ShutdownIT extends ConfigurableMacBase {
       }
     };
     async.start();
-    UtilWaitThread.sleep(100);
+    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     if (ref.get() != null)
       throw ref.get();

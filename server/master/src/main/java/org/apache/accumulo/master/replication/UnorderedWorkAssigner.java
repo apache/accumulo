@@ -19,18 +19,20 @@ package org.apache.accumulo.master.replication;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Read work records from the replication table, create work entries for other nodes to complete.
@@ -84,7 +86,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
       } catch (KeeperException e) {
         if (KeeperException.Code.NONODE.equals(e.code())) {
           log.warn("Could not find ZK root for replication work queue, will retry", e);
-          UtilWaitThread.sleep(500);
+          sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
           continue;
         }
 

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -39,7 +40,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -56,6 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
@@ -146,7 +147,7 @@ public class SplitIT extends AccumuloClusterHarness {
     vopts.setTableName(table);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     while (c.tableOperations().listSplits(table).size() < 10) {
-      UtilWaitThread.sleep(15 * 1000);
+      sleepUninterruptibly(15, TimeUnit.SECONDS);
     }
     String id = c.tableOperations().tableIdMap().get(table);
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -185,9 +186,9 @@ public class SplitIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     c.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     ReadWriteIT.interleaveTest(c, tableName);
-    UtilWaitThread.sleep(5 * 1000);
+    sleepUninterruptibly(5, TimeUnit.SECONDS);
     int numSplits = c.tableOperations().listSplits(tableName).size();
     while (numSplits <= 20) {
       log.info("Waiting for splits to happen");
@@ -213,7 +214,7 @@ public class SplitIT extends AccumuloClusterHarness {
     DeleteIT.deleteTest(c, getCluster(), getAdminPrincipal(), password, tableName, keytab);
     c.tableOperations().flush(tableName, null, null, true);
     for (int i = 0; i < 5; i++) {
-      UtilWaitThread.sleep(10 * 1000);
+      sleepUninterruptibly(10, TimeUnit.SECONDS);
       if (c.tableOperations().listSplits(tableName).size() > 20)
         break;
     }

@@ -79,7 +79,6 @@ import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -97,6 +96,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  *
@@ -652,7 +652,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.tableOperations().create(tableName);
     conn.tableOperations().addSplits(tableName, nss("2", "4", "6"));
 
-    UtilWaitThread.sleep(2000);
+    sleepUninterruptibly(2, TimeUnit.SECONDS);
 
     int num = 100;
 
@@ -1286,7 +1286,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     if (!conn.tableOperations().exists("trace")) {
       tracer = mac.exec(TraceServer.class);
       while (!conn.tableOperations().exists("trace")) {
-        UtilWaitThread.sleep(1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     }
 
@@ -1294,7 +1294,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.tableOperations().create(tableName);
 
     DistributedTrace.enable("localhost", "testTrace", mac.getClientConfig());
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     Span root = Trace.on("traceTest");
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 

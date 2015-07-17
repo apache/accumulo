@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.client.Flush;
 import org.apache.accumulo.examples.simple.client.RandomBatchScanner;
 import org.apache.accumulo.examples.simple.client.RandomBatchWriter;
@@ -102,6 +102,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ExamplesIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ExamplesIT.class);
@@ -171,7 +172,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
       MiniAccumuloClusterImpl impl = (MiniAccumuloClusterImpl) cluster;
       trace = impl.exec(TraceServer.class);
       while (!c.tableOperations().exists("trace"))
-        UtilWaitThread.sleep(500);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
     String[] args;
     if (saslEnabled) {
@@ -286,13 +287,13 @@ public class ExamplesIT extends AccumuloClusterHarness {
     is = new IteratorSetting(10, AgeOffFilter.class);
     AgeOffFilter.setTTL(is, 1000L);
     c.tableOperations().attachIterator(tableName, is);
-    UtilWaitThread.sleep(500); // let zookeeper updates propagate.
+    sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // let zookeeper updates propagate.
     bw = c.createBatchWriter(tableName, bwc);
     Mutation m = new Mutation("foo");
     m.put("a", "b", "c");
     bw.addMutation(m);
     bw.close();
-    UtilWaitThread.sleep(1000);
+    sleepUninterruptibly(1, TimeUnit.SECONDS);
     assertEquals(0, Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator()));
   }
 

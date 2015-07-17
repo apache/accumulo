@@ -34,6 +34,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -74,7 +75,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
@@ -82,6 +82,8 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
 // Punt on this for now and just let it use a minicluster.
@@ -329,7 +331,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // verify entry is filtered out (also, verify conflict checking API)
     c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
     c.namespaceOperations().attachIterator(namespace, setting);
-    UtilWaitThread.sleep(2 * 1000);
+    sleepUninterruptibly(2, TimeUnit.SECONDS);
     try {
       c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
       fail();
@@ -345,7 +347,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
     // verify can see inserted entry again
     c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
-    UtilWaitThread.sleep(2 * 1000);
+    sleepUninterruptibly(2, TimeUnit.SECONDS);
     assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
     s = c.createScanner(t1, Authorizations.EMPTY);
@@ -485,7 +487,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     int num = c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
     assertEquals(num, (int) c.tableOperations().listConstraints(t1).get(constraintClassName));
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    UtilWaitThread.sleep(250);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     Mutation m1 = new Mutation("r1");
     Mutation m2 = new Mutation("r2");
@@ -506,7 +508,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
     assertFalse(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    UtilWaitThread.sleep(250);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
     bw = c.createBatchWriter(t1, new BatchWriterConfig());
     bw.addMutations(Arrays.asList(m1, m2, m3));
@@ -817,7 +819,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // set the filter, verify that accumulo namespace is the only one unaffected
     c.instanceOperations().setProperty(k, v);
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    UtilWaitThread.sleep(250);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(v));
     assertEquals(systemNamespaceShouldInherit, checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
     assertEquals(systemNamespaceShouldInherit, checkTableHasProp(RootTable.NAME, k, v));
@@ -830,7 +832,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // verify it is no longer inherited
     c.instanceOperations().removeProperty(k);
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    UtilWaitThread.sleep(250);
+    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
     assertFalse(checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
     assertFalse(checkTableHasProp(RootTable.NAME, k, v));

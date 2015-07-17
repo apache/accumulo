@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -71,7 +72,6 @@ import org.apache.accumulo.core.security.thrift.TDelegationToken;
 import org.apache.accumulo.core.security.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
@@ -96,6 +96,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 class MasterClientServiceHandler extends FateServiceHandler implements MasterClientService.Iface {
@@ -161,7 +162,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
       if (l == maxLoops - 1)
         break;
 
-      UtilWaitThread.sleep(50);
+      sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
 
       serversToFlush.clear();
 

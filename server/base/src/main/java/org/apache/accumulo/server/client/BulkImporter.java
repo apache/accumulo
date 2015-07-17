@@ -58,7 +58,6 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -73,6 +72,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BulkImporter {
 
@@ -187,7 +187,7 @@ public class BulkImporter {
         // same key range and are contiguous (no holes, no overlap)
 
         timer.start(Timers.SLEEP);
-        UtilWaitThread.sleep(sleepTime);
+        sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
         timer.stop(Timers.SLEEP);
 
         log.debug("Trying to assign " + assignmentFailures.size() + " map files that previously failed on some key extents");

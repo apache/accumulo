@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -46,7 +47,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -68,6 +68,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -122,7 +123,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     c.tableOperations().compact("test_ingest", null, null, true, true);
     int before = countFiles();
     while (true) {
-      UtilWaitThread.sleep(1000);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
       int more = countFiles();
       if (more <= before)
         break;
@@ -131,7 +132,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     // restart GC
     getCluster().start();
-    UtilWaitThread.sleep(15 * 1000);
+    sleepUninterruptibly(15, TimeUnit.SECONDS);
     int after = countFiles();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     assertTrue(after < before);
@@ -146,7 +147,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     addEntries(c, new BatchWriterOpts());
     cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
     Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(20 * 1000);
+    sleepUninterruptibly(20, TimeUnit.SECONDS);
     String output = "";
     while (!output.contains("delete candidates has exceeded")) {
       byte buffer[] = new byte[10 * 1024];
@@ -170,7 +171,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     c.tableOperations().create(table);
     // let gc run for a bit
     cluster.start();
-    UtilWaitThread.sleep(20 * 1000);
+    sleepUninterruptibly(20, TimeUnit.SECONDS);
     killMacGc();
     // kill tservers
     for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -218,7 +219,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try {
       String output = "";
       while (!output.contains("Ingoring invalid deletion candidate")) {
-        UtilWaitThread.sleep(250);
+        sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
         try {
           output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
         } catch (IOException ioe) {

@@ -23,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -32,12 +33,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * This class iterates over the metadata table returning all key values for a tablet in one chunk. As it scans the metadata table it checks the correctness of
@@ -126,7 +127,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
           currentTabletKeys = null;
           resetScanner();
 
-          UtilWaitThread.sleep(250);
+          sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
           continue;
         }
@@ -141,7 +142,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         currentTabletKeys = null;
         resetScanner();
 
-        UtilWaitThread.sleep(250);
+        sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
         continue;
 
@@ -218,7 +219,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         resetScanner();
         curMetaDataRow = null;
         tm.clear();
-        UtilWaitThread.sleep(250);
+        sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
       } else {
         break;
       }

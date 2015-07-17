@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Halt {
   static private final Logger log = LoggerFactory.getLogger(Halt.class);
@@ -49,7 +52,7 @@ public class Halt {
       new Daemon() {
         @Override
         public void run() {
-          UtilWaitThread.sleep(100);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           Runtime.getRuntime().halt(status);
         }
       }.start();

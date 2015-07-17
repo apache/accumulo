@@ -27,12 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
@@ -57,6 +57,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ProxyDurabilityIT extends ConfigurableMacBase {
 
@@ -93,7 +94,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     int proxyPort = PortUtils.getRandomFreePort();
     final TServer proxyServer = Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
     while (!proxyServer.isServing())
-      UtilWaitThread.sleep(100);
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
     Map<String,String> properties = new TreeMap<String,String>();
     properties.put("password", ROOT_PASSWORD);

@@ -88,7 +88,6 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
@@ -150,6 +149,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  *
@@ -1294,7 +1294,7 @@ public class Tablet implements TabletCommitter {
         } catch (RuntimeException t) {
           err = t;
           log.error("Consistency check fails, retrying " + t);
-          UtilWaitThread.sleep(500);
+          sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
         }
       }
       if (err != null) {
@@ -2605,7 +2605,7 @@ public class Tablet implements TabletCommitter {
       }
 
       log.warn("Failed to create dir for tablet in table " + tableId + " in volume " + volume + " + will retry ...");
-      UtilWaitThread.sleep(3000);
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
 
     }
   }

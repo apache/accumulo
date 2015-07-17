@@ -18,6 +18,7 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -25,12 +26,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TraceCommand extends DebugCommand {
 
@@ -74,7 +76,7 @@ public class TraceCommand extends DebugCommand {
             }
             shellState.getReader().println("Waiting for trace information");
             shellState.getReader().flush();
-            UtilWaitThread.sleep(500);
+            sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
           }
           if (traceCount < 0) {
             // display the trace even though there are unrooted spans

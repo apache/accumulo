@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,7 +33,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -41,6 +41,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
@@ -116,7 +117,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
         try {
           int i = 0;
           while (!stop.get()) {
-            UtilWaitThread.sleep(10 * 1000);
+            sleepUninterruptibly(10, TimeUnit.SECONDS);
             System.out.println("Restarting");
             getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
             getCluster().start();

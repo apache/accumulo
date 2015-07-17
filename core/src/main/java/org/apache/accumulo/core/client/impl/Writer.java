@@ -19,6 +19,8 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -32,7 +34,6 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -40,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Writer {
 
@@ -89,7 +91,7 @@ public class Writer {
 
       if (tabLoc == null) {
         log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
-        UtilWaitThread.sleep(500);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
         continue;
       }
 
@@ -110,7 +112,7 @@ public class Writer {
         TabletLocator.getLocator(context, table).invalidateCache(tabLoc.tablet_extent);
       }
 
-      UtilWaitThread.sleep(500);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
 
   }

@@ -16,17 +16,20 @@
  */
 package org.apache.accumulo.master.replication;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.WorkAssigner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Driver for a {@link WorkAssigner}
@@ -103,7 +106,7 @@ public class WorkDriver extends Daemon {
 
       long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
       log.debug("Sleeping {} ms before next work assignment", sleepTime);
-      UtilWaitThread.sleep(sleepTime);
+      sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
 
       // After each loop, make sure that the WorkAssigner implementation didn't change
       configureWorkAssigner();

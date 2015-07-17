@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -70,7 +71,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -106,6 +106,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.TextFormat;
 
 /**
@@ -296,7 +297,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     int attempts = 10;
     do {
       if (!online) {
-        UtilWaitThread.sleep(2000);
+        sleepUninterruptibly(2, TimeUnit.SECONDS);
         online = ReplicationTable.isOnline(conn);
         attempts--;
       }
@@ -427,7 +428,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     int attempts = 10;
     do {
       if (!online) {
-        UtilWaitThread.sleep(5000);
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
         online = ReplicationTable.isOnline(conn);
         attempts--;
       }
@@ -745,7 +746,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     conn.tableOperations().flush(table, null, null, true);
 
     while (!ReplicationTable.isOnline(conn)) {
-      UtilWaitThread.sleep(2000);
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
     }
 
     for (int i = 0; i < 10; i++) {
@@ -832,7 +833,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         if (attempts <= 0) {
           throw e;
         }
-        UtilWaitThread.sleep(2000);
+        sleepUninterruptibly(2, TimeUnit.SECONDS);
       }
     }
 
@@ -844,7 +845,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     attempts = 10;
     do {
       if (!online) {
-        UtilWaitThread.sleep(2000);
+        sleepUninterruptibly(2, TimeUnit.SECONDS);
         online = ReplicationTable.isOnline(conn);
         attempts--;
       }
@@ -853,7 +854,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the combiner (made by the master)
     for (int i = 0; i < 10 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
-      UtilWaitThread.sleep(2000);
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
     }
 
     Assert.assertTrue("Combiner was never set on replication table",
@@ -992,7 +993,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         if (attempts <= 0) {
           throw e;
         }
-        UtilWaitThread.sleep(500);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
     }
 
@@ -1008,7 +1009,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     attempts = 5;
     do {
       if (!online) {
-        UtilWaitThread.sleep(500);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
         online = ReplicationTable.isOnline(conn);
         attempts--;
       }
@@ -1163,7 +1164,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           break;
         }
 
-        UtilWaitThread.sleep(2000);
+        sleepUninterruptibly(2, TimeUnit.SECONDS);
       }
 
       if (!allClosed) {
@@ -1198,7 +1199,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           break;
         }
 
-        UtilWaitThread.sleep(3000);
+        sleepUninterruptibly(3, TimeUnit.SECONDS);
       }
 
       if (!allClosed) {
@@ -1248,7 +1249,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         if (attempts <= 0) {
           throw e;
         }
-        UtilWaitThread.sleep(500);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
     }
 
@@ -1264,7 +1265,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     attempts = 10;
     do {
       if (!online) {
-        UtilWaitThread.sleep(1000);
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
         online = ReplicationTable.isOnline(conn);
         attempts--;
       }
@@ -1359,7 +1360,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     cluster.getClusterControl().start(ServerType.TABLET_SERVER);
 
     log.info("Waiting to read tables");
-    UtilWaitThread.sleep(2 * 3 * 1000);
+    sleepUninterruptibly(2 * 3, TimeUnit.SECONDS);
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : new String[] {MetadataTable.NAME, table1}) {

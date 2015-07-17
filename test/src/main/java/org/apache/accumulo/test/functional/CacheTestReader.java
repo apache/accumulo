@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class CacheTestReader {
   public static void main(String[] args) throws Exception {
@@ -77,7 +79,7 @@ public class CacheTestReader {
       fos.close();
       oos.close();
 
-      UtilWaitThread.sleep(20);
+      sleepUninterruptibly(20, TimeUnit.MILLISECONDS);
     }
 
   }

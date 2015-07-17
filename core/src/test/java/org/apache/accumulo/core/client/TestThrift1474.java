@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTest;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -35,6 +34,8 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.junit.Test;
+
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TestThrift1474 {
 
@@ -77,7 +78,7 @@ public class TestThrift1474 {
     };
     thread.start();
     while (!server.isServing()) {
-      UtilWaitThread.sleep(10);
+      sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
     }
 
     TTransport transport = new TSocket("localhost", port);
