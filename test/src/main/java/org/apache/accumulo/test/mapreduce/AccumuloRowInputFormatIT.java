@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapred;
+package org.apache.accumulo.test.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -30,45 +30,42 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.AccumuloRowInputFormat;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.lib.NullOutputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.Rule;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-public class AccumuloRowInputFormatTest {
-  private static final String PREFIX = AccumuloRowInputFormatTest.class.getSimpleName();
-  private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
+public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   private static final String ROW1 = "row1";
   private static final String ROW2 = "row2";
   private static final String ROW3 = "row3";
   private static final String COLF1 = "colf1";
-  private static final List<Entry<Key,Value>> row1;
-  private static final List<Entry<Key,Value>> row2;
-  private static final List<Entry<Key,Value>> row3;
+  private static List<Entry<Key,Value>> row1;
+  private static List<Entry<Key,Value>> row2;
+  private static List<Entry<Key,Value>> row3;
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
 
-  static {
+  @BeforeClass
+  public static void prepareRows() {
     row1 = new ArrayList<Entry<Key,Value>>();
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq1"), "v1".getBytes()));
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq2"), "v2".getBytes()));
@@ -79,15 +76,7 @@ public class AccumuloRowInputFormatTest {
     row3.add(new KeyValue(new Key(ROW3, COLF1, "colq5"), "v5".getBytes()));
   }
 
-  public static void checkLists(final List<Entry<Key,Value>> first, final List<Entry<Key,Value>> second) {
-    assertEquals("Sizes should be the same.", first.size(), second.size());
-    for (int i = 0; i < first.size(); i++) {
-      assertEquals("Keys should be equal.", first.get(i).getKey(), second.get(i).getKey());
-      assertEquals("Values should be equal.", first.get(i).getValue(), second.get(i).getValue());
-    }
-  }
-
-  public static void checkLists(final List<Entry<Key,Value>> first, final Iterator<Entry<Key,Value>> second) {
+  private static void checkLists(final List<Entry<Key,Value>> first, final Iterator<Entry<Key,Value>> second) {
     int entryIndex = 0;
     while (second.hasNext()) {
       final Entry<Key,Value> entry = second.next();
@@ -97,7 +86,7 @@ public class AccumuloRowInputFormatTest {
     }
   }
 
-  public static void insertList(final BatchWriter writer, final List<Entry<Key,Value>> list) throws MutationsRejectedException {
+  private static void insertList(final BatchWriter writer, final List<Entry<Key,Value>> list) throws MutationsRejectedException {
     for (Entry<Key,Value> e : list) {
       final Key key = e.getKey();
       final Mutation mutation = new Mutation(key.getRow());
@@ -108,11 +97,11 @@ public class AccumuloRowInputFormatTest {
   }
 
   private static class MRTester extends Configured implements Tool {
-    public static class TestMapper implements Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
+    private static class TestMapper extends Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
       int count = 0;
 
       @Override
-      public void map(Text k, PeekingIterator<Entry<Key,Value>> v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
+      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context) throws IOException, InterruptedException {
         try {
           switch (count) {
             case 0:
@@ -137,48 +126,45 @@ public class AccumuloRowInputFormatTest {
       }
 
       @Override
-      public void configure(JobConf job) {}
-
-      @Override
-      public void close() throws IOException {
+      protected void cleanup(Context context) throws IOException, InterruptedException {
         try {
           assertEquals(3, count);
         } catch (AssertionError e) {
           e2 = e;
         }
       }
-
     }
 
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 4) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <instanceName>");
+      if (args.length != 1) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table>");
       }
 
-      String user = args[0];
-      String pass = args[1];
-      String table = args[2];
-      String instanceName = args[3];
+      String user = getAdminPrincipal();
+      AuthenticationToken pass = getAdminToken();
+      String table = args[0];
 
-      JobConf job = new JobConf(getConf());
+      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormat(AccumuloRowInputFormat.class);
+      job.setInputFormatClass(AccumuloRowInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AccumuloInputFormat.setConnectorInfo(job, user, pass);
       AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloRowInputFormat.setMockInstance(job, instanceName);
+      AccumuloRowInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormat(NullOutputFormat.class);
+      job.setOutputFormatClass(NullOutputFormat.class);
 
       job.setNumReduceTasks(0);
 
-      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
+      job.waitForCompletion(true);
+
+      return job.isSuccessful() ? 0 : 1;
     }
 
     public static void main(String[] args) throws Exception {
@@ -188,17 +174,14 @@ public class AccumuloRowInputFormatTest {
     }
   }
 
-  @Rule
-  public TestName test = new TestName();
-
   @Test
   public void test() throws Exception {
-    final Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    final Connector conn = inst.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create(TEST_TABLE_1);
+    final Connector conn = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    conn.tableOperations().create(tableName);
     BatchWriter writer = null;
     try {
-      writer = conn.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
+      writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
       insertList(writer, row1);
       insertList(writer, row2);
       insertList(writer, row3);
@@ -207,7 +190,7 @@ public class AccumuloRowInputFormatTest {
         writer.close();
       }
     }
-    MRTester.main(new String[] {"root", "", TEST_TABLE_1, inst.getInstanceName()});
+    MRTester.main(new String[] {tableName});
     assertNull(e1);
     assertNull(e2);
   }

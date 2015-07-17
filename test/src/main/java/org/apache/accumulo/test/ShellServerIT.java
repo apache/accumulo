@@ -34,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -86,6 +88,7 @@ import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class ShellServerIT extends SharedMiniClusterBase {
@@ -1080,6 +1083,115 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("getgroups -t " + table, true, "alpha=a,b,c", true);
     ts.exec("getgroups -t " + table, true, "num=1,2,3", true);
     ts.exec("deletetable -f " + table);
+  }
+
+  @Test
+  public void formatter() throws Exception {
+    ts.exec("createtable formatter_test", true);
+    ts.exec("table formatter_test", true);
+    ts.exec("insert row cf cq 1234abcd", true);
+    ts.exec("insert row cf1 cq1 9876fedc", true);
+    ts.exec("insert row2 cf cq 13579bdf", true);
+    ts.exec("insert row2 cf1 cq 2468ace", true);
+
+    ArrayList<String> expectedDefault = new ArrayList<>(4);
+    expectedDefault.add("row cf:cq []    1234abcd");
+    expectedDefault.add("row cf1:cq1 []    9876fedc");
+    expectedDefault.add("row2 cf:cq []    13579bdf");
+    expectedDefault.add("row2 cf1:cq []    2468ace");
+    ArrayList<String> actualDefault = new ArrayList<>(4);
+    boolean isFirst = true;
+    for (String s : ts.exec("scan -np", true).split("[\n\r]+")) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        actualDefault.add(s);
+      }
+    }
+
+    ArrayList<String> expectedFormatted = new ArrayList<>(4);
+    expectedFormatted.add("row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64");
+    expectedFormatted.add("row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63");
+    expectedFormatted.add("row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66");
+    expectedFormatted.add("row2 cf1:cq []    0x32 0x34 0x36 0x38 0x61 0x63 0x65");
+    ts.exec("formatter -t formatter_test -f " + HexFormatter.class.getName(), true);
+    ArrayList<String> actualFormatted = new ArrayList<>(4);
+    isFirst = true;
+    for (String s : ts.exec("scan -np", true).split("[\n\r]+")) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        actualFormatted.add(s);
+      }
+    }
+
+    ts.exec("deletetable -f formatter_test", true);
+
+    assertTrue(Iterables.elementsEqual(expectedDefault, new ArrayList<String>(actualDefault)));
+    assertTrue(Iterables.elementsEqual(expectedFormatted, new ArrayList<String>(actualFormatted)));
+  }
+
+  /**
+   * <p>
+   * Simple <code>Formatter</code> that will convert each character in the Value from decimal to hexadecimal. Will automatically skip over characters in the
+   * value which do not fall within the [0-9,a-f] range.
+   * </p>
+   *
+   * <p>
+   * Example: <code>'0'</code> will be displayed as <code>'0x30'</code>
+   * </p>
+   */
+  public static class HexFormatter implements Formatter {
+    private Iterator<Entry<Key,Value>> iter = null;
+    private boolean printTs = false;
+
+    private final static String tab = "\t";
+    private final static String newline = "\n";
+
+    public HexFormatter() {}
+
+    @Override
+    public boolean hasNext() {
+      return this.iter.hasNext();
+    }
+
+    @Override
+    public String next() {
+      final Entry<Key,Value> entry = iter.next();
+
+      String key;
+
+      // Observe the timestamps
+      if (printTs) {
+        key = entry.getKey().toString();
+      } else {
+        key = entry.getKey().toStringNoTime();
+      }
+
+      final Value v = entry.getValue();
+
+      // Approximate how much space we'll need
+      final StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5);
+
+      sb.append(key).append(tab);
+
+      for (byte b : v.get()) {
+        if ((b >= 48 && b <= 57) || (b >= 97 && b <= 102)) {
+          sb.append(String.format("0x%x ", Integer.valueOf(b)));
+        }
+      }
+
+      return sb.toString().trim() + newline;
+    }
+
+    @Override
+    public void remove() {}
+
+    @Override
+    public void initialize(final Iterable<Entry<Key,Value>> scanner, final boolean printTimestamps) {
+      this.iter = scanner.iterator();
+      this.printTs = printTimestamps;
+    }
   }
 
   @Test

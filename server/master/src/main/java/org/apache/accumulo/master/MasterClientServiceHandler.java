@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,15 +98,14 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-class MasterClientServiceHandler extends FateServiceHandler implements MasterClientService.Iface {
+public class MasterClientServiceHandler extends FateServiceHandler implements MasterClientService.Iface {
 
   private static final Logger log = Master.log;
   private Instance instance;
 
-  MasterClientServiceHandler(Master master) {
+  protected MasterClientServiceHandler(Master master) {
     super(master);
     this.instance = master.getInstance();
   }

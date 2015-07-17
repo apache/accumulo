@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.simple.dirlist;
+package org.apache.accumulo.test.examples.simple.dirlist;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,39 +23,34 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.examples.simple.dirlist.FileCount;
 import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
+import org.apache.accumulo.examples.simple.dirlist.Ingest;
+import org.apache.accumulo.examples.simple.dirlist.QueryUtil;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-public class CountTest {
-
-  @Rule
-  public TestName test = new TestName();
+public class CountIT extends ConfigurableMacBase {
 
   private Connector conn;
   private String tableName;
 
   @Before
   public void setupInstance() throws Exception {
-    tableName = test.getMethodName();
-    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    conn = inst.getConnector("root", new PasswordToken(""));
+    tableName = getUniqueNames(1)[0];
+    conn = getConnector();
     conn.tableOperations().create(tableName);
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     ColumnVisibility cv = new ColumnVisibility();
@@ -81,11 +76,11 @@ public class CountTest {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.instance = "counttest";
+    opts.instance = conn.getInstance().getInstanceName();
+    opts.zookeepers = conn.getInstance().getZooKeepers();
     opts.setTableName(tableName);
-    opts.setPassword(new Password("secret"));
-    opts.mock = true;
-    opts.setPassword(new Opts.Password(""));
+    opts.setPrincipal(conn.whoami());
+    opts.setPassword(new Opts.Password(ROOT_PASSWORD));
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
 

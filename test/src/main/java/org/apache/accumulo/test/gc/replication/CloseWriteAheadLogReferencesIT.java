@@ -1,3 +1,5 @@
+package org.apache.accumulo.test.gc.replication;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,7 +16,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.gc.replication;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -31,7 +32,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -45,37 +45,48 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
 
-public class CloseWriteAheadLogReferencesTest {
+public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
-  private CloseWriteAheadLogReferences refs;
+  private WrappedCloseWriteAheadLogReferences refs;
   private Connector conn;
 
-  @Rule
-  public TestName testName = new TestName();
+  private static class WrappedCloseWriteAheadLogReferences extends CloseWriteAheadLogReferences {
+    public WrappedCloseWriteAheadLogReferences(AccumuloServerContext context) {
+      super(context);
+    }
 
-  @Before
-  public void setupInstance() throws Exception {
-    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(testName.getMethodName());
-    conn = inst.getConnector("root", new PasswordToken(""));
+    @Override
+    protected long updateReplicationEntries(Connector conn, Set<String> closedWals) {
+      return super.updateReplicationEntries(conn, closedWals);
+    }
   }
 
   @Before
-  public void setup() {
+  public void setupInstance() throws Exception {
+    conn = getConnector();
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    ReplicationTable.setOnline(conn);
+  }
+
+  @Before
+  public void setupEasyMockStuff() {
     Instance mockInst = createMock(Instance.class);
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     expect(mockInst.getInstanceID()).andReturn(testName.getMethodName()).anyTimes();
@@ -112,7 +123,7 @@ public class CloseWriteAheadLogReferencesTest {
     }).anyTimes();
 
     replay(mockInst, factory, siteConfig);
-    refs = new CloseWriteAheadLogReferences(new AccumuloServerContext(factory));
+    refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(factory));
   }
 
   @Test
@@ -127,6 +138,7 @@ public class CloseWriteAheadLogReferencesTest {
     refs.updateReplicationEntries(conn, wals);
 
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.fetchColumnFamily(ReplicationSection.COLF);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
     Assert.assertFalse(status.getClosed());
@@ -145,6 +157,7 @@ public class CloseWriteAheadLogReferencesTest {
     refs.updateReplicationEntries(conn, wals);
 
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.fetchColumnFamily(ReplicationSection.COLF);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
     Assert.assertTrue(status.getClosed());

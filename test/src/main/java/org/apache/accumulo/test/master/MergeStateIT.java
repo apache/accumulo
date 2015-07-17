@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master;
+package org.apache.accumulo.test.master;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
@@ -36,9 +35,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -46,17 +45,17 @@ import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import com.google.common.net.HostAndPort;
 
-public class TestMergeState {
+public class MergeStateIT extends ConfigurableMacBase {
 
-  class MockCurrentState implements CurrentState {
+  private static class MockCurrentState implements CurrentState {
 
     TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), 0x123456);
     MergeInfo mergeInfo;
@@ -102,14 +101,13 @@ public class TestMergeState {
     bw.close();
   }
 
-  @Rule
-  public TestName test = new TestName();
-
   @Test
   public void test() throws Exception {
-    Instance instance = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(instance));
-    Connector connector = context.getConnector();
+    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    Connector connector = getConnector();
+    EasyMock.expect(context.getConnector()).andReturn(connector).anyTimes();
+    EasyMock.replay(context);
+    connector.securityOperations().grantTablePermission(connector.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     // Create a fake METADATA table with these splits

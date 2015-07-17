@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client;
+package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,7 +24,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -32,17 +37,18 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-public class ClientSideIteratorTest {
-  List<Key> resultSet1;
-  List<Key> resultSet2;
-  List<Key> resultSet3;
-  {
+public class ClientSideIteratorIT extends AccumuloClusterHarness {
+  private List<Key> resultSet1;
+  private List<Key> resultSet2;
+  private List<Key> resultSet3;
+
+  @Before
+  public void setupData() {
     resultSet1 = new ArrayList<Key>();
     resultSet1.add(new Key("row1", "colf", "colq", 4l));
     resultSet1.add(new Key("row1", "colf", "colq", 3l));
@@ -64,21 +70,19 @@ public class ClientSideIteratorTest {
     assertEquals(i, results.size());
   }
 
-  @Rule
-  public TestName test = new TestName();
-
   private Connector conn;
+  private String tableName;
 
   @Before
   public void setupInstance() throws Exception {
-    Instance inst = new org.apache.accumulo.core.client.mock.MockInstance(test.getMethodName());
-    conn = inst.getConnector("root", new PasswordToken(""));
+    conn = getConnector();
+    tableName = getUniqueNames(1)[0];
   }
 
   @Test
   public void testIntersect() throws Exception {
-    conn.tableOperations().create("intersect");
-    BatchWriter bw = conn.createBatchWriter("intersect", new BatchWriterConfig());
+    conn.tableOperations().create(tableName);
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("part1");
     m.put("bar", "doc1", "value");
     m.put("bar", "doc2", "value");
@@ -95,8 +99,8 @@ public class ClientSideIteratorTest {
     bw.addMutation(m);
     bw.flush();
 
-    final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner("intersect", new Authorizations()));
-    final IteratorSetting si = new IteratorSetting(10, "intersect", IntersectingIterator.class);
+    final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner(tableName, new Authorizations()));
+    final IteratorSetting si = new IteratorSetting(10, tableName, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
     csis.addScanIterator(si);
 
@@ -105,11 +109,11 @@ public class ClientSideIteratorTest {
 
   @Test
   public void testVersioning() throws Exception {
-    conn.tableOperations().create("table");
-    conn.tableOperations().removeProperty("table", "table.iterator.scan.vers");
-    conn.tableOperations().removeProperty("table", "table.iterator.majc.vers");
-    conn.tableOperations().removeProperty("table", "table.iterator.minc.vers");
-    final BatchWriter bw = conn.createBatchWriter("table", new BatchWriterConfig());
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().removeProperty(tableName, "table.iterator.scan.vers");
+    conn.tableOperations().removeProperty(tableName, "table.iterator.majc.vers");
+    conn.tableOperations().removeProperty(tableName, "table.iterator.minc.vers");
+    final BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row1");
     m.put("colf", "colq", 1l, "value");
     m.put("colf", "colq", 2l, "value");
@@ -121,7 +125,7 @@ public class ClientSideIteratorTest {
     bw.addMutation(m);
     bw.flush();
 
-    final Scanner scanner = conn.createScanner("table", new Authorizations());
+    final Scanner scanner = conn.createScanner(tableName, new Authorizations());
 
     final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner);
     final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);
