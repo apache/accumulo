@@ -80,19 +80,19 @@ public class ShellConfigTest {
 
   @Test
   public void testTokenWithoutOptions() {
-    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName()));
-    assertFalse(output.get().contains(ParameterException.class.getCanonicalName()));
+    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getName()));
+    assertFalse(output.get().contains(ParameterException.class.getName()));
   }
 
   @Test
   public void testTokenAndOption() {
-    assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-u", "foo", "-l", "password=foo"));
+    assertTrue(shell.config("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo"));
   }
 
   @Test
   public void testTokenAndOptionAndPassword() {
-    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getCanonicalName(), "-l", "password=foo", "-p", "bar"));
-    assertTrue(output.get().contains(ParameterException.class.getCanonicalName()));
+    assertFalse(shell.config("--fake", "-tc", PasswordToken.class.getName(), "-l", "password=foo", "-p", "bar"));
+    assertTrue(output.get().contains(ParameterException.class.getName()));
   }
 
   @Test

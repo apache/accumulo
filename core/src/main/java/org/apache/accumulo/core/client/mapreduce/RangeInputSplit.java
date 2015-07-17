@@ -301,7 +301,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       if (null != token && null != tokenFile) {
         throw new IOException("Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
       } else if (null != token) {
-        out.writeUTF(token.getClass().getCanonicalName());
+        out.writeUTF(token.getClass().getName());
         out.writeUTF(Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
       } else {
         out.writeUTF(tokenFile);
