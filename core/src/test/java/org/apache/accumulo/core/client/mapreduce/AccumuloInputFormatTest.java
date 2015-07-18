@@ -294,7 +294,7 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_1, INSTANCE_NAME, AccumuloInputFormat.class.getCanonicalName()}));
+    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_1, INSTANCE_NAME, AccumuloInputFormat.class.getName()}));
     assertNull(e1);
     assertNull(e2);
   }
@@ -315,7 +315,7 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_2, INSTANCE_NAME, AccumuloInputFormat.class.getCanonicalName(), "True"}));
+    Assert.assertEquals(0, MRTester.main(new String[] {"root", "", TEST_TABLE_2, INSTANCE_NAME, AccumuloInputFormat.class.getName(), "True"}));
     assertNull(e1);
     assertNull(e2);
   }
@@ -383,10 +383,8 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(
-        0,
-        MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration",
-            EmptySplitsAccumuloInputFormat.class.getCanonicalName()}));
+    Assert.assertEquals(0,
+        MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration", EmptySplitsAccumuloInputFormat.class.getName()}));
     assertNull(e1);
     assertNull(e2);
   }
@@ -411,7 +409,7 @@ public class AccumuloInputFormatTest {
     Assert.assertEquals(
         1,
         MRTester.main(new String[] {user, "", "testtable", "testPartialFailedInputSplitDelegationToConfiguration",
-            BadPasswordSplitsAccumuloInputFormat.class.getCanonicalName()}));
+            BadPasswordSplitsAccumuloInputFormat.class.getName()}));
     assertNull(e1);
     assertNull(e2);
   }

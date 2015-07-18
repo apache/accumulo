@@ -347,12 +347,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     }, 5000, 5000);
 
-    long walogMaxSize = getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
-    long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
+    final long walogMaxSize = getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
+    final long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walogMaxSize)
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize " + walogMaxSize + " but hdfs minimum block size is "
           + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
-    logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter);
+    final long toleratedWalCreationFailures = getConfiguration().getCount(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES);
+    final long toleratedWalCreationFailuresPeriod = getConfiguration().getTimeInMillis(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES_PERIOD);
+    logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter, toleratedWalCreationFailures, toleratedWalCreationFailuresPeriod);
     this.resourceManager = new TabletServerResourceManager(this, fs);
     this.security = AuditedSecurityOperation.getInstance(this);
 
