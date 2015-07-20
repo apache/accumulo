@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Exercise basic timer (org.apache.hadoop.util.StopWatch) functionality. Current usage requires ability to reset timer.
@@ -192,8 +192,6 @@ public class OpTimerTest {
     timer.stop();
 
     long tValue = timer.now();
-
-    double millis = timer.scale(TimeUnit.MILLISECONDS);
 
     assertEquals(tValue / 1000000.0, timer.scale(TimeUnit.MILLISECONDS), 0.00000001);
 

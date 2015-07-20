@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Provides a stop watch for timing a single type of event. This code is based on the org.apache.hadoop.util.StopWatch available in hadoop 2.7.0
  */
-public class OpTimer implements Closeable {
+public class OpTimer {
 
   private boolean isStarted;
   private long startNanos;
@@ -129,13 +128,4 @@ public class OpTimer implements Closeable {
     return String.valueOf(now());
   }
 
-  /**
-   * If the timer is running, stop it. This method can be called even if the timer is not running.
-   */
-  @Override
-  public void close() {
-    if (isStarted) {
-      stop();
-    }
-  }
 }
