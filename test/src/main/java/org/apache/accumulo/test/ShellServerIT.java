@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -28,7 +29,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -87,7 +87,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ShellServerIT extends SharedMiniClusterBase {
   public static class TestOutputStream extends OutputStream {
@@ -155,8 +154,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
-      PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
-      shell = new Shell(new ConsoleReader(input, output), pw);
+      shell = new Shell(new ConsoleReader(input, output));
       shell.setLogErrorsToConsole();
       if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
         // Pull the kerberos principal out when we're using SASL

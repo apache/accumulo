@@ -64,7 +64,7 @@ public class HistoryCommandTest {
     reader = new ConsoleReader(new ByteArrayInputStream(input.getBytes()), baos);
     reader.setHistory(history);
 
-    shell = new Shell(reader, null);
+    shell = new Shell(reader);
   }
 
   @Test

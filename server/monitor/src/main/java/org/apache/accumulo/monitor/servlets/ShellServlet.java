@@ -16,13 +16,9 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -266,7 +262,7 @@ public class ShellServlet extends BasicServlet {
       this.readWait = false;
       this.output = new StringBuilderOutputStream();
       ConsoleReader reader = new ConsoleReader(this, output);
-      this.shell = new Shell(reader, new PrintWriter(new OutputStreamWriter(output, UTF_8)));
+      this.shell = new Shell(reader);
       shell.setLogErrorsToConsole();
       if (mock != null) {
         if (shell.config("--fake", "-u", username, "-p", password))

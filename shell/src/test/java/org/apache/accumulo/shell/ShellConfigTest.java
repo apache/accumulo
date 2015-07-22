@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,7 +61,7 @@ public class ShellConfigTest {
     System.setOut(new PrintStream(output));
     config = Files.createTempFile(null, null).toFile();
 
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output), new PrintWriter(output));
+    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
     shell.setLogErrorsToConsole();
   }
 

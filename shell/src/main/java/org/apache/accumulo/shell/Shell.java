@@ -227,18 +227,30 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private long authTimeout;
   private long lastUserActivity = System.nanoTime();
   private boolean logErrorsToConsole = false;
-  private PrintWriter writer = null;
   private boolean masking = false;
 
-  public Shell() throws IOException {
-    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, System.getProperty("jline.WindowsTerminal.output.encoding",
-        System.getProperty("file.encoding")))));
+  {
+    // set the JLine output encoding to some reasonable default if it isn't already set
+    // despite the misleading property name, "input.encoding" is the property jline uses for the encoding of the output stream writer
+    String prop = "input.encoding";
+    if (System.getProperty(prop) == null) {
+      String value = System.getProperty("jline.WindowsTerminal.output.encoding");
+      if (value == null) {
+        value = System.getProperty("file.encoding");
+      }
+      if (value != null) {
+        System.setProperty(prop, value);
+      }
+    }
   }
 
-  public Shell(ConsoleReader reader, PrintWriter writer) {
+  public Shell() throws IOException {
+    this(new ConsoleReader());
+  }
+
+  public Shell(ConsoleReader reader) {
     super();
     this.reader = reader;
-    this.writer = writer;
   }
 
   /**
@@ -964,11 +976,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // The general version of this method uses the HelpFormatter
     // that comes with the apache Options package to print out the help
-    public final void printHelp(Shell shellState) {
+    public final void printHelp(Shell shellState) throws IOException {
       shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp());
     }
 
-    public final void printHelp(Shell shellState, int width) {
+    public final void printHelp(Shell shellState, int width) throws IOException {
       shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(), width);
     }
 
@@ -1150,14 +1162,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return Logger.getLogger(Constants.CORE_PACKAGE_NAME).isTraceEnabled();
   }
 
-  private final void printHelp(String usage, String description, Options opts) {
+  private final void printHelp(String usage, String description, Options opts) throws IOException {
     printHelp(usage, description, opts, Integer.MAX_VALUE);
   }
 
-  private final void printHelp(String usage, String description, Options opts, int width) {
-    // TODO Use the OutputStream from the JLine ConsoleReader if we can ever get access to it
-    new HelpFormatter().printHelp(writer, width, usage, description, opts, 2, 5, null, true);
-    writer.flush();
+  private final void printHelp(String usage, String description, Options opts, int width) throws IOException {
+    new HelpFormatter().printHelp(new PrintWriter(reader.getOutput()), width, usage, description, opts, 2, 5, null, true);
+    reader.getOutput().flush();
   }
 
   public int getExitCode() {

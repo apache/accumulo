@@ -23,8 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -131,8 +129,7 @@ public class ShellTest {
     output = new TestOutputStream();
     input = new StringInputStream();
     config = Files.createTempFile(null, null).toFile();
-    PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
-    shell = new Shell(new ConsoleReader(input, output), pw);
+    shell = new Shell(new ConsoleReader(input, output));
     shell.setLogErrorsToConsole();
     shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret");
   }
