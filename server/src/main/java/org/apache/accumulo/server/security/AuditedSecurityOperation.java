@@ -25,6 +25,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
@@ -40,6 +41,12 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static final Logger log = Logger.getLogger(AuditedSecurityOperation.class);
+
+  public static synchronized SecurityOperation getInstance() {
+    // ACCUMULO-3939 Ensure that an AuditedSecurityOperation instance gets returned.
+    String instanceId = HdfsZooInstance.getInstance().getInstanceID();
+    return getInstance(instanceId, false);
+  }
 
   public static synchronized SecurityOperation getInstance(String instanceId, boolean initialize) {
     if (instance == null) {
