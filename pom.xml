@@ -115,9 +115,6 @@
     </site>
   </distributionManagement>
   <properties>
-    <!-- No second group of tests run by default (performance tests).
-         Setting this to something that doesn't exist results in nothing being tested. -->
-    <accumulo.extraFailsafeGroups>no.such.tests</accumulo.extraFailsafeGroups>
     <!-- Interface used to separate tests with JUnit category -->
     <accumulo.performanceTests>org.apache.accumulo.test.PerformanceTest</accumulo.performanceTests>
     <!-- used for filtering the java source with the current version -->
