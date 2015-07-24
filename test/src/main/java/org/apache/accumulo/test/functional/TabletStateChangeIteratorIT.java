@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
@@ -23,11 +24,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -36,6 +40,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -85,18 +90,61 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     // examine a clone of the metadata table, so we can manipulate it
     cloneMetadataTable(cloned);
 
-    assertEquals("No tables should need attention", 0, findTabletsNeedingAttention(cloned));
+    State state = new State();
+    assertEquals("No tables should need attention", 0, findTabletsNeedingAttention(cloned, state));
 
     // test the assigned case (no location)
     removeLocation(cloned, t3);
-    assertEquals("Should have one tablet without a loc", 1, findTabletsNeedingAttention(cloned));
+    assertEquals("Should have two tablets without a loc", 2, findTabletsNeedingAttention(cloned, state));
 
-    // TODO test the cases where the assignment is to a dead tserver
-    // TODO test the cases where there is ongoing merges
-    // TODO test the bad tablet location state case (active split, inconsistent metadata)
+    // test the cases where the assignment is to a dead tserver
+    getConnector().tableOperations().delete(cloned);
+    cloneMetadataTable(cloned);
+    reassignLocation(cloned, t3);
+    assertEquals("Should have one tablet that needs to be unassigned", 1, findTabletsNeedingAttention(cloned, state));
+
+    // test the cases where there is ongoing merges
+    state = new State() {
+      @Override
+      public Collection<MergeInfo> merges() {
+        String tableIdToModify = getConnector().tableOperations().tableIdMap().get(t3);
+        return Collections.singletonList(new MergeInfo(new KeyExtent(new Text(tableIdToModify), null, null), MergeInfo.Operation.MERGE));
+      }
+    };
+    assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1, findTabletsNeedingAttention(cloned, state));
+
+    // test the bad tablet location state case (inconsistent metadata)
+    state = new State();
+    cloneMetadataTable(cloned);
+    addDuplicateLocation(cloned, t3);
+    assertEquals("Should have 1 tablet that needs a metadata repair", 1, findTabletsNeedingAttention(cloned, state));
 
     // clean up
-    dropTables(t1, t2, t3);
+    dropTables(t1, t2, t3, cloned);
+  }
+
+  private void addDuplicateLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
+    String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
+    Mutation m = new Mutation(new KeyExtent(new Text(tableIdToModify), null, null).getMetadataEntry());
+    m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"), new Value("fake:9005".getBytes(UTF_8)));
+    BatchWriter bw = getConnector().createBatchWriter(table, null);
+    bw.addMutation(m);
+    bw.close();
+  }
+
+  private void reassignLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
+    String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
+    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
+    scanner.setRange(new KeyExtent(new Text(tableIdToModify), null, null).toMetadataRange());
+    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+    Entry<Key,Value> entry = scanner.iterator().next();
+    Mutation m = new Mutation(entry.getKey().getRow());
+    m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(), entry.getKey().getTimestamp());
+    m.put(entry.getKey().getColumnFamily(), new Text("1234567"), entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
+    scanner.close();
+    BatchWriter bw = getConnector().createBatchWriter(table, null);
+    bw.addMutation(m);
+    bw.close();
   }
 
   private void removeLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
@@ -108,10 +156,10 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     deleter.close();
   }
 
-  private int findTabletsNeedingAttention(String table) throws TableNotFoundException {
+  private int findTabletsNeedingAttention(String table, State state) throws TableNotFoundException {
     int results = 0;
     Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, new State());
+    MetaDataTableScanner.configureScanner(scanner, state);
     scanner.updateScanIteratorOption("tabletChange", "debug", "1");
     for (Entry<Key,Value> e : scanner) {
       if (e != null)
@@ -124,12 +172,20 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     Connector conn = getConnector();
     conn.tableOperations().create(t);
     conn.tableOperations().online(t, true);
+    SortedSet<Text> partitionKeys = new TreeSet<Text>();
+    partitionKeys.add(new Text("some split"));
+    conn.tableOperations().addSplits(t, partitionKeys);
     if (!online) {
       conn.tableOperations().offline(t, true);
     }
   }
 
   private void cloneMetadataTable(String cloned) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
+    try {
+      dropTables(cloned);
+    } catch (TableNotFoundException ex) {
+      // ignored
+    }
     getConnector().tableOperations().clone(MetadataTable.NAME, cloned, true, null, null);
   }
 
@@ -139,7 +195,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     }
   }
 
-  private final class State implements CurrentState {
+  private class State implements CurrentState {
 
     @Override
     public Set<TServerInstance> onlineTabletServers() {
@@ -178,15 +234,14 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     }
 
     @Override
-    public MasterState getMasterState() {
-      return MasterState.NORMAL;
-    }
-
-    @Override
     public Set<TServerInstance> shutdownServers() {
       return Collections.emptySet();
     }
 
+    @Override
+    public MasterState getMasterState() {
+      return MasterState.NORMAL;
+    }
   }
 
 }
