@@ -28,17 +28,18 @@ import java.util.Map;
 
 public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescriber {
 
-  private static final FilterResult SKIP_TO_HINT = new FilterResult(IncludeResult.SKIP, AdvanceResult.USE_HINT);
-  private static final FilterResult SKIP_TO_NEXT = new FilterResult(IncludeResult.SKIP, AdvanceResult.NEXT);
-  private static final FilterResult SKIP_TO_NEXT_ROW = new FilterResult(IncludeResult.SKIP, AdvanceResult.NEXT_ROW);
-  private static final FilterResult SKIP_TO_NEXT_CF = new FilterResult(IncludeResult.SKIP, AdvanceResult.NEXT_CF);
-  private static final FilterResult INCLUDE_AND_NEXT = new FilterResult(IncludeResult.INCLUDE, AdvanceResult.NEXT);
-  private static final FilterResult INCLUDE_AND_NEXT_CF = new FilterResult(IncludeResult.INCLUDE, AdvanceResult.NEXT_CF);
+  private static final FilterResult SKIP_TO_HINT = new FilterResult(false, AdvanceResult.USE_HINT);
+  private static final FilterResult SKIP_TO_NEXT = new FilterResult(false, AdvanceResult.NEXT);
+  private static final FilterResult SKIP_TO_NEXT_ROW = new FilterResult(false, AdvanceResult.NEXT_ROW);
+  private static final FilterResult SKIP_TO_NEXT_CF = new FilterResult(false, AdvanceResult.NEXT_CF);
+  private static final FilterResult INCLUDE_AND_NEXT = new FilterResult(true, AdvanceResult.NEXT);
+  private static final FilterResult INCLUDE_AND_NEXT_CF = new FilterResult(true, AdvanceResult.NEXT_CF);
 
   private CfCqSliceOpts cso;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env)
+          throws IOException {
     super.init(source, options, env);
     cso = new CfCqSliceOpts(options);
   }
@@ -90,14 +91,14 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
       int minCfCmp = k.compareColumnFamily(cso.minCf);
       if (minCfCmp < 0) {
         Key hint = new Key(k.getRow(), cso.minCf);
-        return cso.minInclusive ? hint.followingKey(PartialKey.ROW_COLFAM) : hint;
+        return cso.minInclusive ? hint : hint.followingKey(PartialKey.ROW_COLFAM);
       }
     }
     if (cso.minCq.getLength() > 0) {
       int minCqCmp = k.compareColumnQualifier(cso.minCq);
       if (minCqCmp < 0) {
         Key hint = new Key(k.getRow(), k.getColumnFamily(), cso.minCq);
-        return cso.minInclusive ? hint.followingKey(PartialKey.ROW_COLFAM_COLQUAL) : hint;
+        return cso.minInclusive ? hint: hint.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
       }
     }
     return null;

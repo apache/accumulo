@@ -24,26 +24,33 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 public abstract class SeekingFilter extends WrappingIterator {
-  public enum IncludeResult {
-    INCLUDE, SKIP
-  }
+  private static final Logger log = LoggerFactory.getLogger(SeekingFilter.class);
+
+  protected static final String NEGATE = "negate";
 
   public enum AdvanceResult {
     NEXT, NEXT_CQ, NEXT_CF, NEXT_ROW, USE_HINT
   }
 
   public static class FilterResult {
-    final IncludeResult include;
+    final boolean accept;
     final AdvanceResult advance;
 
-    public FilterResult(IncludeResult include, AdvanceResult advance) {
-      this.include = include;
+    public FilterResult(boolean accept, AdvanceResult advance) {
+      this.accept = accept;
       this.advance = advance;
+    }
+
+    public String toString() {
+      return "Acc: " + accept + " Adv: " + advance;
     }
   }
 
@@ -54,12 +61,20 @@ public abstract class SeekingFilter extends WrappingIterator {
   private Collection<ByteSequence> columnFamilies;
   private boolean inclusive;
   private Range seekRange;
+  private boolean negate;
 
   private AdvanceResult advance;
+
+  private boolean advancedPastSeek = false;
 
   @Override
   public void next() throws IOException {
     findTop();
+  }
+
+  @Override
+  public boolean hasTop() {
+    return !advancedPastSeek && super.hasTop();
   }
 
   @Override
@@ -69,7 +84,14 @@ public abstract class SeekingFilter extends WrappingIterator {
     this.columnFamilies = columnFamilies;
     this.inclusive = inclusive;
     seekRange = range;
+    advancedPastSeek = false;
     findTop();
+  }
+
+  @Override
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    negate = Boolean.parseBoolean(options.get(NEGATE));
   }
 
   @Override
@@ -81,6 +103,7 @@ public abstract class SeekingFilter extends WrappingIterator {
       throw new RuntimeException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));
+    newInstance.negate = negate;
     return newInstance;
   }
 
@@ -91,19 +114,23 @@ public abstract class SeekingFilter extends WrappingIterator {
       advanceSource(src, advance);
     }
     advance = null;
-    while (src.hasTop()) {
+    while (src.hasTop() && !advancedPastSeek) {
       if (src.getTopKey().isDeleted()) {
         // as per. o.a.a.core.iterators.Filter, deleted keys always pass through the filter.
         advance = AdvanceResult.NEXT;
         return;
       }
       FilterResult f = filter(src.getTopKey(), src.getTopValue());
-      if (f.include == IncludeResult.INCLUDE) {
+      if (log.isTraceEnabled()) {
+        log.trace("Filtered: " + src.getTopKey() + " result == " + f + " hint == " +
+                getNextKeyHint(src.getTopKey(), src.getTopValue()));
+      }
+      if (f.accept != negate) {
         // advance will be processed next time findTop is called
         advance = f.advance;
         break;
       } else {
-        advanceSource(src, advance);
+        advanceSource(src, f.advance);
       }
     }
   }
@@ -127,16 +154,23 @@ public abstract class SeekingFilter extends WrappingIterator {
       case USE_HINT:
         Value topVal = src.getTopValue();
         Key hintKey = getNextKeyHint(topKey, topVal);
-        if (hintKey != null) {
+        if (hintKey != null && hintKey.compareTo(topKey) > 0) {
           advRange = new Range(hintKey, null);
         } else {
-          throw new IOException("Filter returned USE_HINT for " + topKey + " but no hint available.");
+          String msg = "Filter returned USE_HINT for " + topKey + " but invalid hint: " + hintKey;
+          throw new IOException(msg);
         }
         break;
     }
     if (advRange == null) {
       throw new IOException("Unable to determine range to advance to for AdvanceResult " + adv);
     }
-    src.seek(advRange.clip(seekRange), columnFamilies, inclusive);
+    advRange = advRange.clip(seekRange, true);
+    if (advRange == null) {
+      // the advanced range is outside the seek range. the source is exhausted.
+      advancedPastSeek = true;
+    } else {
+      src.seek(advRange, columnFamilies, inclusive);
+    }
   }
 }

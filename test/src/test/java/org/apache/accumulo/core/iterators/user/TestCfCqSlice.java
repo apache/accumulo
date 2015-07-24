@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -64,7 +65,7 @@ public abstract class TestCfCqSlice {
 
   private static MiniAccumuloCluster mac;
 
-  protected abstract Class getFilterClass();
+  protected abstract Class<? extends SortedKeyValueIterator<Key,Value>> getFilterClass();
 
   @BeforeClass
   public static void setupMAC() throws Exception {
@@ -99,7 +100,7 @@ public abstract class TestCfCqSlice {
   public void testAllRowsFullSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, "ColumnSliceFilter", ColumnSliceFilter.class));
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass()));
     bs.setRanges(INFINITY);
     loadKvs(foundKvs, bs);
     for (int i = 0; i < LR_DIM; i++) {
@@ -115,7 +116,7 @@ public abstract class TestCfCqSlice {
   public void testSingleRowFullSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, "ColumnSliceFilter", ColumnSliceFilter.class));
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass()));
     int rowId = LR_DIM / 2;
     bs.setRanges(Collections.singletonList(Range.exact(new Text(LONG_LEX.encode((long) rowId)))));
     loadKvs(foundKvs, bs);
@@ -149,7 +150,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
     BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, "ColumnSliceFilter", ColumnSliceFilter.class, opts));
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
     bs.setRanges(INFINITY);
     loadKvs(foundKvs, bs);
     for (int i = 0; i < LR_DIM; i++) {
@@ -178,7 +179,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
     BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, "ColumnSliceFilter", ColumnSliceFilter.class, opts));
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
     bs.setRanges(INFINITY);
     loadKvs(foundKvs, bs);
     for (int i = 0; i < LR_DIM; i++) {
@@ -209,7 +210,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MAX_INCLUSIVE, "false");
     opts.put(CfCqSliceOpts.OPT_MIN_INCLUSIVE, "false");
     BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, "ColumnSliceFilter", ColumnSliceFilter.class, opts));
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
     bs.setRanges(INFINITY);
     loadKvs(foundKvs, bs);
     for (int i = 0; i < LR_DIM; i++) {
@@ -225,17 +226,53 @@ public abstract class TestCfCqSlice {
     }
   }
 
-  private void loadKvs(boolean[][][] foundKvs, BatchScanner bs) {
-    try {
-      for (Map.Entry<Key,Value> kvPair : bs) {
-        Key k = kvPair.getKey();
-        int row = LONG_LEX.decode(k.getRow().copyBytes()).intValue();
-        int cf = LONG_LEX.decode(k.getColumnFamily().copyBytes()).intValue();
-        int cq = LONG_LEX.decode(k.getColumnQualifier().copyBytes()).intValue();
-        foundKvs[row][cf][cq] = true;
+  @Test
+  public void testAllCfsCqSlice() throws Exception {
+    boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
+    long sliceMinCq = 10;
+    long sliceMaxCq = 30;
+    Map<String,String> opts = new HashMap<String,String>();
+    opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
+    opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
+    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
+    bs.setRanges(INFINITY);
+    loadKvs(foundKvs, bs);
+    for (int i = 0; i < LR_DIM; i++) {
+      for (int j = 0; j < LR_DIM; j++) {
+        for (int k = 0; k < LR_DIM; k++) {
+          if (k >= sliceMinCq && k <= sliceMaxCq) {
+            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan", foundKvs[i][j][k]);
+          } else {
+            assertFalse("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan", foundKvs[i][j][k]);
+          }
+        }
       }
-    } finally {
-      bs.close();
+    }
+  }
+
+  @Test
+  public void testSliceCfsAllCqs() throws Exception {
+    boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
+    long sliceMinCf = 10;
+    long sliceMaxCf = 30;
+    Map<String,String> opts = new HashMap<String,String>();
+    opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
+    opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
+    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
+    bs.setRanges(INFINITY);
+    loadKvs(foundKvs, bs);
+    for (int i = 0; i < LR_DIM; i++) {
+      for (int j = 0; j < LR_DIM; j++) {
+        for (int k = 0; k < LR_DIM; k++) {
+          if (j >= sliceMinCf && j <= sliceMaxCf) {
+            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan", foundKvs[i][j][k]);
+          } else {
+            assertFalse("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan", foundKvs[i][j][k]);
+          }
+        }
+      }
     }
   }
 
@@ -255,7 +292,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_INCLUSIVE, "false");
     opts.put(CfCqSliceOpts.OPT_MIN_INCLUSIVE, "false");
-    bs.addScanIterator(new IteratorSetting(50, "ColumnSliceFilter", ColumnSliceFilter.class, opts));
+    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
     bs.setRanges(INFINITY);
     loadKvs(foundKvs, bs);
     for (int i = 0; i < LR_DIM; i++) {
@@ -264,6 +301,20 @@ public abstract class TestCfCqSlice {
           assertFalse("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan", foundKvs[i][j][k]);
         }
       }
+    }
+  }
+
+  private void loadKvs(boolean[][][] foundKvs, BatchScanner bs) {
+    try {
+      for (Map.Entry<Key,Value> kvPair : bs) {
+        Key k = kvPair.getKey();
+        int row = LONG_LEX.decode(k.getRow().copyBytes()).intValue();
+        int cf = LONG_LEX.decode(k.getColumnFamily().copyBytes()).intValue();
+        int cq = LONG_LEX.decode(k.getColumnQualifier().copyBytes()).intValue();
+        foundKvs[row][cf][cq] = true;
+      }
+    } finally {
+      bs.close();
     }
   }
 
