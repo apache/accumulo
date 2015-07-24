@@ -30,6 +30,10 @@
 
   <description>A simple IT verifying the basic use case.</description>
 
+  <properties>
+    <rat.skip>true</rat.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>commons-cli</groupId>
@@ -110,6 +114,22 @@
               <goal>start</goal>
               <goal>stop</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>run-integration-tests</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <excludedGroups combine.self="override" />
+            </configuration>
           </execution>
         </executions>
       </plugin>
