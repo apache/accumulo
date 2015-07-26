@@ -118,7 +118,7 @@ config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering 
 
 BatchWriter writer = conn.createBatchWriter("table", config)
 
-writer.add(mutation);
+writer.addMutation(mutation);
 
 writer.close();
 ----
@@ -275,7 +275,7 @@ The proxy API can also be used instead of the traditional ZooKeeperInstance clas
 provide a single TCP port in which clients can be securely routed through a firewall,
 without requiring access to all tablet servers in the cluster.
 
-==== Prequisites
+==== Prerequisites
 
 The proxy server can live on any node in which the basic client API would work. That
 means it must be able to communicate with the Master, ZooKeepers, NameNode, and the
