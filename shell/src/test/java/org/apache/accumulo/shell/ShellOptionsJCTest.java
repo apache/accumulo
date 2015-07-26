@@ -25,9 +25,6 @@ import org.junit.Test;
 
 import com.beust.jcommander.JCommander;
 
-/**
- *
- */
 public class ShellOptionsJCTest {
 
   ShellOptionsJC options;
@@ -46,6 +43,20 @@ public class ShellOptionsJCTest {
     jc.parse(new String[] {"--sasl"});
     ClientConfiguration clientConf = options.getClientConfiguration();
     assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+  }
+
+  @Test
+  public void testTraceHosts() throws Exception {
+    // Set the zk hosts in the client conf directly for tracing
+    final String zk = "localhost:45454";
+    JCommander jc = new JCommander();
+
+    jc.setProgramName("accumulo shell");
+    jc.addObject(options);
+    jc.parse(new String[] {"-zh", zk});
+    ClientConfiguration clientConf = options.getClientConfiguration();
+
+    assertEquals(zk, clientConf.get(ClientProperty.INSTANCE_ZK_HOST));
   }
 
 }
