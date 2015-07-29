@@ -20,9 +20,6 @@
   <artifactId>accumulo-monitor-webapp</artifactId>
   <packaging>war</packaging>
   <name>Accumulo Monitor Webapp</name>
-  <properties>
-    <jersey.version>2.13</jersey.version>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -39,6 +36,7 @@
             WEB-INF/lib/jetty-*.jar,
             WEB-INF/lib/maven-scm-*.jar,
             WEB-INF/lib/hadoop-*.jar,
+            WEB-INF/lib/zookeeper-*.jar,
             WEB-INF/lib/jersey-container-grizzly2-*.jar,
             WEB-INF/lib/jersey-grizzly2-*.jar,
             WEB-INF/lib/accumulo-*.jar,</packagingExcludes>

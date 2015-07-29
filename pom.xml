@@ -135,6 +135,7 @@
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
+    <jersey.version>2.13</jersey.version>
     <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
     <jetty.version>9.2.17.v20160517</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -519,6 +520,21 @@
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-util</artifactId>
         <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.containers</groupId>
+        <artifactId>jersey-container-grizzly2-http</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.containers</groupId>
+        <artifactId>jersey-container-servlet-core</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.media</groupId>
+        <artifactId>jersey-media-json-jackson</artifactId>
+        <version>${jersey.version}</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>

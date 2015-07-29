@@ -26,9 +26,6 @@
   <artifactId>accumulo-monitor</artifactId>
   <name>Apache Accumulo Monitor Server</name>
   <description>A web server for monitoring Apache Accumulo.</description>
-  <properties>
-    <jersey.version>2.13</jersey.version>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>com.google.auto.service</groupId>
@@ -111,17 +108,14 @@
     <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-grizzly2-http</artifactId>
-      <version>${jersey.version}</version>
     </dependency>
     <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-servlet-core</artifactId>
-      <version>${jersey.version}</version>
     </dependency>
     <dependency>
       <groupId>org.glassfish.jersey.media</groupId>
       <artifactId>jersey-media-json-jackson</artifactId>
-      <version>${jersey.version}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
