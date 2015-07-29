@@ -53,12 +53,6 @@ public class StatisticsResource {
   }
 
   @GET
-  @Path("onlineTabletCount")
-  public int getOnlineTabletCount() {
-    return Monitor.getOnlineTabletCount();
-  }
-
-  @GET
   @Path("totalEntries")
   public long getTotalEntries() {
     return Monitor.getTotalEntries();
@@ -71,12 +65,6 @@ public class StatisticsResource {
   }
 
   @GET
-  @Path("totalIngestByteRate")
-  public double getTotalIngestByteRate() {
-    return Monitor.getTotalIngestByteRate();
-  }
-
-  @GET
   @Path("totalQueryRate")
   public double getTotalQueryRate() {
     return Monitor.getTotalQueryRate();
@@ -86,12 +74,6 @@ public class StatisticsResource {
   @Path("totalScanRate")
   public double getTotalScanRate() {
     return Monitor.getTotalScanRate();
-  }
-
-  @GET
-  @Path("totalQueryByteRate")
-  public double getTotalQueryByteRate() {
-    return Monitor.getTotalQueryByteRate();
   }
 
   @GET
@@ -146,12 +128,6 @@ public class StatisticsResource {
   @Path("time/ingestByteRate")
   public List<Pair<Long,Double>> getIngestByteRate() {
     return Monitor.getIngestByteRateOverTime();
-  }
-
-  @GET
-  @Path("time/recoveries")
-  public List<Pair<Long,Integer>> getRecoveries() {
-    return Monitor.getRecoveriesOverTime();
   }
 
   @GET

@@ -37,8 +37,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.replication.ReplicaSystem;
-import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -51,6 +49,8 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.api.ReplicationInformation;
+import org.apache.accumulo.server.replication.ReplicaSystem;
+import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,23 +67,25 @@ public class ReplicationResource {
 
   @GET
   public List<ReplicationInformation> getReplicationInformation() throws AccumuloException, AccumuloSecurityException {
-    Connector conn = Monitor.getContext().getConnector();
+    final Connector conn = Monitor.getContext().getConnector();
 
-    TableOperations tops = conn.tableOperations();
+    final TableOperations tops = conn.tableOperations();
 
-    Map<String,String> properties = conn.instanceOperations().getSystemConfiguration();
-    Map<String,String> peers = new HashMap<>();
-    String definedPeersPrefix = Property.REPLICATION_PEERS.getKey();
+    final Map<String,String> properties = conn.instanceOperations().getSystemConfiguration();
+    final Map<String,String> peers = new HashMap<>();
+    final String definedPeersPrefix = Property.REPLICATION_PEERS.getKey();
+    final ReplicaSystemFactory replicaSystemFactory = new ReplicaSystemFactory();
 
     // Get the defined peers and what ReplicaSystem impl they're using
     for (Entry<String,String> property : properties.entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
+      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey())
+          && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
-         replica = ReplicaSystemFactory.get(property.getValue());
+          replica = replicaSystemFactory.get(property.getValue());
         } catch (Exception e) {
           log.warn("Could not instantiate ReplicaSystem for {} with configuration {}", property.getKey(), property.getValue(), e);
           continue;
@@ -188,7 +190,7 @@ public class ReplicationResource {
 
   protected Map<String,String> invert(Map<String,String> map) {
     Map<String,String> newMap = Maps.newHashMapWithExpectedSize(map.size());
-    for(Entry<String,String> entry : map.entrySet()) {
+    for (Entry<String,String> entry : map.entrySet()) {
       newMap.put(entry.getValue(), entry.getKey());
     }
     return newMap;

@@ -84,6 +84,7 @@
       </includes>
       <excludes>
         <exclude>${groupId}:${artifactId}-docs</exclude>
+        <exclude>${groupId}:${artifactId}-monitor-webapp:jar</exclude>
       </excludes>
     </dependencySet>
     <dependencySet>

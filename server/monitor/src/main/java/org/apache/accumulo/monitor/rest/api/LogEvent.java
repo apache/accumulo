@@ -28,7 +28,7 @@ public class LogEvent {
   protected int count;
   protected String level, message;
 
-  public LogEvent() { }
+  public LogEvent() {}
 
   public LogEvent(long timestamp, Object application, int count, String level, String message) {
     this.timestamp = timestamp;

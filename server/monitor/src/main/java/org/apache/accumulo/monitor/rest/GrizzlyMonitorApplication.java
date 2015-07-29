@@ -23,26 +23,27 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.log4j.Logger;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class GrizzlyMonitorApplication extends MonitorApplication {
-  private static final Logger log = Logger.getLogger(GrizzlyMonitorApplication.class);
+  private static final Logger log = LoggerFactory.getLogger(GrizzlyMonitorApplication.class);
 
   @Override
   public void run() {
@@ -60,19 +61,19 @@ public class GrizzlyMonitorApplication extends MonitorApplication {
     } catch (Exception e) {
       log.warn(e.getMessage(), e);
     }
-    
+
     try {
       Monitor.fetchScans();
     } catch (Exception e) {
       log.warn(e.getMessage(), e);
     }
-    
+
     // Start daemons
     new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
-    
+
     // need to regularly fetch data so plot data is updated
     new Daemon(new LoggingRunnable(log, new Runnable() {
-      
+
       @Override
       public void run() {
         while (true) {
@@ -81,13 +82,13 @@ public class GrizzlyMonitorApplication extends MonitorApplication {
           } catch (Exception e) {
             log.warn(e.getMessage(), e);
           }
-          
+
           UtilWaitThread.sleep(333);
         }
-        
+
       }
     }), "Data fetcher").start();
-    
+
     new Daemon(new LoggingRunnable(log, new Runnable() {
       @Override
       public void run() {

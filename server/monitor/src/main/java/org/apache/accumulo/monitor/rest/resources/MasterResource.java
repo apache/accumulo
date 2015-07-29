@@ -61,7 +61,7 @@ public class MasterResource {
 
   @Path("/goal_state")
   @GET
-  public String getGoalState() { 
+  public String getGoalState() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return NO_MASTERS;

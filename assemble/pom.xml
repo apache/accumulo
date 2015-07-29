@@ -145,7 +145,8 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-monitor-rest</artifactId>
+      <artifactId>accumulo-monitor-webapp</artifactId>
+      <type>war</type>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>

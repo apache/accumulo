@@ -113,7 +113,7 @@ public class TabletServerResource {
           }
 
           TableInformation tableInfo = new TableInformation(tableName, tableId, thriftTableInfo, holdTime, tableManager.getTableState(tableId).name());
-          return new TabletServerWithTableInformation(new TabletServerInformation(status), tableInfo); 
+          return new TabletServerWithTableInformation(new TabletServerInformation(status), tableInfo);
         }
       }
     }

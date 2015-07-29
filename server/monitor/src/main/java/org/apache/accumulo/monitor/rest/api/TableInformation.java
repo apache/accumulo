@@ -153,7 +153,6 @@ public class TableInformation {
     this.tablets = tablets;
   }
 
-
   @JsonProperty("entries")
   public long getEntries() {
     return entries;

@@ -30,7 +30,7 @@ public class GarbageCollectorCycle {
   protected long candidates = 0, inUse = 0, deleted = 0;
   protected long errors = 0;
 
-  public GarbageCollectorCycle() { }
+  public GarbageCollectorCycle() {}
 
   public GarbageCollectorCycle(GcCycleStats thriftStats) {
     this.started = thriftStats.started;
