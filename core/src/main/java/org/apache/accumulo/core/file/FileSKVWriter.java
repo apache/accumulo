@@ -36,4 +36,6 @@ public interface FileSKVWriter {
   DataOutputStream createMetaStore(String name) throws IOException;
 
   void close() throws IOException;
+
+  long getLength() throws IOException;
 }

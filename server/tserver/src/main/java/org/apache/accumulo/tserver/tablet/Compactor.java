@@ -219,19 +219,16 @@ public class Compactor implements Callable<CompactionStats> {
       mfw = null; // set this to null so we do not try to close it again in finally if the close fails
       mfwTmp.close(); // if the close fails it will cause the compaction to fail
 
-      // Verify the file, since hadoop 0.20.2 sometimes lies about the success of close()
-      try {
-        FileSKVIterator openReader = fileFactory.openReader(outputFile.path().toString(), false, ns, ns.getConf(), acuTableConf);
-        openReader.close();
-      } catch (IOException ex) {
-        log.error("Verification of successful compaction fails!!! " + extent + " " + outputFile, ex);
-        throw ex;
-      }
+      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec",
+          extent,
+          majCStats.getEntriesRead(),
+          majCStats.getEntriesWritten(),
+          (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)),
+          (t2 - t1) / 1000.0,
+          mfwTmp.getLength(),
+          mfwTmp.getLength() / ((t2 - t1) / 1000.0)));
 
-      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %6.3f secs", extent, majCStats.getEntriesRead(),
-          majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0));
-
-      majCStats.setFileSize(fileFactory.getFileSize(outputFile.path().toString(), ns, ns.getConf(), acuTableConf));
+      majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);

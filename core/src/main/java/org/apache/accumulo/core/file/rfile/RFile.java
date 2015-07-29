@@ -303,6 +303,7 @@ public class RFile {
     private boolean startedDefaultLocalityGroup = false;
 
     private HashSet<ByteSequence> previousColumnFamilies;
+    private long length = -1;
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
@@ -340,8 +341,8 @@ public class RFile {
       }
 
       mba.close();
-
       fileWriter.close();
+      length = fileWriter.getLength();
 
       closed = true;
     }
@@ -464,6 +465,14 @@ public class RFile {
     @Override
     public boolean supportsLocalityGroups() {
       return true;
+    }
+
+    @Override
+    public long getLength() throws IOException {
+      if (!closed) {
+        return fileWriter.getLength();
+      }
+      return length;
     }
   }
 

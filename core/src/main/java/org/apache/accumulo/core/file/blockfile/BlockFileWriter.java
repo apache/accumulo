@@ -33,4 +33,6 @@ public interface BlockFileWriter {
   ABlockWriter prepareDataBlock() throws IOException;
 
   void close() throws IOException;
+
+  long getLength() throws IOException;
 }

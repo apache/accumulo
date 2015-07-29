@@ -55,7 +55,8 @@ public class CachableBlockFile {
   public static class Writer implements BlockFileWriter {
     private BCFile.Writer _bc;
     private BlockWrite _bw;
-    private FSDataOutputStream fsout = null;
+    private final FSDataOutputStream fsout;
+    private long length = 0;
 
     public Writer(FileSystem fs, Path fName, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.fsout = fs.create(fName);
@@ -89,10 +90,13 @@ public class CachableBlockFile {
       _bw.close();
       _bc.close();
 
-      if (this.fsout != null) {
-        this.fsout.close();
-      }
+      length = this.fsout.getPos();
+      this.fsout.close();
+    }
 
+    @Override
+    public long getLength() throws IOException {
+      return length;
     }
 
   }

@@ -17,9 +17,11 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
@@ -117,7 +119,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TableOperationsImpl extends TableOperationsHelper {
 
@@ -1039,11 +1040,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       ret = fs.makeQualified(new Path(dir));
     }
 
-    if (!fs.exists(ret))
+    try {
+      if (!fs.getFileStatus(ret).isDirectory()) {
+        throw new AccumuloException(kind + " import " + type + " directory " + dir + " is not a directory!");
+      }
+    } catch (FileNotFoundException fnf) {
       throw new AccumuloException(kind + " import " + type + " directory " + dir + " does not exist!");
-
-    if (!fs.getFileStatus(ret).isDirectory()) {
-      throw new AccumuloException(kind + " import " + type + " directory " + dir + " is not a directory!");
     }
 
     if (type.equals("failure")) {

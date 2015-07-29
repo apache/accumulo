@@ -94,6 +94,7 @@ public class BloomFilterLayer {
     private FileSKVWriter writer;
     private KeyFunctor transformer = null;
     private boolean closed = false;
+    private long length = -1;
 
     Writer(FileSKVWriter writer, AccumuloConfiguration acuconf) {
       this.writer = writer;
@@ -154,6 +155,7 @@ public class BloomFilterLayer {
       out.flush();
       out.close();
       writer.close();
+      length = writer.getLength();
       closed = true;
     }
 
@@ -176,6 +178,14 @@ public class BloomFilterLayer {
     @Override
     public boolean supportsLocalityGroups() {
       return writer.supportsLocalityGroups();
+    }
+
+    @Override
+    public long getLength() throws IOException {
+      if (closed) {
+        return length;
+      }
+      return writer.getLength();
     }
   }
 
