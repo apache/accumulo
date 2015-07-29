@@ -127,3 +127,32 @@ Enter current password for 'root': *********
 
 root@myinstance bobstable> revoke System.CREATE_TABLE -s -u bob
 ----
+
+=== JSR-223 Support in the Shell
+
+The script command can be used to invoke programs written in languages supported by installed JSR-223
+engines. You can get a list of installed engines with the -l argument. Below is an example of the output
+of the command when running the Shell with Java 7.
+
+----
+root@fake> script -l
+    Engine Alias: ECMAScript
+    Engine Alias: JavaScript
+    Engine Alias: ecmascript
+    Engine Alias: javascript
+    Engine Alias: js
+    Engine Alias: rhino
+    Language: ECMAScript (1.8)
+    Script Engine: Mozilla Rhino (1.7 release 3 PRERELEASE)
+ScriptEngineFactory Info
+----
+
+ A list of compatible languages can be found at https://en.wikipedia.org/wiki/List_of_JVM_languages. The
+rhino javascript engine is provided with the JVM. Typically putting a jar on the classpath is all that is
+needed to install a new engine.
+
+ When writing scripts to run in the shell, you will have a variable called connection already available
+to you. This variable is a reference to an Accumulo Connector object, the same connection that the Shell
+is using to communicate with the Accumulo servers. At this point you can use any of the public API methods
+within your script. Reference the script command help to see all of the execution options. Script and script
+invocation examples can be found in ACCUMULO-1399.
