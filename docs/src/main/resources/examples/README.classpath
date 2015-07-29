@@ -29,7 +29,7 @@ Execute the following command in the shell.
 
 Execute following in Accumulo shell to setup classpath context
 
-    root@test15> config -s general.vfs.context.classpath.cx1=hdfs://<namenode host>:<namenode port>/user1/lib
+    root@test15> config -s general.vfs.context.classpath.cx1=hdfs://<namenode host>:<namenode port>/user1/lib/[^.].*.jar
 
 Create a table
 
