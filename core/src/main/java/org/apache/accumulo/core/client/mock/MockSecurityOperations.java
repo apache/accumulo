@@ -32,6 +32,10 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 class MockSecurityOperations implements SecurityOperations {
 
   final private MockAccumulo acu;

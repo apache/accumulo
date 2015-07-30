@@ -43,6 +43,10 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.NotImplementedException;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 public class MockScannerBase extends ScannerOptions implements ScannerBase {
 
   protected final MockTable table;

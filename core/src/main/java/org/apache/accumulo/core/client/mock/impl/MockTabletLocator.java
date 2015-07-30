@@ -32,6 +32,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 public class MockTabletLocator extends TabletLocator {
   public MockTabletLocator() {}
 

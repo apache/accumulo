@@ -16,42 +16,35 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChunkInputStreamTest extends TestCase {
+public class ChunkInputStreamTest {
   private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
-  List<Entry<Key,Value>> data;
-  List<Entry<Key,Value>> baddata;
-  List<Entry<Key,Value>> multidata;
+  private List<Entry<Key,Value>> data;
+  private List<Entry<Key,Value>> baddata;
+  private List<Entry<Key,Value>> multidata;
 
-  {
+  @Before
+  public void setupData() {
     data = new ArrayList<Entry<Key,Value>>();
     addData(data, "a", "refs", "id\0ext", "A&B", "ext");
     addData(data, "a", "refs", "id\0name", "A&B", "name");
@@ -95,11 +88,11 @@ public class ChunkInputStreamTest extends TestCase {
     addData(multidata, "c", "~chunk", 100, 1, "B&C", "");
   }
 
-  public static void addData(List<Entry<Key,Value>> data, String row, String cf, String cq, String vis, String value) {
+  private static void addData(List<Entry<Key,Value>> data, String row, String cf, String cq, String vis, String value) {
     data.add(new KeyValue(new Key(new Text(row), new Text(cf), new Text(cq), new Text(vis)), value.getBytes()));
   }
 
-  public static void addData(List<Entry<Key,Value>> data, String row, String cf, int chunkSize, int chunkCount, String vis, String value) {
+  private static void addData(List<Entry<Key,Value>> data, String row, String cf, int chunkSize, int chunkCount, String vis, String value) {
     Text chunkCQ = new Text(FileDataIngest.intToBytes(chunkSize));
     chunkCQ.append(FileDataIngest.intToBytes(chunkCount), 0, 4);
     data.add(new KeyValue(new Key(new Text(row), new Text(cf), chunkCQ, new Text(vis)), value.getBytes()));
@@ -194,59 +187,6 @@ public class ChunkInputStreamTest extends TestCase {
     byte[] b = new byte[20];
     int read;
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
-
-    cis.setSource(pi);
-    assertEquals(read = cis.read(b), 8);
-    assertEquals(new String(b, 0, read), "asdfjkl;");
-    assertEquals(read = cis.read(b), -1);
-
-    cis.setSource(pi);
-    assertEquals(read = cis.read(b), 10);
-    assertEquals(new String(b, 0, read), "qwertyuiop");
-    assertEquals(read = cis.read(b), -1);
-    assertEquals(cis.getVisibilities().toString(), "[A&B, B&C, D]");
-    cis.close();
-
-    cis.setSource(pi);
-    assertEquals(read = cis.read(b), 16);
-    assertEquals(new String(b, 0, read), "asdfjkl;asdfjkl;");
-    assertEquals(read = cis.read(b), -1);
-    assertEquals(cis.getVisibilities().toString(), "[A&B]");
-    cis.close();
-
-    cis.setSource(pi);
-    assertEquals(read = cis.read(b), -1);
-    cis.close();
-
-    cis.setSource(pi);
-    assertEquals(read = cis.read(b), 8);
-    assertEquals(new String(b, 0, read), "asdfjkl;");
-    assertEquals(read = cis.read(b), -1);
-    cis.close();
-
-    assertFalse(pi.hasNext());
-  }
-
-  @Test
-  public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
-    Connector conn = new MockInstance().getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
-
-    for (Entry<Key,Value> e : data) {
-      Key k = e.getKey();
-      Mutation m = new Mutation(k.getRow());
-      m.put(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), e.getValue());
-      bw.addMutation(m);
-    }
-    bw.close();
-
-    Scanner scan = conn.createScanner("test", new Authorizations("A", "B", "C", "D"));
-
-    ChunkInputStream cis = new ChunkInputStream();
-    byte[] b = new byte[20];
-    int read;
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(scan.iterator());
 
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);

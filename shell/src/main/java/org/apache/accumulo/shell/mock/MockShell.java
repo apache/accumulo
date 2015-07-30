@@ -28,7 +28,6 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.commons.cli.CommandLine;
@@ -36,7 +35,10 @@ import org.apache.commons.vfs2.FileSystemException;
 
 /**
  * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to the Shell for testing purposes.
+ *
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
+@Deprecated
 public class MockShell extends Shell {
   private static final String NEWLINE = "\n";
 
@@ -76,7 +78,7 @@ public class MockShell extends Shell {
   @Override
   protected void setInstance(ShellOptionsJC options) {
     // We always want a MockInstance for this test
-    instance = new MockInstance();
+    instance = new org.apache.accumulo.core.client.mock.MockInstance();
   }
 
   @Override

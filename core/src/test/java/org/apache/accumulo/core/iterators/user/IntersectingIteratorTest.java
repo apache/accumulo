@@ -16,28 +16,18 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
@@ -45,15 +35,14 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
-public class IntersectingIteratorTest extends TestCase {
+public class IntersectingIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-  private static final Logger log = Logger.getLogger(IntersectingIterator.class);
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
   TreeMap<Key,Value> map;
@@ -65,10 +54,6 @@ public class IntersectingIteratorTest extends TestCase {
   boolean[] notFlags;
 
   int docid = 0;
-
-  static {
-    log.setLevel(Level.OFF);
-  }
 
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
       HashSet<Text> docs, Text[] negatedColumns) {
@@ -130,16 +115,13 @@ public class IntersectingIteratorTest extends TestCase {
     docid = 0;
   }
 
-  public void testNull() {}
-
-  @Override
-  public void setUp() {
-    Logger.getRootLogger().setLevel(Level.ERROR);
-  }
-
   private static final int NUM_ROWS = 10;
   private static final int NUM_DOCIDS = 1000;
 
+  @Rule
+  public TestName test = new TestName();
+
+  @Test
   public void test1() throws IOException {
     columnFamilies = new Text[2];
     columnFamilies[0] = new Text("C");
@@ -168,6 +150,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test2() throws IOException {
     columnFamilies = new Text[3];
     columnFamilies[0] = new Text("A");
@@ -197,6 +180,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test3() throws IOException {
     columnFamilies = new Text[6];
     columnFamilies[0] = new Text("C");
@@ -234,6 +218,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test4() throws IOException {
     columnFamilies = new Text[3];
     notFlags = new boolean[3];
@@ -270,6 +255,7 @@ public class IntersectingIteratorTest extends TestCase {
     cleanup();
   }
 
+  @Test
   public void test6() throws IOException {
     columnFamilies = new Text[1];
     columnFamilies[0] = new Text("C");
@@ -295,30 +281,5 @@ public class IntersectingIteratorTest extends TestCase {
     }
     assertTrue(hitCount == docs.size());
     cleanup();
-  }
-
-  public void testWithBatchScanner() throws Exception {
-    Value empty = new Value(new byte[] {});
-    MockInstance inst = new MockInstance("mockabye");
-    Connector connector = inst.getConnector("user", new PasswordToken("pass"));
-    connector.tableOperations().create("index");
-    BatchWriter bw = connector.createBatchWriter("index", new BatchWriterConfig());
-    Mutation m = new Mutation("000012");
-    m.put("rvy", "5000000000000000", empty);
-    m.put("15qh", "5000000000000000", empty);
-    bw.addMutation(m);
-    bw.close();
-
-    BatchScanner bs = connector.createBatchScanner("index", Authorizations.EMPTY, 10);
-    IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
-    IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});
-    bs.addScanIterator(ii);
-    bs.setRanges(Collections.singleton(new Range()));
-    Iterator<Entry<Key,Value>> iterator = bs.iterator();
-    assertTrue(iterator.hasNext());
-    Entry<Key,Value> next = iterator.next();
-    Key key = next.getKey();
-    assertEquals(key.getColumnQualifier(), new Text("5000000000000000"));
-    assertFalse(iterator.hasNext());
   }
 }

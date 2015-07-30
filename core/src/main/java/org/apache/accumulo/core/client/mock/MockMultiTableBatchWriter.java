@@ -26,6 +26,10 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 public class MockMultiTableBatchWriter implements MultiTableBatchWriter {
   MockAccumulo acu = null;
   Map<String,MockBatchWriter> bws = null;

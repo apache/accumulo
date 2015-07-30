@@ -17,38 +17,29 @@
 package org.apache.accumulo.test.iterator;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
 
 public class RegExTest {
 
-  Instance inst = new MockInstance();
-  Connector conn;
+  private static TreeMap<Key,Value> data = new TreeMap<>();
 
-  @Test
-  public void runTest() throws Exception {
-    conn = inst.getConnector("user", new PasswordToken("pass"));
-    conn.tableOperations().create("ret");
-    BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
+  @BeforeClass
+  public static void setupTests() throws Exception {
 
     ArrayList<Character> chars = new ArrayList<Character>();
     for (char c = 'a'; c <= 'z'; c++)
@@ -59,24 +50,14 @@ public class RegExTest {
 
     // insert some data into accumulo
     for (Character rc : chars) {
-      Mutation m = new Mutation(new Text("r" + rc));
+      String row = "r" + rc;
       for (Character cfc : chars) {
         for (Character cqc : chars) {
           Value v = new Value(("v" + rc + cfc + cqc).getBytes());
-          m.put(new Text("cf" + cfc), new Text("cq" + cqc), v);
+          data.put(new Key(row, "cf" + cfc, "cq" + cqc, "", 9), v);
         }
       }
-
-      bw.addMutation(m);
     }
-
-    bw.close();
-
-    runTest1();
-    runTest2();
-    runTest3();
-    runTest4();
-    runTest5();
   }
 
   private void check(String regex, String val) throws Exception {
@@ -92,31 +73,36 @@ public class RegExTest {
     check(regex, val.toString());
   }
 
-  private void runTest1() throws Exception {
+  @Test
+  public void runTest1() throws Exception {
     // try setting all regex
     Range range = new Range(new Text("rf"), true, new Text("rl"), true);
     runTest(range, "r[g-k]", "cf[1-5]", "cq[x-z]", "v[g-k][1-5][t-y]", 5 * 5 * (3 - 1));
   }
 
-  private void runTest2() throws Exception {
+  @Test
+  public void runTest2() throws Exception {
     // try setting only a row regex
     Range range = new Range(new Text("rf"), true, new Text("rl"), true);
     runTest(range, "r[g-k]", null, null, null, 5 * 36 * 36);
   }
 
-  private void runTest3() throws Exception {
+  @Test
+  public void runTest3() throws Exception {
     // try setting only a col fam regex
     Range range = new Range((Key) null, (Key) null);
     runTest(range, null, "cf[a-f]", null, null, 36 * 6 * 36);
   }
 
-  private void runTest4() throws Exception {
+  @Test
+  public void runTest4() throws Exception {
     // try setting only a col qual regex
     Range range = new Range((Key) null, (Key) null);
     runTest(range, null, null, "cq[1-7]", null, 36 * 36 * 7);
   }
 
-  private void runTest5() throws Exception {
+  @Test
+  public void runTest5() throws Exception {
     // try setting only a value regex
     Range range = new Range((Key) null, (Key) null);
     runTest(range, null, null, null, "v[a-c][d-f][g-i]", 3 * 3 * 3);
@@ -124,42 +110,29 @@ public class RegExTest {
 
   private void runTest(Range range, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
 
-    Scanner s = conn.createScanner("ret", Authorizations.EMPTY);
-    s.setRange(range);
-    setRegexs(s, rowRegEx, cfRegEx, cqRegEx, valRegEx);
-    runTest(s, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
-
-    BatchScanner bs = conn.createBatchScanner("ret", Authorizations.EMPTY, 1);
-    bs.setRanges(Collections.singletonList(range));
-    setRegexs(bs, rowRegEx, cfRegEx, cqRegEx, valRegEx);
-    runTest(bs, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
-    bs.close();
+    SortedKeyValueIterator<Key,Value> source = new SortedMapIterator(data);
+    Set<ByteSequence> es = ImmutableSet.of();
+    IteratorSetting is = new IteratorSetting(50, "regex", RegExFilter.class);
+    RegExFilter.setRegexs(is, rowRegEx, cfRegEx, cqRegEx, valRegEx, false);
+    RegExFilter iter = new RegExFilter();
+    iter.init(source, is.getOptions(), null);
+    iter.seek(range, es, false);
+    runTest(iter, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
   }
 
-  private void setRegexs(ScannerBase scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx) {
-    IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
-    if (rowRegEx != null)
-      regex.addOption(RegExFilter.ROW_REGEX, rowRegEx);
-    if (cfRegEx != null)
-      regex.addOption(RegExFilter.COLF_REGEX, cfRegEx);
-    if (cqRegEx != null)
-      regex.addOption(RegExFilter.COLQ_REGEX, cqRegEx);
-    if (valRegEx != null)
-      regex.addOption(RegExFilter.VALUE_REGEX, valRegEx);
-    scanner.addScanIterator(regex);
-  }
-
-  private void runTest(Iterable<Entry<Key,Value>> scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
+  private void runTest(RegExFilter scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
 
     int counter = 0;
 
-    for (Entry<Key,Value> entry : scanner) {
-      Key k = entry.getKey();
+    while (scanner.hasTop()) {
+      Key k = scanner.getTopKey();
 
       check(rowRegEx, k.getRow());
       check(cfRegEx, k.getColumnFamily());
       check(cqRegEx, k.getColumnQualifier());
-      check(valRegEx, entry.getValue());
+      check(valRegEx, scanner.getTopValue());
+
+      scanner.next();
 
       counter++;
     }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master;
+package org.apache.accumulo.test.replication;
 
 import java.util.Map.Entry;
 import java.util.Set;
@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -33,7 +32,6 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -45,40 +43,45 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.MasterClientServiceHandler;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplicationOperationsImplTest {
-  private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplTest.class);
+public class ReplicationOperationsImplIT extends ConfigurableMacBase {
+  private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
-  private MockInstance inst;
-
-  @Rule
-  public TestName test = new TestName();
+  private Instance inst;
+  private Connector conn;
 
   @Before
-  public void setup() {
-    inst = new MockInstance(test.getMethodName());
+  public void configureInstance() throws Exception {
+    conn = getConnector();
+    inst = conn.getInstance();
+    ReplicationTable.setOnline(conn);
+    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
   }
 
   /**
    * Spoof out the Master so we can call the implementation without starting a full instance.
    */
-  private ReplicationOperationsImpl getReplicationOperations(ClientContext context) throws Exception {
+  private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
-    EasyMock.expect(master.getConnector()).andReturn(inst.getConnector("root", new PasswordToken(""))).anyTimes();
+    EasyMock.expect(master.getConnector()).andReturn(conn).anyTimes();
     EasyMock.expect(master.getInstance()).andReturn(inst).anyTimes();
     EasyMock.replay(master);
 
@@ -86,13 +89,14 @@ public class ReplicationOperationsImplTest {
       @Override
       protected String getTableId(Instance inst, String tableName) throws ThriftTableOperationException {
         try {
-          return inst.getConnector("root", new PasswordToken("")).tableOperations().tableIdMap().get(tableName);
+          return conn.tableOperations().tableIdMap().get(tableName);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
       }
     };
 
+    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken(ROOT_PASSWORD)), getClientConfig());
     return new ReplicationOperationsImpl(context) {
       @Override
       protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds, final String tableName, final Set<String> wals)
@@ -108,7 +112,6 @@ public class ReplicationOperationsImplTest {
 
   @Test
   public void waitsUntilEntriesAreReplicated() throws Exception {
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");
     Text tableId = new Text(conn.tableOperations().tableIdMap().get("foo"));
 
@@ -140,8 +143,7 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = getReplicationOperations(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations();
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -204,7 +206,6 @@ public class ReplicationOperationsImplTest {
 
   @Test
   public void unrelatedReplicationRecordsDontBlockDrain() throws Exception {
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");
     conn.tableOperations().create("bar");
 
@@ -239,9 +240,8 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
 
-    final ReplicationOperationsImpl roi = getReplicationOperations(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations();
 
     Thread t = new Thread(new Runnable() {
       @Override
@@ -290,7 +290,6 @@ public class ReplicationOperationsImplTest {
 
   @Test
   public void inprogressReplicationRecordsBlockExecution() throws Exception {
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");
 
     Text tableId1 = new Text(conn.tableOperations().tableIdMap().get("foo"));
@@ -320,8 +319,7 @@ public class ReplicationOperationsImplTest {
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = getReplicationOperations(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations();
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -370,7 +368,6 @@ public class ReplicationOperationsImplTest {
 
   @Test
   public void laterCreatedLogsDontBlockExecution() throws Exception {
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");
 
     Text tableId1 = new Text(conn.tableOperations().tableIdMap().get("foo"));
@@ -391,15 +388,14 @@ public class ReplicationOperationsImplTest {
 
     bw.close();
 
-    System.out.println("Reading metadata first time");
+    log.info("Reading metadata first time");
     for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      System.out.println(e.getKey());
+      log.info("{}", e.getKey());
     }
 
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
-    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
-    final ReplicationOperationsImpl roi = getReplicationOperations(context);
+    final ReplicationOperationsImpl roi = getReplicationOperations();
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -428,9 +424,9 @@ public class ReplicationOperationsImplTest {
     bw.addMutation(m);
     bw.close();
 
-    System.out.println("Reading metadata second time");
+    log.info("Reading metadata second time");
     for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      System.out.println(e.getKey());
+      log.info("{}", e.getKey());
     }
 
     bw = ReplicationTable.getBatchWriter(conn);
@@ -448,5 +444,4 @@ public class ReplicationOperationsImplTest {
     // We should pass immediately because we aren't waiting on both files to be deleted (just the one that we did)
     Assert.assertTrue("Drain didn't finish", done.get());
   }
-
 }

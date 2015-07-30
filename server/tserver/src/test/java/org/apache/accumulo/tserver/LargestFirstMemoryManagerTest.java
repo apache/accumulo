@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -34,6 +33,8 @@ import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Function;
@@ -47,11 +48,18 @@ public class LargestFirstMemoryManagerTest {
   private static final long QGIG = ONE_GIG / 4;
   private static final long ONE_MINUTE = 60 * 1000;
 
+  private Instance inst;
+
+  @Before
+  public void mockInstance() {
+    inst = EasyMock.createMock(Instance.class);
+  }
+
   @Test
   public void test() throws Exception {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
     ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = new ServerConfigurationFactory(new MockInstance());
+      ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 
       @Override
       public AccumuloConfiguration getConfiguration() {
@@ -176,7 +184,7 @@ public class LargestFirstMemoryManagerTest {
     };
     LargestFirstMemoryManagerWithExistenceCheck mgr = new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
     ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = new ServerConfigurationFactory(new MockInstance());
+      ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 
       @Override
       public AccumuloConfiguration getConfiguration() {

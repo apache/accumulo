@@ -31,10 +31,22 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@Deprecated
 public class TestBatchScanner821 {
+
+  public static class TransformIterator extends WrappingIterator {
+
+    @Override
+    public Key getTopKey() {
+      Key k = getSource().getTopKey();
+      return new Key(new Text(k.getRow().toString().toLowerCase()), k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibility(), k.getTimestamp());
+    }
+  }
 
   @Test
   public void test() throws Exception {

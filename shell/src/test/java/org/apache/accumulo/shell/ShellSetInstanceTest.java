@@ -39,7 +39,6 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
@@ -50,6 +49,7 @@ import org.apache.log4j.Level;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -119,17 +119,15 @@ public class ShellSetInstanceTest {
     SiteConfiguration.clearInstance();
   }
 
+  @Deprecated
   @Test
   public void testSetInstance_Fake() throws Exception {
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(true);
     replay(opts);
-    MockInstance theInstance = createMock(MockInstance.class);
-    expectNew(MockInstance.class, "fake").andReturn(theInstance);
-    replay(theInstance, MockInstance.class);
 
     shell.setInstance(opts);
-    verify(theInstance, MockInstance.class);
+    Assert.assertTrue(shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
   }
 
   @Test

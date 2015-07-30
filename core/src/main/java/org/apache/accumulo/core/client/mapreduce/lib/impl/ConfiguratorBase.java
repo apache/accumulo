@@ -35,10 +35,10 @@ import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.util.Base64;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,7 +81,7 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
+   * Configuration keys for available {@link Instance} types.
    *
    * @since 1.6.0
    */
@@ -321,7 +321,7 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configures a {@link MockInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -330,7 +330,9 @@ public class ConfiguratorBase {
    * @param instanceName
    *          the Accumulo instance name
    * @since 1.6.0
+   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
    */
+  @Deprecated
   public static void setMockInstance(Class<?> implementingClass, Configuration conf, String instanceName) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
     if (!conf.get(key, "").isEmpty())
@@ -351,12 +353,11 @@ public class ConfiguratorBase {
    * @return an Accumulo instance
    * @since 1.6.0
    * @see #setZooKeeperInstance(Class, Configuration, ClientConfiguration)
-   * @see #setMockInstance(Class, Configuration, String)
    */
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
     if ("MockInstance".equals(instanceType))
-      return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
+      return DeprecationUtil.makeMockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
     else if ("ZooKeeperInstance".equals(instanceType)) {
       return new ZooKeeperInstance(getClientConfiguration(implementingClass, conf));
     } else if (instanceType.isEmpty())

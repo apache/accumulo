@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -72,7 +71,7 @@ import org.apache.log4j.Logger;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, String)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, ClientConfiguration)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, ClientConfiguration)}
  * </ul>
  *
  * Other static methods are optional.
@@ -239,7 +238,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Configures a {@link MockInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -247,6 +246,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Accumulo instance name
    * @since 1.5.0
    */
+  @Deprecated
   public static void setMockInstance(Job job, String instanceName) {
     OutputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
   }
@@ -259,7 +259,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @return an Accumulo instance
    * @since 1.5.0
    * @see #setZooKeeperInstance(Job, ClientConfiguration)
-   * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
     return OutputConfigurator.getInstance(CLASS, context.getConfiguration());

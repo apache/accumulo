@@ -53,6 +53,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
+@Deprecated
 public class MockConnectorTest {
   Random random = new Random();
 

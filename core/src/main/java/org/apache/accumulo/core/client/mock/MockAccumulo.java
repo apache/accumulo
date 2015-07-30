@@ -40,6 +40,10 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
+/**
+ * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
+ */
+@Deprecated
 public class MockAccumulo {
   final Map<String,MockTable> tables = new HashMap<String,MockTable>();
   final Map<String,MockNamespace> namespaces = new HashMap<String,MockNamespace>();
@@ -48,11 +52,8 @@ public class MockAccumulo {
   final FileSystem fs;
   final AtomicInteger tableIdCounter = new AtomicInteger(0);
 
+  @Deprecated
   MockAccumulo(FileSystem fs) {
-    this.fs = fs;
-  }
-
-  {
     MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Authorizations.EMPTY);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
@@ -61,6 +62,7 @@ public class MockAccumulo {
     createTable("root", RootTable.NAME, true, TimeType.LOGICAL);
     createTable("root", MetadataTable.NAME, true, TimeType.LOGICAL);
     createTable("root", ReplicationTable.NAME, true, TimeType.LOGICAL);
+    this.fs = fs;
   }
 
   public FileSystem getFileSystem() {

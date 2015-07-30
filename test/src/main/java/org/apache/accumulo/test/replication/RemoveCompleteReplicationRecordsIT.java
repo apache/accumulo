@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.replication;
+package org.apache.accumulo.test.replication;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,8 +26,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -39,32 +37,44 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.master.replication.RemoveCompleteReplicationRecords;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
 
-public class RemoveCompleteReplicationRecordsTest {
+public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
-  private RemoveCompleteReplicationRecords rcrr;
-  private MockInstance inst;
+  private MockRemoveCompleteReplicationRecords rcrr;
   private Connector conn;
 
-  @Rule
-  public TestName test = new TestName();
+  private static class MockRemoveCompleteReplicationRecords extends RemoveCompleteReplicationRecords {
+
+    public MockRemoveCompleteReplicationRecords(Connector conn) {
+      super(conn);
+    }
+
+    @Override
+    public long removeCompleteRecords(Connector conn, BatchScanner bs, BatchWriter bw) {
+      return super.removeCompleteRecords(conn, bs, bw);
+    }
+
+  }
 
   @Before
   public void initialize() throws Exception {
-    inst = new MockInstance(test.getMethodName());
-    conn = inst.getConnector("root", new PasswordToken(""));
-    rcrr = new RemoveCompleteReplicationRecords(conn);
+    conn = getConnector();
+    rcrr = new MockRemoveCompleteReplicationRecords(conn);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    ReplicationTable.setOnline(conn);
   }
 
   @Test

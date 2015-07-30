@@ -62,7 +62,6 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -80,6 +79,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
@@ -186,7 +186,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
     String useMock = props.getProperty("useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
-      instance = new MockInstance();
+      instance = DeprecationUtil.makeMockInstance(this.getClass().getName());
     else {
       ClientConfiguration clientConf;
       if (props.containsKey("clientConfigurationFile")) {

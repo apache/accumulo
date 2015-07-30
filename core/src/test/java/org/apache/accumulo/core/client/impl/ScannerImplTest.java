@@ -18,11 +18,9 @@ package org.apache.accumulo.core.client.impl;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,13 +30,11 @@ import org.junit.Test;
  */
 public class ScannerImplTest {
 
-  MockInstance instance;
-  ClientContext context;
+  private ClientContext context;
 
   @Before
   public void setup() {
-    instance = new MockInstance();
-    context = new ClientContext(instance, new Credentials("root", new PasswordToken("")), new ClientConfiguration());
+    context = EasyMock.createMock(ClientContext.class);
   }
 
   @Test

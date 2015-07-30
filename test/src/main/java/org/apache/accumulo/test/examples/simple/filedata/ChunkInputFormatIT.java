@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.simple.filedata;
+
+package org.apache.accumulo.test.examples.simple.filedata;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -33,13 +32,13 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.examples.simple.filedata.ChunkInputFormat;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.mapreduce.Job;
@@ -47,40 +46,53 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ChunkInputFormatTest {
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 
-  private static AssertionError e0 = null;
-  private static AssertionError e1 = null;
-  private static AssertionError e2 = null;
-  private static IOException e3 = null;
+public class ChunkInputFormatIT extends AccumuloClusterHarness {
+
+  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to ensure test correctness),
+  // so error tests should check to see if there is at least one error (could be more depending on the test) rather than zero
+  private static Multimap<String,AssertionError> assertionErrors = ArrayListMultimap.create();
 
   private static final Authorizations AUTHS = new Authorizations("A", "B", "C", "D");
 
   private static List<Entry<Key,Value>> data;
   private static List<Entry<Key,Value>> baddata;
 
+  private Connector conn;
+  private String tableName;
+
+  @Before
+  public void setupInstance() throws Exception {
+    conn = getConnector();
+    tableName = getUniqueNames(1)[0];
+    conn.securityOperations().changeUserAuthorizations(conn.whoami(), AUTHS);
+  }
+
   @BeforeClass
   public static void setupClass() {
     System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
 
     data = new ArrayList<Entry<Key,Value>>();
-    ChunkInputStreamTest.addData(data, "a", "refs", "ida\0ext", "A&B", "ext");
-    ChunkInputStreamTest.addData(data, "a", "refs", "ida\0name", "A&B", "name");
-    ChunkInputStreamTest.addData(data, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
-    ChunkInputStreamTest.addData(data, "a", "~chunk", 100, 1, "A&B", "");
-    ChunkInputStreamTest.addData(data, "b", "refs", "ida\0ext", "A&B", "ext");
-    ChunkInputStreamTest.addData(data, "b", "refs", "ida\0name", "A&B", "name");
-    ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 0, "A&B", "qwertyuiop");
-    ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 0, "B&C", "qwertyuiop");
-    ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 1, "A&B", "");
-    ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 1, "B&C", "");
-    ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 1, "D", "");
+    ChunkInputStreamIT.addData(data, "a", "refs", "ida\0ext", "A&B", "ext");
+    ChunkInputStreamIT.addData(data, "a", "refs", "ida\0name", "A&B", "name");
+    ChunkInputStreamIT.addData(data, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
+    ChunkInputStreamIT.addData(data, "a", "~chunk", 100, 1, "A&B", "");
+    ChunkInputStreamIT.addData(data, "b", "refs", "ida\0ext", "A&B", "ext");
+    ChunkInputStreamIT.addData(data, "b", "refs", "ida\0name", "A&B", "name");
+    ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 0, "A&B", "qwertyuiop");
+    ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 0, "B&C", "qwertyuiop");
+    ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 1, "A&B", "");
+    ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 1, "B&C", "");
+    ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 1, "D", "");
     baddata = new ArrayList<Entry<Key,Value>>();
-    ChunkInputStreamTest.addData(baddata, "c", "refs", "ida\0ext", "A&B", "ext");
-    ChunkInputStreamTest.addData(baddata, "c", "refs", "ida\0name", "A&B", "name");
+    ChunkInputStreamIT.addData(baddata, "c", "refs", "ida\0ext", "A&B", "ext");
+    ChunkInputStreamIT.addData(baddata, "c", "refs", "ida\0name", "A&B", "name");
   }
 
   public static void entryEquals(Entry<Key,Value> e1, Entry<Key,Value> e2) {
@@ -94,6 +106,9 @@ public class ChunkInputFormatTest {
 
       @Override
       protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+        String table = context.getConfiguration().get("MRTester_tableName");
+        assertNotNull(table);
+
         byte[] b = new byte[20];
         int read;
         try {
@@ -115,10 +130,10 @@ public class ChunkInputFormatTest {
               assertEquals(read = value.read(b), -1);
               break;
             default:
-              assertTrue(false);
+              fail();
           }
         } catch (AssertionError e) {
-          e1 = e;
+          assertionErrors.put(table, e);
         } finally {
           value.close();
         }
@@ -127,10 +142,13 @@ public class ChunkInputFormatTest {
 
       @Override
       protected void cleanup(Context context) throws IOException, InterruptedException {
+        String table = context.getConfiguration().get("MRTester_tableName");
+        assertNotNull(table);
+
         try {
           assertEquals(2, count);
         } catch (AssertionError e) {
-          e2 = e;
+          assertionErrors.put(table, e);
         }
       }
     }
@@ -140,6 +158,9 @@ public class ChunkInputFormatTest {
 
       @Override
       protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+        String table = context.getConfiguration().get("MRTester_tableName");
+        assertNotNull(table);
+
         byte[] b = new byte[5];
         int read;
         try {
@@ -149,17 +170,17 @@ public class ChunkInputFormatTest {
               assertEquals(new String(b, 0, read), "asdfj");
               break;
             default:
-              assertTrue(false);
+              fail();
           }
         } catch (AssertionError e) {
-          e1 = e;
+          assertionErrors.put(table, e);
         }
         count++;
         try {
           context.nextKeyValue();
-          assertTrue(false);
+          fail();
         } catch (IOException ioe) {
-          e3 = ioe;
+          assertionErrors.put(table + "_map_ioexception", new AssertionError(toString(), ioe));
         }
       }
     }
@@ -167,20 +188,23 @@ public class ChunkInputFormatTest {
     public static class TestBadData extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       @Override
       protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+        String table = context.getConfiguration().get("MRTester_tableName");
+        assertNotNull(table);
+
         byte[] b = new byte[20];
         try {
           assertEquals(key.size(), 2);
           entryEquals(key.get(0), baddata.get(0));
           entryEquals(key.get(1), baddata.get(1));
         } catch (AssertionError e) {
-          e0 = e;
+          assertionErrors.put(table, e);
         }
         try {
           assertFalse(value.read(b) > 0);
           try {
             fail();
           } catch (AssertionError e) {
-            e1 = e;
+            assertionErrors.put(table, e);
           }
         } catch (Exception e) {
           // expected, ignore
@@ -190,7 +214,7 @@ public class ChunkInputFormatTest {
           try {
             fail();
           } catch (AssertionError e) {
-            e2 = e;
+            assertionErrors.put(table, e);
           }
         } catch (Exception e) {
           // expected, ignore
@@ -200,14 +224,14 @@ public class ChunkInputFormatTest {
 
     @Override
     public int run(String[] args) throws Exception {
-      if (args.length != 5) {
-        throw new IllegalArgumentException("Usage : " + CIFTester.class.getName() + " <instance name> <user> <pass> <table> <mapperClass>");
+      if (args.length != 2) {
+        throw new IllegalArgumentException("Usage : " + CIFTester.class.getName() + " <table> <mapperClass>");
       }
 
-      String instance = args[0];
-      String user = args[1];
-      String pass = args[2];
-      String table = args[3];
+      String table = args[0];
+      assertionErrors.put(table, new AssertionError("Dummy"));
+      assertionErrors.put(table + "_map_ioexception", new AssertionError("Dummy_ioexception"));
+      getConf().set("MRTester_tableName", table);
 
       Job job = Job.getInstance(getConf());
       job.setJobName(this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -215,13 +239,13 @@ public class ChunkInputFormatTest {
 
       job.setInputFormatClass(ChunkInputFormat.class);
 
-      ChunkInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      ChunkInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
+      ChunkInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
       ChunkInputFormat.setInputTableName(job, table);
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
-      ChunkInputFormat.setMockInstance(job, instance);
 
       @SuppressWarnings("unchecked")
-      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[4]);
+      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[1]);
       job.setMapperClass(forName);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
@@ -243,10 +267,8 @@ public class ChunkInputFormatTest {
 
   @Test
   public void test() throws Exception {
-    MockInstance instance = new MockInstance("instance1");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
+    conn.tableOperations().create(tableName);
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -256,17 +278,14 @@ public class ChunkInputFormatTest {
     }
     bw.close();
 
-    assertEquals(0, CIFTester.main("instance1", "root", "", "test", CIFTester.TestMapper.class.getName()));
-    assertNull(e1);
-    assertNull(e2);
+    assertEquals(0, CIFTester.main(tableName, CIFTester.TestMapper.class.getName()));
+    assertEquals(1, assertionErrors.get(tableName).size());
   }
 
   @Test
   public void testErrorOnNextWithoutClose() throws Exception {
-    MockInstance instance = new MockInstance("instance2");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
+    conn.tableOperations().create(tableName);
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -276,18 +295,16 @@ public class ChunkInputFormatTest {
     }
     bw.close();
 
-    assertEquals(1, CIFTester.main("instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()));
-    assertNull(e1);
-    assertNull(e2);
-    assertNotNull(e3);
+    assertEquals(1, CIFTester.main(tableName, CIFTester.TestNoClose.class.getName()));
+    assertEquals(1, assertionErrors.get(tableName).size());
+    // this should actually exist, in addition to the dummy entry
+    assertEquals(2, assertionErrors.get(tableName + "_map_ioexception").size());
   }
 
   @Test
   public void testInfoWithoutChunks() throws Exception {
-    MockInstance instance = new MockInstance("instance3");
-    Connector conn = instance.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
+    conn.tableOperations().create(tableName);
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     for (Entry<Key,Value> e : baddata) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
@@ -296,9 +313,7 @@ public class ChunkInputFormatTest {
     }
     bw.close();
 
-    assertEquals(0, CIFTester.main("instance3", "root", "", "test", CIFTester.TestBadData.class.getName()));
-    assertNull(e0);
-    assertNull(e1);
-    assertNull(e2);
+    assertEquals(0, CIFTester.main(tableName, CIFTester.TestBadData.class.getName()));
+    assertEquals(1, assertionErrors.get(tableName).size());
   }
 }

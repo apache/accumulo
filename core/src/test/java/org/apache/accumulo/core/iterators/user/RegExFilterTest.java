@@ -17,38 +17,25 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class RegExFilterTest extends TestCase {
+public class RegExFilterTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
 
@@ -62,6 +49,7 @@ public class RegExFilterTest extends TestCase {
     return new Key(new Text(row), new Text(cf), new Text(cq));
   }
 
+  @Test
   public void test1() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
 
@@ -253,8 +241,8 @@ public class RegExFilterTest extends TestCase {
   }
 
   @Test
-  public void testNullByteInKey() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
-    String table = "nullRegexTest";
+  public void testNullByteInKey() throws IOException {
+    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
 
     String s1 = "first", s2 = "second";
     byte[] b1 = s1.getBytes(), b2 = s2.getBytes(), ball;
@@ -263,25 +251,17 @@ public class RegExFilterTest extends TestCase {
     ball[b1.length] = (byte) 0;
     System.arraycopy(b2, 0, ball, b1.length + 1, b2.length);
 
-    Instance instance = new MockInstance();
-    Connector conn = instance.getConnector("root", new PasswordToken(new byte[0]));
-
-    conn.tableOperations().create(table);
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
-    Mutation m = new Mutation(ball);
-    m.put(new byte[0], new byte[0], new byte[0]);
-    bw.addMutation(m);
-    bw.close();
+    Key key = new Key(ball, new byte[0], new byte[0], new byte[0], 90, false);
+    Value val = new Value(new byte[0]);
+    tm.put(key, val);
 
     IteratorSetting is = new IteratorSetting(5, RegExFilter.class);
     RegExFilter.setRegexs(is, s2, null, null, null, true, true);
 
-    Scanner scanner = conn.createScanner(table, new Authorizations());
-    scanner.addScanIterator(is);
+    RegExFilter filter = new RegExFilter();
+    filter.init(new SortedMapIterator(tm), is.getOptions(), null);
+    filter.seek(new Range(), EMPTY_COL_FAMS, false);
 
-    assertTrue("Client side iterator couldn't find a match when it should have", scanner.iterator().hasNext());
-
-    conn.tableOperations().attachIterator(table, is);
-    assertTrue("server side iterator couldn't find a match when it should have", conn.createScanner(table, new Authorizations()).iterator().hasNext());
+    assertTrue("iterator couldn't find a match when it should have", filter.hasTop());
   }
 }

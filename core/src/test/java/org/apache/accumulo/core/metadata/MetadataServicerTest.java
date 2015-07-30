@@ -21,19 +21,45 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.replication.ReplicationTable;
+import org.easymock.EasyMock;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MetadataServicerTest {
+
+  private static final String userTableName = "tableName";
+  private static final String userTableId = "tableId";
+  private static ClientContext context;
+
+  @BeforeClass
+  public static void setupContext() throws Exception {
+    HashMap<String,String> tableNameToIdMap = new HashMap<>();
+    tableNameToIdMap.put(RootTable.NAME, RootTable.ID);
+    tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID);
+    tableNameToIdMap.put(ReplicationTable.NAME, ReplicationTable.ID);
+    tableNameToIdMap.put(userTableName, userTableId);
+
+    context = EasyMock.createMock(ClientContext.class);
+    Connector conn = EasyMock.createMock(Connector.class);
+    Instance inst = EasyMock.createMock(Instance.class);
+    TableOperations tableOps = EasyMock.createMock(TableOperations.class);
+    EasyMock.expect(tableOps.tableIdMap()).andReturn(tableNameToIdMap).anyTimes();
+    EasyMock.expect(conn.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.expect(context.getInstance()).andReturn(inst).anyTimes();
+    EasyMock.expect(context.getConnector()).andReturn(conn).anyTimes();
+    EasyMock.replay(context, conn, inst, tableOps);
+  }
 
   @Test
   public void checkSystemTableIdentifiers() {
@@ -43,14 +69,6 @@ public class MetadataServicerTest {
 
   @Test
   public void testGetCorrectServicer() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
-    String userTableName = "A";
-    MockInstance instance = new MockInstance("metadataTest");
-    Connector connector = instance.getConnector("root", new PasswordToken(""));
-    connector.tableOperations().create(userTableName);
-    String userTableId = connector.tableOperations().tableIdMap().get(userTableName);
-    Credentials credentials = new Credentials("root", new PasswordToken(""));
-    ClientContext context = new ClientContext(instance, credentials, new ClientConfiguration());
-
     MetadataServicer ms = MetadataServicer.forTableId(context, RootTable.ID);
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);
@@ -61,6 +79,12 @@ public class MetadataServicerTest {
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(MetadataTable.ID, ms.getServicedTableId());
+
+    ms = MetadataServicer.forTableId(context, ReplicationTable.ID);
+    assertTrue(ms instanceof ServicerForUserTables);
+    assertTrue(ms instanceof TableMetadataServicer);
+    assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
+    assertEquals(ReplicationTable.ID, ms.getServicedTableId());
 
     ms = MetadataServicer.forTableId(context, userTableId);
     assertTrue(ms instanceof ServicerForUserTables);
@@ -78,6 +102,12 @@ public class MetadataServicerTest {
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(MetadataTable.ID, ms.getServicedTableId());
+
+    ms = MetadataServicer.forTableName(context, ReplicationTable.NAME);
+    assertTrue(ms instanceof ServicerForUserTables);
+    assertTrue(ms instanceof TableMetadataServicer);
+    assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
+    assertEquals(ReplicationTable.ID, ms.getServicedTableId());
 
     ms = MetadataServicer.forTableName(context, userTableName);
     assertTrue(ms instanceof ServicerForUserTables);

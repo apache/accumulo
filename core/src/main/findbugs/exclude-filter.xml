@@ -53,6 +53,7 @@
       <Class name="org.apache.accumulo.core.util.AddressUtil" />
       <Class name="org.apache.accumulo.core.zookeeper.ZooUtil" />
       <Class name="org.apache.accumulo.core.security.VisibilityConstraint" />
+      <Class name="org.apache.accumulo.core.client.mock.IteratorAdapter" />
     </Or>
     <Or>
       <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />

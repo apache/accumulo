@@ -20,7 +20,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.hadoop.conf.Configuration;
@@ -46,7 +45,7 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
+   * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link org.apache.accumulo.core.client.mock.MockInstance}.
    *
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
@@ -206,7 +205,7 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configures a {@link MockInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -233,7 +232,6 @@ public class ConfiguratorBase {
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    * @see #setZooKeeperInstance(Class, Configuration, String, String)
-   * @see #setMockInstance(Class, Configuration, String)
    */
   @Deprecated
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {

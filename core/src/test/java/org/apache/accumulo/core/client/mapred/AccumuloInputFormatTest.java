@@ -17,62 +17,29 @@
 package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Base64;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.lib.NullOutputFormat;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Level;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class AccumuloInputFormatTest {
 
-  private static final String PREFIX = AccumuloInputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
-  private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
-
   private JobConf job;
 
-  @BeforeClass
-  public static void setupClass() {
-    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
-  }
+  @Rule
+  public TestName test = new TestName();
 
   @Before
   public void createJob() {
@@ -203,141 +170,4 @@ public class AccumuloInputFormatTest {
     assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
   }
 
-  private static AssertionError e1 = null;
-  private static AssertionError e2 = null;
-
-  private static class MRTester extends Configured implements Tool {
-    private static class TestMapper implements Mapper<Key,Value,Key,Value> {
-      Key key = null;
-      int count = 0;
-
-      @Override
-      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
-        try {
-          if (key != null)
-            assertEquals(key.getRow().toString(), new String(v.get()));
-          assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-          assertEquals(new String(v.get()), String.format("%09x", count));
-        } catch (AssertionError e) {
-          e1 = e;
-        }
-        key = new Key(k);
-        count++;
-      }
-
-      @Override
-      public void configure(JobConf job) {}
-
-      @Override
-      public void close() throws IOException {
-        try {
-          assertEquals(100, count);
-        } catch (AssertionError e) {
-          e2 = e;
-        }
-      }
-
-    }
-
-    @Override
-    public int run(String[] args) throws Exception {
-
-      if (args.length != 3) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table>");
-      }
-
-      String user = args[0];
-      String pass = args[1];
-      String table = args[2];
-
-      JobConf job = new JobConf(getConf());
-      job.setJarByClass(this.getClass());
-
-      job.setInputFormat(AccumuloInputFormat.class);
-
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
-
-      job.setMapperClass(TestMapper.class);
-      job.setMapOutputKeyClass(Key.class);
-      job.setMapOutputValueClass(Value.class);
-      job.setOutputFormat(NullOutputFormat.class);
-
-      job.setNumReduceTasks(0);
-
-      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
-    }
-
-    public static void main(String... args) throws Exception {
-      Configuration conf = new Configuration();
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
-      assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
-    }
-  }
-
-  @Test
-  public void testMap() throws Exception {
-    MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
-    c.tableOperations().create(TEST_TABLE_1);
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
-
-    MRTester.main("root", "", TEST_TABLE_1);
-    assertNull(e1);
-    assertNull(e2);
-  }
-
-  @Test
-  public void testCorrectRangeInputSplits() throws Exception {
-    JobConf job = new JobConf();
-
-    String username = "user", table = "table", instance = "mapred_testCorrectRangeInputSplits";
-    PasswordToken password = new PasswordToken("password");
-    Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
-    boolean isolated = true, localIters = true;
-    Level level = Level.WARN;
-
-    Instance inst = new MockInstance(instance);
-    Connector connector = inst.getConnector(username, password);
-    connector.tableOperations().create(table);
-
-    AccumuloInputFormat.setConnectorInfo(job, username, password);
-    AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setMockInstance(job, instance);
-    AccumuloInputFormat.setScanIsolation(job, isolated);
-    AccumuloInputFormat.setLocalIterators(job, localIters);
-    AccumuloInputFormat.fetchColumns(job, fetchColumns);
-    AccumuloInputFormat.setLogLevel(job, level);
-
-    AccumuloInputFormat aif = new AccumuloInputFormat();
-
-    InputSplit[] splits = aif.getSplits(job, 1);
-
-    Assert.assertEquals(1, splits.length);
-
-    InputSplit split = splits[0];
-
-    Assert.assertEquals(RangeInputSplit.class, split.getClass());
-
-    RangeInputSplit risplit = (RangeInputSplit) split;
-
-    Assert.assertEquals(username, risplit.getPrincipal());
-    Assert.assertEquals(table, risplit.getTableName());
-    Assert.assertEquals(password, risplit.getToken());
-    Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(instance, risplit.getInstanceName());
-    Assert.assertEquals(isolated, risplit.isIsolatedScan());
-    Assert.assertEquals(localIters, risplit.usesLocalIterators());
-    Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
-    Assert.assertEquals(level, risplit.getLogLevel());
-  }
 }

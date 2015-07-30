@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.replication;
+package org.apache.accumulo.test.replication;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,9 +29,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -41,30 +38,35 @@ import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.master.replication.StatusMaker;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
-import org.junit.Rule;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-public class StatusMakerTest {
+public class StatusMakerIT extends ConfigurableMacBase {
 
-  @Rule
-  public TestName test = new TestName();
+  private Connector conn;
+
+  @Before
+  public void setupInstance() throws Exception {
+    conn = getConnector();
+    ReplicationTable.setOnline(conn);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+  }
 
   @Test
   public void statusRecordsCreated() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    String sourceTable = "source";
+    String sourceTable = testName.getMethodName();
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
 
@@ -111,11 +113,7 @@ public class StatusMakerTest {
 
   @Test
   public void openMessagesAreNotDeleted() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    String sourceTable = "source";
+    String sourceTable = testName.getMethodName();
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
 
@@ -151,11 +149,7 @@ public class StatusMakerTest {
 
   @Test
   public void closedMessagesAreDeleted() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    String sourceTable = "source";
+    String sourceTable = testName.getMethodName();
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
 
@@ -198,11 +192,7 @@ public class StatusMakerTest {
 
   @Test
   public void closedMessagesCreateOrderRecords() throws Exception {
-    MockInstance inst = new MockInstance(test.getMethodName());
-    Credentials creds = new Credentials("root", new PasswordToken(""));
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-
-    String sourceTable = "source";
+    String sourceTable = testName.getMethodName();
     conn.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
 

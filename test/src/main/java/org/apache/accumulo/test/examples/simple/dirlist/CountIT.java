@@ -14,71 +14,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.simple.dirlist;
+package org.apache.accumulo.test.examples.simple.dirlist;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.examples.simple.dirlist.FileCount;
 import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
+import org.apache.accumulo.examples.simple.dirlist.Ingest;
+import org.apache.accumulo.examples.simple.dirlist.QueryUtil;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.Before;
+import org.junit.Test;
 
-public class CountTest extends TestCase {
+public class CountIT extends ConfigurableMacBase {
 
-  private static final Logger log = LoggerFactory.getLogger(CountTest.class);
+  private Connector conn;
+  private String tableName;
 
-  {
-    try {
-      Connector conn = new MockInstance("counttest").getConnector("root", new PasswordToken(""));
-      conn.tableOperations().create("dirlisttable");
-      BatchWriter bw = conn.createBatchWriter("dirlisttable", new BatchWriterConfig());
-      ColumnVisibility cv = new ColumnVisibility();
-      // / has 1 dir
-      // /local has 2 dirs 1 file
-      // /local/user1 has 2 files
-      bw.addMutation(Ingest.buildMutation(cv, "/local", true, false, true, 272, 12345, null));
-      bw.addMutation(Ingest.buildMutation(cv, "/local/user1", true, false, true, 272, 12345, null));
-      bw.addMutation(Ingest.buildMutation(cv, "/local/user2", true, false, true, 272, 12345, null));
-      bw.addMutation(Ingest.buildMutation(cv, "/local/file", false, false, false, 1024, 12345, null));
-      bw.addMutation(Ingest.buildMutation(cv, "/local/file", false, false, false, 1024, 23456, null));
-      bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file1", false, false, false, 2024, 12345, null));
-      bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file2", false, false, false, 1028, 23456, null));
-      bw.close();
-    } catch (Exception e) {
-      log.error("Could not add mutations in initializer.", e);
-    }
+  @Before
+  public void setupInstance() throws Exception {
+    tableName = getUniqueNames(1)[0];
+    conn = getConnector();
+    conn.tableOperations().create(tableName);
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    ColumnVisibility cv = new ColumnVisibility();
+    // / has 1 dir
+    // /local has 2 dirs 1 file
+    // /local/user1 has 2 files
+    bw.addMutation(Ingest.buildMutation(cv, "/local", true, false, true, 272, 12345, null));
+    bw.addMutation(Ingest.buildMutation(cv, "/local/user1", true, false, true, 272, 12345, null));
+    bw.addMutation(Ingest.buildMutation(cv, "/local/user2", true, false, true, 272, 12345, null));
+    bw.addMutation(Ingest.buildMutation(cv, "/local/file", false, false, false, 1024, 12345, null));
+    bw.addMutation(Ingest.buildMutation(cv, "/local/file", false, false, false, 1024, 23456, null));
+    bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file1", false, false, false, 2024, 12345, null));
+    bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file2", false, false, false, 1028, 23456, null));
+    bw.close();
   }
 
+  @Test
   public void test() throws Exception {
-    Scanner scanner = new MockInstance("counttest").getConnector("root", new PasswordToken("")).createScanner("dirlisttable", new Authorizations());
+    Scanner scanner = conn.createScanner(tableName, new Authorizations());
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());
 
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.instance = "counttest";
-    opts.setTableName("dirlisttable");
-    opts.setPassword(new Password("secret"));
-    opts.mock = true;
-    opts.setPassword(new Opts.Password(""));
+    opts.instance = conn.getInstance().getInstanceName();
+    opts.zookeepers = conn.getInstance().getZooKeepers();
+    opts.setTableName(tableName);
+    opts.setPrincipal(conn.whoami());
+    opts.setPassword(new Opts.Password(ROOT_PASSWORD));
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
 

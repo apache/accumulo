@@ -233,7 +233,7 @@ public class FileCount {
     }
   }
 
-  FileCount(Opts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts) throws Exception {
+  public FileCount(Opts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts) throws Exception {
     this.opts = opts;
     this.scanOpts = scanOpts;
     this.bwOpts = bwOpts;
