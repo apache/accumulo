@@ -63,7 +63,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException {
+  public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {

@@ -29,7 +29,9 @@ public interface InstanceOperations {
 
   /**
    * Sets an system property in zookeeper. Tablet servers will pull this setting and override the equivalent setting in accumulo-site.xml. Changes can be seen
-   * using {@link #getSystemConfiguration()}
+   * using {@link #getSystemConfiguration()}.
+   * <p>
+   * Only some properties can be changed by this method, an IllegalArgumentException will be thrown if a read-only property is set.
    *
    * @param property
    *          the name of a per-table property

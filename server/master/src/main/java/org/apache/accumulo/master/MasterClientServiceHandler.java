@@ -378,6 +378,9 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
     try {
       SystemPropUtil.setSystemProperty(property, value);
       updatePlugins(property);
+    } catch (IllegalArgumentException iae) {
+      // throw the exception here so it is not caught and converted to a generic TException
+      throw iae;
     } catch (Exception e) {
       Master.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());

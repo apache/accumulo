@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -33,17 +34,32 @@ public class SystemPropUtil {
   private static final Logger log = LoggerFactory.getLogger(SystemPropUtil.class);
 
   public static boolean setSystemProperty(String property, String value) throws KeeperException, InterruptedException {
-    Property p = Property.getPropertyByKey(property);
-    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property)) {
-      log.warn("Ignoring property {} it is null, an invalid format, or not capable of being changed in zookeeper", property);
-      return false;
+    if (!Property.isValidZooPropertyKey(property)) {
+      IllegalArgumentException iae = new IllegalArgumentException("Zookeeper property is not mutable: " + property);
+      log.debug("Attempted to set zookeeper property.  It is not mutable", iae);
+      throw iae;
+    }
+
+    // Find the property taking prefix into account
+    Property foundProp = null;
+    for (Property prop : Property.values()) {
+      if (PropertyType.PREFIX == prop.getType() && property.startsWith(prop.getKey()) || prop.getKey().equals(property)) {
+        foundProp = prop;
+        break;
+      }
+    }
+
+    if ((foundProp == null || !foundProp.getType().isValidFormat(value))) {
+      IllegalArgumentException iae = new IllegalArgumentException("Ignoring property " + property + " it is either null or in an invalid format");
+      log.debug("Attempted to set zookeeper property.  Value is either null or invalid", iae);
+      throw iae;
     }
 
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
-    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+    boolean result = ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
-    return true;
+    return result;
   }
 
   public static void removeSystemProperty(String property) throws InterruptedException, KeeperException {
