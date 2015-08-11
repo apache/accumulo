@@ -857,15 +857,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       switch (op) {
         case CREATE: {
           String tableName = ByteBufferUtil.toString(arguments.get(0));
-          if (!security.canCreateTable(c))
+          if (!security.canCreateTable(c, tableName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
           checkNotMetadataTable(tableName, TableOperation.CREATE);
           checkTableName(tableName, TableOperation.CREATE);
 
           org.apache.accumulo.core.client.admin.TimeType timeType = org.apache.accumulo.core.client.admin.TimeType.valueOf(ByteBufferUtil.toString(arguments
               .get(1)));
-          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options)), autoCleanup);
 
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options)), autoCleanup);
           break;
         }
         case RENAME: {
@@ -879,7 +880,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           final boolean canRename;
           try {
-            canRename = security.canRenameTable(c, tableId);
+            canRename = security.canRenameTable(c, tableId, newTableName, oldTableName);
           } catch (ThriftSecurityException e) {
             throwIfTableMissingSecurityException(e, tableId, oldTableName, TableOperation.RENAME);
             throw e;
@@ -926,7 +927,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
             propertiesToSet.put(entry.getKey(), entry.getValue());
           }
-
           fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTable(c.getPrincipal(), srcTableId, tableName, propertiesToSet, propertiesToExclude)),
               autoCleanup);
 
@@ -1051,7 +1051,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           final boolean canBulkImport;
           try {
-            canBulkImport = security.canBulkImport(c, tableId);
+            canBulkImport = security.canBulkImport(c, tableId, dir);
           } catch (ThriftSecurityException e) {
             throwIfTableMissingSecurityException(e, tableId, tableName, TableOperation.BULK_IMPORT);
             throw e;
@@ -1104,7 +1104,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
-          if (!security.canImport(c))
+          if (!security.canImport(c, tableName, exportDir))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
           checkNotMetadataTable(tableName, TableOperation.CREATE);
@@ -1121,7 +1121,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           final boolean canExport;
           try {
-            canExport = security.canExport(c, tableId);
+            canExport = security.canExport(c, tableId, exportDir);
           } catch (ThriftSecurityException e) {
             throwIfTableMissingSecurityException(e, tableId, tableName, TableOperation.EXPORT);
             throw e;
@@ -2308,12 +2308,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
 
     TCredentials systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {
-        new ZooTabletStateStore(new ZooStore(zroot)),
+    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)),
         // ACCUMULO-3580 ACCUMULO-3618 disable metadata table scanning optimizations
-        new RootTabletStateStore(instance, systemAuths, null),
-        new MetaDataStateStore(instance, systemAuths, null)
-        };
+        new RootTabletStateStore(instance, systemAuths, null), new MetaDataStateStore(instance, systemAuths, null)};
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));

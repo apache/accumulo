@@ -216,7 +216,7 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName))
+            if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName, dir.getName()))
               throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
           } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
@@ -230,7 +230,7 @@ public class TableOp extends Test {
         fs.delete(dir, true);
         fs.delete(fail, true);
 
-        if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName))
+        if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName, dir.getName()))
           throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;
       case ALTER_TABLE:

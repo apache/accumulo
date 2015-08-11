@@ -314,12 +314,12 @@ public class SecurityOperation {
         || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false);
   }
 
-  public boolean canCreateTable(TCredentials c) throws ThriftSecurityException {
+  public boolean canCreateTable(TCredentials c, String tablename) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }
 
-  public boolean canRenameTable(TCredentials c, String tableId) throws ThriftSecurityException {
+  public boolean canRenameTable(TCredentials c, String tableId, String newTableName, String oldTableName) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
@@ -354,7 +354,7 @@ public class SecurityOperation {
     return hasSystemPermission(c.getPrincipal(), SystemPermission.SYSTEM, false) || hasTablePermission(c.getPrincipal(), tableId, TablePermission.WRITE, false);
   }
 
-  public boolean canBulkImport(TCredentials c, String tableId) throws ThriftSecurityException {
+  public boolean canBulkImport(TCredentials c, String tableId, String importDir) throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c.getPrincipal(), tableId, TablePermission.BULK_IMPORT, false);
   }
@@ -601,12 +601,12 @@ public class SecurityOperation {
     }
   }
 
-  public boolean canExport(TCredentials credentials, String tableId) throws ThriftSecurityException {
+  public boolean canExport(TCredentials credentials, String tableId, String exportDir) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.getPrincipal(), tableId, TablePermission.READ, false);
   }
 
-  public boolean canImport(TCredentials credentials) throws ThriftSecurityException {
+  public boolean canImport(TCredentials credentials, String tableName, String importDir) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }

@@ -201,10 +201,13 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public boolean hasSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       boolean result = super.hasSystemPermission(credentials, user, permission);
-      audit(credentials, "checked permission %s on %s", permission, user);
+      if (result)
+        audit(credentials, "checked permission %s on %s", permission, user);
+      else
+        audit(credentials, "checked permission %s on %s denied", permission, user);
       return result;
     } catch (ThriftSecurityException ex) {
-      audit(credentials, ex, "checking permission %s on %s", permission, user);
+      audit(credentials, ex, "checking permission %s on %s denied", permission, user);
       log.debug(ex);
       throw ex;
     }
@@ -244,6 +247,354 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "deleting table %s", table);
       log.debug(ex);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canCreateTable(TCredentials c, String tablename) throws ThriftSecurityException {
+    try {
+      boolean result = super.canCreateTable(c, tablename);
+      if (result)
+        audit(c, "create table %s allowed", tablename);
+      else
+        audit(c, "create table %s denied", tablename);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "create table %s denied", tablename);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canRenameTable(TCredentials c, String tableId, String newTableName, String oldTableName) throws ThriftSecurityException {
+    try {
+      boolean result = super.canRenameTable(c, tableId, newTableName, oldTableName);
+      if (result)
+        audit(c, "rename table on tableId %s from %s to %s allowed", tableId, oldTableName, newTableName);
+      else
+        audit(c, "rename table on tableId %s from %s to %s denied", tableId, oldTableName, newTableName);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "rename table on tableId %s from %s to %s denied", tableId, oldTableName, newTableName);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canSplitTablet(TCredentials credentials, String table) throws ThriftSecurityException {
+    try {
+      boolean result = super.canSplitTablet(credentials, table);
+      if (result)
+        audit(credentials, "split tablet on table %s allowed", table);
+      else
+        audit(credentials, "split tablet on table %s denied", table);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "split tablet on table %s denied", table);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canPerformSystemActions(TCredentials credentials) throws ThriftSecurityException {
+    try {
+      boolean result = super.canPerformSystemActions(credentials);
+      if (result)
+        audit(credentials, "system action allowed");
+      else
+        audit(credentials, "system action denied");
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "system action denied");
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canFlush(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canFlush(c, tableId);
+      if (result)
+        audit(c, "flush on tableId %s allowed ", tableId);
+      else
+        audit(c, "flush on tableId %s denied ", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "flush on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canAlterTable(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canAlterTable(c, tableId);
+      if (result)
+        audit(c, "alter table on tableId %s allowed", tableId);
+      else
+        audit(c, "alter table on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "alter table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canCloneTable(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canCloneTable(c, tableId);
+      if (result)
+        audit(c, "clone table on tableId %s allowed", tableId);
+      else
+        audit(c, "clone table on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "clone table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canDeleteTable(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canDeleteTable(c, tableId);
+      if (result)
+        audit(c, "delete table on tableId %s allowed", tableId);
+      else
+        audit(c, "delete table on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "delete table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canOnlineOfflineTable(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canOnlineOfflineTable(c, tableId);
+      if (result)
+        audit(c, "offline table on tableId %s allowed", tableId);
+      else
+        audit(c, "offline table on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "offline table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canMerge(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canMerge(c, tableId);
+      if (result)
+        audit(c, "merge table on tableId %s allowed", tableId);
+      else
+        audit(c, "merge table on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "merge table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canDeleteRange(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canDeleteRange(c, tableId);
+      if (result)
+        audit(c, "delete range on tableId %s allowed", tableId);
+      else
+        audit(c, "delete range on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "delete range on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canBulkImport(TCredentials c, String tableId, String importDir) throws ThriftSecurityException {
+    try {
+      boolean result = super.canBulkImport(c, tableId, importDir);
+      if (result)
+        audit(c, "bulk import on tableId %s from directory %s allowed", tableId, importDir);
+      else
+        audit(c, "bulk import on tableId %s from directory %s denied", tableId, importDir);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "bulk import on tableId %s from directory %s denied", tableId, importDir);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canCompact(TCredentials c, String tableId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canCompact(c, tableId);
+      if (result)
+        audit(c, "compact on tableId %s allowed", tableId);
+      else
+        audit(c, "compact on tableId %s denied", tableId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "compact on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canChangeAuthorizations(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canChangeAuthorizations(c, user);
+      if (result)
+        audit(c, "change authorizations on user %s allowed", user);
+      else
+        audit(c, "change authorizations on user %s denied", user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "change authorizations on user %s denied", user);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canChangePassword(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canChangePassword(c, user);
+      if (result)
+        audit(c, "change password on user %s allowed", user);
+      else
+        audit(c, "change password on user %s denied", user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "change password on user %s denied", user);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canCreateUser(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canCreateUser(c, user);
+      if (result)
+        audit(c, "create user on user %s allowed", user);
+      else
+        audit(c, "create user on user %s denied", user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "create user on user %s denied", user);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canDropUser(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canDropUser(c, user);
+      if (result)
+        audit(c, "drop user on user %s allowed", user);
+      else
+        audit(c, "drop user on user %s denied", user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "drop user on user %s denied", user);
+
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canGrantSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
+    try {
+      boolean result = super.canGrantSystem(c, user, sysPerm);
+      if (result)
+        audit(c, "grant system permission %s for user %s allowed", sysPerm, user);
+      else
+        audit(c, "grant system permission %s for user %s denied", sysPerm, user);
+      return result;
+
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "grant system permission %s for user %s denied", sysPerm, user);
+
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canGrantTable(TCredentials c, String user, String table) throws ThriftSecurityException {
+    try {
+      boolean result = super.canGrantTable(c, user, table);
+      if (result)
+        audit(c, "grant table on table %s for user %s allowed", table, user);
+      else
+        audit(c, "grant table on table %s for user %s denied", table, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "grant table on table %s for user %s denied", table, user);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canRevokeSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
+    try {
+      boolean result = super.canRevokeSystem(c, user, sysPerm);
+      if (result)
+        audit(c, "revoke system permission %s for user %s allowed", sysPerm, user);
+      else
+        audit(c, "revoke system permission %s for user %s denied", sysPerm, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "revoke system permission %s for user %s denied", sysPerm, user);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canRevokeTable(TCredentials c, String user, String table) throws ThriftSecurityException {
+    try {
+      boolean result = super.canRevokeTable(c, user, table);
+      if (result)
+        audit(c, "revoke table on table %s for user %s allowed", table, user);
+      else
+        audit(c, "revoke table on table %s for user %s denied", table, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "revoke table on table %s for user %s denied", table, user);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canExport(TCredentials credentials, String tableId, String exportDir) throws ThriftSecurityException {
+    try {
+      boolean result = super.canExport(credentials, tableId, exportDir);
+      if (result)
+        audit(credentials, "export table on tableId %s to directory %s allowed", tableId, exportDir);
+      else
+        audit(credentials, "export table on tableId %s to directory %s denied", tableId, exportDir);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "export table on tableId %s to directory %s denied", tableId, exportDir);
+      throw ex;
+    }
+  }
+
+  @Override
+  public boolean canImport(TCredentials credentials, String tableName, String importDir) throws ThriftSecurityException {
+    try {
+      boolean result = super.canImport(credentials, tableName, importDir);
+      if (result)
+        audit(credentials, "import table %s from directory %s allowed", tableName, importDir);
+      else
+        audit(credentials, "import table %s from directory %s denied", tableName, importDir);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "import table %s from directory %s denied", tableName, importDir);
       throw ex;
     }
   }
