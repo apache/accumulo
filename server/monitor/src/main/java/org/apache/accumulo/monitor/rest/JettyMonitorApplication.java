@@ -32,7 +32,8 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.jetty.JettyHttpContainerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
-import org.glassfish.jersey.server.mvc.mustache.MustacheMvcFeature;
+import org.glassfish.jersey.server.mvc.MvcFeature;
+import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,7 @@ public class JettyMonitorApplication extends MonitorApplication {
     // Set the objects on the old monitor and start daemons to regularly poll the data
     startDataDaemons(config, instance, serverContext);
 
-    final ResourceConfig rc = new ResourceConfig().register(MustacheMvcFeature.class).property(MustacheMvcFeature.TEMPLATE_BASE_PATH, "/templates")
+    final ResourceConfig rc = new ResourceConfig().register(FreemarkerMvcFeature.class).property(MvcFeature.TEMPLATE_BASE_PATH, "/templates")
         .packages("org.apache.accumulo.monitor.rest.api", "org.apache.accumulo.monitor.rest.resources", "org.apache.accumulo.monitor.rest.view")
         .property(ServerProperties.TRACING, "ALL").register(new LoggingFilter(java.util.logging.Logger.getLogger("JettyMonitorApplication"), true))
         .register(JacksonFeature.class).registerClasses(AccumuloExceptionMapper.class);

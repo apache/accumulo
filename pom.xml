@@ -202,11 +202,6 @@
         <version>${jackson.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.spullara.mustache.java</groupId>
-        <artifactId>compiler</artifactId>
-        <version>0.8.17</version>
-      </dependency>
-      <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
         <version>1.0-rc2</version>
@@ -579,6 +574,11 @@
         <version>${jetty.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.freemarker</groupId>
+        <artifactId>freemarker</artifactId>
+        <version>2.3.23</version>
+      </dependency>
+      <dependency>
         <groupId>org.glassfish.hk2</groupId>
         <artifactId>hk2-api</artifactId>
         <version>${hk2.version}</version>
@@ -655,7 +655,7 @@
       </dependency>
       <dependency>
         <groupId>org.glassfish.jersey.ext</groupId>
-        <artifactId>jersey-mvc-mustache</artifactId>
+        <artifactId>jersey-mvc-freemarker</artifactId>
         <version>${jersey.version}</version>
       </dependency>
       <dependency>

@@ -31,7 +31,7 @@ public class Overview {
   public Viewable get() {
     Map<String,Object> model = new HashMap<>();
     model.put("foo", "bar");
-    return new Viewable("index.mustache", model);
+    return new Viewable("index.ftl", model);
   }
 
 }
