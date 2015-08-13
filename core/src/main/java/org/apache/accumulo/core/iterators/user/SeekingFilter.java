@@ -67,7 +67,7 @@ public abstract class SeekingFilter extends WrappingIterator {
   /**
    * Subclasses must provide an implementation which examines the given key and value and determines (1) whether to accept the KV pair and (2) how far to
    * advance the source iterator past the key.
-   * 
+   *
    * @param k
    *          a key
    * @param v
@@ -80,7 +80,7 @@ public abstract class SeekingFilter extends WrappingIterator {
    * Whenever the subclass returns AdvanceResult.USE_HINT from its filter predicate, this method will be called to see how far to advance the source iterator.
    * The return value must be a key which is greater than (sorts after) the input key. If the subclass never returns USE_HINT, this method will never be called
    * and may safely return null.
-   * 
+   *
    * @param k
    *          a key
    * @param v
