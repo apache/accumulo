@@ -1,4 +1,4 @@
-<!--
+<#--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
   this work for additional information regarding copyright ownership.
@@ -25,10 +25,18 @@
           <a href='/tables'>Tables</a><br />
           <a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />
           <a href='/replication'>Replication</a><br />
-          {{ recent_logs_warning }}
-          <span class='warning'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(3)</a></span></span><br />
+          <#if num_logs gt 0>
+            <span class='<#if logsHaveError>error<#else>warning</#if>'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(${num_logs})</span></a></span><br />
+          </#if>
+          <#if num_problems gt 0>
+            <span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(${num_problems}")</span></a></span><br />
+          </#if>
           <hr />
           <a href='/xml'>XML</a><br />
           <a href='/json'>JSON</a><hr />
-          <div class='smalltext'>[<a href='/op?action=refresh&value=5&redir=%2Fmaster'>enable&nbsp;auto-refresh</a>]</div>
+          <#if is_ssl>
+            <a href='/shell'>Shell</a><hr />
+          </#if>
+          <div class='smalltext'>[<a href='/op?action=refresh&value=<#if refresh < 1>5<#else>-1</#if>&redir=${redirect}'>
+                <#if refresh < 1>enable<#else>disable</#if>&nbsp;auto-refresh</a>]</div>
         </div>

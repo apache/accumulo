@@ -34,6 +34,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.mvc.MvcFeature;
 import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
+import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +53,10 @@ public class JettyMonitorApplication extends MonitorApplication {
 
     final ResourceConfig rc = new ResourceConfig().register(FreemarkerMvcFeature.class).property(MvcFeature.TEMPLATE_BASE_PATH, "/templates")
         .packages("org.apache.accumulo.monitor.rest.api", "org.apache.accumulo.monitor.rest.resources", "org.apache.accumulo.monitor.rest.view")
-        .property(ServerProperties.TRACING, "ALL").register(new LoggingFilter(java.util.logging.Logger.getLogger("JettyMonitorApplication"), true))
-        .register(JacksonFeature.class).registerClasses(AccumuloExceptionMapper.class);
+        .property(ServerProperties.TRACING, "ALL").property(ServletProperties.FILTER_FORWARD_ON_404, "true")
+        .property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/web/.*")
+        .register(new LoggingFilter(java.util.logging.Logger.getLogger("JettyMonitorApplication"), true)).register(JacksonFeature.class)
+        .registerClasses(AccumuloExceptionMapper.class);
 
     final URI serverUri = getServerUri();
 

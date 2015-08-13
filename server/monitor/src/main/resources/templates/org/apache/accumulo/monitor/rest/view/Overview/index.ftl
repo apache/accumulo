@@ -16,34 +16,37 @@
 -->
 <html>
   <head>
-    <#--title>${title} - Accumulo ${version}</title>
-    <#if refresh > 0 ><meta http-equiv='refresh' content='${refresh}' /></#if>
+    <title>${title} - Accumulo ${version}</title>
+    <#if refresh gt 0 ><meta http-equiv='refresh' content='${refresh}' /></#if>
     <meta http-equiv='Content-Type' content='test/html"' />
-    <meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
-    <meta http-equiv='Content-Style-Type' content='text/css' />\n");
-    <link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />\n");
-    <link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
-    <script src='/web/functions.js' type='text/javascript'></script>\n");
+    <meta http-equiv='Content-Script-Type' content='text/javascript' />
+    <meta http-equiv='Content-Style-Type' content='text/css' />
+    <link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />
+    <link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />
+    <script src='/web/functions.js' type='text/javascript'></script>
 
-    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/web/flot/excanvas.min.js"></script><![endif]
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/web/flot/excanvas.min.js"></script><![endif]-->
     <script language="javascript" type="text/javascript" src="/web/flot/jquery.js"></script>
     <script language="javascript" type="text/javascript" src="/web/flot/jquery.flot.js"></script>
-    -->
   </head>
 
   <body>
-    <#--
     <div id='content-wrapper'>
       <div id='content'>
-        <div id='header'><div id='headertitle'><h1>Master Server:localhost</h1></div>
-        <div id='subheader'>Instance&nbsp;Name:&nbsp;monitor&nbsp;&nbsp;&nbsp;Version:&nbsp;1.8.0-SNAPSHOT
-          <br><span class='smalltext'>Instance&nbsp;ID:&nbsp;2f904114-3313-4e29-9323-66330180b924</span>
-          <br><span class='smalltext'>Wed&nbsp;Aug&nbsp;12&nbsp;23:13:08&nbsp;EDT&nbsp;2015</span></div>
+        <div id='header'>
+          <div id='headertitle'>
+            <h1>${title}</h1>
+          </div>
+          <div id='subheader'>Instance&nbsp;Name:&nbsp;${instance_name}&nbsp;&nbsp;&nbsp;Version:&nbsp;${version}
+            <br><span class='smalltext'>Instance&nbsp;ID:&nbsp;${instance_id}</span>
+            <br><span class='smalltext'>${current_date}</span>
+          </div>
         </div>
 
+        <#include "/templates/sidebar.ftl">
 
         <div id='main' style='bottom:0'>
-        
+        <#--
           <br />
           <h2 class='warning'><a href='/log'>Log Events: 0 Errors, 3 Warnings, 3 Total</a></h2>
           <div>
@@ -72,9 +75,9 @@
             <tr><td class='firstcell left'><a href='/tables?t=1'>trace</a></td><td class='center'><span>ONLINE</span></td><td class='right'>1</td><td class='right'>0</td><td class='right'>2.16K</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>&mdash;</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td></tr>
             </table>
           </div>
+          -->
         </div>
-      </div>
+      </div>    
     </div>
-    -->
   </body>
 </html>
