@@ -26,6 +26,16 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * Filters key/value pairs a range of column families and a range of column qualifiers. Only keys which fall in both ranges will be passed by the filter. Note
+ * that if you have a small, well-defined set of column families it will be much more efficient to configure locality groups to isolate that data instead of
+ * configuring this iterator to seek over it.
+ *
+ * This filter may be more efficient than the CfCqSliceFilter or the ColumnSlice filter for small slices of large rows as it will seek to the next potential
+ * match once it determines that it has iterated past the end of a slice.
+ *
+ * @see org.apache.accumulo.core.iterators.user.CfCqSliceOpts for a description of this iterator's options.
+ */
 public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescriber {
 
   private static final FilterResult SKIP_TO_HINT = new FilterResult(false, AdvanceResult.USE_HINT);
@@ -38,8 +48,7 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
   private CfCqSliceOpts cso;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env)
-          throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     cso = new CfCqSliceOpts(options);
   }
@@ -98,7 +107,7 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
       int minCqCmp = k.compareColumnQualifier(cso.minCq);
       if (minCqCmp < 0) {
         Key hint = new Key(k.getRow(), k.getColumnFamily(), cso.minCq);
-        return cso.minInclusive ? hint: hint.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
+        return cso.minInclusive ? hint : hint.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
       }
     }
     return null;
@@ -113,11 +122,11 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
 
   @Override
   public IteratorOptions describeOptions() {
-    return cso.describeOptions();
+    return new CfCqSliceOpts.Describer().describeOptions();
   }
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    return cso.validateOptions(options);
+    return new CfCqSliceOpts.Describer().validateOptions(options);
   }
 }

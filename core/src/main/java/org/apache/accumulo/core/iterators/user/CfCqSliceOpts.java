@@ -25,7 +25,7 @@ import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class CfCqSliceOpts implements OptionDescriber {
+public class CfCqSliceOpts {
   public static final String OPT_MIN_CF = "minCf";
   public static final String OPT_MIN_CF_DESC = "UTF-8 encoded string representing minimum column family. "
       + "Optional parameter. If minCf and minCq are undefined, the column slice will start at the first column "
@@ -85,33 +85,41 @@ public class CfCqSliceOpts implements OptionDescriber {
     optStr = options.get(OPT_MAX_CQ);
     maxCq = optStr == null ? new Text() : new Text(optStr.getBytes(UTF_8));
 
-    minInclusive = !options.containsKey(OPT_MIN_INCLUSIVE) ? true : Boolean.valueOf(options.get(OPT_MIN_INCLUSIVE));
-    maxInclusive = !options.containsKey(OPT_MIN_INCLUSIVE) ? true : Boolean.valueOf(options.get(OPT_MAX_INCLUSIVE));
+    optStr = options.get(OPT_MIN_INCLUSIVE);
+    minInclusive = optStr == null || optStr.isEmpty() ? true : Boolean.valueOf(options.get(OPT_MIN_INCLUSIVE));
+
+    optStr = options.get(OPT_MAX_INCLUSIVE);
+    maxInclusive = optStr == null || optStr.isEmpty() ? true : Boolean.valueOf(options.get(OPT_MAX_INCLUSIVE));
   }
 
-  @Override
-  public OptionDescriber.IteratorOptions describeOptions() {
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(OPT_MIN_CF, OPT_MIN_CF_DESC);
-    options.put(OPT_MIN_CQ, OPT_MIN_CQ_DESC);
-    options.put(OPT_MAX_CF, OPT_MAX_CF_DESC);
-    options.put(OPT_MAX_CQ, OPT_MAX_CQ_DESC);
-    options.put(OPT_MIN_INCLUSIVE, OPT_MIN_INCLUSIVE_DESC);
-    options.put(OPT_MAX_INCLUSIVE, OPT_MAX_INCLUSIVE_DESC);
-    return new OptionDescriber.IteratorOptions("ColumnSliceFilter", "Returns all key/value pairs where the column is between the specified values", options,
-        Collections.<String> emptyList());
-  }
+  static class Describer implements OptionDescriber {
+    @Override
+    public OptionDescriber.IteratorOptions describeOptions() {
+      Map<String,String> options = new HashMap<String,String>();
+      options.put(OPT_MIN_CF, OPT_MIN_CF_DESC);
+      options.put(OPT_MIN_CQ, OPT_MIN_CQ_DESC);
+      options.put(OPT_MAX_CF, OPT_MAX_CF_DESC);
+      options.put(OPT_MAX_CQ, OPT_MAX_CQ_DESC);
+      options.put(OPT_MIN_INCLUSIVE, OPT_MIN_INCLUSIVE_DESC);
+      options.put(OPT_MAX_INCLUSIVE, OPT_MAX_INCLUSIVE_DESC);
+      return new OptionDescriber.IteratorOptions("ColumnSliceFilter", "Returns all key/value pairs where the column is between the specified values", options,
+          Collections.<String> emptyList());
+    }
 
-  @Override
-  public boolean validateOptions(Map<String,String> options) {
-    // if you don't specify a max CF and a max CQ, that means there's no upper bounds to the slice. In that case
-    // you must not set max inclusive to false.
-    CfCqSliceOpts o = new CfCqSliceOpts(options);
-    boolean upperBoundsExist = o.maxCf != null && o.maxCq != null;
-    boolean boundsOk = !upperBoundsExist || !o.maxInclusive;
-    boolean cqRangeOk = maxCq.getLength() == 0 || (minCq.compareTo(maxCq) < 1);
-    boolean cfRangeOk = maxCf.getLength() == 0 || (minCf.compareTo(maxCf) < 1);
-    return boundsOk && cqRangeOk && cfRangeOk;
+    @Override
+    public boolean validateOptions(Map<String,String> options) {
+      // if you don't specify a max CF and a max CQ, that means there's no upper bounds to the slice. In that case
+      // you must not set max inclusive to false.
+      CfCqSliceOpts o = new CfCqSliceOpts(options);
+      boolean boundsOk = true;
+      boolean upperBoundsExist = o.maxCf.getLength() > 0 && o.maxCq.getLength() > 0;
+      if (upperBoundsExist) {
+        boundsOk = o.maxInclusive;
+      }
+      boolean cqRangeOk = o.maxCq.getLength() == 0 || (o.minCq.compareTo(o.maxCq) < 1);
+      boolean cfRangeOk = o.maxCf.getLength() == 0 || (o.minCf.compareTo(o.maxCf) < 1);
+      return boundsOk && cqRangeOk && cfRangeOk;
+    }
   }
 
 }

@@ -51,7 +51,8 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public abstract class TestCfCqSlice {
 
@@ -72,7 +73,7 @@ public abstract class TestCfCqSlice {
     Path macPath = Files.createTempDirectory("mac");
     System.out.println("MAC running at " + macPath);
     MiniAccumuloConfig macCfg = new MiniAccumuloConfig(macPath.toFile(), "password");
-    macCfg.setNumTservers(easyThereSparky ? 1 : 2);
+    macCfg.setNumTservers(easyThereSparky ? 1 : 4);
     mac = new MiniAccumuloCluster(macCfg);
     mac.start();
     Collection<Mutation> largeRows = createMutations(LR_DIM, LR_DIM, LR_DIM);

@@ -31,6 +31,16 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * Base class for filters that can skip over key-value pairs which do not match their filter predicate. In addition to returning true/false to accept or reject
+ * a kv pair, subclasses can return an extra field which indicates how far the source iterator should be advanced.
+ *
+ * Note that the behaviour of the negate option is different from the Filter class. If a KV pair fails the subclass' filter predicate and negate is true, then
+ * the KV pair will pass the filter. However if the subclass advances the source past a bunch of KV pairs, all those pairs will be implicitly rejected and
+ * negate will have no effect.
+ *
+ * @see org.apache.accumulo.core.iterators.Filter
+ */
 public abstract class SeekingFilter extends WrappingIterator {
   private static final Logger log = LoggerFactory.getLogger(SeekingFilter.class);
 
@@ -54,8 +64,29 @@ public abstract class SeekingFilter extends WrappingIterator {
     }
   }
 
+  /**
+   * Subclasses must provide an implementation which examines the given key and value and determines (1) whether to accept the KV pair and (2) how far to
+   * advance the source iterator past the key.
+   * 
+   * @param k
+   *          a key
+   * @param v
+   *          a value
+   * @return indicating whether to pass or block the key, and how far the source iterator should be advanced.
+   */
   public abstract FilterResult filter(Key k, Value v);
 
+  /**
+   * Whenever the subclass returns AdvanceResult.USE_HINT from its filter predicate, this method will be called to see how far to advance the source iterator.
+   * The return value must be a key which is greater than (sorts after) the input key. If the subclass never returns USE_HINT, this method will never be called
+   * and may safely return null.
+   * 
+   * @param k
+   *          a key
+   * @param v
+   *          a value
+   * @return as above
+   */
   public abstract Key getNextKeyHint(Key k, Value v);
 
   private Collection<ByteSequence> columnFamilies;
@@ -89,7 +120,7 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     negate = Boolean.parseBoolean(options.get(NEGATE));
   }
@@ -122,8 +153,7 @@ public abstract class SeekingFilter extends WrappingIterator {
       }
       FilterResult f = filter(src.getTopKey(), src.getTopValue());
       if (log.isTraceEnabled()) {
-        log.trace("Filtered: " + src.getTopKey() + " result == " + f + " hint == " +
-                getNextKeyHint(src.getTopKey(), src.getTopValue()));
+        log.trace("Filtered: " + src.getTopKey() + " result == " + f + " hint == " + getNextKeyHint(src.getTopKey(), src.getTopValue()));
       }
       if (f.accept != negate) {
         // advance will be processed next time findTop is called
