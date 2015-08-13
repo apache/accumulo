@@ -30,9 +30,9 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Filters key/value pairs a range of column families and a range of column qualifiers. Only keys which fall in both ranges will be passed by the filter. Note
- * that if you have a small, well-defined set of column families it will be much more efficient to configure locality groups to isolate that data instead of
- * configuring this iterator to scan over it.
+ * Filters key/value pairs for a range of column families and a range of column qualifiers. Only keys which fall in both ranges will be passed by the filter.
+ * Note that if you have a small, well-defined set of column families it will be much more efficient to configure locality groups to isolate that data instead
+ * of configuring this iterator to scan over it.
  *
  * @see org.apache.accumulo.core.iterators.user.CfCqSliceOpts for a description of this iterator's options.
  */
