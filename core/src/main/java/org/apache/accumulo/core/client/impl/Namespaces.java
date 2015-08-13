@@ -37,7 +37,7 @@ public class Namespaces {
   public static final String VALID_NAME_REGEX = "^\\w*$";
   public static final Validator<String> VALID_NAME = new Validator<String>() {
     @Override
-    public boolean isValid(String namespace) {
+    public boolean apply(String namespace) {
       return namespace != null && namespace.matches(VALID_NAME_REGEX);
     }
 
@@ -51,7 +51,7 @@ public class Namespaces {
 
   public static final Validator<String> NOT_DEFAULT = new Validator<String>() {
     @Override
-    public boolean isValid(String namespace) {
+    public boolean apply(String namespace) {
       return !Namespaces.DEFAULT_NAMESPACE.equals(namespace);
     }
 
@@ -63,7 +63,7 @@ public class Namespaces {
 
   public static final Validator<String> NOT_ACCUMULO = new Validator<String>() {
     @Override
-    public boolean isValid(String namespace) {
+    public boolean apply(String namespace) {
       return !Namespaces.ACCUMULO_NAMESPACE.equals(namespace);
     }
 

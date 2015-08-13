@@ -35,7 +35,7 @@ public class TableValidators {
 
   public static final Validator<String> VALID_NAME = new Validator<String>() {
     @Override
-    public boolean isValid(String tableName) {
+    public boolean apply(String tableName) {
       return tableName != null && tableName.matches(VALID_NAME_REGEX);
     }
 
@@ -49,7 +49,7 @@ public class TableValidators {
 
   public static final Validator<String> VALID_ID = new Validator<String>() {
     @Override
-    public boolean isValid(String tableId) {
+    public boolean apply(String tableId) {
       return tableId != null
           && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId) || ReplicationTable.ID.equals(tableId) || tableId.matches(VALID_ID_REGEX));
     }
@@ -67,7 +67,7 @@ public class TableValidators {
     private List<String> metadataTables = Arrays.asList(RootTable.NAME, MetadataTable.NAME);
 
     @Override
-    public boolean isValid(String tableName) {
+    public boolean apply(String tableName) {
       return !metadataTables.contains(tableName);
     }
 
@@ -80,7 +80,7 @@ public class TableValidators {
   public static final Validator<String> NOT_SYSTEM = new Validator<String>() {
 
     @Override
-    public boolean isValid(String tableName) {
+    public boolean apply(String tableName) {
       return !Namespaces.ACCUMULO_NAMESPACE.equals(qualify(tableName).getFirst());
     }
 
@@ -93,7 +93,7 @@ public class TableValidators {
   public static final Validator<String> NOT_ROOT = new Validator<String>() {
 
     @Override
-    public boolean isValid(String tableName) {
+    public boolean apply(String tableName) {
       return !RootTable.NAME.equals(tableName);
     }
 
@@ -106,7 +106,7 @@ public class TableValidators {
   public static final Validator<String> NOT_ROOT_ID = new Validator<String>() {
 
     @Override
-    public boolean isValid(String tableId) {
+    public boolean apply(String tableId) {
       return !RootTable.ID.equals(tableId);
     }
 

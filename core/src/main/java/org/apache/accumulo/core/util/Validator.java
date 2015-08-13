@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.util;
 
+import com.google.common.base.Predicate;
+
 /**
- * A class that validates arguments of a particular type. Implementations must implement {@link #isValid(Object)} and should override
+ * A class that validates arguments of a particular type. Implementations must implement {@link #apply(Object)} and should override
  * {@link #invalidMessage(Object)}.
  */
-public abstract class Validator<T> {
+public abstract class Validator<T> implements Predicate<T> {
 
   /**
    * Validates an argument.
@@ -32,19 +34,10 @@ public abstract class Validator<T> {
    *           if validation fails
    */
   public final T validate(final T argument) {
-    if (!isValid(argument))
+    if (!apply(argument))
       throw new IllegalArgumentException(invalidMessage(argument));
     return argument;
   }
-
-  /**
-   * Checks an argument for validity.
-   *
-   * @param argument
-   *          argument to validate
-   * @return true if valid, false if invalid
-   */
-  public abstract boolean isValid(final T argument);
 
   /**
    * Formulates an exception message for invalid values.
@@ -72,13 +65,13 @@ public abstract class Validator<T> {
     return new Validator<T>() {
 
       @Override
-      public boolean isValid(T argument) {
-        return mine.isValid(argument) && other.isValid(argument);
+      public boolean apply(T argument) {
+        return mine.apply(argument) && other.apply(argument);
       }
 
       @Override
       public String invalidMessage(T argument) {
-        return (mine.isValid(argument) ? other : mine).invalidMessage(argument);
+        return (mine.apply(argument) ? other : mine).invalidMessage(argument);
       }
 
     };
@@ -99,8 +92,8 @@ public abstract class Validator<T> {
     return new Validator<T>() {
 
       @Override
-      public boolean isValid(T argument) {
-        return mine.isValid(argument) || other.isValid(argument);
+      public boolean apply(T argument) {
+        return mine.apply(argument) || other.apply(argument);
       }
 
       @Override
@@ -121,8 +114,8 @@ public abstract class Validator<T> {
     return new Validator<T>() {
 
       @Override
-      public boolean isValid(T argument) {
-        return !mine.isValid(argument);
+      public boolean apply(T argument) {
+        return !mine.apply(argument);
       }
 
       @Override

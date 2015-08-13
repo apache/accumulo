@@ -20,15 +20,35 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.List;
 
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 public class PropertyTypeTest {
-  @Test
-  public void testToString() {
-    assertEquals("string", PropertyType.STRING.toString());
+
+  @Rule
+  public TestName testName = new TestName();
+  private PropertyType type = null;
+
+  @Before
+  public void getPropertyTypeForTest() {
+    String tn = testName.getMethodName();
+    if (tn.startsWith("testType")) {
+      try {
+        type = PropertyType.valueOf(tn.substring(8));
+      } catch (IllegalArgumentException e) {
+        throw new AssertionError("Unexpected test method for non-existent " + PropertyType.class.getSimpleName() + "." + tn.substring(8));
+      }
+    }
   }
 
   @Test
@@ -37,52 +57,145 @@ public class PropertyTypeTest {
         PropertyType.STRING.getFormatDescription());
   }
 
-  private void typeCheckValidFormat(PropertyType type, String... args) {
-    for (String s : args)
-      assertTrue(s + " should be valid", type.isValidFormat(s));
-  }
-
-  private void typeCheckInvalidFormat(PropertyType type, String... args) {
-    for (String s : args)
-      assertFalse(s + " should be invalid", type.isValidFormat(s));
+  @Test
+  public void testToString() {
+    assertEquals("string", PropertyType.STRING.toString());
   }
 
   @Test
-  public void testTypeFormats() {
-    typeCheckValidFormat(PropertyType.TIMEDURATION, "600", "30s", "45m", "30000ms", "3d", "1h");
-    typeCheckInvalidFormat(PropertyType.TIMEDURATION, "1w", "1h30m", "1s 200ms", "ms", "", "a");
+  public void testFullCoverage() {
+    // This test checks the remainder of the methods in this class to ensure each property type has a corresponding test
+    Iterable<String> types = Iterables.transform(Arrays.asList(PropertyType.values()), new Function<PropertyType,String>() {
+      @Override
+      public String apply(final PropertyType input) {
+        return input.name();
+      }
+    });
+    Iterable<String> typesTested = Iterables.transform(
+        Iterables.filter(Iterables.transform(Arrays.asList(this.getClass().getMethods()), new Function<Method,String>() {
+          @Override
+          public String apply(final Method input) {
+            return input.getName();
+          }
+        }), new Predicate<String>() {
+          @Override
+          public boolean apply(final String input) {
+            return input.startsWith("testType");
+          }
+        }), new Function<String,String>() {
+          @Override
+          public String apply(final String input) {
+            return input.substring(8);
+          }
+        });
+    for (String t : types) {
+      assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.", Iterables.contains(typesTested, t));
+    }
+    assertEquals(Iterables.size(types), Iterables.size(typesTested));
+  }
 
-    typeCheckValidFormat(PropertyType.MEMORY, "1024", "20B", "100K", "1500M", "2G");
-    typeCheckInvalidFormat(PropertyType.MEMORY, "1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a");
+  private void valid(final String... args) {
+    for (String s : args) {
+      assertTrue(s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name(), type.isValidFormat(s));
+    }
+  }
 
-    typeCheckValidFormat(PropertyType.HOSTLIST, "localhost", "server1,server2,server3", "server1:1111,server2:3333", "localhost:1111", "server2:1111",
-        "www.server", "www.server:1111", "www.server.com", "www.server.com:111");
-    typeCheckInvalidFormat(PropertyType.HOSTLIST, ":111", "local host");
+  private void invalid(final String... args) {
+    for (String s : args) {
+      assertFalse(s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name(), type.isValidFormat(s));
+    }
+  }
 
-    typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "/foo", "/foo/c", "/");
-    // in hadoop 2.0 Path only normalizes Windows paths properly when run on a Windows system
+  @Test
+  public void testTypeABSOLUTEPATH() {
+    valid(null, "/foo", "/foo/c", "/", System.getProperty("user.dir"));
+    // in Hadoop 2.x, Path only normalizes Windows paths properly when run on a Windows system
     // this makes the following checks fail
-    if (System.getProperty("os.name").toLowerCase().contains("windows"))
-      typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "c:\\");
-    typeCheckValidFormat(PropertyType.ABSOLUTEPATH, System.getProperty("user.dir"));
-    typeCheckInvalidFormat(PropertyType.ABSOLUTEPATH, "foo12", "foo/g", "foo\\c");
+    if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+      valid("d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "c:\\");
+    }
+    invalid("foo12", "foo/g", "foo\\c");
   }
 
   @Test
-  public void testIsValidFormat_RegexAbsent() {
-    // assertTrue(PropertyType.PREFIX.isValidFormat("whatever")); currently forbidden
-    assertTrue(PropertyType.PREFIX.isValidFormat(null));
+  public void testTypeBOOLEAN() {
+    valid(null, "True", "true", "False", "false", "tRUE", "fAlSe");
+    invalid("foobar", "", "F", "T", "1", "0", "f", "t");
   }
 
   @Test
-  public void testBooleans() {
-    List<String> goodValues = Arrays.asList("True", "true", "False", "false");
-    for (String value : goodValues) {
-      assertTrue(value + " should be a valid boolean format", PropertyType.BOOLEAN.isValidFormat(value));
-    }
-    List<String> badValues = Arrays.asList("foobar", "tRUE", "fAlSe");
-    for (String value : badValues) {
-      assertFalse(value + " should not be a valid boolean format", PropertyType.BOOLEAN.isValidFormat(value));
-    }
+  public void testTypeCLASSNAME() {
+    valid(null, "", String.class.getName(), String.class.getName() + "$1", String.class.getName() + "$TestClass");
+    invalid("abc-def", "-", "!@#$%");
   }
+
+  @Test
+  public void testTypeCLASSNAMELIST() {
+    testTypeCLASSNAME(); // test single class name
+    valid(null, Joiner.on(",").join(String.class.getName(), String.class.getName() + "$1", String.class.getName() + "$TestClass"));
+  }
+
+  @Test
+  public void testTypeCOUNT() {
+    valid(null, "0", "1024", Long.toString(Integer.MAX_VALUE));
+    invalid(Long.toString(Integer.MAX_VALUE + 1L), "-65535", "-1");
+  }
+
+  @Test
+  public void testTypeDURABILITY() {
+    valid(null, "none", "log", "flush", "sync");
+    invalid("", "other");
+  }
+
+  @Test
+  public void testTypeFRACTION() {
+    valid(null, "1", "0", "1.0", "25%", "2.5%", "10.2E-3", "10.2E-3%", ".3");
+    invalid("", "other", "20%%", "-0.3", "3.6a", "%25", "3%a");
+  }
+
+  @Test
+  public void testTypeHOSTLIST() {
+    valid(null, "localhost", "server1,server2,server3", "server1:1111,server2:3333", "localhost:1111", "server2:1111", "www.server", "www.server:1111",
+        "www.server.com", "www.server.com:111");
+    invalid(":111", "local host");
+  }
+
+  @Test
+  public void testTypeMEMORY() {
+    valid(null, "1024", "20B", "100K", "1500M", "2G");
+    invalid("1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a");
+  }
+
+  @Test
+  public void testTypePATH() {
+    valid(null, "", "/absolute/path", "relative/path", "/with/trailing/slash/", "with/trailing/slash/");
+  }
+
+  @Test
+  public void testTypePORT() {
+    valid(null, "0", "1024", "30000", "65535");
+    invalid("65536", "-65535", "-1", "1023");
+  }
+
+  @Test
+  public void testTypePREFIX() {
+    invalid(null, "", "whatever");
+  }
+
+  @Test
+  public void testTypeSTRING() {
+    valid(null, "", "whatever");
+  }
+
+  @Test
+  public void testTypeTIMEDURATION() {
+    valid(null, "600", "30s", "45m", "30000ms", "3d", "1h");
+    invalid("1w", "1h30m", "1s 200ms", "ms", "", "a");
+  }
+
+  @Test
+  public void testTypeURI() {
+    valid(null, "", "hdfs://hostname", "file:///path/", "hdfs://example.com:port/path");
+  }
+
 }

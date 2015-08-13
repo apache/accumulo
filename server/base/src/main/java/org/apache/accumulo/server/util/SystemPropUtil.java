@@ -49,7 +49,7 @@ public class SystemPropUtil {
       }
     }
 
-    if ((foundProp == null || !foundProp.getType().isValidFormat(value))) {
+    if ((foundProp == null || (foundProp.getType() != PropertyType.PREFIX && !foundProp.getType().isValidFormat(value)))) {
       IllegalArgumentException iae = new IllegalArgumentException("Ignoring property " + property + " it is either null or in an invalid format");
       log.debug("Attempted to set zookeeper property.  Value is either null or invalid", iae);
       throw iae;

@@ -44,8 +44,12 @@ public class PropertyTest {
     HashSet<String> propertyNames = new HashSet<String>();
     for (Property prop : Property.values()) {
       // make sure properties default values match their type
-      assertTrue("Property " + prop + " has invalid default value " + prop.getDefaultValue() + " for type " + prop.getType(),
-          prop.getType().isValidFormat(prop.getDefaultValue()));
+      if (prop.getType() == PropertyType.PREFIX) {
+        assertNull("PREFIX property " + prop.name() + " has unexpected non-null default value.", prop.getDefaultValue());
+      } else {
+        assertTrue("Property " + prop + " has invalid default value " + prop.getDefaultValue() + " for type " + prop.getType(),
+            prop.getType().isValidFormat(prop.getDefaultValue()));
+      }
 
       // make sure property has a description
       assertFalse("Description not set for " + prop, prop.getDescription() == null || prop.getDescription().isEmpty());

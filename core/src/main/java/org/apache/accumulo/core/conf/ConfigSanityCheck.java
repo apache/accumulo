@@ -57,7 +57,7 @@ public class ConfigSanityCheck {
       else if (prop.getType() == PropertyType.PREFIX)
         fatal(PREFIX + "incomplete property key (" + key + ")");
       else if (!prop.getType().isValidFormat(value))
-        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
+        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ") : " + value);
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;

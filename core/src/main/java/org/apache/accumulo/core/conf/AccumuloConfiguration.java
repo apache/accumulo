@@ -326,7 +326,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return interpreted fraction as a decimal value
    */
   public double getFraction(String str) {
-    if (str.charAt(str.length() - 1) == '%')
+    if (str.length() > 0 && str.charAt(str.length() - 1) == '%')
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }
