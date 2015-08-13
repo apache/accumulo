@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.rest;
+package org.apache.accumulo.monitor.rest.view;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
 
-/**
- *
- */
-@Provider
-public class AccumuloExceptionMapper implements ExceptionMapper<Exception> {
-  @Override
-  public Response toResponse(Exception ex) {
-    return Response.status(500).entity(ExceptionUtils.getStackTrace(ex)).type("text/plain").build();
+import org.glassfish.jersey.server.mvc.Viewable;
+
+@Path("/")
+public class Overview {
+
+  @GET
+  public Viewable get() {
+    Map<String,Object> model = new HashMap<>();
+    model.put("foo", "bar");
+    return new Viewable("index.mustache", model);
   }
+
 }

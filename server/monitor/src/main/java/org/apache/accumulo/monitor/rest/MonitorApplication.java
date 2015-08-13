@@ -22,8 +22,15 @@ import java.net.URI;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.ZooKeeperStatus;
+import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,5 +59,59 @@ public abstract class MonitorApplication implements Runnable {
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
+  }
+
+  protected void startDataDaemons(ServerConfigurationFactory config, Instance instance, AccumuloServerContext serverContext) {
+    Monitor.setConfig(config);
+    Monitor.setInstance(instance);
+    Monitor.setContext(serverContext);
+
+    // Preload data
+    try {
+      Monitor.fetchData();
+    } catch (Exception e) {
+      log.warn(e.getMessage(), e);
+    }
+
+    try {
+      Monitor.fetchScans();
+    } catch (Exception e) {
+      log.warn(e.getMessage(), e);
+    }
+
+    // Start daemons
+    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
+
+    // need to regularly fetch data so plot data is updated
+    new Daemon(new LoggingRunnable(log, new Runnable() {
+
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            Monitor.fetchData();
+          } catch (Exception e) {
+            log.warn(e.getMessage(), e);
+          }
+
+          UtilWaitThread.sleep(333);
+        }
+
+      }
+    }), "Data fetcher").start();
+
+    new Daemon(new LoggingRunnable(log, new Runnable() {
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            Monitor.fetchScans();
+          } catch (Exception e) {
+            log.warn(e.getMessage(), e);
+          }
+          UtilWaitThread.sleep(5000);
+        }
+      }
+    }), "Scan scanner").start();
   }
 }
