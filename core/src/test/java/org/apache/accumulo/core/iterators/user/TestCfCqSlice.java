@@ -16,94 +16,61 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.IteratorSetting;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.ValueFormatException;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-
 public abstract class TestCfCqSlice {
 
-  private static final String TABLE_NAME = "TestColumnSliceFilter";
-  private static final Collection<Range> INFINITY = Collections.singletonList(new Range());
+  private static final Range INFINITY = new Range();
   private static final Lexicoder<Long> LONG_LEX = new ReadableLongLexicoder(4);
   private static final AtomicLong ROW_ID_GEN = new AtomicLong();
 
   private static final boolean easyThereSparky = false;
   private static final int LR_DIM = easyThereSparky ? 5 : 50;
 
-  private static MiniAccumuloCluster mac;
+  private static final Map<String,String> EMPTY_OPTS = Collections.emptyMap();
+  private static final Set<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   protected abstract Class<? extends SortedKeyValueIterator<Key,Value>> getFilterClass();
 
-  @BeforeClass
-  public static void setupMAC() throws Exception {
-    Path macPath = Files.createTempDirectory("mac");
-    System.out.println("MAC running at " + macPath);
-    MiniAccumuloConfig macCfg = new MiniAccumuloConfig(macPath.toFile(), "password");
-    macCfg.setNumTservers(easyThereSparky ? 1 : 4);
-    mac = new MiniAccumuloCluster(macCfg);
-    mac.start();
-    Collection<Mutation> largeRows = createMutations(LR_DIM, LR_DIM, LR_DIM);
-    Connector conn = newConnector();
-    conn.tableOperations().create(TABLE_NAME);
-    if (!easyThereSparky) {
-      SortedSet<Text> largeRowSplits = getSplits(0, LR_DIM - 1, 5);
-      conn.tableOperations().addSplits(TABLE_NAME, largeRowSplits);
-    }
-    BatchWriter bw = conn.createBatchWriter(TABLE_NAME, new BatchWriterConfig());
-    bw.addMutations(largeRows);
-    bw.flush();
-  }
+  private static TreeMap<Key,Value> data;
 
-  private static Connector newConnector() throws AccumuloException, AccumuloSecurityException {
-    return mac.getConnector("root", "password");
+  @BeforeClass
+  public static void setupData() {
+    data = createMap(LR_DIM, LR_DIM, LR_DIM);
   }
 
   @AfterClass
-  public static void tearDownMAC() throws Exception {
-    mac.stop();
+  public static void clearData() {
+    data = null;
   }
 
   @Test
   public void testAllRowsFullSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass()));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, EMPTY_OPTS, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -116,11 +83,8 @@ public abstract class TestCfCqSlice {
   @Test
   public void testSingleRowFullSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass()));
     int rowId = LR_DIM / 2;
-    bs.setRanges(Collections.singletonList(Range.exact(new Text(LONG_LEX.encode((long) rowId)))));
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, EMPTY_OPTS, Range.exact(new Text(LONG_LEX.encode((long) rowId))));
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -150,10 +114,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, opts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -179,10 +140,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, opts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -210,10 +168,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_INCLUSIVE, "false");
     opts.put(CfCqSliceOpts.OPT_MIN_INCLUSIVE, "false");
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, opts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -235,10 +190,7 @@ public abstract class TestCfCqSlice {
     Map<String,String> opts = new HashMap<String,String>();
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, opts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -260,10 +212,7 @@ public abstract class TestCfCqSlice {
     Map<String,String> opts = new HashMap<String,String>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, opts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -280,8 +229,6 @@ public abstract class TestCfCqSlice {
   @Test
   public void testEmptySlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
-    // TODO: test with a batch scanner
-    BatchScanner bs = newConnector().createBatchScanner(TABLE_NAME, new Authorizations(), 5);
     long sliceMinCf = LR_DIM + 1;
     long sliceMinCq = LR_DIM + 1;
     long sliceMaxCf = LR_DIM + 1;
@@ -293,9 +240,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_INCLUSIVE, "false");
     opts.put(CfCqSliceOpts.OPT_MIN_INCLUSIVE, "false");
-    bs.addScanIterator(new IteratorSetting(50, getFilterClass().getName(), getFilterClass(), opts));
-    bs.setRanges(INFINITY);
-    loadKvs(foundKvs, bs);
+    loadKvs(foundKvs, opts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
@@ -305,17 +250,32 @@ public abstract class TestCfCqSlice {
     }
   }
 
-  private void loadKvs(boolean[][][] foundKvs, BatchScanner bs) {
+  private void loadKvs(boolean[][][] foundKvs, Map<String,String> options, Range range) {
     try {
-      for (Map.Entry<Key,Value> kvPair : bs) {
-        Key k = kvPair.getKey();
+      SortedKeyValueIterator<Key,Value> skvi = getFilterClass().newInstance();
+      skvi.init(new SortedMapIterator(data), options, null);
+      skvi.seek(range, EMPTY_CF_SET, false);
+
+      Random random = new Random();
+
+      while (skvi.hasTop()) {
+        Key k = skvi.getTopKey();
         int row = LONG_LEX.decode(k.getRow().copyBytes()).intValue();
         int cf = LONG_LEX.decode(k.getColumnFamily().copyBytes()).intValue();
         int cq = LONG_LEX.decode(k.getColumnQualifier().copyBytes()).intValue();
+
+        assertFalse("Duplicate "+row+" "+cf+" "+cq, foundKvs[row][cf][cq]);
         foundKvs[row][cf][cq] = true;
+
+        if (random.nextInt(100) == 0) {
+          skvi.seek(new Range(k, false, range.getEndKey(), range.isEndKeyInclusive()), EMPTY_CF_SET, false);
+        } else {
+          skvi.next();
+        }
       }
-    } finally {
-      bs.close();
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -326,32 +286,20 @@ public abstract class TestCfCqSlice {
    *
    * (0,0) (0,1) (0,2) (1,0) (1,1) (1,2) (2,0) (2,1) (2,2) 0 0 1 2 3 4 5 6 7 8 1 9 10 11 12 13 14 15 16 17 2 18 19 20 21 22 23 24 25 26
    */
-  static Collection<Mutation> createMutations(int numRows, int numCfs, int numCqs) {
-    List<Mutation> muts = new LinkedList<Mutation>();
+  static TreeMap<Key,Value> createMap(int numRows, int numCfs, int numCqs) {
+    TreeMap<Key,Value> data = new TreeMap<>();
     for (int i = 0; i < numRows; i++) {
       byte[] rowId = LONG_LEX.encode(ROW_ID_GEN.getAndIncrement());
-      Mutation newRow = new Mutation(rowId);
-      muts.add(newRow);
       for (int j = 0; j < numCfs; j++) {
         for (int k = 0; k < numCqs; k++) {
           byte[] cf = LONG_LEX.encode((long) j);
           byte[] cq = LONG_LEX.encode((long) k);
           byte[] val = LONG_LEX.encode((long) (i * numCfs + j * numCqs + k));
-          newRow.put(cf, cq, val);
+          data.put(new Key(rowId, cf, cq, new byte[0], 9), new Value(val));
         }
       }
     }
-    return muts;
-  }
-
-  static SortedSet<Text> getSplits(int firstRow, int lastRow, int numParts) {
-    SortedSet<Text> splits = new TreeSet<Text>();
-    int numRows = (lastRow - firstRow) + 1;
-    int rowsPerPart = numRows / numParts;
-    for (long i = 1; i < numParts; i++) {
-      splits.add(new Text(LONG_LEX.encode(rowsPerPart * i)));
-    }
-    return splits;
+    return data;
   }
 
   static class ReadableLongLexicoder implements Lexicoder<Long> {
