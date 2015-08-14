@@ -18,7 +18,7 @@ package org.apache.accumulo.core.iterators.user;
 
 public class TestCfCqSliceSeekingFilter extends TestCfCqSlice {
   @Override
-  protected Class getFilterClass() {
+  protected Class<CfCqSliceSeekingFilter> getFilterClass() {
     return CfCqSliceSeekingFilter.class;
   }
 }
