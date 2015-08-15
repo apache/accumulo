@@ -19,11 +19,13 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -41,6 +43,7 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iterators.system.StatsIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iterators.system.VisibilityTransformingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
@@ -170,10 +173,27 @@ class ScanDataSource implements DataSource {
 
     ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.getColumnSet());
 
-    VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
+    SortedKeyValueIterator visParent = insertVTI(colFilter, iterEnv);
+    VisibilityFilter visFilter = new VisibilityFilter(visParent, options.getAuthorizations(), options.getDefaultLabels());
 
     return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
         options.getSsiList(), options.getSsio(), iterEnv));
+  }
+
+  private SortedKeyValueIterator<Key, Value> insertVTI(final SortedKeyValueIterator<Key, Value> parent,
+                                                       IteratorEnvironment iterEnv) throws IOException {
+    String vtiClass = tablet.getTableConfiguration().get(Property.TABLE_VTI_CLASS);
+    if (vtiClass != null) {
+      try {
+        VisibilityTransformingIterator vtiIter = (VisibilityTransformingIterator) Class.forName(vtiClass).newInstance();
+        vtiIter.init(parent, Collections.<String, String>emptyMap(), iterEnv);
+        return vtiIter;
+      } catch (Exception e) {
+        throw new IOException("Unable to create VisibilityTransformingIterator " + vtiClass, e);
+      }
+    } else {
+      return parent;
+    }
   }
 
   void close(boolean sawErrors) {
