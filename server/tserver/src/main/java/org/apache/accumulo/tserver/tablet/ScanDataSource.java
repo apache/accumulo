@@ -173,20 +173,19 @@ class ScanDataSource implements DataSource {
 
     ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.getColumnSet());
 
-    SortedKeyValueIterator visParent = insertVTI(colFilter, iterEnv);
+    SortedKeyValueIterator<Key, Value> visParent = insertVTI(colFilter, iterEnv);
     VisibilityFilter visFilter = new VisibilityFilter(visParent, options.getAuthorizations(), options.getDefaultLabels());
 
     return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
         options.getSsiList(), options.getSsio(), iterEnv));
   }
 
-  private SortedKeyValueIterator<Key, Value> insertVTI(final SortedKeyValueIterator<Key, Value> parent,
-                                                       IteratorEnvironment iterEnv) throws IOException {
+  private SortedKeyValueIterator<Key,Value> insertVTI(final SortedKeyValueIterator<Key,Value> parent, IteratorEnvironment iterEnv) throws IOException {
     String vtiClass = tablet.getTableConfiguration().get(Property.TABLE_VTI_CLASS);
     if (vtiClass != null) {
       try {
         VisibilityTransformingIterator vtiIter = (VisibilityTransformingIterator) Class.forName(vtiClass).newInstance();
-        vtiIter.init(parent, Collections.<String, String>emptyMap(), iterEnv);
+        vtiIter.init(parent, Collections.<String,String> emptyMap(), iterEnv);
         return vtiIter;
       } catch (Exception e) {
         throw new IOException("Unable to create VisibilityTransformingIterator " + vtiClass, e);

@@ -512,9 +512,9 @@ public enum Property {
   @Experimental
   TABLE_VOLUME_CHOOSER("table.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files for this table."),
-    @Experimental
-    TABLE_VTI_CLASS("table.vti.class", null, PropertyType.CLASSNAME, "The class that will be used to transform key-value pairs"
-            + " to different visibilities at scan-time.\nThe class must be a subclass of VisibilityTransformingIterator"),
+  @Experimental
+  TABLE_VTI_CLASS("table.vti.class", null, PropertyType.CLASSNAME, "The class that will be used to transform key-value pairs"
+      + " to different visibilities at scan-time.\nThe class must be a subclass of VisibilityTransformingIterator"),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
