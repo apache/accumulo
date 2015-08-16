@@ -312,7 +312,7 @@ pair that has the largest timestamp.
 === Best practices
 
 Because of the flexibility that the `SortedKeyValueInterface` provides, it doesn't directly disallow
-many implementations which are poor desigin decisions. The following are some common recommendations to
+many implementations which are poor design decisions. The following are some common recommendations to
 follow and pitfalls to avoid in Iterator implementations.
 
 ==== Avoid special logic encoded in Ranges
@@ -324,7 +324,7 @@ should *never* make assumptions about the current state/context based on the `Ra
 
 The common failure condition is referred to as a "re-seek". In the context of a Scan, TabletServers construct the
 "stack" of Iterators and batch up Key-Value pairs to send back to the client. When a sufficient number of Key-Value
-pairs are collected, it is commons for the Iterators to be "torn down" until the client asks for the next batch of
+pairs are collected, it is common for the Iterators to be "torn down" until the client asks for the next batch of
 Key-Value pairs. This is done by the TabletServer to add fairness in ensuring one Scan does not monopolize the available
 resources. When the client asks for the next batch, the implementation modifies the original Range so that servers know
 the point to resume the iteration (to avoid returning duplicate Key-Value pairs). Specifically, the new Range is created
