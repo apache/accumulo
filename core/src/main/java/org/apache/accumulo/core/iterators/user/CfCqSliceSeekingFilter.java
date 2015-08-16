@@ -38,12 +38,12 @@ import java.util.Map;
  */
 public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescriber {
 
-  private static final FilterResult SKIP_TO_HINT = new FilterResult(false, AdvanceResult.USE_HINT);
-  private static final FilterResult SKIP_TO_NEXT = new FilterResult(false, AdvanceResult.NEXT);
-  private static final FilterResult SKIP_TO_NEXT_ROW = new FilterResult(false, AdvanceResult.NEXT_ROW);
-  private static final FilterResult SKIP_TO_NEXT_CF = new FilterResult(false, AdvanceResult.NEXT_CF);
-  private static final FilterResult INCLUDE_AND_NEXT = new FilterResult(true, AdvanceResult.NEXT);
-  private static final FilterResult INCLUDE_AND_NEXT_CF = new FilterResult(true, AdvanceResult.NEXT_CF);
+  private static final FilterResult SKIP_TO_HINT = FilterResult.of(false, AdvanceResult.USE_HINT);
+  private static final FilterResult SKIP_TO_NEXT = FilterResult.of(false, AdvanceResult.NEXT);
+  private static final FilterResult SKIP_TO_NEXT_ROW = FilterResult.of(false, AdvanceResult.NEXT_ROW);
+  private static final FilterResult SKIP_TO_NEXT_CF = FilterResult.of(false, AdvanceResult.NEXT_CF);
+  private static final FilterResult INCLUDE_AND_NEXT = FilterResult.of(true, AdvanceResult.NEXT);
+  private static final FilterResult INCLUDE_AND_NEXT_CF = FilterResult.of(true, AdvanceResult.NEXT_CF);
 
   private CfCqSliceOpts cso;
 
@@ -95,7 +95,7 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
   }
 
   @Override
-  public Key getNextKeyHint(Key k, Value v) {
+  public Key getNextKeyHint(Key k, Value v) throws IllegalArgumentException {
     if (cso.minCf.getLength() > 0) {
       int minCfCmp = k.compareColumnFamily(cso.minCf);
       if (minCfCmp < 0) {
@@ -110,7 +110,9 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
         return cso.minInclusive ? hint : hint.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
       }
     }
-    return null;
+    // If we get here it means that we were asked to provide a hint for a key that we
+    // didn't return USE_HINT for.
+    throw new IllegalArgumentException("Don't know how to provide hint for key " + k);
   }
 
   @Override

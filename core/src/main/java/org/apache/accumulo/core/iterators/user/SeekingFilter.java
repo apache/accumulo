@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
@@ -51,12 +52,25 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   public static class FilterResult {
+    private static final EnumMap<AdvanceResult,FilterResult> PASSES = new EnumMap<>(AdvanceResult.class);
+    private static final EnumMap<AdvanceResult,FilterResult> FAILS = new EnumMap<>(AdvanceResult.class);
+    static {
+      for (AdvanceResult ar : AdvanceResult.values()) {
+        PASSES.put(ar, new FilterResult(true, ar));
+        FAILS.put(ar, new FilterResult(false, ar));
+      }
+    }
+
     final boolean accept;
     final AdvanceResult advance;
 
     public FilterResult(boolean accept, AdvanceResult advance) {
       this.accept = accept;
       this.advance = advance;
+    }
+
+    public static FilterResult of(boolean accept, AdvanceResult advance) {
+      return accept ? PASSES.get(advance) : FAILS.get(advance);
     }
 
     public String toString() {
@@ -193,6 +207,7 @@ public abstract class SeekingFilter extends WrappingIterator {
         break;
     }
     if (advRange == null) {
+      // Should never get here. Just a safeguard in case somebody adds a new type of AdvanceRange and forgets to handle it here.
       throw new IOException("Unable to determine range to advance to for AdvanceResult " + adv);
     }
     advRange = advRange.clip(seekRange, true);
