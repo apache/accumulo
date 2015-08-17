@@ -114,6 +114,7 @@ public abstract class SeekingFilter extends WrappingIterator {
 
   @Override
   public void next() throws IOException {
+    advanceSource(getSource(), advance);
     findTop();
   }
 
@@ -155,9 +156,6 @@ public abstract class SeekingFilter extends WrappingIterator {
   protected void findTop() throws IOException {
     SortedKeyValueIterator<Key,Value> src = getSource();
     // advance could be null if we've just been seeked
-    if (src.hasTop() && advance != null) {
-      advanceSource(src, advance);
-    }
     advance = null;
     while (src.hasTop() && !advancedPastSeek) {
       if (src.getTopKey().isDeleted()) {
@@ -167,10 +165,11 @@ public abstract class SeekingFilter extends WrappingIterator {
       }
       FilterResult f = filter(src.getTopKey(), src.getTopValue());
       if (log.isTraceEnabled()) {
-        log.trace("Filtered: " + src.getTopKey() + " result == " + f + " hint == " + getNextKeyHint(src.getTopKey(), src.getTopValue()));
+        log.trace("Filtered: {} result == {} hint == {}", src.getTopKey(), f,
+            f.advance == AdvanceResult.USE_HINT ? getNextKeyHint(src.getTopKey(), src.getTopValue()) : " (none)");
       }
       if (f.accept != negate) {
-        // advance will be processed next time findTop is called
+        // advance will be processed when next is called
         advance = f.advance;
         break;
       } else {
