@@ -80,6 +80,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
+    cfg.setNumTservers(1);
     new File(cfg.getConfDir(), "auditLog.xml").delete();
   }
 
@@ -243,7 +244,8 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
     ArrayList<String> auditMessages = getAuditMessages("testUserOperationsAudits");
 
-    assertEquals(1, findAuditMessage(auditMessages, "action: createUser; targetUser: " + AUDIT_USER_2).size());
+    // The user is allowed to create this user and it succeeded
+    assertEquals(2, findAuditMessage(auditMessages, "action: createUser; targetUser: " + AUDIT_USER_2).size());
     assertEquals(
         1,
         findAuditMessage(auditMessages,
@@ -260,10 +262,13 @@ public class AuditMessageIT extends ConfigurableMacIT {
         1,
         findAuditMessage(auditMessages,
             "action: revokeTablePermission; permission: " + TablePermission.READ.toString() + "; targetTable: " + NEW_TEST_TABLE_NAME).size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: changePassword; targetUser: " + AUDIT_USER_2 + "").size());
+    // changePassword is allowed and succeeded
+    assertEquals(2, findAuditMessage(auditMessages, "action: changePassword; targetUser: " + AUDIT_USER_2 + "").size());
     assertEquals(1, findAuditMessage(auditMessages, "action: changeAuthorizations; targetUser: " + AUDIT_USER_2 + "; authorizations: " + auths.toString())
         .size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2).size());
+
+    // allowed to dropUser and succeeded
+    assertEquals(2, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2).size());
   }
 
   @Test
@@ -488,7 +493,8 @@ public class AuditMessageIT extends ConfigurableMacIT {
     // ... that will do for now.
     // End of testing activities
 
-    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.DROP_USER_AUDIT_TEMPLATE, AUDIT_USER_2)).size());
+    // We're permitted to drop this user, but it fails because the user doesn't actually exist.
+    assertEquals(2, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.DROP_USER_AUDIT_TEMPLATE, AUDIT_USER_2)).size());
     assertEquals(
         1,
         findAuditMessage(auditMessages,
