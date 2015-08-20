@@ -655,7 +655,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   // The audit log is already logging the principal, so we don't have anything else to audit
-  public static final String AUTHENICATE_AUDIT_TEMPLATE = "";
+  public static final String AUTHENICATE_AUDIT_TEMPLATE = "action: authenticate;";
 
   @Override
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
