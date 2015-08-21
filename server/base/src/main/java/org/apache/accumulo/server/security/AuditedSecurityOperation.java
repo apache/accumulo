@@ -276,6 +276,62 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
+  public static final String CAN_SPLIT_TABLE_AUDIT_TEMPLATE = "action: splitTable; targetTable: %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canSplitTablet(TCredentials credentials, String table, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canSplitTablet(credentials, table, namespaceId);
+      audit(credentials, result, CAN_SPLIT_TABLE_AUDIT_TEMPLATE, table, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "split tablet on table %s denied", table);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_PERFORM_SYSTEM_ACTION_AUDIT_TEMPLATE = "action: performSystemAction; principal: %s;";
+
+  @Override
+  public boolean canPerformSystemActions(TCredentials credentials) throws ThriftSecurityException {
+    try {
+      boolean result = super.canPerformSystemActions(credentials);
+      audit(credentials, result, CAN_PERFORM_SYSTEM_ACTION_AUDIT_TEMPLATE, credentials.getPrincipal());
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "system action denied");
+      throw ex;
+    }
+  }
+
+  public static final String CAN_FLUSH_TABLE_AUDIT_TEMPLATE = "action: flushTable; targetTable: %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canFlush(TCredentials c, String tableId, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canFlush(c, tableId, namespaceId);
+      audit(c, result, CAN_FLUSH_TABLE_AUDIT_TEMPLATE, tableId, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "flush on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_ALTER_TABLE_AUDIT_TEMPLATE = "action: alterTable; targetTable: %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canAlterTable(TCredentials c, String tableId, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canAlterTable(c, tableId, namespaceId);
+      audit(c, result, CAN_ALTER_TABLE_AUDIT_TEMPLATE, tableId, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "alter table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
   public static final String CAN_CLONE_TABLE_AUDIT_TEMPLATE = "action: cloneTable; targetTable: %s; newTableName: %s";
 
   @Override
@@ -317,6 +373,135 @@ public class AuditedSecurityOperation extends SecurityOperation {
       return result;
     } catch (ThriftSecurityException ex) {
       audit(c, ex, CAN_BULK_IMPORT_AUDIT_TEMPLATE, tableName, dir, failDir);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_COMPACT_TABLE_AUDIT_TEMPLATE = "action: compactTable; targetTable: %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canCompact(TCredentials c, String tableId, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canCompact(c, tableId, namespaceId);
+      audit(c, result, CAN_COMPACT_TABLE_AUDIT_TEMPLATE, tableId, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "compact on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE = "action: changeAuthorizations; targetUser: %s;";
+
+  @Override
+  public boolean canChangeAuthorizations(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canChangeAuthorizations(c, user);
+      audit(c, result, CAN_CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "change authorizations on user %s denied", user);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_CHANGE_PASSWORD_AUDIT_TEMPLATE = "action: changePassword; targetUser: %s;";
+
+  @Override
+  public boolean canChangePassword(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canChangePassword(c, user);
+      audit(c, result, CAN_CHANGE_PASSWORD_AUDIT_TEMPLATE, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "change password on user %s denied", user);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_CREATE_USER_AUDIT_TEMPLATE = "action: createUser; targetUser: %s;";
+
+  @Override
+  public boolean canCreateUser(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canCreateUser(c, user);
+      audit(c, result, CAN_CREATE_USER_AUDIT_TEMPLATE, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "create user on user %s denied", user);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_DROP_USER_AUDIT_TEMPLATE = "action: dropUser; targetUser: %s;";
+
+  @Override
+  public boolean canDropUser(TCredentials c, String user) throws ThriftSecurityException {
+    try {
+      boolean result = super.canDropUser(c, user);
+      audit(c, result, CAN_DROP_USER_AUDIT_TEMPLATE, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "drop user on user %s denied", user);
+
+      throw ex;
+    }
+  }
+
+  public static final String CAN_GRANT_SYSTEM_AUDIT_TEMPLATE = "action: grantSystem; targetUser: %s; targetPermission: %s;";
+
+  @Override
+  public boolean canGrantSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
+    try {
+      boolean result = super.canGrantSystem(c, user, sysPerm);
+      audit(c, result, CAN_GRANT_SYSTEM_AUDIT_TEMPLATE, user, sysPerm);
+      return result;
+
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "grant system permission %s for user %s denied", sysPerm, user);
+
+      throw ex;
+    }
+  }
+
+  public static final String CAN_GRANT_TABLE_AUDIT_TEMPLATE = "action: grantTable; targetUser: %s; targetTable: %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canGrantTable(TCredentials c, String user, String table, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canGrantTable(c, user, table, namespaceId);
+      audit(c, result, CAN_GRANT_TABLE_AUDIT_TEMPLATE, user, table, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "grant table on table %s for user %s denied", table, user);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_REVOKE_SYSTEM_AUDIT_TEMPLATE = "action: revokeSystem; targetUser: %s;, targetPermission: %s;";
+
+  @Override
+  public boolean canRevokeSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
+    try {
+      boolean result = super.canRevokeSystem(c, user, sysPerm);
+      audit(c, result, CAN_REVOKE_SYSTEM_AUDIT_TEMPLATE, user, sysPerm);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "revoke system permission %s for user %s denied", sysPerm, user);
+      throw ex;
+    }
+  }
+
+  public static final String CAN_REVOKE_TABLE_AUDIT_TEMPLATE = "action: revokeTable; targetUser: %s; targetTable %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canRevokeTable(TCredentials c, String user, String table, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canRevokeTable(c, user, table, namespaceId);
+      audit(c, result, CAN_REVOKE_TABLE_AUDIT_TEMPLATE, user, table, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "revoke table on table %s for user %s denied", table, user);
       throw ex;
     }
   }
@@ -421,6 +606,20 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
+  public static final String HAS_SYSTEM_PERMISSION_AUDIT_TEMPLATE = "action: hasSystemPermission; permission: %s; targetUser: %s;";
+
+  @Override
+  public boolean hasSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
+    try {
+      boolean result = super.hasSystemPermission(credentials, user, permission);
+      audit(credentials, result, HAS_SYSTEM_PERMISSION_AUDIT_TEMPLATE, permission, user);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, "checking permission %s on %s denied", permission, user);
+      throw ex;
+    }
+  }
+
   public static final String CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE = "action: %s; targetTable: %s;";
 
   @Override
@@ -441,8 +640,22 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
+  public static final String CAN_MERGE_TABLE_AUDIT_TEMPLATE = "action: mergeTable; targetTable: %s; targetNamespace: %s;";
+
+  @Override
+  public boolean canMerge(TCredentials c, String tableId, String namespaceId) throws ThriftSecurityException {
+    try {
+      boolean result = super.canMerge(c, tableId, namespaceId);
+      audit(c, result, CAN_MERGE_TABLE_AUDIT_TEMPLATE, tableId, namespaceId);
+      return result;
+    } catch (ThriftSecurityException ex) {
+      audit(c, ex, "merge table on tableId %s denied", tableId);
+      throw ex;
+    }
+  }
+
   // The audit log is already logging the principal, so we don't have anything else to audit
-  public static final String AUTHENICATE_AUDIT_TEMPLATE = "";
+  public static final String AUTHENICATE_AUDIT_TEMPLATE = "action: authenticate;";
 
   @Override
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
