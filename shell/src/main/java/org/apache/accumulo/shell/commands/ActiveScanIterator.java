@@ -43,10 +43,10 @@ class ActiveScanIterator implements Iterator<String> {
 
         for (ActiveScan as : asl) {
           scans
-              .add(String.format("%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%10s | %s", tserver, as.getClient(),
+              .add(String.format("%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s", tserver, as.getClient(),
                   Duration.format(as.getAge(), "", "-"), Duration.format(as.getLastContactTime(), "", "-"), as.getState(), as.getType(), as.getUser(),
-                  as.getTable(), as.getColumns(), as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getSsiList(),
-                  as.getSsio()));
+                  as.getTable(), as.getColumns(), as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getScanid(),
+                  as.getSsiList(), as.getSsio()));
         }
       } catch (Exception e) {
         scans.add(tserver + " ERROR " + e.getMessage());
@@ -64,8 +64,8 @@ class ActiveScanIterator implements Iterator<String> {
     this.instanceOps = instanceOps;
     this.tsIter = tservers.iterator();
 
-    final String header = String.format(" %-21s| %-21s| %-9s| %-9s| %-7s| %-6s| %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %s", "TABLET SERVER", "CLIENT", "AGE",
-        "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS", "AUTHORIZATIONS", "TABLET", "ITERATORS", "ITERATOR OPTIONS");
+    final String header = String.format(" %-21s| %-21s| %-9s| %-9s| %-7s| %-6s| %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s", "TABLET SERVER",
+        "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS", "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS");
 
     scansIter = Collections.singletonList(header).iterator();
   }

@@ -1470,7 +1470,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         continue;
       }
       String parts[] = scan.split("\\|");
-      assertEquals("Expected 13 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 13, parts.length);
+      assertEquals("Expected 14 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 14, parts.length);
       String tserver = parts[0].trim();
       // TODO: any way to tell if the client address is accurate? could be local IP, host, loopback...?
       String hostPortPattern = ".+:\\d+";
@@ -1478,6 +1478,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
       String client = parts[1].trim();
       assertTrue(client.matches(hostPortPattern));
+      // Scan ID should be a long (throwing an exception if it fails to parse)
+      Long.parseLong(parts[11].trim());
     }
 
     ts.exec("deletetable -f " + table, true);
