@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+//import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -173,7 +174,7 @@ class ScanDataSource implements DataSource {
 
     ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.getColumnSet());
 
-    SortedKeyValueIterator<Key, Value> visParent = insertVTI(colFilter, iterEnv);
+    SortedKeyValueIterator<Key,Value> visParent = insertVTI(colFilter, iterEnv);
     VisibilityFilter visFilter = new VisibilityFilter(visParent, options.getAuthorizations(), options.getDefaultLabels());
 
     return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
@@ -182,7 +183,7 @@ class ScanDataSource implements DataSource {
 
   private SortedKeyValueIterator<Key,Value> insertVTI(final SortedKeyValueIterator<Key,Value> parent, IteratorEnvironment iterEnv) throws IOException {
     String vtiClass = tablet.getTableConfiguration().get(Property.TABLE_VTI_CLASS);
-    if (vtiClass != null) {
+    if (vtiClass != null && vtiClass.length() > 0) {
       try {
         VisibilityTransformingIterator vtiIter = (VisibilityTransformingIterator) Class.forName(vtiClass).newInstance();
         vtiIter.init(parent, Collections.<String,String> emptyMap(), iterEnv);

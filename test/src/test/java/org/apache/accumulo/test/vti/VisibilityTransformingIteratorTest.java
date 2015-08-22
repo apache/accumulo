@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -33,7 +32,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.system.VisibilityTransformingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.junit.AfterClass;
@@ -73,7 +71,7 @@ public class VisibilityTransformingIteratorTest {
     rootConn = mac.getConnector("root", "password");
     rootConn.tableOperations().create(VTI_TABLE);
     rootConn.tableOperations().setProperty("vti", Property.TABLE_VTI_CLASS.getKey(), HashingIterator.class.getName());
-    rootConn.securityOperations().changeUserAuthorizations("root",ALL_AUTHS);
+    rootConn.securityOperations().changeUserAuthorizations("root", ALL_AUTHS);
   }
 
   @Test
