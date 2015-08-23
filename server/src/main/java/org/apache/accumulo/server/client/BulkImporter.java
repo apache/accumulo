@@ -618,10 +618,18 @@ public class BulkImporter {
   public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, KeyExtent failed,
       TCredentials credentials) throws Exception {
     locator.invalidateCache(failed);
-    Text start = failed.getPrevEndRow();
-    if (start != null)
-      start = Range.followingPrefix(start);
+    Text start = getStartRowForExtent(failed);
     return findOverlappingTablets(acuConf, fs, locator, file, start, failed.getEndRow(), credentials);
+  }
+
+  protected static Text getStartRowForExtent(KeyExtent extent) {
+    Text start = extent.getPrevEndRow();
+    if (start != null) {
+      start = new Text(start);
+      // ACCUMULO-3967 We want the first possible key in this tablet, not the following row from the previous tablet
+      start.append(byte0, 0, 1);
+    }
+    return start;
   }
 
   final static byte[] byte0 = {0};
