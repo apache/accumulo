@@ -306,6 +306,7 @@ A KeyStore can also be stored in HDFS, which will make the KeyStore readily avai
 all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
 will expect the KeyStore in the same location.
 
+[[ClientConfiguration]]
 ==== Client Configuration
 
 In version 1.6.0, Accumulo includes a new type of configuration file known as a client
@@ -536,6 +537,7 @@ To collect traces, Accumulo needs at least one server listed in
 from clients and writes them to the +trace+ table. The Accumulo
 user that the tracer connects to Accumulo with can be configured with
 the following properties
+(see the <<configuration,Configuration>> section for setting Accumulo server properties)
 
   trace.user
   trace.token.property.password
@@ -610,6 +612,47 @@ Hadoop to send traces to ZooTraceClient is
 The accumulo-core, accumulo-tracer, accumulo-fate and libthrift
 jars must also be placed on Hadoop's classpath.
 
+===== Adding additional SpanReceivers
+https://github.com/openzipkin/zipkin[Zipkin]
+has a SpanReceiver supported by HTrace and popularized by Twitter
+that users looking for a more graphical trace display may opt to use.
+The following steps configure Accumulo to use org.apache.htrace.impl.ZipkinSpanReceiver
+in addition to the Accumulo's default ZooTraceClient, and they serve as a template
+for adding any SpanReceiver to Accumulo:
+
+1. Add the Jar containing the ZipkinSpanReceiver class file to the
++$ACCUMULO_HOME/lib/+.  It is critical that the Jar is placed in
++lib/+ and NOT in +lib/ext/+ so that the new SpanReceiver class
+is visible to the same class loader of htrace-core.
+
+2. Add the following to +$ACCUMULO_HOME/conf/accumulo-site.xml+:
+
+  <property>
+    <name>trace.span.receivers</name>
+    <value>org.apache.accumulo.tracer.ZooTraceClient,org.apache.htrace.impl.ZipkinSpanReceiver</value>
+  </property>
+
+3. Restart your Accumulo tablet servers.
+
+In order to use ZipkinSpanReceiver from a client as well as the Accumulo server,
+
+1. Ensure your client can see the ZipkinSpanReceiver class at runtime. For Maven projects,
+this is easily done by adding to your client's pom.xml (taking care to specify a good version)
+
+  <dependency>
+    <groupId>org.apache.htrace</groupId>
+    <artifactId>htrace-zipkin</artifactId>
+    <version>3.1.0-incubating</version>
+    <scope>runtime</scope>
+  </dependency>
+
+2. Add the following to your ClientConfiguration
+(see the <<ClientConfiguration>> section)
+
+  trace.span.receivers=org.apache.accumulo.tracer.ZooTraceClient,org.apache.htrace.impl.ZipkinSpanReceiver
+
+3. Instrument your client as in the next section.
+
 ==== Instrumenting a Client
 Tracing can be used to measure a client operation, such as a scan, as
 the operation traverses the distributed system. To enable tracing for
@@ -637,8 +680,13 @@ for (Entry entry : scanner) {
 }
 scope.close();
 
-Additionally, the user can create additional Spans within a Trace.
-The sampler for the trace should only be specified with the first span, and subsequent spans will be collected depending on whether that first span was sampled.
+The user can create additional Spans within a Trace.
+
+The sampler (such as +Sampler.ALWAYS+) for the trace should only be specified with a top-level span,
+and subsequent spans will be collected depending on whether that first span was sampled.
+Don't forget to specify a Sampler at the top-level span
+because the default Sampler only samples when part of a pre-existing trace,
+which will never occur in a client that never specifies a Sampler.
 
 [source,java]
 TraceScope scope = Trace.startSpan("Client Update", Sampler.ALWAYS);
