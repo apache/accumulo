@@ -152,4 +152,25 @@ public class BulkImporterTest {
     Assert.assertEquals(locator.invalidated, 1);
   }
 
+  @Test
+  public void testSequentialTablets() throws Exception {
+    // ACCUMULO-3967 make sure that the startRow we compute in BulkImporter is actually giving
+    // a correct startRow so that findOverlappingTablets works as intended.
+
+    // 1;2;1
+    KeyExtent extent = new KeyExtent(new Text("1"), new Text("2"), new Text("1"));
+    Assert.assertEquals(new Text("1\0"), BulkImporter.getStartRowForExtent(extent));
+
+    // 1;2<
+    extent = new KeyExtent(new Text("1"), new Text("2"), null);
+    Assert.assertEquals(null, BulkImporter.getStartRowForExtent(extent));
+
+    // 1<<
+    extent = new KeyExtent(new Text("1"), null, null);
+    Assert.assertEquals(null, BulkImporter.getStartRowForExtent(extent));
+
+    // 1;8;7777777
+    extent = new KeyExtent(new Text("1"), new Text("8"), new Text("7777777"));
+    Assert.assertEquals(new Text("7777777\0"), BulkImporter.getStartRowForExtent(extent));
+  }
 }
