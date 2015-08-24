@@ -616,7 +616,7 @@ jars must also be placed on Hadoop's classpath.
 https://github.com/openzipkin/zipkin[Zipkin]
 has a SpanReceiver supported by HTrace and popularized by Twitter
 that users looking for a more graphical trace display may opt to use.
-The following steps configure Accumulo to use org.apache.htrace.impl.ZipkinSpanReceiver
+The following steps configure Accumulo to use +org.apache.htrace.impl.ZipkinSpanReceiver+
 in addition to the Accumulo's default ZooTraceClient, and they serve as a template
 for adding any SpanReceiver to Accumulo:
 
@@ -652,6 +652,19 @@ this is easily done by adding to your client's pom.xml (taking care to specify a
   trace.span.receivers=org.apache.accumulo.tracer.ZooTraceClient,org.apache.htrace.impl.ZipkinSpanReceiver
 
 3. Instrument your client as in the next section.
+
+Your SpanReceiver may require additional properties, and if so these should likewise
+be placed in the ClientConfiguration (if applicable) and Accumulo's +accumulo-site.xml+.
+Two such properties for ZipkinSpanReceiver, listed with their default values, are
+
+  <property>
+    <name>trace.span.receiver.zipkin.collector-hostname</name>
+    <value>localhost</value>
+  </property>
+  <property>
+    <name>trace.span.receiver.zipkin.collector-port</name>
+    <value>9410</value>
+  </property>
 
 ==== Instrumenting a Client
 Tracing can be used to measure a client operation, such as a scan, as
@@ -753,8 +766,8 @@ are not in the public API and may be subject to change in future versions.
 
 Each span received by a tracer's ZooTraceClient is recorded in the trace table
 in the form of three entries: span entries, index entries, and start time entries.
-Span entries record full span information,
-whereas index and start time entries provide indexing into span information
+Span and start time entries record full span information,
+whereas index entries provide indexing into span information
 useful for quickly finding spans by type or start time.
 
 Each entry is illustrated by a description and sample of data.
