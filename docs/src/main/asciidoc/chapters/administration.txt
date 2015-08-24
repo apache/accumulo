@@ -745,6 +745,67 @@ To view collected traces, use the "Recent Traces" link on the Monitor
 UI. You can also programmatically access and print traces using the
 +TraceDump+ class.
 
+===== Trace Table Format
+This section is for developers looking to use data recorded in the trace table
+directly, above and beyond the default services of the Accumulo monitor.
+Please note the trace table format and its supporting classes
+are not in the public API and may be subject to change in future versions.
+
+Each span received by a tracer's ZooTraceClient is recorded in the trace table
+in the form of three entries: span entries, index entries, and start time entries.
+Span entries record full span information,
+whereas index and start time entries provide indexing into span information
+useful for quickly finding spans by type or start time.
+
+Each entry is illustrated by a description and sample of data.
+In the description, a token in quotes is a String literal,
+whereas other other tokens are span variables.
+Parentheses group parts together, to distinguish colon characters inside the
+column family or qualifier from the colon that separates column family and qualifier.
+We use the format +row columnFamily:columnQualifier columnVisibility    value+
+(omitting timestamp which records the time an entry is written to the trace table).
+
+Span entries take the following form:
+
+  traceId        "span":(parentSpanId:spanId)            []    spanBinaryEncoding
+  63b318de80de96d1 span:4b8f66077df89de1:3778c6739afe4e1 []    %18;%09;...
+
+The parentSpanId is "" for the root span of a trace.
+The spanBinaryEncoding is a compact Apache Thrift encoding of the original Span object.
+This allows clients (and the Accumulo monitor) to recover all the details of the original Span
+at a later time, by scanning the trace table and decoding the value of span entries
+via +TraceFormatter.getRemoteSpan(entry)+.
+
+The trace table has a formatter class by default (org.apache.accumulo.tracer.TraceFormatter)
+that changes how span entries appear from the Accumulo shell.
+Normal scans to the trace table do not use this formatter representation;
+it exists only to make span entries easier to view inside the Accumulo shell.
+
+Index entries take the following form:
+
+  "idx":service:startTime description:sender  []    traceId:elapsedTime
+  idx:tserver:14f3828f58b startScan:localhost []    63b318de80de96d1:1
+
+The service and sender are set by the first call of each Accumulo process
+(and instrumented client processes) to +DistributedTrace.enable(...)+
+(the sender is autodetected if not specified).
+The description is specified in each span.
+Start time and the elapsed time (start - stop, 1 millisecond in the example above)
+are recorded in milliseconds as long values serialized to a string in hex.
+
+Start time entries take the following form:
+
+  "start":startTime "id":traceId        []    spanBinaryEncoding
+  start:14f3828a351 id:63b318de80de96d1 []    %18;%09;...
+
+The following classes may be run from $ACCUMULO_HOME while Accumulo is running
+to provide insight into trace statistics. These require
+accumulo-trace-VERSION.jar to be provided on the Accumulo classpath
+(+$ACCUMULO_HOME/lib/ext+ is fine).
+
+  $ bin/accumulo org.apache.accumulo.tracer.TraceTableStats -u username -p password -i instancename
+  $ bin/accumulo org.apache.accumulo.tracer.TraceDump -u username -p password -i instancename -r
+
 ==== Tracing from the Shell
 You can enable tracing for operations run from the shell by using the
 +trace on+ and +trace off+ commands.
