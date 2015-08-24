@@ -255,7 +255,10 @@ public class Monitor {
           public void run() {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-                cachedInstanceName.set(HdfsZooInstance.getInstance().getInstanceName());
+                final String instanceName = HdfsZooInstance.getInstance().getInstanceName();
+                if (null != instanceName) {
+                  cachedInstanceName.set(instanceName);
+                }
               }
             }
           }
