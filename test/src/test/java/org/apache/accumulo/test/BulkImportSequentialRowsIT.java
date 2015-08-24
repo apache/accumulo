@@ -83,7 +83,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterIT {
     Path rfile = new Path(bulk, "file.rf");
     FileSKVWriter writer = FileOperations.getInstance().openWriter(rfile.toString(), fs, new Configuration(), DefaultConfiguration.getInstance());
     writer.startDefaultLocalityGroup();
-    
+
     final Value emptyValue = new Value(new byte[0]);
     final SortedSet<Text> splits = new TreeSet<Text>();
     for (int i = 0; i < 100; i++) {
