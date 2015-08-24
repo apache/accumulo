@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedWriter;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -52,8 +54,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 class LoadFiles extends MasterRepo {
 
@@ -95,6 +95,7 @@ class LoadFiles extends MasterRepo {
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
+    master.updateBulkImportStatus(source, BulkImportState.LOADING);
     ExecutorService executor = getThreadPool(master);
     final AccumuloConfiguration conf = master.getConfiguration();
     VolumeManager fs = master.getFileSystem();

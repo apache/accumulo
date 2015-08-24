@@ -168,6 +168,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<a href='/master'>Master&nbsp;Server</a><br />\n");
     sb.append("<a href='/tservers'>Tablet&nbsp;Servers</a><br />\n");
     sb.append("<a href='/scans'>Active&nbsp;Scans</a><br />\n");
+    sb.append("<a href='/bulkImports'>Bulk&nbsp;Imports</a><br />\n");
     sb.append("<a href='/vis'>Server Activity</a><br />\n");
     sb.append("<a href='/gc'>Garbage&nbsp;Collector</a><br />\n");
     sb.append("<a href='/tables'>Tables</a><br />\n");

@@ -48,6 +48,28 @@ struct RecoveryStatus {
   6:double progress
 }
 
+enum BulkImportState {
+   INITIAL
+   # master moves the files into the accumulo area
+   MOVING
+   # slave tserver examines the index of the file
+   PROCESSING
+   # slave tserver assigns the file to tablets
+   ASSIGNING
+   # tserver incorporates file into tablet
+   LOADING
+   # master moves error files into the error directory
+   COPY_FILES
+   # flags and locks removed
+   CLEANUP
+}
+
+struct BulkImportStatus {
+  1:i64 startTime
+  2:string filename
+  3:BulkImportState state
+}
+
 struct TabletServerStatus {
   1:map<string, TableInfo> tableMap
   2:i64 lastContact
@@ -62,6 +84,7 @@ struct TabletServerStatus {
   14:list<RecoveryStatus> logSorts
   15:i64 flushs
   16:i64 syncs
+  17:list<BulkImportStatus> bulkImports
 }
 
 enum MasterState {
@@ -95,6 +118,7 @@ struct MasterMonitorInfo {
   7:i32 unassignedTablets
   9:set<string> serversShuttingDown
   10:list<DeadServer> deadTabletServers
+  11:list<BulkImportStatus> bulkImports
 }
 
 struct TabletSplit {

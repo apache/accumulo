@@ -1,28 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -45,18 +26,13 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.google.gson.Gson;
-
-// ACCUMULO-3949, ACCUMULO-3953
-public class GetFileInfoBulkIT extends ConfigurableMacBase {
+public class BulkImportMonitoringIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -65,33 +41,13 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_FILE_ARCHIVE, "false");
   }
 
-  @SuppressWarnings("unchecked")
-  long getOpts() throws Exception {
-    String uri = getCluster().getMiniDfs().getHttpUri(0);
-    URL url = new URL(uri + "/jmx");
-    log.debug("Fetching web page " + url);
-    String jsonString = FunctionalTestUtils.readAll(url.openStream());
-    Gson gson = new Gson();
-    Map<Object,Object> jsonObject = (Map<Object,Object>) gson.fromJson(jsonString, Object.class);
-    List<Object> beans = (List<Object>) jsonObject.get("beans");
-    for (Object bean : beans) {
-      Map<Object,Object> map = (Map<Object,Object>) bean;
-      if (map.get("name").toString().equals("Hadoop:service=NameNode,name=NameNodeActivity")) {
-        return (long) Double.parseDouble(map.get("FileInfoOps").toString());
-      }
-    }
-    return 0;
-  }
-
   @Test
   public void test() throws Exception {
+	getCluster().getClusterControl().start(ServerType.MONITOR);
     final Connector c = getConnector();
-    getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    // turn off compactions
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "2000");
-    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "2000");
+    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
     // splits to slow down bulk import
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 0xf; i++) {
@@ -101,6 +57,8 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
 
     MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
     assertEquals(1, stats.tServerInfo.size());
+    assertEquals(0, stats.bulkImports.size());
+    assertEquals(0, stats.tServerInfo.get(0).bulkImports.size());
 
     log.info("Creating lots of bulk import files");
     final FileSystem fs = getCluster().getFileSystem();
@@ -122,7 +80,7 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
           Path files = new Path(base, "files" + which);
           fs.mkdirs(bulkFailures);
           fs.mkdirs(files);
-          for (int i = 0; i < 100; i++) {
+          for (int i = 0; i < 10; i++) {
             FileSKVWriter writer = FileOperations.getInstance().openWriter(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf(),
                 AccumuloConfiguration.getDefaultConfiguration());
             writer.startDefaultLocalityGroup();
@@ -140,7 +98,6 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
       dirs.add(f.get());
     }
     log.info("Importing");
-    long startOps = getOpts();
     long now = System.currentTimeMillis();
     List<Future<Object>> errs = new ArrayList<>();
     for (Pair<String,String> entry : dirs) {
@@ -154,16 +111,19 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
         }
       }));
     }
-    for (Future<Object> err : errs) {
-      err.get();
-    }
     es.shutdown();
+    while (!es.isTerminated() && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
+      es.awaitTermination(10, TimeUnit.MILLISECONDS);
+      stats = getCluster().getMasterMonitorInfo();
+    }
+    log.info(stats.bulkImports.toString());
+    assertTrue(stats.bulkImports.size() > 0);
+    // look for exception
+    for (Future<Object> err : errs) {
+        err.get();
+    }
     es.awaitTermination(2, TimeUnit.MINUTES);
+    assertTrue(es.isTerminated());
     log.info(String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
-    Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
-    long getFileInfoOpts = getOpts() - startOps;
-    log.info("# opts: {}", getFileInfoOpts);
-    assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts > 1000);
   }
-
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
@@ -101,6 +102,7 @@ import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -188,6 +190,7 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -250,7 +253,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -396,6 +398,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
+  private ThriftClientHandler clientHandler;
+  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
@@ -2263,6 +2267,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
+    clientHandler = new ThriftClientHandler();
     Iface rpcProxy = RpcWrapper.service(new ThriftClientHandler());
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
@@ -2907,6 +2912,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     result.logSorts = logSorter.getLogSorts();
     result.flushs = flushCounter.get();
     result.syncs = syncCounter.get();
+    result.bulkImports = new ArrayList<>();
+    result.bulkImports.addAll(clientHandler.getBulkLoadStatus());
+    result.bulkImports.addAll(bulkImportStatus.getBulkLoadStatus());
     return result;
   }
 
@@ -3082,6 +3090,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
     log.info("Marking " + currentLog.getPath() + " as closed");
     walMarker.closeWal(getTabletSession(), currentLog.getPath());
+  }
+
+  public void updateBulkImportState(List<String> files, BulkImportState state) {
+    bulkImportStatus.updateBulkImportStatus(files, state);
+  }
+
+  public void removeBulkImportState(List<String> files) {
+    bulkImportStatus.removeBulkImportStatus(files);
   }
 
 }

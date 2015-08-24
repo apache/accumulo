@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField LOG_SORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("logSorts", org.apache.thrift.protocol.TType.LIST, (short)14);
   private static final org.apache.thrift.protocol.TField FLUSHS_FIELD_DESC = new org.apache.thrift.protocol.TField("flushs", org.apache.thrift.protocol.TType.I64, (short)15);
   private static final org.apache.thrift.protocol.TField SYNCS_FIELD_DESC = new org.apache.thrift.protocol.TField("syncs", org.apache.thrift.protocol.TType.I64, (short)16);
+  private static final org.apache.thrift.protocol.TField BULK_IMPORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulkImports", org.apache.thrift.protocol.TType.LIST, (short)17);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -84,6 +85,7 @@ import org.slf4j.LoggerFactory;
   public List<RecoveryStatus> logSorts; // required
   public long flushs; // required
   public long syncs; // required
+  public List<BulkImportStatus> bulkImports; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -99,7 +101,8 @@ import org.slf4j.LoggerFactory;
     DATA_CACHE_REQUEST((short)13, "dataCacheRequest"),
     LOG_SORTS((short)14, "logSorts"),
     FLUSHS((short)15, "flushs"),
-    SYNCS((short)16, "syncs");
+    SYNCS((short)16, "syncs"),
+    BULK_IMPORTS((short)17, "bulkImports");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -140,6 +143,8 @@ import org.slf4j.LoggerFactory;
           return FLUSHS;
         case 16: // SYNCS
           return SYNCS;
+        case 17: // BULK_IMPORTS
+          return BULK_IMPORTS;
         default:
           return null;
       }
@@ -223,6 +228,9 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.SYNCS, new org.apache.thrift.meta_data.FieldMetaData("syncs", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.BULK_IMPORTS, new org.apache.thrift.meta_data.FieldMetaData("bulkImports", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BulkImportStatus.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletServerStatus.class, metaDataMap);
   }
@@ -243,7 +251,8 @@ import org.slf4j.LoggerFactory;
     long dataCacheRequest,
     List<RecoveryStatus> logSorts,
     long flushs,
-    long syncs)
+    long syncs,
+    List<BulkImportStatus> bulkImports)
   {
     this();
     this.tableMap = tableMap;
@@ -269,6 +278,7 @@ import org.slf4j.LoggerFactory;
     setFlushsIsSet(true);
     this.syncs = syncs;
     setSyncsIsSet(true);
+    this.bulkImports = bulkImports;
   }
 
   /**
@@ -311,6 +321,13 @@ import org.slf4j.LoggerFactory;
     }
     this.flushs = other.flushs;
     this.syncs = other.syncs;
+    if (other.isSetBulkImports()) {
+      List<BulkImportStatus> __this__bulkImports = new ArrayList<BulkImportStatus>(other.bulkImports.size());
+      for (BulkImportStatus other_element : other.bulkImports) {
+        __this__bulkImports.add(new BulkImportStatus(other_element));
+      }
+      this.bulkImports = __this__bulkImports;
+    }
   }
 
   public TabletServerStatus deepCopy() {
@@ -342,6 +359,7 @@ import org.slf4j.LoggerFactory;
     this.flushs = 0;
     setSyncsIsSet(false);
     this.syncs = 0;
+    this.bulkImports = null;
   }
 
   public int getTableMapSize() {
@@ -672,6 +690,45 @@ import org.slf4j.LoggerFactory;
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SYNCS_ISSET_ID, value);
   }
 
+  public int getBulkImportsSize() {
+    return (this.bulkImports == null) ? 0 : this.bulkImports.size();
+  }
+
+  public java.util.Iterator<BulkImportStatus> getBulkImportsIterator() {
+    return (this.bulkImports == null) ? null : this.bulkImports.iterator();
+  }
+
+  public void addToBulkImports(BulkImportStatus elem) {
+    if (this.bulkImports == null) {
+      this.bulkImports = new ArrayList<BulkImportStatus>();
+    }
+    this.bulkImports.add(elem);
+  }
+
+  public List<BulkImportStatus> getBulkImports() {
+    return this.bulkImports;
+  }
+
+  public TabletServerStatus setBulkImports(List<BulkImportStatus> bulkImports) {
+    this.bulkImports = bulkImports;
+    return this;
+  }
+
+  public void unsetBulkImports() {
+    this.bulkImports = null;
+  }
+
+  /** Returns true if field bulkImports is set (has been assigned a value) and false otherwise */
+  public boolean isSetBulkImports() {
+    return this.bulkImports != null;
+  }
+
+  public void setBulkImportsIsSet(boolean value) {
+    if (!value) {
+      this.bulkImports = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case TABLE_MAP:
@@ -778,6 +835,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case BULK_IMPORTS:
+      if (value == null) {
+        unsetBulkImports();
+      } else {
+        setBulkImports((List<BulkImportStatus>)value);
+      }
+      break;
+
     }
   }
 
@@ -822,6 +887,9 @@ import org.slf4j.LoggerFactory;
     case SYNCS:
       return Long.valueOf(getSyncs());
 
+    case BULK_IMPORTS:
+      return getBulkImports();
+
     }
     throw new IllegalStateException();
   }
@@ -859,6 +927,8 @@ import org.slf4j.LoggerFactory;
       return isSetFlushs();
     case SYNCS:
       return isSetSyncs();
+    case BULK_IMPORTS:
+      return isSetBulkImports();
     }
     throw new IllegalStateException();
   }
@@ -990,6 +1060,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_syncs && that_present_syncs))
         return false;
       if (this.syncs != that.syncs)
+        return false;
+    }
+
+    boolean this_present_bulkImports = true && this.isSetBulkImports();
+    boolean that_present_bulkImports = true && that.isSetBulkImports();
+    if (this_present_bulkImports || that_present_bulkImports) {
+      if (!(this_present_bulkImports && that_present_bulkImports))
+        return false;
+      if (!this.bulkImports.equals(that.bulkImports))
         return false;
     }
 
@@ -1139,6 +1218,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetBulkImports()).compareTo(other.isSetBulkImports());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetBulkImports()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bulkImports, other.bulkImports);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1221,6 +1310,14 @@ import org.slf4j.LoggerFactory;
     if (!first) sb.append(", ");
     sb.append("syncs:");
     sb.append(this.syncs);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("bulkImports:");
+    if (this.bulkImports == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.bulkImports);
+    }
     first = false;
     sb.append(")");
     return sb.toString();
@@ -1395,6 +1492,25 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 17: // BULK_IMPORTS
+            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              {
+                org.apache.thrift.protocol.TList _list7 = iprot.readListBegin();
+                struct.bulkImports = new ArrayList<BulkImportStatus>(_list7.size);
+                for (int _i8 = 0; _i8 < _list7.size; ++_i8)
+                {
+                  BulkImportStatus _elem9;
+                  _elem9 = new BulkImportStatus();
+                  _elem9.read(iprot);
+                  struct.bulkImports.add(_elem9);
+                }
+                iprot.readListEnd();
+              }
+              struct.setBulkImportsIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1414,10 +1530,10 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(TABLE_MAP_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.tableMap.size()));
-          for (Map.Entry<String, TableInfo> _iter7 : struct.tableMap.entrySet())
+          for (Map.Entry<String, TableInfo> _iter10 : struct.tableMap.entrySet())
           {
-            oprot.writeString(_iter7.getKey());
-            _iter7.getValue().write(oprot);
+            oprot.writeString(_iter10.getKey());
+            _iter10.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -1456,9 +1572,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(LOG_SORTS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.logSorts.size()));
-          for (RecoveryStatus _iter8 : struct.logSorts)
+          for (RecoveryStatus _iter11 : struct.logSorts)
           {
-            _iter8.write(oprot);
+            _iter11.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1470,6 +1586,18 @@ import org.slf4j.LoggerFactory;
       oprot.writeFieldBegin(SYNCS_FIELD_DESC);
       oprot.writeI64(struct.syncs);
       oprot.writeFieldEnd();
+      if (struct.bulkImports != null) {
+        oprot.writeFieldBegin(BULK_IMPORTS_FIELD_DESC);
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.bulkImports.size()));
+          for (BulkImportStatus _iter12 : struct.bulkImports)
+          {
+            _iter12.write(oprot);
+          }
+          oprot.writeListEnd();
+        }
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1527,14 +1655,17 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetSyncs()) {
         optionals.set(12);
       }
-      oprot.writeBitSet(optionals, 13);
+      if (struct.isSetBulkImports()) {
+        optionals.set(13);
+      }
+      oprot.writeBitSet(optionals, 14);
       if (struct.isSetTableMap()) {
         {
           oprot.writeI32(struct.tableMap.size());
-          for (Map.Entry<String, TableInfo> _iter9 : struct.tableMap.entrySet())
+          for (Map.Entry<String, TableInfo> _iter13 : struct.tableMap.entrySet())
           {
-            oprot.writeString(_iter9.getKey());
-            _iter9.getValue().write(oprot);
+            oprot.writeString(_iter13.getKey());
+            _iter13.getValue().write(oprot);
           }
         }
       }
@@ -1568,9 +1699,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetLogSorts()) {
         {
           oprot.writeI32(struct.logSorts.size());
-          for (RecoveryStatus _iter10 : struct.logSorts)
+          for (RecoveryStatus _iter14 : struct.logSorts)
           {
-            _iter10.write(oprot);
+            _iter14.write(oprot);
           }
         }
       }
@@ -1580,24 +1711,33 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetSyncs()) {
         oprot.writeI64(struct.syncs);
       }
+      if (struct.isSetBulkImports()) {
+        {
+          oprot.writeI32(struct.bulkImports.size());
+          for (BulkImportStatus _iter15 : struct.bulkImports)
+          {
+            _iter15.write(oprot);
+          }
+        }
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TabletServerStatus struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(13);
+      BitSet incoming = iprot.readBitSet(14);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map11 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.tableMap = new HashMap<String,TableInfo>(2*_map11.size);
-          for (int _i12 = 0; _i12 < _map11.size; ++_i12)
+          org.apache.thrift.protocol.TMap _map16 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.tableMap = new HashMap<String,TableInfo>(2*_map16.size);
+          for (int _i17 = 0; _i17 < _map16.size; ++_i17)
           {
-            String _key13;
-            TableInfo _val14;
-            _key13 = iprot.readString();
-            _val14 = new TableInfo();
-            _val14.read(iprot);
-            struct.tableMap.put(_key13, _val14);
+            String _key18;
+            TableInfo _val19;
+            _key18 = iprot.readString();
+            _val19 = new TableInfo();
+            _val19.read(iprot);
+            struct.tableMap.put(_key18, _val19);
           }
         }
         struct.setTableMapIsSet(true);
@@ -1640,14 +1780,14 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(10)) {
         {
-          org.apache.thrift.protocol.TList _list15 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.logSorts = new ArrayList<RecoveryStatus>(_list15.size);
-          for (int _i16 = 0; _i16 < _list15.size; ++_i16)
+          org.apache.thrift.protocol.TList _list20 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.logSorts = new ArrayList<RecoveryStatus>(_list20.size);
+          for (int _i21 = 0; _i21 < _list20.size; ++_i21)
           {
-            RecoveryStatus _elem17;
-            _elem17 = new RecoveryStatus();
-            _elem17.read(iprot);
-            struct.logSorts.add(_elem17);
+            RecoveryStatus _elem22;
+            _elem22 = new RecoveryStatus();
+            _elem22.read(iprot);
+            struct.logSorts.add(_elem22);
           }
         }
         struct.setLogSortsIsSet(true);
@@ -1659,6 +1799,20 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(12)) {
         struct.syncs = iprot.readI64();
         struct.setSyncsIsSet(true);
+      }
+      if (incoming.get(13)) {
+        {
+          org.apache.thrift.protocol.TList _list23 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.bulkImports = new ArrayList<BulkImportStatus>(_list23.size);
+          for (int _i24 = 0; _i24 < _list23.size; ++_i24)
+          {
+            BulkImportStatus _elem25;
+            _elem25 = new BulkImportStatus();
+            _elem25.read(iprot);
+            struct.bulkImports.add(_elem25);
+          }
+        }
+        struct.setBulkImportsIsSet(true);
       }
     }
   }
