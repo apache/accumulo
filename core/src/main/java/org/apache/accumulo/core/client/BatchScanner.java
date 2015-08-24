@@ -16,19 +16,20 @@
  */
 package org.apache.accumulo.core.client;
 
+import org.apache.accumulo.core.data.Range;
+
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.data.Range;
-
 /**
  * Implementations of BatchScanner support efficient lookups of many ranges in accumulo.
+ * BatchScanners are also appropriate for large, single ranges,
+ * as a BatchScanner will break those ranges up into separate RPCs
+ * provided the range spans more than one tablet
+ * and there are sufficiently many scan threads available.
  *
- * Use this when looking up lots of ranges and you expect each range to contain a small amount of data. Also only use this when you do not care about the
- * returned data being in sorted order.
- *
- * If you want to lookup a few ranges and expect those ranges to contain a lot of data, then use the Scanner instead. Also, the Scanner will return data in
- * sorted order, this will not.
+ * Only use this when you do not care about returned data being in sorted order.
+ * Use a {@link Scanner} instead when sorted order is important.
  *
  * A BatchScanner instance will use no more threads than provided in the construction of the BatchScanner
  * implementation. Multiple invocations of <code>iterator()</code> will all share the same resources of the instance.
