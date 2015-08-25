@@ -705,6 +705,8 @@ public class ShellServerIT extends SharedMiniClusterIT {
         passed = true;
       } catch (Exception e) {
         UtilWaitThread.sleep(300);
+      } catch (AssertionError e) {
+        UtilWaitThread.sleep(300);
       }
     }
     assertTrue("Could not successfully see updated authoriations", passed);
