@@ -705,7 +705,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         ts.exec("getauths", true, "foo", true);
         ts.exec("getauths", true, "bar", true);
         passed = true;
-      } catch (Exception e) {
+      } catch (AssertionError | Exception e) {
         sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
       }
     }
