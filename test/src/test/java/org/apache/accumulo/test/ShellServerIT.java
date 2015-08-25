@@ -703,9 +703,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
         ts.exec("getauths", true, "foo", true);
         ts.exec("getauths", true, "bar", true);
         passed = true;
-      } catch (Exception e) {
-        UtilWaitThread.sleep(300);
-      } catch (AssertionError e) {
+      } catch (AssertionError | Exception e) {
         UtilWaitThread.sleep(300);
       }
     }
