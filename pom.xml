@@ -140,7 +140,7 @@
     <maven.min-version>3.0.4</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>1.5</powermock.version>
+    <powermock.version>1.6.2</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <!-- overwritten in hadoop profiles -->
@@ -237,7 +237,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.11</version>
+        <version>4.12</version>
       </dependency>
       <dependency>
         <groupId>log4j</groupId>
