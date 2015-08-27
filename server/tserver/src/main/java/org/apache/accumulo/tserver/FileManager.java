@@ -426,9 +426,7 @@ public class FileManager {
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
-      if (iflag != null)
-        ((InterruptibleIterator) this.iter).setInterruptFlag(iflag);
+    public SortedKeyValueIterator<Key,Value> iterator() {
       return iter;
     }
 
@@ -445,8 +443,9 @@ public class FileManager {
       current = false;
       this.iter = iter;
 
-      if (iflag != null)
+      if (iflag != null) {
         ((InterruptibleIterator) this.iter).setInterruptFlag(iflag);
+      }
 
       for (FileDataSource fds : deepCopies) {
         fds.current = false;
@@ -457,6 +456,7 @@ public class FileManager {
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
       this.iflag = flag;
+      ((InterruptibleIterator) this.iter).setInterruptFlag(iflag);
     }
 
   }

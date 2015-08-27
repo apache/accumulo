@@ -54,19 +54,12 @@ public class SetShellIterCommand extends SetIterCommand {
 
     String profile = cl.getOptionValue(profileOpt.getOpt());
 
-    // instead of setting table properties, just put the options in a list to use at scan time
-    Class<?> loadClass;
-    try {
-      loadClass = getClass().getClassLoader().loadClass(classname);
-    } catch (ClassNotFoundException e) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + classname);
-    }
-    try {
-      loadClass.asSubclass(SortedKeyValueIterator.class);
-    } catch (ClassCastException ex) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "xUnable to load " + classname + " as type " + SortedKeyValueIterator.class.getName());
+    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
+          + SortedKeyValueIterator.class.getName());
     }
 
+    // instead of setting table properties, just put the options in a list to use at scan time
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
