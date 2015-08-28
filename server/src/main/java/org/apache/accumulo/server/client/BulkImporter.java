@@ -143,6 +143,7 @@ public class BulkImporter {
       for (Path path : paths) {
         final Path mapFile = path;
         Runnable getAssignments = new Runnable() {
+          @Override
           public void run() {
             List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
             try {
@@ -207,14 +208,14 @@ public class BulkImporter {
           while (keListIter.hasNext()) {
             KeyExtent ke = keListIter.next();
 
+            timer.start(Timers.QUERY_METADATA);
             try {
-              timer.start(Timers.QUERY_METADATA);
               tabletsToAssignMapFileTo.addAll(findOverlappingTablets(instance.getConfiguration(), fs, locator, entry.getKey(), ke, credentials));
-              timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke);
             }
+            timer.stop(Timers.QUERY_METADATA);
           }
 
           if (tabletsToAssignMapFileTo.size() > 0)
@@ -361,6 +362,7 @@ public class BulkImporter {
       }
 
       Runnable estimationTask = new Runnable() {
+        @Override
         public void run() {
           Map<KeyExtent,Long> estimatedSizes = null;
 
@@ -466,6 +468,7 @@ public class BulkImporter {
       }
     }
 
+    @Override
     public void run() {
       HashSet<Path> uniqMapFiles = new HashSet<Path>();
       for (List<PathSize> mapFiles : assignmentsPerTablet.values())
@@ -495,6 +498,7 @@ public class BulkImporter {
     Path path;
     long estSize;
 
+    @Override
     public String toString() {
       return path + " " + estSize;
     }
@@ -729,6 +733,7 @@ public class BulkImporter {
       this.failedFailures = failedFailures;
     }
 
+    @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
       int totalAssignments = 0;
