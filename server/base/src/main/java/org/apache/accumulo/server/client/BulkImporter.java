@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.client;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +74,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BulkImporter {
 
@@ -203,14 +204,14 @@ public class BulkImporter {
           while (keListIter.hasNext()) {
             KeyExtent ke = keListIter.next();
 
+            timer.start(Timers.QUERY_METADATA);
             try {
-              timer.start(Timers.QUERY_METADATA);
               tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
-              timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
             }
+            timer.stop(Timers.QUERY_METADATA);
           }
 
           if (tabletsToAssignMapFileTo.size() > 0)
@@ -254,13 +255,13 @@ public class BulkImporter {
       Set<Path> failedFailures = processFailures(completeFailures);
       assignmentStats.unrecoveredMapFiles(failedFailures);
 
-      timer.stop(Timers.TOTAL);
       printReport(paths);
       return assignmentStats;
     } finally {
       if (client != null) {
         ServerClient.close(client);
       }
+      timer.stop(Timers.TOTAL);
     }
   }
 
