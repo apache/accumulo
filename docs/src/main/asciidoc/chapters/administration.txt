@@ -306,6 +306,7 @@ A KeyStore can also be stored in HDFS, which will make the KeyStore readily avai
 all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
 will expect the KeyStore in the same location.
 
+[[ClientConfiguration]]
 ==== Client Configuration
 
 In version 1.6.0, Accumulo includes a new type of configuration file known as a client
@@ -536,6 +537,7 @@ To collect traces, Accumulo needs at least one server listed in
 from clients and writes them to the +trace+ table. The Accumulo
 user that the tracer connects to Accumulo with can be configured with
 the following properties
+(see the <<configuration,Configuration>> section for setting Accumulo server properties)
 
   trace.user
   trace.token.property.password
@@ -610,6 +612,60 @@ Hadoop to send traces to ZooTraceClient is
 The accumulo-core, accumulo-tracer, accumulo-fate and libthrift
 jars must also be placed on Hadoop's classpath.
 
+===== Adding additional SpanReceivers
+https://github.com/openzipkin/zipkin[Zipkin]
+has a SpanReceiver supported by HTrace and popularized by Twitter
+that users looking for a more graphical trace display may opt to use.
+The following steps configure Accumulo to use +org.apache.htrace.impl.ZipkinSpanReceiver+
+in addition to the Accumulo's default ZooTraceClient, and they serve as a template
+for adding any SpanReceiver to Accumulo:
+
+1. Add the Jar containing the ZipkinSpanReceiver class file to the
++$ACCUMULO_HOME/lib/+.  It is critical that the Jar is placed in
++lib/+ and NOT in +lib/ext/+ so that the new SpanReceiver class
+is visible to the same class loader of htrace-core.
+
+2. Add the following to +$ACCUMULO_HOME/conf/accumulo-site.xml+:
+
+  <property>
+    <name>trace.span.receivers</name>
+    <value>org.apache.accumulo.tracer.ZooTraceClient,org.apache.htrace.impl.ZipkinSpanReceiver</value>
+  </property>
+
+3. Restart your Accumulo tablet servers.
+
+In order to use ZipkinSpanReceiver from a client as well as the Accumulo server,
+
+1. Ensure your client can see the ZipkinSpanReceiver class at runtime. For Maven projects,
+this is easily done by adding to your client's pom.xml (taking care to specify a good version)
+
+  <dependency>
+    <groupId>org.apache.htrace</groupId>
+    <artifactId>htrace-zipkin</artifactId>
+    <version>3.1.0-incubating</version>
+    <scope>runtime</scope>
+  </dependency>
+
+2. Add the following to your ClientConfiguration
+(see the <<ClientConfiguration>> section)
+
+  trace.span.receivers=org.apache.accumulo.tracer.ZooTraceClient,org.apache.htrace.impl.ZipkinSpanReceiver
+
+3. Instrument your client as in the next section.
+
+Your SpanReceiver may require additional properties, and if so these should likewise
+be placed in the ClientConfiguration (if applicable) and Accumulo's +accumulo-site.xml+.
+Two such properties for ZipkinSpanReceiver, listed with their default values, are
+
+  <property>
+    <name>trace.span.receiver.zipkin.collector-hostname</name>
+    <value>localhost</value>
+  </property>
+  <property>
+    <name>trace.span.receiver.zipkin.collector-port</name>
+    <value>9410</value>
+  </property>
+
 ==== Instrumenting a Client
 Tracing can be used to measure a client operation, such as a scan, as
 the operation traverses the distributed system. To enable tracing for
@@ -637,8 +693,13 @@ for (Entry entry : scanner) {
 }
 scope.close();
 
-Additionally, the user can create additional Spans within a Trace.
-The sampler for the trace should only be specified with the first span, and subsequent spans will be collected depending on whether that first span was sampled.
+The user can create additional Spans within a Trace.
+
+The sampler (such as +Sampler.ALWAYS+) for the trace should only be specified with a top-level span,
+and subsequent spans will be collected depending on whether that first span was sampled.
+Don't forget to specify a Sampler at the top-level span
+because the default Sampler only samples when part of a pre-existing trace,
+which will never occur in a client that never specifies a Sampler.
 
 [source,java]
 TraceScope scope = Trace.startSpan("Client Update", Sampler.ALWAYS);
@@ -696,6 +757,67 @@ DistributedTrace.disable();
 To view collected traces, use the "Recent Traces" link on the Monitor
 UI. You can also programmatically access and print traces using the
 +TraceDump+ class.
+
+===== Trace Table Format
+This section is for developers looking to use data recorded in the trace table
+directly, above and beyond the default services of the Accumulo monitor.
+Please note the trace table format and its supporting classes
+are not in the public API and may be subject to change in future versions.
+
+Each span received by a tracer's ZooTraceClient is recorded in the trace table
+in the form of three entries: span entries, index entries, and start time entries.
+Span and start time entries record full span information,
+whereas index entries provide indexing into span information
+useful for quickly finding spans by type or start time.
+
+Each entry is illustrated by a description and sample of data.
+In the description, a token in quotes is a String literal,
+whereas other other tokens are span variables.
+Parentheses group parts together, to distinguish colon characters inside the
+column family or qualifier from the colon that separates column family and qualifier.
+We use the format +row columnFamily:columnQualifier columnVisibility    value+
+(omitting timestamp which records the time an entry is written to the trace table).
+
+Span entries take the following form:
+
+  traceId        "span":(parentSpanId:spanId)            []    spanBinaryEncoding
+  63b318de80de96d1 span:4b8f66077df89de1:3778c6739afe4e1 []    %18;%09;...
+
+The parentSpanId is "" for the root span of a trace.
+The spanBinaryEncoding is a compact Apache Thrift encoding of the original Span object.
+This allows clients (and the Accumulo monitor) to recover all the details of the original Span
+at a later time, by scanning the trace table and decoding the value of span entries
+via +TraceFormatter.getRemoteSpan(entry)+.
+
+The trace table has a formatter class by default (org.apache.accumulo.tracer.TraceFormatter)
+that changes how span entries appear from the Accumulo shell.
+Normal scans to the trace table do not use this formatter representation;
+it exists only to make span entries easier to view inside the Accumulo shell.
+
+Index entries take the following form:
+
+  "idx":service:startTime description:sender  []    traceId:elapsedTime
+  idx:tserver:14f3828f58b startScan:localhost []    63b318de80de96d1:1
+
+The service and sender are set by the first call of each Accumulo process
+(and instrumented client processes) to +DistributedTrace.enable(...)+
+(the sender is autodetected if not specified).
+The description is specified in each span.
+Start time and the elapsed time (start - stop, 1 millisecond in the example above)
+are recorded in milliseconds as long values serialized to a string in hex.
+
+Start time entries take the following form:
+
+  "start":startTime "id":traceId        []    spanBinaryEncoding
+  start:14f3828a351 id:63b318de80de96d1 []    %18;%09;...
+
+The following classes may be run from $ACCUMULO_HOME while Accumulo is running
+to provide insight into trace statistics. These require
+accumulo-trace-VERSION.jar to be provided on the Accumulo classpath
+(+$ACCUMULO_HOME/lib/ext+ is fine).
+
+  $ bin/accumulo org.apache.accumulo.tracer.TraceTableStats -u username -p password -i instancename
+  $ bin/accumulo org.apache.accumulo.tracer.TraceDump -u username -p password -i instancename -r
 
 ==== Tracing from the Shell
 You can enable tracing for operations run from the shell by using the
