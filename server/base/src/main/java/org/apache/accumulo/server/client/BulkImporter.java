@@ -203,14 +203,14 @@ public class BulkImporter {
           while (keListIter.hasNext()) {
             KeyExtent ke = keListIter.next();
 
+            timer.start(Timers.QUERY_METADATA);
             try {
-              timer.start(Timers.QUERY_METADATA);
               tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
-              timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
             }
+            timer.stop(Timers.QUERY_METADATA);
           }
 
           if (tabletsToAssignMapFileTo.size() > 0)
