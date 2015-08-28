@@ -255,13 +255,13 @@ public class BulkImporter {
       Set<Path> failedFailures = processFailures(completeFailures);
       assignmentStats.unrecoveredMapFiles(failedFailures);
 
+      timer.stop(Timers.TOTAL);
       printReport(paths);
       return assignmentStats;
     } finally {
       if (client != null) {
         ServerClient.close(client);
       }
-      timer.stop(Timers.TOTAL);
     }
   }
 
