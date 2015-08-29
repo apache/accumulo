@@ -197,8 +197,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         }
         long duration = System.currentTimeMillis() - start;
         if (duration > slowFlushMillis) {
-          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration).append(" ms, current pipeline: ").append(Arrays.toString(getPipeLine()))
-              .toString();
+          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration).append(" ms, current pipeline: ")
+              .append(Arrays.toString(getPipeLine())).toString();
           log.info(msg);
         }
 
