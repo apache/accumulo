@@ -1441,7 +1441,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       if (tabletServerLock == null || !tabletServerLock.wasLockAcquired()) {
-        log.warn("Got " + request + " message from master before lock acquired, ignoring...");
+        log.debug("Got " + request + " message before my lock was acquired, ignoring...");
         throw new RuntimeException("Lock not acquired");
       }
 
