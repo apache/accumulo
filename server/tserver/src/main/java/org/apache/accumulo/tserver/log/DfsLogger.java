@@ -277,11 +277,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
 
-  public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter) throws IOException {
+  private DfsLogger(ServerResources conf) {
     this.conf = conf;
+    this.slowFlushMillis = conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+  }
+
+  public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter) throws IOException {
+    this(conf);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
-    this.slowFlushMillis = conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
   }
 
   /**
@@ -291,10 +295,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
    *          the cq for the "log" entry in +r/!0
    */
   public DfsLogger(ServerResources conf, String filename, String meta) throws IOException {
-    this.conf = conf;
+    this(conf);
     this.logPath = filename;
     metaReference = meta;
-    this.slowFlushMillis = conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
   }
 
   public static DFSLoggerInputStreams readHeaderAndReturnStream(VolumeManager fs, Path path, AccumuloConfiguration conf) throws IOException {
