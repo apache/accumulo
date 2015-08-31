@@ -190,16 +190,24 @@ public class DfsLogger implements Comparable<DfsLogger> {
             }
           }
         } catch (Exception ex) {
-          log.warn("Exception syncing " + ex);
-          for (DfsLogger.LogWork logWork : work) {
-            logWork.exception = ex;
-          }
+          fail(work, ex, "synching");
         }
         long duration = System.currentTimeMillis() - start;
         if (duration > slowFlushMillis) {
           String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration).append(" ms, current pipeline: ")
               .append(Arrays.toString(getPipeLine())).toString();
           log.info(msg);
+          if (expectedReplication > 0) {
+            int current = expectedReplication;
+            try {
+              current = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
+            } catch (IOException e) {
+              fail(work, e, "getting replication level");
+            }
+            if (current < expectedReplication) {
+              fail(work, new IOException("replication of " + current + " is less than " + expectedReplication), "replication check");
+            }
+          }
         }
 
         for (DfsLogger.LogWork logWork : work)
@@ -207,6 +215,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
             sawClosedMarker = true;
           else
             logWork.latch.countDown();
+      }
+    }
+
+    private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
+      log.warn("Exception " + why + " " + ex);
+      for (DfsLogger.LogWork logWork : work) {
+        logWork.exception = ex;
       }
     }
   }
@@ -276,6 +291,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private AtomicLong syncCounter;
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
+  private int expectedReplication = 0;
 
   private DfsLogger(ServerResources conf) {
     this.conf = conf;
@@ -417,6 +433,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
         logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
+      if (logFile.getWrappedStream() instanceof DFSOutputStream) {
+        expectedReplication = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
+      }
 
       sync = logFile.getClass().getMethod("hsync");
       flush = logFile.getClass().getMethod("hflush");
