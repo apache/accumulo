@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,8 +35,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -51,15 +56,20 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.iterators.system.EmptyIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.sample.Sampler;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
@@ -68,7 +78,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 public class InMemoryMap {
   private SimpleMap map = null;
@@ -80,22 +91,58 @@ public class InMemoryMap {
 
   private Map<String,Set<ByteSequence>> lggroups;
 
-  public InMemoryMap(boolean useNativeMap, String memDumpDir) {
-    this(new HashMap<String,Set<ByteSequence>>(), useNativeMap, memDumpDir);
+  private static Pair<SamplerConfigurationImpl,Sampler> getSampler(AccumuloConfiguration config) {
+    try {
+      SamplerConfigurationImpl sampleConfig = SamplerConfigurationImpl.newSamplerConfig(config);
+      if (sampleConfig == null) {
+        return new Pair<>(null, null);
+      }
+
+      return new Pair<>(sampleConfig, SamplerFactory.newSampler(sampleConfig, config));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  public InMemoryMap(Map<String,Set<ByteSequence>> lggroups, boolean useNativeMap, String memDumpDir) {
-    this.memDumpDir = memDumpDir;
-    this.lggroups = lggroups;
+  private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef = new AtomicReference<>(null);
 
-    if (lggroups.size() == 0)
-      map = newMap(useNativeMap);
-    else
-      map = new LocalityGroupMap(lggroups, useNativeMap);
+  private AccumuloConfiguration config;
+
+  // defer creating sampler until first write. This was done because an empty sample map configured with no sampler will not flush after a user changes sample
+  // config.
+  private Sampler getOrCreateSampler() {
+    Pair<SamplerConfigurationImpl,Sampler> pair = samplerRef.get();
+    if (pair == null) {
+      pair = getSampler(config);
+      if (!samplerRef.compareAndSet(null, pair)) {
+        pair = samplerRef.get();
+      }
+    }
+
+    return pair.getSecond();
   }
 
   public InMemoryMap(AccumuloConfiguration config) throws LocalityGroupConfigurationError {
-    this(LocalityGroupUtil.getLocalityGroups(config), config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED), config.get(Property.TSERV_MEMDUMP_DIR));
+
+    boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
+
+    this.memDumpDir = config.get(Property.TSERV_MEMDUMP_DIR);
+    this.lggroups = LocalityGroupUtil.getLocalityGroups(config);
+
+    this.config = config;
+
+    SimpleMap allMap;
+    SimpleMap sampleMap;
+
+    if (lggroups.size() == 0) {
+      allMap = newMap(useNativeMap);
+      sampleMap = newMap(useNativeMap);
+    } else {
+      allMap = new LocalityGroupMap(lggroups, useNativeMap);
+      sampleMap = new LocalityGroupMap(lggroups, useNativeMap);
+    }
+
+    map = new SampleMap(allMap, sampleMap);
   }
 
   private static SimpleMap newMap(boolean useNativeMap) {
@@ -117,13 +164,102 @@ public class InMemoryMap {
 
     int size();
 
-    InterruptibleIterator skvIterator();
+    InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig);
 
     void delete();
 
     long getMemoryUsed();
 
     void mutate(List<Mutation> mutations, int kvCount);
+  }
+
+  private class SampleMap implements SimpleMap {
+
+    private SimpleMap map;
+    private SimpleMap sample;
+
+    public SampleMap(SimpleMap map, SimpleMap sampleMap) {
+      this.map = map;
+      this.sample = sampleMap;
+    }
+
+    @Override
+    public Value get(Key key) {
+      return map.get(key);
+    }
+
+    @Override
+    public Iterator<Entry<Key,Value>> iterator(Key startKey) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int size() {
+      return map.size();
+    }
+
+    @Override
+    public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
+      if (samplerConfig == null)
+        return map.skvIterator(null);
+      else {
+        Pair<SamplerConfigurationImpl,Sampler> samplerAndConf = samplerRef.get();
+        if (samplerAndConf == null) {
+          return EmptyIterator.EMPTY_ITERATOR;
+        } else if (samplerAndConf.getFirst() != null && samplerAndConf.getFirst().equals(samplerConfig)) {
+          return sample.skvIterator(null);
+        } else {
+          throw new SampleNotPresentException();
+        }
+      }
+    }
+
+    @Override
+    public void delete() {
+      map.delete();
+      sample.delete();
+    }
+
+    @Override
+    public long getMemoryUsed() {
+      return map.getMemoryUsed() + sample.getMemoryUsed();
+    }
+
+    @Override
+    public void mutate(List<Mutation> mutations, int kvCount) {
+      map.mutate(mutations, kvCount);
+
+      Sampler sampler = getOrCreateSampler();
+      if (sampler != null) {
+        List<Mutation> sampleMutations = null;
+
+        for (Mutation m : mutations) {
+          List<ColumnUpdate> colUpdates = m.getUpdates();
+          List<ColumnUpdate> sampleColUpdates = null;
+          for (ColumnUpdate cvp : colUpdates) {
+            Key k = new Key(m.getRow(), cvp.getColumnFamily(), cvp.getColumnQualifier(), cvp.getColumnVisibility(), cvp.getTimestamp(), cvp.isDeleted(), false);
+            if (sampler.accept(k)) {
+              if (sampleColUpdates == null) {
+                sampleColUpdates = new ArrayList<>();
+              }
+              sampleColUpdates.add(cvp);
+            }
+          }
+
+          if (sampleColUpdates != null) {
+            if (sampleMutations == null) {
+              sampleMutations = new ArrayList<>();
+            }
+
+            sampleMutations.add(new LocalityGroupUtil.PartitionedMutation(m.getRow(), sampleColUpdates));
+          }
+        }
+
+        if (sampleMutations != null) {
+          sample.mutate(sampleMutations, kvCount);
+        }
+      }
+    }
   }
 
   private static class LocalityGroupMap implements SimpleMap {
@@ -181,13 +317,16 @@ public class InMemoryMap {
     }
 
     @Override
-    public InterruptibleIterator skvIterator() {
+    public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
+      if (samplerConfig != null)
+        throw new SampleNotPresentException();
+
       LocalityGroup groups[] = new LocalityGroup[maps.length];
       for (int i = 0; i < groups.length; i++) {
         if (i < groupFams.length)
-          groups[i] = new LocalityGroup(maps[i].skvIterator(), groupFams.get(i), false);
+          groups[i] = new LocalityGroup(maps[i].skvIterator(null), groupFams.get(i), false);
         else
-          groups[i] = new LocalityGroup(maps[i].skvIterator(), null, true);
+          groups[i] = new LocalityGroup(maps[i].skvIterator(null), null, true);
       }
 
       return new LocalityGroupIterator(groups, nonDefaultColumnFamilies);
@@ -264,7 +403,9 @@ public class InMemoryMap {
     }
 
     @Override
-    public synchronized InterruptibleIterator skvIterator() {
+    public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
+      if (samplerConfig != null)
+        throw new SampleNotPresentException();
       if (map == null)
         throw new IllegalStateException();
 
@@ -327,7 +468,9 @@ public class InMemoryMap {
     }
 
     @Override
-    public InterruptibleIterator skvIterator() {
+    public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
+      if (samplerConfig != null)
+        throw new SampleNotPresentException();
       return (InterruptibleIterator) nativeMap.skvIterator();
     }
 
@@ -410,16 +553,30 @@ public class InMemoryMap {
     private MemoryDataSource parent;
     private IteratorEnvironment env;
     private AtomicBoolean iflag;
+    private SamplerConfigurationImpl iteratorSamplerConfig;
 
-    MemoryDataSource() {
-      this(null, false, null, null);
+    private SamplerConfigurationImpl getSamplerConfig() {
+      if (env != null) {
+        if (env.isSampleEnabledForDeepCopy()) {
+          return new SamplerConfigurationImpl(env.getSamplerConfiguration());
+        } else {
+          return null;
+        }
+      } else {
+        return iteratorSamplerConfig;
+      }
     }
 
-    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env, AtomicBoolean iflag) {
+    MemoryDataSource(SamplerConfigurationImpl samplerConfig) {
+      this(null, false, null, null, samplerConfig);
+    }
+
+    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env, AtomicBoolean iflag, SamplerConfigurationImpl samplerConfig) {
       this.parent = parent;
       this.switched = switched;
       this.env = env;
       this.iflag = iflag;
+      this.iteratorSamplerConfig = samplerConfig;
     }
 
     @Override
@@ -457,6 +614,10 @@ public class InMemoryMap {
         reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, SiteConfiguration.getInstance());
         if (iflag != null)
           reader.setInterruptFlag(iflag);
+
+        if (getSamplerConfig() != null) {
+          reader = reader.getSample(getSamplerConfig());
+        }
       }
 
       return reader;
@@ -466,7 +627,7 @@ public class InMemoryMap {
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
       if (iter == null)
         if (!switched) {
-          iter = map.skvIterator();
+          iter = map.skvIterator(getSamplerConfig());
           if (iflag != null)
             iter.setInterruptFlag(iflag);
         } else {
@@ -485,7 +646,7 @@ public class InMemoryMap {
 
     @Override
     public DataSource getDeepCopyDataSource(IteratorEnvironment env) {
-      return new MemoryDataSource(parent == null ? this : parent, switched, env, iflag);
+      return new MemoryDataSource(parent == null ? this : parent, switched, env, iflag, iteratorSamplerConfig);
     }
 
     @Override
@@ -562,7 +723,7 @@ public class InMemoryMap {
 
   }
 
-  public synchronized MemoryIterator skvIterator() {
+  public synchronized MemoryIterator skvIterator(SamplerConfigurationImpl iteratorSamplerConfig) {
     if (map == null)
       throw new NullPointerException();
 
@@ -570,8 +731,9 @@ public class InMemoryMap {
       throw new IllegalStateException("Can not obtain iterator after map deleted");
 
     int mc = kvCount.get();
-    MemoryDataSource mds = new MemoryDataSource();
-    SourceSwitchingIterator ssi = new SourceSwitchingIterator(new MemoryDataSource());
+    MemoryDataSource mds = new MemoryDataSource(iteratorSamplerConfig);
+    // TODO seems like a bug that two MemoryDataSources are created... may need to fix in older branches
+    SourceSwitchingIterator ssi = new SourceSwitchingIterator(mds);
     MemoryIterator mi = new MemoryIterator(new PartialMutationSkippingIterator(ssi, mc));
     mi.setSSI(ssi);
     mi.setMDS(mds);
@@ -584,7 +746,7 @@ public class InMemoryMap {
     if (nextKVCount.get() - 1 != kvCount.get())
       throw new IllegalStateException("Memory map in unexpected state : nextKVCount = " + nextKVCount.get() + " kvCount = " + kvCount.get());
 
-    return map.skvIterator();
+    return map.skvIterator(null);
   }
 
   private boolean deleted = false;
@@ -615,9 +777,15 @@ public class InMemoryMap {
         Configuration newConf = new Configuration(conf);
         newConf.setInt("io.seqfile.compress.blocksize", 100000);
 
-        FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, SiteConfiguration.getInstance());
+        AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
 
-        InterruptibleIterator iter = map.skvIterator();
+        if (getOrCreateSampler() != null) {
+          siteConf = createSampleConfig(siteConf);
+        }
+
+        FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, siteConf);
+
+        InterruptibleIterator iter = map.skvIterator(null);
 
         HashSet<ByteSequence> allfams = new HashSet<ByteSequence>();
 
@@ -668,14 +836,28 @@ public class InMemoryMap {
     tmpMap.delete();
   }
 
+  private AccumuloConfiguration createSampleConfig(AccumuloConfiguration siteConf) {
+    ConfigurationCopy confCopy = new ConfigurationCopy(Iterables.filter(siteConf, new Predicate<Entry<String,String>>() {
+      @Override
+      public boolean apply(Entry<String,String> input) {
+        return !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey());
+      }
+    }));
+
+    for (Entry<String,String> entry : samplerRef.get().getFirst().toTablePropertiesMap().entrySet()) {
+      confCopy.set(entry.getKey(), entry.getValue());
+    }
+
+    siteConf = confCopy;
+    return siteConf;
+  }
+
   private void dumpLocalityGroup(FileSKVWriter out, InterruptibleIterator iter) throws IOException {
     while (iter.hasTop() && activeIters.size() > 0) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
       // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
-      Value newValue = new MemValue(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount);
-      out.append(iter.getTopKey(), newValue);
+      out.append(iter.getTopKey(), MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount));
       iter.next();
-
     }
   }
 }

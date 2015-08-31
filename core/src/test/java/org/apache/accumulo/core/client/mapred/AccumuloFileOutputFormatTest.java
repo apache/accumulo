@@ -20,9 +20,12 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.sample.RowSampler;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
 
@@ -36,6 +39,9 @@ public class AccumuloFileOutputFormatTest {
     long c = 50l;
     long d = 10l;
     String e = "snappy";
+    SamplerConfiguration samplerConfig = new SamplerConfiguration(RowSampler.class.getName());
+    samplerConfig.addOption("hasher", "murmur3_32");
+    samplerConfig.addOption("modulus", "109");
 
     JobConf job = new JobConf();
     AccumuloFileOutputFormat.setReplication(job, a);
@@ -43,6 +49,7 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setDataBlockSize(job, c);
     AccumuloFileOutputFormat.setIndexBlockSize(job, d);
     AccumuloFileOutputFormat.setCompressionType(job, e);
+    AccumuloFileOutputFormat.setSampler(job, samplerConfig);
 
     AccumuloConfiguration acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
@@ -51,12 +58,16 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(50l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
     a = 17;
     b = 1300l;
     c = 150l;
     d = 110l;
     e = "lzo";
+    samplerConfig = new SamplerConfiguration(RowSampler.class.getName());
+    samplerConfig.addOption("hasher", "md5");
+    samplerConfig.addOption("modulus", "100003");
 
     job = new JobConf();
     AccumuloFileOutputFormat.setReplication(job, a);
@@ -64,6 +75,7 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setDataBlockSize(job, c);
     AccumuloFileOutputFormat.setIndexBlockSize(job, d);
     AccumuloFileOutputFormat.setCompressionType(job, e);
+    AccumuloFileOutputFormat.setSampler(job, samplerConfig);
 
     acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
@@ -72,6 +84,6 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(150l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-
+    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
   }
 }

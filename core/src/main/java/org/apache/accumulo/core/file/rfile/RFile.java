@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -62,11 +64,16 @@ import org.apache.accumulo.core.iterators.system.HeapIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
+import org.apache.accumulo.core.sample.Sampler;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 public class RFile {
 
@@ -77,15 +84,38 @@ public class RFile {
   private RFile() {}
 
   private static final int RINDEX_MAGIC = 0x20637474;
-  static final int RINDEX_VER_7 = 7;
-  static final int RINDEX_VER_6 = 6;
+
+  static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for each locality group. Sample are built using a Sampler and
+                                     // sampler configuration. The Sampler and its configuration are stored in RFile. Persisting the method of producing the
+                                     // sample allows a user of RFile to determine if the sample is useful.
+  static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before this change only exact matches within a key field were deduped
+                                     // for consecutive keys. After this change, if consecutive key fields have the same prefix then the prefix is only stored
+                                     // once.
+  static final int RINDEX_VER_6 = 6; // Added support for multilevel indexes. Before this the index was one list with an entry for each data block. For large
+                                     // files, a large index needed to be read into memory before any seek could be done. After this change the index is a fat
+                                     // tree, and opening a large rfile is much faster. Like the previous version of Rfile, each index node in the tree is kept
+                                     // in memory serialized and used in its serialized form.
   // static final int RINDEX_VER_5 = 5; // unreleased
-  static final int RINDEX_VER_4 = 4;
-  static final int RINDEX_VER_3 = 3;
+  static final int RINDEX_VER_4 = 4; // Added support for seeking using serialized indexes. After this change index is no longer deserialized when rfile opened.
+                                     // Entire serialized index is read into memory as single byte array. For seeks, serialized index is used to find blocks
+                                     // (the binary search deserializes the specific entries its needs). This resulted in less memory usage (no object overhead)
+                                     // and faster open times for RFiles.
+  static final int RINDEX_VER_3 = 3; // Initial released version of RFile. R is for relative encoding. A keys is encoded relative to the previous key. The
+                                     // initial version deduped key fields that were the same for consecutive keys. For sorted data this is a common occurrence.
+                                     // This version supports locality groups. Each locality group has an index pointing to set of data blocks. Each data block
+                                     // contains relatively encoded keys and values.
+
+  // Buffer sample data so that many sample data blocks are stored contiguously.
+  private static int sampleBufferSize = 10000000;
+
+  @VisibleForTesting
+  public static void setSampleBufferSize(int bufferSize) {
+    sampleBufferSize = bufferSize;
+  }
 
   private static class LocalityGroupMetadata implements Writable {
 
-    private int startBlock;
+    private int startBlock = -1;
     private Key firstKey;
     private Map<ByteSequence,MutableLong> columnFamilies;
 
@@ -95,14 +125,15 @@ public class RFile {
 
     private MultiLevelIndex.BufferedWriter indexWriter;
     private MultiLevelIndex.Reader indexReader;
+    private int version;
 
     public LocalityGroupMetadata(int version, BlockFileReader br) {
       columnFamilies = new HashMap<ByteSequence,MutableLong>();
       indexReader = new MultiLevelIndex.Reader(br, version);
+      this.version = version;
     }
 
-    public LocalityGroupMetadata(int nextBlock, Set<ByteSequence> pcf, int indexBlockSize, BlockFileWriter bfw) {
-      this.startBlock = nextBlock;
+    public LocalityGroupMetadata(Set<ByteSequence> pcf, int indexBlockSize, BlockFileWriter bfw) {
       isDefaultLG = true;
       columnFamilies = new HashMap<ByteSequence,MutableLong>();
       previousColumnFamilies = pcf;
@@ -110,8 +141,7 @@ public class RFile {
       indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
 
-    public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int nextBlock, int indexBlockSize, BlockFileWriter bfw) {
-      this.startBlock = nextBlock;
+    public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize, BlockFileWriter bfw) {
       this.name = name;
       isDefaultLG = false;
       columnFamilies = new HashMap<ByteSequence,MutableLong>();
@@ -181,7 +211,9 @@ public class RFile {
         name = in.readUTF();
       }
 
-      startBlock = in.readInt();
+      if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6 || version == RINDEX_VER_7) {
+        startBlock = in.readInt();
+      }
 
       int size = in.readInt();
 
@@ -224,8 +256,6 @@ public class RFile {
         out.writeUTF(name);
       }
 
-      out.writeInt(startBlock);
-
       if (isDefaultLG && columnFamilies == null) {
         // only expect null when default LG, otherwise let a NPE occur
         out.writeInt(-1);
@@ -246,26 +276,27 @@ public class RFile {
       indexWriter.close(out);
     }
 
-    public void printInfo() throws IOException {
+    public void printInfo(boolean isSample) throws IOException {
       PrintStream out = System.out;
-      out.println("Locality group         : " + (isDefaultLG ? "<DEFAULT>" : name));
-      out.println("\tStart block          : " + startBlock);
-      out.println("\tNum   blocks         : " + String.format("%,d", indexReader.size()));
+      out.printf("%-24s : %s\n", (isSample ? "Sample " : "") + "Locality group ", (isDefaultLG ? "<DEFAULT>" : name));
+      if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6 || version == RINDEX_VER_7) {
+        out.printf("\t%-22s : %d\n", "Start block", startBlock);
+      }
+      out.printf("\t%-22s : %,d\n", "Num   blocks", indexReader.size());
       TreeMap<Integer,Long> sizesByLevel = new TreeMap<Integer,Long>();
       TreeMap<Integer,Long> countsByLevel = new TreeMap<Integer,Long>();
       indexReader.getIndexInfo(sizesByLevel, countsByLevel);
       for (Entry<Integer,Long> entry : sizesByLevel.descendingMap().entrySet()) {
-        out.println("\tIndex level " + entry.getKey() + "        : "
-            + String.format("%,d bytes  %,d blocks", entry.getValue(), countsByLevel.get(entry.getKey())));
+        out.printf("\t%-22s : %,d bytes  %,d blocks\n", "Index level " + entry.getKey(), entry.getValue(), countsByLevel.get(entry.getKey()));
       }
-      out.println("\tFirst key            : " + firstKey);
+      out.printf("\t%-22s : %s\n", "First key", firstKey);
 
       Key lastKey = null;
       if (indexReader.size() > 0) {
         lastKey = indexReader.getLastKey();
       }
 
-      out.println("\tLast key             : " + lastKey);
+      out.printf("\t%-22s : %s\n", "Last key", lastKey);
 
       long numKeys = 0;
       IndexIterator countIter = indexReader.lookup(new Key());
@@ -273,99 +304,95 @@ public class RFile {
         numKeys += countIter.next().getNumEntries();
       }
 
-      out.println("\tNum entries          : " + String.format("%,d", numKeys));
-      out.println("\tColumn families      : " + (isDefaultLG && columnFamilies == null ? "<UNKNOWN>" : columnFamilies.keySet()));
+      out.printf("\t%-22s : %,d\n", "Num entries", numKeys);
+      out.printf("\t%-22s : %s\n", "Column families", (isDefaultLG && columnFamilies == null ? "<UNKNOWN>" : columnFamilies.keySet()));
     }
 
   }
 
-  public static class Writer implements FileSKVWriter {
+  private static class SampleEntry {
+    Key key;
+    Value val;
 
-    public static final int MAX_CF_IN_DLG = 1000;
+    SampleEntry(Key key, Value val) {
+      this.key = new Key(key);
+      this.val = new Value(val);
+    }
+  }
+
+  private static class SampleLocalityGroupWriter {
+
+    private Sampler sampler;
+
+    private List<SampleEntry> entries = new ArrayList<>();
+    private long dataSize = 0;
+
+    private LocalityGroupWriter lgr;
+
+    public SampleLocalityGroupWriter(LocalityGroupWriter lgr, Sampler sampler) {
+      this.lgr = lgr;
+      this.sampler = sampler;
+    }
+
+    public void append(Key key, Value value) throws IOException {
+      if (sampler.accept(key)) {
+        entries.add(new SampleEntry(key, value));
+        dataSize += key.getSize() + value.getSize();
+      }
+    }
+
+    public void close() throws IOException {
+      for (SampleEntry se : entries) {
+        lgr.append(se.key, se.val);
+      }
+
+      lgr.close();
+    }
+
+    public void flushIfNeeded() throws IOException {
+      if (dataSize > sampleBufferSize) {
+        // the reason to write out all but one key is so that closeBlock() can always eventually be called with true
+        List<SampleEntry> subList = entries.subList(0, entries.size() - 1);
+
+        if (subList.size() > 0) {
+          for (SampleEntry se : subList) {
+            lgr.append(se.key, se.val);
+          }
+
+          lgr.closeBlock(subList.get(subList.size() - 1).key, false);
+
+          subList.clear();
+          dataSize = 0;
+        }
+      }
+    }
+  }
+
+  private static class LocalityGroupWriter {
 
     private BlockFileWriter fileWriter;
     private ABlockWriter blockWriter;
 
     // private BlockAppender blockAppender;
     private long blockSize = 100000;
-    private int indexBlockSize;
     private int entries = 0;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
     private LocalityGroupMetadata currentLocalityGroup = null;
-    private int nextBlock = 0;
 
     private Key lastKeyInBlock = null;
 
-    private boolean dataClosed = false;
-    private boolean closed = false;
     private Key prevKey = new Key();
-    private boolean startedDefaultLocalityGroup = false;
 
-    private HashSet<ByteSequence> previousColumnFamilies;
-    private long length = -1;
+    private SampleLocalityGroupWriter sample;
 
-    public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
-      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
-    }
-
-    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize) throws IOException {
+    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, LocalityGroupMetadata currentLocalityGroup, SampleLocalityGroupWriter sample) {
+      this.fileWriter = fileWriter;
       this.blockSize = blockSize;
-      this.indexBlockSize = indexBlockSize;
-      this.fileWriter = bfw;
-      this.blockWriter = null;
-      previousColumnFamilies = new HashSet<ByteSequence>();
+      this.currentLocalityGroup = currentLocalityGroup;
+      this.sample = sample;
     }
 
-    @Override
-    public synchronized void close() throws IOException {
-
-      if (closed) {
-        return;
-      }
-
-      closeData();
-
-      ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
-
-      mba.writeInt(RINDEX_MAGIC);
-      mba.writeInt(RINDEX_VER_7);
-
-      if (currentLocalityGroup != null)
-        localityGroups.add(currentLocalityGroup);
-
-      mba.writeInt(localityGroups.size());
-
-      for (LocalityGroupMetadata lc : localityGroups) {
-        lc.write(mba);
-      }
-
-      mba.close();
-      fileWriter.close();
-      length = fileWriter.getLength();
-
-      closed = true;
-    }
-
-    private void closeData() throws IOException {
-
-      if (dataClosed) {
-        return;
-      }
-
-      dataClosed = true;
-
-      if (blockWriter != null) {
-        closeBlock(lastKeyInBlock, true);
-      }
-    }
-
-    @Override
     public void append(Key key, Value value) throws IOException {
-
-      if (dataClosed) {
-        throw new IllegalStateException("Cannont append, data closed");
-      }
 
       if (key.compareTo(prevKey) < 0) {
         throw new IllegalStateException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
@@ -375,6 +402,10 @@ public class RFile {
 
       if (currentLocalityGroup.getFirstKey() == null) {
         currentLocalityGroup.setFirstKey(key);
+      }
+
+      if (sample != null) {
+        sample.append(key, value);
       }
 
       if (blockWriter == null) {
@@ -403,10 +434,130 @@ public class RFile {
       else
         currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
 
+      if (sample != null)
+        sample.flushIfNeeded();
+
       blockWriter = null;
       lastKeyInBlock = null;
       entries = 0;
-      nextBlock++;
+    }
+
+    public void close() throws IOException {
+      if (blockWriter != null) {
+        closeBlock(lastKeyInBlock, true);
+      }
+
+      if (sample != null) {
+        sample.close();
+      }
+    }
+  }
+
+  public static class Writer implements FileSKVWriter {
+
+    public static final int MAX_CF_IN_DLG = 1000;
+
+    private BlockFileWriter fileWriter;
+
+    // private BlockAppender blockAppender;
+    private long blockSize = 100000;
+    private int indexBlockSize;
+
+    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
+    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<LocalityGroupMetadata>();
+    private LocalityGroupMetadata currentLocalityGroup = null;
+    private LocalityGroupMetadata sampleLocalityGroup = null;
+
+    private boolean dataClosed = false;
+    private boolean closed = false;
+    private boolean startedDefaultLocalityGroup = false;
+
+    private HashSet<ByteSequence> previousColumnFamilies;
+    private long length = -1;
+
+    private LocalityGroupWriter lgWriter;
+
+    private SamplerConfigurationImpl samplerConfig;
+    private Sampler sampler;
+
+    public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
+      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+    }
+
+    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
+      this.blockSize = blockSize;
+      this.indexBlockSize = indexBlockSize;
+      this.fileWriter = bfw;
+      previousColumnFamilies = new HashSet<ByteSequence>();
+      this.samplerConfig = samplerConfig;
+      this.sampler = sampler;
+    }
+
+    @Override
+    public synchronized void close() throws IOException {
+
+      if (closed) {
+        return;
+      }
+
+      closeData();
+
+      ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
+
+      mba.writeInt(RINDEX_MAGIC);
+      mba.writeInt(RINDEX_VER_8);
+
+      if (currentLocalityGroup != null) {
+        localityGroups.add(currentLocalityGroup);
+        sampleGroups.add(sampleLocalityGroup);
+      }
+
+      mba.writeInt(localityGroups.size());
+
+      for (LocalityGroupMetadata lc : localityGroups) {
+        lc.write(mba);
+      }
+
+      if (samplerConfig == null) {
+        mba.writeBoolean(false);
+      } else {
+        mba.writeBoolean(true);
+
+        for (LocalityGroupMetadata lc : sampleGroups) {
+          lc.write(mba);
+        }
+
+        samplerConfig.write(mba);
+      }
+
+      mba.close();
+      fileWriter.close();
+      length = fileWriter.getLength();
+
+      closed = true;
+    }
+
+    private void closeData() throws IOException {
+
+      if (dataClosed) {
+        return;
+      }
+
+      dataClosed = true;
+
+      if (lgWriter != null) {
+        lgWriter.close();
+      }
+    }
+
+    @Override
+    public void append(Key key, Value value) throws IOException {
+
+      if (dataClosed) {
+        throw new IllegalStateException("Cannont append, data closed");
+      }
+
+      lgWriter.append(key, value);
     }
 
     @Override
@@ -425,28 +576,35 @@ public class RFile {
         throw new IllegalStateException("Can not start anymore new locality groups after default locality group started");
       }
 
-      if (blockWriter != null) {
-        closeBlock(lastKeyInBlock, true);
+      if (lgWriter != null) {
+        lgWriter.close();
       }
 
       if (currentLocalityGroup != null) {
         localityGroups.add(currentLocalityGroup);
+        sampleGroups.add(sampleLocalityGroup);
       }
 
       if (columnFamilies == null) {
         startedDefaultLocalityGroup = true;
-        currentLocalityGroup = new LocalityGroupMetadata(nextBlock, previousColumnFamilies, indexBlockSize, fileWriter);
+        currentLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
+        sampleLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
       } else {
         if (!Collections.disjoint(columnFamilies, previousColumnFamilies)) {
           HashSet<ByteSequence> overlap = new HashSet<ByteSequence>(columnFamilies);
           overlap.retainAll(previousColumnFamilies);
           throw new IllegalArgumentException("Column families over lap with previous locality group : " + overlap);
         }
-        currentLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, nextBlock, indexBlockSize, fileWriter);
+        currentLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize, fileWriter);
+        sampleLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize, fileWriter);
         previousColumnFamilies.addAll(columnFamilies);
       }
 
-      prevKey = new Key();
+      SampleLocalityGroupWriter sampleWriter = null;
+      if (sampler != null) {
+        sampleWriter = new SampleLocalityGroupWriter(new LocalityGroupWriter(fileWriter, blockSize, sampleLocalityGroup, null), sampler);
+      }
+      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, currentLocalityGroup, sampleWriter);
     }
 
     @Override
@@ -616,8 +774,9 @@ public class RFile {
       if (columnFamilies.size() != 0 || inclusive)
         throw new IllegalArgumentException("I do not know how to filter column families");
 
-      if (interruptFlag != null && interruptFlag.get())
+      if (interruptFlag != null && interruptFlag.get()) {
         throw new IterationInterruptedException();
+      }
 
       try {
         _seek(range);
@@ -830,6 +989,11 @@ public class RFile {
     public void registerMetrics(MetricsGatherer<?> vmg) {
       metricsGatherer = vmg;
     }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   public static class Reader extends HeapIterator implements FileSKVIterator {
@@ -837,14 +1001,22 @@ public class RFile {
     private BlockFileReader reader;
 
     private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
+    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<LocalityGroupMetadata>();
 
-    private LocalityGroupReader lgReaders[];
+    private LocalityGroupReader currentReaders[];
+    private LocalityGroupReader readers[];
+    private LocalityGroupReader sampleReaders[];
+
     private HashSet<ByteSequence> nonDefaultColumnFamilies;
 
     private List<Reader> deepCopies;
     private boolean deepCopy = false;
 
     private AtomicBoolean interruptFlag;
+
+    private SamplerConfigurationImpl samplerConfig = null;
+
+    private int rfileVersion;
 
     public Reader(BlockFileReader rdr) throws IOException {
       this.reader = rdr;
@@ -853,14 +1025,15 @@ public class RFile {
       try {
         int magic = mb.readInt();
         int ver = mb.readInt();
+        rfileVersion = ver;
 
         if (magic != RINDEX_MAGIC)
           throw new IOException("Did not see expected magic number, saw " + magic);
-        if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+        if (ver != RINDEX_VER_8 && ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
           throw new IOException("Did not see expected version, saw " + ver);
 
         int size = mb.readInt();
-        lgReaders = new LocalityGroupReader[size];
+        currentReaders = new LocalityGroupReader[size];
 
         deepCopies = new LinkedList<Reader>();
 
@@ -869,8 +1042,28 @@ public class RFile {
           lgm.readFields(mb);
           localityGroups.add(lgm);
 
-          lgReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+          currentReaders[i] = new LocalityGroupReader(reader, lgm, ver);
         }
+
+        readers = currentReaders;
+
+        if (ver == RINDEX_VER_8 && mb.readBoolean()) {
+          sampleReaders = new LocalityGroupReader[size];
+
+          for (int i = 0; i < size; i++) {
+            LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
+            lgm.readFields(mb);
+            sampleGroups.add(lgm);
+
+            sampleReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+          }
+
+          samplerConfig = new SamplerConfigurationImpl(mb);
+        } else {
+          sampleReaders = null;
+          samplerConfig = null;
+        }
+
       } finally {
         mb.close();
       }
@@ -881,24 +1074,53 @@ public class RFile {
           nonDefaultColumnFamilies.addAll(lgm.columnFamilies.keySet());
       }
 
-      createHeap(lgReaders.length);
+      createHeap(currentReaders.length);
     }
 
-    private Reader(Reader r) {
-      super(r.lgReaders.length);
+    private Reader(Reader r, LocalityGroupReader sampleReaders[]) {
+      super(sampleReaders.length);
       this.reader = r.reader;
       this.nonDefaultColumnFamilies = r.nonDefaultColumnFamilies;
-      this.lgReaders = new LocalityGroupReader[r.lgReaders.length];
+      this.currentReaders = new LocalityGroupReader[sampleReaders.length];
       this.deepCopies = r.deepCopies;
-      this.deepCopy = true;
-      for (int i = 0; i < lgReaders.length; i++) {
-        this.lgReaders[i] = new LocalityGroupReader(r.lgReaders[i]);
-        this.lgReaders[i].setInterruptFlag(r.interruptFlag);
+      this.deepCopy = false;
+      this.readers = r.readers;
+      this.sampleReaders = r.sampleReaders;
+      this.samplerConfig = r.samplerConfig;
+      this.rfileVersion = r.rfileVersion;
+      for (int i = 0; i < sampleReaders.length; i++) {
+        this.currentReaders[i] = sampleReaders[i];
+        this.currentReaders[i].setInterruptFlag(r.interruptFlag);
       }
     }
 
+    private Reader(Reader r, boolean useSample) {
+      super(r.currentReaders.length);
+      this.reader = r.reader;
+      this.nonDefaultColumnFamilies = r.nonDefaultColumnFamilies;
+      this.currentReaders = new LocalityGroupReader[r.currentReaders.length];
+      this.deepCopies = r.deepCopies;
+      this.deepCopy = true;
+      this.samplerConfig = r.samplerConfig;
+      this.rfileVersion = r.rfileVersion;
+      this.readers = r.readers;
+      this.sampleReaders = r.sampleReaders;
+
+      for (int i = 0; i < r.readers.length; i++) {
+        if (useSample) {
+          this.currentReaders[i] = new LocalityGroupReader(r.sampleReaders[i]);
+          this.currentReaders[i].setInterruptFlag(r.interruptFlag);
+        } else {
+          this.currentReaders[i] = new LocalityGroupReader(r.readers[i]);
+          this.currentReaders[i].setInterruptFlag(r.interruptFlag);
+        }
+
+      }
+
+    }
+
     private void closeLocalityGroupReaders() {
-      for (LocalityGroupReader lgr : lgReaders) {
+      for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
@@ -926,6 +1148,16 @@ public class RFile {
       closeDeepCopies();
       closeLocalityGroupReaders();
 
+      if (sampleReaders != null) {
+        for (LocalityGroupReader lgr : sampleReaders) {
+          try {
+            lgr.close();
+          } catch (IOException e) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          }
+        }
+      }
+
       try {
         reader.close();
       } finally {
@@ -937,17 +1169,17 @@ public class RFile {
 
     @Override
     public Key getFirstKey() throws IOException {
-      if (lgReaders.length == 0) {
+      if (currentReaders.length == 0) {
         return null;
       }
 
       Key minKey = null;
 
-      for (int i = 0; i < lgReaders.length; i++) {
+      for (int i = 0; i < currentReaders.length; i++) {
         if (minKey == null) {
-          minKey = lgReaders[i].getFirstKey();
+          minKey = currentReaders[i].getFirstKey();
         } else {
-          Key firstKey = lgReaders[i].getFirstKey();
+          Key firstKey = currentReaders[i].getFirstKey();
           if (firstKey != null && firstKey.compareTo(minKey) < 0)
             minKey = firstKey;
         }
@@ -958,17 +1190,17 @@ public class RFile {
 
     @Override
     public Key getLastKey() throws IOException {
-      if (lgReaders.length == 0) {
+      if (currentReaders.length == 0) {
         return null;
       }
 
       Key maxKey = null;
 
-      for (int i = 0; i < lgReaders.length; i++) {
+      for (int i = 0; i < currentReaders.length; i++) {
         if (maxKey == null) {
-          maxKey = lgReaders[i].getLastKey();
+          maxKey = currentReaders[i].getLastKey();
         } else {
-          Key lastKey = lgReaders[i].getLastKey();
+          Key lastKey = currentReaders[i].getLastKey();
           if (lastKey != null && lastKey.compareTo(maxKey) > 0)
             maxKey = lastKey;
         }
@@ -988,10 +1220,26 @@ public class RFile {
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-      Reader copy = new Reader(this);
-      copy.setInterruptFlagInternal(interruptFlag);
-      deepCopies.add(copy);
-      return copy;
+      if (env != null && env.isSampleEnabledForDeepCopy()) {
+        SamplerConfiguration sc = env.getSamplerConfiguration();
+        if (sc == null) {
+          throw new SampleNotPresentException();
+        }
+
+        if (this.samplerConfig != null && this.samplerConfig.equals(new SamplerConfigurationImpl(sc))) {
+          Reader copy = new Reader(this, true);
+          copy.setInterruptFlagInternal(interruptFlag);
+          deepCopies.add(copy);
+          return copy;
+        } else {
+          throw new SampleNotPresentException();
+        }
+      } else {
+        Reader copy = new Reader(this, false);
+        copy.setInterruptFlagInternal(interruptFlag);
+        deepCopies.add(copy);
+        return copy;
+      }
     }
 
     @Override
@@ -1027,14 +1275,20 @@ public class RFile {
      */
     public void registerMetrics(MetricsGatherer<?> vmg) {
       vmg.init(getLocalityGroupCF());
-      for (LocalityGroupReader lgr : lgReaders) {
+      for (LocalityGroupReader lgr : currentReaders) {
         lgr.registerMetrics(vmg);
+      }
+
+      if (sampleReaders != null) {
+        for (LocalityGroupReader lgr : sampleReaders) {
+          lgr.registerMetrics(vmg);
+        }
       }
     }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      numLGSeeked = LocalityGroupIterator.seek(this, lgReaders, nonDefaultColumnFamilies, range, columnFamilies, inclusive);
+      numLGSeeked = LocalityGroupIterator.seek(this, currentReaders, nonDefaultColumnFamilies, range, columnFamilies, inclusive);
     }
 
     int getNumLocalityGroupsSeeked() {
@@ -1045,16 +1299,53 @@ public class RFile {
 
       ArrayList<Iterator<IndexEntry>> indexes = new ArrayList<Iterator<IndexEntry>>();
 
-      for (LocalityGroupReader lgr : lgReaders) {
+      for (LocalityGroupReader lgr : currentReaders) {
         indexes.add(lgr.getIndex());
       }
 
       return new MultiIndexIterator(this, indexes);
     }
 
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      Preconditions.checkNotNull(sampleConfig);
+
+      if (this.samplerConfig != null && this.samplerConfig.equals(sampleConfig)) {
+        Reader copy = new Reader(this, sampleReaders);
+        copy.setInterruptFlagInternal(interruptFlag);
+        return copy;
+      }
+
+      return null;
+    }
+
+    // only visible for printinfo
+    FileSKVIterator getSample() {
+      if (samplerConfig == null)
+        return null;
+      return getSample(this.samplerConfig);
+    }
+
     public void printInfo() throws IOException {
+
+      System.out.printf("%-24s : %d\n", "RFile Version", rfileVersion);
+      System.out.println();
+
       for (LocalityGroupMetadata lgm : localityGroups) {
-        lgm.printInfo();
+        lgm.printInfo(false);
+      }
+
+      if (sampleGroups.size() > 0) {
+
+        System.out.println();
+        System.out.printf("%-24s :\n", "Sample Configuration");
+        System.out.printf("\t%-22s : %s\n", "Sampler class ", samplerConfig.getClassName());
+        System.out.printf("\t%-22s : %s\n", "Sampler options ", samplerConfig.getOptions());
+        System.out.println();
+
+        for (LocalityGroupMetadata lgm : sampleGroups) {
+          lgm.printInfo(true);
+        }
       }
     }
 
@@ -1071,7 +1362,7 @@ public class RFile {
 
     private void setInterruptFlagInternal(AtomicBoolean flag) {
       this.interruptFlag = flag;
-      for (LocalityGroupReader lgr : lgReaders) {
+      for (LocalityGroupReader lgr : currentReaders) {
         lgr.setInterruptFlag(interruptFlag);
       }
     }

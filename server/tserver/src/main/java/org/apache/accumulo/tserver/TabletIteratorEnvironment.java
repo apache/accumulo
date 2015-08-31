@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -29,6 +31,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
@@ -40,10 +43,12 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
   private final AccumuloConfiguration config;
-  private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+  private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
   private Map<FileRef,DataFileValue> files;
 
   private final Authorizations authorizations; // these will only be supplied during scan scope
+  private SamplerConfiguration samplerConfig;
+  private boolean enableSampleForDeepCopy;
 
   public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
     if (scope == IteratorScope.majc)
@@ -54,10 +59,11 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.config = config;
     this.fullMajorCompaction = false;
     this.authorizations = Authorizations.EMPTY;
+    this.topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
   }
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
-      Authorizations authorizations) {
+  private TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
+      Authorizations authorizations, SamplerConfigurationImpl samplerConfig, ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -67,6 +73,19 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.fullMajorCompaction = false;
     this.files = files;
     this.authorizations = authorizations;
+    if (samplerConfig != null) {
+      enableSampleForDeepCopy = true;
+      this.samplerConfig = samplerConfig.toSamplerConfiguration();
+    } else {
+      enableSampleForDeepCopy = false;
+    }
+
+    this.topLevelIterators = topLevelIterators;
+  }
+
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
+      Authorizations authorizations, SamplerConfigurationImpl samplerConfig) {
+    this(scope, config, trm, files, authorizations, samplerConfig, new ArrayList<SortedKeyValueIterator<Key,Value>>());
   }
 
   public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC, AccumuloConfiguration config) {
@@ -78,6 +97,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.config = config;
     this.fullMajorCompaction = fullMajC;
     this.authorizations = Authorizations.EMPTY;
+    this.topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
   }
 
   @Override
@@ -100,7 +120,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
     FileRef ref = new FileRef(mapFileName, new Path(mapFileName));
-    return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false).get(0);
+    return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
 
   @Override
@@ -121,5 +141,38 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
     allIters.add(iter);
     return new MultiIterator(allIters, false);
+  }
+
+  @Override
+  public boolean isSampleEnabledForDeepCopy() {
+    return enableSampleForDeepCopy;
+  }
+
+  @Override
+  public SamplerConfiguration getSamplerConfiguration() {
+    if (samplerConfig == null) {
+      // only create this once so that it stays the same, even if config changes
+      SamplerConfigurationImpl sci = SamplerConfigurationImpl.newSamplerConfig(config);
+      if (sci == null) {
+        return null;
+      }
+      samplerConfig = sci.toSamplerConfiguration();
+    }
+    return samplerConfig;
+  }
+
+  @Override
+  public IteratorEnvironment newIEWithSamplingEnabled() {
+    if (!scope.equals(IteratorScope.scan)) {
+      throw new UnsupportedOperationException();
+    }
+
+    SamplerConfigurationImpl sci = SamplerConfigurationImpl.newSamplerConfig(config);
+    if (sci == null) {
+      throw new SampleNotPresentException();
+    }
+
+    TabletIteratorEnvironment te = new TabletIteratorEnvironment(scope, config, trm, files, authorizations, sci, topLevelIterators);
+    return te;
   }
 }

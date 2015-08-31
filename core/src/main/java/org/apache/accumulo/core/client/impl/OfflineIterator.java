@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +32,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -57,6 +61,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -68,16 +73,20 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   static class OfflineIteratorEnvironment implements IteratorEnvironment {
 
     private final Authorizations authorizations;
+    private AccumuloConfiguration conf;
+    private boolean useSample;
+    private SamplerConfiguration sampleConf;
 
-    public OfflineIteratorEnvironment(Authorizations auths) {
+    public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf, boolean useSample, SamplerConfiguration samplerConf) {
       this.authorizations = auths;
+      this.conf = acuTableConf;
+      this.useSample = useSample;
+      this.sampleConf = samplerConf;
     }
 
     @Override
@@ -87,7 +96,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     @Override
     public AccumuloConfiguration getConfig() {
-      return AccumuloConfiguration.getDefaultConfiguration();
+      return conf;
     }
 
     @Override
@@ -118,6 +127,23 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);
+    }
+
+    @Override
+    public boolean isSampleEnabledForDeepCopy() {
+      return useSample;
+    }
+
+    @Override
+    public SamplerConfiguration getSamplerConfiguration() {
+      return sampleConf;
+    }
+
+    @Override
+    public IteratorEnvironment newIEWithSamplingEnabled() {
+      if (sampleConf == null)
+        throw new SampleNotPresentException();
+      return new OfflineIteratorEnvironment(authorizations, conf, true, sampleConf);
     }
   }
 
@@ -154,6 +180,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         nextTablet();
 
     } catch (Exception e) {
+      if (e instanceof RuntimeException)
+        throw (RuntimeException) e;
       throw new RuntimeException(e);
     }
   }
@@ -306,16 +334,30 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     readers.clear();
 
+    SamplerConfiguration scannerSamplerConfig = options.getSamplerConfiguration();
+    SamplerConfigurationImpl scannerSamplerConfigImpl = scannerSamplerConfig == null ? null : new SamplerConfigurationImpl(scannerSamplerConfig);
+    SamplerConfigurationImpl samplerConfImpl = SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
+
+    if (scannerSamplerConfigImpl != null && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) || samplerConfImpl == null)) {
+      throw new SampleNotPresentException();
+    }
+
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
       FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
+      if (scannerSamplerConfigImpl != null) {
+        reader = reader.getSample(scannerSamplerConfigImpl);
+        if (reader == null)
+          throw new SampleNotPresentException();
+      }
       readers.add(reader);
     }
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations);
+    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations, acuTableConf, false, samplerConfImpl == null ? null
+        : samplerConfImpl.toSamplerConfiguration());
 
     DeletingIterator delIter = new DeletingIterator(multiIter, false);
 

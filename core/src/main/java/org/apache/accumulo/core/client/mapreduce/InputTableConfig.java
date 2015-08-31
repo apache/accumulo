@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -43,6 +45,7 @@ public class InputTableConfig implements Writable {
   private boolean useLocalIterators = false;
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
+  private SamplerConfiguration samplerConfig = null;
 
   public InputTableConfig() {}
 
@@ -241,6 +244,26 @@ public class InputTableConfig implements Writable {
     return useIsolatedScanners;
   }
 
+  /**
+   * Set the sampler configuration to use when reading from the data.
+   *
+   * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
+   * @see InputFormatBase#setSamplerConfiguration(org.apache.hadoop.mapreduce.Job, SamplerConfiguration)
+   *
+   * @since 1.8.0
+   */
+  public void setSamplerConfiguration(SamplerConfiguration samplerConfiguration) {
+    this.samplerConfig = samplerConfiguration;
+  }
+
+  /**
+   *
+   * @since 1.8.0
+   */
+  public SamplerConfiguration getSamplerConfiguration() {
+    return samplerConfig;
+  }
+
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
@@ -340,6 +363,8 @@ public class InputTableConfig implements Writable {
       return false;
     if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
       return false;
+    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig) : that.samplerConfig != null)
+      return false;
     return true;
   }
 
@@ -352,6 +377,7 @@ public class InputTableConfig implements Writable {
     result = 31 * result + (useLocalIterators ? 1 : 0);
     result = 31 * result + (useIsolatedScanners ? 1 : 0);
     result = 31 * result + (offlineScan ? 1 : 0);
+    result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
     return result;
   }
 }

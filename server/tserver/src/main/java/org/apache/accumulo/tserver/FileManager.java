@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -458,7 +460,6 @@ public class FileManager {
       this.iflag = flag;
       ((InterruptibleIterator) this.iter).setInterruptFlag(iflag);
     }
-
   }
 
   public class ScanFileManager {
@@ -502,7 +503,8 @@ public class FileManager {
       return newlyReservedReaders;
     }
 
-    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files, boolean detachable) throws IOException {
+    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files, boolean detachable, SamplerConfigurationImpl samplerConfig)
+        throws IOException {
 
       List<FileSKVIterator> newlyReservedReaders = openFileRefs(files.keySet());
 
@@ -511,13 +513,22 @@ public class FileManager {
       for (FileSKVIterator reader : newlyReservedReaders) {
         String filename = getReservedReadeFilename(reader);
         InterruptibleIterator iter;
+
+        FileSKVIterator source = reader;
+        if (samplerConfig != null) {
+          source = source.getSample(samplerConfig);
+          if (source == null) {
+            throw new SampleNotPresentException();
+          }
+        }
+
         if (detachable) {
-          FileDataSource fds = new FileDataSource(filename, reader);
+          FileDataSource fds = new FileDataSource(filename, source);
           dataSources.add(fds);
           SourceSwitchingIterator ssi = new SourceSwitchingIterator(fds);
           iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, ssi);
         } else {
-          iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, reader);
+          iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, source);
         }
         DataFileValue value = files.get(new FileRef(filename));
         if (value.isTimeSet()) {
@@ -539,7 +550,7 @@ public class FileManager {
         fds.unsetIterator();
     }
 
-    public synchronized void reattach() throws IOException {
+    public synchronized void reattach(SamplerConfigurationImpl samplerConfig) throws IOException {
       if (tabletReservedReaders.size() != 0)
         throw new IllegalStateException();
 
@@ -562,7 +573,14 @@ public class FileManager {
 
       for (FileDataSource fds : dataSources) {
         FileSKVIterator reader = map.get(fds.file).remove(0);
-        fds.setIterator(reader);
+        FileSKVIterator source = reader;
+        if (samplerConfig != null) {
+          source = source.getSample(samplerConfig);
+          if (source == null) {
+            throw new SampleNotPresentException();
+          }
+        }
+        fds.setIterator(source);
       }
     }
 

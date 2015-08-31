@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
@@ -156,11 +157,11 @@ class TabletMemory implements Closeable {
     tablet.updateMemoryUsageStats(memTable.estimatedSizeInBytes(), other);
   }
 
-  public List<MemoryIterator> getIterators() {
+  public List<MemoryIterator> getIterators(SamplerConfigurationImpl samplerConfig) {
     List<MemoryIterator> toReturn = new ArrayList<MemoryIterator>(2);
-    toReturn.add(memTable.skvIterator());
+    toReturn.add(memTable.skvIterator(samplerConfig));
     if (otherMemTable != null)
-      toReturn.add(otherMemTable.skvIterator());
+      toReturn.add(otherMemTable.skvIterator(samplerConfig));
     return toReturn;
   }
 

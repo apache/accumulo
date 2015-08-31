@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.Random;
 
 import junit.framework.TestCase;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
@@ -77,7 +76,7 @@ public class MultiLevelIndexTest extends TestCase {
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, CachedConfiguration.getInstance(), aconf);
 
-    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_7);
+    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);
     BlockRead rootIn = _cbr.getMetaBlock("root");
     reader.readFields(rootIn);
     rootIn.close();

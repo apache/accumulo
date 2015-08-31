@@ -61,10 +61,10 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
       currVal = v;
       return;
     }
-    currVal = new Value(v);
-    int mc = MemValue.splitKVCount(currVal);
-    currKey = new MemKey(k, mc);
 
+    MemValue mv = MemValue.decode(v);
+    currVal = mv.value;
+    currKey = new MemKey(k, mv.kvCount);
   }
 
   @Override

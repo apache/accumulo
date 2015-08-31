@@ -756,4 +756,33 @@ public interface TableOperations {
    */
   boolean testClassLoad(String tableName, final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException;
+
+  /**
+   * Set or update the sampler configuration for a table. If the table has existing sampler configuration, those properties will be cleared before setting the
+   * new table properties.
+   *
+   * @param tableName
+   *          the name of the table
+   * @since 1.8.0
+   */
+  void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration) throws TableNotFoundException, AccumuloException,
+      AccumuloSecurityException;
+
+  /**
+   * Clear all sampling configuration properties on the table.
+   *
+   * @param tableName
+   *          the name of the table
+   * @since 1.8.0
+   */
+  void clearSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Reads the sampling configuration properties for a table.
+   *
+   * @param tableName
+   *          the name of the table
+   * @since 1.8.0
+   */
+  SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 }

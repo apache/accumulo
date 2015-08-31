@@ -24,16 +24,10 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,38 +46,7 @@ public class StatusCombinerTest {
     builder = Status.newBuilder();
     IteratorSetting cfg = new IteratorSetting(50, StatusCombiner.class);
     Combiner.setColumns(cfg, Collections.singletonList(new Column(StatusSection.NAME)));
-    combiner.init(new DevNull(), cfg.getOptions(), new IteratorEnvironment() {
-
-      @Override
-      public AccumuloConfiguration getConfig() {
-        return null;
-      }
-
-      @Override
-      public IteratorScope getIteratorScope() {
-        return null;
-      }
-
-      @Override
-      public boolean isFullMajorCompaction() {
-        return false;
-      }
-
-      @Override
-      public void registerSideChannel(SortedKeyValueIterator<Key,Value> arg0) {
-
-      }
-
-      @Override
-      public Authorizations getAuthorizations() {
-        return null;
-      }
-
-      @Override
-      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String arg0) throws IOException {
-        return null;
-      }
-    });
+    combiner.init(new DevNull(), cfg.getOptions(), null);
   }
 
   @Test

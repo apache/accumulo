@@ -18,6 +18,7 @@ package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -37,4 +38,10 @@ public interface IteratorEnvironment {
   void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
 
   Authorizations getAuthorizations();
+
+  IteratorEnvironment newIEWithSamplingEnabled();
+
+  boolean isSampleEnabledForDeepCopy();
+
+  SamplerConfiguration getSamplerConfiguration();
 }

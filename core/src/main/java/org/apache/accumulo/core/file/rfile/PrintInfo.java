@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -54,6 +55,8 @@ public class PrintInfo implements KeywordExecutable {
     boolean hash = false;
     @Parameter(names = {"--histogram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
+    @Parameter(names = {"--useSample"}, description = "Use sample data for --dump, --vis, --histogram options")
+    boolean useSample = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
     @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
@@ -119,14 +122,27 @@ public class PrintInfo implements KeywordExecutable {
       if (opts.histogram || opts.dump || opts.vis || opts.hash) {
         localityGroupCF = iter.getLocalityGroupCF();
 
+        FileSKVIterator dataIter = iter;
+        if (opts.useSample) {
+          dataIter = iter.getSample();
+
+          if (dataIter == null) {
+            System.out.println("ERROR : This rfile has no sample data");
+            return;
+          }
+        }
+
         for (Entry<String,ArrayList<ByteSequence>> cf : localityGroupCF.entrySet()) {
 
-          iter.seek(new Range((Key) null, (Key) null), cf.getValue(), true);
-          while (iter.hasTop()) {
-            Key key = iter.getTopKey();
-            Value value = iter.getTopValue();
-            if (opts.dump)
+          dataIter.seek(new Range((Key) null, (Key) null), cf.getValue(), true);
+          while (dataIter.hasTop()) {
+            Key key = dataIter.getTopKey();
+            Value value = dataIter.getTopValue();
+            if (opts.dump) {
               System.out.println(key + " -> " + value);
+              if (System.out.checkError())
+                return;
+            }
             if (opts.histogram) {
               long size = key.getSize() + value.getSize();
               int bucket = (int) Math.log10(size);
@@ -134,7 +150,7 @@ public class PrintInfo implements KeywordExecutable {
               sizeBuckets[bucket] += size;
               totalSize += size;
             }
-            iter.next();
+            dataIter.next();
           }
         }
       }

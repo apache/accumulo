@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.TableOperationsHelper;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -479,5 +480,21 @@ class MockTableOperations extends TableOperationsHelper {
       return false;
     }
     return true;
+  }
+
+  @Override
+  public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration) throws TableNotFoundException, AccumuloException,
+      AccumuloSecurityException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void clearSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    throw new UnsupportedOperationException();
   }
 }

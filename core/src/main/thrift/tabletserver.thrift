@@ -31,6 +31,10 @@ exception TooManyFilesException {
   1:data.TKeyExtent extent
 }
 
+exception TSampleNotPresentException {
+  1:data.TKeyExtent extent
+}
+
 exception NoSuchScanIDException {
 }
 
@@ -136,6 +140,11 @@ struct IteratorConfig {
    1:list<TIteratorSetting> iterators;
 }
 
+struct TSamplerConfiguration {
+   1:string className
+   2:map<string, string> options
+}
+
 service TabletClientService extends client.ClientService {
   // scan a range of keys
   data.InitialScan startScan(11:trace.TInfo tinfo,
@@ -150,9 +159,10 @@ service TabletClientService extends client.ClientService {
                              9:bool waitForWrites,
                              10:bool isolated,
                              12:i64 readaheadThreshold,
-                             13:i64 batchTimeOut)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
+                             13:TSamplerConfiguration samplerConfig,
+                             14:i64 batchTimeOut)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe, 4:TSampleNotPresentException tsnpe),
                              
-  data.ScanResult continueScan(2:trace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
+  data.ScanResult continueScan(2:trace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe, 4:TSampleNotPresentException tsnpe),
   oneway void closeScan(2:trace.TInfo tinfo, 1:data.ScanID scanID),
 
   // scan over a series of ranges
@@ -164,8 +174,9 @@ service TabletClientService extends client.ClientService {
                                   5:map<string, map<string, string>> ssio,
                                   6:list<binary> authorizations,
                                   7:bool waitForWrites,
-                                  9:i64 batchTimeOut)  throws (1:client.ThriftSecurityException sec),
-  data.MultiScanResult continueMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
+                                  9:TSamplerConfiguration samplerConfig,
+                                  10:i64 batchTimeOut)  throws (1:client.ThriftSecurityException sec, 2:TSampleNotPresentException tsnpe),
+  data.MultiScanResult continueMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi, 2:TSampleNotPresentException tsnpe),
   void closeMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
   
   //the following calls support a batch update to multiple tablets on a tablet server

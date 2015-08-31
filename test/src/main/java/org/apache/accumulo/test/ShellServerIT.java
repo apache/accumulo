@@ -975,6 +975,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("compact -t " + clone + " -w --sf-ename F.* --sf-lt-esize 1K");
 
     assertEquals(3, countFiles(cloneId));
+
+    String clone2 = table + "_clone_2";
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler=org.apache.accumulo.core.sample.RowSampler " + clone
+        + " " + clone2);
+    String clone2Id = getTableId(clone2);
+
+    assertEquals(3, countFiles(clone2Id));
+
+    ts.exec("table " + clone2);
+    ts.exec("insert v n l o");
+    ts.exec("flush -w");
+
+    ts.exec("insert x n l o");
+    ts.exec("flush -w");
+
+    assertEquals(5, countFiles(clone2Id));
+
+    ts.exec("compact -t " + clone2 + " -w --sf-no-sample");
+
+    assertEquals(3, countFiles(clone2Id));
   }
 
   @Test

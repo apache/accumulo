@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -41,8 +42,11 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A scanner that instantiates iterators on the client side instead of on the tablet server. This can be useful for testing iterators or in cases where you
@@ -60,6 +64,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private Range range;
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
+  private SamplerConfiguration iteratorSamplerConfig;
 
   /**
    * @deprecated since 1.7.0 was never intended for public use. However this could have been used by anything extending this class.
@@ -67,12 +72,68 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Deprecated
   public class ScannerTranslator extends ScannerTranslatorImpl {
     public ScannerTranslator(Scanner scanner) {
-      super(scanner);
+      super(scanner, scanner.getSamplerConfiguration());
     }
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
       return new ScannerTranslator(scanner);
+    }
+  }
+
+  private class ClientSideIteratorEnvironment implements IteratorEnvironment {
+
+    private SamplerConfiguration samplerConfig;
+    private boolean sampleEnabled;
+
+    ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
+      this.sampleEnabled = sampleEnabled;
+      this.samplerConfig = samplerConfig;
+    }
+
+    @Override
+    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public AccumuloConfiguration getConfig() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public IteratorScope getIteratorScope() {
+      return IteratorScope.scan;
+    }
+
+    @Override
+    public boolean isFullMajorCompaction() {
+      return false;
+    }
+
+    @Override
+    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Authorizations getAuthorizations() {
+      return ClientSideIteratorScanner.this.getAuthorizations();
+    }
+
+    @Override
+    public IteratorEnvironment newIEWithSamplingEnabled() {
+      return new ClientSideIteratorEnvironment(true, samplerConfig);
+    }
+
+    @Override
+    public boolean isSampleEnabledForDeepCopy() {
+      return sampleEnabled;
+    }
+
+    @Override
+    public SamplerConfiguration getSamplerConfiguration() {
+      return samplerConfig;
     }
   }
 
@@ -83,6 +144,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     protected Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
+    private SamplerConfiguration samplerConfig;
 
     /**
      * Constructs an accumulo iterator from a scanner.
@@ -90,8 +152,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
      * @param scanner
      *          the scanner to iterate over
      */
-    public ScannerTranslatorImpl(final Scanner scanner) {
+    public ScannerTranslatorImpl(final Scanner scanner, SamplerConfiguration samplerConfig) {
       this.scanner = scanner;
+      this.samplerConfig = samplerConfig;
     }
 
     @Override
@@ -122,6 +185,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       for (ByteSequence colf : columnFamilies) {
         scanner.fetchColumnFamily(new Text(colf.toArray()));
       }
+
+      if (samplerConfig == null) {
+        scanner.clearSamplerConfiguration();
+      } else {
+        scanner.setSamplerConfiguration(samplerConfig);
+      }
+
       iter = scanner.iterator();
       next();
     }
@@ -138,7 +208,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
-      return new ScannerTranslatorImpl(scanner);
+      return new ScannerTranslatorImpl(scanner, env.isSampleEnabledForDeepCopy() ? env.getSamplerConfiguration() : null);
     }
   }
 
@@ -151,19 +221,22 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    *          the source scanner
    */
   public ClientSideIteratorScanner(final Scanner scanner) {
-    smi = new ScannerTranslatorImpl(scanner);
+    smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
     this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
     this.batchTimeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
+    SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
+    if (samplerConfig != null)
+      setSamplerConfiguration(samplerConfig);
   }
 
   /**
    * Sets the source Scanner.
    */
   public void setSource(final Scanner scanner) {
-    smi = new ScannerTranslatorImpl(scanner);
+    smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
   }
 
   @Override
@@ -177,6 +250,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     else
       smi.scanner.disableIsolation();
 
+    smi.samplerConfig = getSamplerConfiguration();
+
     final TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
 
     for (IterInfo iterInfo : serverSideIteratorList) {
@@ -185,35 +260,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new IteratorEnvironment() {
-        @Override
-        public SortedKeyValueIterator<Key,Value> reserveMapFileReader(final String mapFileName) throws IOException {
-          return null;
-        }
-
-        @Override
-        public AccumuloConfiguration getConfig() {
-          return null;
-        }
-
-        @Override
-        public IteratorScope getIteratorScope() {
-          return null;
-        }
-
-        @Override
-        public boolean isFullMajorCompaction() {
-          return false;
-        }
-
-        @Override
-        public void registerSideChannel(final SortedKeyValueIterator<Key,Value> iter) {}
-
-        @Override
-        public Authorizations getAuthorizations() {
-          return smi.scanner.getAuthorizations();
-        }
-      }, false, null);
+      skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new ClientSideIteratorEnvironment(getSamplerConfiguration() != null,
+          getIteratorSamplerConfigurationInternal()), false, null);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -296,5 +344,51 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
     }
     this.readaheadThreshold = batches;
+  }
+
+  private SamplerConfiguration getIteratorSamplerConfigurationInternal() {
+    SamplerConfiguration scannerSamplerConfig = getSamplerConfiguration();
+    if (scannerSamplerConfig != null) {
+      if (iteratorSamplerConfig != null && !new SamplerConfigurationImpl(iteratorSamplerConfig).equals(new SamplerConfigurationImpl(scannerSamplerConfig))) {
+        throw new IllegalStateException("Scanner and iterator sampler configuration differ");
+      }
+
+      return scannerSamplerConfig;
+    }
+
+    return iteratorSamplerConfig;
+  }
+
+  /**
+   * This is provided for the case where no sampler configuration is set on the scanner, but there is a need to create iterator deep copies that have sampling
+   * enabled. If sampler configuration is set on the scanner, then this method does not need to be called inorder to create deep copies with sampling.
+   *
+   * <p>
+   * Setting this differently than the scanners sampler configuration may cause exceptions.
+   *
+   * @since 1.8.0
+   */
+  public void setIteratorSamplerConfiguration(SamplerConfiguration sc) {
+    Preconditions.checkNotNull(sc);
+    this.iteratorSamplerConfig = sc;
+  }
+
+  /**
+   * Clear any iterator sampler configuration.
+   *
+   * @since 1.8.0
+   */
+  public void clearIteratorSamplerConfiguration() {
+    this.iteratorSamplerConfig = null;
+  }
+
+  /**
+   * @return currently set iterator sampler configuration.
+   *
+   * @since 1.8.0
+   */
+
+  public SamplerConfiguration getIteratorSamplerConfiguration() {
+    return iteratorSamplerConfig;
   }
 }

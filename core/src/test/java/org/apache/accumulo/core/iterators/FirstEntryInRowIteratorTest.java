@@ -22,14 +22,12 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.impl.TestIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
@@ -39,38 +37,7 @@ public class FirstEntryInRowIteratorTest {
     org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
-    IteratorEnvironment env = new IteratorEnvironment() {
-
-      @Override
-      public AccumuloConfiguration getConfig() {
-        return null;
-      }
-
-      @Override
-      public IteratorScope getIteratorScope() {
-        return null;
-      }
-
-      @Override
-      public boolean isFullMajorCompaction() {
-        return false;
-      }
-
-      @Override
-      public void registerSideChannel(SortedKeyValueIterator<Key,Value> arg0) {
-
-      }
-
-      @Override
-      public Authorizations getAuthorizations() {
-        return null;
-      }
-
-      @Override
-      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String arg0) throws IOException {
-        return null;
-      }
-    };
+    IteratorEnvironment env = new TestIteratorEnvironment();
 
     feiri.init(counter, Collections.singletonMap(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME, Integer.toString(numScans)), env);
 

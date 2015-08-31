@@ -25,7 +25,9 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
@@ -334,6 +336,23 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   public static boolean isBatchScan(JobContext context) {
     return InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
+  }
+
+  /**
+   * Causes input format to read sample data. If sample data was created using a different configuration or a tables sampler configuration changes while reading
+   * data, then the input format will throw an error.
+   *
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param samplerConfig
+   *          The sampler configuration that sample must have been created with inorder for reading sample data to succeed.
+   *
+   * @since 1.8.0
+   * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
+   */
+  public static void setSamplerConfiguration(Job job, SamplerConfiguration samplerConfig) {
+    InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
   }
 
   /**

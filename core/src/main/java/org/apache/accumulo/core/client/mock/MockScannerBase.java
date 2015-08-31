@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -111,6 +112,21 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
       ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);
+    }
+
+    @Override
+    public boolean isSampleEnabledForDeepCopy() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SamplerConfiguration getSamplerConfiguration() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public IteratorEnvironment newIEWithSamplingEnabled() {
+      throw new UnsupportedOperationException();
     }
   }
 

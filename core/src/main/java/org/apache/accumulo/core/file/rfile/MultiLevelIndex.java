@@ -265,7 +265,7 @@ public class MultiLevelIndex {
 
     public void readFields(DataInput in, int version) throws IOException {
 
-      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7) {
+      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7 || version == RFile.RINDEX_VER_8) {
         level = in.readInt();
         offset = in.readInt();
         hasNext = in.readBoolean();
@@ -736,7 +736,7 @@ public class MultiLevelIndex {
 
       size = 0;
 
-      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7) {
+      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7 || version == RFile.RINDEX_VER_8) {
         size = in.readInt();
       }
 

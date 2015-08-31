@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -102,7 +103,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ExamplesIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ExamplesIT.class);
@@ -390,7 +390,7 @@ public class ExamplesIT extends AccumuloClusterHarness {
     Index.index(30, src, "\\W+", bw);
     bw.close();
     BatchScanner bs = c.createBatchScanner(shard, Authorizations.EMPTY, 4);
-    List<String> found = Query.query(bs, Arrays.asList("foo", "bar"));
+    List<String> found = Query.query(bs, Arrays.asList("foo", "bar"), null);
     bs.close();
     // should find ourselves
     boolean thisFile = false;

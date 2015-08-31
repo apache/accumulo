@@ -41,6 +41,7 @@ import org.apache.accumulo.core.file.NoSuchMetaStoreException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.hadoop.io.Text;
@@ -132,6 +133,11 @@ public class DefaultCompactionStrategyTest {
 
     @Override
     public void close() throws IOException {}
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      return null;
+    }
 
   }
 

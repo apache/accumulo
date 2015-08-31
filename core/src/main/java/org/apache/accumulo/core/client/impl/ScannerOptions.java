@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -39,6 +40,8 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 public class ScannerOptions implements ScannerBase {
 
@@ -52,6 +55,8 @@ public class ScannerOptions implements ScannerBase {
   protected long batchTimeOut = Long.MAX_VALUE;
 
   private String regexIterName = null;
+
+  private SamplerConfiguration samplerConfig = null;
 
   protected ScannerOptions() {}
 
@@ -168,6 +173,8 @@ public class ScannerOptions implements ScannerBase {
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
         for (Entry<String,Map<String,String>> entry : es)
           dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<String,String>(entry.getValue()));
+
+        dst.samplerConfig = src.samplerConfig;
         dst.batchTimeOut = src.batchTimeOut;
       }
     }
@@ -179,7 +186,7 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public void setTimeout(long timeout, TimeUnit timeUnit) {
+  public synchronized void setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeOut < 0) {
       throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
     }
@@ -191,7 +198,7 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public long getTimeout(TimeUnit timeunit) {
+  public synchronized long getTimeout(TimeUnit timeunit) {
     return timeunit.convert(timeOut, TimeUnit.MILLISECONDS);
   }
 
@@ -201,8 +208,24 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public Authorizations getAuthorizations() {
+  public synchronized Authorizations getAuthorizations() {
     throw new UnsupportedOperationException("No authorizations to return");
+  }
+
+  @Override
+  public synchronized void setSamplerConfiguration(SamplerConfiguration samplerConfig) {
+    Preconditions.checkNotNull(samplerConfig);
+    this.samplerConfig = samplerConfig;
+  }
+
+  @Override
+  public synchronized SamplerConfiguration getSamplerConfiguration() {
+    return samplerConfig;
+  }
+
+  @Override
+  public synchronized void clearSamplerConfiguration() {
+    this.samplerConfig = null;
   }
 
   @Override

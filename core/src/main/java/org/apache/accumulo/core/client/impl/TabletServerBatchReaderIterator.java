@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -56,8 +57,10 @@ import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
+import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -375,6 +378,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           fatalException = new TableDeletedException(table);
         else
           fatalException = e;
+      } catch (SampleNotPresentException e) {
+        fatalException = e;
       } catch (Throwable t) {
         if (queryThreadPool.isShutdown())
           log.debug("Caught exception, but queryThreadPool is shutdown", t);
@@ -643,7 +648,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             Translators.RT));
         InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(), thriftTabletRanges,
             Translator.translate(columns, Translators.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
-            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites, options.batchTimeOut);
+            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
+            SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()), options.batchTimeOut);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
@@ -719,6 +725,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     } catch (NoSuchScanIDException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new IOException(e);
+    } catch (TSampleNotPresentException e) {
+      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
+      throw new SampleNotPresentException(e);
     } catch (TException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
