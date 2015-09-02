@@ -145,6 +145,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private boolean closed = false;
 
   private class LogSyncingTask implements Runnable {
+    private int expectedReplication = 0;
 
     @Override
     public void run() {
@@ -207,6 +208,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
             if (current < expectedReplication) {
               fail(work, new IOException("replication of " + current + " is less than " + expectedReplication), "replication check");
             }
+          }
+        }
+        if (expectedReplication == 0 && logFile.getWrappedStream() instanceof DFSOutputStream) {
+          try {
+            expectedReplication = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
+          } catch (IOException e) {
+            fail(work, e, "getting replication level");
           }
         }
 
@@ -291,7 +299,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private AtomicLong syncCounter;
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
-  private int expectedReplication = 0;
 
   private DfsLogger(ServerResources conf) {
     this.conf = conf;
@@ -433,10 +440,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
         logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
-      if (logFile.getWrappedStream() instanceof DFSOutputStream) {
-        expectedReplication = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
-      }
-
       sync = logFile.getClass().getMethod("hsync");
       flush = logFile.getClass().getMethod("hflush");
 
