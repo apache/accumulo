@@ -95,7 +95,13 @@ class RecoverWithEmptyTest(unittest.TestCase, TestUtilsMixin):
         out,err,code = self.shell(self.masterHost(), 'online -t test_ingest\n')
         self.processResult(out,err,code);
         out,err = self.waitForStop(self.runOn(self.masterHost(), [self.accumulo_sh(), 'shell', '-u', ROOT, '-p', ROOT_PASSWORD, '-e', 'scan -t test_ingest']), waitTime)
-        self.failUnless(len(out) == 0)
+        lines = out.strip().split('\n')
+        # Poor man's grep -v
+        if len(lines) > 0:
+            # Avoid failing the test if we have some log4j warnings
+            if 'util.NativeCodeLoader' in lines[0]:
+                lines = lines[1:]
+        self.failUnless(len(lines) == 0, "Expected no output, saw '" + out + "'")
         self.shutdown_accumulo()
 
 def suite():
