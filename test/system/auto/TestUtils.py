@@ -86,6 +86,7 @@ $ACCUMULO_HOME/server/target/classes/,
       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
       $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/yarn/lib/jersey.*.jar,
 """
 
 
