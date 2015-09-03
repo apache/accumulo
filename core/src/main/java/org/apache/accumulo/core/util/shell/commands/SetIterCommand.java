@@ -23,8 +23,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -49,6 +47,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
+
+import jline.console.ConsoleReader;
 
 public class SetIterCommand extends Command {
 
@@ -117,10 +117,7 @@ public class SetIterCommand extends Command {
 
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    if (!shellState.getConnector().tableOperations().testClassLoad(tableName, classname, SortedKeyValueIterator.class.getName())) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
-          + SortedKeyValueIterator.class.getName());
-    }
+    ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
@@ -225,7 +222,7 @@ public class SetIterCommand extends Command {
     }
 
     @SuppressWarnings("unchecked")
-    SortedKeyValueIterator<Key,Value> skvi = (SortedKeyValueIterator<Key,Value>) untypedInstance;
+    SortedKeyValueIterator<Key,Value> skvi = untypedInstance;
     OptionDescriber iterOptions = null;
     if (OptionDescriber.class.isAssignableFrom(skvi.getClass())) {
       iterOptions = (OptionDescriber) skvi;

@@ -47,6 +47,7 @@ public class CompactCommand extends TableOperation {
     return "sets all tablets for a table to major compact as soon as possible (based on current time)";
   }
 
+  @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     // compact the tables
 
@@ -61,6 +62,10 @@ public class CompactCommand extends TableOperation {
       try {
         if (wait) {
           Shell.log.info("Compacting table ...");
+        }
+
+        for (IteratorSetting iteratorSetting : iterators) {
+          ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, iteratorSetting.getIteratorClass());
         }
 
         shellState.getConnector().tableOperations().compact(tableName, startRow, endRow, iterators, flush, wait);

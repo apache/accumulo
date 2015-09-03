@@ -40,10 +40,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import jline.console.ConsoleReader;
-import jline.console.UserInterruptException;
-import jline.console.history.FileHistory;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -179,6 +175,10 @@ import org.apache.log4j.Logger;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
+
+import jline.console.ConsoleReader;
+import jline.console.UserInterruptException;
+import jline.console.history.FileHistory;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help, and quoted strings with escape sequences
