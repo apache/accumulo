@@ -68,6 +68,10 @@ public class CompactCommand extends TableOperation {
           Shell.log.info("Compacting table ...");
         }
 
+        for (IteratorSetting iteratorSetting : compactionConfig.getIterators()) {
+          ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, iteratorSetting.getIteratorClass());
+        }
+
         shellState.getConnector().tableOperations().compact(tableName, compactionConfig);
 
         Shell.log.info("Compaction of table " + tableName + " " + (compactionConfig.getWait() ? "completed" : "started") + " for given range");
