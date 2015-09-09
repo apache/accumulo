@@ -77,12 +77,14 @@ public interface IteratorEnvironment {
    * starts everything. Another possibility is for a deep copy created with an environment created by calling {@link #cloneWithSamplingEnabled()}
    *
    * @return true if sampling is enabled for this environment.
+   * @since 1.8.0
    */
   boolean isSamplingEnabled();
 
   /**
    *
    * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
+   * @since 1.8.0
    */
   SamplerConfiguration getSamplerConfiguration();
 }
