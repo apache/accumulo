@@ -98,7 +98,7 @@ public class RFileTest {
     }
 
     @Override
-    public boolean isSampleEnabledForDeepCopy() {
+    public boolean isSamplingEnabled() {
       return samplerConfig != null;
     }
 

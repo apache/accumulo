@@ -61,6 +61,8 @@ public class GrepCommand extends ScanCommand {
 
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
+    setupSampling(tableName, cl, shellState, scanner);
+
     for (int i = 0; i < cl.getArgs().length; i++) {
       setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner, cl);
     }

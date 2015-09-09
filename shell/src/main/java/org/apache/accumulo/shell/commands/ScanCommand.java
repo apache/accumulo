@@ -26,8 +26,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -59,6 +61,18 @@ public class ScanCommand extends Command {
   private Option profileOpt;
   private Option sampleOpt;
 
+  protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState, ScannerBase scanner) throws TableNotFoundException,
+      AccumuloException, AccumuloSecurityException {
+    if (getUseSample(cl)) {
+      SamplerConfiguration samplerConfig = shellState.getConnector().tableOperations().getSamplerConfiguration(tableName);
+      if (samplerConfig == null) {
+        throw new SampleNotPresentException("Table " + tableName + " does not have sampling configured");
+      }
+      Shell.log.debug("Using sampling configuration : " + samplerConfig);
+      scanner.setSamplerConfiguration(samplerConfig);
+    }
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final PrintFile printFile = getOutputFile(cl);
@@ -84,10 +98,7 @@ public class ScanCommand extends Command {
     // set timeout
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
-    if (getUseSample(cl)) {
-      SamplerConfiguration samplerConfig = shellState.getConnector().tableOperations().getSamplerConfiguration(tableName);
-      scanner.setSamplerConfiguration(samplerConfig);
-    }
+    setupSampling(tableName, cl, shellState, scanner);
 
     // output the records
     if (cl.hasOption(showFewOpt.getOpt())) {

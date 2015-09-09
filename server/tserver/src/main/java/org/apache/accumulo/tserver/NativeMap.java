@@ -750,7 +750,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-      if (env != null && env.isSampleEnabledForDeepCopy()) {
+      if (env != null && env.isSamplingEnabled()) {
         throw new SampleNotPresentException();
       }
       return new NMSKVIter(map, interruptFlag);

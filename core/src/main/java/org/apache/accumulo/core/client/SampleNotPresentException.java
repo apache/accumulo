@@ -17,10 +17,20 @@
 
 package org.apache.accumulo.core.client;
 
+/**
+ * Exception thrown when a table does not have sampling configured or when sampling is configured but it differs from what was requested.
+ *
+ * @since 1.8.0
+ */
+
 public class SampleNotPresentException extends RuntimeException {
 
-  public SampleNotPresentException(Exception e) {
-    super(e);
+  public SampleNotPresentException(String message, Exception cause) {
+    super(message, cause);
+  }
+
+  public SampleNotPresentException(String message) {
+    super(message);
   }
 
   public SampleNotPresentException() {

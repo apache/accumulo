@@ -52,7 +52,7 @@ public class DefaultIteratorEnvironment extends TestIteratorEnvironment {
   }
 
   @Override
-  public boolean isSampleEnabledForDeepCopy() {
+  public boolean isSamplingEnabled() {
     return false;
   }
 }

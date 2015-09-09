@@ -61,7 +61,7 @@ public class TestIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public boolean isSampleEnabledForDeepCopy() {
+  public boolean isSamplingEnabled() {
     throw new UnsupportedOperationException();
   }
 
@@ -71,7 +71,7 @@ public class TestIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public IteratorEnvironment newIEWithSamplingEnabled() {
+  public IteratorEnvironment cloneWithSamplingEnabled() {
     throw new UnsupportedOperationException();
   }
 

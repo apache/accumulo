@@ -54,7 +54,7 @@ public class SortedMapIterator implements InterruptibleIterator {
 
   @Override
   public SortedMapIterator deepCopy(IteratorEnvironment env) {
-    if (env != null && env.isSampleEnabledForDeepCopy()) {
+    if (env != null && env.isSamplingEnabled()) {
       throw new SampleNotPresentException();
     }
     return new SortedMapIterator(map, interruptFlag);

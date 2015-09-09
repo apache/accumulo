@@ -106,7 +106,7 @@ public class SampleIT extends AccumuloClusterHarness {
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
 
-      IteratorEnvironment sampleEnv = env.newIEWithSamplingEnabled();
+      IteratorEnvironment sampleEnv = env.cloneWithSamplingEnabled();
 
       sampleDC = source.deepCopy(sampleEnv);
     }

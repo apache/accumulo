@@ -42,7 +42,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -122,12 +121,12 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
-    public IteratorEnvironment newIEWithSamplingEnabled() {
+    public IteratorEnvironment cloneWithSamplingEnabled() {
       return new ClientSideIteratorEnvironment(true, samplerConfig);
     }
 
     @Override
-    public boolean isSampleEnabledForDeepCopy() {
+    public boolean isSamplingEnabled() {
       return sampleEnabled;
     }
 
@@ -208,7 +207,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
-      return new ScannerTranslatorImpl(scanner, env.isSampleEnabledForDeepCopy() ? env.getSamplerConfiguration() : null);
+      return new ScannerTranslatorImpl(scanner, env.isSamplingEnabled() ? env.getSamplerConfiguration() : null);
     }
   }
 
@@ -349,7 +348,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private SamplerConfiguration getIteratorSamplerConfigurationInternal() {
     SamplerConfiguration scannerSamplerConfig = getSamplerConfiguration();
     if (scannerSamplerConfig != null) {
-      if (iteratorSamplerConfig != null && !new SamplerConfigurationImpl(iteratorSamplerConfig).equals(new SamplerConfigurationImpl(scannerSamplerConfig))) {
+      if (iteratorSamplerConfig != null && !iteratorSamplerConfig.equals(scannerSamplerConfig)) {
         throw new IllegalStateException("Scanner and iterator sampler configuration differ");
       }
 

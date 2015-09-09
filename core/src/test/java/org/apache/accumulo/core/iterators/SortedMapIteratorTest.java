@@ -33,7 +33,7 @@ public class SortedMapIteratorTest {
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<Key,Value>());
     smi.deepCopy(new TestIteratorEnvironment() {
       @Override
-      public boolean isSampleEnabledForDeepCopy() {
+      public boolean isSamplingEnabled() {
         return true;
       }
 

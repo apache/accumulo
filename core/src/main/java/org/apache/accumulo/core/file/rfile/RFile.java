@@ -1220,7 +1220,7 @@ public class RFile {
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-      if (env != null && env.isSampleEnabledForDeepCopy()) {
+      if (env != null && env.isSamplingEnabled()) {
         SamplerConfiguration sc = env.getSamplerConfiguration();
         if (sc == null) {
           throw new SampleNotPresentException();

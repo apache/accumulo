@@ -557,7 +557,7 @@ public class InMemoryMap {
 
     private SamplerConfigurationImpl getSamplerConfig() {
       if (env != null) {
-        if (env.isSampleEnabledForDeepCopy()) {
+        if (env.isSamplingEnabled()) {
           return new SamplerConfigurationImpl(env.getSamplerConfiguration());
         } else {
           return null;

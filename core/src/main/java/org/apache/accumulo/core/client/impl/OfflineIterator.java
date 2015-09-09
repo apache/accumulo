@@ -130,7 +130,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     @Override
-    public boolean isSampleEnabledForDeepCopy() {
+    public boolean isSamplingEnabled() {
       return useSample;
     }
 
@@ -140,7 +140,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     @Override
-    public IteratorEnvironment newIEWithSamplingEnabled() {
+    public IteratorEnvironment cloneWithSamplingEnabled() {
       if (sampleConf == null)
         throw new SampleNotPresentException();
       return new OfflineIteratorEnvironment(authorizations, conf, true, sampleConf);

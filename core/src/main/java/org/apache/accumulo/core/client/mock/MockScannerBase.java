@@ -115,7 +115,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     }
 
     @Override
-    public boolean isSampleEnabledForDeepCopy() {
+    public boolean isSamplingEnabled() {
       throw new UnsupportedOperationException();
     }
 
@@ -125,7 +125,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     }
 
     @Override
-    public IteratorEnvironment newIEWithSamplingEnabled() {
+    public IteratorEnvironment cloneWithSamplingEnabled() {
       throw new UnsupportedOperationException();
     }
   }

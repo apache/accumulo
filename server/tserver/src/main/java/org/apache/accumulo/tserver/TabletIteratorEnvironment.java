@@ -144,7 +144,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public boolean isSampleEnabledForDeepCopy() {
+  public boolean isSamplingEnabled() {
     return enableSampleForDeepCopy;
   }
 
@@ -162,7 +162,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public IteratorEnvironment newIEWithSamplingEnabled() {
+  public IteratorEnvironment cloneWithSamplingEnabled() {
     if (!scope.equals(IteratorScope.scan)) {
       throw new UnsupportedOperationException();
     }

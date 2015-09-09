@@ -24,46 +24,46 @@ Accumulo supports building a set of sample data that can be efficiently
 accessed by scanners.  What data is included in the sample set is configurable.
 Below, some data representing documents are inserted.  
 
-    root@instance16 sampex> createtable sampex
-    root@instance16 sampex> insert 9255 doc content 'abcde'
-    root@instance16 sampex> insert 9255 doc url file://foo.txt
-    root@instance16 sampex> insert 8934 doc content 'accumulo scales'
-    root@instance16 sampex> insert 8934 doc url file://accumulo_notes.txt
-    root@instance16 sampex> insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano'
-    root@instance16 sampex> insert 2317 doc url file://groceries/9.txt
-    root@instance16 sampex> insert 3900 doc content 'EC2 ate my homework'
-    root@instance16 sampex> insert 3900 doc uril file://final_project.txt
+    root@instance sampex> createtable sampex
+    root@instance sampex> insert 9255 doc content 'abcde'
+    root@instance sampex> insert 9255 doc url file://foo.txt
+    root@instance sampex> insert 8934 doc content 'accumulo scales'
+    root@instance sampex> insert 8934 doc url file://accumulo_notes.txt
+    root@instance sampex> insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano'
+    root@instance sampex> insert 2317 doc url file://groceries/9.txt
+    root@instance sampex> insert 3900 doc content 'EC2 ate my homework'
+    root@instance sampex> insert 3900 doc uril file://final_project.txt
 
 Below the table sampex is configured to build a sample set.  The configuration
 causes Accumulo to include any row where `murmur3_32(row) % 3 ==0` in the
 tables sample data.
 
-    root@instance16 sampex> config -t sampex -s table.sampler.opt.hasher=murmur3_32
-    root@instance16 sampex> config -t sampex -s table.sampler.opt.modulus=3
-    root@instance16 sampex> config -t sampex -s table.sampler=org.apache.accumulo.core.sample.RowSampler
+    root@instance sampex> config -t sampex -s table.sampler.opt.hasher=murmur3_32
+    root@instance sampex> config -t sampex -s table.sampler.opt.modulus=3
+    root@instance sampex> config -t sampex -s table.sampler=org.apache.accumulo.core.sample.RowSampler
 
 Below, attempting to scan the sample returns an error.  This is because data
 was inserted before the sample set was configured.
 
-    root@instance16 sampex> scan --sample
-    2015-07-23 13:20:36,955 [shell.Shell] ERROR: org.apache.accumulo.core.client.SampleNotPresentException: TSampleNotPresentException(extent:TKeyExtent(table:32, endRow:null, prevEndRow:null))
+    root@instance sampex> scan --sample
+    2015-09-09 12:21:50,643 [shell.Shell] ERROR: org.apache.accumulo.core.client.SampleNotPresentException: Table sampex(ID:2) does not have sampling configured or built
 
 To remedy this problem, the following command will flush in memory data and
 compact any files that do not contain the correct sample data.   
 
-    root@instance16 sampex> compact -t sampex --sf-no-sample
+    root@instance sampex> compact -t sampex --sf-no-sample
 
 After the compaction, the sample scan works.  
 
-    root@instance16 sampex> scan --sample
+    root@instance sampex> scan --sample
     2317 doc:content []    milk, eggs, bread, parmigiano-reggiano
     2317 doc:url []    file://groceries/9.txt
 
 The commands below show that updates to data in the sample are seen when
 scanning the sample.
 
-    root@instance16 sampex> insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano, butter'
-    root@instance16 sampex> scan --sample
+    root@instance sampex> insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano, butter'
+    root@instance sampex> scan --sample
     2317 doc:content []    milk, eggs, bread, parmigiano-reggiano, butter
     2317 doc:url []    file://groceries/9.txt
 
@@ -73,12 +73,12 @@ data written previously is partitioned using a different criteria.  Accumulo
 will detect this situation and fail sample scans.  The commands below show this
 failure and fixiing the problem with a compaction.
 
-    root@instance16 sampex> config -t sampex -s table.sampler.opt.modulus=2
-    root@instance16 sampex> scan --sample
-    2015-07-23 13:34:55,647 [shell.Shell] ERROR: org.apache.accumulo.core.client.SampleNotPresentException: TSampleNotPresentException(extent:TKeyExtent(table:32, endRow:null, prevEndRow:null))
-    root@instance16 sampex> compact -t sampex --sf-no-sample
-    2015-07-23 13:41:30,650 [shell.Shell] INFO : Compaction of table sampex started for given range
-    root@instance16 sampex> scan --sample
+    root@instance sampex> config -t sampex -s table.sampler.opt.modulus=2
+    root@instance sampex> scan --sample
+    2015-09-09 12:22:51,058 [shell.Shell] ERROR: org.apache.accumulo.core.client.SampleNotPresentException: Table sampex(ID:2) does not have sampling configured or built
+    root@instance sampex> compact -t sampex --sf-no-sample
+    2015-09-09 12:23:07,242 [shell.Shell] INFO : Compaction of table sampex started for given range
+    root@instance sampex> scan --sample
     2317 doc:content []    milk, eggs, bread, parmigiano-reggiano
     2317 doc:url []    file://groceries/9.txt
     3900 doc:content []    EC2 ate my homework
@@ -90,13 +90,13 @@ The commands below look under the hood to give some insight into how this
 feature works.  The commands below determine what files the sampex table is
 using.
 
-    root@instance16 sampex> tables -l
+    root@instance sampex> tables -l
     accumulo.metadata    =>        !0
     accumulo.replication =>      +rep
     accumulo.root        =>        +r
     sampex               =>         2
     trace                =>         1
-    root@instance16 sampex> scan -t accumulo.metadata -c file -b 2 -e 2<
+    root@instance sampex> scan -t accumulo.metadata -c file -b 2 -e 2<
     2< file:hdfs://localhost:10000/accumulo/tables/2/default_tablet/A000000s.rf []    702,8
 
 Below shows running `accumulo rfile-info` on the file above.  This shows the
@@ -152,11 +152,11 @@ sample of this indexing scheme should contain all data for any document in the
 sample.   To accomplish this, the following commands build a sample for the
 shard table based on the column qualifier.
 
-    root@instance16 shard> config -t shard -s table.sampler.opt.hasher=murmur3_32
-    root@instance16 shard> config -t shard -s table.sampler.opt.modulus=101
-    root@instance16 shard> config -t shard -s table.sampler.opt.qualifier=true
-    root@instance16 shard> config -t shard -s table.sampler=org.apache.accumulo.core.sample.RowColumnSampler
-    root@instance16 shard> compact -t shard --sf-no-sample -w
+    root@instance shard> config -t shard -s table.sampler.opt.hasher=murmur3_32
+    root@instance shard> config -t shard -s table.sampler.opt.modulus=101
+    root@instance shard> config -t shard -s table.sampler.opt.qualifier=true
+    root@instance shard> config -t shard -s table.sampler=org.apache.accumulo.core.sample.RowColumnSampler
+    root@instance shard> compact -t shard --sf-no-sample -w
     2015-07-23 15:00:09,280 [shell.Shell] INFO : Compacting table ...
     2015-07-23 15:00:10,134 [shell.Shell] INFO : Compaction of table shard completed for given range
 

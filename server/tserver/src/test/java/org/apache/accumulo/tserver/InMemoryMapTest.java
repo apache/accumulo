@@ -88,7 +88,7 @@ public class InMemoryMapTest {
     }
 
     @Override
-    public boolean isSampleEnabledForDeepCopy() {
+    public boolean isSamplingEnabled() {
       return sampleConfig != null;
     }
 

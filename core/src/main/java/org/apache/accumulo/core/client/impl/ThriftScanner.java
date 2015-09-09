@@ -298,7 +298,9 @@ public class ThriftScanner {
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
-          throw new SampleNotPresentException(tsnpe);
+          String message = "Table " + Tables.getPrintableTableInfoFromId(instance, scanState.tableId.toString())
+              + " does not have sampling configured or built";
+          throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
           error = "Scan failed, not serving tablet " + loc;
           if (!error.equals(lastError))

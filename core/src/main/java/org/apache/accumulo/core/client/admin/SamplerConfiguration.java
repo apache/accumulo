@@ -27,6 +27,8 @@ import java.util.Map.Entry;
 import com.google.common.base.Preconditions;
 
 /**
+ * This class encapsultes configuration and options needed to setup and use sampling.
+ *
  * @since 1.8.0
  */
 

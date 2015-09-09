@@ -727,7 +727,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       throw new IOException(e);
     } catch (TSampleNotPresentException e) {
       log.debug("Server : " + server + " msg : " + e.getMessage(), e);
-      throw new SampleNotPresentException(e);
+      String tableInfo = "?";
+      if (e.getExtent() != null) {
+        String tableId = new KeyExtent(e.getExtent()).getTableId().toString();
+        tableInfo = Tables.getPrintableTableInfoFromId(context.getInstance(), tableId);
+      }
+      String message = "Table " + tableInfo + " does not have sampling configured or built";
+      throw new SampleNotPresentException(message, e);
     } catch (TException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured(e);
