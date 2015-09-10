@@ -23,7 +23,7 @@
     <version>1.5.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-start</artifactId>
-  <name>Start</name>
+  <name>Apache Accumulo Start</name>
   <dependencies>
     <dependency>
       <groupId>org.apache.commons</groupId>

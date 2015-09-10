@@ -24,7 +24,7 @@
   </parent>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
-  <name>Assemblies</name>
+  <name>Apache Accumulo</name>
   <properties>
     <accumulo-top>..</accumulo-top>
   </properties>

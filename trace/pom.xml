@@ -23,7 +23,7 @@
     <version>1.5.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-trace</artifactId>
-  <name>Trace</name>
+  <name>Apache Accumulo Trace</name>
   <dependencies>
     <dependency>
       <groupId>org.apache.thrift</groupId>

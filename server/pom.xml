@@ -23,7 +23,7 @@
     <version>1.5.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-server</artifactId>
-  <name>Server</name>
+  <name>Apache Accumulo Server</name>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

@@ -23,7 +23,7 @@
     <version>1.5.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-minicluster</artifactId>
-  <name>MiniCluster</name>
+  <name>Apache Accumulo MiniCluster</name>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

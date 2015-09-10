@@ -23,7 +23,7 @@
     <version>1.5.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-proxy</artifactId>
-  <name>Proxy</name>
+  <name>Apache Accumulo Proxy</name>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

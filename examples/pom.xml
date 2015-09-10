@@ -24,7 +24,7 @@
   </parent>
   <artifactId>accumulo-examples</artifactId>
   <packaging>pom</packaging>
-  <name>Examples</name>
+  <name>Apache Accumulo Examples Parent</name>
   <modules>
     <module>simple</module>
   </modules>

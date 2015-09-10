@@ -30,9 +30,11 @@
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
   <!-- this URL is where the site derived via the maven-site-plugin ends up, not the generic site -->
   <url>http://accumulo.apache.org/maven-site/</url>
+  <!-- this is the year of inception at ASF -->
+  <inceptionYear>2011</inceptionYear>
   <organization>
-    <name>Apache Accumulo Project</name>
-    <url>http://accumulo.apache.org/</url>
+    <name>The Apache Software Foundation</name>
+    <url>http://www.apache.org/</url>
   </organization>
   <licenses>
     <license>
