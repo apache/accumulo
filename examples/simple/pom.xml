@@ -24,7 +24,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-examples-simple</artifactId>
-  <name>Simple Examples</name>
+  <name>Apache Accumulo Simple Examples</name>
   <description>Simple Apache Accumulo examples.</description>
   <dependencies>
     <dependency>

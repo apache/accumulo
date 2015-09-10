@@ -24,7 +24,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-monitor</artifactId>
-  <name>Monitor Server</name>
+  <name>Apache Accumulo Monitor Server</name>
   <description>A web server for monitoring Apache Accumulo.</description>
   <dependencies>
     <dependency>

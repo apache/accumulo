@@ -23,7 +23,7 @@
     <version>1.8.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-fate</artifactId>
-  <name>Fate</name>
+  <name>Apache Accumulo Fate</name>
   <description>A FAult-Tolerant Executor library used by Apache Accumulo.</description>
   <dependencies>
     <dependency>

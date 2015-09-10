@@ -23,7 +23,7 @@
     <version>1.8.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-test</artifactId>
-  <name>Testing</name>
+  <name>Apache Accumulo Testing</name>
   <description>Tests for Apache Accumulo.</description>
   <properties>
     <timeout.factor>1</timeout.factor>
