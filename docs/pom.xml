@@ -24,7 +24,7 @@
   </parent>
   <artifactId>accumulo-docs</artifactId>
   <packaging>pom</packaging>
-  <name>Documentation</name>
+  <name>Apache Accumulo Documentation</name>
   <description>User documentation for Apache Accumulo.</description>
   <profiles>
     <profile>

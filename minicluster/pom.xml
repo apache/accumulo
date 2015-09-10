@@ -23,7 +23,7 @@
     <version>1.6.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-minicluster</artifactId>
-  <name>MiniCluster</name>
+  <name>Apache Accumulo MiniCluster</name>
   <description>A library for launching and running a standalone instance of Apache Accumulo for testing.</description>
   <dependencies>
     <dependency>

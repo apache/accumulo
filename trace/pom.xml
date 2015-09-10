@@ -23,7 +23,7 @@
     <version>1.6.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-trace</artifactId>
-  <name>Trace</name>
+  <name>Apache Accumulo Trace</name>
   <description>A distributed tracing library for Apache Accumulo.</description>
   <dependencies>
     <dependency>

@@ -23,7 +23,7 @@
     <version>1.6.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-core</artifactId>
-  <name>Core</name>
+  <name>Apache Accumulo Core</name>
   <description>Apache Accumulo core libraries.</description>
   <dependencies>
     <dependency>

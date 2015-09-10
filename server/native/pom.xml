@@ -25,7 +25,7 @@
   </parent>
   <artifactId>accumulo-native</artifactId>
   <packaging>pom</packaging>
-  <name>Native Libraries</name>
+  <name>Apache Accumulo Native Libraries</name>
   <description>C++ native libraries for improved performance in Apache Accumulo.</description>
   <dependencies>
     <dependency>
