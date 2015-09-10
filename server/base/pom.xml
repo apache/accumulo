@@ -24,7 +24,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-server-base</artifactId>
-  <name>Server Base</name>
+  <name>Apache Accumulo Server Base</name>
   <description>A common base library for Apache Accumulo servers.</description>
   <dependencies>
     <dependency>

@@ -23,7 +23,7 @@
     <version>1.7.1-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-proxy</artifactId>
-  <name>Proxy</name>
+  <name>Apache Accumulo Proxy</name>
   <description>A server for Apache Accumulo that proxies connections from any language supported by Apache Thrift.</description>
   <dependencies>
     <dependency>

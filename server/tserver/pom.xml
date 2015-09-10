@@ -24,7 +24,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-tserver</artifactId>
-  <name>Tablet Server</name>
+  <name>Apache Accumulo Tablet Server</name>
   <description>The tablet server for Apache Accumulo to host tablets of data tables.</description>
   <dependencies>
     <dependency>

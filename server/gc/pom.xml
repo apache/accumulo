@@ -24,7 +24,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-gc</artifactId>
-  <name>GC Server</name>
+  <name>Apache Accumulo GC Server</name>
   <description>The garbage collecting server for Apache Accumulo to clean up unused files.</description>
   <dependencies>
     <dependency>

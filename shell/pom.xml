@@ -23,7 +23,7 @@
     <version>1.7.1-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-shell</artifactId>
-  <name>Shell</name>
+  <name>Apache Accumulo Shell</name>
   <description>An interactive shell for accessing Apache Accumulo via a command line interface.</description>
   <dependencies>
     <dependency>
