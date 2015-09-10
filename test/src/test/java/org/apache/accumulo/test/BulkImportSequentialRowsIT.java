@@ -19,15 +19,9 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -45,6 +39,9 @@ import com.google.common.collect.Iterables;
 // ACCUMULO-3967
 public class BulkImportSequentialRowsIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(BulkImportSequentialRowsIT.class);
+
+  private static final long NR = 24;
+  private static final long NV = 42000;
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -81,32 +78,27 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterIT {
     assertTrue(fs.mkdirs(err));
 
     Path rfile = new Path(bulk, "file.rf");
-    FileSKVWriter writer = FileOperations.getInstance().openWriter(rfile.toString(), fs, new Configuration(), DefaultConfiguration.getInstance());
-    writer.startDefaultLocalityGroup();
 
-    final Value emptyValue = new Value(new byte[0]);
-    final SortedSet<Text> splits = new TreeSet<Text>();
-    for (int i = 0; i < 100; i++) {
-      String row = String.format("%03d", i);
-      splits.add(new Text(row));
-      writer.append(new Key(row, "", ""), emptyValue);
-      for (int j = 0; j < 100; j++) {
-        writer.append(new Key(row, "", String.format("%03d", j)), emptyValue);
-      }
-    }
-    writer.close();
+    GenerateSequentialRFile.main(new String[] {"-f", rfile.toString(), "-nr", Long.toString(NR), "-nv", Long.toString(NV)});
 
     assertTrue(fs.exists(rfile));
 
     // Add some splits
-    to.addSplits(tableName, splits);
+    to.addSplits(tableName, getSplits());
 
     // Then import a single rfile to all the tablets, hoping that we get a failure to import because of the balancer moving tablets around
     // and then we get to verify that the bug is actually fixed.
     to.importDirectory(tableName, bulk.toString(), err.toString(), false);
 
     // The bug is that some tablets don't get imported into.
-    assertEquals(10100, Iterables.size(getConnector().createScanner(tableName, Authorizations.EMPTY)));
+    assertEquals(NR * NV, Iterables.size(getConnector().createScanner(tableName, Authorizations.EMPTY)));
   }
 
+  private TreeSet<Text> getSplits() {
+    TreeSet<Text> splits = new TreeSet<>();
+    for (int i = 0; i < NR; i++) {
+      splits.add(new Text(String.format("%03d", i)));
+    }
+    return splits;
+  }
 }
