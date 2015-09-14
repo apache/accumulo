@@ -81,6 +81,9 @@ public class SamplerConfigurationImpl implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
+    // The Writable serialization methods for this class are called by RFile and therefore must be very stable. An alternative way to serialize this class is to
+    // use Thrift. That was not used here inorder to avoid making RFile depend on Thrift.
+
     // versioning info
     out.write(1);
 

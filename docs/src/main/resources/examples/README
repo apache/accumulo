@@ -80,6 +80,8 @@ features of Apache Accumulo.
    README.rowhash:     Using MapReduce to read a table and write to a new
                        column in the same table.
 
+   README.sample:      Building and using sample data in Accumulo.
+
    README.shard:       Using the intersecting iterator with a term index
                        partitioned by document.
 

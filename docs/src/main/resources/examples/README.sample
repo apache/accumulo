@@ -86,9 +86,13 @@ failure and fixiing the problem with a compaction.
     9255 doc:content []    abcde
     9255 doc:url []    file://foo.txt
 
+The example above is replicated in a java program using the Accumulo API.
+Below is the program name and the command to run it.
+
+    ./bin/accumulo org.apache.accumulo.examples.simple.sample.SampleExample -i instance -z localhost -u root -p secret
+
 The commands below look under the hood to give some insight into how this
-feature works.  The commands below determine what files the sampex table is
-using.
+feature works.  The commands determine what files the sampex table is using.
 
     root@instance sampex> tables -l
     accumulo.metadata    =>        !0
