@@ -471,6 +471,7 @@
                   <classifier>bin</classifier>
                   <controlDir>assemble/deb/accumulo</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
+                  <skipPOMs>false</skipPOMs>
                   <dataSet>
                     <data>
                       <src>${accumulo-top}/lib</src>
@@ -613,6 +614,7 @@
                   <controlDir>assemble/deb/accumulo-native</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <classifier>native</classifier>
+                  <skipPOMs>false</skipPOMs>
                   <dataSet>
                     <data>
                       <src>${accumulo-top}/assemble/accumulo-only-NOTICE</src>
@@ -671,6 +673,7 @@
                   <controlDir>assemble/deb/accumulo-test</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <classifier>test</classifier>
+                  <skipPOMs>false</skipPOMs>
                   <dataSet>
                     <data>
                       <src>${accumulo-top}/assemble/accumulo-only-NOTICE</src>
