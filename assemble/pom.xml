@@ -92,6 +92,9 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
+              <!-- for test and native rpm/deb packagings -->
+              <exclude>accumulo-only-LICENSE</exclude>
+              <exclude>accumulo-only-NOTICE</exclude>
               <exclude>bin-LICENSE</exclude>
               <exclude>bin-NOTICE</exclude>
             </excludes>
@@ -236,10 +239,12 @@
                           <location>${accumulo-top}/CHANGES</location>
                         </source>
                         <source>
-                          <location>${accumulo-top}/LICENSE</location>
+                          <location>${accumulo-top}/assemble/bin-LICENSE</location>
+                          <destination>LICENSE</destination>
                         </source>
                         <source>
-                          <location>${accumulo-top}/NOTICE</location>
+                          <location>${accumulo-top}/assemble/bin-NOTICE</location>
+                          <destination>NOTICE</destination>
                         </source>
                         <source>
                           <location>${accumulo-top}/README</location>
@@ -380,6 +385,14 @@
                             <include>libNativeMap-Linux-amd64-64.so</include>
                           </includes>
                         </source>
+                        <source>
+                          <location>${accumulo-top}/assemble/accumulo-only-LICENSE</location>
+                          <destination>LICENSE</destination>
+                        </source>
+                        <source>
+                          <location>${accumulo-top}/assemble/accumulo-only-NOTICE</location>
+                          <destination>NOTICE</destination>
+                        </source>
                       </sources>
                     </mapping>
                   </mappings>
@@ -405,6 +418,14 @@
                     <mapping>
                       <directory>/opt/accumulo/accumulo-${project.version}/test</directory>
                       <sources>
+                        <source>
+                          <location>${accumulo-top}/assemble/accumulo-only-LICENSE</location>
+                          <destination>LICENSE</destination>
+                        </source>
+                        <source>
+                          <location>${accumulo-top}/assemble/accumulo-only-NOTICE</location>
+                          <destination>NOTICE</destination>
+                        </source>
                         <source>
                           <location>${accumulo-top}/test</location>
                           <excludes>
@@ -461,7 +482,8 @@
                       <excludes>**/.svn/**,native/**</excludes>
                     </data>
                     <data>
-                      <src>${accumulo-top}/NOTICE</src>
+                      <src>${accumulo-top}/assemble/bin-NOTICE</src>
+                      <dst>NOTICE</dst>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -485,7 +507,8 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${accumulo-top}/LICENSE</src>
+                      <src>${accumulo-top}/assemble/bin-LICENSE</src>
+                      <dst>LICENSE</dst>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -592,6 +615,24 @@
                   <classifier>native</classifier>
                   <dataSet>
                     <data>
+                      <src>${accumulo-top}/assemble/accumulo-only-NOTICE</src>
+                      <dst>NOTICE</dst>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/server/src/main/c++</prefix>
+                      </mapper>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/assemble/accumulo-only-LICENSE</src>
+                      <dst>LICENSE</dst>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/server/src/main/c++</prefix>
+                      </mapper>
+                    </data>
+                    <data>
                       <src>${accumulo-top}/server/src/main/c++</src>
                       <type>directory</type>
                       <mapper>
@@ -631,6 +672,24 @@
                   <installDir>/usr/lib/accumulo</installDir>
                   <classifier>test</classifier>
                   <dataSet>
+                    <data>
+                      <src>${accumulo-top}/assemble/accumulo-only-NOTICE</src>
+                      <dst>NOTICE</dst>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/test</prefix>
+                      </mapper>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/assemble/accumulo-only-LICENSE</src>
+                      <dst>LICENSE</dst>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/test</prefix>
+                      </mapper>
+                    </data>
                     <data>
                       <src>${accumulo-top}/test</src>
                       <type>directory</type>
