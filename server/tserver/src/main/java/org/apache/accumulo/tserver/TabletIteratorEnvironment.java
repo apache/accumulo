@@ -59,7 +59,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.config = config;
     this.fullMajorCompaction = false;
     this.authorizations = Authorizations.EMPTY;
-    this.topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    this.topLevelIterators = new ArrayList<>();
   }
 
   private TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,

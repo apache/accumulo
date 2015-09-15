@@ -42,7 +42,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.SamplerConfiguration;
-import org.apache.accumulo.core.client.impl.TestIteratorEnvironment;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -89,7 +89,7 @@ import com.google.common.primitives.Bytes;
 
 public class RFileTest {
 
-  public static class SampleIE extends TestIteratorEnvironment {
+  public static class SampleIE extends BaseIteratorEnvironment {
 
     private SamplerConfiguration samplerConfig;
 

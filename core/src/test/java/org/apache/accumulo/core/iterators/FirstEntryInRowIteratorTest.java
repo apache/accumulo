@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.TestIteratorEnvironment;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -37,7 +37,7 @@ public class FirstEntryInRowIteratorTest {
     org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
-    IteratorEnvironment env = new TestIteratorEnvironment();
+    IteratorEnvironment env = new BaseIteratorEnvironment();
 
     feiri.init(counter, Collections.singletonMap(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME, Integer.toString(numScans)), env);
 

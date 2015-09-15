@@ -39,7 +39,16 @@ import org.apache.accumulo.core.data.Key;
  */
 
 public interface Sampler {
+
+  /**
+   * An implementation of Sampler must have a noarg constructor.  After construction this method is called once to initialize a sampler before it is used.
+   * @param config Configuration options for a sampler.
+   */
   void init(SamplerConfiguration config);
 
+  /**
+   * @param k A key that was written to a rfile.
+   * @return True if the key (and its associtated value) should be stored in the rfile's sample.   Return false if it should not be included.
+   */
   boolean accept(Key k);
 }

@@ -18,7 +18,7 @@ package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.impl.TestIteratorEnvironment;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -27,7 +27,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
-public class DefaultIteratorEnvironment extends TestIteratorEnvironment {
+public class DefaultIteratorEnvironment extends BaseIteratorEnvironment {
 
   AccumuloConfiguration conf;
 

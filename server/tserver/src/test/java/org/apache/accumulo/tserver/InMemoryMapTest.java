@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.admin.SamplerConfiguration;
-import org.apache.accumulo.core.client.impl.TestIteratorEnvironment;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -75,7 +75,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class InMemoryMapTest {
 
-  private static class SampleIE extends TestIteratorEnvironment {
+  private static class SampleIE extends BaseIteratorEnvironment {
 
     private final SamplerConfiguration sampleConfig;
 

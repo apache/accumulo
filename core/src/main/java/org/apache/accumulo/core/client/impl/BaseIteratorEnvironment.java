@@ -24,11 +24,16 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
-public class TestIteratorEnvironment implements IteratorEnvironment {
+/**
+ * An implementation of {@link IteratorEnvironment} that throws {@link UnsupportedOperationException} for each operation. This is useful for situations that
+ * need to extend {@link IteratorEnvironment} and implement a subset of the methods.
+ */
+
+public class BaseIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
