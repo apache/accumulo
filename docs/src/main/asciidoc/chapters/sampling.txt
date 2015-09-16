@@ -1,0 +1,86 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+== Sampling
+
+=== Overview
+
+Accumulo has the ability to generate and scan a per table set of sample data.
+This sample data is kept up to date as a table is mutated.  What key values are
+placed in the sample data is configurable per table.
+
+This feature can be used for query estimation and optimization.  For an example
+of estimaiton assume an Accumulo table is configured to generate a sample
+containing one millionth of a tables data.   If a query is executed against the
+sample and returns one thousand results, then the same query against all the
+data would probably return a billion results.  A nice property of having
+Accumulo generate the sample is that its always up to date.  So estimations
+will be accurate even when querying the most recently written data.
+
+An example of a query optimization is an iterator using sample data to get an
+estimate, and then making decisions based on the estimate.
+
+=== Configuring
+
+Inorder to use sampling, an Accumulo table must be configured with a class that
+implements +org.apache.accumulo.core.sample.Sampler+ along with options for
+that class.  For guidance on implementing a Sampler see that interface's
+javadoc.  Accumulo provides a few implementations out of the box.   For
+information on how to use the samplers that ship with Accumulo look in the
+package `org.apache.accumulo.core.sample` and consult the javadoc of the
+classes there.  See +README.sample+ and +SampleExample.java+ for examples of
+how to configure a Sampler on a table.
+
+Once a table is configured with a sampler all writes after that point will
+generate sample data.  For data written before sampling was configured sample
+data will not be present.  A compaction can be initiated that only compacts the
+files in the table that do not have sample data.   The example readme shows how
+to do this.
+
+If the sampling configuration of a table is changed, then Accumulo will start
+generating new sample data with the new configuration.   However old data will
+still have sample data generated with the previous configuration.  A selective
+compaction can also be issued in this case to regenerate the sample data.
+
+=== Scanning sample data
+
+Inorder to scan sample data, use the +setSamplerConfiguration(...)+  method on
++Scanner+ or +BatchScanner+.  Please consult this methods javadocs for more
+information.
+
+Sample data can also be scanned from within an Accumulo
++SortedKeyValueIterator+.  To see how to do this look at the example iterator
+referenced in README.sample.  Also, consult the javadoc on
++org.apache.accumulo.core.iterators.IteratorEnvironment.cloneWithSamplingEnabled()+.
+
+Map reduce jobs using the +AccumuloInputFormat+ can also read sample data.  See
+the javadoc for the +setSamplerConfiguration()+ method on
++AccumuloInputFormat+.
+
+Scans over sample data will throw a +SampleNotPresentException+ in the following cases :
+
+. sample data is not present,
+. sample data is present but was generated with multiple configurations
+. sample data is partially present
+
+So a scan over sample data can only succeed if all data written has sample data
+generated with the same configuration.
+
+=== Bulk import
+
+When generating rfiles to bulk import into Accumulo, those rfiles can contain
+sample data.  To use this feature, look at the javadoc on the
++AccumuloFileOutputFormat.setSampler(...)+ method.
+

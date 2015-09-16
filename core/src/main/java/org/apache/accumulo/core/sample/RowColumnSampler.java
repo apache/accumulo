@@ -29,7 +29,31 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 
 /**
- * This sampler can hash any subset of a Key's fields.
+ * This sampler can hash any subset of a Key's fields. The fields that hashed for the sample are determined by the configuration options passed in
+ * {@link #init(SamplerConfiguration)}. The following key values are valid options.
+ *
+ * <UL>
+ * <li>row=true|false
+ * <li>family=true|false
+ * <li>qualifier=true|false
+ * <li>visibility=true|false
+ * </UL>
+ *
+ * <p>
+ * If not specified in the options, fields default to false.
+ *
+ * <p>
+ * To determine what options are valid for hashing see {@link AbstractHashSampler}
+ *
+ * <p>
+ * To configure Accumulo to generate sample data on one thousandth of the column qualifiers, the following SamplerConfiguration could be created and used to
+ * configure a table.
+ *
+ * <p>
+ * {@code new SamplerConfiguration(RowColumnSampler.class.getName()).setOptions(ImmutableMap.of("hasher","murmur3_32","modulus","1009","qualifier","true"))}
+ *
+ * <p>
+ * With this configuration, if a column qualifier is selected then all key values contains that column qualifier will end up in the sample data.
  *
  * @since 1.8.0
  */

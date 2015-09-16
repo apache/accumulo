@@ -32,6 +32,16 @@ import com.google.common.hash.Hashing;
  * A base class that can be used to create Samplers based on hashing. This class offers consistent options for configuring the hash function. The subclass
  * decides which parts of the key to hash.
  *
+ * <p>
+ * This class support two options passed into {@link #init(SamplerConfiguration)}. One option is {@code hasher} which specifies a hashing algorithm. Valid
+ * values for this option are {@code md5}, {@code sha1}, and {@code murmur3_32}. If you are not sure, then choose {@code murmur3_32}.
+ *
+ * <p>
+ * The second option is {@code modulus} which can have any positive integer as a value.
+ *
+ * <p>
+ * Any data where {@code hash(data) % modulus == 0} will be selected for the sample.
+ *
  * @since 1.8.0
  */
 
