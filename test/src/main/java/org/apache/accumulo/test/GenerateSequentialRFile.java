@@ -26,6 +26,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -55,7 +56,8 @@ public class GenerateSequentialRFile implements Runnable {
   public void run() {
     try {
       final Configuration conf = new Configuration();
-      final FileSystem fs = FileSystem.getLocal(conf);
+      Path p = new Path(opts.filePath);
+      final FileSystem fs = p.getFileSystem(conf);
       FileSKVWriter writer = FileOperations.getInstance().openWriter(opts.filePath, fs, conf, DefaultConfiguration.getInstance());
 
       writer.startDefaultLocalityGroup();
