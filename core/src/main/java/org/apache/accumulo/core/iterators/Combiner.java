@@ -22,6 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -31,11 +34,14 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Splitter;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 /**
@@ -57,6 +63,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   static final Logger log = Logger.getLogger(Combiner.class);
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
+  protected static final String DELETE_HANDLING_ACTION_OPTION = "deleteHandlingAction";
+
+  private boolean isPartialCompaction;
+  private DeleteHandlingAction deleteHandlingAction;
 
   /**
    * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.
@@ -149,6 +159,37 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   private Key workKey = new Key();
 
+  private static Cache<String,Long> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+
+  private void sawDelete() {
+    if (isPartialCompaction) {
+      switch (deleteHandlingAction) {
+        case LOG_ERROR:
+          try {
+            loggedMsgCache.get(this.getClass().getName(), new Callable<Long>() {
+              @Override
+              public Long call() throws Exception {
+                log.error("Combiner of type " + this.getClass().getSimpleName()
+                    + " saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent occurences for at least 1 hour.");
+                return System.currentTimeMillis();
+              }
+            });
+          } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+          }
+          break;
+        case THROW_EXCEPTION:
+          throw new IllegalStateException("Saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.");
+        case IGNORE:
+          break;
+        case REDUCE_ON_FULL_COMPACTION_ONLY:
+        default:
+          // unexpected
+          throw new IllegalStateException("Unexpected case occurred in code, please file a bug " + deleteHandlingAction);
+      }
+    }
+  }
+
   /**
    * Sets the topKey and topValue based on the top key of the source. If the column of the source top key is in the set of combiners, topKey will be the top key
    * of the source and topValue will be the result of the reduce method. Otherwise, topKey and topValue will be unchanged. (They are always set to null before
@@ -159,8 +200,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (super.hasTop()) {
       workKey.set(super.getTopKey());
       if (combineAllColumns || combiners.contains(workKey)) {
-        if (workKey.isDeleted())
+        if (workKey.isDeleted()) {
+          sawDelete();
           return;
+        }
         topKey = workKey;
         Iterator<Value> viter = new ValueIterator(getSource());
         topValue = reduce(topKey, viter);
@@ -219,6 +262,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       if (combineAllColumns)
         return;
     }
+
     if (!options.containsKey(COLUMNS_OPTION))
       throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
 
@@ -227,10 +271,25 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
     combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
+
+    isPartialCompaction = ((env.getIteratorScope() == IteratorScope.majc) && !env.isFullMajorCompaction());
+    if (options.containsKey(DELETE_HANDLING_ACTION_OPTION)) {
+      deleteHandlingAction = DeleteHandlingAction.valueOf(options.get(DELETE_HANDLING_ACTION_OPTION));
+    } else {
+      deleteHandlingAction = DeleteHandlingAction.LOG_ERROR;
+    }
+
+    if (deleteHandlingAction == DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY && isPartialCompaction) {
+      // adjust configuration so that no columns are combined for a partial maror compaction
+      combineAllColumns = false;
+      combiners = new ColumnSet();
+    }
+
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    // TODO test
     Combiner newInstance;
     try {
       newInstance = this.getClass().newInstance();
@@ -240,15 +299,18 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     newInstance.setSource(getSource().deepCopy(env));
     newInstance.combiners = combiners;
     newInstance.combineAllColumns = combineAllColumns;
+    newInstance.isPartialCompaction = isPartialCompaction;
+    newInstance.deleteHandlingAction = deleteHandlingAction;
     return newInstance;
   }
 
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = new IteratorOptions("comb", "Combiners apply reduce functions to multiple versions of values with otherwise equal keys", null, null);
-    io.addNamedOption(ALL_OPTION, "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION
-        + " option will be ignored.");
+    io.addNamedOption(ALL_OPTION,
+        "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION + " option will be ignored.");
     io.addNamedOption(COLUMNS_OPTION, "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>.");
+    // TODO
     return io;
   }
 
@@ -275,6 +337,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
     }
 
+    if (options.containsKey(DELETE_HANDLING_ACTION_OPTION)) {
+      DeleteHandlingAction.valueOf(options.get(DELETE_HANDLING_ACTION_OPTION));
+    }
+
     return true;
   }
 
@@ -288,7 +354,6 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * @param columns
    *          a list of columns to encode as the value for the combiner column configuration
    */
-
   public static void setColumns(IteratorSetting is, List<IteratorSetting.Column> columns) {
     String sep = "";
     StringBuilder sb = new StringBuilder();
@@ -312,5 +377,47 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    */
   public static void setCombineAllColumns(IteratorSetting is, boolean combineAllColumns) {
     is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));
+  }
+
+  public static enum DeleteHandlingAction {
+    /**
+     * Do nothing when a a delete is observed by a combiner during a partial major compaction.
+     */
+    IGNORE,
+
+    /**
+     * Log an error when a a delete is observed by a combiner during a partial major compaction. An error is not logged for each delete entry seen. Once a
+     * combiner has seen a delete during a partial compaction and logged an error, it will not do so again for at least an hour.
+     */
+    LOG_ERROR,
+
+    /**
+     * Throw an exception when a a delete is observed by a combiner during a partial major compaction.
+     */
+    THROW_EXCEPTION,
+
+    /**
+     * Pass all data through during partial minor compactions, no reducing is done. With this option reducing is only done during scan and full major
+     * compactions, when deletes can be correctly handled.
+     */
+    REDUCE_ON_FULL_COMPACTION_ONLY
+  }
+
+  /**
+   * Combiners may not work correctly with deletes. Sometimes when Accumulo compacts the files in a tablet, it only compacts a subset of the files. If a delete
+   * marker exists in one of the files that is not being compacted, then data that should be delted may be combined. See
+   * <a href="https://issues.apache.org/jira/browse/ACCUMULO-2232">ACCUMULO-2232</a> for more information.
+   *
+   * <p>
+   * This method allows users to configure how they want to handle the combination of delete markers, combiners, and partial compactions. The default behavior
+   * is {@link DeleteHandlingAction#LOG_ERROR}. See the javadoc on each {@link DeleteHandlingAction} enum for a description of each option.
+   *
+   * <p>
+   * This method was added in 1.6.4 and 1.7.1.  If you want your code to work in earlier versions of 1.6 and 1.7 then do not call this method.
+   *
+   * @since 1.6.4 1.7.1 1.8.0
+   */
+  public static void setDeleteHandlingAction(IteratorSetting is, DeleteHandlingAction action) {
+    is.addOption(DELETE_HANDLING_ACTION_OPTION, action.name());
   }
 }
