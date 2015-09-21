@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -136,6 +137,20 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   public static void setReplication(Job job, int replication) {
     FileOutputConfigurator.setReplication(CLASS, job.getConfiguration(), replication);
+  }
+
+  /**
+   * Specify a sampler to be used when writing out data. This will result in the output file having sample data.
+   *
+   * @param job
+   *          The Hadoop job instance to be configured
+   * @param samplerConfig
+   *          The configuration for creating sample data in the output file.
+   * @since 1.8.0
+   */
+
+  public static void setSampler(Job job, SamplerConfiguration samplerConfig) {
+    FileOutputConfigurator.setSampler(CLASS, job.getConfiguration(), samplerConfig);
   }
 
   @Override

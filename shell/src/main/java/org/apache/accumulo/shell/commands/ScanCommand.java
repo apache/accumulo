@@ -26,9 +26,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -60,6 +62,19 @@ public class ScanCommand extends Command {
   private Option optEndRowExclusive;
   private Option timeoutOption;
   private Option profileOpt;
+  private Option sampleOpt;
+
+  protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState, ScannerBase scanner) throws TableNotFoundException,
+      AccumuloException, AccumuloSecurityException {
+    if (getUseSample(cl)) {
+      SamplerConfiguration samplerConfig = shellState.getConnector().tableOperations().getSamplerConfiguration(tableName);
+      if (samplerConfig == null) {
+        throw new SampleNotPresentException("Table " + tableName + " does not have sampling configured");
+      }
+      Shell.log.debug("Using sampling configuration : " + samplerConfig);
+      scanner.setSamplerConfiguration(samplerConfig);
+    }
+  }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
@@ -86,6 +101,8 @@ public class ScanCommand extends Command {
     // set timeout
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
+    setupSampling(tableName, cl, shellState, scanner);
+
     // output the records
     if (cl.hasOption(showFewOpt.getOpt())) {
       final String showLength = cl.getOptionValue(showFewOpt.getOpt());
@@ -110,6 +127,10 @@ public class ScanCommand extends Command {
     }
 
     return 0;
+  }
+
+  protected boolean getUseSample(CommandLine cl) {
+    return cl.hasOption(sampleOpt.getLongOpt());
   }
 
   protected long getTimeout(final CommandLine cl) {
@@ -294,6 +315,7 @@ public class ScanCommand extends Command {
     timeoutOption = new Option(null, "timeout", true,
         "time before scan should fail if no data is returned. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
+    sampleOpt = new Option(null, "sample", false, "Show sample");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -324,6 +346,7 @@ public class ScanCommand extends Command {
     o.addOption(timeoutOption);
     o.addOption(outputFileOpt);
     o.addOption(profileOpt);
+    o.addOption(sampleOpt);
 
     return o;
   }

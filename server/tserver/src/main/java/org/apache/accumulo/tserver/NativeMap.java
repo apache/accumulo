@@ -34,6 +34,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
@@ -749,6 +750,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+      if (env != null && env.isSamplingEnabled()) {
+        throw new SampleNotPresentException();
+      }
       return new NMSKVIter(map, interruptFlag);
     }
 

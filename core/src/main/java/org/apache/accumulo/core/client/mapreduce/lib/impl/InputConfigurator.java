@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Base64;
@@ -74,6 +76,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
@@ -87,7 +90,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static enum ScanOpts {
-    TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS
+    TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS, SAMPLER_CONFIG
   }
 
   /**
@@ -805,6 +808,11 @@ public class InputConfigurator extends ConfiguratorBase {
       if (ranges != null)
         queryConfig.setRanges(ranges);
 
+      SamplerConfiguration samplerConfig = getSamplerConfiguration(implementingClass, conf);
+      if (samplerConfig != null) {
+        queryConfig.setSamplerConfiguration(samplerConfig);
+      }
+
       queryConfig.setAutoAdjustRanges(getAutoAdjustRanges(implementingClass, conf)).setUseIsolatedScanners(isIsolated(implementingClass, conf))
           .setUseLocalIterators(usesLocalIterators(implementingClass, conf)).setOfflineScan(isOfflineScan(implementingClass, conf));
       return Maps.immutableEntry(tableName, queryConfig);
@@ -900,5 +908,48 @@ public class InputConfigurator extends ConfiguratorBase {
 
     }
     return binnedRanges;
+  }
+
+  private static String toBase64(Writable writable) {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    try {
+      writable.write(dos);
+      dos.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    return Base64.encodeBase64String(baos.toByteArray());
+  }
+
+  private static <T extends Writable> T fromBase64(T writable, String enc) {
+    ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(enc));
+    DataInputStream dis = new DataInputStream(bais);
+    try {
+      writable.readFields(dis);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return writable;
+  }
+
+  public static void setSamplerConfiguration(Class<?> implementingClass, Configuration conf, SamplerConfiguration samplerConfig) {
+    Preconditions.checkNotNull(samplerConfig);
+
+    String key = enumToConfKey(implementingClass, ScanOpts.SAMPLER_CONFIG);
+    String val = toBase64(new SamplerConfigurationImpl(samplerConfig));
+
+    conf.set(key, val);
+  }
+
+  public static SamplerConfiguration getSamplerConfiguration(Class<?> implementingClass, Configuration conf) {
+    String key = enumToConfKey(implementingClass, ScanOpts.SAMPLER_CONFIG);
+
+    String encodedSC = conf.get(key);
+    if (encodedSC == null)
+      return null;
+
+    return fromBase64(new SamplerConfigurationImpl(), encodedSC).toSamplerConfiguration();
   }
 }

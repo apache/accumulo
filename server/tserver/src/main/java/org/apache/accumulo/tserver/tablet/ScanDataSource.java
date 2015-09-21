@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSou
 import org.apache.accumulo.core.iterators.system.StatsIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.FileRef;
@@ -49,6 +51,8 @@ import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.TabletServer;
+
+import com.google.common.collect.Iterables;
 
 class ScanDataSource implements DataSource {
 
@@ -65,10 +69,10 @@ class ScanDataSource implements DataSource {
   private final ScanOptions options;
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, long batchTimeOut) {
+      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut) {
     this.tablet = tablet;
     expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, batchTimeOut);
+    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, samplerConfig, batchTimeOut);
     this.interruptFlag = interruptFlag;
   }
 
@@ -117,6 +121,8 @@ class ScanDataSource implements DataSource {
 
     Map<FileRef,DataFileValue> files;
 
+    SamplerConfigurationImpl samplerConfig = options.getSamplerConfigurationImpl();
+
     synchronized (tablet) {
 
       if (memIters != null)
@@ -141,26 +147,26 @@ class ScanDataSource implements DataSource {
       // getIterators() throws an exception
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
-      memIters = tablet.getTabletMemory().getIterators();
+      memIters = tablet.getTabletMemory().getIterators(samplerConfig);
       Pair<Long,Map<FileRef,DataFileValue>> reservation = tablet.getDatafileManager().reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated());
+    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated(), samplerConfig);
+
+    for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
+      ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(mapfiles.size() + memIters.size());
 
     iters.addAll(mapfiles);
     iters.addAll(memIters);
 
-    for (SortedKeyValueIterator<Key,Value> skvi : iters)
-      ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
-
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
     TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan, tablet.getTableConfiguration(), fileManager, files,
-        options.getAuthorizations());
+        options.getAuthorizations(), samplerConfig);
 
     statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
 
@@ -212,7 +218,7 @@ class ScanDataSource implements DataSource {
 
   public void reattachFileManager() throws IOException {
     if (fileManager != null)
-      fileManager.reattach();
+      fileManager.reattach(options.getSamplerConfigurationImpl());
   }
 
   public void detachFileManager() {

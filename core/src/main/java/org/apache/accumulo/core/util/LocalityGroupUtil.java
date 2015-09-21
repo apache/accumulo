@@ -186,11 +186,11 @@ public class LocalityGroupUtil {
     return ecf;
   }
 
-  private static class PartitionedMutation extends Mutation {
+  public static class PartitionedMutation extends Mutation {
     private byte[] row;
     private List<ColumnUpdate> updates;
 
-    PartitionedMutation(byte[] row, List<ColumnUpdate> updates) {
+    public PartitionedMutation(byte[] row, List<ColumnUpdate> updates) {
       this.row = row;
       this.updates = updates;
     }

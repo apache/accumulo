@@ -27,11 +27,14 @@ import java.util.Collections;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.sample.RowSampler;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -60,7 +63,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   }
 
   private static AssertionError e1 = null;
+  private static int e1Count = 0;
   private static AssertionError e2 = null;
+  private static int e2Count = 0;
 
   private static class MRTester extends Configured implements Tool {
     private static class TestMapper implements Mapper<Key,Value,Key,Value> {
@@ -76,6 +81,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {
           e1 = e;
+          e1Count++;
         }
         key = new Key(k);
         count++;
@@ -90,6 +96,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
           assertEquals(100, count);
         } catch (AssertionError e) {
           e2 = e;
+          e2Count++;
         }
       }
 
@@ -98,11 +105,17 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 1) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table>");
+      if (args.length != 1 && args.length != 3) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> [<batchScan> <scan sample>]");
       }
 
       String table = args[0];
+      Boolean batchScan = false;
+      boolean sample = false;
+      if (args.length == 3) {
+        batchScan = Boolean.parseBoolean(args[1]);
+        sample = Boolean.parseBoolean(args[2]);
+      }
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
@@ -112,6 +125,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
+      AccumuloInputFormat.setBatchScan(job, batchScan);
+      if (sample) {
+        AccumuloInputFormat.setSamplerConfiguration(job, SAMPLER_CONFIG);
+      }
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -143,9 +160,45 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
+    e1 = null;
+    e2 = null;
+
     MRTester.main(table);
     assertNull(e1);
     assertNull(e2);
+  }
+
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
+      "modulus", "3");
+
+  @Test
+  public void testSample() throws Exception {
+    final String TEST_TABLE_3 = getUniqueNames(1)[0];
+
+    Connector c = getConnector();
+    c.tableOperations().create(TEST_TABLE_3, new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+    BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+    for (int i = 0; i < 100; i++) {
+      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      bw.addMutation(m);
+    }
+    bw.close();
+
+    MRTester.main(TEST_TABLE_3, "False", "True");
+    Assert.assertEquals(38, e1Count);
+    Assert.assertEquals(1, e2Count);
+
+    e2Count = e1Count = 0;
+    MRTester.main(TEST_TABLE_3, "False", "False");
+    Assert.assertEquals(0, e1Count);
+    Assert.assertEquals(0, e2Count);
+
+    e2Count = e1Count = 0;
+    MRTester.main(TEST_TABLE_3, "True", "True");
+    Assert.assertEquals(38, e1Count);
+    Assert.assertEquals(1, e2Count);
+
   }
 
   @Test

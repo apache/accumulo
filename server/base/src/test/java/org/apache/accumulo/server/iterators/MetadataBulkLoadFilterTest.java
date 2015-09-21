@@ -21,18 +21,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
@@ -104,20 +101,7 @@ public class MetadataBulkLoadFilterTest {
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileA", "2");
 
     TestMetadataBulkLoadFilter iter = new TestMetadataBulkLoadFilter();
-    iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(), new IteratorEnvironment() {
-
-      @Override
-      public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-        return null;
-      }
-
-      @Override
-      public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
-
-      @Override
-      public Authorizations getAuthorizations() {
-        return null;
-      }
+    iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(), new BaseIteratorEnvironment() {
 
       @Override
       public boolean isFullMajorCompaction() {
@@ -127,11 +111,6 @@ public class MetadataBulkLoadFilterTest {
       @Override
       public IteratorScope getIteratorScope() {
         return IteratorScope.majc;
-      }
-
-      @Override
-      public AccumuloConfiguration getConfig() {
-        return null;
       }
     });
 

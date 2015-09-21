@@ -28,16 +28,21 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -57,6 +62,10 @@ import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.sample.RowSampler;
+import org.apache.accumulo.core.sample.Sampler;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.security.crypto.CryptoTest;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -68,13 +77,36 @@ import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 
 public class RFileTest {
+
+  public static class SampleIE extends BaseIteratorEnvironment {
+
+    private SamplerConfiguration samplerConfig;
+
+    SampleIE(SamplerConfiguration config) {
+      this.samplerConfig = config;
+    }
+
+    @Override
+    public boolean isSamplingEnabled() {
+      return samplerConfig != null;
+    }
+
+    @Override
+    public SamplerConfiguration getSamplerConfiguration() {
+      return samplerConfig;
+    }
+  }
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
 
@@ -193,7 +225,15 @@ public class RFileTest {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf, accumuloConfiguration);
-      writer = new RFile.Writer(_cbw, blockSize, 1000);
+
+      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
+      Sampler sampler = null;
+
+      if (samplerConfig != null) {
+        sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
+      }
+
+      writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
 
       if (startDLG)
         writer.startDefaultLocalityGroup();
@@ -221,7 +261,6 @@ public class RFileTest {
     }
 
     public void openReader(boolean cfsi) throws IOException {
-
       int fileLength = 0;
       byte[] data = null;
       data = baos.toByteArray();
@@ -1206,7 +1245,6 @@ public class RFileTest {
   @Test
   public void test14() throws IOException {
     // test starting locality group after default locality group was started
-
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
@@ -1558,6 +1596,7 @@ public class RFileTest {
     runVersionTest(3);
     runVersionTest(4);
     runVersionTest(6);
+    runVersionTest(7);
   }
 
   private void runVersionTest(int version) throws IOException {
@@ -1759,6 +1798,294 @@ public class RFileTest {
     test6();
     test7();
     test8();
+    conf = null;
+  }
+
+  private Key nk(int r, int c) {
+    String row = String.format("r%06d", r);
+    switch (c) {
+      case 0:
+        return new Key(row, "user", "addr");
+      case 1:
+        return new Key(row, "user", "name");
+      default:
+        throw new IllegalArgumentException();
+    }
+  }
+
+  private Value nv(int r, int c) {
+    switch (c) {
+      case 0:
+        return new Value(("123" + r + " west st").getBytes());
+      case 1:
+        return new Value(("bob" + r).getBytes());
+      default:
+        throw new IllegalArgumentException();
+    }
+  }
+
+  private static void hash(Hasher hasher, Key key, Value val) {
+    hasher.putBytes(key.getRowData().toArray());
+    hasher.putBytes(key.getColumnFamilyData().toArray());
+    hasher.putBytes(key.getColumnQualifierData().toArray());
+    hasher.putBytes(key.getColumnVisibilityData().toArray());
+    hasher.putLong(key.getTimestamp());
+    hasher.putBoolean(key.isDeleted());
+    hasher.putBytes(val.get());
+  }
+
+  private static void add(TestRFile trf, Key key, Value val, Hasher dataHasher, List<Entry<Key,Value>> sample, Sampler sampler) throws IOException {
+    if (sampler.accept(key)) {
+      sample.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(key, val));
+    }
+
+    hash(dataHasher, key, val);
+
+    trf.writer.append(key, val);
+  }
+
+  private List<Entry<Key,Value>> toList(SortedKeyValueIterator<Key,Value> sample) throws IOException {
+    ArrayList<Entry<Key,Value>> ret = new ArrayList<>();
+
+    while (sample.hasTop()) {
+      ret.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(new Key(sample.getTopKey()), new Value(sample.getTopValue())));
+      sample.next();
+    }
+
+    return ret;
+  }
+
+  private void checkSample(SortedKeyValueIterator<Key,Value> sample, List<Entry<Key,Value>> sampleData) throws IOException {
+    checkSample(sample, sampleData, EMPTY_COL_FAMS, false);
+  }
+
+  private void checkSample(SortedKeyValueIterator<Key,Value> sample, List<Entry<Key,Value>> sampleData, Collection<ByteSequence> columnFamilies,
+      boolean inclusive) throws IOException {
+
+    sample.seek(new Range(), columnFamilies, inclusive);
+    Assert.assertEquals(sampleData, toList(sample));
+
+    Random rand = new Random();
+    long seed = rand.nextLong();
+    rand = new Random(seed);
+
+    // randomly seek sample iterator and verify
+    for (int i = 0; i < 33; i++) {
+      Key startKey = null;
+      boolean startInclusive = false;
+      int startIndex = 0;
+
+      Key endKey = null;
+      boolean endInclusive = false;
+      int endIndex = sampleData.size();
+
+      if (rand.nextBoolean()) {
+        startIndex = rand.nextInt(sampleData.size());
+        startKey = sampleData.get(startIndex).getKey();
+        startInclusive = rand.nextBoolean();
+        if (!startInclusive) {
+          startIndex++;
+        }
+      }
+
+      if (startIndex < endIndex && rand.nextBoolean()) {
+        endIndex -= rand.nextInt(endIndex - startIndex);
+        endKey = sampleData.get(endIndex - 1).getKey();
+        endInclusive = rand.nextBoolean();
+        if (!endInclusive) {
+          endIndex--;
+        }
+      } else if (startIndex == endIndex) {
+        endInclusive = rand.nextBoolean();
+      }
+
+      sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies, inclusive);
+      Assert.assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
+    }
+  }
+
+  @Test
+  public void testSample() throws IOException {
+
+    int num = 10000;
+
+    for (int sampleBufferSize : new int[] {1 << 10, 1 << 20}) {
+      // force sample buffer to flush for smaller data
+      RFile.setSampleBufferSize(sampleBufferSize);
+
+      for (int modulus : new int[] {19, 103, 1019}) {
+        Hasher dataHasher = Hashing.md5().newHasher();
+        List<Entry<Key,Value>> sampleData = new ArrayList<Entry<Key,Value>>();
+
+        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
+        sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
+        sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
+        sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
+
+        Sampler sampler = SamplerFactory.newSampler(SamplerConfigurationImpl.newSamplerConfig(sampleConf), sampleConf);
+
+        TestRFile trf = new TestRFile(sampleConf);
+
+        trf.openWriter();
+
+        for (int i = 0; i < num; i++) {
+          add(trf, nk(i, 0), nv(i, 0), dataHasher, sampleData, sampler);
+          add(trf, nk(i, 1), nv(i, 1), dataHasher, sampleData, sampler);
+        }
+
+        HashCode expectedDataHash = dataHasher.hash();
+
+        trf.closeWriter();
+
+        trf.openReader();
+
+        FileSKVIterator sample = trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+
+        checkSample(sample, sampleData);
+
+        Assert.assertEquals(expectedDataHash, hash(trf.reader));
+
+        SampleIE ie = new SampleIE(SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
+
+        for (int i = 0; i < 3; i++) {
+          // test opening and closing deep copies a few times.
+          trf.reader.closeDeepCopies();
+
+          sample = trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+          SortedKeyValueIterator<Key,Value> sampleDC1 = sample.deepCopy(ie);
+          SortedKeyValueIterator<Key,Value> sampleDC2 = sample.deepCopy(ie);
+          SortedKeyValueIterator<Key,Value> sampleDC3 = trf.reader.deepCopy(ie);
+          SortedKeyValueIterator<Key,Value> allDC1 = sampleDC1.deepCopy(new SampleIE(null));
+          SortedKeyValueIterator<Key,Value> allDC2 = sample.deepCopy(new SampleIE(null));
+
+          Assert.assertEquals(expectedDataHash, hash(allDC1));
+          Assert.assertEquals(expectedDataHash, hash(allDC2));
+
+          checkSample(sample, sampleData);
+          checkSample(sampleDC1, sampleData);
+          checkSample(sampleDC2, sampleData);
+          checkSample(sampleDC3, sampleData);
+        }
+
+        trf.reader.closeDeepCopies();
+
+        trf.closeReader();
+      }
+    }
+  }
+
+  private HashCode hash(SortedKeyValueIterator<Key,Value> iter) throws IOException {
+    Hasher dataHasher = Hashing.md5().newHasher();
+    iter.seek(new Range(), EMPTY_COL_FAMS, false);
+    while (iter.hasTop()) {
+      hash(dataHasher, iter.getTopKey(), iter.getTopValue());
+      iter.next();
+    }
+
+    return dataHasher.hash();
+  }
+
+  @Test
+  public void testSampleLG() throws IOException {
+
+    int num = 5000;
+
+    for (int sampleBufferSize : new int[] {1 << 10, 1 << 20}) {
+      // force sample buffer to flush for smaller data
+      RFile.setSampleBufferSize(sampleBufferSize);
+
+      for (int modulus : new int[] {19, 103, 1019}) {
+        List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<Entry<Key,Value>>();
+        List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<Entry<Key,Value>>();
+
+        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
+        sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
+        sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
+        sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
+
+        Sampler sampler = SamplerFactory.newSampler(SamplerConfigurationImpl.newSamplerConfig(sampleConf), sampleConf);
+
+        TestRFile trf = new TestRFile(sampleConf);
+
+        trf.openWriter(false, 1000);
+
+        trf.writer.startNewLocalityGroup("meta-lg", ncfs("metaA", "metaB"));
+        for (int r = 0; r < num; r++) {
+          String row = String.format("r%06d", r);
+          Key k1 = new Key(row, "metaA", "q9", 7);
+          Key k2 = new Key(row, "metaB", "q8", 7);
+          Key k3 = new Key(row, "metaB", "qA", 7);
+
+          Value v1 = new Value(("" + r).getBytes());
+          Value v2 = new Value(("" + r * 93).getBytes());
+          Value v3 = new Value(("" + r * 113).getBytes());
+
+          if (sampler.accept(k1)) {
+            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k1, v1));
+            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k2, v2));
+            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k3, v3));
+          }
+
+          trf.writer.append(k1, v1);
+          trf.writer.append(k2, v2);
+          trf.writer.append(k3, v3);
+        }
+
+        trf.writer.startDefaultLocalityGroup();
+
+        for (int r = 0; r < num; r++) {
+          String row = String.format("r%06d", r);
+          Key k1 = new Key(row, "dataA", "q9", 7);
+
+          Value v1 = new Value(("" + r).getBytes());
+
+          if (sampler.accept(k1)) {
+            sampleDataLG2.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k1, v1));
+          }
+
+          trf.writer.append(k1, v1);
+        }
+
+        trf.closeWriter();
+
+        Assert.assertTrue(sampleDataLG1.size() > 0);
+        Assert.assertTrue(sampleDataLG2.size() > 0);
+
+        trf.openReader(false);
+        FileSKVIterator sample = trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+
+        checkSample(sample, sampleDataLG1, ncfs("metaA", "metaB"), true);
+        checkSample(sample, sampleDataLG1, ncfs("metaA"), true);
+        checkSample(sample, sampleDataLG1, ncfs("metaB"), true);
+        checkSample(sample, sampleDataLG1, ncfs("dataA"), false);
+
+        checkSample(sample, sampleDataLG2, ncfs("metaA", "metaB"), false);
+        checkSample(sample, sampleDataLG2, ncfs("dataA"), true);
+
+        ArrayList<Entry<Key,Value>> allSampleData = new ArrayList<Entry<Key,Value>>();
+        allSampleData.addAll(sampleDataLG1);
+        allSampleData.addAll(sampleDataLG2);
+
+        Collections.sort(allSampleData, new Comparator<Entry<Key,Value>>() {
+          @Override
+          public int compare(Entry<Key,Value> o1, Entry<Key,Value> o2) {
+            return o1.getKey().compareTo(o2.getKey());
+          }
+        });
+
+        checkSample(sample, allSampleData, ncfs("dataA", "metaA"), true);
+        checkSample(sample, allSampleData, EMPTY_COL_FAMS, false);
+
+        trf.closeReader();
+      }
+    }
+  }
+
+  @Test
+  public void testEncSample() throws IOException {
+    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    testSample();
+    testSampleLG();
     conf = null;
   }
 

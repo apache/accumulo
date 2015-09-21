@@ -21,13 +21,16 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 
-public interface FileSKVIterator extends InterruptibleIterator {
+public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
   Key getFirstKey() throws IOException;
 
   Key getLastKey() throws IOException;
 
   DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
+
+  FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig);
 
   void closeDeepCopies() throws IOException;
 

@@ -26,7 +26,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.compaction.CompactionSettings;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
@@ -38,6 +41,22 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   private static interface Test {
     boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request);
+  }
+
+  private static class NoSampleTest implements Test {
+
+    @Override
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+      try (FileSKVIterator reader = request.openReader(file.getKey())) {
+        SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
+        if (sc == null) {
+          return false;
+        }
+        return reader.getSample(sc) == null;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   private static abstract class FileSizeTest implements Test {
@@ -83,6 +102,9 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     for (Entry<String,String> entry : es) {
 
       switch (CompactionSettings.valueOf(entry.getKey())) {
+        case SF_NO_SAMPLE:
+          tests.add(new NoSampleTest());
+          break;
         case SF_LT_ESIZE_OPT:
           tests.add(new FileSizeTest(entry.getValue()) {
             @Override

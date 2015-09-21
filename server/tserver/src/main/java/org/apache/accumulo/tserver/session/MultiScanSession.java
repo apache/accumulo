@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -36,6 +37,7 @@ public class MultiScanSession extends Session {
   public final List<IterInfo> ssiList;
   public final Map<String,Map<String,String>> ssio;
   public final Authorizations auths;
+  public final SamplerConfiguration samplerConfig;
   public final long batchTimeOut;
 
   // stats
@@ -47,13 +49,14 @@ public class MultiScanSession extends Session {
   public volatile ScanTask<MultiScanResult> lookupTask;
 
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent, Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, Authorizations authorizations, long batchTimeOut) {
+      Map<String,Map<String,String>> ssio, Authorizations authorizations, SamplerConfiguration samplerConfig, long batchTimeOut) {
     super(credentials);
     this.queries = queries;
     this.ssiList = ssiList;
     this.ssio = ssio;
     this.auths = authorizations;
     this.threadPoolExtent = threadPoolExtent;
+    this.samplerConfig = samplerConfig;
     this.batchTimeOut = batchTimeOut;
   }
 

@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -174,6 +175,51 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @return The authorizations set on the scanner instance
    */
   Authorizations getAuthorizations();
+
+  /**
+   * Setting this will cause the scanner to read sample data, as long as that sample data was generated with the given configuration. By default this is not set
+   * and all data is read.
+   *
+   * <p>
+   * One way to use this method is as follows, where the sampler configuration is obtained from the table configuration. Sample data can be generated in many
+   * different ways, so its important to verify the sample data configuration meets expectations.
+   *
+   * <p>
+   *
+   * <pre>
+   * <code>
+   *   // could cache this if creating many scanners to avoid RPCs.
+   *   SamplerConfiguration samplerConfig = connector.tableOperations().getSamplerConfiguration(table);
+   *   // verify table's sample data is generated in an expected way before using
+   *   userCode.verifySamplerConfig(samplerConfig);
+   *   scanner.setSamplerCongiguration(samplerConfig);
+   * </code>
+   * </pre>
+   *
+   * <p>
+   * Of course this is not the only way to obtain a {@link SamplerConfiguration}, it could be a constant, configuration, etc.
+   *
+   * <p>
+   * If sample data is not present or sample data was generated with a different configuration, then the scanner iterator will throw a
+   * {@link SampleNotPresentException}. Also if a table's sampler configuration is changed while a scanner is iterating over a table, a
+   * {@link SampleNotPresentException} may be thrown.
+   *
+   * @since 1.8.0
+   */
+  void setSamplerConfiguration(SamplerConfiguration samplerConfig);
+
+  /**
+   * @return currently set sampler configuration. Returns null if no sampler configuration is set.
+   * @since 1.8.0
+   */
+  SamplerConfiguration getSamplerConfiguration();
+
+  /**
+   * Clears sampler configuration making a scanner read all data. After calling this, {@link #getSamplerConfiguration()} should return null.
+   *
+   * @since 1.8.0
+   */
+  void clearSamplerConfiguration();
 
   /**
    * This setting determines how long a scanner will wait to fill the returned batch. By default, a scanner wait until the batch is full.

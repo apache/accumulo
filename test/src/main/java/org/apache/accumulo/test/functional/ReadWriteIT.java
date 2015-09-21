@@ -430,8 +430,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         PrintInfo.main(args.toArray(new String[args.size()]));
         newOut.flush();
         String stdout = baos.toString();
-        assertTrue(stdout.contains("Locality group         : g1"));
-        assertTrue(stdout.contains("families      : [colf]"));
+        assertTrue(stdout.contains("Locality group           : g1"));
+        assertTrue(stdout.contains("families        : [colf]"));
       } finally {
         newOut.close();
         System.setOut(oldOut);

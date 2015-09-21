@@ -67,6 +67,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
@@ -95,6 +96,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -1472,6 +1474,43 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AssertionError(e);
       }
     }
+  }
+
+  private void clearSamplerOptions(String tableName) throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
+    for (Entry<String,String> entry : getProperties(tableName)) {
+      String property = entry.getKey();
+      if (property.startsWith(prefix)) {
+        removeProperty(tableName, property);
+      }
+    }
+  }
+
+  @Override
+  public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException {
+    clearSamplerOptions(tableName);
+
+    List<Pair<String,String>> props = new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
+    for (Pair<String,String> pair : props) {
+      setProperty(tableName, pair.getFirst(), pair.getSecond());
+    }
+  }
+
+  @Override
+  public void clearSamplerConfiguration(String tableName) throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    removeProperty(tableName, Property.TABLE_SAMPLER.getKey());
+    clearSamplerOptions(tableName);
+  }
+
+  @Override
+  public SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException {
+    AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
+    SamplerConfigurationImpl sci = SamplerConfigurationImpl.newSamplerConfig(conf);
+    if (sci == null) {
+      return null;
+    }
+    return sci.toSamplerConfiguration();
   }
 
 }

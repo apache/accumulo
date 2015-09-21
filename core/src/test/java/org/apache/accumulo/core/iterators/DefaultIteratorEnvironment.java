@@ -18,17 +18,16 @@ package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.MapFileIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
-public class DefaultIteratorEnvironment implements IteratorEnvironment {
+public class DefaultIteratorEnvironment extends BaseIteratorEnvironment {
 
   AccumuloConfiguration conf;
 
@@ -53,23 +52,7 @@ public class DefaultIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public IteratorScope getIteratorScope() {
-    throw new UnsupportedOperationException();
+  public boolean isSamplingEnabled() {
+    return false;
   }
-
-  @Override
-  public boolean isFullMajorCompaction() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Authorizations getAuthorizations() {
-    throw new UnsupportedOperationException();
-  }
-
 }

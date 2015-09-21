@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -53,6 +54,9 @@ public class SortedMapIterator implements InterruptibleIterator {
 
   @Override
   public SortedMapIterator deepCopy(IteratorEnvironment env) {
+    if (env != null && env.isSamplingEnabled()) {
+      throw new SampleNotPresentException();
+    }
     return new SortedMapIterator(map, interruptFlag);
   }
 

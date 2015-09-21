@@ -1,0 +1,192 @@
+Title: Apache Accumulo Batch Writing and Scanning Example
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
+
+Basic Sampling Example
+----------------------
+
+Accumulo supports building a set of sample data that can be efficiently
+accessed by scanners.  What data is included in the sample set is configurable.
+Below, some data representing documents are inserted.  
+
+    root@instance sampex> createtable sampex
+    root@instance sampex> insert 9255 doc content 'abcde'
+    root@instance sampex> insert 9255 doc url file://foo.txt
+    root@instance sampex> insert 8934 doc content 'accumulo scales'
+    root@instance sampex> insert 8934 doc url file://accumulo_notes.txt
+    root@instance sampex> insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano'
+    root@instance sampex> insert 2317 doc url file://groceries/9.txt
+    root@instance sampex> insert 3900 doc content 'EC2 ate my homework'
+    root@instance sampex> insert 3900 doc uril file://final_project.txt
+
+Below the table sampex is configured to build a sample set.  The configuration
+causes Accumulo to include any row where `murmur3_32(row) % 3 ==0` in the
+tables sample data.
+
+    root@instance sampex> config -t sampex -s table.sampler.opt.hasher=murmur3_32
+    root@instance sampex> config -t sampex -s table.sampler.opt.modulus=3
+    root@instance sampex> config -t sampex -s table.sampler=org.apache.accumulo.core.sample.RowSampler
+
+Below, attempting to scan the sample returns an error.  This is because data
+was inserted before the sample set was configured.
+
+    root@instance sampex> scan --sample
+    2015-09-09 12:21:50,643 [shell.Shell] ERROR: org.apache.accumulo.core.client.SampleNotPresentException: Table sampex(ID:2) does not have sampling configured or built
+
+To remedy this problem, the following command will flush in memory data and
+compact any files that do not contain the correct sample data.   
+
+    root@instance sampex> compact -t sampex --sf-no-sample
+
+After the compaction, the sample scan works.  
+
+    root@instance sampex> scan --sample
+    2317 doc:content []    milk, eggs, bread, parmigiano-reggiano
+    2317 doc:url []    file://groceries/9.txt
+
+The commands below show that updates to data in the sample are seen when
+scanning the sample.
+
+    root@instance sampex> insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano, butter'
+    root@instance sampex> scan --sample
+    2317 doc:content []    milk, eggs, bread, parmigiano-reggiano, butter
+    2317 doc:url []    file://groceries/9.txt
+
+Inorder to make scanning the sample fast, sample data is partitioned as data is
+written to Accumulo.  This means if the sample configuration is changed, that
+data written previously is partitioned using a different criteria.  Accumulo
+will detect this situation and fail sample scans.  The commands below show this
+failure and fixiing the problem with a compaction.
+
+    root@instance sampex> config -t sampex -s table.sampler.opt.modulus=2
+    root@instance sampex> scan --sample
+    2015-09-09 12:22:51,058 [shell.Shell] ERROR: org.apache.accumulo.core.client.SampleNotPresentException: Table sampex(ID:2) does not have sampling configured or built
+    root@instance sampex> compact -t sampex --sf-no-sample
+    2015-09-09 12:23:07,242 [shell.Shell] INFO : Compaction of table sampex started for given range
+    root@instance sampex> scan --sample
+    2317 doc:content []    milk, eggs, bread, parmigiano-reggiano
+    2317 doc:url []    file://groceries/9.txt
+    3900 doc:content []    EC2 ate my homework
+    3900 doc:uril []    file://final_project.txt
+    9255 doc:content []    abcde
+    9255 doc:url []    file://foo.txt
+
+The example above is replicated in a java program using the Accumulo API.
+Below is the program name and the command to run it.
+
+    ./bin/accumulo org.apache.accumulo.examples.simple.sample.SampleExample -i instance -z localhost -u root -p secret
+
+The commands below look under the hood to give some insight into how this
+feature works.  The commands determine what files the sampex table is using.
+
+    root@instance sampex> tables -l
+    accumulo.metadata    =>        !0
+    accumulo.replication =>      +rep
+    accumulo.root        =>        +r
+    sampex               =>         2
+    trace                =>         1
+    root@instance sampex> scan -t accumulo.metadata -c file -b 2 -e 2<
+    2< file:hdfs://localhost:10000/accumulo/tables/2/default_tablet/A000000s.rf []    702,8
+
+Below shows running `accumulo rfile-info` on the file above.  This shows the
+rfile has a normal default locality group and a sample default locality group.
+The output also shows the configuration used to create the sample locality
+group.  The sample configuration within a rfile must match the tables sample
+configuration for sample scan to work.
+
+    $ ./bin/accumulo rfile-info hdfs://localhost:10000/accumulo/tables/2/default_tablet/A000000s.rf
+    Reading file: hdfs://localhost:10000/accumulo/tables/2/default_tablet/A000000s.rf
+    RFile Version            : 8
+    
+    Locality group           : <DEFAULT>
+    	Start block            : 0
+    	Num   blocks           : 1
+    	Index level 0          : 35 bytes  1 blocks
+    	First key              : 2317 doc:content [] 1437672014986 false
+    	Last key               : 9255 doc:url [] 1437672014875 false
+    	Num entries            : 8
+    	Column families        : [doc]
+    
+    Sample Configuration     :
+    	Sampler class          : org.apache.accumulo.core.sample.RowSampler
+    	Sampler options        : {hasher=murmur3_32, modulus=2}
+
+    Sample Locality group    : <DEFAULT>
+    	Start block            : 0
+    	Num   blocks           : 1
+    	Index level 0          : 36 bytes  1 blocks
+    	First key              : 2317 doc:content [] 1437672014986 false
+    	Last key               : 9255 doc:url [] 1437672014875 false
+    	Num entries            : 6
+    	Column families        : [doc]
+    
+    Meta block     : BCFile.index
+          Raw size             : 4 bytes
+          Compressed size      : 12 bytes
+          Compression type     : gz
+
+    Meta block     : RFile.index
+          Raw size             : 309 bytes
+          Compressed size      : 176 bytes
+          Compression type     : gz
+
+
+Shard Sampling Example
+-------------------------
+
+`README.shard` shows how to index and search files using Accumulo.  That
+example indexes documents into a table named `shard`.  The indexing scheme used
+in that example places the document name in the column qualifier.  A useful
+sample of this indexing scheme should contain all data for any document in the
+sample.   To accomplish this, the following commands build a sample for the
+shard table based on the column qualifier.
+
+    root@instance shard> config -t shard -s table.sampler.opt.hasher=murmur3_32
+    root@instance shard> config -t shard -s table.sampler.opt.modulus=101
+    root@instance shard> config -t shard -s table.sampler.opt.qualifier=true
+    root@instance shard> config -t shard -s table.sampler=org.apache.accumulo.core.sample.RowColumnSampler
+    root@instance shard> compact -t shard --sf-no-sample -w
+    2015-07-23 15:00:09,280 [shell.Shell] INFO : Compacting table ...
+    2015-07-23 15:00:10,134 [shell.Shell] INFO : Compaction of table shard completed for given range
+
+After enabling sampling, the command below counts the number of documents in
+the sample containing the words `import` and `int`.     
+
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.shard.Query --sample -i instance16 -z localhost -t shard -u root -p secret import int | fgrep '.java' | wc
+         11      11    1246
+
+The command below counts the total number of documents containing the words
+`import` and `int`.
+
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.shard.Query -i instance16 -z localhost -t shard -u root -p secret import int | fgrep '.java' | wc
+       1085    1085  118175
+
+The counts 11 out of 1085 total are around what would be expected for a modulus
+of 101.  Querying the sample first provides a quick way to estimate how much data
+the real query will bring back. 
+
+Another way sample data could be used with the shard example is with a
+specialized iterator.  In the examples source code there is an iterator named
+CutoffIntersectingIterator.  This iterator first checks how many documents are
+found in the sample data.  If too many documents are found in the sample data,
+then it returns nothing.   Otherwise it proceeds to query the full data set.
+To experiment with this iterator, use the following command.  The
+`--sampleCutoff` option below will cause the query to return nothing if based
+on the sample it appears a query would return more than 1000 documents.
+
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.shard.Query --sampleCutoff 1000 -i instance16 -z localhost -t shard -u root -p secret import int | fgrep '.java' | wc

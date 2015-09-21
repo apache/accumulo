@@ -37,6 +37,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MapFileIterator;
 import org.apache.accumulo.core.iterators.system.SequenceFileIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -131,6 +132,11 @@ public class MapFileOperations extends FileOperations {
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
       ((FileSKVIterator) reader).setInterruptFlag(flag);
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      return ((FileSKVIterator) reader).getSample(sampleConfig);
     }
   }
 

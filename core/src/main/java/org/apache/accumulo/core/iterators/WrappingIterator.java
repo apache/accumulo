@@ -56,8 +56,6 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public Key getTopKey() {
-    if (source == null)
-      throw new IllegalStateException("no source set");
     if (seenSeek == false)
       throw new IllegalStateException("never been seeked");
     return getSource().getTopKey();
@@ -65,8 +63,6 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public Value getTopValue() {
-    if (source == null)
-      throw new IllegalStateException("no source set");
     if (seenSeek == false)
       throw new IllegalStateException("never been seeked");
     return getSource().getTopValue();
@@ -74,8 +70,6 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public boolean hasTop() {
-    if (source == null)
-      throw new IllegalStateException("no source set");
     if (seenSeek == false)
       throw new IllegalStateException("never been seeked");
     return getSource().hasTop();
@@ -89,8 +83,6 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public void next() throws IOException {
-    if (source == null)
-      throw new IllegalStateException("no source set");
     if (seenSeek == false)
       throw new IllegalStateException("never been seeked");
     getSource().next();

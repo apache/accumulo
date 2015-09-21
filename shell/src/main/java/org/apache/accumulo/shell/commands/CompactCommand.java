@@ -38,7 +38,7 @@ public class CompactCommand extends TableOperation {
 
   // file selection and file output options
   private Option enameOption, epathOption, sizeLtOption, sizeGtOption, minFilesOption, outBlockSizeOpt, outHdfsBlockSizeOpt, outIndexBlockSizeOpt,
-      outCompressionOpt, outReplication;
+      outCompressionOpt, outReplication, enoSampleOption;
 
   private CompactionConfig compactionConfig = null;
 
@@ -89,6 +89,7 @@ public class CompactCommand extends TableOperation {
   private Map<String,String> getConfigurableCompactionStrategyOpts(CommandLine cl) {
     Map<String,String> opts = new HashMap<>();
 
+    put(cl, opts, enoSampleOption, CompactionSettings.SF_NO_SAMPLE);
     put(cl, opts, enameOption, CompactionSettings.SF_NAME_RE_OPT);
     put(cl, opts, epathOption, CompactionSettings.SF_PATH_RE_OPT);
     put(cl, opts, sizeLtOption, CompactionSettings.SF_LT_ESIZE_OPT);
@@ -190,6 +191,9 @@ public class CompactCommand extends TableOperation {
     cancelOpt = new Option(null, "cancel", false, "cancel user initiated compactions");
     opts.addOption(cancelOpt);
 
+    enoSampleOption = new Option(null, "sf-no-sample", false,
+        "Select files that have no sample data or sample data that differes from the table configuration.");
+    opts.addOption(enoSampleOption);
     enameOption = newLAO("sf-ename", "Select files using regular expression to match file names. Only matches against last part of path.");
     opts.addOption(enameOption);
     epathOption = newLAO("sf-epath", "Select files using regular expression to match file paths to compact. Matches against full path.");

@@ -27,14 +27,22 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.rfile.RFileOperations;
+import org.apache.accumulo.core.sample.RowSampler;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -54,6 +62,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private String BAD_TABLE;
   private String TEST_TABLE;
   private String EMPTY_TABLE;
+
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
+      "modulus", "3");
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -152,6 +163,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[1]));
+      AccumuloFileOutputFormat.setSampler(job, SAMPLER_CONFIG);
 
       job.setMapperClass(table.endsWith("_mapreduce_bad_table") ? BadKeyMapper.class : Mapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -189,6 +201,12 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     if (content) {
       assertEquals(1, files.length);
       assertTrue(files[0].exists());
+
+      Configuration conf = CachedConfiguration.getInstance();
+      DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
+      FileSKVIterator sample = RFileOperations.getInstance().openReader(files[0].toString(), false, FileSystem.get(conf), conf, acuconf)
+          .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
+      assertNotNull(sample);
     } else {
       assertEquals(0, files.length);
     }

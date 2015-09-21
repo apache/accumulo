@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 
@@ -124,6 +125,11 @@ public class SequenceFileIterator implements FileSKVIterator {
 
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
     throw new UnsupportedOperationException();
   }
 }
