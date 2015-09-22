@@ -162,20 +162,20 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private Key workKey = new Key();
 
   @VisibleForTesting
-  static final Cache<String,Long> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
+  static final Cache<String,Boolean> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction) {
       switch (deleteHandlingAction) {
         case LOG_ERROR:
           try {
-            loggedMsgCache.get(this.getClass().getName(), new Callable<Long>() {
+            loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
               @Override
-              public Long call() throws Exception {
+              public Boolean call() throws Exception {
                 log.error("Combiner of type " + this.getClass().getSimpleName()
                     + " saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent occurences for at least 1 hour.");
                 // the value is not used and does not matter
-                return 42L;
+                return Boolean.TRUE;
               }
             });
           } catch (ExecutionException e) {

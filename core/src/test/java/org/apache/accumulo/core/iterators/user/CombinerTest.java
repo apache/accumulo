@@ -832,14 +832,25 @@ public class CombinerTest {
 
   private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, DeleteHandlingAction dha, IteratorEnvironment env)
       throws Exception {
-    runDeleteHandlingTest(input, expected, dha, env, null);
+    runDeleteHandlingTest(input, expected, dha, env, null, true);
   }
 
   private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, DeleteHandlingAction dha, IteratorEnvironment env,
       String expectedLog) throws Exception {
+    runDeleteHandlingTest(input, expected, dha, env, expectedLog, true);
+    if (expectedLog != null) {
+      // run test again... should not see log message again because cache is not cleared
+      runDeleteHandlingTest(input, expected, dha, env, null, false);
+    }
+  }
+
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, DeleteHandlingAction dha, IteratorEnvironment env,
+      String expectedLog, boolean clearLogMsgCache) throws Exception {
     boolean deepCopy = expected == null;
 
-    CombinerTestUtil.clearLogCache();
+    if (clearLogMsgCache) {
+      CombinerTestUtil.clearLogCache();
+    }
 
     StringWriter writer = new StringWriter();
     WriterAppender appender = new WriterAppender(new PatternLayout("%p, %m%n"), writer);
@@ -871,10 +882,10 @@ public class CombinerTest {
 
     String logMsgs = writer.toString();
     if (expectedLog == null) {
-      Assert.assertTrue("Expected 0 length log message, but got : "+logMsgs, logMsgs.length() == 0);
+      Assert.assertTrue("Expected 0 length log message, but got : " + logMsgs, logMsgs.length() == 0);
     } else {
       logMsgs = logMsgs.replace('\n', ' ');
-      Assert.assertTrue("Did not match pattern ["+expectedLog+"] in ["+logMsgs+"]", logMsgs.matches(expectedLog));
+      Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]", logMsgs.matches(expectedLog));
     }
   }
 
