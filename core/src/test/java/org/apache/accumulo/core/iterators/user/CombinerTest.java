@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.Combiner.DeleteHandlingAction;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
+import org.apache.accumulo.core.iterators.CombinerTestUtil;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -838,6 +839,8 @@ public class CombinerTest {
       String expectedLog) throws Exception {
     boolean deepCopy = expected == null;
 
+    CombinerTestUtil.clearLogCache();
+
     StringWriter writer = new StringWriter();
     WriterAppender appender = new WriterAppender(new PatternLayout("%p, %m%n"), writer);
     Logger logger = Logger.getLogger(Combiner.class);
@@ -895,17 +898,6 @@ public class CombinerTest {
     nkv(expected, 1, 1, 1, 2, true, 0l, encoder);
     nkv(expected, 1, 1, 1, 4, false, 11l, encoder);
 
-    try {
-      runDeleteHandlingTest(input, expected, DeleteHandlingAction.THROW_EXCEPTION, paritalMajcIe);
-      Assert.fail("Expected exception did not occur");
-    } catch (IllegalStateException ise) {
-      String expextedInMsg  = "Saw a delete during a partial compaction";
-      Assert.assertTrue("["+ise.getMessage()+"] did not contain expected text ["+expextedInMsg+"]", ise.getMessage().contains(expextedInMsg));
-    }
-
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.THROW_EXCEPTION, fullMajcIe);
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.THROW_EXCEPTION, SCAN_IE);
-
     runDeleteHandlingTest(input, input, DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY, paritalMajcIe);
     runDeleteHandlingTest(input, expected, DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY, fullMajcIe);
     runDeleteHandlingTest(input, expected, DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY, SCAN_IE);
@@ -914,10 +906,10 @@ public class CombinerTest {
     runDeleteHandlingTest(input, expected, DeleteHandlingAction.IGNORE, fullMajcIe);
     runDeleteHandlingTest(input, expected, DeleteHandlingAction.IGNORE, SCAN_IE);
 
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, fullMajcIe);
+    runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, fullMajcIe, ".*ERROR.*ACCUMULO-2232.*");
     runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, SCAN_IE);
 
-    // run this last because cache will prevent subsequent log messages :)
+    runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, paritalMajcIe, ".*ERROR.*ACCUMULO-2232.*");
     runDeleteHandlingTest(input, expected, null, paritalMajcIe, ".*ERROR.*ACCUMULO-2232.*");
   }
 }

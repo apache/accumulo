@@ -40,6 +40,7 @@ import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -66,7 +67,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   protected static final String ALL_OPTION = "all";
   protected static final String DELETE_HANDLING_ACTION_OPTION = "deleteHandlingAction";
 
-  private boolean isPartialCompaction;
+  private boolean isMajorCompaction;
   private DeleteHandlingAction deleteHandlingAction;
 
   /**
@@ -160,10 +161,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   private Key workKey = new Key();
 
-  private static final Cache<String,Long> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
+  @VisibleForTesting
+  static final Cache<String,Long> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
-    if (isPartialCompaction) {
+    if (isMajorCompaction) {
       switch (deleteHandlingAction) {
         case LOG_ERROR:
           try {
@@ -180,11 +182,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
             throw new RuntimeException(e);
           }
           break;
-        case THROW_EXCEPTION:
-          throw new IllegalStateException("Saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.");
         case IGNORE:
-          break;
         case REDUCE_ON_FULL_COMPACTION_ONLY:
+          break;
         default:
           // unexpected
           throw new IllegalStateException("Unexpected case occurred in code, please file a bug " + deleteHandlingAction);
@@ -274,7 +274,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
     combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
 
-    isPartialCompaction = ((env.getIteratorScope() == IteratorScope.majc) && !env.isFullMajorCompaction());
+    isMajorCompaction = env.getIteratorScope() == IteratorScope.majc;
 
     String dhaOpt = options.get(DELETE_HANDLING_ACTION_OPTION);
     if (dhaOpt != null) {
@@ -287,7 +287,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       deleteHandlingAction = DeleteHandlingAction.LOG_ERROR;
     }
 
-    if (deleteHandlingAction == DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY && isPartialCompaction) {
+    if (deleteHandlingAction == DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY && isMajorCompaction && !env.isFullMajorCompaction()) {
       // adjust configuration so that no columns are combined for a partial maror compaction
       combineAllColumns = false;
       combiners = new ColumnSet();
@@ -307,7 +307,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     newInstance.setSource(getSource().deepCopy(env));
     newInstance.combiners = combiners;
     newInstance.combineAllColumns = combineAllColumns;
-    newInstance.isPartialCompaction = isPartialCompaction;
+    newInstance.isMajorCompaction = isMajorCompaction;
     newInstance.deleteHandlingAction = deleteHandlingAction;
     return newInstance;
   }
@@ -398,20 +398,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    */
   public static enum DeleteHandlingAction {
     /**
-     * Do nothing when a a delete is observed by a combiner during a partial major compaction.
+     * Do nothing when a a delete is observed by a combiner during a major compaction.
      */
     IGNORE,
 
     /**
-     * Log an error when a a delete is observed by a combiner during a partial major compaction. An error is not logged for each delete entry seen. Once a
-     * combiner has seen a delete during a partial compaction and logged an error, it will not do so again for at least an hour.
+     * Log an error when a a delete is observed by a combiner during a major compaction. An error is not logged for each delete entry seen. Once a
+     * combiner has seen a delete during a major compaction and logged an error, it will not do so again for at least an hour.
      */
     LOG_ERROR,
-
-    /**
-     * Throw an exception when a a delete is observed by a combiner during a partial major compaction.
-     */
-    THROW_EXCEPTION,
 
     /**
      * Pass all data through during partial major compactions, no reducing is done. With this option reducing is only done during scan and full major
@@ -422,12 +417,16 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   /**
    * Combiners may not work correctly with deletes. Sometimes when Accumulo compacts the files in a tablet, it only compacts a subset of the files. If a delete
-   * marker exists in one of the files that is not being compacted, then data that should be delted may be combined. See
+   * marker exists in one of the files that is not being compacted, then data that should be deleted may be combined. See
    * <a href="https://issues.apache.org/jira/browse/ACCUMULO-2232">ACCUMULO-2232</a> for more information.
    *
    * <p>
-   * This method allows users to configure how they want to handle the combination of delete markers, combiners, and partial compactions. The default behavior
-   * is {@link DeleteHandlingAction#LOG_ERROR}. See the javadoc on each {@link DeleteHandlingAction} enum for a description of each option.
+   * This method allows users to configure how they want to handle the combination of delete markers, combiners, and major compactions. The default behavior is
+   * {@link DeleteHandlingAction#LOG_ERROR}. See the javadoc on each {@link DeleteHandlingAction} enum for a description of each option.
+   *
+   * <p>
+   * For correctness deletes should not be used with columns that are combined OR the {@link DeleteHandlingAction#REDUCE_ON_FULL_COMPACTION_ONLY} option should
+   * be used. Only reducing on full major compactions may have negative performance implications.
    *
    * <p>
    * This method was added in 1.6.4 and 1.7.1. If you want your code to work in earlier versions of 1.6 and 1.7 then do not call this method.
