@@ -366,7 +366,16 @@ public class Compactor implements Callable<CompactionStats> {
 
       FileSKVWriter mfwTmp = mfw;
       mfw = null; // set this to null so we do not try to close it again in finally if the close fails
-      mfwTmp.close(); // if the close fails it will cause the compaction to fail
+      try {
+    	  mfwTmp.close(); // if the close fails it will cause the compaction to fail
+      } catch (IOException ex) {
+    	  if (!fs.deleteRecursively(outputFile.path())) {
+              if (fs.exists(outputFile.path())) {
+                log.error("Unable to delete " + outputFile);
+              }
+    	  }
+    	  throw ex;
+      }
 
       // Verify the file, since hadoop 0.20.2 sometimes lies about the success of close()
       try {
