@@ -217,7 +217,16 @@ public class Compactor implements Callable<CompactionStats> {
 
       FileSKVWriter mfwTmp = mfw;
       mfw = null; // set this to null so we do not try to close it again in finally if the close fails
-      mfwTmp.close(); // if the close fails it will cause the compaction to fail
+      try {
+    	  mfwTmp.close(); // if the close fails it will cause the compaction to fail
+      } catch (IOException ex) {
+    	  if (!fs.deleteRecursively(outputFile.path())) {
+              if (fs.exists(outputFile.path())) {
+                log.error("Unable to delete " + outputFile);
+              }
+    	  }
+    	  throw ex;
+      }
 
       log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec", extent,
           majCStats.getEntriesRead(), majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
