@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -134,4 +135,14 @@ public class NullScanner implements Scanner {
     return 0;
   }
 
+  @Override
+  public void setSamplerConfiguration(SamplerConfiguration samplerConfig) {}
+
+  @Override
+  public SamplerConfiguration getSamplerConfiguration() {
+    return null;
+  }
+
+  @Override
+  public void clearSamplerConfiguration() {}
 }

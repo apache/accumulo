@@ -50,6 +50,8 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -61,6 +63,7 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -75,6 +78,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   private final Instance instance;
   private final VolumeManager fs;
   private final SecurityOperation security;
+  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   public ClientServiceHandler(AccumuloServerContext context, TransactionWatcher transactionWatcher, VolumeManager fs) {
     this.context = context;
@@ -294,11 +298,17 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       if (!security.canPerformSystemActions(credentials))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
       log.debug("Got request to bulk import files to table(" + tableId + "): " + files);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+          bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
+          try {
+            return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+          } finally {
+            bulkImportStatus.removeBulkImportStatus(files);
+          }
         }
       });
     } catch (AccumuloSecurityException e) {
@@ -451,5 +461,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     }
     AccumuloConfiguration config = context.getServerConfigurationFactory().getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
+  }
+
+  public List<BulkImportStatus> getBulkLoadStatus() {
+    return bulkImportStatus.getBulkLoadStatus();
   }
 }

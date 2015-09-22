@@ -60,6 +60,7 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.monitor.servlets.BulkImportServlet;
 import org.apache.accumulo.monitor.servlets.DefaultServlet;
 import org.apache.accumulo.monitor.servlets.GcStatusServlet;
 import org.apache.accumulo.monitor.servlets.JSONServlet;
@@ -255,7 +256,10 @@ public class Monitor {
           public void run() {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-                cachedInstanceName.set(HdfsZooInstance.getInstance().getInstanceName());
+                final String instanceName = HdfsZooInstance.getInstance().getInstanceName();
+                if (null != instanceName) {
+                  cachedInstanceName.set(instanceName);
+                }
               }
             }
           }
@@ -470,6 +474,7 @@ public class Monitor {
     server.addServlet(JSONServlet.class, "/json");
     server.addServlet(VisServlet.class, "/vis");
     server.addServlet(ScanServlet.class, "/scans");
+    server.addServlet(BulkImportServlet.class, "/bulkImports");
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");
     server.addServlet(ShowTrace.class, "/trace/show");

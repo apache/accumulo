@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -225,6 +226,22 @@ public class TableOperationsHelperTest {
     public boolean testClassLoad(String tableName, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
         TableNotFoundException {
       return false;
+    }
+
+    @Override
+    public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration) throws TableNotFoundException, AccumuloException,
+        AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clearSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
     }
   }
 

@@ -39,6 +39,8 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
@@ -51,6 +53,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.sample.RowSampler;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -270,15 +273,18 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 2 && args.length != 3) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> <inputFormatClass> [<batchScan>]");
+      if (args.length != 2 && args.length != 4) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> <inputFormatClass> [<batchScan> <scan sample>]");
       }
 
       String table = args[0];
       String inputFormatClassName = args[1];
       Boolean batchScan = false;
-      if (args.length == 3)
+      boolean sample = false;
+      if (args.length == 4) {
         batchScan = Boolean.parseBoolean(args[2]);
+        sample = Boolean.parseBoolean(args[3]);
+      }
 
       assertionErrors.put(table + "_map", new AssertionError("Dummy_map"));
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
@@ -296,6 +302,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
+      if (sample) {
+        AccumuloInputFormat.setSamplerConfiguration(job, SAMPLER_CONFIG);
+      }
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -335,6 +344,38 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
   }
 
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
+      "modulus", "3");
+
+  @Test
+  public void testSample() throws Exception {
+    final String TEST_TABLE_3 = getUniqueNames(1)[0];
+
+    Connector c = getConnector();
+    c.tableOperations().create(TEST_TABLE_3, new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+    BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+    for (int i = 0; i < 100; i++) {
+      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      bw.addMutation(m);
+    }
+    bw.close();
+
+    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
+    assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
+    assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
+
+    assertionErrors.clear();
+    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
+    assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_map").size());
+    assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
+
+    assertionErrors.clear();
+    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
+    assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
+    assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
+  }
+
   @Test
   public void testMapWithBatchScanner() throws Exception {
     final String TEST_TABLE_2 = getUniqueNames(1)[0];
@@ -349,7 +390,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True"}));
+    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_cleanup").size());
   }

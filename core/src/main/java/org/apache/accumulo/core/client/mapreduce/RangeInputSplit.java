@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.DeprecationUtil;
@@ -64,6 +66,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private Authorizations auths;
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
+  private SamplerConfiguration samplerConfig;
   private Level level;
 
   public RangeInputSplit() {
@@ -215,6 +218,10 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (in.readBoolean()) {
       level = Level.toLevel(in.readInt());
     }
+
+    if (in.readBoolean()) {
+      samplerConfig = new SamplerConfigurationImpl(in).toSamplerConfiguration();
+    }
   }
 
   @Override
@@ -300,6 +307,11 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeBoolean(null != level);
     if (null != level) {
       out.writeInt(level.toInt());
+    }
+
+    out.writeBoolean(null != samplerConfig);
+    if (null != samplerConfig) {
+      new SamplerConfigurationImpl(samplerConfig).write(out);
     }
   }
 
@@ -510,6 +522,15 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" fetchColumns: ").append(fetchedColumns);
     sb.append(" iterators: ").append(iterators);
     sb.append(" logLevel: ").append(level);
+    sb.append(" samplerConfig: ").append(samplerConfig);
     return sb.toString();
+  }
+
+  public void setSamplerConfiguration(SamplerConfiguration samplerConfiguration) {
+    this.samplerConfig = samplerConfiguration;
+  }
+
+  public SamplerConfiguration getSamplerConfiguration() {
+    return samplerConfig;
   }
 }

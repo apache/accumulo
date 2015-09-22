@@ -42,10 +42,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import jline.console.ConsoleReader;
-import jline.console.UserInterruptException;
-import jline.console.history.FileHistory;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -127,6 +123,7 @@ import org.apache.accumulo.shell.commands.ImportTableCommand;
 import org.apache.accumulo.shell.commands.InfoCommand;
 import org.apache.accumulo.shell.commands.InsertCommand;
 import org.apache.accumulo.shell.commands.InterpreterCommand;
+import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
@@ -182,6 +179,10 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
+
+import jline.console.ConsoleReader;
+import jline.console.UserInterruptException;
+import jline.console.history.FileHistory;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help, and quoted strings with escape sequences
@@ -398,7 +399,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
         new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
-        new PingCommand()};
+        new PingCommand(), new ListBulkCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};

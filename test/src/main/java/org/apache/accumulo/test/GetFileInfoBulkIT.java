@@ -55,7 +55,7 @@ import org.junit.Test;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
 
-// ACCUMULO-3949
+// ACCUMULO-3949, ACCUMULO-3953
 public class GetFileInfoBulkIT extends ConfigurableMacBase {
 
   @Override

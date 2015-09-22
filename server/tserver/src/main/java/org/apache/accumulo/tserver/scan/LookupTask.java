@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.conf.Property;
@@ -111,7 +112,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
             interruptFlag.set(true);
 
           lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results, maxResultsSize - bytesAdded, session.ssiList, session.ssio,
-              interruptFlag, session.batchTimeOut);
+              interruptFlag, session.samplerConfig, session.batchTimeOut);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for
@@ -163,6 +164,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
+    } catch (SampleNotPresentException e) {
+      addResult(e);
     } catch (Throwable e) {
       log.warn("exception while doing multi-scan ", e);
       addResult(e);

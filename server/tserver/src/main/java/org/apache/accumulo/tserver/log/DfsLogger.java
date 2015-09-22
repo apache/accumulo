@@ -62,6 +62,8 @@ import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSOutputStream;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +79,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
 
   private static final Logger log = LoggerFactory.getLogger(DfsLogger.class);
+  private static final DatanodeInfo[] EMPTY_PIPELINE = new DatanodeInfo[0];
 
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;
@@ -142,6 +145,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private boolean closed = false;
 
   private class LogSyncingTask implements Runnable {
+    private int expectedReplication = 0;
 
     @Override
     public void run() {
@@ -176,6 +180,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
+        long start = System.currentTimeMillis();
         try {
           if (durabilityMethod != null) {
             durabilityMethod.invoke(logFile);
@@ -186,9 +191,30 @@ public class DfsLogger implements Comparable<DfsLogger> {
             }
           }
         } catch (Exception ex) {
-          log.warn("Exception syncing " + ex);
-          for (DfsLogger.LogWork logWork : work) {
-            logWork.exception = ex;
+          fail(work, ex, "synching");
+        }
+        long duration = System.currentTimeMillis() - start;
+        if (duration > slowFlushMillis) {
+          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration).append(" ms, current pipeline: ")
+              .append(Arrays.toString(getPipeLine())).toString();
+          log.info(msg);
+          if (expectedReplication > 0) {
+            int current = expectedReplication;
+            try {
+              current = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
+            } catch (IOException e) {
+              fail(work, e, "getting replication level");
+            }
+            if (current < expectedReplication) {
+              fail(work, new IOException("replication of " + current + " is less than " + expectedReplication), "replication check");
+            }
+          }
+        }
+        if (expectedReplication == 0 && logFile.getWrappedStream() instanceof DFSOutputStream) {
+          try {
+            expectedReplication = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
+          } catch (IOException e) {
+            fail(work, e, "getting replication level");
           }
         }
 
@@ -197,6 +223,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
             sawClosedMarker = true;
           else
             logWork.latch.countDown();
+      }
+    }
+
+    private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
+      log.warn("Exception " + why + " " + ex);
+      for (DfsLogger.LogWork logWork : work) {
+        logWork.exception = ex;
       }
     }
   }
@@ -265,9 +298,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private String metaReference;
   private AtomicLong syncCounter;
   private AtomicLong flushCounter;
+  private final long slowFlushMillis;
+
+  private DfsLogger(ServerResources conf) {
+    this.conf = conf;
+    this.slowFlushMillis = conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+  }
 
   public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter) throws IOException {
-    this.conf = conf;
+    this(conf);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
   }
@@ -279,7 +318,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    *          the cq for the "log" entry in +r/!0
    */
   public DfsLogger(ServerResources conf, String filename, String meta) throws IOException {
-    this.conf = conf;
+    this(conf);
     this.logPath = filename;
     metaReference = meta;
   }
@@ -401,7 +440,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
         logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
-
       sync = logFile.getClass().getMethod("hsync");
       flush = logFile.getClass().getMethod("hflush");
 
@@ -627,6 +665,27 @@ public class DfsLogger implements Comparable<DfsLogger> {
   @Override
   public int compareTo(DfsLogger o) {
     return getFileName().compareTo(o.getFileName());
+  }
+
+  /*
+   * The following method was shamelessly lifted from HBASE-11240 (sans reflection). Thanks HBase!
+   */
+
+  /**
+   * This method gets the pipeline for the current walog.
+   *
+   * @return non-null array of DatanodeInfo
+   */
+  DatanodeInfo[] getPipeLine() {
+    if (null != logFile) {
+      OutputStream os = logFile.getWrappedStream();
+      if (os instanceof DFSOutputStream) {
+        return ((DFSOutputStream) os).getPipeline();
+      }
+    }
+
+    // Don't have a pipeline or can't figure it out.
+    return EMPTY_PIPELINE;
   }
 
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -135,6 +137,7 @@ import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -158,7 +161,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -210,6 +212,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   Fate<Master> fate;
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
+  final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   @Override
   public synchronized MasterState getMasterState() {
@@ -1564,6 +1567,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
     DeadServerList obit = new DeadServerList(ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
+    result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;
   }
 
@@ -1597,5 +1601,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         mgr.closeWal(server.getKey(), path);
       }
     }
+  }
+
+  public void updateBulkImportStatus(String directory, BulkImportState state) {
+    bulkImportStatus.updateBulkImportStatus(Collections.singletonList(directory), state);
+  }
+
+  public void removeBulkImportStatus(String directory) {
+    bulkImportStatus.removeBulkImportStatus(Collections.singletonList(directory));
   }
 }

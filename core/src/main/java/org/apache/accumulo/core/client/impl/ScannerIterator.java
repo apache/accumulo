@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -90,7 +91,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
           synchQ.add(currentBatch);
           return;
         }
-      } catch (IsolationException | ScanTimedOutException | AccumuloException | AccumuloSecurityException | TableDeletedException | TableOfflineException e) {
+      } catch (IsolationException | ScanTimedOutException | AccumuloException | AccumuloSecurityException | TableDeletedException | TableOfflineException
+          | SampleNotPresentException e) {
         log.trace("{}", e.getMessage(), e);
         synchQ.add(e);
       } catch (TableNotFoundException e) {
@@ -119,7 +121,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     }
 
     scanState = new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
-        options.serverSideIteratorOptions, isolated, readaheadThreshold, options.batchTimeOut);
+        options.serverSideIteratorOptions, isolated, readaheadThreshold, options.getSamplerConfiguration(), options.batchTimeOut);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (0l == readaheadThreshold) {

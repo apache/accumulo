@@ -21,6 +21,7 @@ import java.util.Map;
 
 public enum CompactionSettings {
 
+  SF_NO_SAMPLE(new NullType()),
   SF_GT_ESIZE_OPT(new SizeType()),
   SF_LT_ESIZE_OPT(new SizeType()),
   SF_NAME_RE_OPT(new PatternType()),

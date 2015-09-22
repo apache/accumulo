@@ -17,11 +17,15 @@
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -97,8 +101,17 @@ public class FileOutputConfigurator extends ConfiguratorBase {
     String prefix = enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + ".";
     ConfigurationCopy acuConf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
     for (Entry<String,String> entry : conf)
-      if (entry.getKey().startsWith(prefix))
-        acuConf.set(Property.getPropertyByKey(entry.getKey().substring(prefix.length())), entry.getValue());
+      if (entry.getKey().startsWith(prefix)) {
+        String propString = entry.getKey().substring(prefix.length());
+        Property prop = Property.getPropertyByKey(propString);
+        if (prop != null) {
+          acuConf.set(prop, entry.getValue());
+        } else if (Property.isValidTablePropertyKey(propString)) {
+          acuConf.set(propString, entry.getValue());
+        } else {
+          throw new IllegalArgumentException("Unknown accumulo file property " + propString);
+        }
+      }
     return acuConf;
   }
 
@@ -182,6 +195,18 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    */
   public static void setReplication(Class<?> implementingClass, Configuration conf, int replication) {
     setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_REPLICATION, replication);
+  }
+
+  /**
+   * @since 1.8.0
+   */
+  public static void setSampler(Class<?> implementingClass, Configuration conf, SamplerConfiguration samplerConfig) {
+    Map<String,String> props = new SamplerConfigurationImpl(samplerConfig).toTablePropertiesMap();
+
+    Set<Entry<String,String>> es = props.entrySet();
+    for (Entry<String,String> entry : es) {
+      conf.set(enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + entry.getKey(), entry.getValue());
+    }
   }
 
 }

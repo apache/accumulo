@@ -43,6 +43,7 @@ import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Before;
@@ -138,12 +139,14 @@ public class ConfigurableMacBase extends AccumuloITBase {
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
       File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
-      if (csFile.exists())
-        throw new RuntimeException(csFile + " already exist");
-
-      OutputStream out = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "core-site.xml")));
+      if (csFile.exists()) {
+        coreSite.addResource(new Path(csFile.getAbsolutePath()));
+      }
+      File tmp = new File(csFile.getAbsolutePath() + ".tmp");
+      OutputStream out = new BufferedOutputStream(new FileOutputStream(tmp));
       coreSite.writeXml(out);
       out.close();
+      tmp.renameTo(csFile);
     }
     beforeClusterStart(cfg);
   }

@@ -1,17 +1,17 @@
 Apache Accumulo
-Copyright 2001-2015 The Apache Software Foundation
+Copyright 2011-2015 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
-This product includes JCommander (https://github.com/cbeust/jcommander),
-Copyright 2010 Cedric Beust cedric@beust.com.
+This product includes the following work from the Apache Thrift project:
 
-This product includes Jetty (http://eclipse.org/jetty),
-Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+TNonblockingServerSocket.java
+
+Apache Thrift
+Copyright 2006-2010 The Apache Software Foundation.
 
 ******************************************************************************
-
 Export Control  
 
 This distribution includes cryptographic software. The country in which you 
@@ -40,4 +40,3 @@ for more details for on Java's cryptography features. Apache Accumulo also uses
 the bouncycastle library for some crypographic technology as well. See 
 http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions for
 more details on bouncycastle's cryptography features.
-

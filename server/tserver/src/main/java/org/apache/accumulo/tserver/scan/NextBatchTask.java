@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver.scan;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.tserver.TabletServer;
@@ -84,8 +85,8 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
-    } catch (TooManyFilesException tmfe) {
-      addResult(tmfe);
+    } catch (TooManyFilesException | SampleNotPresentException e) {
+      addResult(e);
     } catch (OutOfMemoryError ome) {
       Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client);
       addResult(ome);

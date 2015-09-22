@@ -34,7 +34,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -599,7 +599,7 @@ public class TransformingIteratorTest {
   public static class ColFamReversingCompactionKeyTransformingIterator extends ColFamReversingKeyTransformingIterator {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-      env = new MajCIteratorEnvironmentAdapter(env);
+      env = new MajCIteratorEnvironmentAdapter();
       super.init(source, options, env);
     }
   }
@@ -639,7 +639,7 @@ public class TransformingIteratorTest {
   public static class IllegalVisCompactionKeyTransformingIterator extends IllegalVisKeyTransformingIterator {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-      env = new MajCIteratorEnvironmentAdapter(env);
+      env = new MajCIteratorEnvironmentAdapter();
       super.init(source, options, env);
     }
   }
@@ -665,7 +665,7 @@ public class TransformingIteratorTest {
   public static class BadVisCompactionKeyTransformingIterator extends BadVisKeyTransformingIterator {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-      env = new MajCIteratorEnvironmentAdapter(env);
+      env = new MajCIteratorEnvironmentAdapter();
       super.init(source, options, env);
     }
   }
@@ -711,41 +711,10 @@ public class TransformingIteratorTest {
     }
   }
 
-  private static class MajCIteratorEnvironmentAdapter implements IteratorEnvironment {
-    private IteratorEnvironment delegate;
-
-    public MajCIteratorEnvironmentAdapter(IteratorEnvironment delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-      return delegate.reserveMapFileReader(mapFileName);
-    }
-
-    @Override
-    public AccumuloConfiguration getConfig() {
-      return delegate.getConfig();
-    }
-
+  private static class MajCIteratorEnvironmentAdapter extends BaseIteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.majc;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return delegate.isFullMajorCompaction();
-    }
-
-    @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-      delegate.registerSideChannel(iter);
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return null;
     }
   }
 }

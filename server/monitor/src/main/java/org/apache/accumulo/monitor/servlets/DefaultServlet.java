@@ -37,16 +37,12 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 public class DefaultServlet extends BasicServlet {
 
@@ -251,55 +247,7 @@ public class DefaultServlet extends BasicServlet {
       long totalHdfsBytesUsed = 0l;
 
       try {
-        for (String baseDir : VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())) {
-          final Path basePath = new Path(baseDir);
-          final FileSystem fs = vm.getVolumeByPath(basePath).getFileSystem();
-
-          try {
-            // Calculate the amount of space used by Accumulo on the FileSystem
-            ContentSummary accumuloSummary = fs.getContentSummary(basePath);
-            long bytesUsedByAcuOnFs = accumuloSummary.getLength();
-            totalAcuBytesUsed += bytesUsedByAcuOnFs;
-
-            // Catch the overflow -- this is big data
-            if (totalAcuBytesUsed < bytesUsedByAcuOnFs) {
-              log.debug("Overflowed long in bytes used by Accumulo for " + baseDir);
-              totalAcuBytesUsed = 0l;
-              break;
-            }
-
-            // Calculate the total amount of space used on the FileSystem
-            ContentSummary volumeSummary = fs.getContentSummary(new Path("/"));
-            long bytesUsedOnVolume = volumeSummary.getLength();
-            totalHdfsBytesUsed += bytesUsedOnVolume;
-
-            // Catch the overflow -- this is big data
-            if (totalHdfsBytesUsed < bytesUsedOnVolume) {
-              log.debug("Overflowed long in bytes used in HDFS for " + baseDir);
-              totalHdfsBytesUsed = 0;
-              break;
-            }
-          } catch (Exception ex) {
-            log.trace("Unable to get disk usage information for " + baseDir, ex);
-          }
-        }
-
-        String diskUsed = "Unknown";
-        String consumed = null;
-        if (totalAcuBytesUsed > 0) {
-          // Convert Accumulo usage to a readable String
-          diskUsed = bytes(totalAcuBytesUsed);
-
-          if (totalHdfsBytesUsed > 0) {
-            // Compute amount of space used by Accumulo as a percentage of total space usage.
-            consumed = String.format("%.2f%%", totalAcuBytesUsed * 100. / totalHdfsBytesUsed);
-          }
-        }
-
         boolean highlight = false;
-        tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
-        if (null != consumed)
-          tableRow(sb, (highlight = !highlight), "%&nbsp;of&nbsp;Used&nbsp;DFS", consumed);
         tableRow(sb, (highlight = !highlight), "<a href='/tables'>Tables</a>", NumberType.commas(Monitor.getTotalTables()));
         tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Tablet&nbsp;Servers</a>", NumberType.commas(info.tServerInfo.size(), 1, Long.MAX_VALUE));
         tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a>", NumberType.commas(info.deadTabletServers.size(), 0, 0));

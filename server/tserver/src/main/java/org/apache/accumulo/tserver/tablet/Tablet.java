@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -73,6 +75,7 @@ import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -149,7 +152,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  *
@@ -631,7 +633,8 @@ public class Tablet implements TabletCommitter {
   }
 
   public LookupResult lookup(List<Range> ranges, HashSet<Column> columns, Authorizations authorizations, List<KVEntry> results, long maxResultSize,
-      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, long batchTimeOut) throws IOException {
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut)
+      throws IOException {
 
     if (ranges.size() == 0) {
       return new LookupResult();
@@ -649,7 +652,8 @@ public class Tablet implements TabletCommitter {
       tabletRange.clip(range);
     }
 
-    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, batchTimeOut);
+    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, samplerConfig,
+        batchTimeOut);
 
     LookupResult result = null;
 
@@ -753,12 +757,13 @@ public class Tablet implements TabletCommitter {
   }
 
   public Scanner createScanner(Range range, int num, Set<Column> columns, Authorizations authorizations, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag, long batchTimeOut) {
+      Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut) {
     // do a test to see if this range falls within the tablet, if it does not
     // then clip will throw an exception
     extent.toDataRange().clip(range);
 
-    ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, isolated, batchTimeOut);
+    ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, isolated, samplerConfig,
+        batchTimeOut);
     return new Scanner(this, range, opts);
   }
 
@@ -2161,9 +2166,11 @@ public class Tablet implements TabletCommitter {
 
   public void importMapFiles(long tid, Map<FileRef,MapFileInfo> fileMap, boolean setTime) throws IOException {
     Map<FileRef,DataFileValue> entries = new HashMap<FileRef,DataFileValue>(fileMap.size());
+    List<String> files = new ArrayList<>();
 
     for (Entry<FileRef,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0l));
+      files.add(entry.getKey().path().toString());
     }
 
     // Clients timeout and will think that this operation failed.
@@ -2198,7 +2205,7 @@ public class Tablet implements TabletCommitter {
 
       writesInProgress++;
     }
-
+    tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
     try {
       getDatafileManager().importMapFiles(tid, entries, setTime);
       lastMapFileImportTime = System.currentTimeMillis();
@@ -2227,6 +2234,7 @@ public class Tablet implements TabletCommitter {
         } catch (Exception ex) {
           log.info(ex.toString(), ex);
         }
+        tabletServer.removeBulkImportState(files);
       }
     }
   }

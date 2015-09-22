@@ -50,6 +50,7 @@ import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
@@ -422,6 +423,11 @@ public class BloomFilterLayer {
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
       reader.setInterruptFlag(flag);
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      return new BloomFilterLayer.Reader(reader.getSample(sampleConfig), bfl);
     }
 
   }

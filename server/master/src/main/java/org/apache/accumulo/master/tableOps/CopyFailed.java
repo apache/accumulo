@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
@@ -86,7 +87,7 @@ class CopyFailed extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     // This needs to execute after the arbiter is stopped
-
+    master.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
     VolumeManager fs = master.getFileSystem();
 
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))

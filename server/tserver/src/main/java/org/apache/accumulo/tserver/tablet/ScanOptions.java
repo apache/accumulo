@@ -21,8 +21,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.thrift.IterInfo;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 
 final class ScanOptions {
@@ -35,10 +37,11 @@ final class ScanOptions {
   private final AtomicBoolean interruptFlag;
   private final int num;
   private final boolean isolated;
+  private SamplerConfiguration samplerConfig;
   private final long batchTimeOut;
 
   ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      AtomicBoolean interruptFlag, boolean isolated, long batchTimeOut) {
+      AtomicBoolean interruptFlag, boolean isolated, SamplerConfiguration samplerConfig, long batchTimeOut) {
     this.num = num;
     this.authorizations = authorizations;
     this.defaultLabels = defaultLabels;
@@ -47,6 +50,7 @@ final class ScanOptions {
     this.ssio = ssio;
     this.interruptFlag = interruptFlag;
     this.isolated = isolated;
+    this.samplerConfig = samplerConfig;
     this.batchTimeOut = batchTimeOut;
   }
 
@@ -80,6 +84,16 @@ final class ScanOptions {
 
   public boolean isIsolated() {
     return isolated;
+  }
+
+  public SamplerConfiguration getSamplerConfiguration() {
+    return samplerConfig;
+  }
+
+  public SamplerConfigurationImpl getSamplerConfigurationImpl() {
+    if (samplerConfig == null)
+      return null;
+    return new SamplerConfigurationImpl(samplerConfig);
   }
 
   public long getBatchTimeOut() {

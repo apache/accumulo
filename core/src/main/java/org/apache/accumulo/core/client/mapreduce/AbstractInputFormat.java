@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -602,6 +603,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           log.debug("Fetching column family " + c.getFirst());
           scannerBase.fetchColumnFamily(c.getFirst());
         }
+      }
+
+      SamplerConfiguration samplerConfig = split.getSamplerConfiguration();
+      if (null == samplerConfig) {
+        samplerConfig = tableConfig.getSamplerConfiguration();
+      }
+
+      if (samplerConfig != null) {
+        scannerBase.setSamplerConfiguration(samplerConfig);
       }
 
       scannerIterator = scannerBase.iterator();

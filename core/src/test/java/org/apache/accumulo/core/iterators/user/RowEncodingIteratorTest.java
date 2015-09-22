@@ -16,26 +16,15 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.collections.BufferOverflowException;
-import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,23 +32,20 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.commons.collections.BufferOverflowException;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 public class RowEncodingIteratorTest {
 
-  private static final class DummyIteratorEnv implements IteratorEnvironment {
-    @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-      return null;
-    }
-
-    @Override
-    public AccumuloConfiguration getConfig() {
-      return null;
-    }
-
+  private static final class DummyIteratorEnv extends BaseIteratorEnvironment {
     @Override
     public IteratorUtil.IteratorScope getIteratorScope() {
       return IteratorUtil.IteratorScope.scan;
@@ -68,16 +54,6 @@ public class RowEncodingIteratorTest {
     @Override
     public boolean isFullMajorCompaction() {
       return false;
-    }
-
-    @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return null;
     }
   }
 

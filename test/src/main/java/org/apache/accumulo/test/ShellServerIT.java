@@ -41,8 +41,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -90,6 +88,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+
+import jline.console.ConsoleReader;
 
 public class ShellServerIT extends SharedMiniClusterBase {
   public static class TestOutputStream extends OutputStream {
@@ -705,7 +705,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         ts.exec("getauths", true, "foo", true);
         ts.exec("getauths", true, "bar", true);
         passed = true;
-      } catch (Exception e) {
+      } catch (AssertionError | Exception e) {
         sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
       }
     }
@@ -975,6 +975,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("compact -t " + clone + " -w --sf-ename F.* --sf-lt-esize 1K");
 
     assertEquals(3, countFiles(cloneId));
+
+    String clone2 = table + "_clone_2";
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler=org.apache.accumulo.core.sample.RowSampler " + clone
+        + " " + clone2);
+    String clone2Id = getTableId(clone2);
+
+    assertEquals(3, countFiles(clone2Id));
+
+    ts.exec("table " + clone2);
+    ts.exec("insert v n l o");
+    ts.exec("flush -w");
+
+    ts.exec("insert x n l o");
+    ts.exec("flush -w");
+
+    assertEquals(5, countFiles(clone2Id));
+
+    ts.exec("compact -t " + clone2 + " -w --sf-no-sample");
+
+    assertEquals(3, countFiles(clone2Id));
   }
 
   @Test
@@ -986,6 +1006,54 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // expect this to fail
     ts.exec("compact -t " + table + " -w --sf-ename F.* -s " + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A", false);
+  }
+
+  @Test
+  public void testScanScample() throws Exception {
+    final String table = name.getMethodName();
+
+    // compact
+    ts.exec("createtable " + table);
+
+    ts.exec("insert 9255 doc content 'abcde'");
+    ts.exec("insert 9255 doc url file://foo.txt");
+    ts.exec("insert 8934 doc content 'accumulo scales'");
+    ts.exec("insert 8934 doc url file://accumulo_notes.txt");
+    ts.exec("insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano'");
+    ts.exec("insert 2317 doc url file://groceries/9.txt");
+    ts.exec("insert 3900 doc content 'EC2 ate my homework'");
+    ts.exec("insert 3900 doc uril file://final_project.txt");
+
+    String clone1 = table + "_clone_1";
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler=org.apache.accumulo.core.sample.RowSampler " + table
+        + " " + clone1);
+
+    ts.exec("compact -t " + clone1 + " -w --sf-no-sample");
+
+    ts.exec("table " + clone1);
+    ts.exec("scan --sample", true, "parmigiano-reggiano", true);
+    ts.exec("grep --sample reg", true, "parmigiano-reggiano", true);
+    ts.exec("scan --sample", true, "accumulo", false);
+    ts.exec("grep --sample acc", true, "accumulo", false);
+
+    // create table where table sample config differs from whats in file
+    String clone2 = table + "_clone_2";
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler=org.apache.accumulo.core.sample.RowSampler " + clone1
+        + " " + clone2);
+
+    ts.exec("table " + clone2);
+    ts.exec("scan --sample", false, "SampleNotPresentException", true);
+    ts.exec("grep --sample reg", false, "SampleNotPresentException", true);
+
+    ts.exec("compact -t " + clone2 + " -w --sf-no-sample");
+
+    for (String expected : Arrays.asList("2317", "3900", "9255")) {
+      ts.exec("scan --sample", true, expected, true);
+      ts.exec("grep --sample " + expected.substring(0, 2), true, expected, true);
+    }
+
+    ts.exec("scan --sample", true, "8934", false);
+    ts.exec("grep --sample 89", true, "8934", false);
   }
 
   @Test
@@ -1470,7 +1538,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         continue;
       }
       String parts[] = scan.split("\\|");
-      assertEquals("Expected 13 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 13, parts.length);
+      assertEquals("Expected 14 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 14, parts.length);
       String tserver = parts[0].trim();
       // TODO: any way to tell if the client address is accurate? could be local IP, host, loopback...?
       String hostPortPattern = ".+:\\d+";
@@ -1478,6 +1546,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
       String client = parts[1].trim();
       assertTrue(client.matches(hostPortPattern));
+      // Scan ID should be a long (throwing an exception if it fails to parse)
+      Long.parseLong(parts[11].trim());
     }
 
     ts.exec("deletetable -f " + table, true);

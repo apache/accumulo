@@ -248,8 +248,6 @@
       <directory>../</directory>
       <fileMode>0644</fileMode>
       <includes>
-        <include>LICENSE</include>
-        <include>NOTICE</include>
         <include>README.md</include>
         <include>INSTALL.md</include>
         <include>BUILD.md</include>
@@ -264,4 +262,16 @@
       </includes>
     </fileSet>
   </fileSets>
+  <files>
+    <file>
+      <source>bin-NOTICE</source>
+      <destName>NOTICE</destName>
+      <fileMode>0644</fileMode>
+    </file>
+    <file>
+      <source>bin-LICENSE</source>
+      <destName>LICENSE</destName>
+      <fileMode>0644</fileMode>
+    </file>
+  </files>
 </component>

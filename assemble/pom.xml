@@ -24,7 +24,7 @@
   </parent>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
-  <name>Assemblies</name>
+  <name>Apache Accumulo</name>
   <description>Apache Accumulo packages.</description>
   <properties>
     <DEV_ACCUMULO_HOME>${project.build.directory}</DEV_ACCUMULO_HOME>
@@ -170,6 +170,20 @@
     </dependency>
   </dependencies>
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>bin-LICENSE</exclude>
+              <exclude>bin-NOTICE</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

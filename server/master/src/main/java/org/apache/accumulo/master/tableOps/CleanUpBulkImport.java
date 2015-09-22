@@ -18,6 +18,7 @@ package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -46,6 +47,7 @@ class CleanUpBulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
+    master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulk processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master, "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
@@ -59,6 +61,7 @@ class CleanUpBulkImport extends MasterRepo {
     Utils.getReadLock(tableId, tid).unlock();
     log.debug("completing bulk import transaction " + tid);
     ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+    master.removeBulkImportStatus(source);
     return null;
   }
 }

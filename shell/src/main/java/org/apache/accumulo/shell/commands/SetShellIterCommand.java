@@ -29,10 +29,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellCommandException;
-import org.apache.accumulo.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -55,18 +53,6 @@ public class SetShellIterCommand extends SetIterCommand {
     String profile = cl.getOptionValue(profileOpt.getOpt());
 
     // instead of setting table properties, just put the options in a list to use at scan time
-    Class<?> loadClass;
-    try {
-      loadClass = getClass().getClassLoader().loadClass(classname);
-    } catch (ClassNotFoundException e) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + classname);
-    }
-    try {
-      loadClass.asSubclass(SortedKeyValueIterator.class);
-    } catch (ClassCastException ex) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "xUnable to load " + classname + " as type " + SortedKeyValueIterator.class.getName());
-    }
-
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {

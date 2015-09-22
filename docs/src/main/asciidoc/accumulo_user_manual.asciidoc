@@ -59,6 +59,8 @@ include::chapters/ssl.txt[]
 
 include::chapters/kerberos.txt[]
 
+include::chapters/sampling.txt[]
+
 include::chapters/administration.txt[]
 
 include::chapters/multivolume.txt[]

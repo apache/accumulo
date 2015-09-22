@@ -33,6 +33,7 @@ import org.apache.accumulo.core.file.map.MapFileUtil;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -153,5 +154,10 @@ public class MapFileIterator implements FileSKVIterator {
   @Override
   public void close() throws IOException {
     reader.close();
+  }
+
+  @Override
+  public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+    return null;
   }
 }

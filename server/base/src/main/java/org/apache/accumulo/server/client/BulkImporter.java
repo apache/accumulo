@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.client;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +74,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BulkImporter {
 
@@ -203,14 +204,14 @@ public class BulkImporter {
           while (keListIter.hasNext()) {
             KeyExtent ke = keListIter.next();
 
+            timer.start(Timers.QUERY_METADATA);
             try {
-              timer.start(Timers.QUERY_METADATA);
               tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
-              timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
             }
+            timer.stop(Timers.QUERY_METADATA);
           }
 
           if (tabletsToAssignMapFileTo.size() > 0)
@@ -618,10 +619,18 @@ public class BulkImporter {
   public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs, TabletLocator locator, Path file, KeyExtent failed)
       throws Exception {
     locator.invalidateCache(failed);
-    Text start = failed.getPrevEndRow();
-    if (start != null)
-      start = Range.followingPrefix(start);
+    Text start = getStartRowForExtent(failed);
     return findOverlappingTablets(context, fs, locator, file, start, failed.getEndRow());
+  }
+
+  protected static Text getStartRowForExtent(KeyExtent extent) {
+    Text start = extent.getPrevEndRow();
+    if (start != null) {
+      start = new Text(start);
+      // ACCUMULO-3967 We want the first possible key in this tablet, not the following row from the previous tablet
+      start.append(byte0, 0, 1);
+    }
+    return start;
   }
 
   final static byte[] byte0 = {0};

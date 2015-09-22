@@ -24,7 +24,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-master</artifactId>
-  <name>Master Server</name>
+  <name>Apache Accumulo Master Server</name>
   <description>The master server for Apache Accumulo for load balacing and other system-wide operations.</description>
   <dependencies>
     <dependency>
