@@ -397,7 +397,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     THROW_EXCEPTION,
 
     /**
-     * Pass all data through during partial minor compactions, no reducing is done. With this option reducing is only done during scan and full major
+     * Pass all data through during partial major compactions, no reducing is done. With this option reducing is only done during scan and full major
      * compactions, when deletes can be correctly handled.
      */
     REDUCE_ON_FULL_COMPACTION_ONLY
