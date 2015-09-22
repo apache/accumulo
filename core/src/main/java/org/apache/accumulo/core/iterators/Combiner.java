@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -159,7 +160,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   private Key workKey = new Key();
 
-  private static Cache<String,Long> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+  private static final Cache<String,Long> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isPartialCompaction) {
@@ -171,7 +172,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
               public Long call() throws Exception {
                 log.error("Combiner of type " + this.getClass().getSimpleName()
                     + " saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent occurences for at least 1 hour.");
-                return System.currentTimeMillis();
+                //the value is not used and does not matter
+                return 42L;
               }
             });
           } catch (ExecutionException e) {
@@ -273,8 +275,14 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
 
     isPartialCompaction = ((env.getIteratorScope() == IteratorScope.majc) && !env.isFullMajorCompaction());
-    if (options.containsKey(DELETE_HANDLING_ACTION_OPTION)) {
-      deleteHandlingAction = DeleteHandlingAction.valueOf(options.get(DELETE_HANDLING_ACTION_OPTION));
+
+    String dhaOpt = options.get(DELETE_HANDLING_ACTION_OPTION);
+    if (dhaOpt != null) {
+      try{
+        deleteHandlingAction = DeleteHandlingAction.valueOf(dhaOpt);
+      } catch(IllegalArgumentException iae) {
+        throw new IllegalAccessError(dhaOpt+" is not a legal option for "+DELETE_HANDLING_ACTION_OPTION);
+      }
     } else {
       deleteHandlingAction = DeleteHandlingAction.LOG_ERROR;
     }
@@ -307,10 +315,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = new IteratorOptions("comb", "Combiners apply reduce functions to multiple versions of values with otherwise equal keys", null, null);
-    io.addNamedOption(ALL_OPTION,
-        "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION + " option will be ignored.");
+    io.addNamedOption(ALL_OPTION, "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION
+        + " option will be ignored.");
     io.addNamedOption(COLUMNS_OPTION, "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>.");
-    // TODO
+    io.addNamedOption(DELETE_HANDLING_ACTION_OPTION, "How to handle deletes during a parital compaction.  Legal values are : "+ Arrays.asList(DeleteHandlingAction.values())+" the default is "+DeleteHandlingAction.LOG_ERROR.name());
     return io;
   }
 
@@ -337,8 +345,13 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
     }
 
-    if (options.containsKey(DELETE_HANDLING_ACTION_OPTION)) {
-      DeleteHandlingAction.valueOf(options.get(DELETE_HANDLING_ACTION_OPTION));
+    String dhaOpt = options.get(DELETE_HANDLING_ACTION_OPTION);
+    if (dhaOpt != null) {
+      try{
+        DeleteHandlingAction.valueOf(dhaOpt);
+      } catch(IllegalArgumentException iae) {
+        throw new IllegalAccessError(dhaOpt+" is not a legal option for "+DELETE_HANDLING_ACTION_OPTION);
+      }
     }
 
     return true;
@@ -379,6 +392,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));
   }
 
+  /**
+   * @since 1.6.4 1.7.1 1.8.0
+   */
   public static enum DeleteHandlingAction {
     /**
      * Do nothing when a a delete is observed by a combiner during a partial major compaction.
