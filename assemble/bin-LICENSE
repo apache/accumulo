@@ -284,7 +284,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 
 ----
-This product bundles Flot,
+This product bundles Flot, For details, see
+  server/monitor/src/main/resources/web/flot/
 
 Copyright (c) 2007-2009 IOLA and Ole Laursen
 
@@ -306,9 +307,6 @@ jquery.flot.resize.js
  * http://benalman.com/about/license/
 
 distributed under the MIT license (see above)
-
-For details, see
-  server/src/main/resources/web/flot/
 
 ----
 
