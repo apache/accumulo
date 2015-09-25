@@ -35,7 +35,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.Combiner.DeleteHandlingAction;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
 import org.apache.accumulo.core.iterators.CombinerTestUtil;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
@@ -830,21 +829,21 @@ public class CombinerTest {
     return ret;
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, DeleteHandlingAction dha, IteratorEnvironment env)
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env)
       throws Exception {
-    runDeleteHandlingTest(input, expected, dha, env, null, true);
+    runDeleteHandlingTest(input, expected, rofco, env, null, true);
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, DeleteHandlingAction dha, IteratorEnvironment env,
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env,
       String expectedLog) throws Exception {
-    runDeleteHandlingTest(input, expected, dha, env, expectedLog, true);
+    runDeleteHandlingTest(input, expected, rofco, env, expectedLog, true);
     if (expectedLog != null) {
       // run test again... should not see log message again because cache is not cleared
-      runDeleteHandlingTest(input, expected, dha, env, null, false);
+      runDeleteHandlingTest(input, expected, rofco, env, null, false);
     }
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, DeleteHandlingAction dha, IteratorEnvironment env,
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env,
       String expectedLog, boolean clearLogMsgCache) throws Exception {
     boolean deepCopy = expected == null;
 
@@ -865,8 +864,8 @@ public class CombinerTest {
       IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
       SummingCombiner.setEncodingType(is, LongCombiner.StringEncoder.class);
       Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
-      if (dha != null) {
-        Combiner.setDeleteHandlingAction(is, dha);
+      if (rofco != null) {
+        Combiner.setReduceOnFullCompactionOnly(is, rofco);
       }
 
       ai.init(new SortedMapIterator(input), is.getOptions(), env);
@@ -909,18 +908,15 @@ public class CombinerTest {
     nkv(expected, 1, 1, 1, 2, true, 0l, encoder);
     nkv(expected, 1, 1, 1, 4, false, 11l, encoder);
 
-    runDeleteHandlingTest(input, input, DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY, paritalMajcIe);
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY, fullMajcIe);
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.REDUCE_ON_FULL_COMPACTION_ONLY, SCAN_IE);
+    runDeleteHandlingTest(input, input, true, paritalMajcIe);
+    runDeleteHandlingTest(input, expected, true, fullMajcIe);
+    runDeleteHandlingTest(input, expected, true, SCAN_IE);
 
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.IGNORE, paritalMajcIe);
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.IGNORE, fullMajcIe);
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.IGNORE, SCAN_IE);
+    runDeleteHandlingTest(input, expected, false, fullMajcIe, ".*ERROR.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, false, SCAN_IE);
 
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, fullMajcIe, ".*ERROR.*ACCUMULO-2232.*");
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, SCAN_IE);
-
-    runDeleteHandlingTest(input, expected, DeleteHandlingAction.LOG_ERROR, paritalMajcIe, ".*ERROR.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, false, paritalMajcIe, ".*ERROR.*ACCUMULO-2232.*");
     runDeleteHandlingTest(input, expected, null, paritalMajcIe, ".*ERROR.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, null, fullMajcIe, ".*ERROR.*ACCUMULO-2232.*");
   }
 }
