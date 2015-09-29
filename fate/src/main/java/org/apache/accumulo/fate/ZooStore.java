@@ -17,6 +17,7 @@
 package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -40,6 +42,8 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
@@ -47,6 +51,7 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 
 public class ZooStore<T> implements TStore<T> {
 
+  private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
   private String path;
   private IZooReaderWriter zk;
   private String lastReserved = "";
@@ -246,26 +251,37 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  private static final int RETRIES = 10;
+
   @SuppressWarnings("unchecked")
   @Override
   public Repo<T> top(long tid) {
     verifyReserved(tid);
 
-    while (true) {
+    for (int i = 0; i < RETRIES; i++) {
+      String txpath = getTXPath(tid);
       try {
-        String txpath = getTXPath(tid);
-        String top = findTop(txpath);
-        if (top == null)
-          return null;
+        String top;
+        try {
+          top = findTop(txpath);
+          if (top == null) {
+            return null;
+          }
+        } catch (KeeperException.NoNodeException ex) {
+          throw new RuntimeException(ex);
+        }
 
         byte[] ser = zk.getData(txpath + "/" + top, null);
         return (Repo<T>) deserialize(ser);
       } catch (KeeperException.NoNodeException ex) {
+        log.debug("zookeeper error reading " + txpath + ": " + ex.toString(), ex);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         continue;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     }
+    return null;
   }
 
   private String findTop(String txpath) throws KeeperException, InterruptedException {
