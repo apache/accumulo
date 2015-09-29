@@ -56,8 +56,8 @@ import com.beust.jcommander.Parameter;
 
 public class SendLogToChainsaw extends XMLLayout {
 
-  private static Pattern logPattern = Pattern.compile(
-      "^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$", Pattern.UNIX_LINES);
+  private static Pattern logPattern = Pattern
+      .compile("^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$", Pattern.UNIX_LINES);
 
   private File[] logFiles = null;
 
@@ -117,19 +117,19 @@ public class SendLogToChainsaw extends XMLLayout {
   public void processLogFiles() throws IOException {
     String line = null;
     String out = null;
-    InputStreamReader isReader = null;
     BufferedReader reader = null;
     try {
       for (File log : logFiles) {
         // Parse the server type and name from the log file name
         String threadName = log.getName().substring(0, log.getName().indexOf("."));
+        FileInputStream fis;
         try {
-          isReader = new InputStreamReader(new FileInputStream(log), UTF_8);
+          fis = new FileInputStream(log);
         } catch (FileNotFoundException e) {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
         }
-        reader = new BufferedReader(isReader);
+        reader = new BufferedReader(new InputStreamReader(fis, UTF_8));
 
         try {
           line = reader.readLine();
@@ -149,9 +149,6 @@ public class SendLogToChainsaw extends XMLLayout {
         } finally {
           if (reader != null) {
             reader.close();
-          }
-          if (isReader != null) {
-            isReader.close();
           }
         }
       }
