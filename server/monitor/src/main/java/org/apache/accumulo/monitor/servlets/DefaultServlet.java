@@ -32,17 +32,13 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Duration;
-import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 
 public class DefaultServlet extends BasicServlet {
 
@@ -236,15 +232,12 @@ public class DefaultServlet extends BasicServlet {
 
   private void doAccumuloTable(StringBuilder sb) throws IOException {
     // Accumulo
-    VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
     MasterMonitorInfo info = Monitor.getMmi();
     sb.append("<table>\n");
     sb.append("<tr><th colspan='2'><a href='/master'>Accumulo Master</a></th></tr>\n");
     if (info == null) {
       sb.append("<tr><td colspan='2'><span class='error'>Master is Down</span></td></tr>\n");
     } else {
-      long totalAcuBytesUsed = 0l;
-      long totalHdfsBytesUsed = 0l;
 
       try {
         boolean highlight = false;
@@ -277,10 +270,6 @@ public class DefaultServlet extends BasicServlet {
       }
     }
     sb.append("</table>\n");
-  }
-
-  private static String bytes(long big) {
-    return NumUtil.bigNumberForSize(big);
   }
 
   public static void tableRow(StringBuilder sb, boolean highlight, Object... cells) {

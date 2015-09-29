@@ -128,10 +128,6 @@ public class SendLogToChainsaw extends XMLLayout {
         } catch (FileNotFoundException e) {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
-        } finally {
-          if (isReader != null) {
-            isReader.close();
-          }
         }
         reader = new BufferedReader(new InputStreamReader(fis, UTF_8));
 
