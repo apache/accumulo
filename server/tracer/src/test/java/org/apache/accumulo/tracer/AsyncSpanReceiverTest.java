@@ -72,58 +72,61 @@ public class AsyncSpanReceiverTest {
 
   @Test
   public void test() throws InterruptedException {
-    TestReceiver receiver = new TestReceiver();
+    try (TestReceiver receiver = new TestReceiver()) {
 
-    receiver.receiveSpan(createSpan(0));
-    while (receiver.getQueueSize() > 0) {
-      Thread.sleep(500);
-    }
-    assertEquals(0, receiver.getQueueSize());
-    assertEquals(0, receiver.getSpansSent());
+      receiver.receiveSpan(createSpan(0));
+      while (receiver.getQueueSize() > 0) {
+        Thread.sleep(500);
+      }
+      assertEquals(0, receiver.getQueueSize());
+      assertEquals(0, receiver.getSpansSent());
 
-    receiver.receiveSpan(createSpan(1));
-    while (receiver.getQueueSize() > 0) {
-      Thread.sleep(500);
+      receiver.receiveSpan(createSpan(1));
+      while (receiver.getQueueSize() > 0) {
+        Thread.sleep(500);
+      }
+      assertEquals(0, receiver.getQueueSize());
+      assertEquals(1, receiver.getSpansSent());
     }
-    assertEquals(0, receiver.getQueueSize());
-    assertEquals(1, receiver.getSpansSent());
   }
 
   @Test
   public void testKeepAll() throws InterruptedException {
-    TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "0")));
+    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "0")))) {
 
-    receiver.receiveSpan(createSpan(0));
-    while (receiver.getQueueSize() > 0) {
-      Thread.sleep(500);
+      receiver.receiveSpan(createSpan(0));
+      while (receiver.getQueueSize() > 0) {
+        Thread.sleep(500);
+      }
+      assertEquals(0, receiver.getQueueSize());
+      assertEquals(1, receiver.getSpansSent());
     }
-    assertEquals(0, receiver.getQueueSize());
-    assertEquals(1, receiver.getSpansSent());
   }
 
   @Test
   public void testExcludeMore() throws InterruptedException {
-    TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "10")));
+    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "10")))) {
 
-    receiver.receiveSpan(createSpan(0));
-    while (receiver.getQueueSize() > 0) {
-      Thread.sleep(500);
-    }
-    assertEquals(0, receiver.getQueueSize());
-    assertEquals(0, receiver.getSpansSent());
+      receiver.receiveSpan(createSpan(0));
+      while (receiver.getQueueSize() > 0) {
+        Thread.sleep(500);
+      }
+      assertEquals(0, receiver.getQueueSize());
+      assertEquals(0, receiver.getSpansSent());
 
-    receiver.receiveSpan(createSpan(9));
-    while (receiver.getQueueSize() > 0) {
-      Thread.sleep(500);
-    }
-    assertEquals(0, receiver.getQueueSize());
-    assertEquals(0, receiver.getSpansSent());
+      receiver.receiveSpan(createSpan(9));
+      while (receiver.getQueueSize() > 0) {
+        Thread.sleep(500);
+      }
+      assertEquals(0, receiver.getQueueSize());
+      assertEquals(0, receiver.getSpansSent());
 
-    receiver.receiveSpan(createSpan(10));
-    while (receiver.getQueueSize() > 0) {
-      Thread.sleep(500);
+      receiver.receiveSpan(createSpan(10));
+      while (receiver.getQueueSize() > 0) {
+        Thread.sleep(500);
+      }
+      assertEquals(0, receiver.getQueueSize());
+      assertEquals(1, receiver.getSpansSent());
     }
-    assertEquals(0, receiver.getQueueSize());
-    assertEquals(1, receiver.getSpansSent());
   }
 }
