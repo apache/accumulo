@@ -146,7 +146,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
       OutputStream out = new BufferedOutputStream(new FileOutputStream(tmp));
       coreSite.writeXml(out);
       out.close();
-      tmp.renameTo(csFile);
+      assertTrue(tmp.renameTo(csFile));
     }
     beforeClusterStart(cfg);
   }
