@@ -122,7 +122,7 @@ public class PrintInfo implements KeywordExecutable {
       if (opts.histogram || opts.dump || opts.vis || opts.hash) {
         localityGroupCF = iter.getLocalityGroupCF();
 
-        FileSKVIterator dataIter = iter;
+        FileSKVIterator dataIter;
         if (opts.useSample) {
           dataIter = iter.getSample();
 
@@ -130,6 +130,8 @@ public class PrintInfo implements KeywordExecutable {
             System.out.println("ERROR : This rfile has no sample data");
             return;
           }
+        } else {
+          dataIter = iter;
         }
 
         for (Entry<String,ArrayList<ByteSequence>> cf : localityGroupCF.entrySet()) {

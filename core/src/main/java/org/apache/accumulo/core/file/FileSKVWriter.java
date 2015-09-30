@@ -24,7 +24,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
-public interface FileSKVWriter {
+public interface FileSKVWriter extends AutoCloseable {
   boolean supportsLocalityGroups();
 
   void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException;
@@ -35,6 +35,7 @@ public interface FileSKVWriter {
 
   DataOutputStream createMetaStore(String name) throws IOException;
 
+  @Override
   void close() throws IOException;
 
   long getLength() throws IOException;

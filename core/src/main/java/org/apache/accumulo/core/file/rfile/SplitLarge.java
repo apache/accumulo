@@ -60,35 +60,34 @@ public class SplitLarge {
       AccumuloConfiguration aconf = DefaultConfiguration.getDefaultConfiguration();
       Path path = new Path(file);
       CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
-      Reader iter = new RFile.Reader(rdr);
+      try (Reader iter = new RFile.Reader(rdr)) {
 
-      if (!file.endsWith(".rf")) {
-        throw new IllegalArgumentException("File must end with .rf");
-      }
-      String smallName = file.substring(0, file.length() - 3) + "_small.rf";
-      String largeName = file.substring(0, file.length() - 3) + "_large.rf";
-
-      int blockSize = (int) aconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
-      Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", conf, aconf), blockSize);
-      small.startDefaultLocalityGroup();
-      Writer large = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(largeName), "gz", conf, aconf), blockSize);
-      large.startDefaultLocalityGroup();
-
-      iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
-      while (iter.hasTop()) {
-        Key key = iter.getTopKey();
-        Value value = iter.getTopValue();
-        if (key.getSize() + value.getSize() < opts.maxSize) {
-          small.append(key, value);
-        } else {
-          large.append(key, value);
+        if (!file.endsWith(".rf")) {
+          throw new IllegalArgumentException("File must end with .rf");
         }
-        iter.next();
-      }
+        String smallName = file.substring(0, file.length() - 3) + "_small.rf";
+        String largeName = file.substring(0, file.length() - 3) + "_large.rf";
 
-      iter.close();
-      large.close();
-      small.close();
+        int blockSize = (int) aconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
+        try (Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", conf, aconf), blockSize);
+            Writer large = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(largeName), "gz", conf, aconf), blockSize)) {
+          small.startDefaultLocalityGroup();
+          large.startDefaultLocalityGroup();
+
+          iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
+          while (iter.hasTop()) {
+            Key key = iter.getTopKey();
+            Value value = iter.getTopValue();
+            if (key.getSize() + value.getSize() < opts.maxSize) {
+              small.append(key, value);
+            } else {
+              large.append(key, value);
+            }
+            iter.next();
+          }
+
+        }
+      }
     }
   }
 

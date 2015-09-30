@@ -51,21 +51,20 @@ public class RFileOperations extends FileOperations {
 
   @Override
   public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-
     return openIndex(file, fs, conf, acuconf, null, null);
+  }
+
+  private static RFile.Reader getReader(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dataCache,
+      BlockCache indexCache) throws IOException {
+    Path path = new Path(file);
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache, acuconf);
+    return new RFile.Reader(_cbr);
   }
 
   @Override
   public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache)
       throws IOException {
-    Path path = new Path(file);
-    // long len = fs.getFileStatus(path).getLen();
-    // FSDataInputStream in = fs.open(path);
-    // Reader reader = new RFile.Reader(in, len , conf);
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache, acuconf);
-    final Reader reader = new RFile.Reader(_cbr);
-
-    return reader.getIndex();
+    return getReader(file, fs, conf, acuconf, indexCache, indexCache).getIndex();
   }
 
   @Override
