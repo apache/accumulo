@@ -64,6 +64,7 @@ public class ExistingMacIT extends ConfigurableMacIT {
 
   private void createEmptyConfig(File confFile) throws IOException {
     Configuration conf = new Configuration(false);
+    conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
     OutputStream hcOut = new FileOutputStream(confFile);
     conf.writeXml(hcOut);
     hcOut.close();
