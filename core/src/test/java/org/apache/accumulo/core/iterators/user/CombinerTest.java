@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +36,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
+import org.apache.accumulo.core.iterators.CombinerTestUtil;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.LongCombiner.FixedLenEncoder;
 import org.apache.accumulo.core.iterators.LongCombiner.StringEncoder;
@@ -46,12 +50,38 @@ import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.WriterAppender;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class CombinerTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+
+  static class CombinerIteratorEnvironment extends DefaultIteratorEnvironment {
+
+    private IteratorScope scope;
+    private boolean isFullMajc;
+
+    CombinerIteratorEnvironment(IteratorScope scope, boolean isFullMajc) {
+      this.scope = scope;
+      this.isFullMajc = isFullMajc;
+    }
+
+    @Override
+    public IteratorScope getIteratorScope() {
+      return scope;
+    }
+
+    @Override
+    public boolean isFullMajorCompaction() {
+      return isFullMajc;
+    }
+  }
+
+  static final IteratorEnvironment SCAN_IE = new CombinerIteratorEnvironment(IteratorScope.scan, false);
 
   static Key nk(int row, int colf, int colq, long ts, boolean deleted) {
     Key k = nk(row, colf, colq, ts);
@@ -98,7 +128,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, SummingCombiner.Type.VARLEN);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("2")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -163,7 +193,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, VarLenEncoder.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -229,7 +259,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, FixedLenEncoder.class.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -295,7 +325,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, FixedLenEncoder.class.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
     SortedKeyValueIterator<Key,Value> ai2 = ai.deepCopy(null);
     SortedKeyValueIterator<Key,Value> ai3 = ai.deepCopy(null);
@@ -366,7 +396,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -421,7 +451,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     Combiner.setCombineAllColumns(is, true);
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -472,7 +502,7 @@ public class CombinerTest {
     sources.add(new SortedMapIterator(tm3));
 
     MultiIterator mi = new MultiIterator(sources, true);
-    ai.init(mi, is.getOptions(), null);
+    ai.init(mi, is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -496,7 +526,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, VarLenEncoder.class.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), new DefaultIteratorEnvironment());
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
     // try seeking to the beginning of a key that aggregates
 
@@ -524,7 +554,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, SummingCombiner.Type.FIXEDLEN);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), new DefaultIteratorEnvironment());
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
     ai.seek(nr(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
 
@@ -543,7 +573,7 @@ public class CombinerTest {
     tm1 = new TreeMap<Key,Value>();
     nkv(tm1, 1, 1, 1, 2, true, 0l, encoder);
     ai = new SummingCombiner();
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), new DefaultIteratorEnvironment());
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
     ai.seek(nr(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
 
@@ -582,12 +612,12 @@ public class CombinerTest {
     IteratorSetting s = new IteratorSetting(10, "s", SummingCombiner.class);
     SummingCombiner.setColumns(s, Collections.singletonList(new IteratorSetting.Column("count")));
     SummingCombiner.setEncodingType(s, LongCombiner.StringEncoder.class);
-    iter.init(smi, s.getOptions(), new DefaultIteratorEnvironment());
+    iter.init(smi, s.getOptions(), SCAN_IE);
     Combiner iter2 = new SummingCombiner();
     IteratorSetting s2 = new IteratorSetting(10, "s2", SummingCombiner.class);
     SummingCombiner.setColumns(s2, Collections.singletonList(new IteratorSetting.Column("count", "a")));
     SummingCombiner.setEncodingType(s2, LongCombiner.StringEncoder.class);
-    iter2.init(iter, s.getOptions(), new DefaultIteratorEnvironment());
+    iter2.init(iter, s.getOptions(), SCAN_IE);
     iter2.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter2.hasTop());
@@ -619,7 +649,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, SummingCombiner.Type.VARLEN);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -632,7 +662,7 @@ public class CombinerTest {
 
     ai = new MinCombiner();
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -658,8 +688,8 @@ public class CombinerTest {
       assertEquals(a[i], b[i]);
   }
 
-  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, SummingArrayCombiner.Type type) throws IOException, InstantiationException,
-      IllegalAccessException {
+  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, SummingArrayCombiner.Type type)
+      throws IOException, InstantiationException, IllegalAccessException {
     Encoder<List<Long>> encoder = encoderClass.newInstance();
 
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
@@ -675,7 +705,7 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, type);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -690,7 +720,7 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, encoderClass);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -705,7 +735,7 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, encoderClass.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -721,7 +751,7 @@ public class CombinerTest {
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
     try {
-      ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+      ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
       Assert.fail();
     } catch (IllegalArgumentException e) {}
 
@@ -730,7 +760,7 @@ public class CombinerTest {
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
     try {
-      ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+      ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
       Assert.fail();
     } catch (IllegalArgumentException e) {}
   }
@@ -786,4 +816,107 @@ public class CombinerTest {
     assertEquals(LongCombiner.safeAdd(Long.MAX_VALUE - 5, 5), Long.MAX_VALUE);
   }
 
+  private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> combiner) throws Exception {
+    TreeMap<Key,Value> ret = new TreeMap<Key,Value>();
+
+    combiner.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    while (combiner.hasTop()) {
+      ret.put(new Key(combiner.getTopKey()), new Value(combiner.getTopValue()));
+      combiner.next();
+    }
+
+    return ret;
+  }
+
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env)
+      throws Exception {
+    runDeleteHandlingTest(input, expected, rofco, env, null, true);
+  }
+
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env,
+      String expectedLog) throws Exception {
+    runDeleteHandlingTest(input, expected, rofco, env, expectedLog, true);
+    if (expectedLog != null) {
+      // run test again... should not see log message again because cache is not cleared
+      runDeleteHandlingTest(input, expected, rofco, env, null, false);
+    }
+  }
+
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env,
+      String expectedLog, boolean clearLogMsgCache) throws Exception {
+    boolean deepCopy = expected == null;
+
+    if (clearLogMsgCache) {
+      CombinerTestUtil.clearLogCache();
+    }
+
+    StringWriter writer = new StringWriter();
+    WriterAppender appender = new WriterAppender(new PatternLayout("%p, %m%n"), writer);
+    Logger logger = Logger.getLogger(Combiner.class);
+    boolean additivity = logger.getAdditivity();
+    try {
+      logger.addAppender(appender);
+      logger.setAdditivity(false);
+
+      Combiner ai = new SummingCombiner();
+
+      IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+      SummingCombiner.setEncodingType(is, LongCombiner.StringEncoder.class);
+      Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+      if (rofco != null) {
+        Combiner.setReduceOnFullCompactionOnly(is, rofco);
+      }
+
+      ai.init(new SortedMapIterator(input), is.getOptions(), env);
+
+      if (deepCopy)
+        assertEquals(expected, readAll(ai.deepCopy(env)));
+      assertEquals(expected, readAll(ai));
+
+    } finally {
+      logger.removeAppender(appender);
+      logger.setAdditivity(additivity);
+    }
+
+    String logMsgs = writer.toString();
+    if (expectedLog == null) {
+      Assert.assertTrue("Expected 0 length log message, but got : " + logMsgs, logMsgs.length() == 0);
+    } else {
+      logMsgs = logMsgs.replace('\n', ' ');
+      Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]", logMsgs.matches(expectedLog));
+    }
+  }
+
+  @Test
+  public void testDeleteHandling() throws Exception {
+    Encoder<Long> encoder = LongCombiner.STRING_ENCODER;
+
+    TreeMap<Key,Value> input = new TreeMap<Key,Value>();
+
+    IteratorEnvironment paritalMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, false);
+    IteratorEnvironment fullMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, true);
+
+    // keys that aggregate
+    nkv(input, 1, 1, 1, 1, false, 4l, encoder);
+    nkv(input, 1, 1, 1, 2, true, 0l, encoder);
+    nkv(input, 1, 1, 1, 3, false, 2l, encoder);
+    nkv(input, 1, 1, 1, 4, false, 9l, encoder);
+
+    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    nkv(expected, 1, 1, 1, 1, false, 4l, encoder);
+    nkv(expected, 1, 1, 1, 2, true, 0l, encoder);
+    nkv(expected, 1, 1, 1, 4, false, 11l, encoder);
+
+    runDeleteHandlingTest(input, input, true, paritalMajcIe);
+    runDeleteHandlingTest(input, expected, true, fullMajcIe);
+    runDeleteHandlingTest(input, expected, true, SCAN_IE);
+
+    runDeleteHandlingTest(input, expected, false, fullMajcIe, ".*ERROR.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, false, SCAN_IE);
+
+    runDeleteHandlingTest(input, expected, false, paritalMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, null, paritalMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, null, fullMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+  }
 }

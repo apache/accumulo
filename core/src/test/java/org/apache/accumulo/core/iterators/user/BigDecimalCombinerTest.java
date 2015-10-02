@@ -72,7 +72,7 @@ public class BigDecimalCombinerTest {
     IteratorSetting is = new IteratorSetting(1, BigDecimalCombiner.BigDecimalSummingCombiner.class);
     Combiner.setColumns(is, columns);
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), CombinerTest.SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -88,7 +88,7 @@ public class BigDecimalCombinerTest {
     IteratorSetting is = new IteratorSetting(1, BigDecimalCombiner.BigDecimalMinCombiner.class);
     Combiner.setColumns(is, columns);
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), CombinerTest.SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -104,7 +104,7 @@ public class BigDecimalCombinerTest {
     IteratorSetting is = new IteratorSetting(1, BigDecimalCombiner.BigDecimalMaxCombiner.class);
     Combiner.setColumns(is, columns);
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), null);
+    ai.init(new SortedMapIterator(tm1), is.getOptions(), CombinerTest.SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
