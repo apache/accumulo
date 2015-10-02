@@ -36,8 +36,14 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
       return null;
 
     Comparable min = Collections.min(task);
-    task.remove(min);
-    return (Runnable) min;
+    Iterator<Comparable> iterator = task.iterator();
+    while (iterator.hasNext()) {
+      if (iterator.next() == min) {
+        iterator.remove();
+        return (Runnable) min;
+      }
+    }
+    throw new IllegalStateException("Minimum object found, but not there when removing");
   }
 
   @Override
