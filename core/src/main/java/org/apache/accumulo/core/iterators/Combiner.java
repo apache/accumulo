@@ -397,7 +397,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * This method was added in 1.6.4 and 1.7.1. If you want your code to work in earlier versions of 1.6 and 1.7 then do not call this method. If not set this
    * property defaults to false in order to maintain compatibility.
    *
-   * @since 1.6.4 1.7.1 1.8.0
+   * @since 1.6.5 1.7.1 1.8.0
    */
 
   public static void setReduceOnFullCompactionOnly(IteratorSetting is, boolean reduceOnFullCompactionOnly) {
