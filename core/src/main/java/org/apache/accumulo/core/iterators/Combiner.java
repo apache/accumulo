@@ -22,6 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -31,11 +34,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 /**
@@ -45,18 +52,28 @@ import com.google.common.collect.Lists;
  * will combine all Keys in column family and qualifier individually. Combination is only ever performed on multiple versions and not across column qualifiers
  * or column visibilities.
  *
+ * <p>
  * Implementations must provide a reduce method: {@code public Value reduce(Key key, Iterator<Value> iter)}.
  *
+ * <p>
  * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key. A combiner will not combine
  * keys that differ by more than the timestamp.
  *
+ * <p>
  * This class and its implementations do not automatically filter out unwanted columns from those being combined, thus it is generally recommended to use a
  * {@link Combiner} implementation with the {@link ScannerBase#fetchColumnFamily(Text)} or {@link ScannerBase#fetchColumn(Text, Text)} methods.
+ *
+ * <p>
+ * WARNING : Using deletes with Combiners may not work as intended. See {@link #setReduceOnFullCompactionOnly(IteratorSetting, boolean)}
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
-  static final Logger log = Logger.getLogger(Combiner.class);
+  static final Logger sawDeleteLog = Logger.getLogger(Combiner.class.getName()+".SawDelete");
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
+  protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION = "reduceOnFullCompactionOnly";
+
+  private boolean isMajorCompaction;
+  private boolean reduceOnFullCompactionOnly;
 
   /**
    * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.
@@ -149,6 +166,27 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   private Key workKey = new Key();
 
+  @VisibleForTesting
+  static final Cache<String,Boolean> loggedMsgCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
+
+  private void sawDelete() {
+    if (isMajorCompaction && !reduceOnFullCompactionOnly) {
+      try {
+        loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
+          @Override
+          public Boolean call() throws Exception {
+            sawDeleteLog.error("Combiner of type " + Combiner.this.getClass().getSimpleName()
+                + " saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent occurences for at least 1 hour.");
+            // the value is not used and does not matter
+            return Boolean.TRUE;
+          }
+        });
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
   /**
    * Sets the topKey and topValue based on the top key of the source. If the column of the source top key is in the set of combiners, topKey will be the top key
    * of the source and topValue will be the result of the reduce method. Otherwise, topKey and topValue will be unchanged. (They are always set to null before
@@ -159,8 +197,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (super.hasTop()) {
       workKey.set(super.getTopKey());
       if (combineAllColumns || combiners.contains(workKey)) {
-        if (workKey.isDeleted())
+        if (workKey.isDeleted()) {
+          sawDelete();
           return;
+        }
         topKey = workKey;
         Iterator<Value> viter = new ValueIterator(getSource());
         topValue = reduce(topKey, viter);
@@ -219,6 +259,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       if (combineAllColumns)
         return;
     }
+
     if (!options.containsKey(COLUMNS_OPTION))
       throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
 
@@ -227,10 +268,27 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
     combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
+
+    isMajorCompaction = env.getIteratorScope() == IteratorScope.majc;
+
+    String rofco = options.get(REDUCE_ON_FULL_COMPACTION_ONLY_OPTION);
+    if (rofco != null) {
+      reduceOnFullCompactionOnly = Boolean.parseBoolean(rofco);
+    } else {
+      reduceOnFullCompactionOnly = false;
+    }
+
+    if (reduceOnFullCompactionOnly && isMajorCompaction && !env.isFullMajorCompaction()) {
+      // adjust configuration so that no columns are combined for a partial maror compaction
+      combineAllColumns = false;
+      combiners = new ColumnSet();
+    }
+
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    // TODO test
     Combiner newInstance;
     try {
       newInstance = this.getClass().newInstance();
@@ -240,6 +298,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     newInstance.setSource(getSource().deepCopy(env));
     newInstance.combiners = combiners;
     newInstance.combineAllColumns = combineAllColumns;
+    newInstance.isMajorCompaction = isMajorCompaction;
+    newInstance.reduceOnFullCompactionOnly = reduceOnFullCompactionOnly;
     return newInstance;
   }
 
@@ -249,6 +309,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     io.addNamedOption(ALL_OPTION, "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION
         + " option will be ignored.");
     io.addNamedOption(COLUMNS_OPTION, "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>.");
+    io.addNamedOption(REDUCE_ON_FULL_COMPACTION_ONLY_OPTION, "If true, only reduce on full major compactions.  Defaults to false. ");
     return io;
   }
 
@@ -288,7 +349,6 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * @param columns
    *          a list of columns to encode as the value for the combiner column configuration
    */
-
   public static void setColumns(IteratorSetting is, List<IteratorSetting.Column> columns) {
     String sep = "";
     StringBuilder sb = new StringBuilder();
@@ -313,4 +373,31 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   public static void setCombineAllColumns(IteratorSetting is, boolean combineAllColumns) {
     is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));
   }
+
+  /**
+   * Combiners may not work correctly with deletes. Sometimes when Accumulo compacts the files in a tablet, it only compacts a subset of the files. If a delete
+   * marker exists in one of the files that is not being compacted, then data that should be deleted may be combined. See
+   * <a href="https://issues.apache.org/jira/browse/ACCUMULO-2232">ACCUMULO-2232</a> for more information. For correctness deletes should not be used with
+   * columns that are combined OR this option should be set to true.
+   *
+   * <p>
+   * When this method is set to true all data is passed through during partial major compactions and no reducing is done. Reducing is only done during scan and
+   * full major compactions, when deletes can be correctly handled. Only reducing on full major compactions may have negative performance implications, leaving
+   * lots of work to be done at scan time.
+   *
+   * <p>
+   * When this method is set to false, combiners will log an error if a delete is seen during any compaction. This can be suppressed by adjusting logging
+   * configuration. Errors will not be logged more than once an hour per Combiner, regardless of how many deletes are seen.
+   *
+   * <p>
+   * This method was added in 1.6.4 and 1.7.1. If you want your code to work in earlier versions of 1.6 and 1.7 then do not call this method. If not set this
+   * property defaults to false in order to maintain compatibility.
+   *
+   * @since 1.6.5 1.7.1 1.8.0
+   */
+
+  public static void setReduceOnFullCompactionOnly(IteratorSetting is, boolean reduceOnFullCompactionOnly) {
+    is.addOption(REDUCE_ON_FULL_COMPACTION_ONLY_OPTION, Boolean.toString(reduceOnFullCompactionOnly));
+  }
+
 }
