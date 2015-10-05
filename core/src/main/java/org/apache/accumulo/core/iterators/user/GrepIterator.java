@@ -36,45 +36,34 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 public class GrepIterator extends Filter {
 
   private byte term[];
+  private int right[] = new int[256];
 
   @Override
   public boolean accept(Key k, Value v) {
     return match(v.get()) || match(k.getRowData()) || match(k.getColumnFamilyData()) || match(k.getColumnQualifierData());
   }
 
-  private boolean match(ByteSequence bs) {
-    return indexOf(bs.getBackingArray(), bs.offset(), bs.length(), term) >= 0;
+  protected boolean match(ByteSequence bs) {
+    return indexOf(bs.getBackingArray(), bs.offset(), bs.length()) >= 0;
   }
 
-  private boolean match(byte[] ba) {
-    return indexOf(ba, 0, ba.length, term) >= 0;
+  protected boolean match(byte[] ba) {
+    return indexOf(ba, 0, ba.length) >= 0;
   }
 
-  // copied code below from java string and modified
-
-  private static int indexOf(byte[] source, int sourceOffset, int sourceCount, byte[] target) {
-    byte first = target[0];
-    int targetCount = target.length;
-    int max = sourceOffset + (sourceCount - targetCount);
-
-    for (int i = sourceOffset; i <= max; i++) {
-      /* Look for first character. */
-      if (source[i] != first) {
-        while (++i <= max && source[i] != first)
-          continue;
-      }
-
-      /* Found first character, now look at the rest of v2 */
-      if (i <= max) {
-        int j = i + 1;
-        int end = j + targetCount - 1;
-        for (int k = 1; j < end && source[j] == target[k]; j++, k++)
-          continue;
-
-        if (j == end) {
-          /* Found whole string. */
-          return i - sourceOffset;
+  protected int indexOf(byte[] value, int offset, int length) {
+    final int M = term.length;
+    final int N = offset + length;
+    int skip;
+    for (int i = offset; i <= N - M; i += skip) {
+      skip = 0;
+      for (int j = M - 1; j >= 0; j--) {
+        if (term[j] != value[i + j]) {
+          skip = Math.max(1, j - right[value[i + j]]);
         }
+      }
+      if (skip == 0) {
+        return i;
       }
     }
     return -1;
@@ -91,6 +80,12 @@ public class GrepIterator extends Filter {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     term = options.get("term").getBytes(UTF_8);
+    for (int i = 0; i < right.length; i++) {
+      right[i] = -1;
+    }
+    for (int i = 0; i < term.length; i++) {
+      right[term[i] & 0xff] = i;
+    }
   }
 
   /**
