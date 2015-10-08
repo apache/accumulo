@@ -81,6 +81,9 @@ public class Proxy implements KeywordExecutable {
   public static final String KERBEROS_PRINCIPAL = "kerberosPrincipal";
   public static final String KERBEROS_KEYTAB = "kerberosKeytab";
 
+  public static final String THRIFT_SERVER_HOSTNAME = "thriftServerHostname";
+  public static final String THRIFT_SERVER_HOSTNAME_DEFAULT = "0.0.0.0";
+
   public static class PropertiesConverter implements IStringConverter<Properties> {
     @Override
     public Properties convert(String fileName) {
@@ -161,7 +164,8 @@ public class Proxy implements KeywordExecutable {
         .asSubclass(TProtocolFactory.class);
     TProtocolFactory protoFactory = protoFactoryClass.newInstance();
     int port = Integer.parseInt(opts.prop.getProperty("port"));
-    HostAndPort address = HostAndPort.fromParts(InetAddress.getLocalHost().getCanonicalHostName(), port);
+    String hostname = opts.prop.getProperty(THRIFT_SERVER_HOSTNAME, THRIFT_SERVER_HOSTNAME_DEFAULT);
+    HostAndPort address = HostAndPort.fromParts(hostname, port);
     ServerAddress server = createProxyServer(address, protoFactory, opts.prop);
     // Wait for the server to come up
     while (!server.server.isServing()) {
