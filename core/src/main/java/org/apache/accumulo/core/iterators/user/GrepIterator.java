@@ -59,7 +59,7 @@ public class GrepIterator extends Filter {
       skip = 0;
       for (int j = M - 1; j >= 0; j--) {
         if (term[j] != value[i + j]) {
-          skip = Math.max(1, j - right[value[i + j]]);
+          skip = Math.max(1, j - right[value[i + j] & 0xff]);
         }
       }
       if (skip == 0) {
