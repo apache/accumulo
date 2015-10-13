@@ -263,5 +263,6 @@ public class BulkImport extends MasterRepo {
     Utils.unreserveHdfsDirectory(sourceDir, tid);
     Utils.unreserveHdfsDirectory(errorDir, tid);
     Utils.getReadLock(tableId, tid).unlock();
+    ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
   }
 }
