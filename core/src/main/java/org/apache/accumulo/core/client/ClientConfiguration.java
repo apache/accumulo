@@ -146,7 +146,7 @@ public class ClientConfiguration extends CompositeConfiguration {
       List<Configuration> configs = new LinkedList<Configuration>();
       for (String path : paths) {
         File conf = new File(path);
-        if (conf.canRead()) {
+        if (conf.isFile() && conf.canRead()) {
           configs.add(new PropertiesConfiguration(conf));
         }
       }
