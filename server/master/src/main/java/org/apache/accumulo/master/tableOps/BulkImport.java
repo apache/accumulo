@@ -538,6 +538,7 @@ class LoadFiles extends MasterRepo {
 
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
+      final TServerInstance servers[] = master.onlineTabletServers().toArray(new TServerInstance[0]);
       final Random random = new Random();
       for (final String file : filesToLoad) {
         results.add(executor.submit(new Callable<List<String>>() {
@@ -551,7 +552,6 @@ class LoadFiles extends MasterRepo {
               // this is running on the master and there are lots of connections to tablet servers
               // serving the metadata tablets
               long timeInMillis = master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-              TServerInstance servers[] = master.onlineTabletServers().toArray(new TServerInstance[0]);
               server = servers[random.nextInt(servers.length)].getLocation().toString();
               client = ThriftUtil.getTServerClient(server, master.getConfiguration().getConfiguration(), timeInMillis);
               List<String> attempt = Collections.singletonList(file);
@@ -566,9 +566,7 @@ class LoadFiles extends MasterRepo {
             } catch (Exception ex) {
               log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
             } finally {
-              if (client != null) {
-                ThriftUtil.returnClient(client);
-              }
+              ThriftUtil.returnClient(client);
             }
             return failures;
           }
