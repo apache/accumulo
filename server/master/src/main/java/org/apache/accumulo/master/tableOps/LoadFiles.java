@@ -25,33 +25,35 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
-import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 class LoadFiles extends MasterRepo {
 
@@ -129,23 +131,25 @@ class LoadFiles extends MasterRepo {
 
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
+      final Random random = new Random();
       for (final String file : filesToLoad) {
         results.add(executor.submit(new Callable<List<String>>() {
           @Override
           public List<String> call() {
             List<String> failures = new ArrayList<String>();
             ClientService.Client client = null;
-            String server = null;
+            HostAndPort server = null;
             try {
               // get a connection to a random tablet server, do not prefer cached connections because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the metadata tablets
               long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-              Pair<String,Client> pair = ServerClient.getConnection(master, false, timeInMillis);
-              client = pair.getSecond();
-              server = pair.getFirst();
+              // Pair<String,Client> pair = ServerClient.getConnection(master, false, timeInMillis);
+              TServerInstance[] servers = master.onlineTabletServers().toArray(new TServerInstance[0]);
+              server = servers[random.nextInt(servers.length)].getLocation();
+              client = ThriftUtil.getTServerClient(server, master, timeInMillis);
               List<String> attempt = Collections.singletonList(file);
-              log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
+              log.debug("Asking " + server + " to bulk import " + file);
               List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
@@ -155,7 +159,7 @@ class LoadFiles extends MasterRepo {
             } catch (Exception ex) {
               log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
             } finally {
-              ServerClient.close(client);
+              ThriftUtil.returnClient(client);
             }
             return failures;
           }
