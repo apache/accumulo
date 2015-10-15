@@ -484,8 +484,6 @@ public class Monitor {
     server.start();
 
     try {
-      hostname = InetAddress.getLocalHost().getHostName();
-
       log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
 
       String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
