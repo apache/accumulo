@@ -128,6 +128,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
   }
 
   public static class TestShell {
+    private static final Logger shellLog = Logger.getLogger(TestShell.class);
     public TestOutputStream output;
     public StringInputStream input;
     public Shell shell;
@@ -190,7 +191,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     }
 
     void assertGoodExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
-      Shell.log.info(output.get());
+      shellLog.debug("Shell Output: '" + output.get() + "'");
       if (0 != shell.getExitCode()) {
         String errorMsg = callback.getErrorMessage();
         assertEquals(errorMsg, 0, shell.getExitCode());
@@ -201,7 +202,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     }
 
     void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
-      Shell.log.debug(output.get());
+      shellLog.debug(output.get());
       if (0 == shell.getExitCode()) {
         String errorMsg = callback.getErrorMessage();
         assertTrue(errorMsg, shell.getExitCode() > 0);
@@ -331,7 +332,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
-    ts.input.set("true\n\n\nSTRING");
+    ts.input.set("true\n\n\n\nSTRING");
     ts.exec("setscaniter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
     ts.exec("scan", true, "3", true);
     ts.exec("deletescaniter -n name", true);
@@ -443,11 +444,11 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
-    ts.input.set("true\n\n\nSTRING\n");
+    ts.input.set("true\n\n\n\nSTRING\n");
     ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n name", true);
     ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n name", false);
     ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n other", false);
-    ts.input.set("true\n\n\nSTRING\n");
+    ts.input.set("true\n\n\n\nSTRING\n");
     ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n xyzzy", true);
     ts.exec("scan -pn sum", true, "3", true);
     ts.exec("listshelliter", true, "Iterator name", true);
@@ -465,11 +466,11 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
-    ts.input.set("true\n\n\nSTRING\n");
+    ts.input.set("true\n\n\n\nSTRING\n");
     ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
     ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n name", false);
     ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n other", false);
-    ts.input.set("true\n\n\nSTRING\n");
+    ts.input.set("true\n\n\n\nSTRING\n");
     ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n xyzzy", true);
     ts.exec("scan", true, "3", true);
     ts.exec("listiter -scan", true, "Iterator name", true);
@@ -1202,7 +1203,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     ts.exec("tables", true, "testers3.1", false);
     ts.exec("namespaces", true, "testers3", true);
     ts.exec("deletenamespace testers3 -f", true);
-    ts.input.set("true\n\n\nSTRING\n");
+    ts.input.set("true\n\n\n\nSTRING\n");
     ts.exec("setiter -ns thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
     ts.exec("listiter -ns thing2 -scan", true, "Summing", true);
     ts.exec("deleteiter -ns thing2 -n name -scan", true);
