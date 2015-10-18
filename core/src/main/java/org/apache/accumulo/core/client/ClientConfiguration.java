@@ -244,11 +244,11 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Muck the value of {@code clientConfPath} if it points to a directory by appending
-   * {@code client.conf} to the end of the file path. This is a no-op if the value is not a
-   * directory on the filesystem.
+   * Muck the value of {@code clientConfPath} if it points to a directory by appending {@code client.conf} to the end of the file path. This is a no-op if the
+   * value is not a directory on the filesystem.
    *
-   * @param clientConfPath The value of ACCUMULO_CLIENT_CONF_PATH.
+   * @param clientConfPath
+   *          The value of ACCUMULO_CLIENT_CONF_PATH.
    */
   static String getClientConfPath(String clientConfPath) {
     if (null == clientConfPath) {
