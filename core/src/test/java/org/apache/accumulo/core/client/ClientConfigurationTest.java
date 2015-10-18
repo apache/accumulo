@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -62,5 +66,31 @@ public class ClientConfigurationTest {
     third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
     third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
     return new ClientConfiguration(Arrays.asList(first, second, third));
+  }
+
+  @Test
+  public void testConfPath() throws IOException {
+    File target = new File(System.getProperty("user.dir"), "target");
+    assertTrue("'target' build directory does not exist", target.exists());
+    File testDir = new File(target, getClass().getName());
+    if (!testDir.exists()) {
+      assertTrue("Failed to create test dir " + testDir, testDir.mkdirs());
+    }
+
+    File clientConf = new File(testDir, "client.conf");
+    if (!clientConf.exists()) {
+      assertTrue("Failed to create file " + clientConf, clientConf.createNewFile());
+    }
+
+    // A directory should return the path with client.conf appended.
+    assertEquals(clientConf.toString(), ClientConfiguration.getClientConfPath(testDir.toString()));
+    // A normal file should return itself
+    assertEquals(clientConf.toString(), ClientConfiguration.getClientConfPath(clientConf.toString()));
+
+    // Something that doesn't exist should return itself (specifially, it shouldn't error)
+    final File missing = new File("foobarbaz12332112");
+    assertEquals(missing.toString(), ClientConfiguration.getClientConfPath(missing.toString()));
+
+    assertNull(ClientConfiguration.getClientConfPath(null));
   }
 }

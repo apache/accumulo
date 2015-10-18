@@ -170,8 +170,27 @@ public class ClientConfiguration extends CompositeConfiguration {
     return new ClientConfiguration(propConfig);
   }
 
+  /**
+   * Muck the value of {@code clientConfPath} if it points to a directory by appending
+   * {@code client.conf} to the end of the file path. This is a no-op if the value is not a
+   * directory on the filesystem.
+   *
+   * @param clientConfPath The value of ACCUMULO_CLIENT_CONF_PATH.
+   */
+  static String getClientConfPath(String clientConfPath) {
+    if (null == clientConfPath) {
+      return null;
+    }
+    File filePath = new File(clientConfPath);
+    // If clientConfPath is a directory, tack on the default client.conf file name.
+    if (filePath.exists() && filePath.isDirectory()) {
+      return new File(filePath, "client.conf").toString();
+    }
+    return clientConfPath;
+  }
+
   private static List<String> getDefaultSearchPath() {
-    String clientConfSearchPath = System.getenv("ACCUMULO_CLIENT_CONF_PATH");
+    String clientConfSearchPath = getClientConfPath(System.getenv("ACCUMULO_CLIENT_CONF_PATH"));
     List<String> clientConfPaths;
     if (clientConfSearchPath != null) {
       clientConfPaths = Arrays.asList(clientConfSearchPath.split(File.pathSeparator));
