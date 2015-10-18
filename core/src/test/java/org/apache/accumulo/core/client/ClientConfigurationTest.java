@@ -17,23 +17,20 @@
 package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import java.io.StringReader;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 
 public class ClientConfigurationTest {
-
   @Test
   public void testOverrides() throws Exception {
     ClientConfiguration clientConfig = createConfig();
@@ -59,12 +56,12 @@ public class ClientConfigurationTest {
   }
 
   private ClientConfiguration createConfig() {
-    Configuration first = new ClientConfiguration();
+    Configuration first = new PropertiesConfiguration();
     first.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "firstZkHosts");
-    Configuration second = new ClientConfiguration();
+    Configuration second = new PropertiesConfiguration();
     second.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "secondZkHosts");
     second.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "secondInstanceName");
-    Configuration third = new ClientConfiguration();
+    Configuration third = new PropertiesConfiguration();
     third.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
     third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
     third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
@@ -72,68 +69,28 @@ public class ClientConfigurationTest {
   }
 
   @Test
-  public void testSasl() {
-    ClientConfiguration conf = new ClientConfiguration(Collections.<Configuration> emptyList());
-    assertEquals("false", conf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-    conf.withSasl(false);
-    assertEquals("false", conf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-    conf.withSasl(true);
-    assertEquals("true", conf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-    final String primary = "accumulo";
-    conf.withSasl(true, primary);
-    assertEquals(primary, conf.get(ClientProperty.KERBEROS_SERVER_PRIMARY));
-  }
+  public void testConfPath() throws IOException {
+    File target = new File(System.getProperty("user.dir"), "target");
+    assertTrue("'target' build directory does not exist", target.exists());
+    File testDir = new File(target, getClass().getName());
+    if (!testDir.exists()) {
+      assertTrue("Failed to create test dir " + testDir, testDir.mkdirs());
+    }
 
-  @Test
-  public void testMultipleValues() throws ConfigurationException {
-    String val = "comma,separated,list";
+    File clientConf = new File(testDir, "client.conf");
+    if (!clientConf.exists()) {
+      assertTrue("Failed to create file " + clientConf, clientConf.createNewFile());
+    }
 
-    // not the recommended way to construct a client configuration, but it works
-    PropertiesConfiguration propertiesConfiguration = new PropertiesConfiguration();
-    propertiesConfiguration.setListDelimiter('\0');
-    propertiesConfiguration.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
-    propertiesConfiguration.load(new StringReader(ClientProperty.TRACE_SPAN_RECEIVERS.getKey() + "=" + val));
-    ClientConfiguration conf = new ClientConfiguration(propertiesConfiguration);
-    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
-    assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
-    assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+    // A directory should return the path with client.conf appended.
+    assertEquals(clientConf.toString(), ClientConfiguration.getClientConfPath(testDir.toString()));
+    // A normal file should return itself
+    assertEquals(clientConf.toString(), ClientConfiguration.getClientConfPath(clientConf.toString()));
 
-    // incorrect usage that results in not being able to use multi-valued properties unless commas are escaped
-    conf = new ClientConfiguration(new PropertiesConfiguration("multi-valued.client.conf"));
-    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
-    assertNotEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
-    assertEquals(3, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
+    // Something that doesn't exist should return itself (specifially, it shouldn't error)
+    final File missing = new File("foobarbaz12332112");
+    assertEquals(missing.toString(), ClientConfiguration.getClientConfPath(missing.toString()));
 
-    // recommended usage
-    conf = new ClientConfiguration("multi-valued.client.conf");
-    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
-    assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
-    assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
-
-    // only used internally
-    Map<String,String> map = new HashMap<>();
-    map.put(ClientProperty.INSTANCE_ZK_HOST.getKey(), val);
-    map.put(ClientProperty.TRACE_SPAN_RECEIVERS.getKey(), val);
-    conf = new ClientConfiguration(new MapConfiguration(map));
-    assertEquals(val, conf.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals(1, conf.getList(ClientProperty.INSTANCE_ZK_HOST.getKey()).size());
-    assertEquals(val, conf.get(ClientProperty.TRACE_SPAN_RECEIVERS));
-    assertEquals(1, conf.getList(ClientProperty.TRACE_SPAN_RECEIVERS.getKey()).size());
-  }
-
-  @Test
-  public void testGetAllPropertiesWithPrefix() {
-    ClientConfiguration conf = new ClientConfiguration();
-    conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first", "1st");
-    conf.addProperty(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second", "2nd");
-    conf.addProperty("other", "value");
-
-    Map<String,String> props = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
-    assertEquals(2, props.size());
-    assertEquals("1st", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "first"));
-    assertEquals("2nd", props.get(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "second"));
+    assertNull(ClientConfiguration.getClientConfPath(null));
   }
 }
