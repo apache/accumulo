@@ -598,7 +598,7 @@ public class Mutation implements Writable {
 
   @Override
   public int hashCode() {
-    return toThrift(false).hashCode();
+    return serializedSnapshot().hashCode();
   }
 
   /**

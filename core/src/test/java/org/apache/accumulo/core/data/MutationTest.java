@@ -580,6 +580,8 @@ public class MutationTest {
     assertEquals(m1, m1);
     assertEquals(m1, m2);
     assertEquals(m2, m1);
+    assertEquals(m2.hashCode(), m1.hashCode());
+    assertFalse(0 == m1.hashCode());
     assertFalse(m1.equals(m3));
     assertFalse(m3.equals(m1));
     assertFalse(m1.equals(m4));
