@@ -1096,7 +1096,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
     tp.shutdown();
     try {
-      tp.awaitTermination(5, TimeUnit.MINUTES);
+      tp.awaitTermination(getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT) * 2, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       log.debug("Interrupted while fetching status");
     }
