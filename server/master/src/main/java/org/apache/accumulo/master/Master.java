@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1049,40 +1051,54 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation() {
     long start = System.currentTimeMillis();
-    SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
+    int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE), 1);
+    ExecutorService tp = Executors.newFixedThreadPool(threads);
+    final SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-    for (TServerInstance server : currentServers) {
-      try {
-        Thread t = Thread.currentThread();
-        String oldName = t.getName();
-        try {
-          t.setName("Getting status from " + server);
-          TServerConnection connection = tserverSet.getConnection(server);
-          if (connection == null)
-            throw new IOException("No connection to " + server);
-          TabletServerStatus status = connection.getTableMap(false);
-          result.put(server, status);
-        } finally {
-          t.setName(oldName);
-        }
-      } catch (Exception ex) {
-        log.error("unable to get tablet server status " + server + " " + ex.toString());
-        log.debug("unable to get tablet server status " + server, ex);
-        if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-          log.warn("attempting to stop " + server);
+    for (TServerInstance serverInstance : currentServers) {
+      final TServerInstance server = serverInstance;
+      tp.submit(new Runnable() {
+        @Override
+        public void run() {
           try {
-            TServerConnection connection = tserverSet.getConnection(server);
-            if (connection != null) {
-              connection.halt(masterLock);
+            Thread t = Thread.currentThread();
+            String oldName = t.getName();
+            try {
+              t.setName("Getting status from " + server);
+              TServerConnection connection = tserverSet.getConnection(server);
+              if (connection == null)
+                throw new IOException("No connection to " + server);
+              TabletServerStatus status = connection.getTableMap(false);
+              result.put(server, status);
+            } finally {
+              t.setName(oldName);
             }
-          } catch (TTransportException e) {
-            // ignore: it's probably down
-          } catch (Exception e) {
-            log.info("error talking to troublesome tablet server ", e);
+          } catch (Exception ex) {
+            log.error("unable to get tablet server status " + server + " " + ex.toString());
+            log.debug("unable to get tablet server status " + server, ex);
+            if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
+              log.warn("attempting to stop " + server);
+              try {
+                TServerConnection connection = tserverSet.getConnection(server);
+                if (connection != null) {
+                  connection.halt(masterLock);
+                }
+              } catch (TTransportException e) {
+                // ignore: it's probably down
+              } catch (Exception e) {
+                log.info("error talking to troublesome tablet server ", e);
+              }
+              badServers.remove(server);
+            }
           }
-          badServers.remove(server);
         }
-      }
+      });
+    }
+    tp.shutdown();
+    try {
+      tp.awaitTermination(5, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      log.debug("Interrupted while fetching status");
     }
     synchronized (badServers) {
       badServers.keySet().retainAll(currentServers);

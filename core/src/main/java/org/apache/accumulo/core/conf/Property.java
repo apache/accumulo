@@ -222,6 +222,8 @@ public enum Property {
       "Minimum number of threads dedicated to answering coordinator requests"),
   MASTER_REPLICATION_COORDINATOR_THREADCHECK("master.replication.coordinator.threadcheck.time", "5s", PropertyType.TIMEDURATION,
       "The time between adjustments of the coordinator thread pool"),
+  MASTER_STATUS_THREAD_POOL_SIZE("master.status.threadpool.size", "1", PropertyType.COUNT,
+      "The number of threads to use when fetching the tablet server status for balancing."),
 
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
