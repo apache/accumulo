@@ -45,9 +45,11 @@ public interface GarbageCollectionEnvironment {
    * @param continuePoint
    *          A row to resume from if a previous invocation was stopped due to finding an extremely large number of candidates to remove which would have
    *          exceeded memory limitations
-   * @return A collection of candidates files for deletion, may not be the complete collection of files for deletion at this point in time
+   * @param candidates
+   *          A collection of candidates files for deletion, may not be the complete collection of files for deletion at this point in time
+   * @return true if the results are short due to insufficient memory, otherwise false
    */
-  List<String> getCandidates(String continuePoint) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  boolean getCandidates(String continuePoint, List<String> candidates) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}

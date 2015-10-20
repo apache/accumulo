@@ -19,7 +19,6 @@ package org.apache.accumulo.gc;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -269,7 +268,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public List<String> getCandidates(String continuePoint) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public boolean getCandidates(String continuePoint, List<String> result) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them,
       // then will never inspect deletes after N
       Range range = MetadataSchema.DeletesSection.getRange();
@@ -280,19 +279,18 @@ public class SimpleGarbageCollector implements Iface {
 
       Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(range);
-      List<String> result = new ArrayList<String>();
+      result.clear();
       // find candidates for deletion; chop off the prefix
       for (Entry<Key,Value> entry : scanner) {
         String cand = entry.getKey().getRow().toString().substring(MetadataSchema.DeletesSection.getRowPrefix().length());
         result.add(cand);
         if (almostOutOfMemory(Runtime.getRuntime())) {
           log.info("List of delete candidates has exceeded the memory threshold. Attempting to delete what has been gathered so far.");
-          break;
+          return true;
         }
       }
 
-      return result;
-
+      return false;
     }
 
     @Override
