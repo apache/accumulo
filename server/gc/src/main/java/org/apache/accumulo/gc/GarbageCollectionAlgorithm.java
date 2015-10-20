@@ -119,7 +119,7 @@ public class GarbageCollectionAlgorithm {
       try {
         relPath = makeRelative(candidate, 0);
       } catch (IllegalArgumentException iae) {
-        log.warn("Ingoring invalid deletion candidate " + candidate);
+        log.warn("Ignoring invalid deletion candidate " + candidate);
         continue;
       }
       ret.put(relPath, candidate);
@@ -267,16 +267,15 @@ public class GarbageCollectionAlgorithm {
 
   }
 
-  private List<String> getCandidates(GarbageCollectionEnvironment gce, String lastCandidate) throws TableNotFoundException, AccumuloException,
+  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate, List<String> candidates)
+      throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     Span candidatesSpan = Trace.start("getCandidates");
-    List<String> candidates;
     try {
-      candidates = gce.getCandidates(lastCandidate);
+      return gce.getCandidates(lastCandidate, candidates);
     } finally {
       candidatesSpan.stop();
     }
-    return candidates;
   }
 
   private void confirmDeletesTrace(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
@@ -305,8 +304,11 @@ public class GarbageCollectionAlgorithm {
 
     String lastCandidate = "";
 
-    while (true) {
-      List<String> candidates = getCandidates(gce, lastCandidate);
+    boolean outOfMemory = true;
+    while (outOfMemory) {
+      List<String> candidates = new ArrayList<String>();
+
+      outOfMemory = getCandidates(gce, lastCandidate, candidates);
 
       if (candidates.size() == 0)
         break;
