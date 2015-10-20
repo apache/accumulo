@@ -56,14 +56,13 @@ public class GarbageCollectionTest {
     TreeMap<String,Status> filesToReplicate = new TreeMap<String,Status>();
 
     @Override
-    public List<String> getCandidates(String continuePoint) {
+    public boolean getCandidates(String continuePoint, List<String> ret) {
       Iterator<String> iter = candidates.tailSet(continuePoint, false).iterator();
-      ArrayList<String> ret = new ArrayList<String>();
       while (iter.hasNext() && ret.size() < 3) {
         ret.add(iter.next());
       }
 
-      return ret;
+      return ret.size() == 3;
     }
 
     @Override
