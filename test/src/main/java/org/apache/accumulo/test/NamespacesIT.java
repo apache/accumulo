@@ -482,12 +482,38 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
 
     c.namespaceOperations().addConstraint(namespace, constraintClassName);
-    assertTrue(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
-    assertTrue(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
-    int num = c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
-    assertEquals(num, (int) c.tableOperations().listConstraints(t1).get(constraintClassName));
-    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+    boolean passed = false;
+    for (int i = 0; i < 5; i++) {
+      if (!c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)) {
+        Thread.sleep(500);
+        continue;
+      }
+      if (!c.tableOperations().listConstraints(t1).containsKey(constraintClassName)) {
+        Thread.sleep(500);
+        continue;
+      }
+      passed = true;
+      break;
+    }
+    assertTrue("Failed to observe newly-added constraint", passed);
+
+    passed = false;
+    Integer namespaceNum = null;
+    for (int i = 0; i < 5; i++) {
+      namespaceNum = c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
+      if (null == namespaceNum) {
+        Thread.sleep(500);
+        continue;
+      }
+      Integer tableNum = c.tableOperations().listConstraints(t1).get(constraintClassName);
+      if (null == tableNum) {
+        Thread.sleep(500);
+        continue;
+      }
+      assertEquals(namespaceNum, tableNum);
+      passed = true;
+    }
+    assertTrue("Failed to observe constraint in both table and namespace", passed);
 
     Mutation m1 = new Mutation("r1");
     Mutation m2 = new Mutation("r2");
@@ -495,24 +521,53 @@ public class NamespacesIT extends AccumuloClusterHarness {
     m1.put("a", "b", new Value("abcde".getBytes(UTF_8)));
     m2.put("e", "f", new Value("123".getBytes(UTF_8)));
     m3.put("c", "d", new Value("zyxwv".getBytes(UTF_8)));
-    BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
-    bw.addMutations(Arrays.asList(m1, m2, m3));
-    try {
-      bw.close();
-      fail();
-    } catch (MutationsRejectedException e) {
-      assertEquals(1, e.getConstraintViolationSummaries().size());
-      assertEquals(2, e.getConstraintViolationSummaries().get(0).getNumberOfViolatingMutations());
-    }
-    c.namespaceOperations().removeConstraint(namespace, num);
-    assertFalse(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
-    assertFalse(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
-    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
-    bw = c.createBatchWriter(t1, new BatchWriterConfig());
-    bw.addMutations(Arrays.asList(m1, m2, m3));
-    bw.close();
+    passed = false;
+    for (int i = 0; i < 5; i++) {
+      BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
+      bw.addMutations(Arrays.asList(m1, m2, m3));
+      try {
+        bw.close();
+        Thread.sleep(500);
+      } catch (MutationsRejectedException e) {
+        passed = true;
+        assertEquals(1, e.getConstraintViolationSummaries().size());
+        assertEquals(2, e.getConstraintViolationSummaries().get(0).getNumberOfViolatingMutations());
+        break;
+      }
+    }
+
+    assertTrue("Failed to see mutations rejected after constraint was added", passed);
+
+    assertNotNull("Namespace constraint ID should not be null", namespaceNum);
+    c.namespaceOperations().removeConstraint(namespace, namespaceNum);
+    passed = false;
+    for (int i = 0; i < 5; i++) {
+      if (c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)) {
+        Thread.sleep(500);
+        continue;
+      }
+      if (c.tableOperations().listConstraints(t1).containsKey(constraintClassName)) {
+        Thread.sleep(500);
+        continue;
+      }
+      passed = true;
+    }
+    assertTrue("Failed to verify that constraint was removed from namespace and table", passed);
+
+    passed = false;
+    for (int i = 0; i < 5; i++) {
+      BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
+      try {
+        bw.addMutations(Arrays.asList(m1, m2, m3));
+        bw.close();
+      } catch (MutationsRejectedException e) {
+        Thread.sleep(500);
+        continue;
+      }
+      passed = true;
+    }
+    assertTrue("Failed to add mutations that should be allowed", passed);
   }
 
   @Test
