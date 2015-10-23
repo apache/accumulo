@@ -190,10 +190,12 @@ def main():
    parser = argparse.ArgumentParser(description='Kill random processes')
    parser.add_argument('--log', help='set the log level', default='INFO')
    parser.add_argument('--namenodes', help='randomly kill namenodes', action="store_true")
+   parser.add_argument('--secondary', help='randomly kill secondary namenode', action="store_true")
    parser.add_argument('--datanodes', help='randomly kill datanodes', action="store_true")
    parser.add_argument('--tservers', help='randomly kill tservers', action="store_true")
    parser.add_argument('--masters', help='randomly kill masters', action="store_true")
    parser.add_argument('--zookeepers', help='randomly kill zookeepers', action="store_true")
+   parser.add_argument('--gc', help='randomly kill the file garbage collector', action="store_true")
    parser.add_argument('--all', 
                        help='kill any of the tservers, masters, datanodes, namenodes or zookeepers', 
                        action='store_true')
@@ -214,8 +216,10 @@ def main():
 
    addIf(args.namenodes,  Hadoop('namenode'))
    addIf(args.datanodes,  Hadoop('datanode'))
+   addIf(args.secondary,  Hadoop('secondarynamenode'))
    addIf(args.tservers,   Accumulo('tserver'))
    addIf(args.masters,    Accumulo('master'))
+   addIf(args.gc,         Accumulo('gc'))
    addIf(args.zookeepers, Zookeeper())
    if len(procs) == 0:
        fail("No processes to agitate!\n")
