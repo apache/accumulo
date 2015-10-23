@@ -146,6 +146,8 @@ public class WalStateManager {
           result.add(parts.getSecond());
         }
       }
+    } catch (KeeperException.NodeExistsException e) {
+      log.debug("{} has no wal entry in zookeeper, assuming no logs", tsi);
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
