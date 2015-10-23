@@ -74,7 +74,7 @@ class Proc:
 class Zookeeper(Proc):
    program = 'zookeeper'
    def __init__(self):
-      _frequencyToKill = config.get(self.program, 'frequency')
+      self._frequencyToKill = config.getfloat(self.program, 'frequency')
 
    def start(self, host):
       self.runOn(host, [config.get(self.program, 'home') + '/bin/zkServer.sh start'])
@@ -93,7 +93,7 @@ class Hadoop(Proc):
 
    def start(self, host):
       binDir = config.get(self.section, 'bin')
-      self.runOn(host, ['nohup', binDir + "/hdfs", self.program, '&'])
+      self.runOn(host, ['nohup %s/hdfs %s < /dev/null >/dev/null 2>&1 &' %(binDir, self.program)])
      
    def find(self, host):
       code, stdout, stderr = self.runOn(host, ["pgrep -f 'proc[_]%s' || true" % (self.program,)])
@@ -109,7 +109,7 @@ class Accumulo(Hadoop):
    section = 'accumulo'
    def start(self, host):
       home = config.get(self.section, 'home')
-      self.runOn(host, ['nohup', home + '/bin/accumulo', self.program, '&'])
+      self.runOn(host, ['nohup %s/bin/accumulo %s </dev/null >/dev/null 2>&1 & ' %(home, self.program)])
 
    def find(self, host):
       code, stdout, stderr = self.runOn(host, ["pgrep -f 'app[=]%s' || true" % self.program])
@@ -180,7 +180,7 @@ def agitate(hosts, procs):
                   logging.error("Unable to kill any %s on %s: no processes of that type are running", p, doomedHost)
                else:
                   pid = random.choice(pids)
-                  logging.info("Killing %s (%d) on %s", p, pid, host)
+                  logging.debug("Killing %s (%d) on %s", p, pid, doomedHost)
                   p.kill(doomedHost, pid)
                   # remember to restart them later
                   starters.append((doomedHost, p))

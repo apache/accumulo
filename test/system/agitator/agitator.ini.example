@@ -19,7 +19,7 @@ user=%(env.user)s
 
 [agitator]
 kill=kill -9
-ssh=ssh -q -t -A -o StrictHostKeyChecking=no
+ssh=ssh -q -A -o StrictHostKeyChecking=no
 sleep=300
 sleep.restart=30
 sleep.jitter=30
