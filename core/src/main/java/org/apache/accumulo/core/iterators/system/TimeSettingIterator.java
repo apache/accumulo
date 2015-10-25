@@ -42,7 +42,7 @@ public class TimeSettingIterator implements InterruptibleIterator {
 
   @Override
   public Key getTopKey() {
-    Key key = new Key(source.getTopKey());
+    Key key = source.getTopKey();
     key.setTimestamp(time);
     return key;
   }

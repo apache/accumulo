@@ -19,16 +19,20 @@ package org.apache.accumulo.core.iterators.system;
 import java.util.HashSet;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.junit.Test;
 
-public class TimeSettingIteratorTest extends TestCase {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+public class TimeSettingIteratorTest {
+
+  @Test
   public void test1() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
 
@@ -78,6 +82,27 @@ public class TimeSettingIteratorTest extends TestCase {
     assertFalse(tsi.hasTop());
 
     tsi.seek(new Range(new Key("r1", "cf1", "cq1", 51l), true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<ByteSequence>(), false);
+    assertFalse(tsi.hasTop());
+  }
+
+  @Test
+  public void testAvoidKeyCopy() throws Exception {
+    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    final Key k = new Key("r0", "cf1", "cq1", 9l);
+
+    tm1.put(k, new Value("v0".getBytes()));
+
+    TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
+
+    tsi.seek(new Range(), new HashSet<ByteSequence>(), false);
+
+    assertTrue(tsi.hasTop());
+    final Key topKey = tsi.getTopKey();
+    assertTrue("Expected the topKey to be the same object", k == topKey);
+    assertEquals(new Key("r0", "cf1", "cq1", 50l), topKey);
+    assertEquals("v0", tsi.getTopValue().toString());
+    tsi.next();
+
     assertFalse(tsi.hasTop());
   }
 
