@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -484,8 +483,6 @@ public class Monitor {
     server.start();
 
     try {
-      hostname = InetAddress.getLocalHost().getHostName();
-
       log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
 
       String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
