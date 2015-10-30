@@ -38,6 +38,8 @@ public class TabletServerGivesUpIT extends ConfigurableMacIT {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES, "15");
+    cfg.setProperty(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION, "0s");
   }
 
   @Test(timeout = 30 * 1000)
