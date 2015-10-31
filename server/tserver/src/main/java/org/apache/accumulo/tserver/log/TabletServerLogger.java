@@ -41,6 +41,8 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.zookeeper.Retry;
+import org.apache.accumulo.fate.zookeeper.RetryFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -57,8 +59,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
@@ -99,8 +99,8 @@ public class TabletServerLogger {
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
 
-  private final long toleratedFailures;
-  private final Cache<Long,Object> walErrors;
+  private final RetryFactory retryFactory;
+  private Retry retry = null;
 
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
@@ -145,14 +145,13 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, long toleratedWalCreationFailures,
-      long toleratedFailuresPeriodMillis) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory retryFactory) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
-    this.toleratedFailures = toleratedWalCreationFailures;
-    this.walErrors = CacheBuilder.newBuilder().maximumSize(toleratedFailures).expireAfterWrite(toleratedFailuresPeriodMillis, TimeUnit.MILLISECONDS).build();
+    this.retryFactory = retryFactory;
+    this.retry = null;
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -219,15 +218,40 @@ public class TabletServerLogger {
         currentLog = (DfsLogger) next;
         logId.incrementAndGet();
         log.info("Using next log " + currentLog.getFileName());
+
+        // When we successfully create a WAL, make sure to reset the Retry.
+        if (null != retry) {
+          retry = null;
+        }
+
         return;
       } else {
         throw new RuntimeException("Error: unexpected type seen: " + next);
       }
     } catch (Exception t) {
-      walErrors.put(System.currentTimeMillis(), "");
-      if (walErrors.size() > toleratedFailures) {
+      if (null == retry) {
+        retry = retryFactory.create();
+      }
+
+      // We have more retries or we exceeded the maximum number of accepted failures
+      if (retry.canRetry()) {
+        // Use the retry and record the time in which we did so
+        retry.useRetry();
+
+        try {
+          // Backoff
+          retry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException(e);
+        }
+      } else {
+        log.error("Repeatedly failed to create WAL. Going to exit tabletserver.", t);
+        // We didn't have retries or we failed too many times.
         Halt.halt("Experienced too many errors creating WALs, giving up");
       }
+
+      // The exception will trigger the log creation to be re-attempted.
       throw new RuntimeException(t);
     }
   }
