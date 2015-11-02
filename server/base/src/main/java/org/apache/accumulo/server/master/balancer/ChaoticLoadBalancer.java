@@ -53,6 +53,10 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   @SuppressWarnings("unused")
   private final String tableName;
 
+  public ChaoticLoadBalancer() {
+    this.tableName = null;
+  }
+
   // Required constructor
   public ChaoticLoadBalancer(String tableName) {
     this.tableName = tableName;
