@@ -33,11 +33,14 @@ import org.apache.accumulo.iteratortest.IteratorTestRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A base JUnit4 test class for users to leverage with the JUnit Parameterized Runner.
  * <p>
  * Users should extend this class and implement a static method using the {@code @Parameters} annotation.
+ * 
  * <pre>
  * &#064;Parameters
  * public static Object[][] data() {
@@ -51,6 +54,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class BaseJUnit4IteratorTest {
+  private static final Logger log = LoggerFactory.getLogger(BaseJUnit4IteratorTest.class);
 
   public final IteratorTestRunner runner;
 
@@ -61,10 +65,13 @@ public class BaseJUnit4IteratorTest {
   /**
    * A helper function to convert input, output and a list of test cases into a two-dimensional array for JUnit's Parameterized runner.
    *
-   * @param input The input
-   * @param output The output
-   * @param testCases A list of desired test cases to run.
-   * @return A two dimensional array suitable to pass as JUnit's parameters. 
+   * @param input
+   *          The input
+   * @param output
+   *          The output
+   * @param testCases
+   *          A list of desired test cases to run.
+   * @return A two dimensional array suitable to pass as JUnit's parameters.
    */
   public static Object[][] createParameters(IteratorTestInput input, IteratorTestOutput output, Collection<IteratorTestCase> testCases) {
     Object[][] parameters = new Object[testCases.size()][3];
@@ -85,5 +92,8 @@ public class BaseJUnit4IteratorTest {
     assertNotNull(report);
 
     assertTrue(report.getSummary(), report.didTestSucceed());
+
+    // Present for manual verification
+    log.trace("Expected: {}, Actual: {}", report.getExpectedOutput(), report.getActualOutput());
   }
 }

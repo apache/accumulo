@@ -22,35 +22,35 @@ import java.util.Objects;
  * A summary of the invocation of an {@link IteratorTestInput} over a {@link IteratorTestCase} with the expected {@link IteratorTestOutput}.
  */
 public class IteratorTestReport {
-  
+
   private final IteratorTestInput input;
   private final IteratorTestOutput expectedOutput;
   private final IteratorTestCase testCase;
   private final IteratorTestOutput actualOutput;
-  
+
   public IteratorTestReport(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestOutput actualOutput, IteratorTestCase testCase) {
     this.input = Objects.requireNonNull(input);
     this.expectedOutput = Objects.requireNonNull(expectedOutput);
     this.testCase = Objects.requireNonNull(testCase);
     this.actualOutput = Objects.requireNonNull(actualOutput);
   }
-  
+
   public IteratorTestInput getInput() {
     return input;
   }
-  
+
   public IteratorTestOutput getExpectedOutput() {
     return expectedOutput;
   }
-  
+
   public IteratorTestCase getTestCase() {
     return testCase;
   }
-  
+
   public IteratorTestOutput getActualOutput() {
     return actualOutput;
   }
-  
+
   /**
    * Evaluate whether the test passed or failed.
    *
@@ -59,7 +59,7 @@ public class IteratorTestReport {
   public boolean didTestSucceed() {
     return expectedOutput.equals(actualOutput);
   }
-  
+
   public String getSummary() {
     StringBuilder sb = new StringBuilder(64);
     // @formatter:off

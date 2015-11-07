@@ -16,21 +16,27 @@
  */
 package org.apache.accumulo.iteratortest;
 
+import java.util.Objects;
+
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 
 /**
- * An interface that accepts some input for testing a {@link SortedKeyValueIterator}, runs the specific implementation of the test and returns the outcome from
- * that iterator.
+ * A collection of methods that are helpful to the development of {@link IteratorTestCase}s. 
  */
-public interface IteratorTestCase {
+public class IteratorTestUtil {
 
-  /**
-   * Run the implementation's test against the given input.
-   *
-   * @param testInput
-   *          The input to test.
-   * @return The output of the test with the input.
-   */
-  IteratorTestOutput test(IteratorTestInput testInput);
+  public static SortedKeyValueIterator<Key,Value> instantiateIterator(IteratorTestInput input) {
+    try {
+      return Objects.requireNonNull(input.getIteratorClass()).newInstance();
+    } catch (InstantiationException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
+  public static SortedKeyValueIterator<Key,Value> createSource(IteratorTestInput input) {
+    return new SortedMapIterator(Objects.requireNonNull(input).getInput());
+  }
 }

@@ -32,7 +32,7 @@ import org.junit.runners.Parameterized.Parameters;
 /**
  * A Basic test asserting that the framework is functional.
  */
-public class JUnitFrameworkTest extends BaseJUnit4IteratorTest{
+public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
 
   @Parameters
   public static Object[][] parameters() {

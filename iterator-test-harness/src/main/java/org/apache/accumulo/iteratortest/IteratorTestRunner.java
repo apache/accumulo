@@ -32,9 +32,12 @@ public class IteratorTestRunner {
   /**
    * Construct an instance of the class.
    *
-   * @param testInput The input to the tests
-   * @param testOutput The expected output given the input
-   * @param testCases The test cases to invoke
+   * @param testInput
+   *          The input to the tests
+   * @param testOutput
+   *          The expected output given the input
+   * @param testCases
+   *          The test cases to invoke
    */
   public IteratorTestRunner(IteratorTestInput testInput, IteratorTestOutput testOutput, Collection<IteratorTestCase> testCases) {
     this.testInput = testInput;
@@ -72,7 +75,8 @@ public class IteratorTestRunner {
 
       // Sanity-check on the IteratorTestCase implementation.
       if (null == actualOutput) {
-        throw new IllegalStateException("IteratorTestCase implementations should always return a non-null IteratorTestOutput. " + testCase.getClass().getName() + " did not!");
+        throw new IllegalStateException("IteratorTestCase implementations should always return a non-null IteratorTestOutput. " + testCase.getClass().getName()
+            + " did not!");
       }
 
       testReports.add(new IteratorTestReport(testInput, testOutput, actualOutput, testCase));

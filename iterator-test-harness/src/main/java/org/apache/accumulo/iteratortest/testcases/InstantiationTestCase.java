@@ -16,18 +16,32 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
+import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
 
 /**
- * An IteratorTestCase implementation that returns the original input without any external action.
+ * TestCase to assert that an Iterator has a no-args constructor.
  */
-public class NoopIteratorTestCase implements IteratorTestCase {
+public class InstantiationTestCase implements IteratorTestCase {
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
-    return new IteratorTestOutput(testInput.getInput());
+    Class<? extends SortedKeyValueIterator<Key,Value>> clz = testInput.getIteratorClass();
+
+    try {
+      // We should be able to instantiate the Iterator given the Class
+      @SuppressWarnings("unused")
+      SortedKeyValueIterator<Key,Value> iter = clz.newInstance();
+    } catch (Exception e) {
+      return new IteratorTestOutput(e);
+    }
+
+    return new IteratorTestOutput(TestOutcome.PASSED);
   }
 
 }

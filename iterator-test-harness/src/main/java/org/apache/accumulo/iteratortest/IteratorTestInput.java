@@ -41,13 +41,17 @@ public class IteratorTestInput {
   /**
    * Construct an instance of the test input.
    *
-   * @param iteratorClass The class for the iterator to test
-   * @param iteratorOptions Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of properties) 
-   * @param range The Range of data to query ({@link Scanner#setRange(Range)})
-   * @param input A sorted collection of Key-Value pairs acting as the table.
+   * @param iteratorClass
+   *          The class for the iterator to test
+   * @param iteratorOptions
+   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of properties)
+   * @param range
+   *          The Range of data to query ({@link Scanner#setRange(Range)})
+   * @param input
+   *          A sorted collection of Key-Value pairs acting as the table.
    */
-  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
-      Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input) {
+  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> iteratorOptions, Range range,
+      SortedMap<Key,Value> input) {
     // Already immutable
     this.iteratorClass = Objects.requireNonNull(iteratorClass);
     // Make it immutable to the test
@@ -77,9 +81,7 @@ public class IteratorTestInput {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);
-    sb.append("[iteratorClass=").append(iteratorClass)
-        .append(", iteratorOptions=").append(iteratorOptions)
-        .append(", range=").append(range)
+    sb.append("[iteratorClass=").append(iteratorClass).append(", iteratorOptions=").append(iteratorOptions).append(", range=").append(range)
         .append(", input='").append(input).append("']");
     return sb.toString();
   }
