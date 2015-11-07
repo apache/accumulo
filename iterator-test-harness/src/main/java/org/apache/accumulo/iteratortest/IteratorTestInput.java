@@ -74,4 +74,13 @@ public class IteratorTestInput {
     return input;
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder(64);
+    sb.append("[iteratorClass=").append(iteratorClass)
+        .append(", iteratorOptions=").append(iteratorOptions)
+        .append(", range=").append(range)
+        .append(", input='").append(input).append("']");
+    return sb.toString();
+  }
 }

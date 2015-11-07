@@ -19,45 +19,56 @@ package org.apache.accumulo.iteratortest;
 import java.util.Objects;
 
 /**
- * A summary of the invocation of an {@link IteratorTestInput} over a {@link IteratorTestCase}
- * with the expected {@link IteratorTestOutput}.
+ * A summary of the invocation of an {@link IteratorTestInput} over a {@link IteratorTestCase} with the expected {@link IteratorTestOutput}.
  */
 public class IteratorTestReport {
-
+  
   private final IteratorTestInput input;
   private final IteratorTestOutput expectedOutput;
   private final IteratorTestCase testCase;
   private final IteratorTestOutput actualOutput;
-
+  
   public IteratorTestReport(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestOutput actualOutput, IteratorTestCase testCase) {
     this.input = Objects.requireNonNull(input);
     this.expectedOutput = Objects.requireNonNull(expectedOutput);
     this.testCase = Objects.requireNonNull(testCase);
     this.actualOutput = Objects.requireNonNull(actualOutput);
   }
-
+  
   public IteratorTestInput getInput() {
     return input;
   }
-
+  
   public IteratorTestOutput getExpectedOutput() {
     return expectedOutput;
   }
-
+  
   public IteratorTestCase getTestCase() {
     return testCase;
   }
-
+  
   public IteratorTestOutput getActualOutput() {
     return actualOutput;
   }
-
+  
   /**
    * Evaluate whether the test passed or failed.
    *
    * @return True if the actual output matches the expected output, false otherwise.
    */
   public boolean didTestSucceed() {
-    return expectedOutput.getOutput().equals(actualOutput);
+    return expectedOutput.equals(actualOutput);
+  }
+  
+  public String getSummary() {
+    StringBuilder sb = new StringBuilder(64);
+    // @formatter:off
+    sb.append("IteratorTestReport Summary: \n")
+        .append("\tTest Case = ").append(testCase.getClass().getName())
+        .append("\tInput Data = '").append(input).append("'\n")
+        .append("\tExpected Output = '").append(expectedOutput).append("'\n")
+        .append("\tActual Output = '").append(actualOutput).append("'\n");
+    // @formatter:on
+    return sb.toString();
   }
 }

@@ -79,4 +79,32 @@ public class IteratorTestOutput {
   public boolean hasException() {
     return null != exception;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof IteratorTestOutput)) {
+      return false;
+    }
+
+    IteratorTestOutput other = (IteratorTestOutput) o;
+    if (hasOutput()) {
+      if (!other.hasOutput()) {
+        return false;
+      }
+      return output.equals(other.output);
+    }
+
+    if (!other.hasException()) {
+      return false;
+    }
+    return exception.equals(other.getException());
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder(64);
+    sb.append("[Output='").append(output)
+        .append("', exception=").append(exception).append("]");
+    return sb.toString();
+  }
 }
