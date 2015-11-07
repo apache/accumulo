@@ -17,24 +17,15 @@
 package org.apache.accumulo.iteratortest.testcases;
 
 import org.apache.accumulo.iteratortest.IteratorTestCase;
-import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
 
 /**
- * An IteratorTestCase implementation that returns the original input without any external action.
+ * Base {@link IteratorTestCase} implementation that performs verifiation on the expected and actual outcome.
  */
-public class NoopIteratorTestCase implements IteratorTestCase {
+public abstract class OutputVerifyingTestCase implements IteratorTestCase {
 
-  @Override
-  public IteratorTestOutput test(IteratorTestInput testInput) {
-    return new IteratorTestOutput(TestOutcome.PASSED);
-  }
-
-  @Override
   public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
-    // Always passes
-    return true;
+    return expected.equals(actual);
   }
 
 }

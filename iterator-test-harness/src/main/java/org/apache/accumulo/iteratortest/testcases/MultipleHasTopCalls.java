@@ -25,7 +25,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
@@ -37,7 +36,7 @@ import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
  * <p>
  * This test case will call {@code hasTop()} multiple times, verifying that each call returns the same value as the first.
  */
-public class MultipleHasTopCalls implements IteratorTestCase {
+public class MultipleHasTopCalls extends OutputVerifyingTestCase {
 
   private final Random random;
 

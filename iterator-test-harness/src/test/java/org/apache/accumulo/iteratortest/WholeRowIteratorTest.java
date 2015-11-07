@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
+import org.apache.accumulo.iteratortest.testcases.InstantiationTestCase;
 import org.apache.accumulo.iteratortest.testcases.MultipleHasTopCalls;
 import org.apache.hadoop.io.Text;
 import org.junit.runners.Parameterized.Parameters;
@@ -42,7 +43,7 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
   public static Object[][] parameters() {
     IteratorTestInput input = getIteratorInput();
     IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = Arrays.<IteratorTestCase> asList(new MultipleHasTopCalls());
+    List<IteratorTestCase> tests = Arrays.<IteratorTestCase> asList(new MultipleHasTopCalls(), new InstantiationTestCase());
     return BaseJUnit4IteratorTest.createParameters(input, output, tests);
   }
 

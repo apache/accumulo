@@ -57,7 +57,7 @@ public class IteratorTestReport {
    * @return True if the actual output matches the expected output, false otherwise.
    */
   public boolean didTestSucceed() {
-    return expectedOutput.equals(actualOutput);
+    return testCase.verify(expectedOutput, actualOutput);
   }
 
   public String getSummary() {

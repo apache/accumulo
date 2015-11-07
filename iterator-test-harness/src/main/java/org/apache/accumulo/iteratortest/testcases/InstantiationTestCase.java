@@ -44,4 +44,9 @@ public class InstantiationTestCase implements IteratorTestCase {
     return new IteratorTestOutput(TestOutcome.PASSED);
   }
 
+  public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
+    // Ignore what the user provided as expected output, just check that we instantiated the iterator successfully.
+    return TestOutcome.PASSED == actual.getTestOutcome();
+  }
+
 }

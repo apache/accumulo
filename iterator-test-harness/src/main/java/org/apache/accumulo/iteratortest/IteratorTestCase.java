@@ -33,4 +33,15 @@ public interface IteratorTestCase {
    */
   IteratorTestOutput test(IteratorTestInput testInput);
 
+  /**
+   * Compute whether or not the expected and actual output is a success or failure for this implementation.
+   *
+   * @param expected
+   *          The expected output from the user.
+   * @param actual
+   *          The actual output from the test
+   * @return True if the test case passes, false if it doesn't.
+   */
+  boolean verify(IteratorTestOutput expected, IteratorTestOutput actual);
+
 }
