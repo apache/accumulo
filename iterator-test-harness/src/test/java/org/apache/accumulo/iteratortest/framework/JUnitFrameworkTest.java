@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.iteratortest;
+package org.apache.accumulo.iteratortest.framework;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,14 +25,35 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.iteratortest.IteratorTestInput;
+import org.apache.accumulo.iteratortest.IteratorTestOutput;
+import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
 import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.NoopIteratorTestCase;
+import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
  * A Basic test asserting that the framework is functional.
  */
 public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
+
+  /**
+   * An IteratorTestCase implementation that returns the original input without any external action.
+   */
+  public static class NoopIteratorTestCase implements IteratorTestCase {
+
+    @Override
+    public IteratorTestOutput test(IteratorTestInput testInput) {
+      return new IteratorTestOutput(TestOutcome.PASSED);
+    }
+
+    @Override
+    public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
+      // Always passes
+      return true;
+    }
+
+  }
 
   @Parameters
   public static Object[][] parameters() {

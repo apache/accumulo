@@ -25,11 +25,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestReport;
 import org.apache.accumulo.iteratortest.IteratorTestRunner;
+import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
-import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 
 /**

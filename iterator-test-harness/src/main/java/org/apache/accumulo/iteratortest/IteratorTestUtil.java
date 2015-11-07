@@ -22,6 +22,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 
 /**
  * A collection of methods that are helpful to the development of {@link IteratorTestCase}s.

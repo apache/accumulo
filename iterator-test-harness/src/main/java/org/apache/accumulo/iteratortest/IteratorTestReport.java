@@ -18,6 +18,8 @@ package org.apache.accumulo.iteratortest;
 
 import java.util.Objects;
 
+import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+
 /**
  * A summary of the invocation of an {@link IteratorTestInput} over a {@link IteratorTestCase} with the expected {@link IteratorTestOutput}.
  */

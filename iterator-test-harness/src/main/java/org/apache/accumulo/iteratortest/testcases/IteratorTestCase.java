@@ -16,25 +16,34 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
-import org.apache.accumulo.iteratortest.IteratorTestCase;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
 
 /**
- * An IteratorTestCase implementation that returns the original input without any external action.
+ * An interface that accepts some input for testing a {@link SortedKeyValueIterator}, runs the specific implementation of the test and returns the outcome from
+ * that iterator.
  */
-public class NoopIteratorTestCase implements IteratorTestCase {
+public interface IteratorTestCase {
 
-  @Override
-  public IteratorTestOutput test(IteratorTestInput testInput) {
-    return new IteratorTestOutput(TestOutcome.PASSED);
-  }
+  /**
+   * Run the implementation's test against the given input.
+   *
+   * @param testInput
+   *          The input to test.
+   * @return The output of the test with the input.
+   */
+  IteratorTestOutput test(IteratorTestInput testInput);
 
-  @Override
-  public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
-    // Always passes
-    return true;
-  }
+  /**
+   * Compute whether or not the expected and actual output is a success or failure for this implementation.
+   *
+   * @param expected
+   *          The expected output from the user.
+   * @param actual
+   *          The actual output from the test
+   * @return True if the test case passes, false if it doesn't.
+   */
+  boolean verify(IteratorTestOutput expected, IteratorTestOutput actual);
 
 }

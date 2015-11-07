@@ -20,10 +20,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A runner for invoking some tests over some input and expecting some output.
  */
 public class IteratorTestRunner {
+  private static final Logger log = LoggerFactory.getLogger(IteratorTestRunner.class);
 
   private final IteratorTestInput testInput;
   private final IteratorTestOutput testOutput;
@@ -65,6 +70,8 @@ public class IteratorTestRunner {
   public List<IteratorTestReport> runTests() {
     List<IteratorTestReport> testReports = new ArrayList<>(testCases.size());
     for (IteratorTestCase testCase : testCases) {
+      log.info("Invoking {} on {}", testCase.getClass().getName(), testInput.getIteratorClass().getName());
+
       IteratorTestOutput actualOutput = null;
 
       try {
