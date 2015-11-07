@@ -79,6 +79,7 @@
     <module>docs</module>
     <module>examples/simple</module>
     <module>fate</module>
+    <module>iterator-test-harness</module>
     <module>maven-plugin</module>
     <module>minicluster</module>
     <module>proxy</module>
