@@ -22,6 +22,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 
 /**
@@ -38,6 +39,6 @@ public class IteratorTestUtil {
   }
 
   public static SortedKeyValueIterator<Key,Value> createSource(IteratorTestInput input) {
-    return new SortedMapIterator(Objects.requireNonNull(input).getInput());
+    return new ColumnFamilySkippingIterator(new SortedMapIterator(Objects.requireNonNull(input).getInput()));
   }
 }

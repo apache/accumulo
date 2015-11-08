@@ -64,6 +64,24 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
 
     data.put(new Key("3", "a", ""), new Value("3a".getBytes()));
 
+    data.put(new Key("4", "a", "b"), new Value("4ab".getBytes()));
+
+    data.put(new Key("5", "a", "a"), new Value("5aa".getBytes()));
+    data.put(new Key("5", "a", "b"), new Value("5ab".getBytes()));
+    data.put(new Key("5", "a", "c"), new Value("5ac".getBytes()));
+    data.put(new Key("5", "a", "d"), new Value("5ad".getBytes()));
+
+    data.put(new Key("6", "", "a"), new Value("6a".getBytes()));
+    data.put(new Key("6", "", "b"), new Value("6b".getBytes()));
+    data.put(new Key("6", "", "c"), new Value("6c".getBytes()));
+    data.put(new Key("6", "", "d"), new Value("6d".getBytes()));
+    data.put(new Key("6", "", "e"), new Value("6e".getBytes()));
+    data.put(new Key("6", "1", "a"), new Value("61a".getBytes()));
+    data.put(new Key("6", "1", "b"), new Value("61b".getBytes()));
+    data.put(new Key("6", "1", "c"), new Value("61c".getBytes()));
+    data.put(new Key("6", "1", "d"), new Value("61d".getBytes()));
+    data.put(new Key("6", "1", "e"), new Value("61e".getBytes()));
+
     return data;
   }
 

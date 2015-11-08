@@ -77,6 +77,7 @@ public class IteratorTestRunner {
       try {
         actualOutput = testCase.test(testInput);
       } catch (Exception e) {
+        log.error("Failed to invoke {} on {}", testCase.getClass().getName(), testInput.getIteratorClass().getName(), e);
         actualOutput = new IteratorTestOutput(e);
       }
 

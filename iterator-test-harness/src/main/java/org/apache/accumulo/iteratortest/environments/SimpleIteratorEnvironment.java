@@ -69,7 +69,7 @@ public class SimpleIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public boolean isSamplingEnabled() {
-    throw new UnsupportedOperationException();
+    return false;
   }
 
   @Override
