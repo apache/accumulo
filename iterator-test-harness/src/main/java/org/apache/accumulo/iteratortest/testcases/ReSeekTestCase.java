@@ -38,6 +38,10 @@ import org.slf4j.LoggerFactory;
  */
 public class ReSeekTestCase extends OutputVerifyingTestCase {
   private static final Logger log = LoggerFactory.getLogger(ReSeekTestCase.class);
+
+  /**
+   * Let N be a random number between [0, RESEEK_INTERVAL). After every Nth entry "returned" to the client, recreate and reseek the iterator.
+   */
   private static final int RESEEK_INTERVAL = 4;
 
   private final Random random;
