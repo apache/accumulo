@@ -344,6 +344,49 @@ very sensitive to an excessive number of nodes and the sizes of the nodes. Appli
 which leverage the user of custom properties should take these warnings into
 consideration. There is no enforcement of these warnings via the API.
 
+==== Configuring the ClassLoader
+
+Accumulo loads classes from the locations specified in the +general.classpaths+ property. Additionally, Accumulo will load classes
+from the locations specified in the +general.dynamic.classpaths+ property and will monitor and reload them if they change. The reloading 
+feature is useful during the development and testing of iterators as new or modified iterator classes can be deployed to Accumulo without
+having to restart the database.
+
+Accumulo also has an alternate configuration for the classloader which will allow it to load classes from remote locations. This mechanism
+uses Apache Commons VFS which enables locations such as http and hdfs to be used. This alternate configuration also uses the
++general.classpaths+ property in the same manner described above. It differs in that you need to configure the
++general.vfs.classpaths+ property instead of the +general.dynamic.classpath+ property. As in the default configuration, this alternate
+configuration will also monitor the vfs locations for changes and reload if necessary.
+
+===== ClassLoader Contexts
+
+With the addition of the VFS based classloader, we introduced the notion of classloader contexts. A context is identified
+by a name and references a set of locations from which to load classes and can be specified in the accumulo-site.xml file or added
+using the +config+ command in the shell. Below is an example for specify the app1 context in the accumulo-site.xml file:
+
+[source,xml]
+<property>
+  <name>general.vfs.context.classpath.app1</name>
+  <value>hdfs://localhost:8020/applicationA/classpath/.*.jar,file:///opt/applicationA/lib/.*.jar</value>
+  <description>Application A classpath, loads jars from HDFS and local file system</description>
+</property>
+
+The default behavior follows the Java ClassLoader contract in that classes, if they exists, are loaded from the parent classloader first.
+You can override this behavior by delegating to the parent classloader after looking in this classloader first. An example of this
+configuration is:
+
+[source,xml]
+<property>
+  <name>general.vfs.context.classpath.app1.delegation=post</name>
+  <value>hdfs://localhost:8020/applicationA/classpath/.*.jar,file:///opt/applicationA/lib/.*.jar</value>
+  <description>Application A classpath, loads jars from HDFS and local file system</description>
+</property>
+
+To use contexts in your application you can set the +table.classpath.context+ on your tables or use the +setContext()+ method on Scanner
+and BatchScanner. Setting the property on the table allows your minc, majc, and scan iterators to load classes from the locations defined
+by the context. Passing the context name to the scanners allows you to override the table setting to load only scan time iterators
+from a different location. 
+
+
 === Initialization
 
 Accumulo must be initialized to create the structures it uses internally to locate

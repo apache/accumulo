@@ -58,6 +58,8 @@ public class ScannerOptions implements ScannerBase {
 
   private SamplerConfiguration samplerConfig = null;
 
+  protected String context = null;
+
   protected ScannerOptions() {}
 
   public ScannerOptions(ScannerOptions so) {
@@ -168,6 +170,7 @@ public class ScannerOptions implements ScannerBase {
         dst.regexIterName = src.regexIterName;
         dst.fetchedColumns = new TreeSet<Column>(src.fetchedColumns);
         dst.serverSideIteratorList = new ArrayList<IterInfo>(src.serverSideIteratorList);
+        dst.context = src.context;
 
         dst.serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
@@ -244,4 +247,20 @@ public class ScannerOptions implements ScannerBase {
   public long getBatchTimeout(TimeUnit timeUnit) {
     return timeUnit.convert(batchTimeOut, TimeUnit.MILLISECONDS);
   }
+
+  @Override
+  public void setContext(String context) {
+    this.context = context;
+  }
+
+  @Override
+  public void clearContext() {
+    this.context = null;
+  }
+
+  @Override
+  public String getContext() {
+    return this.context;
+  }
+
 }

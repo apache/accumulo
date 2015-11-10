@@ -39,6 +39,7 @@ public class MultiScanSession extends Session {
   public final Authorizations auths;
   public final SamplerConfiguration samplerConfig;
   public final long batchTimeOut;
+  public final String context;
 
   // stats
   public int numRanges;
@@ -49,7 +50,7 @@ public class MultiScanSession extends Session {
   public volatile ScanTask<MultiScanResult> lookupTask;
 
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent, Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, Authorizations authorizations, SamplerConfiguration samplerConfig, long batchTimeOut) {
+      Map<String,Map<String,String>> ssio, Authorizations authorizations, SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
     super(credentials);
     this.queries = queries;
     this.ssiList = ssiList;
@@ -58,6 +59,7 @@ public class MultiScanSession extends Session {
     this.threadPoolExtent = threadPoolExtent;
     this.samplerConfig = samplerConfig;
     this.batchTimeOut = batchTimeOut;
+    this.context = context;
   }
 
   @Override

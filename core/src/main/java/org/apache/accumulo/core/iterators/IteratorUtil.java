@@ -217,12 +217,8 @@ public class IteratorUtil {
     return loadIterators(scope, source, extent, conf, ssiList, ssio, env, true);
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
-    List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
-    Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
-
+  private static void parseIteratorConfiguration(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> ssio,
+      Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
     parseIterConf(scope, iters, allOptions, conf);
 
     for (Entry<String,Map<String,String>> entry : ssio.entrySet()) {
@@ -235,8 +231,24 @@ public class IteratorUtil {
         options.putAll(entry.getValue());
       }
     }
+  }
 
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
+      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
+    List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
+    Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
+    parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
     return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, conf.get(Property.TABLE_CLASSPATH));
+  }
+
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
+      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      IteratorEnvironment env, boolean useAccumuloClassLoader, String context) throws IOException {
+    List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
+    Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
+    parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
+    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, context);
   }
 
   @SuppressWarnings("unchecked")

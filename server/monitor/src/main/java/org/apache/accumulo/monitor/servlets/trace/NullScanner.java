@@ -145,4 +145,15 @@ public class NullScanner implements Scanner {
 
   @Override
   public void clearSamplerConfiguration() {}
+
+  @Override
+  public void setContext(String context) {}
+
+  @Override
+  public void clearContext() {}
+
+  @Override
+  public String getContext() {
+    return null;
+  }
 }

@@ -459,8 +459,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
-        long readaheadThreshold, TSamplerConfiguration tSamplerConfig, long batchTimeOut) throws NotServingTabletException, ThriftSecurityException,
-        org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException, TSampleNotPresentException {
+        long readaheadThreshold, TSamplerConfiguration tSamplerConfig, long batchTimeOut, String context) throws NotServingTabletException,
+        ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException, TSampleNotPresentException {
 
       String tableId = new String(textent.getTable(), UTF_8);
       if (!security.canScan(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), range, columns, ssiList, ssio, authorizations))
@@ -494,9 +494,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       final ScanSession scanSession = new ScanSession(credentials, extent, columnSet, ssiList, ssio, new Authorizations(authorizations), readaheadThreshold,
-          batchTimeOut);
+          batchTimeOut, context);
       scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet, scanSession.auths, ssiList, ssio, isolated,
-          scanSession.interruptFlag, SamplerConfigurationImpl.fromThrift(tSamplerConfig), scanSession.batchTimeOut);
+          scanSession.interruptFlag, SamplerConfigurationImpl.fromThrift(tSamplerConfig), scanSession.batchTimeOut, scanSession.context);
 
       long sid = sessionManager.createSession(scanSession, true);
 
@@ -611,7 +611,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     @Override
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
-        TSamplerConfiguration tSamplerConfig, long batchTimeOut) throws ThriftSecurityException, TSampleNotPresentException {
+        TSamplerConfiguration tSamplerConfig, long batchTimeOut, String context) throws ThriftSecurityException, TSampleNotPresentException {
       // find all of the tables that need to be scanned
       final HashSet<String> tables = new HashSet<String>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
@@ -643,7 +643,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
 
       final MultiScanSession mss = new MultiScanSession(credentials, threadPoolExtent, batch, ssiList, ssio, new Authorizations(authorizations),
-          SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut);
+          SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, context);
 
       mss.numTablets = batch.size();
       for (List<Range> ranges : batch.values()) {
@@ -1140,7 +1140,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         IterConfig ic = compressedIters.decompress(tc.iterators);
 
-        Scanner scanner = tablet.createScanner(range, 1, EMPTY_COLUMNS, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag, null, 0);
+        Scanner scanner = tablet.createScanner(range, 1, EMPTY_COLUMNS, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag, null, 0, null);
 
         try {
           ScanBatch batch = scanner.read();

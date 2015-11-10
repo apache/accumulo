@@ -63,6 +63,7 @@ public class ScanCommand extends Command {
   private Option timeoutOption;
   private Option profileOpt;
   private Option sampleOpt;
+  private Option contextOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState, ScannerBase scanner) throws TableNotFoundException,
       AccumuloException, AccumuloSecurityException {
@@ -84,11 +85,17 @@ public class ScanCommand extends Command {
     final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
+    String context = null;
+    if (cl.hasOption(contextOpt.getOpt())) {
+      context = cl.getOptionValue(contextOpt.getOpt());
+    }
     // handle first argument, if present, the authorizations list to
     // scan with
     final Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
-
+    if (null != context) {
+      scanner.setContext(context);
+    }
     // handle session-specific scan iterators
     addScanIterators(shellState, cl, scanner, tableName);
 
@@ -316,6 +323,7 @@ public class ScanCommand extends Command {
         "time before scan should fail if no data is returned. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     sampleOpt = new Option(null, "sample", false, "Show sample");
+    contextOpt = new Option("cc", "context", true, "name of the classloader context");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -325,6 +333,7 @@ public class ScanCommand extends Command {
     formatterOpt.setArgName("className");
     timeoutOption.setArgName("timeout");
     outputFileOpt.setArgName("file");
+    contextOpt.setArgName("context");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -347,6 +356,7 @@ public class ScanCommand extends Command {
     o.addOption(outputFileOpt);
     o.addOption(profileOpt);
     o.addOption(sampleOpt);
+    o.addOption(contextOpt);
 
     return o;
   }

@@ -226,6 +226,25 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <executions>
+            <execution>
+              <goals>
+                <goal>test-jar</goal>
+              </goals>
+              <phase>pre-integration-test</phase>
+              <configuration>
+                <finalName>TestIterators</finalName>
+                <classifier />
+                <includes>
+                  <include>org/apache/accumulo/test/functional/ValueReversingIterator.class</include>
+                </includes>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>

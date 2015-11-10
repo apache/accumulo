@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField SSIO_FIELD_DESC = new org.apache.thrift.protocol.TField("ssio", org.apache.thrift.protocol.TType.MAP, (short)12);
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)13);
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanId", org.apache.thrift.protocol.TType.I64, (short)14);
+  private static final org.apache.thrift.protocol.TField CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("context", org.apache.thrift.protocol.TType.STRING, (short)15);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -92,6 +93,7 @@ import org.slf4j.LoggerFactory;
   public Map<String,Map<String,String>> ssio; // required
   public List<ByteBuffer> authorizations; // required
   public long scanId; // optional
+  public String context; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -115,7 +117,8 @@ import org.slf4j.LoggerFactory;
     SSI_LIST((short)11, "ssiList"),
     SSIO((short)12, "ssio"),
     AUTHORIZATIONS((short)13, "authorizations"),
-    SCAN_ID((short)14, "scanId");
+    SCAN_ID((short)14, "scanId"),
+    CONTEXT((short)15, "context");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -156,6 +159,8 @@ import org.slf4j.LoggerFactory;
           return AUTHORIZATIONS;
         case 14: // SCAN_ID
           return SCAN_ID;
+        case 15: // CONTEXT
+          return CONTEXT;
         default:
           return null;
       }
@@ -237,6 +242,8 @@ import org.slf4j.LoggerFactory;
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
     tmpMap.put(_Fields.SCAN_ID, new org.apache.thrift.meta_data.FieldMetaData("scanId", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.CONTEXT, new org.apache.thrift.meta_data.FieldMetaData("context", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveScan.class, metaDataMap);
   }
@@ -256,7 +263,8 @@ import org.slf4j.LoggerFactory;
     List<org.apache.accumulo.core.data.thrift.TColumn> columns,
     List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
     Map<String,Map<String,String>> ssio,
-    List<ByteBuffer> authorizations)
+    List<ByteBuffer> authorizations,
+    String context)
   {
     this();
     this.client = client;
@@ -273,6 +281,7 @@ import org.slf4j.LoggerFactory;
     this.ssiList = ssiList;
     this.ssio = ssio;
     this.authorizations = authorizations;
+    this.context = context;
   }
 
   /**
@@ -334,6 +343,9 @@ import org.slf4j.LoggerFactory;
       this.authorizations = __this__authorizations;
     }
     this.scanId = other.scanId;
+    if (other.isSetContext()) {
+      this.context = other.context;
+    }
   }
 
   public ActiveScan deepCopy() {
@@ -358,6 +370,7 @@ import org.slf4j.LoggerFactory;
     this.authorizations = null;
     setScanIdIsSet(false);
     this.scanId = 0;
+    this.context = null;
   }
 
   public String getClient() {
@@ -741,6 +754,30 @@ import org.slf4j.LoggerFactory;
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SCANID_ISSET_ID, value);
   }
 
+  public String getContext() {
+    return this.context;
+  }
+
+  public ActiveScan setContext(String context) {
+    this.context = context;
+    return this;
+  }
+
+  public void unsetContext() {
+    this.context = null;
+  }
+
+  /** Returns true if field context is set (has been assigned a value) and false otherwise */
+  public boolean isSetContext() {
+    return this.context != null;
+  }
+
+  public void setContextIsSet(boolean value) {
+    if (!value) {
+      this.context = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case CLIENT:
@@ -847,6 +884,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case CONTEXT:
+      if (value == null) {
+        unsetContext();
+      } else {
+        setContext((String)value);
+      }
+      break;
+
     }
   }
 
@@ -891,6 +936,9 @@ import org.slf4j.LoggerFactory;
     case SCAN_ID:
       return Long.valueOf(getScanId());
 
+    case CONTEXT:
+      return getContext();
+
     }
     throw new IllegalStateException();
   }
@@ -928,6 +976,8 @@ import org.slf4j.LoggerFactory;
       return isSetAuthorizations();
     case SCAN_ID:
       return isSetScanId();
+    case CONTEXT:
+      return isSetContext();
     }
     throw new IllegalStateException();
   }
@@ -1059,6 +1109,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_scanId && that_present_scanId))
         return false;
       if (this.scanId != that.scanId)
+        return false;
+    }
+
+    boolean this_present_context = true && this.isSetContext();
+    boolean that_present_context = true && that.isSetContext();
+    if (this_present_context || that_present_context) {
+      if (!(this_present_context && that_present_context))
+        return false;
+      if (!this.context.equals(that.context))
         return false;
     }
 
@@ -1208,6 +1267,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetContext()).compareTo(other.isSetContext());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetContext()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.context, other.context);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1321,6 +1390,14 @@ import org.slf4j.LoggerFactory;
       sb.append(this.scanId);
       first = false;
     }
+    if (!first) sb.append(", ");
+    sb.append("context:");
+    if (this.context == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.context);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -1530,6 +1607,14 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 15: // CONTEXT
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.context = iprot.readString();
+              struct.setContextIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1643,6 +1728,11 @@ import org.slf4j.LoggerFactory;
         oprot.writeI64(struct.scanId);
         oprot.writeFieldEnd();
       }
+      if (struct.context != null) {
+        oprot.writeFieldBegin(CONTEXT_FIELD_DESC);
+        oprot.writeString(struct.context);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1700,7 +1790,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetScanId()) {
         optionals.set(12);
       }
-      oprot.writeBitSet(optionals, 13);
+      if (struct.isSetContext()) {
+        optionals.set(13);
+      }
+      oprot.writeBitSet(optionals, 14);
       if (struct.isSetClient()) {
         oprot.writeString(struct.client);
       }
@@ -1772,12 +1865,15 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetScanId()) {
         oprot.writeI64(struct.scanId);
       }
+      if (struct.isSetContext()) {
+        oprot.writeString(struct.context);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ActiveScan struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(13);
+      BitSet incoming = iprot.readBitSet(14);
       if (incoming.get(0)) {
         struct.client = iprot.readString();
         struct.setClientIsSet(true);
@@ -1881,6 +1977,10 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(12)) {
         struct.scanId = iprot.readI64();
         struct.setScanIdIsSet(true);
+      }
+      if (incoming.get(13)) {
+        struct.context = iprot.readString();
+        struct.setContextIsSet(true);
       }
     }
   }

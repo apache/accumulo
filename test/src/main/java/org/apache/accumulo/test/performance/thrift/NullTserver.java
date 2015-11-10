@@ -138,14 +138,15 @@ public class NullTserver {
 
     @Override
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc, long batchTimeOut) {
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc, long batchTimeOut,
+        String context) {
       return null;
     }
 
     @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
-        long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut) {
+        long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut, String context) {
       return null;
     }
 
