@@ -193,7 +193,7 @@ service TabletClientService extends client.ClientService {
             2:NotServingTabletException nste, 
             3:ConstraintViolationException cve),
 
-  data.TConditionalSession startConditionalUpdate(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<binary> authorizations, 4:string tableID, 5:TDurability durability)
+  data.TConditionalSession startConditionalUpdate(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<binary> authorizations, 4:string tableID, 5:TDurability durability, 6:string classLoaderContext)
      throws (1:client.ThriftSecurityException sec);
   
   list<data.TCMResult> conditionalUpdate(1:trace.TInfo tinfo, 2:data.UpdateID sessID, 3:data.CMBatch mutations, 4:list<string> symbols)

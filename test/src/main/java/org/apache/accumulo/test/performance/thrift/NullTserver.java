@@ -212,7 +212,7 @@ public class NullTserver {
 
     @Override
     public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID,
-        TDurability durability) throws ThriftSecurityException, TException {
+        TDurability durability, String classLoaderContext) throws ThriftSecurityException, TException {
       return null;
     }
 

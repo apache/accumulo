@@ -244,7 +244,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   long getBatchTimeout(TimeUnit timeUnit);
 
   /**
-   * Sets the name of the classloader context on this scanner
+   * Sets the name of the classloader context on this scanner. See the administration chapter of the user manual for details on how to configure and use
+   * classloader contexts.
    *
    * @param classLoaderContext
    *          name of the classloader context

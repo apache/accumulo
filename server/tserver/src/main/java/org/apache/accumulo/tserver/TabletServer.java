@@ -1140,7 +1140,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         IterConfig ic = compressedIters.decompress(tc.iterators);
 
-        Scanner scanner = tablet.createScanner(range, 1, EMPTY_COLUMNS, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag, null, 0, null);
+        Scanner scanner = tablet.createScanner(range, 1, EMPTY_COLUMNS, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag, null, 0, cs.classLoaderContext);
 
         try {
           ScanBatch batch = scanner.read();
@@ -1301,7 +1301,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableId,
-        TDurability tdurabilty) throws ThriftSecurityException, TException {
+        TDurability tdurabilty, String classLoaderContext) throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
       if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), authorizations))
@@ -1312,7 +1312,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
 
-      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId, DurabilityImpl.fromThrift(tdurabilty));
+      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId, DurabilityImpl.fromThrift(tdurabilty),
+          classLoaderContext);
 
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());

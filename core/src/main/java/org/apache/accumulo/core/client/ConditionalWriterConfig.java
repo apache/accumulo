@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.security.Authorizations;
 
+import com.google.common.base.Preconditions;
+
 /**
  *
  * @since 1.6.0
@@ -37,6 +39,8 @@ public class ConditionalWriterConfig {
   private Authorizations auths = Authorizations.EMPTY;
 
   private Durability durability = Durability.DEFAULT;
+
+  private String classLoaderContext = null;
 
   /**
    * A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in must be
@@ -133,4 +137,39 @@ public class ConditionalWriterConfig {
   public Durability getDurability() {
     return durability;
   }
+
+  /**
+   * Sets the name of the classloader context on this scanner. See the administration chapter of the user manual for details on how to configure and use
+   * classloader contexts.
+   *
+   * @param classLoaderContext
+   *          name of the classloader context
+   * @throws NullPointerException
+   *           if context is null
+   * @since 1.8.0
+   */
+  public void setClassLoaderContext(String classLoaderContext) {
+    Preconditions.checkNotNull(classLoaderContext, "context name cannot be null");
+    this.classLoaderContext = classLoaderContext;
+  }
+
+  /**
+   * Clears the current classloader context set on this scanner
+   *
+   * @since 1.8.0
+   */
+  public void clearClassLoaderContext() {
+    this.classLoaderContext = null;
+  }
+
+  /**
+   * Returns the name of the current classloader context set on this scanner
+   *
+   * @return name of the current context
+   * @since 1.8.0
+   */
+  public String getClassLoaderContext() {
+    return this.classLoaderContext;
+  }
+
 }
