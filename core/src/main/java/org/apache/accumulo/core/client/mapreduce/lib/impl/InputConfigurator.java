@@ -90,7 +90,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static enum ScanOpts {
-    TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS, SAMPLER_CONFIG, CONTEXT
+    TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS, SAMPLER_CONFIG, CLASSLOADER_CONTEXT
   }
 
   /**
@@ -113,9 +113,9 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the name of the context classloader
    * @since 1.8.0
    */
-  public static void setContext(Class<?> implementingClass, Configuration conf, String context) {
+  public static void setClassLoaderContext(Class<?> implementingClass, Configuration conf, String context) {
     checkArgument(context != null, "context is null");
-    conf.set(enumToConfKey(implementingClass, ScanOpts.CONTEXT), context);
+    conf.set(enumToConfKey(implementingClass, ScanOpts.CLASSLOADER_CONTEXT), context);
   }
 
   /**
@@ -128,8 +128,8 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the classloader context name
    * @since 1.8.0
    */
-  public static String getContext(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ScanOpts.CONTEXT), null);
+  public static String getClassLoaderContext(Class<?> implementingClass, Configuration conf) {
+    return conf.get(enumToConfKey(implementingClass, ScanOpts.CLASSLOADER_CONTEXT), null);
   }
 
   /**

@@ -246,18 +246,20 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   /**
    * Sets the name of the classloader context on this scanner
    *
-   * @param context
+   * @param classLoaderContext
    *          name of the classloader context
+   * @throws NullPointerException
+   *           if context is null
    * @since 1.8.0
    */
-  void setContext(String context);
+  void setClassLoaderContext(String classLoaderContext);
 
   /**
    * Clears the current classloader context set on this scanner
    *
    * @since 1.8.0
    */
-  void clearContext();
+  void clearClassLoaderContext();
 
   /**
    * Returns the name of the current classloader context set on this scanner
@@ -265,5 +267,5 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @return name of the current context
    * @since 1.8.0
    */
-  String getContext();
+  String getClassLoaderContext();
 }

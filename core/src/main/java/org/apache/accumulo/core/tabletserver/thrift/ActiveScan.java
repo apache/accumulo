@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField SSIO_FIELD_DESC = new org.apache.thrift.protocol.TField("ssio", org.apache.thrift.protocol.TType.MAP, (short)12);
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)13);
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanId", org.apache.thrift.protocol.TType.I64, (short)14);
-  private static final org.apache.thrift.protocol.TField CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("context", org.apache.thrift.protocol.TType.STRING, (short)15);
+  private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)15);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -93,7 +93,7 @@ import org.slf4j.LoggerFactory;
   public Map<String,Map<String,String>> ssio; // required
   public List<ByteBuffer> authorizations; // required
   public long scanId; // optional
-  public String context; // required
+  public String classLoaderContext; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -118,7 +118,7 @@ import org.slf4j.LoggerFactory;
     SSIO((short)12, "ssio"),
     AUTHORIZATIONS((short)13, "authorizations"),
     SCAN_ID((short)14, "scanId"),
-    CONTEXT((short)15, "context");
+    CLASS_LOADER_CONTEXT((short)15, "classLoaderContext");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -159,8 +159,8 @@ import org.slf4j.LoggerFactory;
           return AUTHORIZATIONS;
         case 14: // SCAN_ID
           return SCAN_ID;
-        case 15: // CONTEXT
-          return CONTEXT;
+        case 15: // CLASS_LOADER_CONTEXT
+          return CLASS_LOADER_CONTEXT;
         default:
           return null;
       }
@@ -242,7 +242,7 @@ import org.slf4j.LoggerFactory;
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
     tmpMap.put(_Fields.SCAN_ID, new org.apache.thrift.meta_data.FieldMetaData("scanId", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.CONTEXT, new org.apache.thrift.meta_data.FieldMetaData("context", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.CLASS_LOADER_CONTEXT, new org.apache.thrift.meta_data.FieldMetaData("classLoaderContext", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveScan.class, metaDataMap);
@@ -264,7 +264,7 @@ import org.slf4j.LoggerFactory;
     List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
     Map<String,Map<String,String>> ssio,
     List<ByteBuffer> authorizations,
-    String context)
+    String classLoaderContext)
   {
     this();
     this.client = client;
@@ -281,7 +281,7 @@ import org.slf4j.LoggerFactory;
     this.ssiList = ssiList;
     this.ssio = ssio;
     this.authorizations = authorizations;
-    this.context = context;
+    this.classLoaderContext = classLoaderContext;
   }
 
   /**
@@ -343,8 +343,8 @@ import org.slf4j.LoggerFactory;
       this.authorizations = __this__authorizations;
     }
     this.scanId = other.scanId;
-    if (other.isSetContext()) {
-      this.context = other.context;
+    if (other.isSetClassLoaderContext()) {
+      this.classLoaderContext = other.classLoaderContext;
     }
   }
 
@@ -370,7 +370,7 @@ import org.slf4j.LoggerFactory;
     this.authorizations = null;
     setScanIdIsSet(false);
     this.scanId = 0;
-    this.context = null;
+    this.classLoaderContext = null;
   }
 
   public String getClient() {
@@ -754,27 +754,27 @@ import org.slf4j.LoggerFactory;
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SCANID_ISSET_ID, value);
   }
 
-  public String getContext() {
-    return this.context;
+  public String getClassLoaderContext() {
+    return this.classLoaderContext;
   }
 
-  public ActiveScan setContext(String context) {
-    this.context = context;
+  public ActiveScan setClassLoaderContext(String classLoaderContext) {
+    this.classLoaderContext = classLoaderContext;
     return this;
   }
 
-  public void unsetContext() {
-    this.context = null;
+  public void unsetClassLoaderContext() {
+    this.classLoaderContext = null;
   }
 
-  /** Returns true if field context is set (has been assigned a value) and false otherwise */
-  public boolean isSetContext() {
-    return this.context != null;
+  /** Returns true if field classLoaderContext is set (has been assigned a value) and false otherwise */
+  public boolean isSetClassLoaderContext() {
+    return this.classLoaderContext != null;
   }
 
-  public void setContextIsSet(boolean value) {
+  public void setClassLoaderContextIsSet(boolean value) {
     if (!value) {
-      this.context = null;
+      this.classLoaderContext = null;
     }
   }
 
@@ -884,11 +884,11 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case CONTEXT:
+    case CLASS_LOADER_CONTEXT:
       if (value == null) {
-        unsetContext();
+        unsetClassLoaderContext();
       } else {
-        setContext((String)value);
+        setClassLoaderContext((String)value);
       }
       break;
 
@@ -936,8 +936,8 @@ import org.slf4j.LoggerFactory;
     case SCAN_ID:
       return Long.valueOf(getScanId());
 
-    case CONTEXT:
-      return getContext();
+    case CLASS_LOADER_CONTEXT:
+      return getClassLoaderContext();
 
     }
     throw new IllegalStateException();
@@ -976,8 +976,8 @@ import org.slf4j.LoggerFactory;
       return isSetAuthorizations();
     case SCAN_ID:
       return isSetScanId();
-    case CONTEXT:
-      return isSetContext();
+    case CLASS_LOADER_CONTEXT:
+      return isSetClassLoaderContext();
     }
     throw new IllegalStateException();
   }
@@ -1112,12 +1112,12 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_context = true && this.isSetContext();
-    boolean that_present_context = true && that.isSetContext();
-    if (this_present_context || that_present_context) {
-      if (!(this_present_context && that_present_context))
+    boolean this_present_classLoaderContext = true && this.isSetClassLoaderContext();
+    boolean that_present_classLoaderContext = true && that.isSetClassLoaderContext();
+    if (this_present_classLoaderContext || that_present_classLoaderContext) {
+      if (!(this_present_classLoaderContext && that_present_classLoaderContext))
         return false;
-      if (!this.context.equals(that.context))
+      if (!this.classLoaderContext.equals(that.classLoaderContext))
         return false;
     }
 
@@ -1267,12 +1267,12 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetContext()).compareTo(other.isSetContext());
+    lastComparison = Boolean.valueOf(isSetClassLoaderContext()).compareTo(other.isSetClassLoaderContext());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetContext()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.context, other.context);
+    if (isSetClassLoaderContext()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.classLoaderContext, other.classLoaderContext);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1391,11 +1391,11 @@ import org.slf4j.LoggerFactory;
       first = false;
     }
     if (!first) sb.append(", ");
-    sb.append("context:");
-    if (this.context == null) {
+    sb.append("classLoaderContext:");
+    if (this.classLoaderContext == null) {
       sb.append("null");
     } else {
-      sb.append(this.context);
+      sb.append(this.classLoaderContext);
     }
     first = false;
     sb.append(")");
@@ -1607,10 +1607,10 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 15: // CONTEXT
+          case 15: // CLASS_LOADER_CONTEXT
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.context = iprot.readString();
-              struct.setContextIsSet(true);
+              struct.classLoaderContext = iprot.readString();
+              struct.setClassLoaderContextIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1728,9 +1728,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeI64(struct.scanId);
         oprot.writeFieldEnd();
       }
-      if (struct.context != null) {
-        oprot.writeFieldBegin(CONTEXT_FIELD_DESC);
-        oprot.writeString(struct.context);
+      if (struct.classLoaderContext != null) {
+        oprot.writeFieldBegin(CLASS_LOADER_CONTEXT_FIELD_DESC);
+        oprot.writeString(struct.classLoaderContext);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -1790,7 +1790,7 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetScanId()) {
         optionals.set(12);
       }
-      if (struct.isSetContext()) {
+      if (struct.isSetClassLoaderContext()) {
         optionals.set(13);
       }
       oprot.writeBitSet(optionals, 14);
@@ -1865,8 +1865,8 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetScanId()) {
         oprot.writeI64(struct.scanId);
       }
-      if (struct.isSetContext()) {
-        oprot.writeString(struct.context);
+      if (struct.isSetClassLoaderContext()) {
+        oprot.writeString(struct.classLoaderContext);
       }
     }
 
@@ -1979,8 +1979,8 @@ import org.slf4j.LoggerFactory;
         struct.setScanIdIsSet(true);
       }
       if (incoming.get(13)) {
-        struct.context = iprot.readString();
-        struct.setContextIsSet(true);
+        struct.classLoaderContext = iprot.readString();
+        struct.setClassLoaderContextIsSet(true);
       }
     }
   }

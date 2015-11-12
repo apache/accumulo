@@ -55,6 +55,9 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   private static final String CONTEXT_DIR = "file:///tmp";
   private static final String CONTEXT_CLASSPATH = CONTEXT_DIR + "/Test.jar";
   private static int ITERATIONS = 10;
+  private static final long WAIT = 7000;
+
+  private FileSystem fs;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -62,20 +65,22 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   }
 
   @Before
-  public void checkCluster() {
+  public void checkCluster() throws Exception {
     Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
+    fs = FileSystem.get(CachedConfiguration.getInstance());
   }
 
   @Test
   public void test() throws Exception {
     // Copy the TestIterators jar to tmp
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Path srcPath = new Path(System.getProperty("user.dir") + "/target/TestIterators-tests.jar");
+    Path baseDir = new Path(System.getProperty("user.dir"));
+    Path targetDir = new Path(baseDir, "target");
+    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
     Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
-    fs.copyFromLocalFile(srcPath, dstPath);
+    fs.copyFromLocalFile(jarPath, dstPath);
     // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(5000);
+    UtilWaitThread.sleep(WAIT);
 
     try {
       Connector c = getConnector();
@@ -97,7 +102,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       batchCheck(c, tableName, null, null, "Test");
 
       // This iterator is in the TestIterators jar file
-      IteratorSetting cfg = new IteratorSetting(1, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
 
       // Check that ValueReversingIterator is not already on the classpath by not setting the context. This should fail.
       try {
@@ -126,12 +131,13 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Test
   public void testScanContextOverridesTableContext() throws Exception {
     // Copy the TestIterators jar to tmp
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Path srcPath = new Path(System.getProperty("user.dir") + "/target/TestIterators-tests.jar");
+    Path baseDir = new Path(System.getProperty("user.dir"));
+    Path targetDir = new Path(baseDir, "target");
+    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
     Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
-    fs.copyFromLocalFile(srcPath, dstPath);
+    fs.copyFromLocalFile(jarPath, dstPath);
     // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(5000);
+    UtilWaitThread.sleep(WAIT);
 
     try {
       Connector c = getConnector();
@@ -159,7 +165,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       scanCheck(c, tableName, null, null, "Test");
       batchCheck(c, tableName, null, null, "Test");
       // This iterator is in the TestIterators jar file
-      IteratorSetting cfg = new IteratorSetting(1, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
 
       // Check that ValueReversingIterator is not already on the classpath by not setting the context. This should fail.
       try {
@@ -188,7 +194,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   private void scanCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
     Scanner bs = c.createScanner(tableName, Authorizations.EMPTY);
     if (null != context) {
-      bs.setContext(context);
+      bs.setClassLoaderContext(context);
     }
     if (null != cfg) {
       bs.addScanIterator(cfg);
@@ -207,7 +213,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     bs.setRanges(Collections.singleton(new Range()));
     try {
       if (null != context) {
-        bs.setContext(context);
+        bs.setClassLoaderContext(context);
       }
       if (null != cfg) {
         bs.addScanIterator(cfg);

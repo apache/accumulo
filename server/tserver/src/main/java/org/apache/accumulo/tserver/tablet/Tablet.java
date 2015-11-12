@@ -634,7 +634,7 @@ public class Tablet implements TabletCommitter {
 
   public LookupResult lookup(List<Range> ranges, HashSet<Column> columns, Authorizations authorizations, List<KVEntry> results, long maxResultSize,
       List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut,
-      String context) throws IOException {
+      String classLoaderContext) throws IOException {
 
     if (ranges.size() == 0) {
       return new LookupResult();
@@ -653,7 +653,7 @@ public class Tablet implements TabletCommitter {
     }
 
     ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, samplerConfig,
-        batchTimeOut, context);
+        batchTimeOut, classLoaderContext);
 
     LookupResult result = null;
 
@@ -757,13 +757,14 @@ public class Tablet implements TabletCommitter {
   }
 
   public Scanner createScanner(Range range, int num, Set<Column> columns, Authorizations authorizations, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
+      Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut,
+      String classLoaderContext) {
     // do a test to see if this range falls within the tablet, if it does not
     // then clip will throw an exception
     extent.toDataRange().clip(range);
 
     ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, isolated, samplerConfig,
-        batchTimeOut, context);
+        batchTimeOut, classLoaderContext);
     return new Scanner(this, range, opts);
   }
 

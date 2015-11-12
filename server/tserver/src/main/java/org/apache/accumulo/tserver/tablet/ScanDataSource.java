@@ -178,12 +178,12 @@ class ScanDataSource implements DataSource {
 
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
 
-    if (null == options.getContext()) {
+    if (null == options.getClassLoaderContext()) {
       return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
           options.getSsiList(), options.getSsio(), iterEnv));
     } else {
       return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
-          options.getSsiList(), options.getSsio(), iterEnv, true, options.getContext()));
+          options.getSsiList(), options.getSsio(), iterEnv, true, options.getClassLoaderContext()));
     }
   }
 

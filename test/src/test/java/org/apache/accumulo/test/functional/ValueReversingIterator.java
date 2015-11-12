@@ -28,6 +28,10 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.commons.lang3.ArrayUtils;
 
+/**
+ * Iterator used in ScannerContextIT that reverses the bytes of the value
+ *
+ */
 public class ValueReversingIterator implements SortedKeyValueIterator<Key,Value> {
 
   protected SortedKeyValueIterator<Key,Value> source;

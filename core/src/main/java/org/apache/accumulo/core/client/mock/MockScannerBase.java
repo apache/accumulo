@@ -153,7 +153,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public void setContext(String context) {
+  public void setClassLoaderContext(String context) {
     throw new UnsupportedOperationException();
   }
 }

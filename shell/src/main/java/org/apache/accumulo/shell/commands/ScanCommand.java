@@ -85,16 +85,16 @@ public class ScanCommand extends Command {
     final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
-    String context = null;
+    String classLoaderContext = null;
     if (cl.hasOption(contextOpt.getOpt())) {
-      context = cl.getOptionValue(contextOpt.getOpt());
+      classLoaderContext = cl.getOptionValue(contextOpt.getOpt());
     }
     // handle first argument, if present, the authorizations list to
     // scan with
     final Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
-    if (null != context) {
-      scanner.setContext(context);
+    if (null != classLoaderContext) {
+      scanner.setClassLoaderContext(classLoaderContext);
     }
     // handle session-specific scan iterators
     addScanIterators(shellState, cl, scanner, tableName);

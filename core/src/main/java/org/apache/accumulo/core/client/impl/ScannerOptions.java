@@ -58,7 +58,7 @@ public class ScannerOptions implements ScannerBase {
 
   private SamplerConfiguration samplerConfig = null;
 
-  protected String context = null;
+  protected String classLoaderContext = null;
 
   protected ScannerOptions() {}
 
@@ -170,7 +170,7 @@ public class ScannerOptions implements ScannerBase {
         dst.regexIterName = src.regexIterName;
         dst.fetchedColumns = new TreeSet<Column>(src.fetchedColumns);
         dst.serverSideIteratorList = new ArrayList<IterInfo>(src.serverSideIteratorList);
-        dst.context = src.context;
+        dst.classLoaderContext = src.classLoaderContext;
 
         dst.serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
@@ -249,18 +249,19 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public void setContext(String context) {
-    this.context = context;
+  public void setClassLoaderContext(String classLoaderContext) {
+    Preconditions.checkNotNull(classLoaderContext, "classloader context name cannot be null");
+    this.classLoaderContext = classLoaderContext;
   }
 
   @Override
-  public void clearContext() {
-    this.context = null;
+  public void clearClassLoaderContext() {
+    this.classLoaderContext = null;
   }
 
   @Override
-  public String getContext() {
-    return this.context;
+  public String getClassLoaderContext() {
+    return this.classLoaderContext;
   }
 
 }

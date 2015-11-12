@@ -90,7 +90,7 @@ struct ActiveScan {
     12:map<string, map<string, string>> ssio  /* Server Side Iterator Options */
     13:list<binary> authorizations
     14:optional i64 scanId
-    15:string context
+    15:string classLoaderContext /* name of the classloader context */
 }
 
 enum CompactionType {
@@ -162,7 +162,7 @@ service TabletClientService extends client.ClientService {
                              12:i64 readaheadThreshold,
                              13:TSamplerConfiguration samplerConfig,
                              14:i64 batchTimeOut,
-                             15:string context)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe, 4:TSampleNotPresentException tsnpe),
+                             15:string classLoaderContext /* name of the classloader context */)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe, 4:TSampleNotPresentException tsnpe),
                              
   data.ScanResult continueScan(2:trace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe, 4:TSampleNotPresentException tsnpe),
   oneway void closeScan(2:trace.TInfo tinfo, 1:data.ScanID scanID),
@@ -178,7 +178,7 @@ service TabletClientService extends client.ClientService {
                                   7:bool waitForWrites,
                                   9:TSamplerConfiguration samplerConfig,
                                   10:i64 batchTimeOut,
-                                  11:string context)  throws (1:client.ThriftSecurityException sec, 2:TSampleNotPresentException tsnpe),
+                                  11:string classLoaderContext /* name of the classloader context */)  throws (1:client.ThriftSecurityException sec, 2:TSampleNotPresentException tsnpe),
   data.MultiScanResult continueMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi, 2:TSampleNotPresentException tsnpe),
   void closeMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
   

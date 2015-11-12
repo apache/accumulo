@@ -244,11 +244,11 @@ public class IteratorUtil {
 
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      IteratorEnvironment env, boolean useAccumuloClassLoader, String context) throws IOException {
+      IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext) throws IOException {
     List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
     Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
     parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
-    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, context);
+    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, classLoaderContext);
   }
 
   @SuppressWarnings("unchecked")

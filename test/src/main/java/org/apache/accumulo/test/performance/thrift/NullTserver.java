@@ -146,7 +146,7 @@ public class NullTserver {
     @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
-        long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut, String context) {
+        long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut, String classLoaderContext) {
       return null;
     }
 

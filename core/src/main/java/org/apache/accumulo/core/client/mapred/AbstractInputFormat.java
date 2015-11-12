@@ -98,8 +98,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          name of the classloader context
    * @since 1.8.0
    */
-  public static void setContext(JobConf job, String context) {
-    InputConfigurator.setContext(CLASS, job, context);
+  public static void setClassLoaderContext(JobConf job, String context) {
+    InputConfigurator.setClassLoaderContext(CLASS, job, context);
   }
 
   /**
@@ -110,8 +110,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @return name of the current context
    * @since 1.8.0
    */
-  public static String getContext(JobConf job) {
-    return InputConfigurator.getContext(CLASS, job);
+  public static String getClassLoaderContext(JobConf job) {
+    return InputConfigurator.getClassLoaderContext(CLASS, job);
   }
 
   /**
@@ -509,7 +509,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       if (null == authorizations) {
         authorizations = getScanAuthorizations(job);
       }
-      String classLoaderContext = getContext(job);
+      String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
@@ -530,7 +530,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           scanner = instance.getConnector(principal, token).createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (null != classLoaderContext) {
-            scanner.setContext(classLoaderContext);
+            scanner.setClassLoaderContext(classLoaderContext);
           }
         } catch (Exception e) {
           throw new IOException(e);
