@@ -170,6 +170,15 @@ ${mvnProjBaseDir}
       /usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,
       /usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar
       <!-- End HDP 2.2 requirements -->
+      <!-- IOP 4.1 requirements -->
+      /usr/iop/current/hadoop-client/[^.].*.jar,
+      /usr/iop/current/hadoop-client/lib/(?!slf4j)[^.].*.jar,
+      /usr/iop/current/hadoop-hdfs-client/[^.].*.jar,
+      /usr/iop/current/hadoop-mapreduce-client/[^.].*.jar,
+      /usr/iop/current/hadoop-yarn-client/[^.].*.jar,
+      /usr/iop/current/hadoop-yarn-client/lib/jersey.*.jar,
+      /usr/iop/current/hive-client/lib/hive-accumulo-handler.jar
+      <!-- End IOP 4.1 requirements -->
     </value>
     <description>Classpaths that accumulo checks for updates and class files.</description>
   </property>

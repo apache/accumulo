@@ -50,6 +50,18 @@ import org.slf4j.LoggerFactory;
 public class ChaoticLoadBalancer extends TabletBalancer {
   private static final Logger log = LoggerFactory.getLogger(ChaoticLoadBalancer.class);
 
+  @SuppressWarnings("unused")
+  private final String tableName;
+
+  public ChaoticLoadBalancer() {
+    this.tableName = null;
+  }
+
+  // Required constructor
+  public ChaoticLoadBalancer(String tableName) {
+    this.tableName = tableName;
+  }
+
   Random r = new Random();
 
   @Override
@@ -68,6 +80,11 @@ public class ChaoticLoadBalancer extends TabletBalancer {
         tServerArray.add(e.getKey());
         toAssign.put(e.getKey(), avg - numTablets);
       }
+    }
+
+    if (tServerArray.isEmpty()) {
+      // No tservers to assign to
+      return;
     }
 
     for (KeyExtent ke : unassigned.keySet()) {
