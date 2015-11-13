@@ -66,6 +66,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
+import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -83,8 +84,10 @@ import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -109,6 +112,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.fate.zookeeper.Retry;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -120,6 +124,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class TableOperationsImpl extends TableOperationsHelper {
@@ -1513,4 +1518,111 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return sci.toSamplerConfiguration();
   }
 
+  private static class LoctionsImpl implements Locations {
+
+    private Map<Range,List<TabletId>> groupedByRanges;
+    private Map<TabletId,List<Range>> groupedByTablets;
+    private Map<TabletId,String> tabletLocations;
+
+    public LoctionsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+      groupedByTablets = new HashMap<>();
+      groupedByRanges = null;
+      tabletLocations = new HashMap<>();
+
+      for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
+        String location = entry.getKey();
+
+        for (Entry<KeyExtent,List<Range>> entry2 : entry.getValue().entrySet()) {
+          TabletIdImpl tabletId = new TabletIdImpl(entry2.getKey());
+          tabletLocations.put(tabletId, location);
+          List<Range> prev = groupedByTablets.put(tabletId, Collections.unmodifiableList(entry2.getValue()));
+          if (prev != null) {
+            throw new RuntimeException("Unexpected : tablet at multiple locations : " + location + " " + tabletId);
+          }
+        }
+      }
+
+      groupedByTablets = Collections.unmodifiableMap(groupedByTablets);
+    }
+
+    @Override
+    public String getTabletLocation(TabletId tabletId) {
+      return tabletLocations.get(tabletId);
+    }
+
+    @Override
+    public Map<Range,List<TabletId>> groupByRange() {
+      if (groupedByRanges == null) {
+        Map<Range,List<TabletId>> tmp = new HashMap<>();
+
+        for (Entry<TabletId,List<Range>> entry : groupedByTablets.entrySet()) {
+          for (Range range : entry.getValue()) {
+            List<TabletId> tablets = tmp.get(range);
+            if (tablets == null) {
+              tablets = new ArrayList<>();
+              tmp.put(range, tablets);
+            }
+
+            tablets.add(entry.getKey());
+          }
+        }
+
+        Map<Range,List<TabletId>> tmp2 = new HashMap<>();
+        for (Entry<Range,List<TabletId>> entry : tmp.entrySet()) {
+          tmp2.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
+        }
+
+        groupedByRanges = Collections.unmodifiableMap(tmp2);
+      }
+
+      return groupedByRanges;
+    }
+
+    @Override
+    public Map<TabletId,List<Range>> groupByTablet() {
+      return groupedByTablets;
+    }
+  }
+
+  @Override
+  public Locations locate(String tableName, Collection<Range> ranges) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    Preconditions.checkNotNull(tableName, "tableName must be non null");
+    Preconditions.checkNotNull(ranges, "ranges must be non null");
+
+    String tableId = Tables.getTableId(context.getInstance(), tableName);
+    TabletLocator locator = TabletLocator.getLocator(context, new Text(tableId));
+
+    List<Range> rangeList = null;
+    if (ranges instanceof List) {
+      rangeList = (List<Range>) ranges;
+    } else {
+      rangeList = new ArrayList<>(ranges);
+    }
+
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+
+    locator.invalidateCache();
+
+    Retry retry = new Retry(Long.MAX_VALUE, 100, 100, 2000);
+
+    while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
+
+      if (!Tables.exists(context.getInstance(), tableId))
+        throw new TableNotFoundException(tableId, tableName, null);
+      if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+        throw new TableOfflineException(context.getInstance(), tableId);
+
+      binnedRanges.clear();
+
+      try {
+        retry.waitForNextAttempt();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+
+      locator.invalidateCache();
+    }
+
+    return new LoctionsImpl(binnedRanges);
+  }
 }

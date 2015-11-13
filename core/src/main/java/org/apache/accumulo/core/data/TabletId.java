@@ -30,4 +30,11 @@ public interface TabletId extends Comparable<TabletId> {
   public Text getEndRow();
 
   public Text getPrevEndRow();
+
+  /**
+   * @since 1.8.0
+   */
+
+  public Range toRange();
+
 }
