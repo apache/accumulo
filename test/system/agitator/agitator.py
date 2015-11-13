@@ -158,10 +158,13 @@ def agitate(hosts, procs):
          if random.random() < p.frequencyToKill():
 
             # find them
-            # TODO: in parallel
+            from multiprocessing import Pool
+            def finder(host):
+               return host, p.find(host)
+            with Pool(5) as pool:
+               result = pool.map(finder, hosts)
             candidates = {}
-            for host in hosts:
-               pids = p.find(host)
+            for host, pids in result:
                if pids:
                   candidates[host] = pids
 

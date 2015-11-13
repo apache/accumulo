@@ -29,9 +29,14 @@ home=%(install)s/accumulo
 tserver.kill.min=1
 tserver.kill.max=1
 tserver.frequency=0.8
+
 master.kill.min=1
 master.kill.max=1
 master.frequency=0.1
+
+gc.kill.min=1
+gc.kill.max=1
+gc.frequency=0.1
 
 [hadoop]
 home=%(install)s/hadoop
@@ -42,6 +47,9 @@ datanode.kill.max=1
 namenode.frequency=0.05
 namenode.kill.min=1
 namenode.kill.max=1
+secondarynamenode.frequency=0.05
+secondarynamenode.kill.min=1
+secondarynamenode.kill.max=1
 
 [zookeeper]
 home=%(install)s/zookeeper
