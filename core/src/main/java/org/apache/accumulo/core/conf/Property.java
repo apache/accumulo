@@ -523,8 +523,13 @@ public enum Property {
     return hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
   }
 
+  private volatile Boolean isSensitive = null;
+
   public boolean isSensitive() {
-    return hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    if (isSensitive == null) {
+      isSensitive = hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    }
+    return isSensitive.booleanValue();
   }
 
   public static boolean isSensitive(String key) {
