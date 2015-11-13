@@ -668,13 +668,18 @@ public enum Property {
     return hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
   }
 
+  private volatile Boolean isSensitive = null;
+
   /**
    * Checks if this property is sensitive.
    *
    * @return true if this property is sensitive
    */
   public boolean isSensitive() {
-    return hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    if (isSensitive == null) {
+      isSensitive = hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    }
+    return isSensitive.booleanValue();
   }
 
   /**
