@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.data.impl;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.hadoop.io.Text;
 
@@ -96,5 +97,10 @@ public class TabletIdImpl implements TabletId {
   @Override
   public String toString() {
     return ke.toString();
+  }
+
+  @Override
+  public Range toRange() {
+    return ke.toDataRange();
   }
 }

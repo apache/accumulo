@@ -30,4 +30,11 @@ public interface TabletId extends Comparable<TabletId> {
   public Text getEndRow();
 
   public Text getPrevEndRow();
+
+  /**
+   * @return a range based on the row range of the tablet. The range will cover {@code (<prev end row>, <end row>]}.
+   * @since 1.8.0
+   */
+  public Range toRange();
+
 }
