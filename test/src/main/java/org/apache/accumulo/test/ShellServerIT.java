@@ -1723,6 +1723,97 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void scansWithClassLoaderContext() throws Exception {
+    try {
+      Class.forName("org.apache.accumulo.test.functional.ValueReversingIterator");
+      fail("ValueReversingIterator already on the classpath");
+    } catch (Exception e) {
+      // Do nothing here, This is success. The following line is here
+      // so that findbugs doesn't have a stroke.
+      assertTrue(true);
+    }
+    ts.exec("createtable t");
+    make10();
+    setupFakeContextPath();
+    // Add the context to the table so that setscaniter works. After setscaniter succeeds, then
+    // remove the property from the table.
+    String output = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
+    output = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
+    output = ts.exec("setscaniter -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
+    String result = ts.exec("scan -np -b row1 -e row1");
+    assertEquals(2, result.split("\n").length);
+    log.error(result);
+    assertTrue(result.contains("value"));
+    result = ts.exec("scan -np -b row3 -e row5");
+    assertEquals(4, result.split("\n").length);
+    assertTrue(result.contains("value"));
+    result = ts.exec("scan -np -r row3");
+    assertEquals(2, result.split("\n").length);
+    assertTrue(result.contains("value"));
+    result = ts.exec("scan -np -b row:");
+    assertEquals(1, result.split("\n").length);
+    result = ts.exec("scan -np -b row");
+    assertEquals(11, result.split("\n").length);
+    assertTrue(result.contains("value"));
+    result = ts.exec("scan -np -e row:");
+    assertEquals(11, result.split("\n").length);
+    assertTrue(result.contains("value"));
+
+    setupRealContextPath();
+    output = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    result = ts.exec("scan -np -b row1 -e row1 -cc " + REAL_CONTEXT);
+    log.error(result);
+    assertEquals(2, result.split("\n").length);
+    assertTrue(result.contains("eulav"));
+    assertFalse(result.contains("value"));
+    result = ts.exec("scan -np -b row3 -e row5 -cc " + REAL_CONTEXT);
+    assertEquals(4, result.split("\n").length);
+    assertTrue(result.contains("eulav"));
+    assertFalse(result.contains("value"));
+    result = ts.exec("scan -np -r row3 -cc " + REAL_CONTEXT);
+    assertEquals(2, result.split("\n").length);
+    assertTrue(result.contains("eulav"));
+    assertFalse(result.contains("value"));
+    result = ts.exec("scan -np -b row: -cc " + REAL_CONTEXT);
+    assertEquals(1, result.split("\n").length);
+    result = ts.exec("scan -np -b row -cc " + REAL_CONTEXT);
+    assertEquals(11, result.split("\n").length);
+    assertTrue(result.contains("eulav"));
+    assertFalse(result.contains("value"));
+    result = ts.exec("scan -np -e row: -cc " + REAL_CONTEXT);
+    assertEquals(11, result.split("\n").length);
+    assertTrue(result.contains("eulav"));
+    assertFalse(result.contains("value"));
+    ts.exec("deletetable -f t");
+  }
+
+  private static final String FAKE_CONTEXT = "FAKE";
+  private static final String FAKE_CONTEXT_CLASSPATH = "file:///tmp/ShellServerIT-iterators.jar";
+  private static final String REAL_CONTEXT = "REAL";
+  private static final String REAL_CONTEXT_CLASSPATH = "file:///tmp/TestIterators-tests.jar";
+
+  private void setupRealContextPath() throws Exception {
+    // Copy the TestIterators jar to tmp
+    Path baseDir = new Path(System.getProperty("user.dir"));
+    Path targetDir = new Path(baseDir, "target");
+    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
+    Path dstPath = new Path(REAL_CONTEXT_CLASSPATH);
+    FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
+    fs.copyFromLocalFile(jarPath, dstPath);
+  }
+
+  private void setupFakeContextPath() throws Exception {
+    // Copy the TestIterators jar to tmp
+    Path baseDir = new Path(System.getProperty("user.dir"));
+    Path targetDir = new Path(baseDir, "target");
+    Path classesDir = new Path(targetDir, "classes");
+    Path jarPath = new Path(classesDir, "ShellServerIT-iterators.jar");
+    Path dstPath = new Path(FAKE_CONTEXT_CLASSPATH);
+    FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
+    fs.copyFromLocalFile(jarPath, dstPath);
+  }
+
+  @Test
   public void whoami() throws Exception {
     AuthenticationToken token = getToken();
     assertTrue(ts.exec("whoami", true).contains(getPrincipal()));
