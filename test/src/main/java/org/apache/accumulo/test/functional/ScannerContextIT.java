@@ -125,7 +125,6 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       // Delete file in tmp
       fs.delete(dstPath, true);
     }
-
   }
 
   @Test
@@ -189,6 +188,61 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       fs.delete(dstPath, true);
     }
 
+  }
+
+  @Test
+  public void testOneScannerDoesntInterfereWithAnother() throws Exception {
+    // Copy the TestIterators jar to tmp
+    Path baseDir = new Path(System.getProperty("user.dir"));
+    Path targetDir = new Path(baseDir, "target");
+    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
+    Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
+    fs.copyFromLocalFile(jarPath, dstPath);
+    // Sleep to ensure jar change gets picked up
+    UtilWaitThread.sleep(WAIT);
+
+    try {
+      Connector c = getConnector();
+      // Set the classloader context property on the table to point to the TestIterators jar file.
+      c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
+
+      // Insert rows with the word "Test" in the value.
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      for (int i = 0; i < ITERATIONS; i++) {
+        Mutation m = new Mutation("row" + i);
+        m.put("cf", "col1", "Test");
+        bw.addMutation(m);
+      }
+      bw.close();
+
+      Scanner one = c.createScanner(tableName, Authorizations.EMPTY);
+
+      Scanner two = c.createScanner(tableName, Authorizations.EMPTY);
+
+      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+      one.addScanIterator(cfg);
+      one.setClassLoaderContext(CONTEXT);
+
+      Iterator<Entry<Key,Value>> iterator = one.iterator();
+      for (int i = 0; i < ITERATIONS; i++) {
+        assertTrue(iterator.hasNext());
+        Entry<Key,Value> next = iterator.next();
+        assertEquals("tseT", next.getValue().toString());
+      }
+
+      Iterator<Entry<Key,Value>> iterator2 = two.iterator();
+      for (int i = 0; i < ITERATIONS; i++) {
+        assertTrue(iterator2.hasNext());
+        Entry<Key,Value> next = iterator2.next();
+        assertEquals("Test", next.getValue().toString());
+      }
+
+    } finally {
+      // Delete file in tmp
+      fs.delete(dstPath, true);
+    }
   }
 
   private void scanCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
