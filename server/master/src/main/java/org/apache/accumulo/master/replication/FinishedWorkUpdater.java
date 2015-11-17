@@ -150,7 +150,7 @@ public class FinishedWorkUpdater implements Runnable {
           // Make the mutation
           StatusSection.add(replMutation, buffer, serializedUpdatedStatus);
 
-          log.debug("Updating replication status entry for {} with {}", serializedRow.getKey().getRow(), updatedStatus);
+          log.debug("Updating replication status entry for {} with {}", serializedRow.getKey().getRow(), ProtobufUtil.toString(updatedStatus));
 
           try {
             replBw.addMutation(replMutation);

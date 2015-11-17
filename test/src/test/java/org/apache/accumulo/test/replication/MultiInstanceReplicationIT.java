@@ -252,8 +252,10 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
         @Override
         public Boolean call() throws Exception {
+          long then = System.currentTimeMillis();
           connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
-          log.info("Drain completed");
+          long now = System.currentTimeMillis();
+          log.info("Drain completed in " + (now - then) + "ms");
           return true;
         }
 

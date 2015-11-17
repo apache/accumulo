@@ -95,12 +95,14 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
 class MasterClientServiceHandler extends FateServiceHandler implements MasterClientService.Iface {
 
   private static final Logger log = Master.log;
+  private static final Logger drainLog = LoggerFactory.getLogger("org.apache.accumulo.master.MasterDrainImpl");
   private Instance instance;
 
   MasterClientServiceHandler(Master master) {
@@ -503,9 +505,9 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
     final Text tableId = new Text(getTableId(master.getInstance(), tableName));
 
-    log.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
+    drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
 
-    log.trace("Reading from metadata table");
+    drainLog.trace("Reading from metadata table");
     final Set<Range> range = Collections.singleton(new Range(ReplicationSection.getRange()));
     BatchScanner bs;
     try {
@@ -524,7 +526,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
       bs.close();
     }
 
-    log.trace("reading from replication table");
+    drainLog.trace("reading from replication table");
     try {
       bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
@@ -549,7 +551,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   protected boolean allReferencesReplicated(BatchScanner bs, Text tableId, Set<String> relevantLogs) {
     Text rowHolder = new Text(), colfHolder = new Text();
     for (Entry<Key,Value> entry : bs) {
-      log.trace("Got key {}", entry.getKey().toStringNoTruncate());
+      drainLog.trace("Got key {}", entry.getKey().toStringNoTruncate());
 
       entry.getKey().getColumnQualifier(rowHolder);
       if (tableId.equals(rowHolder)) {
@@ -563,27 +565,28 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
         } else if (colfHolder.equals(OrderSection.NAME)) {
           file = OrderSection.getFile(entry.getKey(), rowHolder);
           long timeClosed = OrderSection.getTimeClosed(entry.getKey(), rowHolder);
-          log.trace("Order section: {} and {}", timeClosed, file);
+          drainLog.trace("Order section: {} and {}", timeClosed, file);
         } else {
           file = rowHolder.toString();
         }
 
         // Skip files that we didn't observe when we started (new files/data)
         if (!relevantLogs.contains(file)) {
-          log.trace("Found file that we didn't care about {}", file);
+          drainLog.trace("Found file that we didn't care about {}", file);
           continue;
         } else {
-          log.trace("Found file that we *do* care about {}", file);
+          drainLog.trace("Found file that we *do* care about {}", file);
         }
 
         try {
           Status stat = Status.parseFrom(entry.getValue().get());
           if (!StatusUtil.isFullyReplicated(stat)) {
-            log.trace("{} and {} is not fully replicated", entry.getKey().getRow(), ProtobufUtil.toString(stat));
+            drainLog.trace("{} and {} is not replicated", file, ProtobufUtil.toString(stat));
             return false;
           }
+          drainLog.trace("{} and {} is replicated", file, ProtobufUtil.toString(stat));
         } catch (InvalidProtocolBufferException e) {
-          log.trace("Could not parse protobuf for {}", entry.getKey(), e);
+          drainLog.trace("Could not parse protobuf for {}", entry.getKey(), e);
         }
       }
     }
