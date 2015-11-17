@@ -90,7 +90,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static enum ScanOpts {
-    TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS, SAMPLER_CONFIG
+    TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS, SAMPLER_CONFIG, CLASSLOADER_CONTEXT
   }
 
   /**
@@ -100,6 +100,36 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static enum Features {
     AUTO_ADJUST_RANGES, SCAN_ISOLATION, USE_LOCAL_ITERATORS, SCAN_OFFLINE, BATCH_SCANNER, BATCH_SCANNER_THREADS
+  }
+
+  /**
+   * Sets the name of the context classloader to use for scans
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param context
+   *          the name of the context classloader
+   * @since 1.8.0
+   */
+  public static void setClassLoaderContext(Class<?> implementingClass, Configuration conf, String context) {
+    checkArgument(context != null, "context is null");
+    conf.set(enumToConfKey(implementingClass, ScanOpts.CLASSLOADER_CONTEXT), context);
+  }
+
+  /**
+   * Gets the name of the context classloader to use for scans
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return the classloader context name
+   * @since 1.8.0
+   */
+  public static String getClassLoaderContext(Class<?> implementingClass, Configuration conf) {
+    return conf.get(enumToConfKey(implementingClass, ScanOpts.CLASSLOADER_CONTEXT), null);
   }
 
   /**

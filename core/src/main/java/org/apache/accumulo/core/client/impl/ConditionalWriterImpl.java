@@ -113,6 +113,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private String tableId;
   private long timeout;
   private final Durability durability;
+  private final String classLoaderContext;
 
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<TabletServerMutations<QCMutation>>();
@@ -389,6 +390,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.tableId = tableId;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
     this.durability = config.getDurability();
+    this.classLoaderContext = config.getClassLoaderContext();
 
     Runnable failureHandler = new Runnable() {
 
@@ -506,7 +508,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
 
     TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId,
-        DurabilityImpl.toThrift(durability));
+        DurabilityImpl.toThrift(durability), this.classLoaderContext);
 
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();

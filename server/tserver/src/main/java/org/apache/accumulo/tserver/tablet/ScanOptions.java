@@ -39,9 +39,10 @@ final class ScanOptions {
   private final boolean isolated;
   private SamplerConfiguration samplerConfig;
   private final long batchTimeOut;
+  private String classLoaderContext;
 
   ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      AtomicBoolean interruptFlag, boolean isolated, SamplerConfiguration samplerConfig, long batchTimeOut) {
+      AtomicBoolean interruptFlag, boolean isolated, SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
     this.num = num;
     this.authorizations = authorizations;
     this.defaultLabels = defaultLabels;
@@ -52,6 +53,7 @@ final class ScanOptions {
     this.isolated = isolated;
     this.samplerConfig = samplerConfig;
     this.batchTimeOut = batchTimeOut;
+    this.classLoaderContext = classLoaderContext;
   }
 
   public Authorizations getAuthorizations() {
@@ -98,5 +100,13 @@ final class ScanOptions {
 
   public long getBatchTimeOut() {
     return batchTimeOut;
+  }
+
+  public String getClassLoaderContext() {
+    return classLoaderContext;
+  }
+
+  public void setClassLoaderContext(String context) {
+    this.classLoaderContext = context;
   }
 }

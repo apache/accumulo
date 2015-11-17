@@ -93,6 +93,31 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   protected static final Logger log = Logger.getLogger(CLASS);
 
   /**
+   * Sets the name of the classloader context on this scanner
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param context
+   *          name of the classloader context
+   * @since 1.8.0
+   */
+  public static void setClassLoaderContext(Job job, String context) {
+    InputConfigurator.setClassLoaderContext(CLASS, job.getConfiguration(), context);
+  }
+
+  /**
+   * Returns the name of the current classloader context set on this scanner
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @return name of the current context
+   * @since 1.8.0
+   */
+  public static String getClassLoaderContext(JobContext job) {
+    return InputConfigurator.getClassLoaderContext(CLASS, job.getConfiguration());
+  }
+
+  /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
@@ -515,7 +540,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       if (null == authorizations) {
         authorizations = getScanAuthorizations(attempt);
       }
-
+      String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
@@ -535,6 +560,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           int scanThreads = 1;
           scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(), authorizations, scanThreads);
           setupIterators(attempt, scanner, split.getTableName(), split);
+          if (null != classLoaderContext) {
+            scanner.setClassLoaderContext(classLoaderContext);
+          }
         } catch (Exception e) {
           e.printStackTrace();
           throw new IOException(e);

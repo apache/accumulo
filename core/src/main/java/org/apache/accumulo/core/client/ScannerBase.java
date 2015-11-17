@@ -242,4 +242,31 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @since 1.8.0
    */
   long getBatchTimeout(TimeUnit timeUnit);
+
+  /**
+   * Sets the name of the classloader context on this scanner. See the administration chapter of the user manual for details on how to configure and use
+   * classloader contexts.
+   *
+   * @param classLoaderContext
+   *          name of the classloader context
+   * @throws NullPointerException
+   *           if context is null
+   * @since 1.8.0
+   */
+  void setClassLoaderContext(String classLoaderContext);
+
+  /**
+   * Clears the current classloader context set on this scanner
+   *
+   * @since 1.8.0
+   */
+  void clearClassLoaderContext();
+
+  /**
+   * Returns the name of the current classloader context set on this scanner
+   *
+   * @return name of the current context
+   * @since 1.8.0
+   */
+  String getClassLoaderContext();
 }

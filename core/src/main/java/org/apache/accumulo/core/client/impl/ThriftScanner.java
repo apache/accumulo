@@ -85,7 +85,8 @@ public class ThriftScanner {
 
   public static boolean getBatchFromServer(ClientContext context, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, int size,
-      Authorizations authorizations, boolean retry, long batchTimeOut) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
+      Authorizations authorizations, boolean retry, long batchTimeOut, String classLoaderContext) throws AccumuloException, AccumuloSecurityException,
+      NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
 
@@ -96,13 +97,14 @@ public class ThriftScanner {
       try {
         // not reading whole rows (or stopping on row boundries) so there is no need to enable isolation below
         ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
-            serverSideIteratorOptions, false, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut);
+            serverSideIteratorOptions, false, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold, null, scanState.batchTimeOut);
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold, null, scanState.batchTimeOut,
+            classLoaderContext);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
 
@@ -151,6 +153,8 @@ public class ThriftScanner {
     TabletLocation prevLoc;
     Long scanID;
 
+    String classLoaderContext;
+
     boolean finished = false;
 
     List<IterInfo> serverSideIteratorList;
@@ -161,10 +165,11 @@ public class ThriftScanner {
 
     public ScanState(ClientContext context, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold,
-        SamplerConfiguration samplerConfig, long batchTimeOut) {
+        SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
       this.context = context;
 
       this.authorizations = authorizations;
+      this.classLoaderContext = classLoaderContext;
 
       columns = new ArrayList<Column>(fetchedColumns.size());
       for (Column column : fetchedColumns) {
@@ -425,7 +430,7 @@ public class ThriftScanner {
         InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold,
-            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut);
+            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut, scanState.classLoaderContext);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 

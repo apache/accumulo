@@ -151,4 +151,9 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   public Authorizations getAuthorizations() {
     return auths;
   }
+
+  @Override
+  public void setClassLoaderContext(String context) {
+    throw new UnsupportedOperationException();
+  }
 }
