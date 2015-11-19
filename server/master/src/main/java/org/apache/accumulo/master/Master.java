@@ -1134,13 +1134,22 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       fate = new Fate<Master>(this, store);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
+      final SimpleTimer timer = SimpleTimer.getInstance(getConfiguration());
+      timer.schedule(new Runnable() {
 
         @Override
         public void run() {
           store.ageOff();
         }
       }, 63000, 63000);
+
+      // Schedule a task to repeatedly run which verifies that repo-runner threads are still active.
+      timer.schedule(new Runnable() {
+        @Override
+        public void run() {
+          fate.ensureThreadsRunning(getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE));
+        }
+      }, 60000, 60000);
     } catch (KeeperException e) {
       throw new IOException(e);
     } catch (InterruptedException e) {

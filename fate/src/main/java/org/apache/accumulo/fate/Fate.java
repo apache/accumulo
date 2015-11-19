@@ -17,9 +17,9 @@
 package org.apache.accumulo.fate;
 
 import java.util.EnumSet;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -45,12 +45,13 @@ public class Fate<T> {
 
   private TStore<T> store;
   private T environment;
-  private ExecutorService executor;
+  private ThreadPoolExecutor executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
   private AtomicBoolean keepRunning = new AtomicBoolean(true);
 
+  // TODO Enable graceful termination of this thread to enable shrinking the number of RepoRunner threads.
   private class TransactionRunner implements Runnable {
 
     @Override
@@ -160,7 +161,7 @@ public class Fate<T> {
    */
   public void startTransactionRunners(int numThreads) {
     final AtomicInteger runnerCount = new AtomicInteger(0);
-    executor = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
+    executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
 
       @Override
       public Thread newThread(Runnable r) {
@@ -172,6 +173,46 @@ public class Fate<T> {
     });
     for (int i = 0; i < numThreads; i++) {
       executor.execute(new TransactionRunner());
+    }
+  }
+
+  /**
+   * Ensure that at least {code desiredRunners} FATE repo runner threads are active in the threadpool. The current implementation does not support stopping
+   * active repo runner threads. If {@code desiredRunners} is less than the current number of active threads in the threadpool, this method does nothing. This
+   * method is also does nothing if {@code desiredRunners} is a non-positive value.
+   *
+   * @param desiredRunners
+   *          The desired number of repo runner threads.
+   */
+  public void ensureThreadsRunning(int desiredRunners) {
+    // A small shim to enable some semblance of API and make testing easier (mock the threadpool).
+    _ensureThreadsRunning(executor, desiredRunners);
+  }
+
+  /**
+   * @see #ensureThreadsRunning(int)
+   */
+  void _ensureThreadsRunning(ThreadPoolExecutor pool, int desiredRunners) {
+    // Make sure we always have one FATE repo runner thread.
+    if (desiredRunners < 1) {
+      log.warn("Must run at least one FATE repo runner threads, ignoring request to run {}", desiredRunners);
+      return;
+    }
+
+    // there is a minor race condition between sampling the current state of the thread pool and adjusting it
+    // however, this isn't really an issue, since it adjusts periodically anyway
+    final int activeRunners = pool.getActiveCount();
+    final int runnersToStart = desiredRunners - activeRunners;
+    // TODO Support shrinking the pool as well.
+    if (runnersToStart > 0) {
+      log.info("Starting {} new FATE Repo runner threads.", runnersToStart);
+      pool.setMaximumPoolSize(desiredRunners);
+      pool.setCorePoolSize(desiredRunners);
+      for (int i = 0; i < runnersToStart; i++) {
+        pool.execute(new TransactionRunner());
+      }
+    } else {
+      log.debug("Already running {} FATE repo runner threads, cannot dynamically reduce repo runner threads.", activeRunners);
     }
   }
 
