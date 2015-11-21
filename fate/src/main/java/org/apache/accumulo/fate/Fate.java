@@ -42,6 +42,7 @@ public class Fate<T> {
   private static final String RETURN_PROP = "return";
 
   final private static Logger log = LoggerFactory.getLogger(Fate.class);
+  private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
   private TStore<T> store;
   private T environment;
@@ -96,6 +97,8 @@ public class Fate<T> {
               }
             }
           }
+        } catch (Exception e) {
+          runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
           store.unreserve(tid, deferTime);
         }
