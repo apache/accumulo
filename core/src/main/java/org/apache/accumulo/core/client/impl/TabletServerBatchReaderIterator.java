@@ -645,9 +645,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     try {
       TabletClientService.Client client;
       if (timeoutTracker.getTimeOut() < conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-        client = ThriftUtil.getTServerClient(server, conf, timeoutTracker.getTimeOut());
+        client = ThriftUtil.getTServerClient(server, conf, timeoutTracker.getTimeOut(), false);
       else
-        client = ThriftUtil.getTServerClient(server, conf);
+        client = ThriftUtil.getTServerClient(server, conf, false);
 
       try {
 

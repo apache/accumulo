@@ -44,9 +44,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   private Instance instance;
   private Credentials credentials;
 
-  private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  private void execute(ClientExec<ClientService.Client> exec, boolean oneway) throws AccumuloException, AccumuloSecurityException {
     try {
-      ServerClient.executeRaw(instance, exec);
+      ServerClient.executeRaw(instance, exec, oneway);
     } catch (ThriftTableOperationException ttoe) {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
@@ -64,9 +64,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
     }
   }
 
-  private <T> T execute(ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  private <T> T execute(ClientExecReturn<T,ClientService.Client> exec, boolean oneway) throws AccumuloException, AccumuloSecurityException {
     try {
-      return ServerClient.executeRaw(instance, exec);
+      return ServerClient.executeRaw(instance, exec, oneway);
     } catch (ThriftTableOperationException ttoe) {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
@@ -105,7 +105,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.createLocalUser(Tracer.traceInfo(), credentials.toThrift(instance), principal, ByteBuffer.wrap(password.getPassword()));
       }
-    });
+    }, false);
   }
 
   @Deprecated
@@ -122,7 +122,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.dropLocalUser(Tracer.traceInfo(), credentials.toThrift(instance), principal);
       }
-    });
+    }, false);
   }
 
   @Deprecated
@@ -140,7 +140,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public Boolean execute(ClientService.Client client) throws Exception {
         return client.authenticateUser(Tracer.traceInfo(), credentials.toThrift(instance), toAuth.toThrift(instance));
       }
-    });
+    }, false);
   }
 
   @Override
@@ -158,7 +158,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.changeLocalUserPassword(Tracer.traceInfo(), credentials.toThrift(instance), principal, ByteBuffer.wrap(token.getPassword()));
       }
-    });
+    }, false);
     if (this.credentials.getPrincipal().equals(principal)) {
       this.credentials = toChange;
     }
@@ -173,7 +173,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         client.changeAuthorizations(Tracer.traceInfo(), credentials.toThrift(instance), principal,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
-    });
+    }, false);
   }
 
   @Override
@@ -184,7 +184,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public Authorizations execute(ClientService.Client client) throws Exception {
         return new Authorizations(client.getUserAuthorizations(Tracer.traceInfo(), credentials.toThrift(instance), principal));
       }
-    });
+    }, false);
   }
 
   @Override
@@ -195,7 +195,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public Boolean execute(ClientService.Client client) throws Exception {
         return client.hasSystemPermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, perm.getId());
       }
-    });
+    }, false);
   }
 
   @Override
@@ -207,7 +207,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         public Boolean execute(ClientService.Client client) throws Exception {
           return client.hasTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, perm.getId());
         }
-      });
+      }, false);
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
@@ -225,7 +225,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public Boolean execute(ClientService.Client client) throws Exception {
         return client.hasNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, namespace, permission.getId());
       }
-    });
+    }, false);
   }
 
   @Override
@@ -236,7 +236,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.grantSystemPermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, permission.getId());
       }
-    });
+    }, false);
   }
 
   @Override
@@ -249,7 +249,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         public void execute(ClientService.Client client) throws Exception {
           client.grantTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
         }
-      });
+      }, false);
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
@@ -267,7 +267,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.grantNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, namespace, permission.getId());
       }
-    });
+    }, false);
   }
 
   @Override
@@ -278,7 +278,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.revokeSystemPermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, permission.getId());
       }
-    });
+    }, false);
   }
 
   @Override
@@ -291,7 +291,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         public void execute(ClientService.Client client) throws Exception {
           client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
         }
-      });
+      }, false);
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
@@ -309,7 +309,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public void execute(ClientService.Client client) throws Exception {
         client.revokeNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, namespace, permission.getId());
       }
-    });
+    }, false);
   }
 
   @Deprecated
@@ -325,7 +325,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       public Set<String> execute(ClientService.Client client) throws Exception {
         return client.listLocalUsers(Tracer.traceInfo(), credentials.toThrift(instance));
       }
-    });
+    }, false);
   }
 
 }

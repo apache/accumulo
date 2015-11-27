@@ -65,7 +65,7 @@ public class Writer {
 
     TabletClientService.Iface client = null;
     try {
-      client = ThriftUtil.getTServerClient(server, configuration);
+      client = ThriftUtil.getTServerClient(server, configuration, false);
       client.update(Tracer.traceInfo(), ai.toThrift(instance), extent.toThrift(), m.toThrift());
       return;
     } catch (ThriftSecurityException e) {

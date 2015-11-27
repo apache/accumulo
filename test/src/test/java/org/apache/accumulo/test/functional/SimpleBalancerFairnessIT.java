@@ -83,7 +83,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
+        client = MasterClient.getConnectionWithRetry(c.getInstance(), false);
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

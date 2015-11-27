@@ -3138,13 +3138,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
 
   // Connect to the master for posting asynchronous results
-  private MasterClientService.Client masterConnection(String address) {
+  private MasterClientService.Client masterConnection(String address, boolean oneway) {
     try {
       if (address == null) {
         return null;
       }
       MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT,
-          getSystemConfiguration());
+          getSystemConfiguration(), oneway);
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {
@@ -3280,7 +3280,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           // have a message to send to the master, so grab a
           // connection
           masterHost = getMasterAddress();
-          iface = masterConnection(masterHost);
+          // All MasterMessages reports are oneway -- this relies on that.
+          iface = masterConnection(masterHost, true);
           TServiceClient client = iface;
 
           // if while loop does not execute at all and mm != null,

@@ -55,7 +55,6 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 
 import com.beust.jcommander.Parameter;
 
@@ -155,54 +154,58 @@ public class VerifyTabletAssignments {
 
   private static void checkTabletServer(Instance inst, AccumuloConfiguration conf, Credentials creds, Entry<String,List<KeyExtent>> entry,
       HashSet<KeyExtent> failures) throws ThriftSecurityException, TException, NoSuchScanIDException {
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
+    TabletClientService.Client client = ThriftUtil.getTServerClient(entry.getKey(), conf, false);
+    TabletClientService.Client onewayClient = ThriftUtil.getTServerClient(entry.getKey(), conf, true);
 
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
 
-    for (KeyExtent keyExtent : entry.getValue()) {
-      Text row = keyExtent.getEndRow();
-      Text row2 = null;
+    try {
+      for (KeyExtent keyExtent : entry.getValue()) {
+        Text row = keyExtent.getEndRow();
+        Text row2 = null;
 
-      if (row == null) {
-        row = keyExtent.getPrevEndRow();
+        if (row == null) {
+          row = keyExtent.getPrevEndRow();
 
-        if (row != null) {
-          row = new Text(row);
-          row.append(new byte[] {'a'}, 0, 1);
+          if (row != null) {
+            row = new Text(row);
+            row.append(new byte[] {'a'}, 0, 1);
+          } else {
+            row = new Text("1234567890");
+          }
+
+          row2 = new Text(row);
+          row2.append(new byte[] {'!'}, 0, 1);
         } else {
-          row = new Text("1234567890");
+          row = new Text(row);
+          row2 = new Text(row);
+
+          row.getBytes()[row.getLength() - 1] = (byte) (row.getBytes()[row.getLength() - 1] - 1);
         }
 
-        row2 = new Text(row);
-        row2.append(new byte[] {'!'}, 0, 1);
-      } else {
-        row = new Text(row);
-        row2 = new Text(row);
-
-        row.getBytes()[row.getLength() - 1] = (byte) (row.getBytes()[row.getLength() - 1] - 1);
+        Range r = new Range(row, true, row2, false);
+        batch.put(keyExtent.toThrift(), Collections.singletonList(r.toThrift()));
       }
-
-      Range r = new Range(row, true, row2, false);
-      batch.put(keyExtent.toThrift(), Collections.singletonList(r.toThrift()));
-    }
-    TInfo tinfo = Tracer.traceInfo();
-    Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
-    List<IterInfo> emptyListIterInfo = Collections.emptyList();
-    List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(tinfo, creds.toThrift(inst), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
-        Authorizations.EMPTY.getAuthorizationsBB(), false);
-    if (is.result.more) {
-      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
-      checkFailures(entry.getKey(), failures, result);
-
-      while (result.more) {
-        result = client.continueMultiScan(tinfo, is.scanID);
+      TInfo tinfo = Tracer.traceInfo();
+      Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
+      List<IterInfo> emptyListIterInfo = Collections.emptyList();
+      List<TColumn> emptyListColumn = Collections.emptyList();
+      InitialMultiScan is = client.startMultiScan(tinfo, creds.toThrift(inst), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
+          Authorizations.EMPTY.getAuthorizationsBB(), false);
+      if (is.result.more) {
+        MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
         checkFailures(entry.getKey(), failures, result);
+
+        while (result.more) {
+          result = client.continueMultiScan(tinfo, is.scanID);
+          checkFailures(entry.getKey(), failures, result);
+        }
       }
+
+      onewayClient.closeMultiScan(tinfo, is.scanID);
+    } finally {
+      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(onewayClient);
     }
-
-    client.closeMultiScan(tinfo, is.scanID);
-
-    ThriftUtil.returnClient((TServiceClient) client);
   }
 }

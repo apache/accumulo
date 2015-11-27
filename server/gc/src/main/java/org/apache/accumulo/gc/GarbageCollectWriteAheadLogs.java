@@ -206,7 +206,7 @@ public class GarbageCollectWriteAheadLogs {
         } else {
           Client tserver = null;
           try {
-            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
+            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf, true);
             tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
             log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
             status.currentLog.deleted += entry.getValue().size();

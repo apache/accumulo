@@ -87,7 +87,8 @@ public class ThriftScanner {
 
     try {
       TInfo tinfo = Tracer.traceInfo();
-      TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf);
+      TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf, false);
+      TabletClientService.Client onewayClient = ThriftUtil.getTServerClient(server, conf, true);
       try {
         // not reading whole rows (or stopping on row boundries) so there is no need to enable isolation below
         ScanState scanState = new ScanState(instance, credentials, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
@@ -106,11 +107,12 @@ public class ThriftScanner {
         for (TKeyValue kv : isr.result.results)
           results.put(new Key(kv.key), new Value(kv.value));
 
-        client.closeScan(tinfo, isr.scanID);
+        onewayClient.closeScan(tinfo, isr.scanID);
 
         return isr.result.more;
       } finally {
         ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(onewayClient);
       }
     } catch (TApplicationException tae) {
       throw new AccumuloServerException(server, tae);
@@ -381,7 +383,9 @@ public class ThriftScanner {
     OpTimer opTimer = new OpTimer(log, Level.TRACE);
 
     TInfo tinfo = Tracer.traceInfo();
-    TabletClientService.Client client = ThriftUtil.getTServerClient(loc.tablet_location, conf);
+    TabletClientService.Client client = ThriftUtil.getTServerClient(loc.tablet_location, conf, false);
+    // Make sure we put the oneway on a different cnxn to avoid the response being left on the wire when we return the cnxn.
+    TabletClientService.Client onewayClient = ThriftUtil.getTServerClient(loc.tablet_location, conf, true);
 
     String old = Thread.currentThread().getName();
     try {
@@ -411,7 +415,7 @@ public class ThriftScanner {
         if (sr.more)
           scanState.scanID = is.scanID;
         else
-          client.closeScan(tinfo, is.scanID);
+          onewayClient.closeScan(tinfo, is.scanID);
 
       } else {
         // log.debug("Calling continue scan : "+scanState.range+"  loc = "+loc);
@@ -421,7 +425,7 @@ public class ThriftScanner {
 
         sr = client.continueScan(tinfo, scanState.scanID);
         if (!sr.more) {
-          client.closeScan(tinfo, scanState.scanID);
+          onewayClient.closeScan(tinfo, scanState.scanID);
           scanState.scanID = null;
         }
       }
@@ -458,6 +462,7 @@ public class ThriftScanner {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } finally {
       ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(onewayClient);
       Thread.currentThread().setName(old);
     }
   }

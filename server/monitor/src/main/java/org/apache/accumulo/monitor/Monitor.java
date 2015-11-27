@@ -275,7 +275,7 @@ public class Monitor {
       while (retry) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnection(HdfsZooInstance.getInstance());
+          client = MasterClient.getConnection(HdfsZooInstance.getInstance(), false);
           if (client != null) {
             mmi = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()));
             retry = false;
@@ -408,7 +408,7 @@ public class Monitor {
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8)).getAddress(Service.GC_CLIENT);
-        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
+        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration(), false);
         try {
           result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
         } finally {
@@ -560,7 +560,7 @@ public class Monitor {
       return;
     Connector c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
     for (String server : c.instanceOperations().getTabletServers()) {
-      Client tserver = ThriftUtil.getTServerClient(server, Monitor.getSystemConfiguration());
+      Client tserver = ThriftUtil.getTServerClient(server, Monitor.getSystemConfiguration(), false);
       try {
         List<ActiveScan> scans = tserver.getActiveScans(null, SystemCredentials.get().toThrift(instance));
         synchronized (allScans) {

@@ -553,7 +553,7 @@ class LoadFiles extends MasterRepo {
               // serving the metadata tablets
               long timeInMillis = master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getLocation().toString();
-              client = ThriftUtil.getTServerClient(server, master.getConfiguration().getConfiguration(), timeInMillis);
+              client = ThriftUtil.getTServerClient(server, master.getConfiguration().getConfiguration(), timeInMillis, false);
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
               List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), SystemCredentials.get().toThrift(master.getInstance()), tid, tableId, attempt,

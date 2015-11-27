@@ -323,7 +323,7 @@ public class Admin {
       public void execute(MasterClientService.Client client) throws Exception {
         client.shutdown(Tracer.traceInfo(), credentials.toThrift(instance), tabletServersToo);
       }
-    });
+    }, false);
   }
 
   private static void stopTabletServer(final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
@@ -341,7 +341,7 @@ public class Admin {
         public void execute(MasterClientService.Client client) throws Exception {
           client.shutdownTabletServer(Tracer.traceInfo(), creds.toThrift(instance), finalServer, force);
         }
-      });
+      }, false);
     }
   }
 

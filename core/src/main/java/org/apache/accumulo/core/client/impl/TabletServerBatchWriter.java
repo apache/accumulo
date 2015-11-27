@@ -855,10 +855,16 @@ public class TabletServerBatchWriter {
       try {
         TabletClientService.Iface client;
 
+        /*
+         * Ref. ACCUMULO-4065: While, we technically have an intermixing of oneway and non-oneway thrift calls to implement the batchwriter's
+         * write functionality, it seems that single-threaded access of this pattern is safe. As such, if we own the connection and mark it as
+         * non-oneway, we can be sure that we have unique access to the connection and the closeUpdate will block until all of the oneway
+         * calls have been ACK'ed.
+         */
         if (timeoutTracker.getTimeOut() < ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeoutTracker.getTimeOut());
+          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeoutTracker.getTimeOut(), false);
         else
-          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance));
+          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), false);
 
         try {
           MutationSet allFailures = new MutationSet();

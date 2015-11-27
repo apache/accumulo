@@ -133,7 +133,7 @@ public class ContinuousStatsCollector {
 
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(opts.getInstance());
+        client = MasterClient.getConnectionWithRetry(opts.getInstance(), false);
         MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(opts.getInstance()));
 
         TableInfo all = new TableInfo();

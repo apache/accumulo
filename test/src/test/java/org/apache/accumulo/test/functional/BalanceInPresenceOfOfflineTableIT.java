@@ -142,7 +142,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterIT {
       MasterMonitorInfo stats = null;
       try {
         Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
-        client = MasterClient.getConnectionWithRetry(instance);
+        client = MasterClient.getConnectionWithRetry(instance, false);
         stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);

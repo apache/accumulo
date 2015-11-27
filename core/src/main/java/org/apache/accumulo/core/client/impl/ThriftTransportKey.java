@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.SslConnectionParams;
 
@@ -27,11 +29,12 @@ public class ThriftTransportKey {
   private final int port;
   private final long timeout;
   private final SslConnectionParams sslParams;
+  private final boolean oneway;
 
   private int hash = -1;
 
   @VisibleForTesting
-  public ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
+  public ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams, boolean oneway) {
     ArgumentChecker.notNull(location);
     String[] locationAndPort = location.split(":", 2);
     if (locationAndPort.length == 2) {
@@ -42,6 +45,7 @@ public class ThriftTransportKey {
 
     this.timeout = timeout;
     this.sslParams = sslParams;
+    this.oneway = oneway;
   }
 
   String getLocation() {
@@ -60,12 +64,27 @@ public class ThriftTransportKey {
     return sslParams != null;
   }
 
+  public boolean isOneway() {
+    return oneway;
+  }
+
+  /**
+   * Compute whether another <code>ThriftTransportKey</code> references a connection to the same host which <code>this</code>
+   * key also references.
+   *
+   * @param other The other <code>ThriftTransportKey</code>.
+   * @return True if <code>other</code> points to the same server as <code>this</code>.
+   */
+  public boolean isSameLocation(ThriftTransportKey other) {
+    return location.equals(Objects.requireNonNull(other).location) && port == other.port;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ThriftTransportKey))
       return false;
     ThriftTransportKey ttk = (ThriftTransportKey) o;
-    return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)));
+    return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams))) && oneway == ttk.isOneway();
   }
 
   @Override
@@ -77,7 +96,7 @@ public class ThriftTransportKey {
 
   @Override
   public String toString() {
-    return (isSsl() ? "ssl:" : "") + location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ")";
+    return (isSsl() ? "ssl:" : "") + location + ":" + Integer.toString(port) + " (" + Long.toString(timeout) + ") oneway:" + oneway;
   }
 
   public SslConnectionParams getSslParams() {

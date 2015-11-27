@@ -94,7 +94,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
       try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
+        client = MasterClient.getConnectionWithRetry(c.getInstance(), false);
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

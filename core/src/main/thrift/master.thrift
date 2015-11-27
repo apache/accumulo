@@ -166,6 +166,7 @@ service MasterClientService extends FateService {
   MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
 
   // tablet server reporting
+  // Important: all of these reports to the Master are assumed to be oneway in the TabletServer's reporting code.
   oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)
   oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
 

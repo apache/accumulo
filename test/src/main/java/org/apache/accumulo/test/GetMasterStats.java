@@ -39,7 +39,7 @@ public class GetMasterStats {
     MasterMonitorInfo stats = null;
     try {
       Instance instance = HdfsZooInstance.getInstance();
-      client = MasterClient.getConnectionWithRetry(instance);
+      client = MasterClient.getConnectionWithRetry(instance, false);
       stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
     } finally {
       if (client != null)

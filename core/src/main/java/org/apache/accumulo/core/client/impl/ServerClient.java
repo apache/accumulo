@@ -46,9 +46,9 @@ import org.apache.thrift.transport.TTransportException;
 public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
 
-  public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec, boolean oneway) throws AccumuloException, AccumuloSecurityException {
     try {
-      return executeRaw(instance, exec);
+      return executeRaw(instance, exec, oneway);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -58,9 +58,9 @@ public class ServerClient {
     }
   }
 
-  public static void execute(Instance instance, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void execute(Instance instance, ClientExec<ClientService.Client> exec, boolean oneway) throws AccumuloException, AccumuloSecurityException {
     try {
-      executeRaw(instance, exec);
+      executeRaw(instance, exec, oneway);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -70,12 +70,12 @@ public class ServerClient {
     }
   }
 
-  public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
+  public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Client> exec, boolean oneway) throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(instance);
+        Pair<String,Client> pair = ServerClient.getConnection(instance, oneway);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -89,12 +89,12 @@ public class ServerClient {
     }
   }
 
-  public static void executeRaw(Instance instance, ClientExec<ClientService.Client> exec) throws Exception {
+  public static void executeRaw(Instance instance, ClientExec<ClientService.Client> exec, boolean oneway) throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(instance);
+        Pair<String,Client> pair = ServerClient.getConnection(instance, oneway);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -111,16 +111,16 @@ public class ServerClient {
 
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static Pair<String,ClientService.Client> getConnection(Instance instance) throws TTransportException {
-    return getConnection(instance, true);
+  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean oneway) throws TTransportException {
+    return getConnection(instance, true, oneway);
   }
 
-  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, boolean oneway) throws TTransportException {
     AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
-    return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), oneway);
   }
 
-  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout, boolean oneway) throws TTransportException {
     ArgumentChecker.notNull(instance);
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
@@ -132,12 +132,12 @@ public class ServerClient {
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null && !new String(data, UTF_8).equals("master"))
         servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, SslConnectionParams
-            .forClient(ServerConfigurationUtil.getConfiguration(instance))));
+            .forClient(ServerConfigurationUtil.getConfiguration(instance)), oneway));
     }
 
     boolean opened = false;
     try {
-      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
+      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections, oneway);
       ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
