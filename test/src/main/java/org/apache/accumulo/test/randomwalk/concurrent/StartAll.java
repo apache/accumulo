@@ -42,7 +42,7 @@ public class StartAll extends Test {
     while (true) {
       try {
         Instance instance = HdfsZooInstance.getInstance();
-        Client client = MasterClient.getConnection(instance);
+        Client client = MasterClient.getConnection(instance, false);
         MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
         if (!masterStats.tServerInfo.isEmpty())
           break;

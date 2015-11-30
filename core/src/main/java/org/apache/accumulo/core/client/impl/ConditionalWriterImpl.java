@@ -233,7 +233,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
         TInfo tinfo = Tracer.traceInfo();
         try {
-          client = getClient(sid.location);
+          client = getClient(sid.location, true);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
         } catch (Exception e) {} finally {
           ThriftUtil.returnClient((TServiceClient) client);
@@ -541,12 +541,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
     return activeSessions;
   }
 
-  private TabletClientService.Iface getClient(String location) throws TTransportException {
+  private TabletClientService.Iface getClient(String location, boolean oneway) throws TTransportException {
     TabletClientService.Iface client;
     if (timeout < ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-      client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeout);
+      client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeout, oneway);
     else
-      client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance));
+      client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), oneway);
     return client;
   }
 
@@ -567,7 +567,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       convertMutations(mutations, cmidToCm, cmid, tmutations, compressedIters);
 
       // getClient() call must come after converMutations in case it throws a TException
-      client = getClient(location);
+      client = getClient(location, false);
 
       List<TCMResult> tresults = null;
       while (tresults == null) {
@@ -698,7 +698,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     TInfo tinfo = Tracer.traceInfo();
 
     try {
-      client = getClient(location);
+      client = getClient(location, false);
       client.invalidateConditionalUpdate(tinfo, sessionId);
     } finally {
       ThriftUtil.returnClient((TServiceClient) client);

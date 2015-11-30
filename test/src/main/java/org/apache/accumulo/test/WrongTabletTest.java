@@ -41,7 +41,7 @@ public class WrongTabletTest {
 
     ServerConfiguration conf = new ServerConfiguration(opts.getInstance());
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(opts.location, conf.getConfiguration());
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(opts.location, conf.getConfiguration(), false);
 
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       mutation.putDelete(new Text("colf"), new Text("colq"));

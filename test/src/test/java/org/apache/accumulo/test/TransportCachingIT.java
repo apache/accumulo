@@ -17,11 +17,14 @@
 package org.apache.accumulo.test;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -29,6 +32,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
+import org.apache.accumulo.core.client.impl.ThriftTransportPool.CachedTTransport;
+import org.apache.accumulo.core.client.impl.ThriftTransportPool.Closer;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ServerServices;
@@ -50,12 +55,8 @@ import org.slf4j.LoggerFactory;
 public class TransportCachingIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(TransportCachingIT.class);
 
-  @Test
-  public void testCachedTransport() {
-    Connector conn = getConnector();
-    Instance instance = conn.getInstance();
+  private ArrayList<ThriftTransportKey> getTServers(Instance instance, boolean oneway) {
     long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
-
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
 
@@ -66,15 +67,27 @@ public class TransportCachingIT extends AccumuloClusterIT {
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null && !new String(data, UTF_8).equals("master"))
         servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, SslConnectionParams
-            .forClient(ServerConfigurationUtil.getConfiguration(instance))));
+            .forClient(ServerConfigurationUtil.getConfiguration(instance)), oneway));
     }
+
+    return servers;
+  }
+
+  @Test
+  public void testCachedTransport() {
+    final boolean ONEWAY = false;
+    Connector conn = getConnector();
+    Instance instance = conn.getInstance();
+
+    // create list of servers
+    ArrayList<ThriftTransportKey> servers = getTServers(instance, ONEWAY);
 
     ThriftTransportPool pool = ThriftTransportPool.getInstance();
     TTransport first = null;
     while (null == first) {
       try {
         // Get a transport (cached or not)
-        first = pool.getAnyTransport(servers, true).getSecond();
+        first = pool.getAnyTransport(servers, true, ONEWAY).getSecond();
       } catch (TTransportException e) {
         log.warn("Failed to obtain transport to " + servers);
       }
@@ -88,7 +101,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     while (null == second) {
       try {
         // Get a cached transport (should be the first)
-        second = pool.getAnyTransport(servers, true).getSecond();
+        second = pool.getAnyTransport(servers, true, ONEWAY).getSecond();
       } catch (TTransportException e) {
         log.warn("Failed obtain 2nd transport to " + servers);
       }
@@ -103,7 +116,7 @@ public class TransportCachingIT extends AccumuloClusterIT {
     while (null == third) {
       try {
         // Get a non-cached transport
-        third = pool.getAnyTransport(servers, false).getSecond();
+        third = pool.getAnyTransport(servers, false, ONEWAY).getSecond();
       } catch (TTransportException e) {
         log.warn("Failed obtain 2nd transport to " + servers);
       }
@@ -111,5 +124,134 @@ public class TransportCachingIT extends AccumuloClusterIT {
 
     assertFalse("Expected second and third transport to be different instances", second == third);
     pool.returnTransport(third);
+  }
+
+  @Test
+  public void onewayCaching() throws Exception {
+    final Connector conn = getConnector();
+    final Instance instance = conn.getInstance();
+
+    // create list of servers
+    final ArrayList<ThriftTransportKey> onewayServers = getTServers(instance, true);
+    final ArrayList<ThriftTransportKey> normalServers = getTServers(instance, false);
+    final ThriftTransportPool pool = ThriftTransportPool.getInstance();
+
+    TTransport oneway = null;
+    while (null == oneway) {
+      try {
+        // Get a transport (cached or not)
+        oneway = pool.getAnyTransport(onewayServers, true, true).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to " + onewayServers);
+      }
+    }
+
+    assertNotNull(oneway);
+
+    TTransport secondOneway = null;
+    while (null == secondOneway) {
+      try {
+        secondOneway = pool.getAnyTransport(onewayServers, true, true).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to " + onewayServers);
+      }
+    }
+
+    // The first connection is reserved
+    assertFalse(oneway == secondOneway);
+    pool.returnTransport(oneway);
+
+    TTransport thirdOneway = null;
+    while (null == thirdOneway) {
+      try {
+        thirdOneway = pool.getAnyTransport(onewayServers, true, true).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to " + onewayServers);
+      }
+    }
+
+    // After the first is returned, another request should get it back.
+    assertTrue(oneway == thirdOneway);
+
+    TTransport normalTransport = null;
+    while (null == normalTransport) {
+      try {
+        normalTransport = pool.getAnyTransport(normalServers, true, false).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to " + normalServers);
+      }
+    }
+
+    // We should get a transport
+    assertNotNull(normalTransport);
+    // It should *not* be the same instance as we got when asking for oneway.
+    assertFalse(secondOneway == normalTransport);
+    assertFalse(thirdOneway == normalTransport);
+  }
+
+  @Test
+  public void connectionClosing() throws Exception {
+    final long KILL_TIME = 1000;
+    final Connector conn = getConnector();
+    final Instance instance = conn.getInstance();
+
+    // create list of servers
+    final ArrayList<ThriftTransportKey> onewayServers = getTServers(instance, true);
+    final ThriftTransportPool pool = new ThriftTransportPool(KILL_TIME);
+
+    TTransport oneway = null;
+    while (null == oneway) {
+      try {
+        oneway = pool.getAnyTransport(onewayServers, true, true).getSecond();
+      } catch (TTransportException e) {
+        log.warn("Failed to obtain transport to " + onewayServers);
+      }
+    }
+
+    assertNotNull(oneway);
+    assertTrue(oneway instanceof CachedTTransport);
+    pool.returnTransport(oneway);
+
+    final CountDownLatch isRunning = new CountDownLatch(1);
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicBoolean keepRunning = new AtomicBoolean(true);
+    final Closer closer = new ThriftTransportPool.Closer(pool, latch, keepRunning);
+    Thread t = new Thread(new Runnable() {
+      @Override public void run() {
+        isRunning.countDown();
+        closer.run();
+      }
+    });
+    try {
+      t.start();
+
+      isRunning.await();
+
+      // Wait for a sufficient time for it to be "idle" and reaped
+      Thread.sleep(KILL_TIME * 4);
+
+      ThriftTransportKey ttk = ((CachedTTransport) oneway).getCacheKey();
+      assertEquals("Transport should have been evicted", 0, pool.getOnewayCache().get(ttk).size());
+
+      TTransport newOneway = null;
+      while (null == newOneway) {
+        try {
+          // Get a transport (cached or not)
+          newOneway = pool.getAnyTransport(onewayServers, true, true).getSecond();
+        } catch (TTransportException e) {
+          log.warn("Failed to obtain transport to " + onewayServers);
+        }
+      }
+
+      assertNotNull(newOneway);
+      assertFalse("After one transport was closed, we should get a new one", oneway == newOneway);
+    } finally {
+      keepRunning.set(false);
+      if (null != t) {
+        while (t.isAlive()) {
+          Thread.sleep(500);
+        }
+      }
+    }
   }
 }

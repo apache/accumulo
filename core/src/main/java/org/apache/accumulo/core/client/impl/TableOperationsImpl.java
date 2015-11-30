@@ -229,7 +229,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(instance);
+        client = MasterClient.getConnectionWithRetry(instance, false);
         return client.beginFateOperation(Tracer.traceInfo(), credentials.toThrift(instance));
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
@@ -246,7 +246,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(instance);
+        client = MasterClient.getConnectionWithRetry(instance, false);
         client.executeFateOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid, op, args, opts, autoCleanUp);
         break;
       } catch (TTransportException tte) {
@@ -262,7 +262,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(instance);
+        client = MasterClient.getConnectionWithRetry(instance, false);
         return client.waitForFateOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
@@ -277,7 +277,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(instance);
+        client = MasterClient.getConnectionWithRetry(instance, false);
         client.finishFateOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
         break;
       } catch (TTransportException tte) {
@@ -480,7 +480,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
 
         try {
-          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, ServerConfigurationUtil.getConfiguration(instance));
+          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, ServerConfigurationUtil.getConfiguration(instance), false);
           try {
             OpTimer opTimer = null;
             if (log.isTraceEnabled())
@@ -833,7 +833,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while (true) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnectionWithRetry(instance);
+          client = MasterClient.getConnectionWithRetry(instance, false);
           flushID = client.initiateFlush(Tracer.traceInfo(), credentials.toThrift(instance), tableId);
           break;
         } catch (TTransportException tte) {
@@ -847,7 +847,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while (true) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnectionWithRetry(instance);
+          client = MasterClient.getConnectionWithRetry(instance, false);
           client.waitForFlush(Tracer.traceInfo(), credentials.toThrift(instance), tableId, TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);
           break;
@@ -901,7 +901,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         public void execute(MasterClientService.Client client) throws Exception {
           client.setTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property, value);
         }
-      });
+      }, false);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
@@ -928,7 +928,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         public void execute(MasterClientService.Client client) throws Exception {
           client.removeTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property);
         }
-      });
+      }, false);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
@@ -952,7 +952,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         public Map<String,String> execute(ClientService.Client client) throws Exception {
           return client.getTableConfiguration(Tracer.traceInfo(), credentials.toThrift(instance), tableName);
         }
-      }).entrySet();
+      }, false).entrySet();
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NOTFOUND:
@@ -1554,7 +1554,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         public Boolean execute(ClientService.Client client) throws Exception {
           return client.checkTableClass(Tracer.traceInfo(), credentials.toThrift(instance), tableName, className, asTypeName);
         }
-      });
+      }, false);
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NOTFOUND:

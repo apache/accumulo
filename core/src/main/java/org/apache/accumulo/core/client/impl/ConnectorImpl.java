@@ -69,7 +69,7 @@ public class ConnectorImpl extends Connector {
           if (!iface.authenticate(Tracer.traceInfo(), credentials.toThrift(instance)))
             throw new AccumuloSecurityException("Authentication failed, access denied", SecurityErrorCode.BAD_CREDENTIALS);
         }
-      });
+      }, false);
     }
 
     this.tableops = new TableOperationsImpl(instance, credentials);

@@ -82,7 +82,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacIT {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     MasterClientService.Iface client = null;
     try {
-      client = MasterClient.getConnectionWithRetry(c.getInstance());
+      client = MasterClient.getConnectionWithRetry(c.getInstance(), false);
       log.info("Fetching master stats");
       return client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
     } finally {

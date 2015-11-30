@@ -125,7 +125,7 @@ public class MetadataMaxFilesIT extends AccumuloClusterIT {
         Credentials creds = new Credentials(getPrincipal(), getToken());
         Client client = null;
         try {
-          client = MasterClient.getConnectionWithRetry(c.getInstance());
+          client = MasterClient.getConnectionWithRetry(c.getInstance(), false);
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
         } finally {
           if (client != null)

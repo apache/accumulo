@@ -44,7 +44,7 @@ public class Shutdown extends Test {
     while (true) {
       try {
         Instance instance = HdfsZooInstance.getInstance();
-        Client client = MasterClient.getConnection(instance);
+        Client client = MasterClient.getConnection(instance, false);
         client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
       } catch (Exception e) {
         // assume this is due to server shutdown

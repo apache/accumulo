@@ -106,26 +106,26 @@ public class ThriftUtil {
     return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, AccumuloConfiguration conf)
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, AccumuloConfiguration conf, boolean oneway)
       throws TTransportException {
-    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, conf));
+    return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, conf, oneway));
   }
 
-  static public <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, AccumuloConfiguration configuration)
-      throws TTransportException {
-    return getClient(factory, address, 0, configuration);
+  static public <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address, AccumuloConfiguration configuration,
+      boolean oneway) throws TTransportException {
+    return getClient(factory, address, 0, configuration, oneway);
   }
 
   static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property timeoutProperty,
-      AccumuloConfiguration configuration) throws TTransportException {
+      AccumuloConfiguration configuration, boolean oneway) throws TTransportException {
     long timeout = configuration.getTimeInMillis(timeoutProperty);
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, SslConnectionParams.forClient(configuration));
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, SslConnectionParams.forClient(configuration), oneway);
     return createClient(factory, transport);
   }
 
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, long timeout, AccumuloConfiguration configuration)
-      throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, SslConnectionParams.forClient(configuration));
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, long timeout, AccumuloConfiguration configuration,
+      boolean oneway) throws TTransportException {
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, SslConnectionParams.forClient(configuration), oneway);
     return createClient(factory, transport);
   }
 
@@ -135,20 +135,20 @@ public class ThriftUtil {
     }
   }
 
-  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf);
+  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf, boolean oneway) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf, oneway);
   }
 
-  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf, long timeout) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, timeout, conf);
+  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf, long timeout, boolean oneway) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, timeout, conf, oneway);
   }
 
-  public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
+  public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Client> exec, boolean oneway) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
       TabletClientService.Client client = null;
       try {
-        exec.execute(client = getTServerClient(address, conf));
+        exec.execute(client = getTServerClient(address, conf, oneway));
         break;
       } catch (TTransportException tte) {
         log.debug("getTServerClient request failed, retrying ... ", tte);
@@ -164,12 +164,12 @@ public class ThriftUtil {
     }
   }
 
-  public static <T> T execute(String address, AccumuloConfiguration conf, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
+  public static <T> T execute(String address, AccumuloConfiguration conf, ClientExecReturn<T,TabletClientService.Client> exec, boolean oneway) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
       TabletClientService.Client client = null;
       try {
-        return exec.execute(client = getTServerClient(address, conf));
+        return exec.execute(client = getTServerClient(address, conf, oneway));
       } catch (TTransportException tte) {
         log.debug("getTServerClient request failed, retrying ... ", tte);
         UtilWaitThread.sleep(100);

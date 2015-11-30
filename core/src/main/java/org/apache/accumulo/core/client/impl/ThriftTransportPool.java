@@ -50,7 +50,16 @@ public class ThriftTransportPool {
   private static final Random random = new Random();
   private long killTime = 1000 * 3;
 
+  // Caches for Thrift connections to servers -- see ACCUMULO-4065
+  //
+  // For use with "normal" (not marked oneway) Thrift calls. Only one user at a time (no concurrent use).
   private Map<ThriftTransportKey,List<CachedConnection>> cache = new HashMap<ThriftTransportKey,List<CachedConnection>>();
+  // For oneway thrift calls. Only one client can issue one calls at a time, but multiple calls can be ACKed under
+  // the hood concurrently (oneway calls still have a response from the server, but the client never sees that response).
+  // If a non-oneway thread was waiting for its response after a oneway call, it might see the oneway call's response, not its own.
+  // If we only make oneway calls (which ignore the responses), we should be safe.
+  private Map<ThriftTransportKey,List<CachedConnection>> onewayCache = new HashMap<ThriftTransportKey,List<CachedConnection>>();
+
   private Map<ThriftTransportKey,Long> errorCount = new HashMap<ThriftTransportKey,Long>();
   private Map<ThriftTransportKey,Long> errorTime = new HashMap<ThriftTransportKey,Long>();
   private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<ThriftTransportKey>();
@@ -76,7 +85,7 @@ public class ThriftTransportPool {
       return this.transport.reserved;
     }
 
-    CachedTTransport transport;
+    final CachedTTransport transport;
 
     long lastReturnTime;
   }
@@ -85,46 +94,49 @@ public class ThriftTransportPool {
     private static final long serialVersionUID = 1L;
   }
 
-  private static class Closer implements Runnable {
+  /**
+   * Runnable for a thread which cleans up idle or errored connections to servers. Visible for testing only.
+   */
+  public static class Closer implements Runnable {
     final ThriftTransportPool pool;
-    private CountDownLatch closerExitLatch;
+    private final CountDownLatch closerExitLatch;
+    private final AtomicBoolean keepRunning;
 
-    public Closer(ThriftTransportPool pool, CountDownLatch closerExitLatch) {
+    public Closer(ThriftTransportPool pool, CountDownLatch closerExitLatch, AtomicBoolean keepRunning) {
       this.pool = pool;
       this.closerExitLatch = closerExitLatch;
+      this.keepRunning = keepRunning;
     }
 
     private void closeConnections() {
-      while (true) {
+      while (keepRunning.get()) {
 
         ArrayList<CachedConnection> connectionsToClose = new ArrayList<CachedConnection>();
 
         synchronized (pool) {
-          for (List<CachedConnection> ccl : pool.getCache().values()) {
-            Iterator<CachedConnection> iter = ccl.iterator();
-            while (iter.hasNext()) {
-              CachedConnection cachedConnection = iter.next();
+          // Collect any "idle" connections and remove them from the cache
+          collectIdleConnections(connectionsToClose, pool.getCache(), pool.killTime);
 
-              if (!cachedConnection.isReserved() && System.currentTimeMillis() - cachedConnection.lastReturnTime > pool.killTime) {
-                connectionsToClose.add(cachedConnection);
-                iter.remove();
-              }
-            }
-          }
-
+          // Check for any stuck connections
           for (List<CachedConnection> ccl : pool.getCache().values()) {
             for (CachedConnection cachedConnection : ccl) {
               cachedConnection.transport.checkForStuckIO(STUCK_THRESHOLD);
             }
           }
 
-          Iterator<Entry<ThriftTransportKey,Long>> iter = pool.errorTime.entrySet().iterator();
-          while (iter.hasNext()) {
-            Entry<ThriftTransportKey,Long> entry = iter.next();
+          // Collect any "idle" oneway connections and remove them from the oneway cache
+          collectIdleConnections(connectionsToClose, pool.getOnewayCache(), pool.killTime);
+
+          // Ignore checking for stuck oneway connections since we aren't blocked on those responses.
+
+          // Clean up any errors in memory
+          Iterator<Entry<ThriftTransportKey,Long>> errorTimeIter = pool.errorTime.entrySet().iterator();
+          while (errorTimeIter.hasNext()) {
+            Entry<ThriftTransportKey,Long> entry = errorTimeIter.next();
             long delta = System.currentTimeMillis() - entry.getValue();
             if (delta >= STUCK_THRESHOLD) {
               pool.errorCount.remove(entry.getKey());
-              iter.remove();
+              errorTimeIter.remove();
             }
           }
         }
@@ -142,6 +154,29 @@ public class ThriftTransportPool {
       }
     }
 
+    /**
+     * Inspect the <code>cache</code> of connections, adding any whose idle time exceed <code>idleTimeout</code> in age to
+     * <code>connectionsToClose</code> and removing them from the <code>cache</code>.
+     *
+     * @param connectionsToClose A list which connections to close will be added into.
+     * @param cache The cache of thrift connections.
+     * @param idleTimeout The number of milliseconds since last use that connections should be considered "idle".
+     */
+    private void collectIdleConnections(ArrayList<CachedConnection> connectionsToClose, Map<ThriftTransportKey,List<CachedConnection>> cache, long idleTimeout) {
+      // Collect any "idle" connections and remove them from the cache
+      for (List<CachedConnection> ccl : cache.values()) {
+        Iterator<CachedConnection> iter = ccl.iterator();
+        while (iter.hasNext()) {
+          CachedConnection cachedConnection = iter.next();
+
+          if (!cachedConnection.isReserved() && System.currentTimeMillis() - cachedConnection.lastReturnTime > idleTimeout) {
+            connectionsToClose.add(cachedConnection);
+            iter.remove();
+          }
+        }
+      }
+    }
+
     @Override
     public void run() {
       try {
@@ -152,7 +187,10 @@ public class ThriftTransportPool {
     }
   }
 
-  static class CachedTTransport extends TTransport {
+  /**
+   * Wrapper around a Thrift TTransport that does I/O counting (for "stuckness"), error tracking, and reservations.
+   */
+  public static class CachedTTransport extends TTransport {
 
     private ThriftTransportKey cacheKey;
     private TTransport wrappedTransport;
@@ -389,30 +427,65 @@ public class ThriftTransportPool {
 
   private ThriftTransportPool() {}
 
-  public TTransport getTransportWithDefaultTimeout(HostAndPort addr, AccumuloConfiguration conf) throws TTransportException {
-    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT),
-        SslConnectionParams.forClient(conf));
+  /**
+   * Visible <em>ONLY</em> for testing. Not for general purpose use.
+   *
+   * @param killTime The amount of time before reaping idle connections.
+   */
+  public ThriftTransportPool(long killTime) {
+    this.killTime = killTime;
   }
 
-  public TTransport getTransport(String location, long milliseconds, SslConnectionParams sslParams) throws TTransportException {
-    return getTransport(new ThriftTransportKey(location, milliseconds, sslParams));
+  public TTransport getTransportWithDefaultTimeout(HostAndPort addr, AccumuloConfiguration conf, boolean oneway) throws TTransportException {
+    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT),
+        SslConnectionParams.forClient(conf), oneway);
+  }
+
+  public TTransport getTransport(String location, long milliseconds, SslConnectionParams sslParams, boolean oneway) throws TTransportException {
+    return getTransport(new ThriftTransportKey(location, milliseconds, sslParams, oneway));
+  }
+
+  private void logConnectionCreation(ThriftTransportKey cacheKey, TTransport transport) {
+    logConnectionMessage("Created new ", cacheKey, transport);
+  }
+
+  private void logConnectionReuse(ThriftTransportKey cacheKey, TTransport transport) {
+    logConnectionMessage("Using existing ", cacheKey, transport);
+  }
+
+  private void logConnectionMessage(String prefix, ThriftTransportKey cacheKey, TTransport transport) {
+    log.trace(prefix + (cacheKey.isOneway() ? "oneway " : "") + "connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort() + " "
+        + Integer.toHexString(transport.hashCode()));
   }
 
   private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
     synchronized (this) {
-      // atomically reserve location if it exist in cache
-      List<CachedConnection> ccl = getCache().get(cacheKey);
-
-      if (ccl == null) {
-        ccl = new LinkedList<CachedConnection>();
-        getCache().put(cacheKey, ccl);
+      // Choose the appropriate cache to pull from
+      final Map<ThriftTransportKey,List<CachedConnection>> localCache;
+      if (cacheKey.isOneway()) {
+        localCache = getOnewayCache();
+      } else {
+        localCache = getCache();
       }
 
+      // atomically reserve location if it exist in cache
+      List<CachedConnection> ccl = localCache.get(cacheKey);
+
+      // Make sure we put the list back into the cache if it wasn't there already.
+      if (ccl == null) {
+        ccl = new LinkedList<CachedConnection>();
+        localCache.put(cacheKey, ccl);
+      }
+
+      // Find a connection that isn't reserved
       for (CachedConnection cachedConnection : ccl) {
         if (!cachedConnection.isReserved()) {
           cachedConnection.setReserved(true);
-          if (log.isTraceEnabled())
-            log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+          // Log the reuse of the connection
+          if (log.isTraceEnabled()) {
+            logConnectionReuse(cacheKey, cachedConnection.transport);
+          }
+
           return cachedConnection.transport;
         }
       }
@@ -422,28 +495,36 @@ public class ThriftTransportPool {
   }
 
   @VisibleForTesting
-  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
+  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection, boolean oneway) throws TTransportException {
 
     servers = new ArrayList<ThriftTransportKey>(servers);
 
     if (preferCachedConnection) {
-      HashSet<ThriftTransportKey> serversSet = new HashSet<ThriftTransportKey>(servers);
+      final HashSet<ThriftTransportKey> serversSet = new HashSet<ThriftTransportKey>(servers);
 
       synchronized (this) {
+        final Map<ThriftTransportKey,List<CachedConnection>> localCache;
+        if (oneway) {
+          localCache = getOnewayCache();
+        } else {
+          localCache = getCache();
+        }
 
         // randomly pick a server from the connection cache
-        serversSet.retainAll(getCache().keySet());
+        serversSet.retainAll(localCache.keySet());
 
         if (serversSet.size() > 0) {
           ArrayList<ThriftTransportKey> cachedServers = new ArrayList<ThriftTransportKey>(serversSet);
           Collections.shuffle(cachedServers, random);
 
           for (ThriftTransportKey ttk : cachedServers) {
-            for (CachedConnection cachedConnection : getCache().get(ttk)) {
+            // If any of the connection are unreserved, reserve and return it.
+            for (CachedConnection cachedConnection : localCache.get(ttk)) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
-                if (log.isTraceEnabled())
-                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort());
+                if (log.isTraceEnabled()) {
+                  logConnectionReuse(ttk, cachedConnection.transport);
+                }
                 return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
               }
             }
@@ -457,15 +538,25 @@ public class ThriftTransportPool {
       int index = random.nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);
 
+      // Always try to choose a cached connection before making a new connection
       if (preferCachedConnection) {
         synchronized (this) {
-          List<CachedConnection> cachedConnList = getCache().get(ttk);
+          final Map<ThriftTransportKey,List<CachedConnection>> localCache;
+          if (oneway) {
+            localCache = getOnewayCache();
+          } else {
+            localCache = getCache();
+          }
+
+          // Try to find an unreserved connection to the server, then reserve and return it.
+          List<CachedConnection> cachedConnList = localCache.get(ttk);
           if (cachedConnList != null) {
             for (CachedConnection cachedConnection : cachedConnList) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
-                if (log.isTraceEnabled())
-                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort() + " timeout " + ttk.getTimeout());
+                if (log.isTraceEnabled()) {
+                  logConnectionReuse(ttk, cachedConnection.transport);
+                }
                 return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
               }
             }
@@ -489,9 +580,6 @@ public class ThriftTransportPool {
     TTransport transport = ThriftUtil.createClientTransport(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), (int) cacheKey.getTimeout(),
         cacheKey.getSslParams());
 
-    if (log.isTraceEnabled())
-      log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
-
     CachedTTransport tsc = new CachedTTransport(transport, cacheKey);
 
     CachedConnection cc = new CachedConnection(tsc);
@@ -499,11 +587,18 @@ public class ThriftTransportPool {
 
     try {
       synchronized (this) {
-        List<CachedConnection> ccl = getCache().get(cacheKey);
+        Map<ThriftTransportKey,List<CachedConnection>> localCache;
+        if (cacheKey.isOneway()) {
+          localCache = getOnewayCache();
+        } else {
+          localCache = getCache();
+        }
+
+        List<CachedConnection> ccl = localCache.get(cacheKey);
 
         if (ccl == null) {
           ccl = new LinkedList<CachedConnection>();
-          getCache().put(cacheKey, ccl);
+          localCache.put(cacheKey, ccl);
         }
 
         ccl.add(cc);
@@ -511,6 +606,9 @@ public class ThriftTransportPool {
     } catch (TransportPoolShutdownException e) {
       cc.transport.close();
       throw e;
+    }
+    if (log.isTraceEnabled()) {
+      logConnectionCreation(cacheKey, cc.transport);
     }
     return cc.transport;
   }
@@ -523,19 +621,26 @@ public class ThriftTransportPool {
     boolean existInCache = false;
     CachedTTransport ctsc = (CachedTTransport) tsc;
 
-    ArrayList<CachedConnection> closeList = new ArrayList<ThriftTransportPool.CachedConnection>();
+    ArrayList<TTransport> closeList = new ArrayList<TTransport>();
 
     synchronized (this) {
-      List<CachedConnection> ccl = getCache().get(ctsc.getCacheKey());
+      Map<ThriftTransportKey,List<CachedConnection>> localCache;
+      if (ctsc.getCacheKey().isOneway()) {
+        localCache = getOnewayCache();
+      } else {
+        localCache = getCache();
+      }
+
+      List<CachedConnection> ccl = localCache.get(ctsc.getCacheKey());
       for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
         CachedConnection cachedConnection = iterator.next();
         if (cachedConnection.transport == tsc) {
           if (ctsc.sawError) {
-            closeList.add(cachedConnection);
+            closeList.add(cachedConnection.transport);
             iterator.remove();
 
             if (log.isTraceEnabled())
-              log.trace("Returned connection had error " + ctsc.getCacheKey());
+              log.trace("Returned connection had error " + ctsc.getCacheKey() + " " + Integer.toHexString(tsc.hashCode()));
 
             Long ecount = errorCount.get(ctsc.getCacheKey());
             if (ecount == null)
@@ -556,9 +661,8 @@ public class ThriftTransportPool {
             cachedConnection.setReserved(false);
 
           } else {
-
             if (log.isTraceEnabled())
-              log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount);
+              log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount + " " + Integer.toHexString(tsc.hashCode()));
 
             cachedConnection.lastReturnTime = System.currentTimeMillis();
             cachedConnection.setReserved(false);
@@ -570,29 +674,52 @@ public class ThriftTransportPool {
 
       // remove all unreserved cached connection when a sever has an error, not just the connection that was returned
       if (ctsc.sawError) {
-        for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
-          CachedConnection cachedConnection = iterator.next();
-          if (!cachedConnection.isReserved()) {
-            closeList.add(cachedConnection);
-            iterator.remove();
+        collectUnreservedTransports(closeList, ccl);
+
+        // The above removed the connections for the cache in use for this connection. We also want to check the opposite.
+        final Map<ThriftTransportKey,List<CachedConnection>> otherCache;
+        if (ctsc.getCacheKey().isOneway()) {
+          // Check the non-oneway cache
+          otherCache = getCache();
+        } else {
+          // Check the oneway cache
+          otherCache = getOnewayCache();
+        }
+
+        // Make sure we grab unreserved connections to the same server from the other cache too
+        final ThriftTransportKey cacheKey = ctsc.getCacheKey();
+        for (Entry<ThriftTransportKey,List<CachedConnection>> entry : otherCache.entrySet()) {
+          if (cacheKey.isSameLocation(entry.getKey())) {
+            collectUnreservedTransports(closeList, entry.getValue());
           }
         }
       }
     }
 
     // close outside of sync block
-    for (CachedConnection cachedConnection : closeList) {
+    for (TTransport cachedTransport : closeList) {
       try {
-        cachedConnection.transport.close();
+        cachedTransport.close();
       } catch (Exception e) {
         log.debug("Failed to close connection w/ errors", e);
       }
     }
 
     if (!existInCache) {
-      log.warn("Returned tablet server connection to cache that did not come from cache");
+      log.warn("Returned tablet server connection to cache that did not come from cache: " + Integer.toHexString(tsc.hashCode()));
       // close outside of sync block
       tsc.close();
+    }
+  }
+
+  private void collectUnreservedTransports(ArrayList<TTransport> transportsToClose, List<CachedConnection> connections) {
+    Iterator<CachedConnection> iter = connections.iterator();
+    while (iter.hasNext()) {
+      CachedConnection cc = iter.next();
+      if (!cc.isReserved()) {
+        transportsToClose.add(cc.transport);
+        iter.remove();
+      }
     }
   }
 
@@ -615,7 +742,7 @@ public class ThriftTransportPool {
 
     if (daemonStarted.compareAndSet(false, true)) {
       CountDownLatch closerExitLatch = new CountDownLatch(1);
-      new Daemon(new Closer(instance, closerExitLatch), "Thrift Connection Pool Checker").start();
+      new Daemon(new Closer(instance, closerExitLatch, new AtomicBoolean(true)), "Thrift Connection Pool Checker").start();
       instance.setCloserExitLatch(closerExitLatch);
     }
     return instance;
@@ -631,20 +758,13 @@ public class ThriftTransportPool {
         return;
 
       // close any connections in the pool... even ones that are in use
-      for (List<CachedConnection> ccl : getCache().values()) {
-        Iterator<CachedConnection> iter = ccl.iterator();
-        while (iter.hasNext()) {
-          CachedConnection cc = iter.next();
-          try {
-            cc.transport.close();
-          } catch (Exception e) {
-            log.debug("Error closing transport during shutdown", e);
-          }
-        }
-      }
+      closeAllConnections(getCache());
+      // same for the oneway cache
+      closeAllConnections(getOnewayCache());
 
       // this will render the pool unusable and cause the background thread to exit
       this.cache = null;
+      this.onewayCache = null;
     }
 
     try {
@@ -654,9 +774,47 @@ public class ThriftTransportPool {
     }
   }
 
-  private Map<ThriftTransportKey,List<CachedConnection>> getCache() {
+  /**
+   * Close all connections in the provided <code>cache</code>, regardless of reserved status.
+   *
+   * @param cache The cache of thrift connections.
+   */
+  private void closeAllConnections(Map<ThriftTransportKey,List<CachedConnection>> cache) {
+    for (List<CachedConnection> ccl : cache.values()) {
+      Iterator<CachedConnection> iter = ccl.iterator();
+      while (iter.hasNext()) {
+        CachedConnection cc = iter.next();
+        try {
+          cc.transport.close();
+        } catch (Exception e) {
+          log.debug("Error closing transport during shutdown", e);
+        }
+      }
+    }
+  }
+
+  //VisibleForTesting
+  public List<CachedConnection> getCachedConnections(ThriftTransportKey ttk) {
+    return getCache().get(ttk);
+  }
+
+  //VisibleForTesting
+  public Map<ThriftTransportKey,List<CachedConnection>> getCache() {
     if (cache == null)
       throw new TransportPoolShutdownException();
     return cache;
+  }
+
+  //VisibleForTesting
+  public List<CachedConnection> getOnewayCachedConnections(ThriftTransportKey ttk) {
+    return getOnewayCache().get(ttk);
+  }
+
+  //VisibleForTesting
+  public Map<ThriftTransportKey,List<CachedConnection>> getOnewayCache() {
+    if (null == onewayCache) {
+      throw new TransportPoolShutdownException();
+    }
+    return onewayCache;
   }
 }

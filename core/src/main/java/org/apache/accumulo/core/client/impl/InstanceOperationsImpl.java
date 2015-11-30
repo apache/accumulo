@@ -76,7 +76,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       public void execute(MasterClientService.Client client) throws Exception {
         client.setSystemProperty(Tracer.traceInfo(), credentials.toThrift(instance), property, value);
       }
-    });
+    }, false);
   }
 
   @Override
@@ -87,7 +87,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       public void execute(MasterClientService.Client client) throws Exception {
         client.removeSystemProperty(Tracer.traceInfo(), credentials.toThrift(instance), property);
       }
-    });
+    }, false);
   }
 
   @Override
@@ -97,7 +97,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       public Map<String,String> execute(ClientService.Client client) throws Exception {
         return client.getConfiguration(Tracer.traceInfo(), credentials.toThrift(instance), ConfigurationType.CURRENT);
       }
-    });
+    }, false);
   }
 
   @Override
@@ -107,7 +107,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       public Map<String,String> execute(ClientService.Client client) throws Exception {
         return client.getConfiguration(Tracer.traceInfo(), credentials.toThrift(instance), ConfigurationType.SITE);
       }
-    });
+    }, false);
   }
 
   @Override
@@ -133,7 +133,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance));
+      client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance), false);
 
       List<ActiveScan> as = new ArrayList<ActiveScan>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), credentials.toThrift(instance))) {
@@ -163,14 +163,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
       public Boolean execute(ClientService.Client client) throws Exception {
         return client.checkClass(Tracer.traceInfo(), credentials.toThrift(instance), className, asTypeName);
       }
-    });
+    }, false);
   }
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance));
+      client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance), false);
 
       List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(),

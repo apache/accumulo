@@ -143,7 +143,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       public void execute(MasterClientService.Client client) throws Exception {
         client.setNamespaceProperty(Tracer.traceInfo(), credentials.toThrift(instance), namespace, property, value);
       }
-    });
+    }, false);
   }
 
   @Override
@@ -155,7 +155,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       public void execute(MasterClientService.Client client) throws Exception {
         client.removeNamespaceProperty(Tracer.traceInfo(), credentials.toThrift(instance), namespace, property);
       }
-    });
+    }, false);
   }
 
   @Override
@@ -167,7 +167,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         public Map<String,String> execute(ClientService.Client client) throws Exception {
           return client.getNamespaceConfiguration(Tracer.traceInfo(), credentials.toThrift(instance), namespace);
         }
-      }).entrySet();
+      }, false).entrySet();
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
@@ -200,7 +200,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
         public Boolean execute(ClientService.Client client) throws Exception {
           return client.checkNamespaceClass(Tracer.traceInfo(), credentials.toThrift(instance), namespace, className, asTypeName);
         }
-      });
+      }, false);
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
