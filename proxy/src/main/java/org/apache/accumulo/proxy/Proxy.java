@@ -29,6 +29,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -135,7 +136,8 @@ public class Proxy {
     @SuppressWarnings("unchecked")
     Constructor<? extends TProcessor> proxyProcConstructor = (Constructor<? extends TProcessor>) proxyProcClass.getConstructor(proxyIfaceClass);
 
-    final TProcessor processor = proxyProcConstructor.newInstance(RpcWrapper.service(impl));
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    final TProcessor processor = proxyProcConstructor.newInstance(RpcWrapper.service(impl, ((TBaseProcessor) proxyProcConstructor.newInstance(impl)).getProcessMapView()));
 
     THsHaServer.Args args = new THsHaServer.Args(socket);
     args.processor(processor);
