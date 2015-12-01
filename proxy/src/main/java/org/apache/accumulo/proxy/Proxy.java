@@ -43,6 +43,7 @@ import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -201,7 +202,7 @@ public class Proxy implements KeywordExecutable {
     ProxyServer impl = new ProxyServer(properties);
 
     // Wrap the implementation -- translate some exceptions
-    AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl);
+    AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl, new AccumuloProxy.Processor<AccumuloProxy.Iface>(impl).getProcessMapView());
 
     // Create the processor from the implementation
     TProcessor processor = new AccumuloProxy.Processor<AccumuloProxy.Iface>(wrappedImpl);
