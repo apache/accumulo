@@ -144,12 +144,12 @@ public class RpcWrapperTest {
   private static class fake_fields implements org.apache.thrift.TFieldIdEnum {
     @Override
     public short getThriftFieldId() {
-      return 0;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public String getFieldName() {
-      return null;
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -210,12 +210,12 @@ public class RpcWrapperTest {
     @SuppressWarnings("rawtypes")
     @Override
     public TBase getResult(I iface, foo_args args) throws TException {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public foo_args getEmptyArgsInstance() {
-      return null;
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -228,39 +228,47 @@ public class RpcWrapperTest {
 
     @Override
     public int compareTo(foo_args o) {
-      return 0;
+      throw new UnsupportedOperationException();
     }
 
     @Override
-    public void read(TProtocol iprot) throws TException {}
+    public void read(TProtocol iprot) throws TException {
+      throw new UnsupportedOperationException();
+    }
 
     @Override
-    public void write(TProtocol oprot) throws TException {}
+    public void write(TProtocol oprot) throws TException {
+      throw new UnsupportedOperationException();
+    }
 
     @Override
     public fake_fields fieldForId(int fieldId) {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isSet(fake_fields field) {
-      return false;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getFieldValue(fake_fields field) {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
-    public void setFieldValue(fake_fields field, Object value) {}
+    public void setFieldValue(fake_fields field, Object value) {
+      throw new UnsupportedOperationException();
+    }
 
     @Override
     public TBase<foo_args,fake_fields> deepCopy() {
-      return null;
+      throw new UnsupportedOperationException();
     }
 
     @Override
-    public void clear() {}
+    public void clear() {
+      throw new UnsupportedOperationException();
+    }
   }
 }
