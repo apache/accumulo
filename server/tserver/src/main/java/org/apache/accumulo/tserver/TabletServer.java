@@ -3159,7 +3159,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    Iface tch = RpcWrapper.service(new ThriftClientHandler());
+    ThriftClientHandler handler = new ThriftClientHandler();
+    Iface tch = RpcWrapper.service(handler, new Processor<Iface>(handler).getProcessMapView());
     Processor<Iface> processor = new Processor<Iface>(tch);
     HostAndPort address = startServer(getSystemConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("address = " + address);
