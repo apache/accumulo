@@ -230,6 +230,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.apache.thrift.ProcessFunction;
+import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -3159,7 +3161,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    Iface tch = RpcWrapper.service(new ThriftClientHandler());
+    ThriftClientHandler handler = new ThriftClientHandler();
+    Iface tch = RpcWrapper.service(handler, new Processor<Iface>(handler).getProcessMapView());
     Processor<Iface> processor = new Processor<Iface>(tch);
     HostAndPort address = startServer(getSystemConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("address = " + address);

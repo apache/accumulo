@@ -19,10 +19,16 @@ package org.apache.accumulo.server.util;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.trace.instrument.thrift.RpcServerInvocationHandler;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
+import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,20 +42,51 @@ import org.slf4j.LoggerFactory;
  * @since 1.6.1
  */
 public class RpcWrapper {
+  private static final Logger log = LoggerFactory.getLogger(RpcWrapper.class);
 
-  public static <T> T service(final T instance) {
+  public static <T> T service(final T instance, @SuppressWarnings("rawtypes") final Map<String,ProcessFunction<T,? extends TBase>> processorView) {
+    // Get a handle on the isOnewayMethod and make it accessible
+    final Method isOnewayMethod;
+    try {
+      isOnewayMethod = ProcessFunction.class.getDeclaredMethod("isOneway");
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException("Could not access isOneway method", e);
+    } catch (SecurityException e) {
+      throw new RuntimeException("Could not access isOneway method", e);
+    }
+    isOnewayMethod.setAccessible(true);
+
+    final Set<String> onewayMethods = new HashSet<String>();
+    for (@SuppressWarnings("rawtypes") Entry<String,ProcessFunction<T,? extends TBase>> entry : processorView.entrySet()) {
+      try {
+        if ((Boolean) isOnewayMethod.invoke(entry.getValue())) {
+          onewayMethods.add(entry.getKey());
+        }
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+    log.debug("Found oneway Thrift methods: " + onewayMethods);
+
     InvocationHandler handler = new RpcServerInvocationHandler<T>(instance) {
       private final Logger log = LoggerFactory.getLogger(instance.getClass());
 
       @Override
       public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
+        // e.g. ThriftClientHandler.flush(TInfo, TCredentials, ...)
         try {
           return super.invoke(obj, method, args);
         } catch (RuntimeException e) {
+          if (onewayMethods.contains(method.getName())) {
+            throw e;
+          }
           String msg = e.getMessage();
           log.error(msg, e);
           throw new TException(msg);
         } catch (Error e) {
+          if (onewayMethods.contains(method.getName())) {
+            throw e;
+          }
           String msg = e.getMessage();
           log.error(msg, e);
           throw new TException(msg);
