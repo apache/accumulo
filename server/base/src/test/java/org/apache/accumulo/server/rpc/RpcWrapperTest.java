@@ -151,6 +151,11 @@ public class RpcWrapperTest {
     public String getFieldName() {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean equals(Object o) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   /**
@@ -217,6 +222,11 @@ public class RpcWrapperTest {
     public foo_args getEmptyArgsInstance() {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean equals(Object o) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   /**
@@ -225,6 +235,11 @@ public class RpcWrapperTest {
   private static class foo_args implements org.apache.thrift.TBase<foo_args,fake_fields> {
 
     private static final long serialVersionUID = 1L;
+
+    @Override
+    public boolean equals(Object o) {
+      throw new UnsupportedOperationException();
+    }
 
     @Override
     public int compareTo(foo_args o) {
