@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.server.util.RpcWrapperTest.FakeService;
 import org.apache.accumulo.trace.instrument.thrift.RpcServerInvocationHandler;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.thrift.ProcessFunction;

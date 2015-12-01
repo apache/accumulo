@@ -91,7 +91,7 @@ public class RpcWrapperTest {
   public void testNoExceptionWrappingForOneway() throws Throwable {
     final Object[] args = new Object[0];
 
-    final FakeService impl = new FakeServiceImpl(); 
+    final FakeService impl = new FakeServiceImpl();
 
     // "short" names throw RTEs and are oneway, while long names do not throw exceptions and are not oneway.
     RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl, Sets.newHashSet("foo", "bar"));
@@ -112,7 +112,7 @@ public class RpcWrapperTest {
   public void testExceptionWrappingForNonOneway() throws Throwable {
     final Object[] args = new Object[0];
 
-    final FakeService impl = new FakeServiceImpl(); 
+    final FakeService impl = new FakeServiceImpl();
 
     // "short" names throw RTEs and are not oneway, while long names do not throw exceptions and are oneway.
     RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl, Sets.newHashSet("foobar", "barfoo"));
@@ -158,7 +158,7 @@ public class RpcWrapperTest {
     int bar();
     long barfoo();
   }
-  
+
   /**
    * An implementation of the fake thrift service. The "short" names throw RTEs, while long names do not.
    */
@@ -257,5 +257,5 @@ public class RpcWrapperTest {
 
     @Override
     public void clear() {}
-  }  
+  }
 }
