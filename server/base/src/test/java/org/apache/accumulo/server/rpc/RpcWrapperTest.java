@@ -156,6 +156,11 @@ public class RpcWrapperTest {
     public boolean equals(Object o) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public int hashCode() {
+      throw new UnsupportedOperationException();
+    }
   }
 
   /**
@@ -227,6 +232,11 @@ public class RpcWrapperTest {
     public boolean equals(Object o) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public int hashCode() {
+      throw new UnsupportedOperationException();
+    }
   }
 
   /**
@@ -238,6 +248,11 @@ public class RpcWrapperTest {
 
     @Override
     public boolean equals(Object o) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int hashCode() {
       throw new UnsupportedOperationException();
     }
 
