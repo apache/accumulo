@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -61,6 +62,9 @@ public class ThriftUtil {
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
+
+  private static final Random SASL_BACKOFF_RAND = new Random();
+  private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
    * An instance of {@link TraceProtocolFactory}
@@ -296,6 +300,15 @@ public class ThriftUtil {
 
           // Open the transport
           transport.open();
+        } catch (TTransportException e) {
+          log.warn("Failed to open SASL transport", e);
+
+          // We might have had a valid ticket, but it expired. We'll let the caller retry, but we will attempt to re-login to make the next attempt work.
+          // Sadly, we have no way to determine the actual reason we got this TTransportException other than inspecting the exception msg.
+          log.debug("Caught TTransportException opening SASL transport, checking if re-login is necessary before propagating the exception.");
+          attemptClientReLogin();
+
+          throw e;
         } catch (IOException e) {
           log.warn("Failed to open SASL transport", e);
           throw new TTransportException(e);
@@ -325,6 +338,53 @@ public class ThriftUtil {
       }
     }
     return transport;
+  }
+
+  /**
+   * Some wonderful snippets of documentation from HBase on performing the re-login client-side (as well as server-side) in the following paragraph. We want to
+   * attempt a re-login to automatically refresh the client's Krb "credentials" (remember, a server might also be a client, master sending RPC to tserver), but
+   * we have to take care to avoid Kerberos' replay attack protection.
+   * <p>
+   * If multiple clients with the same principal try to connect to the same server at the same time, the server assumes a replay attack is in progress. This is
+   * a feature of kerberos. In order to work around this, what is done is that the client backs off randomly and tries to initiate the connection again. The
+   * other problem is to do with ticket expiry. To handle that, a relogin is attempted.
+   */
+  static void attemptClientReLogin() {
+    try {
+      UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+      if (null == loginUser || !loginUser.hasKerberosCredentials()) {
+        // We should have already checked that we're logged in and have credentials. A precondition-like check.
+        throw new RuntimeException("Expected to find Kerberos UGI credentials, but did not");
+      }
+      UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+      // A Proxy user is the "effective user" (in name only), riding on top of the "real user"'s Krb credentials.
+      UserGroupInformation realUser = currentUser.getRealUser();
+
+      // re-login only in case it is the login user or superuser.
+      if (loginUser.equals(currentUser) || loginUser.equals(realUser)) {
+        if (UserGroupInformation.isLoginKeytabBased()) {
+          log.info("Performing keytab-based Kerberos re-login");
+          loginUser.reloginFromKeytab();
+        } else {
+          log.info("Performing ticket-cache-based Kerberos re-login");
+          loginUser.reloginFromTicketCache();
+        }
+
+        // Avoid the replay attack protection, sleep 1 to 5000ms
+        try {
+          Thread.sleep((SASL_BACKOFF_RAND.nextInt(RELOGIN_MAX_BACKOFF) + 1));
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+      } else {
+        log.debug("Not attempting Kerberos re-login: loginUser={}, currentUser={}, realUser={}", loginUser, currentUser, realUser);
+      }
+    } catch (IOException e) {
+      // The inability to check is worrisome and deserves a RuntimeException instead of a propagated IO-like Exception.
+      log.warn("Failed to check (and/or perform) Kerberos client re-login", e);
+      throw new RuntimeException(e);
+    }
   }
 
   /**

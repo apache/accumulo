@@ -21,6 +21,8 @@ import java.net.InetAddress;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SecurityUtil {
   private static final Logger log = LoggerFactory.getLogger(SecurityUtil.class);
+  private static final Logger renewalLog = LoggerFactory.getLogger("KerberosTicketRenewal");
   public static boolean usingKerberos = false;
 
   /**
@@ -49,11 +52,10 @@ public class SecurityUtil {
 
     if (login(principalConfig, keyTab)) {
       try {
-        // This spawns a thread to periodically renew the logged in (accumulo) user
-        UserGroupInformation.getLoginUser();
+        startTicketRenewalThread(UserGroupInformation.getCurrentUser(), acuConf.getTimeInMillis(Property.GENERAL_KERBEROS_RENEWAL_PERIOD));
         return;
-      } catch (IOException io) {
-        log.error("Error starting up renewal thread. This shouldn't be happenining.", io);
+      } catch (IOException e) {
+        log.error("Failed to obtain Kerberos user after successfully logging in", e);
       }
     }
 
@@ -92,5 +94,42 @@ public class SecurityUtil {
     } catch (IOException e) {
       throw new RuntimeException("Could not convert configured server principal: " + configuredPrincipal, e);
     }
+  }
+
+  /**
+   * Start a thread that periodically attempts to renew the current Kerberos user's ticket.
+   *
+   * @param ugi
+   *          The current Kerberos user.
+   * @param renewalPeriod
+   *          The amount of time between attempting renewals.
+   */
+  static void startTicketRenewalThread(final UserGroupInformation ugi, final long renewalPeriod) {
+    Thread t = new Daemon(new LoggingRunnable(renewalLog, new Runnable() {
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            renewalLog.debug("Invoking renewal attempt for Kerberos ticket");
+            // While we run this "frequently", the Hadoop implementation will only perform the login at 80% of ticket lifetime.
+            ugi.checkTGTAndReloginFromKeytab();
+          } catch (IOException e) {
+            // Should failures to renew the ticket be retried more quickly?
+            renewalLog.error("Failed to renew Kerberos ticket", e);
+          }
+
+          // Wait for a bit before checking again.
+          try {
+            Thread.sleep(renewalPeriod);
+          } catch (InterruptedException e) {
+            renewalLog.error("Renewal thread interrupted", e);
+            Thread.currentThread().interrupt();
+            return;
+          }
+        }
+      }
+    }));
+    t.setName("Kerberos Ticket Renewal");
+    t.start();
   }
 }
