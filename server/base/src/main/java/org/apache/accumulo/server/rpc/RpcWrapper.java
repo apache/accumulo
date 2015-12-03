@@ -28,7 +28,7 @@ import org.apache.accumulo.core.trace.wrappers.RpcServerInvocationHandler;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TApplicationException;
-import org.apache.thrift.TBase;
+import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +51,15 @@ import org.slf4j.LoggerFactory;
 public class RpcWrapper {
   private static final Logger log = LoggerFactory.getLogger(RpcWrapper.class);
 
-  public static <T> T service(final T instance, @SuppressWarnings("rawtypes") final Map<String,ProcessFunction<T,? extends TBase>> processorView) {
+  public static <I> I service(final I instance, final TBaseProcessor<I> processor) {
+    final Map<String,ProcessFunction<I,?>> processorView = processor.getProcessMapView();
     final Set<String> onewayMethods = getOnewayMethods(processorView);
     log.debug("Found oneway Thrift methods: " + onewayMethods);
 
     InvocationHandler handler = getInvocationHandler(instance, onewayMethods);
 
     @SuppressWarnings("unchecked")
-    T proxiedInstance = (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
+    I proxiedInstance = (I) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
     return proxiedInstance;
   }
 
@@ -90,7 +91,7 @@ public class RpcWrapper {
     };
   }
 
-  protected static <T> Set<String> getOnewayMethods(@SuppressWarnings("rawtypes") Map<String,ProcessFunction<T,? extends TBase>> processorView) {
+  protected static Set<String> getOnewayMethods(Map<String,?> processorView) {
     // Get a handle on the isOnewayMethod and make it accessible
     final Method isOnewayMethod;
     try {
@@ -106,8 +107,7 @@ public class RpcWrapper {
 
     try {
       final Set<String> onewayMethods = new HashSet<String>();
-      for (@SuppressWarnings("rawtypes")
-      Entry<String,ProcessFunction<T,? extends TBase>> entry : processorView.entrySet()) {
+      for (Entry<String,?> entry : processorView.entrySet()) {
         try {
           if ((Boolean) isOnewayMethod.invoke(entry.getValue())) {
             onewayMethods.add(entry.getKey());

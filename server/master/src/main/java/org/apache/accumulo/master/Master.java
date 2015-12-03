@@ -1169,7 +1169,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
 
     clientHandler = new MasterClientServiceHandler(this);
-    Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(clientHandler).getProcessMapView());
+    Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(clientHandler));
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
       Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(), getConfiguration());
@@ -1204,7 +1204,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
-        RpcWrapper.service(impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl).getProcessMapView()));
+        RpcWrapper.service(impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
     ServerAddress replAddress = TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
         Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
