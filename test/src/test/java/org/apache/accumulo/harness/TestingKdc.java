@@ -39,6 +39,7 @@ public class TestingKdc {
   private static final Logger log = LoggerFactory.getLogger(TestingKdc.class);
 
   public static final int NUM_USERS = 10;
+  public static final long MAX_TICKET_LIFETIME_MILLIS = 86400000; // one day
 
   protected MiniKdc kdc = null;
   protected ClusterUser accumuloServerUser = null, accumuloAdmin = null;
@@ -51,10 +52,10 @@ public class TestingKdc {
   private boolean started = false;
 
   public TestingKdc() throws Exception {
-    this(computeKdcDir(), computeKeytabDir());
+    this(computeKdcDir(), computeKeytabDir(), MAX_TICKET_LIFETIME_MILLIS);
   }
 
-  private static File computeKdcDir() {
+  public static File computeKdcDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
 
@@ -66,7 +67,7 @@ public class TestingKdc {
     return kdcDir;
   }
 
-  private static File computeKeytabDir() {
+  public static File computeKeytabDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
 
@@ -79,8 +80,13 @@ public class TestingKdc {
   }
 
   public TestingKdc(File kdcDir, File keytabDir) throws Exception {
+    this(kdcDir, keytabDir, MAX_TICKET_LIFETIME_MILLIS);
+  }
+
+  public TestingKdc(File kdcDir, File keytabDir, long maxTicketLifetime) throws Exception {
     checkNotNull(kdcDir, "KDC directory was null");
     checkNotNull(keytabDir, "Keytab directory was null");
+    checkArgument(maxTicketLifetime > 0, "Ticket lifetime must be positive");
 
     this.keytabDir = keytabDir;
     this.hostname = InetAddress.getLocalHost().getCanonicalHostName();
@@ -90,6 +96,7 @@ public class TestingKdc {
     Properties kdcConf = MiniKdc.createConf();
     kdcConf.setProperty(MiniKdc.ORG_NAME, ORG_NAME);
     kdcConf.setProperty(MiniKdc.ORG_DOMAIN, ORG_DOMAIN);
+    kdcConf.setProperty(MiniKdc.MAX_TICKET_LIFETIME, Long.toString(maxTicketLifetime));
     // kdcConf.setProperty(MiniKdc.DEBUG, "true");
     kdc = new MiniKdc(kdcConf, kdcDir);
   }
