@@ -54,8 +54,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testSomeOnewayMethods() {
-    @SuppressWarnings("rawtypes")
-    Map<String,ProcessFunction<FakeService,? extends TBase>> procs = new HashMap<String,ProcessFunction<FakeService,? extends TBase>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", true));
@@ -67,8 +66,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testNoOnewayMethods() {
-    @SuppressWarnings("rawtypes")
-    Map<String,ProcessFunction<FakeService,? extends TBase>> procs = new HashMap<String,ProcessFunction<FakeService,? extends TBase>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
     procs.put("foo", createProcessFunction("foo", false));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", false));
@@ -80,8 +78,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testAllOnewayMethods() {
-    @SuppressWarnings("rawtypes")
-    Map<String,ProcessFunction<FakeService,? extends TBase>> procs = new HashMap<String,ProcessFunction<FakeService,? extends TBase>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", true));
     procs.put("bar", createProcessFunction("bar", true));
