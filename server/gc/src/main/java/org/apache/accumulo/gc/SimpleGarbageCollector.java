@@ -702,7 +702,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private HostAndPort startStatsService() throws UnknownHostException {
-    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this, new Processor<Iface>(this).getProcessMapView()));
+    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this, new Processor<Iface>(this)));
     int port = config.getPort(Property.GC_PORT);
     long maxMessageSize = config.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);

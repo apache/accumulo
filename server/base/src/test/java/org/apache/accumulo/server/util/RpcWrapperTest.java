@@ -37,11 +37,14 @@ import com.google.common.collect.Sets;
 public class RpcWrapperTest {
 
   private static final String RTE_MESSAGE = "RpcWrapperTest's RuntimeException Message";
+
   /**
    * Given a method name and whether or not the method is oneway, construct a ProcessFunction.
    *
-   * @param methodName The service method name.
-   * @param isOneway Is the method oneway.
+   * @param methodName
+   *          The service method name.
+   * @param isOneway
+   *          Is the method oneway.
    * @return A ProcessFunction.
    */
   private fake_proc<FakeService> createProcessFunction(String methodName, boolean isOneway) {
@@ -50,8 +53,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testSomeOnewayMethods() {
-    @SuppressWarnings("rawtypes")
-    Map<String,ProcessFunction<FakeService,? extends TBase>> procs = new HashMap<String,ProcessFunction<FakeService,? extends TBase>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", true));
@@ -63,8 +65,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testNoOnewayMethods() {
-    @SuppressWarnings("rawtypes")
-    Map<String,ProcessFunction<FakeService,? extends TBase>> procs = new HashMap<String,ProcessFunction<FakeService,? extends TBase>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
     procs.put("foo", createProcessFunction("foo", false));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", false));
@@ -76,8 +77,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testAllOnewayMethods() {
-    @SuppressWarnings("rawtypes")
-    Map<String,ProcessFunction<FakeService,? extends TBase>> procs = new HashMap<String,ProcessFunction<FakeService,? extends TBase>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", true));
     procs.put("bar", createProcessFunction("bar", true));
@@ -164,8 +164,11 @@ public class RpcWrapperTest {
    */
   interface FakeService {
     void foo();
+
     String foobar();
+
     int bar();
+
     long barfoo();
   }
 
@@ -197,7 +200,7 @@ public class RpcWrapperTest {
   /**
    * A fake ProcessFunction implementation for testing that allows injection of method name and oneway.
    */
-  private static class fake_proc<I extends FakeService> extends org.apache.thrift.ProcessFunction<I, foo_args> {
+  private static class fake_proc<I extends FakeService> extends org.apache.thrift.ProcessFunction<I,foo_args> {
     final private boolean isOneway;
 
     public fake_proc(String methodName, boolean isOneway) {
@@ -235,7 +238,7 @@ public class RpcWrapperTest {
   /**
    * Fake arguments for our fake service.
    */
-  private static class foo_args implements org.apache.thrift.TBase<foo_args, fake_fields> {
+  private static class foo_args implements org.apache.thrift.TBase<foo_args,fake_fields> {
 
     private static final long serialVersionUID = 1L;
 
