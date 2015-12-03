@@ -160,6 +160,8 @@ public enum Property {
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH, "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING, "Name of the kerberos principal to use. _HOST will automatically be "
       + "replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs"),
+  GENERAL_KERBEROS_RENEWAL_PERIOD("general.kerberos.renewal.period", "30s", PropertyType.TIMEDURATION, "The amount of time between attempts to perform "
+      + "Kerberos ticket renewals. This does not equate to how often tickets are actually renewed (which is performed at 80% of the ticket lifetime)."),
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.MEMORY, "The maximum size of a message that can be sent to a server."),
   @Experimental
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
