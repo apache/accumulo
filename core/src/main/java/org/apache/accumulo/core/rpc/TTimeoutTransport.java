@@ -35,10 +35,27 @@ import com.google.common.net.HostAndPort;
 
 public class TTimeoutTransport {
 
+  private static volatile Method GET_INPUT_STREAM_METHOD = null;
+
+  private static Method getNetUtilsInputStreamMethod() {
+    if (null == GET_INPUT_STREAM_METHOD) {
+      synchronized (TTimeoutTransport.class) {
+        if (null == GET_INPUT_STREAM_METHOD) {
+          try {
+            GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
+
+    return GET_INPUT_STREAM_METHOD;
+  }
+
   private static InputStream getInputStream(Socket socket, long timeout) {
     try {
-      Method m = NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
-      return (InputStream) m.invoke(null, socket, timeout);
+      return (InputStream) getNetUtilsInputStreamMethod().invoke(null, socket, timeout);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
