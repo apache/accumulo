@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
@@ -62,7 +62,7 @@ import com.google.common.collect.Iterables;
 /**
  * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity check for Kerberos/SASL testing.
  */
-public class KerberosRenewalIT extends AccumuloIT {
+public class KerberosRenewalIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosRenewalIT.class);
 
   private static TestingKdc kdc;
