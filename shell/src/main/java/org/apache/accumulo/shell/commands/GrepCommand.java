@@ -19,12 +19,12 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.PrintFile;
@@ -71,7 +71,9 @@ public class GrepCommand extends ScanCommand {
       fetchColumns(cl, scanner, interpeter);
 
       // output the records
-      printRecords(cl, shellState, scanner, formatter, printFile);
+      final FormatterConfig config = new FormatterConfig();
+      config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
+      printRecords(cl, shellState, config, scanner, formatter, printFile);
     } finally {
       scanner.close();
     }

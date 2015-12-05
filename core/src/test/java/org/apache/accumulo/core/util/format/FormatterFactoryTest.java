@@ -37,8 +37,9 @@ public class FormatterFactoryTest {
 
   @Test
   public void testGetDefaultFormatter() {
-    Formatter defaultFormatter = FormatterFactory.getDefaultFormatter(scanner, true);
-    Formatter bogusFormatter = FormatterFactory.getFormatter(Formatter.class, scanner, true);
+    final FormatterConfig timestampConfig = new FormatterConfig().setPrintTimestamps(true);
+    Formatter defaultFormatter = FormatterFactory.getDefaultFormatter(scanner, timestampConfig);
+    Formatter bogusFormatter = FormatterFactory.getFormatter(Formatter.class, scanner, timestampConfig);
     assertEquals(defaultFormatter.getClass(), bogusFormatter.getClass());
   }
 

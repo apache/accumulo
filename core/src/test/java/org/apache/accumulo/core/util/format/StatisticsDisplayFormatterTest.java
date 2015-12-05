@@ -42,7 +42,7 @@ public class StatisticsDisplayFormatterTest {
   @Test
   public void testInitialize() {
     data.put(new Key(), new Value());
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     assertTrue(formatter.hasNext());
   }
@@ -51,7 +51,7 @@ public class StatisticsDisplayFormatterTest {
   public void testAggregate() {
     data.put(new Key("", "", "", 1), new Value());
     data.put(new Key("", "", "", 2), new Value());
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     String[] output = formatter.next().split("\n");
     assertTrue(output[2].endsWith(": 1"));

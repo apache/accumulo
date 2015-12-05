@@ -62,6 +62,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -1212,7 +1213,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
    */
   public static class HexFormatter implements Formatter {
     private Iterator<Entry<Key,Value>> iter = null;
-    private boolean printTs = false;
+    private FormatterConfig config;
 
     private final static String tab = "\t";
     private final static String newline = "\n";
@@ -1231,7 +1232,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       String key;
 
       // Observe the timestamps
-      if (printTs) {
+      if (config.willPrintTimestamps()) {
         key = entry.getKey().toString();
       } else {
         key = entry.getKey().toStringNoTime();
@@ -1257,9 +1258,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public void remove() {}
 
     @Override
-    public void initialize(final Iterable<Entry<Key,Value>> scanner, final boolean printTimestamps) {
+    public void initialize(final Iterable<Entry<Key,Value>> scanner, final FormatterConfig config) {
       this.iter = scanner.iterator();
-      this.printTs = printTimestamps;
+      this.config = new FormatterConfig(config);
     }
   }
 
