@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 public class FormatterFactory {
   private static final Logger log = LoggerFactory.getLogger(FormatterFactory.class);
 
-  public static Formatter getFormatter(Class<? extends Formatter> formatterClass, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
+  public static Formatter getFormatter(Class<? extends Formatter> formatterClass, Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
     Formatter formatter = null;
     try {
       formatter = formatterClass.newInstance();
@@ -34,12 +34,12 @@ public class FormatterFactory {
       log.warn("Unable to instantiate formatter. Using default formatter.", e);
       formatter = new DefaultFormatter();
     }
-    formatter.initialize(scanner, printTimestamps);
+    formatter.initialize(scanner, config);
     return formatter;
   }
 
-  public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    return getFormatter(DefaultFormatter.class, scanner, printTimestamps);
+  public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
+    return getFormatter(DefaultFormatter.class, scanner, config);
   }
 
   private FormatterFactory() {

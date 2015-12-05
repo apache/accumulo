@@ -18,7 +18,6 @@ package org.apache.accumulo.shell.format;
 
 import java.io.IOException;
 import java.util.Map.Entry;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -27,7 +26,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +37,13 @@ public class DeleterFormatter extends DefaultFormatter {
   private static final Logger log = LoggerFactory.getLogger(DeleterFormatter.class);
   private BatchWriter writer;
   private Shell shellState;
-  private boolean printTimestamps;
   private boolean force;
   private boolean more;
 
-  public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, Shell shellState, boolean force) {
-    super.initialize(scanner, printTimestamps);
+  public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner, FormatterConfig config, Shell shellState, boolean force) {
+    super.initialize(scanner, config);
     this.writer = writer;
     this.shellState = shellState;
-    this.printTimestamps = printTimestamps;
     this.force = force;
     this.more = true;
   }
@@ -73,7 +72,7 @@ public class DeleterFormatter extends DefaultFormatter {
     Entry<Key,Value> next = getScannerIterator().next();
     Key key = next.getKey();
     Mutation m = new Mutation(key.getRow());
-    String entryStr = formatEntry(next, printTimestamps);
+    String entryStr = formatEntry(next, isDoTimestamps());
     boolean delete = force;
     try {
       if (!force) {

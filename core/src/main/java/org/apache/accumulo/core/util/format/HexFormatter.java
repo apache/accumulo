@@ -31,7 +31,7 @@ public class HexFormatter implements Formatter, ScanInterpreter {
 
   private char chars[] = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
   private Iterator<Entry<Key,Value>> iter;
-  private boolean printTimestamps;
+  private FormatterConfig config;
 
   private void toHex(StringBuilder sb, byte[] bin) {
 
@@ -88,7 +88,7 @@ public class HexFormatter implements Formatter, ScanInterpreter {
     sb.append(" [");
     sb.append(entry.getKey().getColumnVisibilityData().toString());
     sb.append("] ");
-    if (printTimestamps) {
+    if (config.willPrintTimestamps()) {
       sb.append(Long.toString(entry.getKey().getTimestamp()));
       sb.append("  ");
     }
@@ -103,9 +103,9 @@ public class HexFormatter implements Formatter, ScanInterpreter {
   }
 
   @Override
-  public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
+  public void initialize(Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
     this.iter = scanner.iterator();
-    this.printTimestamps = printTimestamps;
+    this.config = new FormatterConfig(config);
   }
 
   @Override

@@ -67,9 +67,9 @@ import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.core.util.format.FormatterFactory;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -204,7 +204,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected ConsoleReader reader;
   private AuthenticationToken token;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
-  private final Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<String,List<IteratorSetting>>();
 
@@ -1088,22 +1087,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass,
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, FormatterConfig config, boolean paginate, Class<? extends Formatter> formatterClass,
       PrintLine outFile) throws IOException {
-    printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate, outFile);
+    printLines(FormatterFactory.getFormatter(formatterClass, scanner, config), paginate, outFile);
   }
 
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, FormatterConfig config, boolean paginate, Class<? extends Formatter> formatterClass)
       throws IOException {
-    printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
-  }
-
-  public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, PrintLine outFile) throws IOException {
-    printLines(FormatterFactory.getFormatter(binaryFormatterClass, scanner, printTimestamps), paginate, outFile);
-  }
-
-  public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
-    printLines(FormatterFactory.getFormatter(binaryFormatterClass, scanner, printTimestamps), paginate);
+    printLines(FormatterFactory.getFormatter(formatterClass, scanner, config), paginate);
   }
 
   public static String repeat(String s, int c) {
