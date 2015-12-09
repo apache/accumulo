@@ -58,8 +58,9 @@ public class Fate<T> {
     public void run() {
       while (keepRunning.get()) {
         long deferTime = 0;
-        long tid = store.reserve();
+        Long tid = null;
         try {
+          tid = store.reserve();
           TStatus status = store.getStatus(tid);
           Repo<T> op = store.top(tid);
           if (status == TStatus.FAILED_IN_PROGRESS) {
@@ -100,7 +101,9 @@ public class Fate<T> {
         } catch (Exception e) {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
-          store.unreserve(tid, deferTime);
+          if (null != tid) {
+            store.unreserve(tid, deferTime);
+          }
         }
 
       }
