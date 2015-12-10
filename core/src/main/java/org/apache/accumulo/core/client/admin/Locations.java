@@ -41,7 +41,7 @@ public interface Locations {
   public Map<TabletId,List<Range>> groupByTablet();
 
   /**
-   * For any TabletId returned by {@link #getOverlappingTablets(Range)}, the method will return the tablet server location for that tablet.
+   * For any {@link TabletId} known to this object, the method will return the tablet server location for that tablet.
    *
    * @return A tablet server location in the form of {@code <host>:<port>}
    */
