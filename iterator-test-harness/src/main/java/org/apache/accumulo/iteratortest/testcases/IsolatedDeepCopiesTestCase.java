@@ -109,7 +109,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
         topValue = iter.getTopValue();
         first = false;
       } else if (!topValue.equals(iter.getTopValue())) {
-        throw new IllegalStateException("Inconsistent values between two iterators: " + topValue + " " + iter.getTopValue()); 
+        throw new IllegalStateException("Inconsistent values between two iterators: " + topValue + " " + iter.getTopValue());
       }
     }
 
