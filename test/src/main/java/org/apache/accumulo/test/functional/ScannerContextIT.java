@@ -67,7 +67,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Before
   public void checkCluster() throws Exception {
     Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
-    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
+    MiniAccumuloClusterImpl.class.cast(getCluster());
     fs = FileSystem.get(CachedConfiguration.getInstance());
   }
 

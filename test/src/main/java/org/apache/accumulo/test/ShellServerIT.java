@@ -1737,9 +1737,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     setupFakeContextPath();
     // Add the context to the table so that setscaniter works. After setscaniter succeeds, then
     // remove the property from the table.
-    String output = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
-    output = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    output = ts.exec("setscaniter -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
+    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
+    ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
+    ts.exec("setscaniter -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
     String result = ts.exec("scan -np -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
     log.error(result);
@@ -1760,7 +1760,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    output = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
     result = ts.exec("scan -np -b row1 -e row1 -cc " + REAL_CONTEXT);
     log.error(result);
     assertEquals(2, result.split("\n").length);
