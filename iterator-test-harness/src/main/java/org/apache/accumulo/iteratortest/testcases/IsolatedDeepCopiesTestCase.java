@@ -20,10 +20,13 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
@@ -36,6 +39,8 @@ import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
  */
 public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
 
+  private final Random random = new Random();
+
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
     final SortedKeyValueIterator<Key,Value> skvi = IteratorTestUtil.instantiateIterator(testInput);
@@ -47,11 +52,15 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       SortedKeyValueIterator<Key,Value> copy1 = skvi.deepCopy(new SimpleIteratorEnvironment());
       SortedKeyValueIterator<Key,Value> copy2 = copy1.deepCopy(new SimpleIteratorEnvironment());
 
-      skvi.seek(testInput.getRange(), Collections.<ByteSequence> emptySet(), false);
-      copy1.seek(testInput.getRange(), Collections.<ByteSequence> emptySet(), false);
-      copy2.seek(testInput.getRange(), Collections.<ByteSequence> emptySet(), false);
+      Range seekRange = testInput.getRange();
+      Set<ByteSequence> seekColumnFamilies = Collections.<ByteSequence> emptySet();
+      boolean seekInclusive = false;
 
-      TreeMap<Key,Value> output = consumeMany(Arrays.asList(skvi, copy1, copy2));
+      skvi.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
+      copy1.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
+      copy2.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
+
+      TreeMap<Key,Value> output = consumeMany(Arrays.asList(skvi, copy1, copy2), seekRange, seekColumnFamilies, seekInclusive);
 
       return new IteratorTestOutput(output);
     } catch (IOException e) {
@@ -59,10 +68,18 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     }
   }
 
-  TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators) throws IOException {
+  TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators, Range range, Set<ByteSequence> seekColumnFamilies,
+      boolean seekInclusive) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
     // All of the copies should have consistent results from concurrent use
     while (allHasTop(iterators)) {
+      // occasionally deep copy one of the existing iterators
+      if (random.nextInt(3) == 0) {
+        SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators).deepCopy(new SimpleIteratorEnvironment());
+        newcopy.seek(new Range(getTopKey(iterators), true, range.getEndKey(), range.isEndKeyInclusive()), seekColumnFamilies, seekInclusive);
+        iterators.add(newcopy);
+      }
+
       data.put(getTopKey(iterators), getTopValue(iterators));
       next(iterators);
     }
@@ -75,6 +92,17 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     }
 
     return data;
+  }
+
+  private <E> E getRandomElement(Collection<E> iterators) {
+    if (iterators == null || iterators.size() == 0)
+      throw new IllegalArgumentException("should not pass an empty collection");
+    int num = random.nextInt(iterators.size());
+    for (E e : iterators) {
+      if (num-- == 0)
+        return e;
+    }
+    throw new AssertionError();
   }
 
   boolean allHasTop(Collection<SortedKeyValueIterator<Key,Value>> iterators) {
