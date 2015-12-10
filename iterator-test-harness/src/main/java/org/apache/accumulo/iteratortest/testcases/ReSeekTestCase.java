@@ -84,8 +84,11 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
         // Last key
         Key reSeekStartKey = skvi.getTopKey();
 
-        // Deepcopy the iterator
-        skvi = skvi.deepCopy(new SimpleIteratorEnvironment());
+        // Make a new instance of the iterator
+        skvi = IteratorTestUtil.instantiateIterator(testInput);
+        final SortedKeyValueIterator<Key,Value> sourceCopy = IteratorTestUtil.createSource(testInput);
+
+        skvi.init(sourceCopy, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
 
         // The new range, resume where we left off (non-inclusive)
         final Range newRange = new Range(reSeekStartKey, false, origRange.getEndKey(), origRange.isEndKeyInclusive());
