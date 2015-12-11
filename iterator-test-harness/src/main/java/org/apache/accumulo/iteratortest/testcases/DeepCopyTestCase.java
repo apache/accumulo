@@ -54,7 +54,8 @@ public class DeepCopyTestCase extends OutputVerifyingTestCase {
   TreeMap<Key,Value> consume(SortedKeyValueIterator<Key,Value> skvi) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
     while (skvi.hasTop()) {
-      data.put(skvi.getTopKey(), skvi.getTopValue());
+      // Make sure to copy the K-V
+      data.put(new Key(skvi.getTopKey()), new Value(skvi.getTopValue()));
       skvi.next();
     }
     return data;

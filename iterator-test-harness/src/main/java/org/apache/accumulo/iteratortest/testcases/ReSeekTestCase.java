@@ -71,14 +71,13 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
 
     int i = 0;
     while (skvi.hasTop()) {
-      data.put(skvi.getTopKey(), skvi.getTopValue());
+      data.put(new Key(skvi.getTopKey()), new Value(skvi.getTopValue()));
 
       /*
-       * One of the trickiest cases in writing iterators:
-       * 
-       * After any result is returned from a TabletServer to the client, the Iterator in the TabletServer's memory may be torn down. To preserve the state and
-       * guarantee that all records are received, the TabletServer does remember the last Key it returned to the client. It will recreate the Iterator (stack),
-       * and seek it using an updated Range. This range's start key is set to the last Key returned, non-inclusive.
+       * One of the trickiest cases in writing iterators: After any result is returned from a TabletServer to the client, the Iterator in the TabletServer's
+       * memory may be torn down. To preserve the state and guarantee that all records are received, the TabletServer does remember the last Key it returned to
+       * the client. It will recreate the Iterator (stack), and seek it using an updated Range. This range's start key is set to the last Key returned,
+       * non-inclusive.
        */
       if (i % RESEEK_INTERVAL == reseekCount) {
         // Last key

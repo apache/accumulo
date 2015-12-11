@@ -17,6 +17,7 @@
 package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,11 +34,14 @@ import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
 import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test case that verifies that copies do not impact one another.
  */
 public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
+  private static final Logger log = LoggerFactory.getLogger(IsolatedDeepCopiesTestCase.class);
 
   private final Random random = new Random();
 
@@ -60,7 +64,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       copy1.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
       copy2.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
 
-      TreeMap<Key,Value> output = consumeMany(Arrays.asList(skvi, copy1, copy2), seekRange, seekColumnFamilies, seekInclusive);
+      TreeMap<Key,Value> output = consumeMany(new ArrayList<>(Arrays.asList(skvi, copy1, copy2)), seekRange, seekColumnFamilies, seekInclusive);
 
       return new IteratorTestOutput(output);
     } catch (IOException e) {
@@ -75,8 +79,10 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     while (allHasTop(iterators)) {
       // occasionally deep copy one of the existing iterators
       if (random.nextInt(3) == 0) {
+        log.debug("Deep-copying and re-seeking an iterator");
         SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators).deepCopy(new SimpleIteratorEnvironment());
         newcopy.seek(new Range(getTopKey(iterators), true, range.getEndKey(), range.isEndKeyInclusive()), seekColumnFamilies, seekInclusive);
+        // keep using the new one too, should act like the others
         iterators.add(newcopy);
       }
 
@@ -126,7 +132,8 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       }
     }
 
-    return topKey;
+    // Copy the key
+    return new Key(topKey);
   }
 
   Value getTopValue(Collection<SortedKeyValueIterator<Key,Value>> iterators) {
@@ -141,7 +148,8 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       }
     }
 
-    return topValue;
+    // Copy the value
+    return new Value(topValue);
   }
 
   void next(Collection<SortedKeyValueIterator<Key,Value>> iterators) throws IOException {

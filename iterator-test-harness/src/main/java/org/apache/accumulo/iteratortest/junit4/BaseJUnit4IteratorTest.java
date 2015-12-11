@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * A base JUnit4 test class for users to leverage with the JUnit Parameterized Runner.
  * <p>
  * Users should extend this class and implement a static method using the {@code @Parameters} annotation.
- * 
+ *
  * <pre>
  * &#064;Parameters
  * public static Object[][] data() {
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  *   return BaseJUnit4IteratorTest.createParameters(input, expectedOutput, testCases);
  * }
  * </pre>
- * 
+ *
  */
 @RunWith(Parameterized.class)
 public class BaseJUnit4IteratorTest {

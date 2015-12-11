@@ -67,7 +67,8 @@ public class MultipleHasTopCalls extends OutputVerifyingTestCase {
           throw badStateException(true);
         }
       }
-      data.put(skvi.getTopKey(), skvi.getTopValue());
+      // Make sure to copy the K-V
+      data.put(new Key(skvi.getTopKey()), new Value(skvi.getTopValue()));
       skvi.next();
     }
 
