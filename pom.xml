@@ -608,7 +608,6 @@
           <configuration>
             <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
-            <reportOutputDirectory>docs</reportOutputDirectory>
             <javadocVersion>${java.ver}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
