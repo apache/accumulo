@@ -672,7 +672,6 @@
           <configuration>
             <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
-            <reportOutputDirectory>docs</reportOutputDirectory>
             <javadocVersion>${maven.compiler.target}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
