@@ -26,7 +26,7 @@
 #   INCLUDED_MODULES should be an array that includes other Maven modules with src/main/thrift directories
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
-[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.9.1'
+[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.9.3'
 [[ -z $INCLUDED_MODULES ]]        && INCLUDED_MODULES=(../server/tracer)
 [[ -z $BASE_OUTPUT_PACKAGE ]]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [[ -z $PACKAGES_TO_GENERATE ]]    && PACKAGES_TO_GENERATE=(gc master tabletserver security client.impl data replication trace)
@@ -74,7 +74,7 @@ done
 # For all generated thrift code, suppress all warnings and add the LICENSE header
 cs='@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"})'
 es='@SuppressWarnings({"unused"})'
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public class [A-Z]\)/'"$cs"' \1/'
+find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/"unchecked"/"unchecked", "unused"/'
 find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public enum [A-Z]\)/'"$es"' \1/'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
