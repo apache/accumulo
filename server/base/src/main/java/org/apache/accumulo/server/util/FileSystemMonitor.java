@@ -32,40 +32,66 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
 
 public class FileSystemMonitor {
   private static final String PROC_MOUNTS = "/proc/mounts";
-  private static final Logger log = Logger.getLogger(FileSystemMonitor.class);
+  private static final Logger log = LoggerFactory.getLogger(FileSystemMonitor.class);
+  private static final String DEVICE_PREFIX = "/dev/";
+  private static final Set<String> ACCEPTED_FILESYSTEMS = Sets.newHashSet("ext3", "ext4", "xfs");
 
-  private static class Mount {
+  static class Mount {
+    String device;
     String mountPoint;
+    String filesystemType;
     Set<String> options;
 
     Mount(String line) {
       String tokens[] = line.split("\\s+");
 
-      mountPoint = tokens[1];
+      device = tokens[0].trim();
+      mountPoint = tokens[1].trim();
+      filesystemType = tokens[2].trim().toLowerCase();
 
       options = new HashSet<String>(Arrays.asList(tokens[3].split(",")));
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder(32);
+      sb.append(device).append(" on ").append(mountPoint).append(" as ").append(filesystemType)
+          .append(" with options ").append(options);
+      return sb.toString();
     }
   }
 
   static List<Mount> parse(String procFile) throws IOException {
 
-    List<Mount> mounts = new ArrayList<Mount>();
-
     FileReader fr = new FileReader(procFile);
     BufferedReader br = new BufferedReader(fr);
 
-    String line;
     try {
-      while ((line = br.readLine()) != null)
-        mounts.add(new Mount(line));
+      return getMountsFromFile(br);
     } finally {
       br.close();
     }
+  }
 
+  static List<Mount> getMountsFromFile(BufferedReader br) throws IOException {
+    List<Mount> mounts = new ArrayList<Mount>();
+    String line;
+    while ((line = br.readLine()) != null) {
+      Mount mount = new Mount(line);
+      if (mount.device.startsWith(DEVICE_PREFIX) && ACCEPTED_FILESYSTEMS.contains(mount.filesystemType)) {
+        log.trace("Retaining mount to check: '{}'", mount);
+        mounts.add(mount);
+      } else {
+        log.trace("Ignoring mount to check: '{}'", mount);
+      }
+    }
     return mounts;
   }
 
@@ -92,7 +118,7 @@ public class FileSystemMonitor {
           Halt.halt(-42, new Runnable() {
             @Override
             public void run() {
-              log.fatal("Exception while checking mount points, halting process", e);
+              log.error("Exception while checking mount points, halting process", e);
             }
           });
         }
