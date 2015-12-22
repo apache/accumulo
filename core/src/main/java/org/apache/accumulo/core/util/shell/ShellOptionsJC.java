@@ -283,7 +283,8 @@ public class ShellOptionsJC {
 
     // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
     if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      AccumuloConfiguration siteConf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
+      AccumuloConfiguration siteConf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(),
+          clientConfig));
       clientConfig.withZkHosts(siteConf.get(Property.INSTANCE_ZK_HOST));
     }
 

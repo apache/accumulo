@@ -62,8 +62,7 @@ public class FileSystemMonitor {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder(32);
-      sb.append(device).append(" on ").append(mountPoint).append(" as ").append(filesystemType)
-          .append(" with options ").append(options);
+      sb.append(device).append(" on ").append(mountPoint).append(" as ").append(filesystemType).append(" with options ").append(options);
       return sb.toString();
     }
   }

@@ -44,7 +44,8 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   final Random random = new Random();
   final List<String> hosts = new ArrayList<String>();
 
-  public ZooTraceClient(ZooReader zoo, String path, String host, String service, long millis, int maxQueueSize) throws IOException, KeeperException, InterruptedException {
+  public ZooTraceClient(ZooReader zoo, String path, String host, String service, long millis, int maxQueueSize) throws IOException, KeeperException,
+      InterruptedException {
     super(host, service, millis, maxQueueSize);
     this.path = path;
     this.zoo = zoo;

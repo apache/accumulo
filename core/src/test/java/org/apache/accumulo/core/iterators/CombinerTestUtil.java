@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.iterators;
 
 public class CombinerTestUtil {
-  public static void clearLogCache(){
+  public static void clearLogCache() {
     Combiner.loggedMsgCache.invalidateAll();
   }
 }

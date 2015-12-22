@@ -230,9 +230,8 @@ public class GarbageCollectionAlgorithm {
 
   }
 
-  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate, List<String> candidates)
-      throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate, List<String> candidates) throws TableNotFoundException,
+      AccumuloException, AccumuloSecurityException {
     Span candidatesSpan = Trace.start("getCandidates");
     try {
       return gce.getCandidates(lastCandidate, candidates);

@@ -60,7 +60,7 @@ public class BalanceIT extends ConfigurableMacIT {
   }
 
   private boolean isBalanced(Connector c) throws Exception {
-    Map<String, Integer> counts = new HashMap<String, Integer>();
+    Map<String,Integer> counts = new HashMap<String,Integer>();
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

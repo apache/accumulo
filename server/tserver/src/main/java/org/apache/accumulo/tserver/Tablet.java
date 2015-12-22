@@ -3363,7 +3363,7 @@ public class Tablet {
         this.notifyAll();
       }
 
-      if(span != null){
+      if (span != null) {
         span.data("extent", "" + getExtent());
         if (majCStats != null) {
           span.data("read", "" + majCStats.getEntriesRead());

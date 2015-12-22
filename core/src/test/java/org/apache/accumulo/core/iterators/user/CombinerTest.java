@@ -688,8 +688,8 @@ public class CombinerTest {
       assertEquals(a[i], b[i]);
   }
 
-  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, SummingArrayCombiner.Type type)
-      throws IOException, InstantiationException, IllegalAccessException {
+  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, SummingArrayCombiner.Type type) throws IOException, InstantiationException,
+      IllegalAccessException {
     Encoder<List<Long>> encoder = encoderClass.newInstance();
 
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
@@ -829,13 +829,12 @@ public class CombinerTest {
     return ret;
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env)
-      throws Exception {
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env) throws Exception {
     runDeleteHandlingTest(input, expected, rofco, env, null, true);
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env,
-      String expectedLog) throws Exception {
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env, String expectedLog)
+      throws Exception {
     runDeleteHandlingTest(input, expected, rofco, env, expectedLog, true);
     if (expectedLog != null) {
       // run test again... should not see log message again because cache is not cleared
@@ -843,8 +842,8 @@ public class CombinerTest {
     }
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env,
-      String expectedLog, boolean clearLogMsgCache) throws Exception {
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env, String expectedLog,
+      boolean clearLogMsgCache) throws Exception {
     boolean deepCopy = expected == null;
 
     if (clearLogMsgCache) {

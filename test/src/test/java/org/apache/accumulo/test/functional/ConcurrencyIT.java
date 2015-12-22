@@ -75,9 +75,8 @@ public class ConcurrencyIT extends AccumuloClusterIT {
   }
 
   /*
-   * Below is a diagram of the operations in this test over time.
-   *
-   * Scan 0 |------------------------------| Scan 1 |----------| Minc 1 |-----| Scan 2 |----------| Scan 3 |---------------| Minc 2 |-----| Majc 1 |-----|
+   * Below is a diagram of the operations in this test over time. Scan 0 |------------------------------| Scan 1 |----------| Minc 1 |-----| Scan 2 |----------|
+   * Scan 3 |---------------| Minc 2 |-----| Majc 1 |-----|
    */
 
   @Test

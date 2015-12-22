@@ -155,8 +155,8 @@ abstract public class BasicServlet extends HttpServlet {
     }
     sb.append("<div id='headertitle'>");
     sb.append("<h1>").append(getTitle(req)).append("</h1></div>\n");
-    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(Monitor.cachedInstanceName.get()).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;").append(Constants.VERSION)
-        .append("\n");
+    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(Monitor.cachedInstanceName.get()).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;")
+        .append(Constants.VERSION).append("\n");
     sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(HdfsZooInstance.getInstance().getInstanceID()).append("</span>\n");
     sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span>");
     sb.append("</div>\n"); // end <div id='subheader'>

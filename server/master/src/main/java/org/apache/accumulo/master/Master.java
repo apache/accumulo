@@ -841,7 +841,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                   break;
               }
           }
-        }catch(Throwable t) {
+        } catch (Throwable t) {
           log.error("Error occurred reading / switching master goal state. Will continue with attempt to update status", t);
         }
 
@@ -1032,8 +1032,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new IOException(e);
     }
 
-    Processor<Iface> processor = new Processor<Iface>(
-        RpcWrapper.service(new MasterClientServiceHandler(this), new Processor<Iface>(new MasterClientServiceHandler(this))));
+    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(new MasterClientServiceHandler(this), new Processor<Iface>(
+        new MasterClientServiceHandler(this))));
     ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;

@@ -364,10 +364,8 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(
-        0,
-        MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration",
-            EmptySplitsAccumuloInputFormat.class.getName()}));
+    Assert.assertEquals(0,
+        MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration", EmptySplitsAccumuloInputFormat.class.getName()}));
     assertNull(e1);
     assertNull(e2);
   }

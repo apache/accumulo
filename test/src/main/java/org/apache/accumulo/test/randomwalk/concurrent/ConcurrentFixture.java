@@ -36,8 +36,7 @@ public class ConcurrentFixture extends Fixture {
   public void setUp(State state) throws Exception {}
 
   @Override
-  public void tearDown(State state) throws Exception {
-  }
+  public void tearDown(State state) throws Exception {}
 
   /**
    *

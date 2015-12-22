@@ -39,10 +39,10 @@ import org.slf4j.LoggerFactory;
  * a network issue, but informs the client that a {@link TApplicationException} had occurred, as it did in Thrift 0.9.0. This performs similar functions as
  * {@link TraceWrap}, but with the additional action of translating exceptions. See also ACCUMULO-1691 and ACCUMULO-2950.
  *
- * ACCUMULO-4065 found that the above exception-wrapping is not appropriate for Thrift's implementation of oneway methods. Oneway methods are defined as
- * a method which the client does not wait for it to return. Normally, this is acceptable as these methods are void. Therefore, if another client reuses
- * the connection to send a new RPC, there is no "extra" data sitting on the InputStream from the Socket (that the server sent). However, the implementation
- * of a oneway method <em>does</em> send a response to the client when the implementation throws a {@link TException}. This message showing up on the client's
+ * ACCUMULO-4065 found that the above exception-wrapping is not appropriate for Thrift's implementation of oneway methods. Oneway methods are defined as a
+ * method which the client does not wait for it to return. Normally, this is acceptable as these methods are void. Therefore, if another client reuses the
+ * connection to send a new RPC, there is no "extra" data sitting on the InputStream from the Socket (that the server sent). However, the implementation of a
+ * oneway method <em>does</em> send a response to the client when the implementation throws a {@link TException}. This message showing up on the client's
  * InputStream causes future use of the Thrift Connection to become unusable. As long as the Thrift implementation sends a message back when oneway methods
  * throw a {@link TException}, we much make sure that we don't re-wrap-and-throw any exceptions as {@link TException}s.
  *

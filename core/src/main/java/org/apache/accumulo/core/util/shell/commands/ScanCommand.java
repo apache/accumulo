@@ -120,11 +120,11 @@ public class ScanCommand extends Command {
     return Long.MAX_VALUE;
   }
 
-  static void ensureTserversCanLoadIterator(final Shell shellState, String tableName, String classname)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, ShellCommandException {
+  static void ensureTserversCanLoadIterator(final Shell shellState, String tableName, String classname) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, ShellCommandException {
     if (!shellState.getConnector().tableOperations().testClassLoad(tableName, classname, SortedKeyValueIterator.class.getName())) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
-          "Servers are unable to load " + classname + " as type " + SortedKeyValueIterator.class.getName());
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
+          + SortedKeyValueIterator.class.getName());
     }
   }
 

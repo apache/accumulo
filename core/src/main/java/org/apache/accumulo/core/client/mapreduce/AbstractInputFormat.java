@@ -71,7 +71,7 @@ import org.apache.log4j.Logger;
  * An abstract input format to provide shared methods common to all other input format classes. At the very least, any classes inheriting from this class will
  * need to define their own {@link RecordReader}.
  */
-public abstract class AbstractInputFormat<K, V> extends InputFormat<K,V> {
+public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
@@ -355,7 +355,7 @@ public abstract class AbstractInputFormat<K, V> extends InputFormat<K,V> {
    * <li>int {@link #numKeysRead} (used for progress reporting)</li>
    * </ul>
    */
-  protected abstract static class AbstractRecordReader<K, V> extends RecordReader<K,V> {
+  protected abstract static class AbstractRecordReader<K,V> extends RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;

@@ -537,7 +537,7 @@ public class Shell extends ShellOptions {
 
   public static void main(String args[]) throws IOException {
     Shell shell = new Shell();
-    try{
+    try {
       if (!shell.config(args)) {
         System.exit(shell.getExitCode());
       }

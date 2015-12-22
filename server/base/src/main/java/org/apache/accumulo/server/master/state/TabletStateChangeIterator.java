@@ -230,7 +230,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
   public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
     DataOutputBuffer buffer = new DataOutputBuffer();
     try {
-      for (KeyExtent  extent : migrations) {
+      for (KeyExtent extent : migrations) {
         extent.write(buffer);
       }
     } catch (Exception ex) {

@@ -211,9 +211,8 @@ public class MockNamespacesTest {
 
     // TODO implement clone in mock
     /*
-     * c.tableOperations().clone(tableName1, tableName2, false, null, null);
-     *
-     * assertTrue(c.tableOperations().exists(tableName1)); assertTrue(c.tableOperations().exists(tableName2));
+     * c.tableOperations().clone(tableName1, tableName2, false, null, null); assertTrue(c.tableOperations().exists(tableName1));
+     * assertTrue(c.tableOperations().exists(tableName2));
      */
     return;
   }

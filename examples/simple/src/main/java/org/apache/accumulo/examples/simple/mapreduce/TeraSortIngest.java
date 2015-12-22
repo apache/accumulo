@@ -50,7 +50,6 @@ import org.apache.hadoop.util.ToolRunner;
 
 import com.beust.jcommander.Parameter;
 
-
 /**
  * Generate the *almost* official terasort input data set. (See below) The user specifies the number of rows and the output directory and this class runs a
  * map/reduce program to generate the data. The format of the data is:

@@ -67,7 +67,7 @@ import com.google.common.collect.Lists;
  * WARNING : Using deletes with Combiners may not work as intended. See {@link #setReduceOnFullCompactionOnly(IteratorSetting, boolean)}
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
-  static final Logger sawDeleteLog = Logger.getLogger(Combiner.class.getName()+".SawDelete");
+  static final Logger sawDeleteLog = Logger.getLogger(Combiner.class.getName() + ".SawDelete");
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
   protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION = "reduceOnFullCompactionOnly";
@@ -175,8 +175,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
           @Override
           public Boolean call() throws Exception {
-            sawDeleteLog.error("Combiner of type " + Combiner.this.getClass().getSimpleName()
-                + " saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent occurences for at least 1 hour.");
+            sawDeleteLog
+                .error("Combiner of type "
+                    + Combiner.this.getClass().getSimpleName()
+                    + " saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent occurences for at least 1 hour.");
             // the value is not used and does not matter
             return Boolean.TRUE;
           }
@@ -376,9 +378,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   /**
    * Combiners may not work correctly with deletes. Sometimes when Accumulo compacts the files in a tablet, it only compacts a subset of the files. If a delete
-   * marker exists in one of the files that is not being compacted, then data that should be deleted may be combined. See
-   * <a href="https://issues.apache.org/jira/browse/ACCUMULO-2232">ACCUMULO-2232</a> for more information. For correctness deletes should not be used with
-   * columns that are combined OR this option should be set to true.
+   * marker exists in one of the files that is not being compacted, then data that should be deleted may be combined. See <a
+   * href="https://issues.apache.org/jira/browse/ACCUMULO-2232">ACCUMULO-2232</a> for more information. For correctness deletes should not be used with columns
+   * that are combined OR this option should be set to true.
    *
    * <p>
    * When this method is set to true all data is passed through during partial major compactions and no reducing is done. Reducing is only done during scan and

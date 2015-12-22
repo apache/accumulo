@@ -28,10 +28,10 @@ public class HadoopCompatUtil {
 
   /**
    * Uses reflection to pull Configuration out of the JobContext for Hadoop 1 and Hadoop2 compatibility
+   *
    * @param context
    *          The job context for which to return the configuration
-   * @return
-   *          The Hadoop Configuration- irrespective of the version of Hadoop on the classpath.
+   * @return The Hadoop Configuration- irrespective of the version of Hadoop on the classpath.
    */
   public static Configuration getConfiguration(JobContext context) {
     try {

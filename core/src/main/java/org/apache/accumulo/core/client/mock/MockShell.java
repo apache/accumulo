@@ -169,7 +169,8 @@ public class MockShell extends Shell {
   }
 
   @Override
-  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException, FileSystemException {
+  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      IOException, FileSystemException {
     return MockShell.class.getClassLoader();
   }
 
