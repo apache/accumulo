@@ -96,7 +96,7 @@
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
-    <tag>${project.version}</tag>
+    <tag>HEAD</tag>
     <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
@@ -120,6 +120,8 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- relative path for Eclipse format; should override in child modules if necessary -->
+    <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
     <findbugs.version>2.5.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
@@ -515,14 +517,15 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.13</version>
+          <version>2.15</version>
         </plugin>
         <plugin>
-          <groupId>com.google.code.sortpom</groupId>
-          <artifactId>maven-sortpom-plugin</artifactId>
-          <version>2.3.0</version>
+          <groupId>com.github.ekryd.sortpom</groupId>
+          <artifactId>sortpom-maven-plugin</artifactId>
+          <version>2.4.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+            <createBackupFile>false</createBackupFile>
             <lineSeparator>\n</lineSeparator>
             <expandEmptyElements>false</expandEmptyElements>
             <nrOfIndentSpace>2</nrOfIndentSpace>
@@ -618,7 +621,7 @@
           <!-- Work around MRELEASE-812 -->
           <version>2.5</version>
           <configuration>
-            <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
+            <arguments>-P !autoformat,apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
@@ -690,6 +693,19 @@
                     <goals>
                       <goal>helpmojo</goal>
                       <goal>descriptor</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+                    <artifactId>maven-java-formatter-plugin</artifactId>
+                    <versionRange>[0.4,)</versionRange>
+                    <goals>
+                      <goal>format</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>
@@ -806,10 +822,11 @@
                 </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
-                    <groupId>com.google.code.sortpom</groupId>
-                    <artifactId>maven-sortpom-plugin</artifactId>
-                    <versionRange>[2.1.0,)</versionRange>
+                    <groupId>com.github.ekryd.sortpom</groupId>
+                    <artifactId>sortpom-maven-plugin</artifactId>
+                    <versionRange>[2.4.0,)</versionRange>
                     <goals>
+                      <goal>sort</goal>
                       <goal>verify</goal>
                     </goals>
                   </pluginExecutionFilter>
@@ -857,20 +874,50 @@
             </rules>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+          <artifactId>maven-java-formatter-plugin</artifactId>
+          <version>0.4</version>
+          <configuration>
+            <compilerCompliance>${java.ver}</compilerCompliance>
+            <compilerSource>${java.ver}</compilerSource>
+            <compilerTargetPlatform>${java.ver}</compilerTargetPlatform>
+            <excludes>
+              <exclude>**/thrift/*.java</exclude>
+              <exclude>**/proto/*.java</exclude>
+            </excludes>
+            <lineEnding>LF</lineEnding>
+            <overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.eclipse.tycho</groupId>
+              <artifactId>org.eclipse.jdt.core</artifactId>
+              <version>3.10.0.v20140604-1726</version>
+            </dependency>
+          </dependencies>
+          <executions>
+            <execution>
+              <goals>
+                <goal>format</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
       <plugin>
-        <!-- verify only; 'mvn clean -P sortpom' sorts -->
-        <groupId>com.google.code.sortpom</groupId>
-        <artifactId>maven-sortpom-plugin</artifactId>
+        <!-- verify before compile; should be sorted already -->
+        <groupId>com.github.ekryd.sortpom</groupId>
+        <artifactId>sortpom-maven-plugin</artifactId>
         <executions>
           <execution>
             <id>verify-sorted-pom</id>
             <goals>
               <goal>verify</goal>
             </goals>
-            <phase>validate</phase>
+            <phase>process-resources</phase>
           </execution>
         </executions>
       </plugin>
@@ -979,7 +1026,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>6.1.1</version>
+            <version>6.6</version>
           </dependency>
         </dependencies>
         <executions>
@@ -1215,22 +1262,34 @@
       </build>
     </profile>
     <profile>
-      <!-- 'mvn clean -P sortpom' sorts -->
-      <id>sortpom</id>
+      <!-- on by default, but disable with '-P !autoformat' or '-DskipFormat' -->
+      <id>autoformat</id>
+      <activation>
+        <property>
+          <name>!skipFormat</name>
+        </property>
+      </activation>
       <build>
         <plugins>
           <plugin>
-            <groupId>com.google.code.sortpom</groupId>
-            <artifactId>maven-sortpom-plugin</artifactId>
+            <groupId>com.github.ekryd.sortpom</groupId>
+            <artifactId>sortpom-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>sort-pom</id>
                 <goals>
                   <goal>sort</goal>
                 </goals>
-                <phase>clean</phase>
+                <phase>process-sources</phase>
               </execution>
             </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
+            <artifactId>maven-java-formatter-plugin</artifactId>
+            <configuration>
+              <configFile>${eclipseFormatterStyle}</configFile>
+            </configuration>
           </plugin>
         </plugins>
       </build>
