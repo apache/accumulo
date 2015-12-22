@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class FileSystemMonitorTest {
   private static final Logger log = LoggerFactory.getLogger(FileSystemMonitorTest.class);
   private static final Charset UTF_8 = Charset.forName("UTF-8");
-  
+
   @Test
   public void testFilteredMountEntries() throws Exception {
     String[] mountEntries = new String[] {
@@ -94,5 +94,5 @@ public class FileSystemMonitorTest {
     }
     assertEquals("Should not have any extra mount points: " + expectedCheckedMountPoints, 0, expectedCheckedMountPoints.size());
   }
-  
+
 }
