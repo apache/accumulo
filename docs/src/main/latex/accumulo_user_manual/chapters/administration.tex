@@ -342,7 +342,7 @@ $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
 Alternatively, you can ssh to each of the hosts you want to add and run:
 
 \begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO\_HOME/bin/start-here.sh
+$ACCUMULO_HOME/bin/start-here.sh
 \end{verbatim}\endgroup
 
 Make sure the host in question has the new configuration, or else the tablet 
@@ -361,7 +361,7 @@ $ACCUMULO_HOME/bin/accumulo admin stop <host[:port]> {<host[:port]> ...}
 Alternatively, you can ssh to each of the hosts you want to remove and run:
 
 \begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO\_HOME/bin/stop-here.sh
+$ACCUMULO_HOME/bin/stop-here.sh
 \end{verbatim}\endgroup
 
 Be sure to update your \texttt{\$ACCUMULO\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
@@ -388,6 +388,50 @@ The steps described to decomission a node can also be used (without removal of t
 from the \texttt{\$ACCUMULO\_HOME/conf/slaves} file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
+
+\subsection{Running multiple TabletServers on a single node}
+
+With very powerful nodes, it may be beneficial to run more than one TabletServer on a given
+node. This decision should be made carefully and with much deliberation as Accumulo is designed
+to be able to scale to using 10's of GB of RAM and 10's of CPU cores.
+
+To run multiple TabletServers on a single host, it is necessary to create multiple Accumulo configuration
+directories. Ensuring that these properties are appropriately set (and remain consistent) are an exercise
+for the user.
+
+Accumulo TabletServers bind certain ports on the host to accommodate remote procedure calls to/from
+other nodes. This requires additional configuration values in \texttt{accumulo-site.xml}:
+
+\begin{itemize}
+  \item tserver.port.client
+\end{itemize}
+
+Normally, setting a value of \texttt{0} for these configuration properties is sufficient. In some
+environment, the ports used by Accumulo must be well-known for security reasons and require a
+separate copy of the configuration files to use a static port for each TabletServer instance.
+
+It is also necessary to update the following exported variables in \texttt{accumulo-env.sh}.
+
+\begin{itemize}
+  \item ACCUMULO\_LOG\_DIR
+\end{itemize}
+
+The values for these properties are left up to the user to define; there are no constraints
+other than ensuring that the directory exists and the user running Accumulo has the permission
+to read/write into that directory.
+
+Accumulo's provided scripts for stopping a cluster operate under the assumption that one process
+is running per host. As such, starting and stopping multiple TabletServers on one host requires
+more effort on the user. It is important to ensure that \texttt{ACCUMULO\_CONF\_DIR} is correctly
+set for the instance of the TabletServer being started.
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+$ACCUMULO_CONF_DIR=$ACCUMULO_HOME/conf $ACCUMULO_HOME/bin/accumulo tserver --address <your_server_ip> &
+\end{verbatim}\endgroup
+
+To stop TabletServers, the normal \texttt{stop-all.sh} will stop all instances of TabletServers across all nodes.
+Using the provided \texttt{kill} command by your operation system is an option to stop a single instance on
+a single node. \texttt{stop-server.sh} can be used to stop all TabletServers on a single node.
 
 \section{Monitoring}
 
