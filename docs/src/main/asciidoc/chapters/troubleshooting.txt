@@ -229,6 +229,61 @@ messages to zookeeper.
 
 *A*: Ensure the tablet server JVM is not running low on memory.
 
+*Q*: I'm seeing errors in tablet server logs that include the words "MutationsRejectedException" and "# constraint violations: 1". Moments after that the server died.
+
+The error you are seeing is part of a failing tablet server scenario.
+This is a bit complicated, so name two of your tablet servers A and B.
+
+Tablet server A is hosting a tablet, let's call it a-tablet.
+
+Tablet server B is hosting a metadata tablet, let's call it m-tablet.
+
+m-tablet records the information about a-tablet, for example, the names of the files it is using to store data.
+
+When A ingests some data, it eventually flushes the updates from memory to a file.
+
+Tablet server A then writes this new information to m-tablet, on Tablet server B.
+
+Here's a likely failure scenario:
+
+Tablet server A does not have enough memory for all the processes running on it.
+The operating system sees a large chunk of the tablet server being unused, and swaps it out to disk to make room for other processes.
+Tablet server A does a java memory garbage collection, which causes it to start using all the memory allocated to it.
+As the server starts pulling data from swap, it runs very slowly.
+It fails to send the keep-alive messages to zookeeper in a timely fashion, and it looses its zookeeper session.
+
+But, it's running so slowly, that it takes a moment to realize it should no longer be hosting tablets.
+
+The thread that is flushing a-tablet memory attempts to update m-tablet with the new file information.
+
+Fortunately there's a constraint on m-tablet.
+Mutations to the metadata table must contain a valid zookeeper session.
+This prevents tablet server A from making updates to m-tablet when it no long has the right to host the tablet.
+
+The "MutationsRejectedException" error is from tablet server A making an update to tablet server B's m-tablet.
+It's getting a constraint violation: tablet server A has lost its zookeeper session, and will fail momentarily.
+
+*A*: Ensure that memory is not over-allocated.  Monitor swap usage, or turn swap off.
+
+*Q*: My accumulo client is getting a MutationsRejectedException. The monitor is displaying "No Such SessionID" errors.
+
+When your client starts sending mutations to accumulo, it creates a session. Once the session is created,
+mutations are streamed to accumulo, without acknowledgement, against this session.  Once the client is done,
+it will close the session, and get an acknowledgement.
+
+If the client fails to communicate with accumulo, it will release the session, assuming that the client has died.
+If the client then attempts to send more mutations against the session, you will see "No Such SessionID" errors on
+the server, and MutationRejectedExceptions in the client.
+
+The client library should be either actively using the connection to the tablet servers,
+or closing the connection and sessions. If the session times out, something is causing your client
+to pause.
+
+The most frequent source of these pauses are java garbage collection pauses
+due to the JVM running out of memory, or being swapped out to disk.
+
+*A*: Ensure your client has adequate memory and is not being swapped out to disk.
+
 ### Tools
 
 The accumulo script can be used to run classes from the command line.
