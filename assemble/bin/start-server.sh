@@ -75,7 +75,7 @@ fi
 if [ -z "$PID" ]; then
    echo "Starting $LONGNAME on $HOST"
    if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
-      ${NUMA_CMD} ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
+      nohup ${NUMA_CMD} ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
       MAX_FILES_OPEN=$(ulimit -n)
    else
       $SSH $HOST "bash -c 'exec nohup ${NUMA_CMD} ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
