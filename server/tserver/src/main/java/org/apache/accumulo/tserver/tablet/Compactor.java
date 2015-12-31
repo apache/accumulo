@@ -64,6 +64,7 @@ import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -182,14 +183,16 @@ public class Compactor implements Callable<CompactionStats> {
 
     clearStats();
 
+    final Path outputFilePath = outputFile.path();
+    final String outputFilePathName = outputFilePath.toString();
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName = "MajC compacting " + extent.toString() + " started " + dateFormatter.format(new Date()) + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     thread = Thread.currentThread();
     try {
       FileOperations fileFactory = FileOperations.getInstance();
-      FileSystem ns = this.fs.getVolumeByPath(outputFile.path()).getFileSystem();
-      mfw = fileFactory.openWriter(outputFile.path().toString(), ns, ns.getConf(), acuTableConf);
+      FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
+      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), acuTableConf);
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
