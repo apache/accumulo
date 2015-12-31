@@ -132,17 +132,17 @@ public class VisibilityEvaluatorTest {
 
     try {
       VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b"));
-      fail();
+      fail("Expected failure to unescape invalid escape sequence");
     } catch (IllegalArgumentException e) {}
 
     try {
       VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b\\c"));
-      fail();
+      fail("Expected failure to unescape invalid escape sequence");
     } catch (IllegalArgumentException e) {}
 
     try {
       VisibilityEvaluator.unescape(new ArrayByteSequence("a\"b\\"));
-      fail();
+      fail("Expected failure to unescape invalid escape sequence");
     } catch (IllegalArgumentException e) {}
 
   }

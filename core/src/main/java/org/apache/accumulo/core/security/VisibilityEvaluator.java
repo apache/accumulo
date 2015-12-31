@@ -28,6 +28,10 @@ import org.apache.accumulo.core.security.ColumnVisibility.Node;
 public class VisibilityEvaluator {
   private AuthorizationContainer auths;
 
+  /**
+   * Authorizations in column visibility expression are in escaped form. Column visibility parsing does not unescape. This class wraps an AuthorizationContainer
+   * and unescapes auths before checking the wrapped container.
+   */
   private static class UnescapingAuthorizationContainer implements AuthorizationContainer {
 
     private AuthorizationContainer wrapped;
