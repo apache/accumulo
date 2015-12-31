@@ -1546,7 +1546,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(tserver.matches(hostPortPattern));
       assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
       String client = parts[1].trim();
-      assertTrue(client.matches(hostPortPattern));
+      assertTrue(client + " does not match " + hostPortPattern, client.matches(hostPortPattern));
       // Scan ID should be a long (throwing an exception if it fails to parse)
       Long.parseLong(parts[11].trim());
     }
