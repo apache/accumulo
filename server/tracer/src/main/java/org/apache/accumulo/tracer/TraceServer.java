@@ -172,6 +172,8 @@ public class TraceServer implements Watcher {
 
   public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + serverConfiguration.getInstance().getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
     table = conf.get(Property.TRACE_TABLE);
     Connector connector = null;

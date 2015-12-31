@@ -140,6 +140,8 @@ public class SimpleGarbageCollector implements Iface {
     final String app = "gc";
     Accumulo.setupLogging(app);
     Instance instance = HdfsZooInstance.getInstance();
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + instance.getInstanceID());
     ServerConfiguration conf = new ServerConfiguration(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, conf, app);

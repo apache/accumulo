@@ -268,6 +268,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     this.serverConfig = conf;
     this.instance = conf.getInstance();
     this.fs = fs;
+
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + instance.getInstanceID());
+
     this.logSorter = new LogSorter(instance, fs, getSystemConfiguration());
     SimpleTimer.getInstance().schedule(new Runnable() {
       @Override

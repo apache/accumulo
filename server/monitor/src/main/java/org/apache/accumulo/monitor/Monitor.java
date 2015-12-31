@@ -433,6 +433,8 @@ public class Monitor {
     VolumeManager fs = VolumeManagerImpl.get();
     instance = HdfsZooInstance.getInstance();
     config = new ServerConfiguration(instance);
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + instance.getInstanceID());
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
     Accumulo.enableTracing(hostname, app);
