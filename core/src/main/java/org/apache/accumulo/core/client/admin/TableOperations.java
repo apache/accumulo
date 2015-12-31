@@ -443,7 +443,9 @@ public interface TableOperations {
   void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Sets a property on a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
+   * Sets a property on a table. This operation is asynchronous and eventually consistent. Not all tablets in a table will acknowledge this new value
+   * immediately nor at the same time. Within a few seconds without another change, all tablets in a table should see the updated value. The clone table feature
+   * can be used if consistency is required.
    *
    * @param tableName
    *          the name of the table
@@ -459,7 +461,9 @@ public interface TableOperations {
   void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Removes a property from a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
+   * Removes a property from a table. This operation is asynchronous and eventually consistent. Not all tablets in a table will acknowledge this altered value
+   * immediately nor at the same time. Within a few seconds without another change, all tablets in a table should see the altered value. The clone table feature
+   * can be used if consistency is required.
    *
    * @param tableName
    *          the name of the table
@@ -473,7 +477,9 @@ public interface TableOperations {
   void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Gets properties of a table. Note that recently changed properties may not be available immediately.
+   * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not guaranteed that all tablets in a table will return the same
+   * values. Within a few seconds without another change, all tablets in a table should be consistent. The clone table feature can be used if consistency is
+   * required.
    *
    * @param tableName
    *          the name of the table
