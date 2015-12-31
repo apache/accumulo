@@ -429,6 +429,8 @@ public class Monitor {
     instance = HdfsZooInstance.getInstance();
     config = new ServerConfigurationFactory(instance);
     context = new AccumuloServerContext(config);
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + instance.getInstanceID());
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
     DistributedTrace.enable(hostname, app, config.getConfiguration());

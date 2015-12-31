@@ -82,7 +82,8 @@ public class MinorCompactor extends Compactor {
 
   @Override
   public CompactionStats call() {
-    log.debug("Begin minor compaction " + getOutputFile() + " " + getExtent());
+    final String outputFileName = getOutputFile();
+    log.debug("Begin minor compaction " + outputFileName + " " + getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;
@@ -100,19 +101,19 @@ public class MinorCompactor extends Compactor {
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
           if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile());
+            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, outputFileName);
           }
 
           return ret;
         } catch (IOException e) {
-          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile());
-          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
           // minor compaction would succeed
-          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), getOutputFile(), e);
-          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
+          log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);
@@ -127,11 +128,11 @@ public class MinorCompactor extends Compactor {
 
         // clean up
         try {
-          if (getFileSystem().exists(new Path(getOutputFile()))) {
-            getFileSystem().deleteRecursively(new Path(getOutputFile()));
+          if (getFileSystem().exists(new Path(outputFileName))) {
+            getFileSystem().deleteRecursively(new Path(outputFileName));
           }
         } catch (IOException e) {
-          log.warn("Failed to delete failed MinC file {} {}", getOutputFile(), e.getMessage());
+          log.warn("Failed to delete failed MinC file {} {}", outputFileName, e.getMessage());
         }
 
         if (isTableDeleting())

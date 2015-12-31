@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -177,6 +178,8 @@ public class TraceServer implements Watcher {
 
   public TraceServer(ServerConfigurationFactory serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + serverConfiguration.getInstance().getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
     table = conf.get(Property.TRACE_TABLE);
     Connector connector = null;

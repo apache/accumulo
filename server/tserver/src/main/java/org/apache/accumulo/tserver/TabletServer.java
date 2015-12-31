@@ -325,6 +325,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     this.fs = fs;
     AccumuloConfiguration aconf = getConfiguration();
     Instance instance = getInstance();
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + instance.getInstanceID());
     this.sessionManager = new SessionManager(aconf);
     this.logSorter = new LogSorter(instance, fs, aconf);
     this.replWorker = new ReplicationWorker(this, fs);
