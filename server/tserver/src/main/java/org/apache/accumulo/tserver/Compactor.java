@@ -68,6 +68,7 @@ import org.apache.accumulo.tserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 public class Compactor implements Callable<CompactionStats> {
@@ -331,14 +332,16 @@ public class Compactor implements Callable<CompactionStats> {
 
     clearStats();
 
+    final Path outputFilePath = outputFile.path();
+    final String outputFilePathName = outputFilePath.toString();
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName = "MajC compacting " + extent.toString() + " started " + dateFormatter.format(new Date()) + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     thread = Thread.currentThread();
     try {
       FileOperations fileFactory = FileOperations.getInstance();
-      FileSystem ns = this.fs.getVolumeByPath(outputFile.path()).getFileSystem();
-      mfw = fileFactory.openWriter(outputFile.path().toString(), ns, ns.getConf(), acuTableConf);
+      FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
+      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), acuTableConf);
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -370,7 +373,7 @@ public class Compactor implements Callable<CompactionStats> {
 
       // Verify the file, since hadoop 0.20.2 sometimes lies about the success of close()
       try {
-        FileSKVIterator openReader = fileFactory.openReader(outputFile.path().toString(), false, ns, ns.getConf(), acuTableConf);
+        FileSKVIterator openReader = fileFactory.openReader(outputFilePathName, false, ns, ns.getConf(), acuTableConf);
         openReader.close();
       } catch (IOException ex) {
         log.error("Verification of successful compaction fails!!! " + extent + " " + outputFile, ex);
@@ -380,7 +383,7 @@ public class Compactor implements Callable<CompactionStats> {
       log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %6.3f secs", extent, majCStats.getEntriesRead(),
           majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0));
 
-      majCStats.setFileSize(fileFactory.getFileSize(outputFile.path().toString(), ns, ns.getConf(), acuTableConf));
+      majCStats.setFileSize(fileFactory.getFileSize(outputFilePathName, ns, ns.getConf(), acuTableConf));
       return majCStats;
     } catch (IOException e) {
       log.error(e, e);
