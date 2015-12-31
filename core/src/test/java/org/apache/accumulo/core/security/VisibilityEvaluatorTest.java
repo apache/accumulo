@@ -22,8 +22,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.constraints.Constraint.Environment;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteArraySet;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class VisibilityEvaluatorTest {
@@ -88,8 +92,19 @@ public class VisibilityEvaluatorTest {
 
   @Test
   public void testQuotedExpressions() throws VisibilityParseException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("A#C", "A\"C", "A\\C", "AC"));
 
+    Authorizations auths = new Authorizations("A#C", "A\"C", "A\\C", "AC");
+    VisibilityEvaluator ct = new VisibilityEvaluator(auths);
+    runQuoteTest(ct);
+
+    Environment env = EasyMock.createNiceMock(Constraint.Environment.class);
+    EasyMock.expect(env.getAuthorizationsContainer()).andReturn(auths);
+    EasyMock.replay(env);
+    ct = new VisibilityEvaluator(env);
+    runQuoteTest(ct);
+  }
+
+  private void runQuoteTest(VisibilityEvaluator ct) throws VisibilityParseException {
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
     assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).flatten())));
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C"))));
@@ -110,6 +125,31 @@ public class VisibilityEvaluatorTest {
     assertEquals("ACS", quote("ACS"));
     assertEquals("\"九\"", quote("九"));
     assertEquals("\"五十\"", quote("五十"));
+  }
+
+  @Test
+  public void testUnescape() {
+    assertEquals("a\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\"b")).toString());
+    assertEquals("a\\b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b")).toString());
+    assertEquals("a\\\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\\\\"b")).toString());
+    assertEquals("\\\"", VisibilityEvaluator.unescape(new ArrayByteSequence("\\\\\\\"")).toString());
+    assertEquals("a\\b\\c\\d", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
+
+    try {
+      VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b"));
+      fail("Expected failure to unescape invalid escape sequence");
+    } catch (IllegalArgumentException e) {}
+
+    try {
+      VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b\\c"));
+      fail("Expected failure to unescape invalid escape sequence");
+    } catch (IllegalArgumentException e) {}
+
+    try {
+      VisibilityEvaluator.unescape(new ArrayByteSequence("a\"b\\"));
+      fail("Expected failure to unescape invalid escape sequence");
+    } catch (IllegalArgumentException e) {}
+
   }
 
   @Test
