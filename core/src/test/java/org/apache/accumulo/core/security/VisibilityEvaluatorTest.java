@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
@@ -88,8 +89,17 @@ public class VisibilityEvaluatorTest {
 
   @Test
   public void testQuotedExpressions() throws VisibilityParseException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("A#C", "A\"C", "A\\C", "AC"));
 
+    Authorizations auths = new Authorizations("A#C", "A\"C", "A\\C", "AC");
+    VisibilityEvaluator ct = new VisibilityEvaluator(auths);
+    runQuoteTest(ct);
+
+    // constuct VisibilityEvaluator using another constructor and run test again
+    ct = new VisibilityEvaluator((AuthorizationContainer) auths);
+    runQuoteTest(ct);
+  }
+
+  private void runQuoteTest(VisibilityEvaluator ct) throws VisibilityParseException {
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
     assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).flatten())));
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C"))));
@@ -110,6 +120,31 @@ public class VisibilityEvaluatorTest {
     assertEquals("ACS", quote("ACS"));
     assertEquals("\"九\"", quote("九"));
     assertEquals("\"五十\"", quote("五十"));
+  }
+
+  @Test
+  public void testUnescape() {
+    assertEquals("a\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\"b")).toString());
+    assertEquals("a\\b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b")).toString());
+    assertEquals("a\\\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\\\\"b")).toString());
+    assertEquals("\\\"", VisibilityEvaluator.unescape(new ArrayByteSequence("\\\\\\\"")).toString());
+    assertEquals("a\\b\\c\\d", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
+
+    try {
+      VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b"));
+      fail();
+    } catch (IllegalArgumentException e) {}
+
+    try {
+      VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b\\c"));
+      fail();
+    } catch (IllegalArgumentException e) {}
+
+    try {
+      VisibilityEvaluator.unescape(new ArrayByteSequence("a\"b\\"));
+      fail();
+    } catch (IllegalArgumentException e) {}
+
   }
 
   @Test
