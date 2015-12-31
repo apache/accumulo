@@ -286,10 +286,8 @@ public class ZooCache {
 
         /*
          * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existence, it will be added to
-         * the cache. But this notification of a node coming into existence will only be given if exists() was previously called.
-         * 
-         * If the call to exists() is bypassed and only getData() is called with a special case that looks for Code.NONODE in the KeeperException, then
-         * non-existence can not be cached.
+         * the cache. But this notification of a node coming into existence will only be given if exists() was previously called. If the call to exists() is
+         * bypassed and only getData() is called with a special case that looks for Code.NONODE in the KeeperException, then non-existence can not be cached.
          */
         cacheWriteLock.lock();
         try {
