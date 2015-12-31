@@ -60,14 +60,17 @@ public class ScanSession extends Session {
     this.context = context;
   }
 
+  @SuppressWarnings("finally")
   @Override
-  public void cleanup() {
+  public boolean cleanup() {
     try {
       if (nextBatchTask != null)
         nextBatchTask.cancel(true);
     } finally {
       if (scanner != null)
-        scanner.close();
+        return scanner.close();
+      else
+        return true;
     }
   }
 
