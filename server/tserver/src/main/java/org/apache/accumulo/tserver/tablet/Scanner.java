@@ -18,6 +18,8 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -38,100 +40,126 @@ public class Scanner {
   private ScanDataSource isolatedDataSource;
   private boolean sawException = false;
   private boolean scanClosed = false;
+  protected Semaphore scannerSemaphore;
 
   Scanner(Tablet tablet, Range range, ScanOptions options) {
     this.tablet = tablet;
     this.range = range;
     this.options = options;
+    scannerSemaphore = new Semaphore(1, true);
   }
 
-  public synchronized ScanBatch read() throws IOException, TabletClosedException {
-
-    if (sawException)
-      throw new IllegalStateException("Tried to use scanner after exception occurred.");
+  public ScanBatch read() throws IOException, TabletClosedException {
 
     if (scanClosed)
       throw new IllegalStateException("Tried to use scanner after it was closed.");
 
-    Batch results = null;
-
-    ScanDataSource dataSource;
-
-    if (options.isIsolated()) {
-      if (isolatedDataSource == null)
-        isolatedDataSource = new ScanDataSource(tablet, options);
-      dataSource = isolatedDataSource;
-    } else {
-      dataSource = new ScanDataSource(tablet, options);
+    try {
+      scannerSemaphore.acquire();
+    } catch (InterruptedException e) {
+      sawException = true;
+      scannerSemaphore.release();
     }
 
+    if (sawException)
+      throw new IllegalStateException("Tried to use scanner after exception occurred.");
     try {
+      Batch results = null;
 
-      SortedKeyValueIterator<Key,Value> iter;
+      ScanDataSource dataSource;
 
       if (options.isIsolated()) {
-        if (isolatedIter == null)
-          isolatedIter = new SourceSwitchingIterator(dataSource, true);
+        if (isolatedDataSource == null)
+          isolatedDataSource = new ScanDataSource(tablet, options);
+        dataSource = isolatedDataSource;
+      } else {
+        dataSource = new ScanDataSource(tablet, options);
+      }
+
+      try {
+
+        SortedKeyValueIterator<Key,Value> iter;
+
+        if (options.isIsolated()) {
+          if (isolatedIter == null)
+            isolatedIter = new SourceSwitchingIterator(dataSource, true);
+          else
+            isolatedDataSource.reattachFileManager();
+          iter = isolatedIter;
+        } else {
+          iter = new SourceSwitchingIterator(dataSource, false);
+        }
+
+        results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet(), options.getBatchTimeOut());
+
+        if (results.getResults() == null) {
+          range = null;
+          return new ScanBatch(new ArrayList<KVEntry>(), false);
+        } else if (results.getContinueKey() == null) {
+          return new ScanBatch(results.getResults(), false);
+        } else {
+          range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(), range.isEndKeyInclusive());
+          return new ScanBatch(results.getResults(), true);
+        }
+
+      } catch (IterationInterruptedException iie) {
+        sawException = true;
+        if (tablet.isClosed())
+          throw new TabletClosedException(iie);
         else
-          isolatedDataSource.reattachFileManager();
-        iter = isolatedIter;
-      } else {
-        iter = new SourceSwitchingIterator(dataSource, false);
+          throw iie;
+      } catch (IOException ioe) {
+        if (tablet.shutdownInProgress()) {
+          log.debug("IOException while shutdown in progress ", ioe);
+          throw new TabletClosedException(ioe); // assume IOException was caused by execution of HDFS shutdown hook
+        }
+
+        sawException = true;
+        dataSource.close(true);
+        throw ioe;
+      } catch (RuntimeException re) {
+        sawException = true;
+        throw re;
+      } finally {
+        // code in finally block because always want
+        // to return mapfiles, even when exception is thrown
+        if (!options.isIsolated()) {
+          dataSource.close(false);
+        } else {
+          dataSource.detachFileManager();
+        }
+
+        if (results != null && results.getResults() != null)
+          tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
       }
-
-      results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet(), options.getBatchTimeOut());
-
-      if (results.getResults() == null) {
-        range = null;
-        return new ScanBatch(new ArrayList<KVEntry>(), false);
-      } else if (results.getContinueKey() == null) {
-        return new ScanBatch(results.getResults(), false);
-      } else {
-        range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(), range.isEndKeyInclusive());
-        return new ScanBatch(results.getResults(), true);
-      }
-
-    } catch (IterationInterruptedException iie) {
-      sawException = true;
-      if (tablet.isClosed())
-        throw new TabletClosedException(iie);
-      else
-        throw iie;
-    } catch (IOException ioe) {
-      if (tablet.shutdownInProgress()) {
-        log.debug("IOException while shutdown in progress ", ioe);
-        throw new TabletClosedException(ioe); // assume IOException was caused by execution of HDFS shutdown hook
-      }
-
-      sawException = true;
-      dataSource.close(true);
-      throw ioe;
-    } catch (RuntimeException re) {
-      sawException = true;
-      throw re;
     } finally {
-      // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
-      if (!options.isIsolated()) {
-        dataSource.close(false);
-      } else {
-        dataSource.detachFileManager();
-      }
-
-      if (results != null && results.getResults() != null)
-        tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
+      scannerSemaphore.release();
     }
   }
 
-  // close and read are synchronized because can not call close on the data source while it is in use
-  // this could lead to the case where file iterators that are in use by a thread are returned
-  // to the pool... this would be bad
-  public void close() {
+  /**
+   * Closed is no longer a synchronized operation. It attempts to obtain the lock, waiting up to the predetermined period of time before it returns a value to
+   * identify whether closure succeeded.
+   *
+   * @return Returns a value to indicate whether or not closure was successful
+   */
+  public boolean close() {
     options.getInterruptFlag().set(true);
-    synchronized (this) {
+    boolean obtainedLock = false;
+    try {
+      obtainedLock = scannerSemaphore.tryAcquire(10, TimeUnit.MILLISECONDS);
+      if (!obtainedLock)
+        return false;
       scanClosed = true;
       if (isolatedDataSource != null)
         isolatedDataSource.close(false);
+    } catch (InterruptedException e) {
+      return false;
+
+    } finally {
+      if (obtainedLock)
+        scannerSemaphore.release();
     }
+    return true;
   }
 }
