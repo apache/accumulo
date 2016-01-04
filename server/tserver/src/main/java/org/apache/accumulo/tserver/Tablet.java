@@ -1773,32 +1773,31 @@ public class Tablet {
 
     ScanBatch read() throws IOException, TabletClosedException {
 
-      if (scanClosed)
-        throw new IllegalStateException("Tried to use scanner after it was closed.");
-
-      try {
-        scannerSemaphore.acquire();
-      } catch (InterruptedException e) {
-        sawException = true;
-        scannerSemaphore.release();
-      }
-
-      if (sawException)
-        throw new IllegalStateException("Tried to use scanner after exception occurred.");
+      ScanDataSource dataSource = null;
 
       Batch results = null;
 
-      ScanDataSource dataSource;
-
-      if (options.isolated) {
-        if (isolatedDataSource == null)
-          isolatedDataSource = new ScanDataSource(options);
-        dataSource = isolatedDataSource;
-      } else {
-        dataSource = new ScanDataSource(options);
-      }
-
       try {
+
+        try {
+          scannerSemaphore.acquire();
+        } catch (InterruptedException e) {
+          sawException = true;
+        }
+
+        if (sawException)
+          throw new IllegalStateException("Tried to use scanner after exception occurred.");
+
+        if (scanClosed)
+          throw new IllegalStateException("Tried to use scanner after it was closed.");
+
+        if (options.isolated) {
+          if (isolatedDataSource == null)
+            isolatedDataSource = new ScanDataSource(options);
+          dataSource = isolatedDataSource;
+        } else {
+          dataSource = new ScanDataSource(options);
+        }
 
         SortedKeyValueIterator<Key,Value> iter;
 
@@ -1845,9 +1844,9 @@ public class Tablet {
       } finally {
         // code in finally block because always want
         // to return mapfiles, even when exception is thrown
-        if (!options.isolated)
+        if (null != dataSource && !options.isolated)
           dataSource.close(false);
-        else if (dataSource.fileManager != null)
+        else if (null != dataSource && dataSource.fileManager != null)
           dataSource.fileManager.detach();
 
         synchronized (Tablet.this) {
