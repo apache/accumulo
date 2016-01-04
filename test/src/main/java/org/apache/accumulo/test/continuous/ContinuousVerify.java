@@ -143,14 +143,14 @@ public class ContinuousVerify extends Configured implements Tool {
   }
 
   static class Opts extends MapReduceClientOnDefaultTable {
-    @Parameter(names = "--output", description = "location in HDFS to store the results; must not exist", required = true)
+    @Parameter(names = "--output", description = "location in HDFS to store the results; must not exist")
     String outputDir = "/tmp/continuousVerify";
 
-    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
-    int maxMaps = 0;
+    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", validateWith = PositiveInteger.class)
+    int maxMaps = 1;
 
-    @Parameter(names = "--reducers", description = "the number of reducers to use", required = true, validateWith = PositiveInteger.class)
-    int reducers = 0;
+    @Parameter(names = "--reducers", description = "the number of reducers to use", validateWith = PositiveInteger.class)
+    int reducers = 1;
 
     @Parameter(names = "--offline", description = "perform the verification directly on the files while the table is offline")
     boolean scanOffline = false;
