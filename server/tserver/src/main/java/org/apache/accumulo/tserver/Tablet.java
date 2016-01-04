@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1761,19 +1763,28 @@ public class Tablet {
     private ScanDataSource isolatedDataSource;
     private boolean sawException = false;
     private boolean scanClosed = false;
+    private Semaphore scannerSemaphore;
 
     Scanner(Range range, ScanOptions options) {
       this.range = range;
       this.options = options;
+      scannerSemaphore = new Semaphore(1, true);
     }
 
-    synchronized ScanBatch read() throws IOException, TabletClosedException {
-
-      if (sawException)
-        throw new IllegalStateException("Tried to use scanner after exception occurred.");
+    ScanBatch read() throws IOException, TabletClosedException {
 
       if (scanClosed)
         throw new IllegalStateException("Tried to use scanner after it was closed.");
+
+      try {
+        scannerSemaphore.acquire();
+      } catch (InterruptedException e) {
+        sawException = true;
+        scannerSemaphore.release();
+      }
+
+      if (sawException)
+        throw new IllegalStateException("Tried to use scanner after exception occurred.");
 
       Batch results = null;
 
@@ -1846,19 +1857,32 @@ public class Tablet {
             queryBytes += results.numBytes;
           }
         }
+
+        scannerSemaphore.release();
       }
     }
 
     // close and read are synchronized because can not call close on the data source while it is in use
     // this cloud lead to the case where file iterators that are in use by a thread are returned
     // to the pool... this would be bad
-    void close() {
+    boolean close() {
       options.interruptFlag.set(true);
-      synchronized (this) {
+      boolean obtainedLock = false;
+      try {
+        obtainedLock = scannerSemaphore.tryAcquire(10, TimeUnit.MILLISECONDS);
+        if (!obtainedLock)
+          return false;
+
         scanClosed = true;
         if (isolatedDataSource != null)
           isolatedDataSource.close(false);
+      } catch (InterruptedException e) {
+        return false;
+      } finally {
+        if (obtainedLock)
+          scannerSemaphore.release();
       }
+      return true;
     }
   }
 

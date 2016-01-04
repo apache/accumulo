@@ -237,6 +237,8 @@ import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 
 enum ScanRunState {
@@ -386,25 +388,30 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     String client = TServerUtils.clientAddress.get();
     public boolean reserved;
 
-    public void cleanup() {}
+    public boolean cleanup() {
+      return true;
+    }
   }
 
   private static class SessionManager {
 
     SecureRandom random;
     Map<Long,Session> sessions;
-    long maxIdle;
+    private long maxIdle;
+    private long maxUpdateIdle;
+    private List<Session> idleSessions = new ArrayList<Session>();
+    private final Long expiredSessionMarker = new Long(-1);
 
     SessionManager(AccumuloConfiguration conf) {
       random = new SecureRandom();
       sessions = new HashMap<Long,Session>();
-
+      maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
       maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
       Runnable r = new Runnable() {
         @Override
         public void run() {
-          sweep(maxIdle);
+          sweep(maxIdle, maxUpdateIdle);
         }
       };
 
@@ -506,14 +513,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       return session;
     }
 
-    private void sweep(long maxIdle) {
+    private void sweep(final long maxIdle, final long maxUpdateIdle) {
       ArrayList<Session> sessionsToCleanup = new ArrayList<Session>();
       synchronized (this) {
         Iterator<Session> iter = sessions.values().iterator();
         while (iter.hasNext()) {
           Session session = iter.next();
+          long configuredIdle = maxIdle;
+          if (session instanceof UpdateSession) {
+            configuredIdle = maxUpdateIdle;
+          }
           long idleTime = System.currentTimeMillis() - session.lastAccessTime;
-          if (idleTime > maxIdle && !session.reserved) {
+          if (idleTime > configuredIdle && !session.reserved) {
             log.info("Closing idle session from user=" + session.user + ", client=" + session.client + ", idle=" + idleTime + "ms");
             iter.remove();
             sessionsToCleanup.add(session);
@@ -521,10 +532,21 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
 
-      // do clean up outside of lock
-      for (Session session : sessionsToCleanup) {
-        session.cleanup();
+      // do clean up outside of lock for TabletServer in a synchronized block for simplicity vice a synchronized list
+
+      synchronized (idleSessions) {
+
+        sessionsToCleanup.addAll(idleSessions);
+
+        idleSessions.clear();
+
+        // perform cleanup for all of the sessions
+        for (Session session : sessionsToCleanup) {
+          if (!session.cleanup())
+            idleSessions.add(session);
+        }
       }
+
     }
 
     synchronized void removeIfNotAccessed(final long sessionId, final long delay) {
@@ -556,7 +578,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     public synchronized Map<String,MapCounter<ScanRunState>> getActiveScansPerTable() {
       Map<String,MapCounter<ScanRunState>> counts = new HashMap<String,MapCounter<ScanRunState>>();
-      for (Entry<Long,Session> entry : sessions.entrySet()) {
+      Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<Entry<Long,Session>>();
+
+      synchronized (idleSessions) {
+        /**
+         * Add sessions so that get the list returned in the active scans call
+         */
+        for (Session session : idleSessions) {
+          copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
+        }
+      }
+
+      for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
 
         Session session = entry.getValue();
         @SuppressWarnings("rawtypes")
@@ -595,11 +628,20 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     public synchronized List<ActiveScan> getActiveScans() {
 
-      ArrayList<ActiveScan> activeScans = new ArrayList<ActiveScan>();
+      final List<ActiveScan> activeScans = new ArrayList<ActiveScan>();
+      final long ct = System.currentTimeMillis();
+      final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<Entry<Long,Session>>();
 
-      long ct = System.currentTimeMillis();
+      synchronized (idleSessions) {
+        /**
+         * Add sessions so that get the list returned in the active scans call
+         */
+        for (Session session : idleSessions) {
+          copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
+        }
+      }
 
-      for (Entry<Long,Session> entry : sessions.entrySet()) {
+      for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
         Session session = entry.getValue();
         if (session instanceof ScanSession) {
           ScanSession ss = (ScanSession) session;
@@ -841,8 +883,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public AtomicBoolean interruptFlag;
 
     @Override
-    public void cleanup() {
+    public boolean cleanup() {
       interruptFlag.set(true);
+      return true;
     }
   }
 
@@ -879,13 +922,15 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
 
     @Override
-    public void cleanup() {
+    public boolean cleanup() {
       try {
         if (nextBatchTask != null)
           nextBatchTask.cancel(true);
       } finally {
         if (scanner != null)
-          scanner.close();
+          return scanner.close();
+        else
+          return true;
       }
     }
 
@@ -908,9 +953,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public KeyExtent threadPoolExtent;
 
     @Override
-    public void cleanup() {
+    public boolean cleanup() {
       if (lookupTask != null)
         lookupTask.cancel(true);
+      // the cancellation should provide us the safety to return true here
+      return true;
     }
   }
 
