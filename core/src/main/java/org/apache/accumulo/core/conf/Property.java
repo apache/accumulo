@@ -225,7 +225,11 @@ public enum Property {
           + " tserver.walog.max.size >= this property."),
   TSERV_MEM_MGMT("tserver.memory.manager", "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
       "An implementation of MemoryManger that accumulo will use."),
-  TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION, "maximum idle time for a session"),
+  TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION, "When a tablet server's SimpleTimer thread triggers to check "
+      + "idle sessions, this configurable option will be used to evaluate scan sessions to determine if they can be closed due to inactivity"),
+  TSERV_UPDATE_SESSION_MAXIDLE("tserver.session.update.idle.max", "1m", PropertyType.TIMEDURATION,
+      "When a tablet server's SimpleTimer thread triggers to check "
+          + "idle sessions, this configurable option will be used to evaluate update sessions to determine if they can be closed due to inactivity"),
   TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
       "The maximum number of concurrent read ahead that will execute. This effectively"
           + " limits the number of long running scans that can run concurrently per tserver."),

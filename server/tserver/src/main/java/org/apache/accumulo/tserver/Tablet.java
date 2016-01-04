@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1761,33 +1763,47 @@ public class Tablet {
     private ScanDataSource isolatedDataSource;
     private boolean sawException = false;
     private boolean scanClosed = false;
+    /**
+     * A fair semaphore of one is used since explicitly know the access pattern will be one thread to read and another to call close if the session becomes
+     * idle. Since we're explicitly preventing re-entrance, we're currently using a Sempahore. If at any point we decide read needs to be re-entrant, we can
+     * switch to a Reentrant lock.
+     */
+    private Semaphore scannerSemaphore;
 
     Scanner(Range range, ScanOptions options) {
       this.range = range;
       this.options = options;
+      scannerSemaphore = new Semaphore(1, true);
     }
 
-    synchronized ScanBatch read() throws IOException, TabletClosedException {
+    ScanBatch read() throws IOException, TabletClosedException {
 
-      if (sawException)
-        throw new IllegalStateException("Tried to use scanner after exception occurred.");
-
-      if (scanClosed)
-        throw new IllegalStateException("Tried to use scanner after it was closed.");
+      ScanDataSource dataSource = null;
 
       Batch results = null;
 
-      ScanDataSource dataSource;
-
-      if (options.isolated) {
-        if (isolatedDataSource == null)
-          isolatedDataSource = new ScanDataSource(options);
-        dataSource = isolatedDataSource;
-      } else {
-        dataSource = new ScanDataSource(options);
-      }
-
       try {
+
+        try {
+          scannerSemaphore.acquire();
+        } catch (InterruptedException e) {
+          sawException = true;
+        }
+
+        // sawException may have occurred within close, so we cannot assume that an interrupted exception was its cause
+        if (sawException)
+          throw new IllegalStateException("Tried to use scanner after exception occurred.");
+
+        if (scanClosed)
+          throw new IllegalStateException("Tried to use scanner after it was closed.");
+
+        if (options.isolated) {
+          if (isolatedDataSource == null)
+            isolatedDataSource = new ScanDataSource(options);
+          dataSource = isolatedDataSource;
+        } else {
+          dataSource = new ScanDataSource(options);
+        }
 
         SortedKeyValueIterator<Key,Value> iter;
 
@@ -1834,9 +1850,9 @@ public class Tablet {
       } finally {
         // code in finally block because always want
         // to return mapfiles, even when exception is thrown
-        if (!options.isolated)
+        if (null != dataSource && !options.isolated)
           dataSource.close(false);
-        else if (dataSource.fileManager != null)
+        else if (null != dataSource && dataSource.fileManager != null)
           dataSource.fileManager.detach();
 
         synchronized (Tablet.this) {
@@ -1846,19 +1862,32 @@ public class Tablet {
             queryBytes += results.numBytes;
           }
         }
+
+        scannerSemaphore.release();
       }
     }
 
     // close and read are synchronized because can not call close on the data source while it is in use
     // this cloud lead to the case where file iterators that are in use by a thread are returned
     // to the pool... this would be bad
-    void close() {
+    boolean close() {
       options.interruptFlag.set(true);
-      synchronized (this) {
+      boolean obtainedLock = false;
+      try {
+        obtainedLock = scannerSemaphore.tryAcquire(10, TimeUnit.MILLISECONDS);
+        if (!obtainedLock)
+          return false;
+
         scanClosed = true;
         if (isolatedDataSource != null)
           isolatedDataSource.close(false);
+      } catch (InterruptedException e) {
+        return false;
+      } finally {
+        if (obtainedLock)
+          scannerSemaphore.release();
       }
+      return true;
     }
   }
 
