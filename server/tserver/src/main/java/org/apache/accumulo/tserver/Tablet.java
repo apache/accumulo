@@ -1763,6 +1763,11 @@ public class Tablet {
     private ScanDataSource isolatedDataSource;
     private boolean sawException = false;
     private boolean scanClosed = false;
+    /**
+     * A fair semaphore of one is used since explicitly know the access pattern will be one thread to read and another to call close if the session becomes
+     * idle. Since we're explicitly preventing re-entrance, we're currently using a Sempahore. If at any point we decide read needs to be re-entrant, we can
+     * switch to a Reentrant lock.
+     */
     private Semaphore scannerSemaphore;
 
     Scanner(Range range, ScanOptions options) {
@@ -1785,6 +1790,7 @@ public class Tablet {
           sawException = true;
         }
 
+        // sawException may have occurred within close, so we cannot assume that an interrupted exception was its cause
         if (sawException)
           throw new IllegalStateException("Tried to use scanner after exception occurred.");
 

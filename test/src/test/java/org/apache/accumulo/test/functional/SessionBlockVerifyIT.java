@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,34 +37,32 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ActiveScan;
-import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which we know to currently be running
  */
-public class SessionBlockVerifyIT extends AccumuloClusterIT {
+public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     cfg.setNumTservers(1);
-    siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), "1s");
+    siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     siteConfig.put(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "11");
     cfg.setSiteConfig(siteConfig);
   }
@@ -73,17 +72,9 @@ public class SessionBlockVerifyIT extends AccumuloClusterIT {
     return 60;
   }
 
-  private String sessionIdle = null;
-
-  @Before
-  public void reduceSessionIdle() throws Exception {
-
-    InstanceOperations ops = getConnector().instanceOperations();
-    sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
-    ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), "1s");
-    log.info("Waiting for existing session idle time to expire");
-    Thread.sleep(AccumuloConfiguration.getTimeInMillis(sessionIdle));
-    log.info("Finished waiting");
+  @Override
+  protected String getMaxIdleTimeString() {
+    return "1s";
   }
 
   ExecutorService service = Executors.newFixedThreadPool(10);
@@ -120,9 +111,11 @@ public class SessionBlockVerifyIT extends AccumuloClusterIT {
     final Iterator<Entry<Key,Value>> slow = scanner.iterator();
 
     final List<Future<Boolean>> callables = new ArrayList<Future<Boolean>>();
+    final CountDownLatch latch = new CountDownLatch(10);
     for (int i = 0; i < 10; i++) {
       Future<Boolean> callable = service.submit(new Callable<Boolean>() {
         public Boolean call() {
+          latch.countDown();
           while (slow.hasNext()) {
 
             slow.next();
@@ -133,8 +126,10 @@ public class SessionBlockVerifyIT extends AccumuloClusterIT {
       callables.add(callable);
     }
 
-    Thread.sleep(10000);
-    log.info("Starting");
+    latch.await();
+
+    log.info("Starting SessionBlockVerifyIT");
+
     // let's add more for good measure.
     for (int i = 0; i < 2; i++) {
       Scanner scanner2 = c.createScanner(tableName, new Authorizations());
@@ -143,13 +138,14 @@ public class SessionBlockVerifyIT extends AccumuloClusterIT {
 
       scanner2.setBatchSize(1);
       Iterator<Entry<Key,Value>> iter = scanner2.iterator();
-      sinkKeyValues(iter);
+      // call super's verify mechanism
+      verify(iter, 0, 1000);
 
     }
 
     int sessionsFound = 0;
     // we have configured 1 tserver, so we can grab the one and only
-    String tserver = c.instanceOperations().getTabletServers().iterator().next();
+    String tserver = Iterables.getOnlyElement(c.instanceOperations().getTabletServers());
 
     final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
 
@@ -164,18 +160,17 @@ public class SessionBlockVerifyIT extends AccumuloClusterIT {
 
     }
 
-    assertEquals("Must have ten sessions to ensure 3509 is resolved", 10, sessionsFound);
+    /**
+     * The message below indicates the problem that we experience within ACCUMULO-3509. The issue manifests as a blockage in the Scanner synchronization that
+     * prevent us from making the close call against it. Since the close blocks until a read is finished, we ultimately have a block within the sweep of
+     * SessionManager. As a result never reap subsequent idle sessions AND we will orphan the sessionsToCleanup in the sweep, leading to an inaccurate count
+     * within sessionsFound.
+     */
+    assertEquals("Must have ten sessions. Failure indicates a synchronization block within the sweep mechanism", 10, sessionsFound);
     for (Future<Boolean> callable : callables) {
       callable.cancel(true);
     }
     service.shutdown();
-  }
-
-  private void sinkKeyValues(Iterator<Entry<Key,Value>> iter) throws Exception {
-    while (iter.hasNext()) {
-
-      iter.next();
-    }
   }
 
 }
