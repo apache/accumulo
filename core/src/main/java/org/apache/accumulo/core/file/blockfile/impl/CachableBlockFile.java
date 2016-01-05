@@ -41,7 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/***
+/**
  *
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks and metadatablocks
  */
@@ -107,7 +107,7 @@ public class CachableBlockFile {
     public BlockWrite(BlockAppender ba) {
       super(ba);
       this._ba = ba;
-    };
+    }
 
     @Override
     public long getCompressedSize() throws IOException {
