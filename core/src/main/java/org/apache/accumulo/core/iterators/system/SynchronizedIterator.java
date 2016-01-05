@@ -27,7 +27,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
-/***
+/**
  * Wraps a SortedKeyValueIterator so that all of its methods are synchronized. The intent is that user iterators which are multi-threaded have the possibility
  * to call parent methods concurrently. The SynchronizedIterators aims to reduce the likelihood of unwanted concurrent access.
  */

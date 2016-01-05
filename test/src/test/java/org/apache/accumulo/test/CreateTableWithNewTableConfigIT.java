@@ -49,7 +49,7 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterIT {
   @Override
   protected int defaultTimeoutSeconds() {
     return 30;
-  };
+  }
 
   public int numProperties(Connector connector, String tableName) throws AccumuloException, TableNotFoundException {
     return Iterators.size(connector.tableOperations().getProperties(tableName).iterator());

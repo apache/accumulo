@@ -37,7 +37,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterIT {
   @Override
   protected int defaultTimeoutSeconds() {
     return 30;
-  };
+  }
 
   // Test set, get, and remove arbitrary table properties on the root account
   @Test

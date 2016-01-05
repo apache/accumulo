@@ -75,7 +75,7 @@ public class TablesCommand extends Command {
           return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
         else
           return tableName;
-      };
+      }
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
