@@ -259,7 +259,7 @@ BatchScanner bscan =
 bscan.setRanges(ranges);
 bscan.fetchColumnFamily("attributes");
 
-for(Entry<Key,Value> entry : scan) {
+for(Entry<Key,Value> entry : bscan) {
     System.out.println(entry.getValue());
 }
 ----
