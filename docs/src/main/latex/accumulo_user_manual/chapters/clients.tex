@@ -219,7 +219,7 @@ BatchScanner bscan =
 
 bscan.setRanges(ranges);
 bscan.fetchColumnFamily(new Text("attributes"));
-for(Entry<Key,Value> entry : scan)
+for(Entry<Key,Value> entry : bscan)
     System.out.println(entry.getValue());
 \end{verbatim}\endgroup
 
