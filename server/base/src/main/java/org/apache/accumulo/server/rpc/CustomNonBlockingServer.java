@@ -16,30 +16,83 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 
+import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.thrift.server.THsHaServer;
+import org.apache.thrift.server.TNonblockingServer;
+import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
 
 /**
  * This class implements a custom non-blocking thrift server that stores the client address in thread-local storage for the invocation.
- *
  */
 public class CustomNonBlockingServer extends THsHaServer {
 
+  private final Field selectAcceptThreadField;
+
   public CustomNonBlockingServer(Args args) {
     super(args);
+
+    try {
+      selectAcceptThreadField = TNonblockingServer.class.getDeclaredField("selectAcceptThread_");
+      selectAcceptThreadField.setAccessible(true);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to access required field in Thrift code.", e);
+    }
   }
 
-  protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans, final SelectionKey selectionKey, final AbstractSelectThread selectThread) {
-    return new CustomAsyncFrameBuffer(trans, selectionKey, selectThread);
+  @Override
+  protected boolean startThreads() {
+    // Yet another dirty/gross hack to get access to the client's address.
+
+    // start the selector
+    try {
+      // Hack in our SelectAcceptThread impl
+      SelectAcceptThread selectAcceptThread_ = new CustomSelectAcceptThread((TNonblockingServerTransport) serverTransport_);
+      // Set the private field before continuing.
+      selectAcceptThreadField.set(this, selectAcceptThread_);
+
+      selectAcceptThread_.start();
+      return true;
+    } catch (IOException e) {
+      LOGGER.error("Failed to start selector thread!", e);
+      return false;
+    } catch (IllegalAccessException | IllegalArgumentException e) {
+      throw new RuntimeException("Exception setting customer select thread in Thrift");
+    }
   }
 
-  private class CustomAsyncFrameBuffer extends AsyncFrameBuffer {
+  /**
+   * Custom wrapper around {@link org.apache.thrift.server.TNonblockingServer.SelectAcceptThread} to create our {@link CustomFrameBuffer}.
+   */
+  private class CustomSelectAcceptThread extends SelectAcceptThread {
 
-    public CustomAsyncFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey, AbstractSelectThread selectThread) {
+    public CustomSelectAcceptThread(TNonblockingServerTransport serverTransport) throws IOException {
+      super(serverTransport);
+    }
+
+    @Override
+    protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans, final SelectionKey selectionKey, final AbstractSelectThread selectThread) {
+      if (processorFactory_.isAsyncProcessor()) {
+        throw new IllegalStateException("This implementation does not support AsyncProcessors");
+      }
+
+      return new CustomFrameBuffer(trans, selectionKey, selectThread);
+    }
+  }
+
+  /**
+   * Custom wrapper around {@link org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer} to extract the client's network location before accepting the
+   * request.
+   */
+  private class CustomFrameBuffer extends FrameBuffer {
+
+    public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey, AbstractSelectThread selectThread) {
       super(trans, selectionKey, selectThread);
     }
 
