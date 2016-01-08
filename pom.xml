@@ -1398,5 +1398,14 @@
         <slf4j.version>1.7.5</slf4j.version>
       </properties>
     </profile>
+    <profile>
+      <id>jdk8</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <properties>
+        <findbugs.version>3.0.1</findbugs.version>
+      </properties>
+    </profile>
   </profiles>
 </project>
