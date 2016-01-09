@@ -1409,9 +1409,6 @@
       <activation>
         <jdk>[1.8,1.9)</jdk>
       </activation>
-      <properties>
-        <findbugs.version>3.0.1</findbugs.version>
-      </properties>
       <build>
         <pluginManagement>
           <plugins>
