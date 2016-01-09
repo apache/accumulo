@@ -37,7 +37,7 @@ import org.apache.hadoop.io.WritableComparator;
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See {@link ColumnVisibility#ColumnVisibility(byte[])} for the
  * definition of an expression.
  *
- * <P>
+ * <p>
  * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the binary operators "&amp;" and "|" indicating that both operands are
  * necessary, or the either is necessary. The following are valid expressions for visibility:
  *
@@ -48,7 +48,7 @@ import org.apache.hadoop.io.WritableComparator;
  * orange|(red&amp;yellow)
  * </pre>
  *
- * <P>
+ * <p>
  * The following are not valid expressions for visibility:
  *
  * <pre>
@@ -61,13 +61,13 @@ import org.apache.hadoop.io.WritableComparator;
  * dog|!cat
  * </pre>
  *
- * <P>
+ * <p>
  * In addition to the base set of visibilities, any character can be used in the expression if it is quoted. If the quoted term contains '&quot;' or '\', then
  * escape the character with '\'. The {@link #quote(String)} method can be used to properly quote and escape terms automatically. The following is an example of
  * a quoted term:
  *
  * <pre>
- * &quot;A#C&quot;<span />&amp;<span />B
+ * &quot;A#C&quot; &amp; B
  * </pre>
  */
 public class ColumnVisibility {

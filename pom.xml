@@ -1399,6 +1399,29 @@
       </properties>
     </profile>
     <profile>
+      <id>jdk8</id>
+      <activation>
+        <jdk>[1.8,1.9)</jdk>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-javadoc-plugin</artifactId>
+              <configuration>
+                <encoding>${project.reporting.outputEncoding}</encoding>
+                <quiet>true</quiet>
+                <javadocVersion>1.8</javadocVersion>
+                <additionalJOption>-J-Xmx512m</additionalJOption>
+                <additionalparam>-Xdoclint:all,-Xdoclint:-missing</additionalparam>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <profile>
       <id>performanceTests</id>
       <build>
         <pluginManagement>

@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Creates work in ZK which is <code>filename.serialized_ReplicationTarget => filename</code>, but replicates files in the order in which they were created.
+ * Creates work in ZK which is <code>filename.serialized_ReplicationTarget =&gt; filename</code>, but replicates files in the order in which they were created.
  * <p>
  * The intent is to ensure that WALs are replayed in the same order on the peer in which they were applied on the primary.
  */

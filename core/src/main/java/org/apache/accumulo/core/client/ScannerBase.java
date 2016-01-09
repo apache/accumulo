@@ -184,8 +184,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * One way to use this method is as follows, where the sampler configuration is obtained from the table configuration. Sample data can be generated in many
    * different ways, so its important to verify the sample data configuration meets expectations.
    *
-   * <p>
-   *
    * <pre>
    * <code>
    *   // could cache this if creating many scanners to avoid RPCs.

@@ -308,7 +308,7 @@ public class SecurityOperation {
   }
 
   /**
-   * Checks if a user has a system permission<br/>
+   * Checks if a user has a system permission<br>
    * This cannot check if a system user has permission.
    *
    * @return true if a user exists and has permission; false otherwise
@@ -342,7 +342,7 @@ public class SecurityOperation {
   }
 
   /**
-   * Checks if a user has a table permission<br/>
+   * Checks if a user has a table permission<br>
    * This cannot check if a system user has permission.
    *
    * @return true if a user exists and has permission; false otherwise
@@ -365,7 +365,7 @@ public class SecurityOperation {
   }
 
   /**
-   * Checks if a user has a namespace permission<br/>
+   * Checks if a user has a namespace permission<br>
    * This cannot check if a system user has permission.
    *
    * @return true if a user exists and has permission; false otherwise

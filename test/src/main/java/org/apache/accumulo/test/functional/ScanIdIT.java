@@ -64,15 +64,18 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 /**
  * ACCUMULO-2641 Integration test. ACCUMULO-2641 Adds scan id to thrift protocol so that {@code org.apache.accumulo.core.client.admin.ActiveScan.getScanid()}
  * returns a unique scan id.
+ *
  * <p>
- * <p/>
  * The test uses the Minicluster and the {@code org.apache.accumulo.test.functional.SlowIterator} to create multiple scan sessions. The test exercises multiple
  * tablet servers with splits and multiple ranges to force the scans to occur across multiple tablet servers for completeness.
- * <p/>
+ *
+ * <p>
  * This patch modified thrift, the TraceRepoDeserializationTest test seems to fail unless the following be added:
- * <p/>
+ *
+ * <p>
  * private static final long serialVersionUID = -4659975753252858243l;
- * <p/>
+ *
+ * <p>
  * back into org.apache.accumulo.trace.thrift.TInfo until that test signature is regenerated.
  */
 public class ScanIdIT extends AccumuloClusterHarness {
