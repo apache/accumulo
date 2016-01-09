@@ -39,7 +39,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * The supported Accumulo properties we set in this OutputFormat, that change the behavior of the RecordWriter.<br />
+   * The supported Accumulo properties we set in this OutputFormat, that change the behavior of the RecordWriter.<br>
    * These properties correspond to the supported public static setter methods available to this class.
    *
    * @param property
@@ -95,7 +95,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Sets the size for data blocks within each file.<br />
+   * Sets the size for data blocks within each file.<br>
    * Data blocks are a span of key/value pairs stored in the file that are compressed and indexed as a group.
    *
    * <p>

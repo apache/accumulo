@@ -43,10 +43,10 @@ public abstract class CompactionStrategy {
    * {@link #getCompactionPlan(MajorCompactionRequest)}) that it does not need to. Any state stored during shouldCompact will no longer exist when
    * {@link #gatherInformation(MajorCompactionRequest)} and {@link #getCompactionPlan(MajorCompactionRequest)} are called.
    *
-   * <P>
+   * <p>
    * Called while holding the tablet lock, so it should not be doing any blocking.
    *
-   * <P>
+   * <p>
    * Since no blocking should be done in this method, then its unexpected that this method will throw IOException. However since its in the API, it can not be
    * easily removed.
    */
@@ -64,7 +64,7 @@ public abstract class CompactionStrategy {
   /**
    * Get the plan for compacting a tablets files. Called while holding the tablet lock, so it should not be doing any blocking.
    *
-   * <P>
+   * <p>
    * Since no blocking should be done in this method, then its unexpected that this method will throw IOException. However since its in the API, it can not be
    * easily removed.
    *

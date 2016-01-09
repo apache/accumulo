@@ -59,8 +59,8 @@ import com.google.common.collect.Table;
  * A balancer that evenly spreads groups of tablets across all tablet server. This balancer accomplishes the following two goals :
  *
  * <ul>
- * <li/>Evenly spreads each group across all tservers.
- * <li/>Minimizes the total number of groups on each tserver.
+ * <li>Evenly spreads each group across all tservers.
+ * <li>Minimizes the total number of groups on each tserver.
  * </ul>
  *
  * <p>

@@ -788,7 +788,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Appends ASCII printable characters to a string, based on the given byte array, treating the bytes as ASCII characters. If a byte can be converted to a
-   * ASCII printable character it is appended as is; otherwise, it is appended as a character code, e.g., %05; for byte value 5. If len > maxlen, the string
+   * ASCII printable character it is appended as is; otherwise, it is appended as a character code, e.g., %05; for byte value 5. If len &gt; maxlen, the string
    * includes a "TRUNCATED" note at the end.
    *
    * @param ba

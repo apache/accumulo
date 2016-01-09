@@ -466,7 +466,7 @@ public class Range implements WritableComparable<Range> {
 
         if (range.infiniteStopKey || (cmp = range.stop.compareTo(currentRange.stop)) > 0 || (cmp == 0 && range.stopKeyInclusive)) {
           currentRange = new Range(currentRange.getStartKey(), currentStartKeyInclusive, range.getEndKey(), range.stopKeyInclusive);
-        }/* else currentRange contains ral.get(i) */
+        } /* else currentRange contains ral.get(i) */
       } else {
         ret.add(currentRange);
         currentRange = range;
@@ -555,8 +555,8 @@ public class Range implements WritableComparable<Range> {
   }
 
   /**
-   * Creates a new range that is bounded by the columns passed in. The start key in the returned range will have a column >= to the minimum column. The end key
-   * in the returned range will have a column <= the max column.
+   * Creates a new range that is bounded by the columns passed in. The start key in the returned range will have a column &gt;= to the minimum column. The end
+   * key in the returned range will have a column &lt;= the max column.
    *
    * @param min
    *          minimum column

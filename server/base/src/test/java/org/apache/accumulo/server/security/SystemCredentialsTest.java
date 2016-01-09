@@ -57,7 +57,7 @@ public class SystemCredentialsTest {
 
   /**
    * This is a test to ensure the string literal in {@link ConnectorImpl#ConnectorImpl(org.apache.accumulo.core.client.impl.ClientContext)} is kept up-to-date
-   * if we move the {@link SystemToken}<br/>
+   * if we move the {@link SystemToken}<br>
    * This check will not be needed after ACCUMULO-1578
    */
   @Test

@@ -33,12 +33,12 @@ import com.google.common.base.Function;
  * this balancer for your table.
  *
  * <ul>
- * <li/>Set {@code table.custom.balancer.group.regex.pattern} to a regular expression. This regular expression must have one group. The regex is applied to the
+ * <li>Set {@code table.custom.balancer.group.regex.pattern} to a regular expression. This regular expression must have one group. The regex is applied to the
  * tablet end row and whatever the regex group matches is used as the group. For example with a regex of {@code (\d\d).*} and an end row of {@code 12abc}, the
  * group for the tablet would be {@code 12}.
- * <li/>Set {@code table.custom.balancer.group.regex.default} to a default group. This group is returned for the last tablet in the table and tablets for which
+ * <li>Set {@code table.custom.balancer.group.regex.default} to a default group. This group is returned for the last tablet in the table and tablets for which
  * the regex does not match.
- * <li/>Optionally set {@code table.custom.balancer.group.regex.wait.time} to time (can use time suffixes). This determines how long to wait between balancing.
+ * <li>Optionally set {@code table.custom.balancer.group.regex.wait.time} to time (can use time suffixes). This determines how long to wait between balancing.
  * Since this balancer scans the metadata table, may want to set this higher for large tables.
  * </ul>
  */

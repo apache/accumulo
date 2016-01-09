@@ -230,7 +230,7 @@ public class MetadataSchema {
   /**
    * Holds references to files that need replication
    * <p>
-   * <code>~replhdfs://localhost:8020/accumulo/wal/tserver+port/WAL stat:local_table_id [] -> protobuf</code>
+   * <code>~replhdfs://localhost:8020/accumulo/wal/tserver+port/WAL stat:local_table_id [] -&gt; protobuf</code>
    */
   public static class ReplicationSection {
     public static final Text COLF = new Text("stat");

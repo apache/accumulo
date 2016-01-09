@@ -127,7 +127,7 @@ public class ReplicationServlet extends BasicServlet {
 
     String utilization = filesPendingFormat.format(filesPendingOverAllTargets);
 
-    sb.append("<div><center><br/><span class=\"table-caption\">Total files pending replication: ").append(utilization).append("</span></center></div>");
+    sb.append("<div><center><br /><span class=\"table-caption\">Total files pending replication: ").append(utilization).append("</span></center></div>");
 
     replicationStats.generate(req, sb);
 

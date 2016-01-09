@@ -39,7 +39,7 @@ import org.apache.hadoop.io.Writable;
 public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
 
   /**
-   * A utility class to serialize/deserialize {@link AuthenticationToken} objects.<br/>
+   * A utility class to serialize/deserialize {@link AuthenticationToken} objects.<br>
    * Unfortunately, these methods are provided in an inner-class, to avoid breaking the interface API.
    *
    * @since 1.6.0

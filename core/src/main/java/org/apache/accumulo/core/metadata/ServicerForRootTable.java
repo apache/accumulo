@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 
 /**
- * A metadata servicer for the root table.<br />
+ * A metadata servicer for the root table.<br>
  * The root table's metadata is serviced in zookeeper.
  */
 class ServicerForRootTable extends MetadataServicer {

@@ -19,16 +19,16 @@
  * files with the ability to ascertain what portions of the files differ. Each leaf of the Merkle tree is some hash of a
  * portion of the file, with each leaf corresponding to some "range" within the source file. As such, if all leaves are
  * considered as ranges of the source file, the "sum" of all leaves creates a contiguous range over the entire file.
- * <P>
+ * <p>
  * The parent of any nodes (typically, a binary tree; however this is not required) is the concatenation of the hashes of
  * the children. We can construct a full tree by walking up the tree, creating parents from children, until we have a root
  * node. To check equality of two files that each have a merkle tree built, we can very easily compare the value of at the
  * root of the Merkle tree to know whether or not the files are the same.
- * <P>
+ * <p>
  * Additionally, in the situation where we have two files with we expect to be the same but are not, we can walk back down
  * the tree, finding subtrees that are equal and subtrees that are not. Subtrees that are equal correspond to portions of
  * the files which are identical, where subtrees that are not equal correspond to discrepancies between the two files.
- * <P>
+ * <p>
  * We can apply this concept to Accumulo, treating a table as a file, and ranges within a file as an Accumulo Range. We can
  * then compute the hashes over each of these Ranges and compute the entire Merkle tree to determine if two tables are
  * equivalent.
@@ -36,3 +36,4 @@
  * @since 1.7.0
  */
 package org.apache.accumulo.test.replication.merkle;
+

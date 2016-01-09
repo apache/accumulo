@@ -90,9 +90,9 @@ public class TablesServlet extends BasicServlet {
     tableList.addSortableColumn("Entries<br />In&nbsp;Memory", new NumberType<Long>(),
         "The total number of key/value pairs stored in memory and not yet written to disk");
     tableList.addSortableColumn("Ingest", new NumberType<Long>(), "The number of Key/Value pairs inserted.  Note that deletes are 'inserted'.");
-    tableList.addSortableColumn("Entries<br/>Read", new NumberType<Long>(),
+    tableList.addSortableColumn("Entries<br />Read", new NumberType<Long>(),
         "The number of Key/Value pairs read on the server side.  Not all key values read may be returned to client because of filtering.");
-    tableList.addSortableColumn("Entries<br/>Returned", new NumberType<Long>(),
+    tableList.addSortableColumn("Entries<br />Returned", new NumberType<Long>(),
         "The number of Key/Value pairs returned to clients during queries.  This is <b>not</b> the number of scans.");
     tableList.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l),
         "The amount of time that ingest operations are suspended while waiting for data to be written to disk.");
