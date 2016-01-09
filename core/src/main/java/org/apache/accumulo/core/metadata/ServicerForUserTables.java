@@ -20,7 +20,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.security.Credentials;
 
 /**
- * A metadata servicer for user tables.<br />
+ * A metadata servicer for user tables.<br>
  * Metadata for user tables are serviced in the metadata table.
  */
 class ServicerForUserTables extends TableMetadataServicer {

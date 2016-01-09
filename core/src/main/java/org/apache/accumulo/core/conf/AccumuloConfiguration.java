@@ -80,7 +80,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * This method returns all properties in a map of string->string under the given prefix property.
+   * This method returns all properties in a map of string-&gt;string under the given prefix property.
    *
    * @param property
    *          the prefix property, and must be of type PropertyType.PREFIX

@@ -201,7 +201,7 @@ public class DefaultServlet extends BasicServlet {
     sb.append("</td>\n");
 
     sb.append("</tr></table>\n");
-    sb.append("<br/>\n");
+    sb.append("<br />\n");
 
     sb.append("<p/><table class=\"noborder\">\n");
 

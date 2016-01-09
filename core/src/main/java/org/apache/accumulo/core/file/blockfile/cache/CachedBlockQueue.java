@@ -21,7 +21,7 @@ import java.util.LinkedList;
 import java.util.PriorityQueue;
 
 /**
- * A memory-bound queue that will grow until an element brings total size >= maxSize. From then on, only entries that are sorted larger than the smallest
+ * A memory-bound queue that will grow until an element brings total size &gt;= maxSize. From then on, only entries that are sorted larger than the smallest
  * current entry will be inserted/replaced.
  *
  * <p>

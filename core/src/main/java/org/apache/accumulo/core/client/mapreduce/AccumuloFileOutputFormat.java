@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
-import org.apache.accumulo.core.util.HadoopCompatUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.HadoopCompatUtil;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -40,7 +40,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.log4j.Logger;
 
 /**
- * This class allows MapReduce jobs to write output in the Accumulo data file format.<br />
+ * This class allows MapReduce jobs to write output in the Accumulo data file format.<br>
  * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important requirement of Accumulo data files.
  *
  * <p>
@@ -80,7 +80,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Sets the size for data blocks within each file.<br />
+   * Sets the size for data blocks within each file.<br>
    * Data blocks are a span of key/value pairs stored in the file that are compressed and indexed as a group.
    *
    * <p>

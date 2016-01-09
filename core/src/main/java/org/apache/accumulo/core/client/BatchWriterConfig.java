@@ -49,7 +49,7 @@ public class BatchWriterConfig implements Writable {
   private Integer maxWriteThreads = null;
 
   /**
-   * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br />
+   * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br>
    * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()} after each added mutation. Must be non-negative.
    *
    * <p>
@@ -69,11 +69,11 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
-   * Sets the maximum amount of time to hold the data in memory before flushing it to servers.<br />
+   * Sets the maximum amount of time to hold the data in memory before flushing it to servers.<br>
    * For no maximum, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
    *
    * <p>
-   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br>
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
    *
@@ -101,11 +101,11 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
-   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br />
+   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br>
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
    *
    * <p>
-   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br>
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
    *

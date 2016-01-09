@@ -40,7 +40,7 @@ public class ServerConstants {
   public static final String INSTANCE_ID_DIR = "instance_id";
 
   /**
-   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version 1.6.0 <br />
+   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version 1.6.0<br>
    * (versions should never be negative)
    */
   public static final Integer WIRE_VERSION = 3;
