@@ -60,7 +60,7 @@ createEmail() {
   echo
   echo    "    However, do *NOT* push the $tag tag until after the vote"
   echo    "    passes and the tag is re-made with a gpg signature using"
-  echo    "    \`git tag -f -m 'Apache Accumulo $tag' -s $tag ${commit:0:7}\`"
+  echo    "    \`git tag -f -m 'Apache Accumulo $tag' -s rel/$tag ${commit:0:7}\`"
   echo
   echo    "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
   echo
@@ -91,7 +91,7 @@ Branch:
     $branch
 
 If this vote passes, a gpg-signed tag will be created using:
-    git tag -f -m 'Apache Accumulo $tag' -s $tag $commit
+    git tag -f -m 'Apache Accumulo $tag' -s rel/$tag $commit
 
 Staging repo: https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo
 Source (official release artifact): https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo/org/apache/accumulo/accumulo/$tag/accumulo-$tag-src.tar.gz
