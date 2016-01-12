@@ -689,7 +689,7 @@
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
-            <tagNameFormat>@{project.version}</tagNameFormat>
+            <tagNameFormat>rel/@{project.version}</tagNameFormat>
             <releaseProfiles>apache-release,accumulo-release,skip-plugin-its-with-skipTests</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
