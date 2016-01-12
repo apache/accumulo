@@ -18,6 +18,8 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -38,34 +40,48 @@ public class Scanner {
   private ScanDataSource isolatedDataSource;
   private boolean sawException = false;
   private boolean scanClosed = false;
+  /**
+   * A fair semaphore of one is used since explicitly know the access pattern will be one thread to read and another to call close if the session becomes idle.
+   * Since we're explicitly preventing re-entrance, we're currently using a Sempahore. If at any point we decide read needs to be re-entrant, we can switch to a
+   * Reentrant lock.
+   */
+  private Semaphore scannerSemaphore;
 
   Scanner(Tablet tablet, Range range, ScanOptions options) {
     this.tablet = tablet;
     this.range = range;
     this.options = options;
+    this.scannerSemaphore = new Semaphore(1, true);
   }
 
-  public synchronized ScanBatch read() throws IOException, TabletClosedException {
+  public ScanBatch read() throws IOException, TabletClosedException {
 
-    if (sawException)
-      throw new IllegalStateException("Tried to use scanner after exception occurred.");
-
-    if (scanClosed)
-      throw new IllegalStateException("Tried to use scanner after it was closed.");
+    ScanDataSource dataSource = null;
 
     Batch results = null;
 
-    ScanDataSource dataSource;
-
-    if (options.isIsolated()) {
-      if (isolatedDataSource == null)
-        isolatedDataSource = new ScanDataSource(tablet, options);
-      dataSource = isolatedDataSource;
-    } else {
-      dataSource = new ScanDataSource(tablet, options);
-    }
-
     try {
+
+      try {
+        scannerSemaphore.acquire();
+      } catch (InterruptedException e) {
+        sawException = true;
+      }
+
+      // sawException may have occurred within close, so we cannot assume that an interrupted exception was its cause
+      if (sawException)
+        throw new IllegalStateException("Tried to use scanner after exception occurred.");
+
+      if (scanClosed)
+        throw new IllegalStateException("Tried to use scanner after it was closed.");
+
+      if (options.isIsolated()) {
+        if (isolatedDataSource == null)
+          isolatedDataSource = new ScanDataSource(tablet, options);
+        dataSource = isolatedDataSource;
+      } else {
+        dataSource = new ScanDataSource(tablet, options);
+      }
 
       SortedKeyValueIterator<Key,Value> iter;
 
@@ -112,26 +128,40 @@ public class Scanner {
     } finally {
       // code in finally block because always want
       // to return mapfiles, even when exception is thrown
-      if (!options.isIsolated()) {
+      if (null != dataSource && !options.isIsolated()) {
         dataSource.close(false);
-      } else {
+      } else if (null != dataSource) {
         dataSource.detachFileManager();
       }
 
       if (results != null && results.getResults() != null)
         tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
+
+      scannerSemaphore.release();
     }
   }
 
   // close and read are synchronized because can not call close on the data source while it is in use
   // this could lead to the case where file iterators that are in use by a thread are returned
   // to the pool... this would be bad
-  public void close() {
+  public boolean close() {
     options.getInterruptFlag().set(true);
-    synchronized (this) {
+
+    boolean obtainedLock = false;
+    try {
+      obtainedLock = scannerSemaphore.tryAcquire(10, TimeUnit.MILLISECONDS);
+      if (!obtainedLock)
+        return false;
+
       scanClosed = true;
       if (isolatedDataSource != null)
         isolatedDataSource.close(false);
+    } catch (InterruptedException e) {
+      return false;
+    } finally {
+      if (obtainedLock)
+        scannerSemaphore.release();
     }
+    return true;
   }
 }

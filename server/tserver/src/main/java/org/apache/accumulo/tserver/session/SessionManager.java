@@ -19,10 +19,12 @@ package org.apache.accumulo.tserver.session;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimerTask;
 
 import org.apache.accumulo.core.client.impl.Translator;
@@ -41,22 +43,29 @@ import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+
 public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
   private final SecureRandom random = new SecureRandom();
   private final Map<Long,Session> sessions = new HashMap<Long,Session>();
   private final long maxIdle;
+  private final long maxUpdateIdle;
+  private final List<Session> idleSessions = new ArrayList<Session>();
+  private final Long expiredSessionMarker = new Long(-1);
   private final AccumuloConfiguration aconf;
 
   public SessionManager(AccumuloConfiguration conf) {
     aconf = conf;
+    maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
     maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
     Runnable r = new Runnable() {
       @Override
       public void run() {
-        sweep(maxIdle);
+        sweep(maxIdle, maxUpdateIdle);
       }
     };
 
@@ -159,14 +168,18 @@ public class SessionManager {
     return session;
   }
 
-  private void sweep(long maxIdle) {
+  private void sweep(final long maxIdle, final long maxUpdateIdle) {
     List<Session> sessionsToCleanup = new ArrayList<Session>();
     synchronized (this) {
       Iterator<Session> iter = sessions.values().iterator();
       while (iter.hasNext()) {
         Session session = iter.next();
+        long configuredIdle = maxIdle;
+        if (session instanceof UpdateSession) {
+          configuredIdle = maxUpdateIdle;
+        }
         long idleTime = System.currentTimeMillis() - session.lastAccessTime;
-        if (idleTime > maxIdle && !session.reserved) {
+        if (idleTime > configuredIdle && !session.reserved) {
           log.info("Closing idle session from user=" + session.getUser() + ", client=" + session.client + ", idle=" + idleTime + "ms");
           iter.remove();
           sessionsToCleanup.add(session);
@@ -174,9 +187,19 @@ public class SessionManager {
       }
     }
 
-    // do clean up outside of lock
-    for (Session session : sessionsToCleanup) {
-      session.cleanup();
+    // do clean up outside of lock for TabletServer in a synchronized block for simplicity vice a synchronized list
+
+    synchronized (idleSessions) {
+
+      sessionsToCleanup.addAll(idleSessions);
+
+      idleSessions.clear();
+
+      // perform cleanup for all of the sessions
+      for (Session session : sessionsToCleanup) {
+        if (!session.cleanup())
+          idleSessions.add(session);
+      }
     }
   }
 
@@ -209,6 +232,17 @@ public class SessionManager {
 
   public synchronized Map<String,MapCounter<ScanRunState>> getActiveScansPerTable() {
     Map<String,MapCounter<ScanRunState>> counts = new HashMap<String,MapCounter<ScanRunState>>();
+    Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<Entry<Long,Session>>();
+
+    synchronized (idleSessions) {
+      /**
+       * Add sessions so that get the list returned in the active scans call
+       */
+      for (Session session : idleSessions) {
+        copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
+      }
+    }
+
     for (Entry<Long,Session> entry : sessions.entrySet()) {
 
       Session session = entry.getValue();
@@ -248,11 +282,20 @@ public class SessionManager {
 
   public synchronized List<ActiveScan> getActiveScans() {
 
-    List<ActiveScan> activeScans = new ArrayList<ActiveScan>();
+    final List<ActiveScan> activeScans = new ArrayList<ActiveScan>();
+    final long ct = System.currentTimeMillis();
+    final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<Entry<Long,Session>>();
 
-    long ct = System.currentTimeMillis();
+    synchronized (idleSessions) {
+      /**
+       * Add sessions so that get the list returned in the active scans call
+       */
+      for (Session session : idleSessions) {
+        copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
+      }
+    }
 
-    for (Entry<Long,Session> entry : sessions.entrySet()) {
+    for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
       Session session = entry.getValue();
       if (session instanceof ScanSession) {
         ScanSession ss = (ScanSession) session;

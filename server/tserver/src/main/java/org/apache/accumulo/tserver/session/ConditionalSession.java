@@ -38,7 +38,8 @@ public class ConditionalSession extends Session {
   }
 
   @Override
-  public void cleanup() {
+  public boolean cleanup() {
     interruptFlag.set(true);
+    return true;
   }
 }

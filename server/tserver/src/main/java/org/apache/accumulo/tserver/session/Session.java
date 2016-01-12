@@ -39,5 +39,7 @@ public class Session {
     return credentials;
   }
 
-  public void cleanup() {}
+  public boolean cleanup() {
+    return true;
+  }
 }
