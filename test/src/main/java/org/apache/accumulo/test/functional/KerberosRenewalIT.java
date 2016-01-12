@@ -110,7 +110,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
       @Override
       public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
         Map<String,String> site = cfg.getSiteConfig();
-        site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
+        site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
         // Reduce the period just to make sure we trigger renewal fast
         site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
         cfg.setSiteConfig(site);

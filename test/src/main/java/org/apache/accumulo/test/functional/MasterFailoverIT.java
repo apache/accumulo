@@ -38,7 +38,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
+    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     cfg.setSiteConfig(siteConfig);
   }
 

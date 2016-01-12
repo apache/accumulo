@@ -47,7 +47,7 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "3s");
+    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     cfg.setSiteConfig(siteConfig);
   }
 

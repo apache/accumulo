@@ -39,7 +39,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
   @Test(timeout = 2 * 60 * 1000)

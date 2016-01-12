@@ -80,7 +80,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.INSTANCE_SECRET, OUR_SECRET);
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");

@@ -102,7 +102,7 @@ import com.google.common.collect.Iterators;
 public class ReadWriteIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
   private static final Logger log = LoggerFactory.getLogger(ReadWriteIT.class);

@@ -59,7 +59,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN, "4");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.TSERV_MAJC_MAXCONCURRENT, "1");

@@ -50,7 +50,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAXMEM, "50K");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "0");
   }
