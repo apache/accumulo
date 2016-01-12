@@ -42,7 +42,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacIT {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
   @Test

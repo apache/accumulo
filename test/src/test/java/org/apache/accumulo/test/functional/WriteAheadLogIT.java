@@ -40,7 +40,7 @@ public class WriteAheadLogIT extends AccumuloClusterIT {
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "4s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
