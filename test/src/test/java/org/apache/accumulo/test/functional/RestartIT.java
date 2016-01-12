@@ -67,7 +67,7 @@ public class RestartIT extends AccumuloClusterIT {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> props = new HashMap<String,String>();
-    props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
+    props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     props.put(Property.GC_CYCLE_DELAY.getKey(), "1s");
     props.put(Property.GC_CYCLE_START.getKey(), "1s");
     cfg.setSiteConfig(props);

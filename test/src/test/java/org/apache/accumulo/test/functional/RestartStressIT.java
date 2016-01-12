@@ -55,7 +55,7 @@ public class RestartStressIT extends AccumuloClusterIT {
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
     opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
-    opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
+    opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     opts.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
     cfg.setSiteConfig(opts);
     cfg.useMiniDFS(true);
