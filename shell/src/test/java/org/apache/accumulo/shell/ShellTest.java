@@ -33,8 +33,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.util.format.DateStringFormatter;
 import org.apache.log4j.Level;
 import org.junit.After;
@@ -42,6 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jline.console.ConsoleReader;
 
 public class ShellTest {
   private static final Logger log = LoggerFactory.getLogger(ShellTest.class);
@@ -177,6 +177,8 @@ public class ShellTest {
     exec("createtable test", true);
     exec("addsplits 1 \\x80", true);
     exec("getsplits", true, "1\n\\x80");
+    exec("getsplits -m 1", true, "1");
+    exec("getsplits -b64", true, "MQ==\ngA==");
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
 
@@ -202,6 +204,37 @@ public class ShellTest {
     exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
     exec("delete \\x90 \\xa0 \\xb0", true);
     exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void deleteManyTest() throws IOException {
+    exec("deletemany", false, "java.lang.IllegalStateException: Not in a table context");
+    exec("createtable test", true);
+    exec("deletemany", true, "\n");
+
+    exec("insert 0 0 0 0 -ts 0");
+    exec("insert 0 0 0 0 -l 0 -ts 0");
+    exec("insert 1 1 1 1 -ts 1");
+    exec("insert 2 2 2 2 -ts 2");
+
+    // prompts for delete, and rejects by default
+    exec("deletemany", true, "[SKIPPED] 0 0:0 []");
+    exec("deletemany -r 0", true, "[SKIPPED] 0 0:0 []");
+    exec("deletemany -r 0 -f", true, "[DELETED] 0 0:0 []");
+
+    // with auths, can delete the other record
+    exec("setauths -s 0");
+    exec("deletemany -r 0 -f", true, "[DELETED] 0 0:0 [0]");
+
+    // delete will show the timestamp
+    exec("deletemany -r 1 -f -st", true, "[DELETED] 1 1:1 [] 1");
+
+    // DeleteManyCommand has its own Formatter (DeleterFormatter), so it does not honor the -fm flag
+    exec("deletemany -r 2 -f -st -fm org.apache.accumulo.core.util.format.DateStringFormatter", true,
+            "[DELETED] 2 2:2 [] 2");
+
+    exec("setauths -c ", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
 
@@ -254,13 +287,69 @@ public class ShellTest {
   }
 
   @Test
+  public void scanTimestampTest() throws IOException {
+    Shell.log.debug("Starting scanTimestamp test ------------------------");
+    exec("createtable test", true);
+    exec("insert r f q v -ts 0", true);
+    exec("scan -st", true, "r f:q [] 0    v");
+    exec("scan -st -f 0", true, " : [] 0   ");
+    exec("deletemany -f", true);
+    exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void scanFewTest() throws IOException {
+    Shell.log.debug("Starting scanFew test ------------------------");
+    exec("createtable test", true);
+    // historically, showing few did not pertain to ColVis or Timestamp
+    exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
+    exec("setauths -s 12345678", true);
+    String expected = "1 123:123456 [12345678] 123456789    1234567890";
+    String expectedFew = "1 123:12345 [12345678] 123456789    12345";
+    exec("scan -st", true, expected);
+    exec("scan -st -f 5", true, expectedFew);
+    // also prove that BinaryFormatter behaves same as the default
+    exec("scan -st -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expected);
+    exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expectedFew);
+    exec("setauths -c", true);
+    exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
   public void scanDateStringFormatterTest() throws IOException {
     Shell.log.debug("Starting scan dateStringFormatter test --------------------------");
     exec("createtable t", true);
     exec("insert r f q v -ts 0", true);
     DateFormat dateFormat = new SimpleDateFormat(DateStringFormatter.DATE_FORMAT);
     String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
+    // historically, showing few did not pertain to ColVis or Timestamp
+    String expectedFew = expected;
+    String expectedNoTimestamp = String.format("r f:q []    v");
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true, expected);
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 5", true, expectedFew);
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter", true, expectedNoTimestamp);
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  public void grepTest() throws IOException {
+    Shell.log.debug("Starting grep test --------------------------");
+    exec("grep", false, "java.lang.IllegalStateException: Not in a table context");
+    exec("createtable t", true);
+    exec("setauths -s vis", true);
+    exec("insert r f q v -ts 0 -l vis", true);
+
+    String expected = "r f:q [vis]    v";
+    String expectedTimestamp = "r f:q [vis] 0    v";
+    exec("grep", false, "No terms specified");
+    exec("grep non_matching_string", true, "");
+    // historically, showing few did not pertain to ColVis or Timestamp
+    exec("grep r", true, expected);
+    exec("grep r -f 1", true, expected);
+    exec("grep r -st", true, expectedTimestamp);
+    exec("grep r -st -f 1", true, expectedTimestamp);
+    exec("setauths -c", true);
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 

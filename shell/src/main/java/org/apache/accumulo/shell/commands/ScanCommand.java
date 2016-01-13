@@ -22,7 +22,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -35,8 +34,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
@@ -87,24 +86,21 @@ public class ScanCommand extends Command {
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
     // output the records
+
+    final FormatterConfig config = new FormatterConfig();
+    config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
     if (cl.hasOption(showFewOpt.getOpt())) {
       final String showLength = cl.getOptionValue(showFewOpt.getOpt());
       try {
         final int length = Integer.parseInt(showLength);
-        if (length < 1) {
-          throw new IllegalArgumentException();
-        }
-        BinaryFormatter.getlength(length);
-        printBinaryRecords(cl, shellState, scanner, printFile);
+        config.setShownLength(length);
       } catch (NumberFormatException nfe) {
         shellState.getReader().println("Arg must be an integer.");
       } catch (IllegalArgumentException iae) {
         shellState.getReader().println("Arg must be greater than one.");
       }
-
-    } else {
-      printRecords(cl, shellState, scanner, formatter, printFile);
     }
+    printRecords(cl, shellState, config, scanner, formatter, printFile);
     if (printFile != null) {
       printFile.close();
     }
@@ -162,21 +158,12 @@ public class ScanCommand extends Command {
     }
   }
 
-  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner,
+  protected void printRecords(final CommandLine cl, final Shell shellState, FormatterConfig config, final Iterable<Entry<Key,Value>> scanner,
       final Class<? extends Formatter> formatter, PrintFile outFile) throws IOException {
     if (outFile == null) {
-      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
+      shellState.printRecords(scanner, config, !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
     } else {
-      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter, outFile);
-    }
-  }
-
-  protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, PrintFile outFile)
-      throws IOException {
-    if (outFile == null) {
-      shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
-    } else {
-      shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), outFile);
+      shellState.printRecords(scanner, config, !cl.hasOption(disablePaginationOpt.getOpt()), formatter, outFile);
     }
   }
 

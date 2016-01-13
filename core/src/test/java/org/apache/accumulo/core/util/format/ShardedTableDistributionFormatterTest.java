@@ -47,7 +47,7 @@ public class ShardedTableDistributionFormatterTest {
   public void testInitialize() {
     data.put(new Key(), new Value());
     data.put(new Key("r", "~tab"), new Value());
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     assertTrue(formatter.hasNext());
     formatter.next();
@@ -60,7 +60,7 @@ public class ShardedTableDistributionFormatterTest {
     data.put(new Key("t;19700101", "~tab", "loc", 0), new Value("srv1".getBytes(UTF_8)));
     data.put(new Key("t;19700101", "~tab", "loc", 1), new Value("srv2".getBytes(UTF_8)));
 
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     String[] resultLines = formatter.next().split("\n");
     List<String> results = Arrays.asList(resultLines).subList(2, 4);

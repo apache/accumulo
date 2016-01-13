@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.mock.MockShell;
 import org.apache.log4j.Level;
@@ -134,7 +135,7 @@ public class FormatterCommandTest {
    */
   public static class HexFormatter implements Formatter {
     private Iterator<Entry<Key,Value>> iter = null;
-    private boolean printTs = false;
+    private FormatterConfig config;
 
     private final static String tab = "\t";
     private final static String newline = "\n";
@@ -153,7 +154,7 @@ public class FormatterCommandTest {
       String key;
 
       // Observe the timestamps
-      if (printTs) {
+      if (config.willPrintTimestamps()) {
         key = entry.getKey().toString();
       } else {
         key = entry.getKey().toStringNoTime();
@@ -181,9 +182,9 @@ public class FormatterCommandTest {
     public void remove() {}
 
     @Override
-    public void initialize(final Iterable<Entry<Key,Value>> scanner, final boolean printTimestamps) {
+    public void initialize(final Iterable<Entry<Key,Value>> scanner, final FormatterConfig config) {
       this.iter = scanner.iterator();
-      this.printTs = printTimestamps;
+      this.config = new FormatterConfig(config);
     }
   }
 
