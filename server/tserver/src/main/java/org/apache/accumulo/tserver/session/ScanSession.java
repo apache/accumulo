@@ -58,15 +58,17 @@ public class ScanSession extends Session {
 
   @Override
   public boolean cleanup() {
+    final boolean ret;
     try {
       if (nextBatchTask != null)
         nextBatchTask.cancel(true);
     } finally {
       if (scanner != null)
-        return scanner.close();
+        ret = scanner.close();
       else
-        return true;
+        ret = true;
     }
+    return ret;
   }
 
 }
