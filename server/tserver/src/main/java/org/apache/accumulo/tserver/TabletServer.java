@@ -923,15 +923,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     @Override
     public boolean cleanup() {
+      final boolean ret;
       try {
         if (nextBatchTask != null)
           nextBatchTask.cancel(true);
       } finally {
         if (scanner != null)
-          return scanner.close();
+          ret = scanner.close();
         else
-          return true;
+          ret = true;
       }
+      return ret;
     }
 
   }
