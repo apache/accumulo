@@ -122,6 +122,8 @@
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <!-- extra release args for testing -->
+    <extraReleaseArgs />
     <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
     <findbugs.version>2.5.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
@@ -621,7 +623,7 @@
           <!-- Work around MRELEASE-812 -->
           <version>2.5</version>
           <configuration>
-            <arguments>-P !autoformat,apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
+            <arguments>-P !autoformat,apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2 ${extraReleaseArgs}</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
