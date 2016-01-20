@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * When SASL is enabled, this parses properties from the site configuration to build up a set of all users capable of impersonating another user, the users
  * which may be impersonated and the hosts in which the impersonator may issue requests from.
  *
- * <code>rpc_user=>{allowed_accumulo_users=[...], allowed_client_hosts=[...]</code>
+ * <code>rpc_user=&gt;{allowed_accumulo_users=[...], allowed_client_hosts=[...]</code>
  *
  * @see Property#INSTANCE_RPC_SASL_PROXYUSERS
  */

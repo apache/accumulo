@@ -63,13 +63,13 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setNumTservers(1);
   }
 

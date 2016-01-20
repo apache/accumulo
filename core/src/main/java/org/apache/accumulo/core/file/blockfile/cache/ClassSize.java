@@ -150,7 +150,7 @@ public class ClassSize {
    *
    * @param num
    *          number to align to 8
-   * @return smallest number >= input that is a multiple of 8
+   * @return smallest number &gt;= input that is a multiple of 8
    */
   public static int align(int num) {
     return (int) (align((long) num));
@@ -161,7 +161,7 @@ public class ClassSize {
    *
    * @param num
    *          number to align to 8
-   * @return smallest number >= input that is a multiple of 8
+   * @return smallest number &gt;= input that is a multiple of 8
    */
   public static long align(long num) {
     // The 7 comes from that the alignSize is 8 which is the number of bytes

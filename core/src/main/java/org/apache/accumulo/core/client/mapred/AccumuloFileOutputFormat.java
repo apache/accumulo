@@ -42,7 +42,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 /**
- * This class allows MapReduce jobs to write output in the Accumulo data file format.<br />
+ * This class allows MapReduce jobs to write output in the Accumulo data file format.<br>
  * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important requirement of Accumulo data files.
  *
  * <p>
@@ -85,7 +85,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Sets the size for data blocks within each file.<br />
+   * Sets the size for data blocks within each file.<br>
    * Data blocks are a span of key/value pairs stored in the file that are compressed and indexed as a group.
    *
    * <p>

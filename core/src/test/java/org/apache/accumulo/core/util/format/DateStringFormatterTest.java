@@ -22,12 +22,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class DateStringFormatterTest {
   DateStringFormatter formatter;
 
@@ -40,13 +40,30 @@ public class DateStringFormatterTest {
     data.put(new Key("", "", "", 0), new Value());
   }
 
-  @Test
-  public void testTimestamps() {
-    formatter.initialize(data.entrySet(), true);
-    formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+  private void testFormatterIgnoresConfig(FormatterConfig config, DateStringFormatter formatter) {
+    // ignores config's DateFormatSupplier and substitutes its own
+    formatter.initialize(data.entrySet(), config);
 
     assertTrue(formatter.hasNext());
-    assertTrue(formatter.next().endsWith("1970/01/01 00:00:00.000"));
+    final String next = formatter.next();
+    assertTrue(next, next.endsWith("1970/01/01 00:00:00.000"));
+  }
+
+  @Test
+  public void testTimestamps() {
+    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    final TimeZone est = TimeZone.getTimeZone("EST");
+    final FormatterConfig config = new FormatterConfig().setPrintTimestamps(true);
+    DateStringFormatter formatter;
+
+    formatter = new DateStringFormatter(utc);
+    testFormatterIgnoresConfig(config, formatter);
+
+    // even though config says to use EST and only print year, the Formatter will override these
+    formatter = new DateStringFormatter(utc);
+    DateFormatSupplier dfSupplier = DateFormatSupplier.createSimpleFormatSupplier("YYYY", est);
+    config.setDateFormatSupplier(dfSupplier);
+    testFormatterIgnoresConfig(config, formatter);
   }
 
   @Test
@@ -55,7 +72,7 @@ public class DateStringFormatterTest {
 
     assertEquals(2, data.size());
 
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     assertEquals(formatter.next(), formatter.next());
   }

@@ -195,9 +195,7 @@ public class CryptoModuleParameters {
   /**
    * Sets the name of the random number generator to use. The default for this for the baseline JCE implementation is "SHA1PRNG".
    * <p>
-   *
-   * <p>
-   * For <b>encryption</b>, this value is <b>required</b>. <br>
+   * For <b>encryption</b>, this value is <b>required</b>.<br>
    * For <b>decryption</b>, this value is often obtained from the underlying cipher stream.
    *
    * @param randomNumberGenerator
@@ -275,7 +273,6 @@ public class CryptoModuleParameters {
 
   /**
    * Sets the encrypted version of the plaintext key ({@link CryptoModuleParameters#getPlaintextKey()}). Generally this operation will be done either by:
-   * <p>
    * <ul>
    * <li>the code reading an encrypted stream and coming across the encrypted version of one of these keys, OR
    * <li>the {@link CryptoModuleParameters#getKeyEncryptionStrategyClass()} that encrypted the plaintext key (see
@@ -285,11 +282,9 @@ public class CryptoModuleParameters {
    * For <b>encryption</b>, this value is generally not required, but is usually set by the underlying module during encryption. <br>
    * For <b>decryption</b>, this value is <b>usually required</b>.
    *
-   *
    * @param encryptedKey
    *          the encrypted value of the plaintext key
    */
-
   public void setEncryptedKey(byte[] encryptedKey) {
     this.encryptedKey = encryptedKey;
   }

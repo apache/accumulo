@@ -42,7 +42,7 @@ public class HexFormatterTest {
   @Test
   public void testInitialize() {
     data.put(new Key(), new Value());
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     assertTrue(formatter.hasNext());
     assertEquals("  " + "  " + " [" + "] ", formatter.next());
@@ -59,7 +59,7 @@ public class HexFormatterTest {
     Text bytes = new Text(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
     data.put(new Key(bytes), new Value());
 
-    formatter.initialize(data.entrySet(), false);
+    formatter.initialize(data.entrySet(), new FormatterConfig());
 
     String row = formatter.next().split(" ")[0];
     assertEquals("0001-0203-0405-0607-0809-0a0b-0c0d-0e0f", row);
@@ -80,7 +80,7 @@ public class HexFormatterTest {
   public void testTimestamps() {
     long now = System.currentTimeMillis();
     data.put(new Key("", "", "", now), new Value());
-    formatter.initialize(data.entrySet(), true);
+    formatter.initialize(data.entrySet(), new FormatterConfig().setPrintTimestamps(true));
     String entry = formatter.next().split("\\s+")[2];
     assertEquals(now, Long.parseLong(entry));
   }

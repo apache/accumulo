@@ -54,7 +54,7 @@ public class NamespacesCommand extends Command {
           return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
         else
           return name;
-      };
+      }
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));

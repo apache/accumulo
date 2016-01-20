@@ -60,8 +60,8 @@ import org.apache.hadoop.util.bloom.Key;
  * <p>
  * A dynamic Bloom filter (DBF) makes use of a <code>s * m</code> bit matrix but each of the <code>s</code> rows is a standard Bloom filter. The creation
  * process of a DBF is iterative. At the start, the DBF is a <code>1 * m</code> bit matrix, i.e., it is composed of a single standard Bloom filter. It assumes
- * that <code>n<sub>r</sub></code> elements are recorded in the initial bit vector, where <code>n<sub>r</sub> <= n</code> (<code>n</code> is the cardinality of
- * the set <code>A</code> to record in the filter).
+ * that <code>n<sub>r</sub></code> elements are recorded in the initial bit vector, where <code>n<sub>r</sub> &lt;= n</code> (<code>n</code> is the cardinality
+ * of the set <code>A</code> to record in the filter).
  * <p>
  * As the size of <code>A</code> grows during the execution of the application, several keys must be inserted in the DBF. When inserting a key into the DBF, one
  * must first get an active Bloom filter in the matrix. A Bloom filter is active when the number of recorded keys, <code>n<sub>r</sub></code>, is strictly less

@@ -32,12 +32,12 @@ import com.google.common.hash.Hasher;
  * This sampler can hash any subset of a Key's fields. The fields that hashed for the sample are determined by the configuration options passed in
  * {@link #init(SamplerConfiguration)}. The following key values are valid options.
  *
- * <UL>
+ * <ul>
  * <li>row=true|false
  * <li>family=true|false
  * <li>qualifier=true|false
  * <li>visibility=true|false
- * </UL>
+ * </ul>
  *
  * <p>
  * If not specified in the options, fields default to false.

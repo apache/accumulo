@@ -70,7 +70,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   @Override
   protected int defaultTimeoutSeconds() {
     return 30;
-  };
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

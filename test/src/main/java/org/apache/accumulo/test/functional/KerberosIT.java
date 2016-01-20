@@ -130,7 +130,7 @@ public class KerberosIT extends AccumuloITBase {
       @Override
       public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
         Map<String,String> site = cfg.getSiteConfig();
-        site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
+        site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
         cfg.setSiteConfig(site);
       }
 

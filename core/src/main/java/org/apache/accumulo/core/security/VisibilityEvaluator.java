@@ -18,6 +18,8 @@ package org.apache.accumulo.core.security;
 
 import java.util.ArrayList;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
 /**
@@ -25,6 +27,62 @@ import org.apache.accumulo.core.security.ColumnVisibility.Node;
  */
 public class VisibilityEvaluator {
   private AuthorizationContainer auths;
+
+  /**
+   * Authorizations in column visibility expression are in escaped form. Column visibility parsing does not unescape. This class wraps an AuthorizationContainer
+   * and unescapes auths before checking the wrapped container.
+   */
+  private static class UnescapingAuthorizationContainer implements AuthorizationContainer {
+
+    private AuthorizationContainer wrapped;
+
+    UnescapingAuthorizationContainer(AuthorizationContainer wrapee) {
+      this.wrapped = wrapee;
+    }
+
+    @Override
+    public boolean contains(ByteSequence auth) {
+      return wrapped.contains(unescape(auth));
+    }
+  }
+
+  static ByteSequence unescape(ByteSequence auth) {
+    int escapeCharCount = 0;
+    for (int i = 0; i < auth.length(); i++) {
+      byte b = auth.byteAt(i);
+      if (b == '"' || b == '\\') {
+        escapeCharCount++;
+      }
+    }
+
+    if (escapeCharCount > 0) {
+      if (escapeCharCount % 2 == 1) {
+        throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+      }
+
+      byte[] unescapedCopy = new byte[auth.length() - escapeCharCount / 2];
+      int pos = 0;
+      for (int i = 0; i < auth.length(); i++) {
+        byte b = auth.byteAt(i);
+        if (b == '\\') {
+          i++;
+          b = auth.byteAt(i);
+          if (b != '"' && b != '\\') {
+            throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+          }
+        } else if (b == '"') {
+          // should only see quote after a slash
+          throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+        }
+
+        unescapedCopy[pos++] = b;
+      }
+
+      return new ArrayByteSequence(unescapedCopy);
+    } else {
+      return auth;
+    }
+  }
 
   /**
    * Creates a new {@link Authorizations} object with escaped forms of the authorizations in the given object.
@@ -84,7 +142,7 @@ public class VisibilityEvaluator {
    * @since 1.7.0
    */
   public VisibilityEvaluator(AuthorizationContainer authsContainer) {
-    this.auths = authsContainer;
+    this.auths = new UnescapingAuthorizationContainer(authsContainer);
   }
 
   /**

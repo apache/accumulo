@@ -19,8 +19,10 @@ package org.apache.accumulo.core.util.format;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Map.Entry;
-
+import java.util.TimeZone;
+import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
@@ -29,6 +31,8 @@ import org.junit.Test;
 
 public class DefaultFormatterTest {
 
+  public static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+  public static final TimeZone EST = TimeZone.getTimeZone("EST");
   DefaultFormatter df;
   Iterable<Entry<Key,Value>> empty = Collections.<Key,Value> emptyMap().entrySet();
 
@@ -39,8 +43,9 @@ public class DefaultFormatterTest {
 
   @Test(expected = IllegalStateException.class)
   public void testDoubleInitialize() {
-    df.initialize(empty, true);
-    df.initialize(empty, true);
+    final FormatterConfig timestampConfig = new FormatterConfig().setPrintTimestamps(true);
+    df.initialize(empty, timestampConfig);
+    df.initialize(empty, timestampConfig);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -58,5 +63,56 @@ public class DefaultFormatterTest {
 
     DefaultFormatter.appendText(sb, new Text(data));
     assertEquals("\\x00\\\\x\\xFF", sb.toString());
+  }
+
+  @Test
+  public void testFormatEntry() {
+    final long timestamp = 0;
+    Map<Key,Value> map = new TreeMap<Key,Value>();
+    map.put(new Key("a", "ab", "abc", timestamp), new Value("abcd".getBytes()));
+
+    FormatterConfig config;
+    String answer;
+
+    // no timestamp, no max
+    config = new FormatterConfig();
+    df = new DefaultFormatter();
+    df.initialize(map.entrySet(), config);
+    answer = df.next();
+    assertEquals("a ab:abc []\tabcd", answer);
+
+    // yes timestamp, no max
+    config.setPrintTimestamps(true);
+    df = new DefaultFormatter();
+    df.initialize(map.entrySet(), config);
+    answer = df.next();
+    assertEquals("a ab:abc [] " + timestamp + "\tabcd", answer);
+
+    // yes timestamp, max of 1
+    config.setPrintTimestamps(true).setShownLength(1);
+    df = new DefaultFormatter();
+    df.initialize(map.entrySet(), config);
+    answer = df.next();
+    assertEquals("a a:a [] " + timestamp + "\ta", answer);
+
+    // yes timestamp, no max, new DateFormat
+    config.setPrintTimestamps(true).doNotLimitShowLength().setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("YYYY"));
+    df = new DefaultFormatter();
+    df.initialize(map.entrySet(), config);
+    answer = df.next();
+    assertEquals("a ab:abc [] 1970\tabcd", answer);
+
+    // yes timestamp, no max, new DateFormat, different TimeZone
+    config.setPrintTimestamps(true).doNotLimitShowLength().setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("HH", UTC));
+    df = new DefaultFormatter();
+    df.initialize(map.entrySet(), config);
+    answer = df.next();
+    assertEquals("a ab:abc [] 00\tabcd", answer);
+
+    config.setPrintTimestamps(true).doNotLimitShowLength().setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("HH", EST));
+    df = new DefaultFormatter();
+    df.initialize(map.entrySet(), config);
+    answer = df.next();
+    assertEquals("a ab:abc [] 19\tabcd", answer);
   }
 }

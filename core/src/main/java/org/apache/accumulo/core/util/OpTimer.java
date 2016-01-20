@@ -98,8 +98,11 @@ public class OpTimer {
 
   /**
    * Returns the current elapsed time scaled to the provided time unit. This method does not truncate like {@link #now(TimeUnit)} but returns the value as a
-   * double. </p> Note: this method is not included in the hadoop 2.7 org.apache.hadoop.util.StopWatch class. If that class is adopted, then provisions will be
-   * required to replace this method.
+   * double.
+   *
+   * <p>
+   * Note: this method is not included in the hadoop 2.7 org.apache.hadoop.util.StopWatch class. If that class is adopted, then provisions will be required to
+   * replace this method.
    *
    * @param timeUnit
    *          the time unit to scale the elapsed time to.

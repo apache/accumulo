@@ -34,20 +34,20 @@ import org.apache.hadoop.io.Text;
  * This iterator dedupes chunks and sets their visibilities to the combined visibility of the refs columns. For example, it would combine
  *
  * <pre>
- *    row1 refs uid1\0a A&B V0
- *    row1 refs uid2\0b C&D V0
- *    row1 ~chunk 0 A&B V1
- *    row1 ~chunk 0 C&D V1
- *    row1 ~chunk 0 E&F V1
- *    row1 ~chunk 0 G&H V1
+ *    row1 refs uid1\0a A&amp;B V0
+ *    row1 refs uid2\0b C&amp;D V0
+ *    row1 ~chunk 0 A&amp;B V1
+ *    row1 ~chunk 0 C&amp;D V1
+ *    row1 ~chunk 0 E&amp;F V1
+ *    row1 ~chunk 0 G&amp;H V1
  * </pre>
  *
  * into the following
  *
  * <pre>
- *    row1 refs uid1\0a A&B V0
- *    row1 refs uid2\0b C&D V0
- *    row1 ~chunk 0 (A&B)|(C&D) V1
+ *    row1 refs uid1\0a A&amp;B V0
+ *    row1 refs uid2\0b C&amp;D V0
+ *    row1 ~chunk 0 (A&amp;B)|(C&amp;D) V1
  * </pre>
  *
  * {@link VisibilityCombiner} is used to combie the visibilities.

@@ -188,8 +188,8 @@ public class UnsynchronizedBuffer {
      *          byte buffer containing bytes to read
      */
     public Reader(ByteBuffer buffer) {
-      if (buffer.hasArray()) {
-        offset = buffer.arrayOffset();
+      if (buffer.hasArray() && buffer.array().length == buffer.arrayOffset() + buffer.limit()) {
+        offset = buffer.arrayOffset() + buffer.position();
         data = buffer.array();
       } else {
         data = new byte[buffer.remaining()];

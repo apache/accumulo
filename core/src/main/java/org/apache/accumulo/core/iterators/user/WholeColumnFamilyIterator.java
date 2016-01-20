@@ -180,9 +180,9 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
   /**
    *
    * @param currentRow
-   *          All keys & cf have this in their row portion (do not modify!).
+   *          All keys and cf have this in their row portion (do not modify!).
    * @param keys
-   *          One key for each key & cf group in the row, ordered as they are given by the source iterator (do not modify!).
+   *          One key for each key and cf group in the row, ordered as they are given by the source iterator (do not modify!).
    * @param values
    *          One value for each key in keys, ordered to correspond to the ordering in keys (do not modify!).
    * @return true if we want to keep the row, false if we want to skip it

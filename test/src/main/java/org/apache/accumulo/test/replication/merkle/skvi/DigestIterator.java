@@ -33,7 +33,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * {@link SortedKeyValueIterator} which attempts to compute a hash over some range of Key-Value pairs.
- * <P>
+ * <p>
  * For the purposes of constructing a Merkle tree, this class will only generate a meaningful result if the (Batch)Scanner will compute a single digest over a
  * Range. If the (Batch)Scanner stops and restarts in the middle of a session, incorrect values will be returned and the merkle tree will be invalid.
  */

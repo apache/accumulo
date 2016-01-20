@@ -47,8 +47,6 @@ public interface IteratorEnvironment {
    * <p>
    * Since sample data could be created in many different ways, a good practice for an iterator is to verify the sampling configuration is as expected.
    *
-   * <p>
-   *
    * <pre>
    * <code>
    *   class MyIter implements SortedKeyValueIterator&lt;Key,Value&gt; {

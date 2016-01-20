@@ -52,7 +52,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), "3");
+    siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -67,10 +67,19 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   public void reduceSessionIdle() throws Exception {
     InstanceOperations ops = getConnector().instanceOperations();
     sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
-    ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), "3");
+    ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     log.info("Waiting for existing session idle time to expire");
     Thread.sleep(AccumuloConfiguration.getTimeInMillis(sessionIdle));
     log.info("Finished waiting");
+  }
+
+  /**
+   * Returns the max idle time as a string.
+   *
+   * @return new max idle time
+   */
+  protected String getMaxIdleTimeString() {
+    return "3";
   }
 
   @After
@@ -112,7 +121,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   }
 
-  private void verify(Iterator<Entry<Key,Value>> iter, int start, int stop) throws Exception {
+  protected void verify(Iterator<Entry<Key,Value>> iter, int start, int stop) throws Exception {
     for (int i = start; i < stop; i++) {
 
       Text er = new Text(String.format("%08d", i));
