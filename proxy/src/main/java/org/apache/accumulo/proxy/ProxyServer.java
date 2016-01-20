@@ -226,7 +226,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   protected Connector getConnector(ByteBuffer login) throws Exception {
-    String[] pair = new String(login.array(), login.position(), login.remaining(), UTF_8).split(",", 2);
+    String[] pair = ByteBufferUtil.toString(login).split(",", 2);
     if (instance.getInstanceID().equals(pair[0])) {
       Credentials creds = Credentials.deserialize(pair[1]);
       return instance.getConnector(creds.getPrincipal(), creds.getToken());

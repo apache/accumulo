@@ -29,6 +29,7 @@ import java.util.Objects;
 import javax.crypto.SecretKey;
 
 import org.apache.accumulo.core.security.thrift.TAuthenticationKey;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ThriftMessageUtil;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
@@ -124,7 +125,7 @@ public class AuthenticationKey implements Writable {
     ThriftMessageUtil util = new ThriftMessageUtil();
     ByteBuffer serialized = util.serialize(authKey);
     WritableUtils.writeVInt(out, serialized.limit() - serialized.arrayOffset());
-    out.write(serialized.array(), serialized.arrayOffset(), serialized.limit());
+    ByteBufferUtil.write(out, serialized);
   }
 
   @Override

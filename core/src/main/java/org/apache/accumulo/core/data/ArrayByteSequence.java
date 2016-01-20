@@ -21,6 +21,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.util.ByteBufferUtil;
+
 /**
  * An implementation of {@link ByteSequence} that uses a backing byte array.
  */
@@ -88,15 +90,14 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    *          byte buffer
    */
   public ArrayByteSequence(ByteBuffer buffer) {
-    this.length = buffer.remaining();
-
     if (buffer.hasArray()) {
       this.data = buffer.array();
-      this.offset = buffer.position();
+      this.offset = buffer.position() + buffer.arrayOffset();
+      this.length = buffer.remaining();
     } else {
-      this.data = new byte[length];
       this.offset = 0;
-      buffer.get(data);
+      this.data = ByteBufferUtil.toBytes(buffer);
+      this.length = data.length;
     }
   }
 
