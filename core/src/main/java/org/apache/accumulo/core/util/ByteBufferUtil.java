@@ -105,7 +105,7 @@ public class ByteBufferUtil {
     }
   }
 
-  public static ByteArrayInputStream toByteArrayInputStream(ByteBuffer buffer){
+  public static ByteArrayInputStream toByteArrayInputStream(ByteBuffer buffer) {
     if (buffer.hasArray()) {
       return new ByteArrayInputStream(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
     } else {
