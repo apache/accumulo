@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.security.thrift.TAuthenticationTokenIdentifier;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ThriftMessageUtil;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Text;
@@ -131,7 +132,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
       ThriftMessageUtil msgUtil = new ThriftMessageUtil();
       ByteBuffer serialized = msgUtil.serialize(impl);
       out.writeInt(serialized.limit());
-      out.write(serialized.array(), serialized.arrayOffset(), serialized.limit());
+      ByteBufferUtil.write(out, serialized);
     } else {
       out.writeInt(0);
     }

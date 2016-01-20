@@ -69,14 +69,6 @@ public class ThriftMessageUtil {
   }
 
   /**
-   * @see #deserialize(byte[], int, int, TBase)
-   */
-  public <T extends TBase<?,?>> T deserialize(ByteBuffer serialized, T instance) throws IOException {
-    checkNotNull(serialized);
-    return deserialize(serialized.array(), serialized.arrayOffset(), serialized.limit(), instance);
-  }
-
-  /**
    * Assumes the entire contents of the byte array compose the serialized {@code instance}
    *
    * @see #deserialize(byte[], int, int, TBase)

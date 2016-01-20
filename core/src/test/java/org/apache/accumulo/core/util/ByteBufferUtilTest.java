@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.core.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +43,17 @@ public class ByteBufferUtilTest {
     Assert.assertEquals(expected, new String(bal.get(0), Charsets.UTF_8));
 
     Assert.assertEquals(new ArrayByteSequence(expected), new ArrayByteSequence(bb));
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    try {
+      ByteBufferUtil.write(dos, bb);
+      dos.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    Assert.assertEquals(expected, new String(baos.toByteArray(), Charsets.UTF_8));
   }
 
   @Test

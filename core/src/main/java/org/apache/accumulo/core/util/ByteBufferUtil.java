@@ -18,6 +18,8 @@ package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.DataOutput;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,5 +94,14 @@ public class ByteBufferUtil {
     } else {
       return ByteBuffer.wrap(bs.toArray());
     }
+  }
+
+  public static void write(DataOutput out, ByteBuffer buffer) throws IOException {
+    if (buffer.hasArray()) {
+      out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
+    } else {
+      out.write(toBytes(buffer));
+    }
+
   }
 }

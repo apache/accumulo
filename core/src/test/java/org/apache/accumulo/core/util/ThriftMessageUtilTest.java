@@ -37,14 +37,6 @@ public class ThriftMessageUtilTest {
   }
 
   @Test
-  public void testSerialization() throws IOException {
-    ByteBuffer buff = util.serialize(msg);
-    TAuthenticationTokenIdentifier bbMsg = new TAuthenticationTokenIdentifier();
-    util.deserialize(buff, bbMsg);
-    assertEquals(msg, bbMsg);
-  }
-
-  @Test
   public void testSerializationAsByteArray() throws IOException {
     ByteBuffer buff = util.serialize(msg);
     TAuthenticationTokenIdentifier copy = new TAuthenticationTokenIdentifier();
