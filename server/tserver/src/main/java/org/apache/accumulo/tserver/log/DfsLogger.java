@@ -645,7 +645,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.SYNC);
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.LOG);
   }
 
   public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
@@ -654,7 +654,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.SYNC);
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.LOG);
   }
 
   public String getLogger() {

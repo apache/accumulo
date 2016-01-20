@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,8 +60,6 @@ import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Central logging facility for the TServerInfo.
@@ -526,8 +526,7 @@ public class TabletServerLogger {
     int seq = write(commitSession, true, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName).await();
-        return null;
+        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName);
       }
     });
 
@@ -540,8 +539,7 @@ public class TabletServerLogger {
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName).await();
-        return null;
+        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName);
       }
     });
     return seq;
