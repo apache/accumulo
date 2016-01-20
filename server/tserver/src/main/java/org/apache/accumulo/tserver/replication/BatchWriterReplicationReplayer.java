@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver.replication;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -64,7 +64,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
     long mutationsApplied = 0l;
     try {
       for (ByteBuffer edit : data.getEdits()) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(edit.array()));
+        DataInputStream dis = new DataInputStream(ByteBufferUtil.toByteArrayInputStream(edit));
         try {
           key.readFields(dis);
           // TODO this is brittle because AccumuloReplicaSystem isn't actually calling LogFileValue.write, but we're expecting

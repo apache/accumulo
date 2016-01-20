@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.proxy;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -126,7 +127,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Call every method on the proxy and try to verify that it works.
@@ -1188,7 +1188,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     if (!isKerberosEnabled()) {
       password = s2bb("");
       client.changeLocalUserPassword(creds, user, password);
-      assertTrue(client.authenticateUser(creds, user, s2pp(new String(password.array(), password.position(), password.limit(), UTF_8))));
+      assertTrue(client.authenticateUser(creds, user, s2pp(ByteBufferUtil.toString(password))));
     }
 
     if (isKerberosEnabled()) {
@@ -1207,7 +1207,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       }
     } else {
       // check login with new password
-      client.login(user, s2pp(new String(password.array(), password.position(), password.limit(), UTF_8)));
+      client.login(user, s2pp(ByteBufferUtil.toString(password)));
     }
   }
 
@@ -1242,7 +1242,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       userName = getUniqueNames(1)[0];
       // create a user
       client.createLocalUser(creds, userName, password);
-      user = client.login(userName, s2pp(new String(password.array(), password.position(), password.limit(), UTF_8)));
+      user = client.login(userName, s2pp(ByteBufferUtil.toString(password)));
     }
 
     // check permission failure
