@@ -206,7 +206,7 @@ createReleaseCandidate() {
   extraReleaseArgs="-DextraReleaseArgs='${extraReleaseArgs[*]}'"
 
   local ver
-  ver=$(xmllint --xpath '/*[local-name()="project"]/*[local-name()="version"]/text()' pom.xml)
+  ver=$(xmllint --shell pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="version"]/text()' | grep content= | cut -f2 -d=)
   ver=${ver%%-SNAPSHOT}
   echo "Building release candidate for version: $(green "$ver")"
 
