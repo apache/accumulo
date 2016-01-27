@@ -128,6 +128,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tserver.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.Compactor.CompactionEnv;
+import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer.TservConstraintEnv;
@@ -1597,6 +1598,23 @@ public class Tablet {
     void receive(List<KVEntry> matches) throws IOException;
   }
 
+  public void checkConditions(ConditionChecker checker, Authorizations authorizations, AtomicBoolean iFlag) throws IOException {
+
+    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, iFlag);
+
+    try {
+      SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
+      checker.check(iter);
+    } catch (IOException ioe) {
+      dataSource.close(true);
+      throw ioe;
+    } finally {
+      // code in finally block because always want
+      // to return mapfiles, even when exception is thrown
+      dataSource.close(false);
+    }
+  }
+
   class LookupResult {
     List<Range> unfinishedRanges = new ArrayList<Range>();
     long bytesAdded = 0;
@@ -1929,18 +1947,29 @@ public class Tablet {
     private StatsIterator statsIterator;
 
     ScanOptions options;
+    private final boolean loadIters;
 
     ScanDataSource(Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
         AtomicBoolean interruptFlag) {
       expectedDeletionCount = dataSourceDeletions.get();
       this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false);
       this.interruptFlag = interruptFlag;
+      this.loadIters = true;
     }
 
     ScanDataSource(ScanOptions options) {
       expectedDeletionCount = dataSourceDeletions.get();
       this.options = options;
       this.interruptFlag = options.interruptFlag;
+      this.loadIters = true;
+    }
+
+    ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, AtomicBoolean iFlag) {
+      expectedDeletionCount = dataSourceDeletions.get();
+      Set<Column> emptycols = Collections.emptySet();
+      this.options = new ScanOptions(-1, authorizations, defaultLabels, emptycols, null, null, iFlag, false);
+      this.interruptFlag = iFlag;
+      this.loadIters = false;
     }
 
     @Override
@@ -2035,8 +2064,12 @@ public class Tablet {
 
       VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.authorizations, options.defaultLabels);
 
-      return iterEnv.getTopLevelIterator(IteratorUtil
-          .loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf, options.ssiList, options.ssio, iterEnv));
+      if (!loadIters) {
+        return visFilter;
+      } else {
+        return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf, options.ssiList, options.ssio,
+            iterEnv));
+      }
     }
 
     private void close(boolean sawErrors) {

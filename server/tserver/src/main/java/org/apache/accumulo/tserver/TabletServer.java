@@ -67,7 +67,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
-import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
@@ -99,7 +98,6 @@ import org.apache.accumulo.core.data.thrift.ScanResult;
 import org.apache.accumulo.core.data.thrift.TCMResult;
 import org.apache.accumulo.core.data.thrift.TCMStatus;
 import org.apache.accumulo.core.data.thrift.TColumn;
-import org.apache.accumulo.core.data.thrift.TCondition;
 import org.apache.accumulo.core.data.thrift.TConditionalMutation;
 import org.apache.accumulo.core.data.thrift.TConditionalSession;
 import org.apache.accumulo.core.data.thrift.TKey;
@@ -199,6 +197,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.tserver.Compactor.CompactionInfo;
+import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
 import org.apache.accumulo.tserver.Tablet.CommitSession;
 import org.apache.accumulo.tserver.Tablet.KVEntry;
@@ -1930,79 +1929,57 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         List<String> symbols) throws IOException {
       Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
 
-      CompressedIterators compressedIters = new CompressedIterators(symbols);
+      final CompressedIterators compressedIters = new CompressedIterators(symbols);
+      ConditionCheckerContext checkerContext = new ConditionCheckerContext(compressedIters, ServerConfiguration.getTableConfiguration(instance, cs.tableId));
 
       while (iter.hasNext()) {
-        Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
-        Tablet tablet = onlineTablets.get(entry.getKey());
+        final Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
+        final Tablet tablet = onlineTablets.get(entry.getKey());
 
         if (tablet == null || tablet.isClosed()) {
           for (ServerConditionalMutation scm : entry.getValue())
             results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           iter.remove();
         } else {
-          List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
+          final List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
+          final List<TCMResult> resultsSubList = results.subList(results.size(), results.size());
 
-          for (ServerConditionalMutation scm : entry.getValue()) {
-            if (checkCondition(results, cs, compressedIters, tablet, scm))
-              okMutations.add(scm);
+          ConditionChecker checker = checkerContext.newChecker(entry.getValue(), okMutations, resultsSubList);
+          try {
+            tablet.checkConditions(checker, cs.auths, cs.interruptFlag);
+
+            if (okMutations.size() > 0) {
+              entry.setValue(okMutations);
+            } else {
+              iter.remove();
+            }
+          } catch (TabletClosedException e) {
+            // clear anything added while checking conditions.
+            resultsSubList.clear();
+
+            for (ServerConditionalMutation scm : entry.getValue()) {
+              results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+            }
+            iter.remove();
+          } catch (IterationInterruptedException e) {
+            // clear anything added while checking conditions.
+            resultsSubList.clear();
+
+            for (ServerConditionalMutation scm : entry.getValue()) {
+              results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+            }
+            iter.remove();
+          } catch (TooManyFilesException e) {
+            // clear anything added while checking conditions.
+            resultsSubList.clear();
+
+            for (ServerConditionalMutation scm : entry.getValue()) {
+              results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+            }
+            iter.remove();
           }
-
-          entry.setValue(okMutations);
-        }
-
-      }
-    }
-
-    boolean checkCondition(ArrayList<TCMResult> results, ConditionalSession cs, CompressedIterators compressedIters, Tablet tablet,
-        ServerConditionalMutation scm) throws IOException {
-      boolean add = true;
-
-      Set<Column> emptyCols = Collections.emptySet();
-
-      for (TCondition tc : scm.getConditions()) {
-
-        Range range;
-        if (tc.hasTimestamp)
-          range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()), tc.getTs());
-        else
-          range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()));
-
-        IterConfig ic = compressedIters.decompress(tc.iterators);
-
-        Scanner scanner = tablet.createScanner(range, 1, emptyCols, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag);
-
-        try {
-          ScanBatch batch = scanner.read();
-
-          Value val = null;
-
-          for (KVEntry entry2 : batch.results) {
-            val = entry2.getValue();
-            break;
-          }
-
-          if ((val == null ^ tc.getVal() == null) || (val != null && !Arrays.equals(tc.getVal(), val.get()))) {
-            results.add(new TCMResult(scm.getID(), TCMStatus.REJECTED));
-            add = false;
-            break;
-          }
-
-        } catch (TabletClosedException e) {
-          results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
-          add = false;
-          break;
-        } catch (IterationInterruptedException iie) {
-          results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
-          add = false;
-          break;
-        } catch (TooManyFilesException tmfe) {
-          results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
-          add = false;
-          break;
         }
       }
-      return add;
     }
 
     private void writeConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession sess) {

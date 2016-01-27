@@ -19,9 +19,11 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -63,7 +65,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -90,6 +96,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 
 /**
@@ -501,7 +508,135 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     Assert.assertEquals(expected, actual);
 
-    // TODO test w/ table that has iterators configured
+    cw.close();
+  }
+
+  public static class AddingIterator extends WrappingIterator {
+    long amount = 0;
+
+    @Override
+    public Value getTopValue() {
+      Value val = super.getTopValue();
+      long l = Long.parseLong(val.toString());
+      String newVal = (l + amount) + "";
+      return new Value(newVal.getBytes(Charsets.UTF_8));
+    }
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+      this.setSource(source);
+      amount = Long.parseLong(options.get("amount"));
+    }
+  }
+
+  public static class MultiplyingIterator extends WrappingIterator {
+    long amount = 0;
+
+    @Override
+    public Value getTopValue() {
+      Value val = super.getTopValue();
+      long l = Long.parseLong(val.toString());
+      String newVal = l * amount + "";
+      return new Value(newVal.getBytes(Charsets.UTF_8));
+    }
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+      this.setSource(source);
+      amount = Long.parseLong(options.get("amount"));
+    }
+  }
+
+  @Test
+  public void testTableAndConditionIterators() throws Exception {
+
+    // test w/ table that has iterators configured
+    Connector conn = getConnector();
+    String tableName = getUniqueNames(1)[0];
+
+    IteratorSetting aiConfig1 = new IteratorSetting(30, "AI1", AddingIterator.class);
+    aiConfig1.addOption("amount", "2");
+    IteratorSetting aiConfig2 = new IteratorSetting(35, "MI1", MultiplyingIterator.class);
+    aiConfig2.addOption("amount", "3");
+    IteratorSetting aiConfig3 = new IteratorSetting(40, "AI2", AddingIterator.class);
+    aiConfig3.addOption("amount", "5");
+
+    conn.tableOperations().create(tableName);
+
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+
+    Mutation m = new Mutation("ACCUMULO-1000");
+    m.put("count", "comments", "6");
+    bw.addMutation(m);
+
+    m = new Mutation("ACCUMULO-1001");
+    m.put("count", "comments", "7");
+    bw.addMutation(m);
+
+    m = new Mutation("ACCUMULO-1002");
+    m.put("count", "comments", "8");
+    bw.addMutation(m);
+
+    bw.close();
+
+    conn.tableOperations().attachIterator(tableName, aiConfig1, EnumSet.of(IteratorScope.scan));
+    conn.tableOperations().offline(tableName, true);
+    conn.tableOperations().online(tableName, true);
+
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
+
+    ConditionalMutation cm6 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("8"));
+    cm6.put("count", "comments", "7");
+    Assert.assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
+
+    Scanner scanner = conn.createScanner(tableName, new Authorizations());
+    scanner.setRange(new Range("ACCUMULO-1000"));
+    scanner.fetchColumn(new Text("count"), new Text("comments"));
+
+    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("9", entry.getValue().toString());
+
+    ConditionalMutation cm7 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(aiConfig2).setValue("27"));
+    cm7.put("count", "comments", "8");
+    Assert.assertEquals(Status.ACCEPTED, cw.write(cm7).getStatus());
+
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("10", entry.getValue().toString());
+
+    ConditionalMutation cm8 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(aiConfig2, aiConfig3).setValue("35"));
+    cm8.put("count", "comments", "9");
+    Assert.assertEquals(Status.ACCEPTED, cw.write(cm8).getStatus());
+
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("11", entry.getValue().toString());
+
+    ConditionalMutation cm3 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(aiConfig2).setValue("33"));
+    cm3.put("count", "comments", "3");
+
+    ConditionalMutation cm4 = new ConditionalMutation("ACCUMULO-1001", new Condition("count", "comments").setIterators(aiConfig3).setValue("14"));
+    cm4.put("count", "comments", "3");
+
+    ConditionalMutation cm5 = new ConditionalMutation("ACCUMULO-1002", new Condition("count", "comments").setIterators(aiConfig3).setValue("10"));
+    cm5.put("count", "comments", "3");
+
+    Iterator<Result> results = cw.write(Arrays.asList(cm3, cm4, cm5).iterator());
+    Map<String,Status> actual = new HashMap<String,Status>();
+
+    while (results.hasNext()) {
+      Result result = results.next();
+      String k = new String(result.getMutation().getRow());
+      Assert.assertFalse("Did not expect to see multiple resultus for the row: " + k, actual.containsKey(k));
+      actual.put(k, result.getStatus());
+    }
+
+    cw.close();
+
+    Map<String,Status> expected = new HashMap<String,Status>();
+    expected.put("ACCUMULO-1000", Status.ACCEPTED);
+    expected.put("ACCUMULO-1001", Status.ACCEPTED);
+    expected.put("ACCUMULO-1002", Status.REJECTED);
+
+    Assert.assertEquals(expected, actual);
 
     cw.close();
   }
