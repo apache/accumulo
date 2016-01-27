@@ -27,7 +27,11 @@ bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
-. ${bin}/mapred-setup.sh
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
+. $ACCUMULO_CONF_DIR/accumulo-env.sh
+
+SERVER_LIBJAR="$ACCUMULO_HOME/lib/accumulo-test.jar"
 
 $ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousMoru -libjars "$SERVER_LIBJAR" -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --maxColF $MAX_CF --maxColQ $MAX_CQ --batchMemory $MAX_MEM --batchLatency $MAX_LATENCY --batchThreads $NUM_THREADS --maxMappers $VERIFY_MAX_MAPS
 
