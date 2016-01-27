@@ -27,7 +27,11 @@ bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
-. "${bin}/mapred-setup.sh"
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
+. $ACCUMULO_CONF_DIR/accumulo-env.sh
+
+SERVER_LIBJAR="$ACCUMULO_HOME/lib/accumulo-test.jar"
 
 AUTH_OPT="";
 [[ -n $VERIFY_AUTHS ]] && AUTH_OPT="--auths $VERIFY_AUTHS"
