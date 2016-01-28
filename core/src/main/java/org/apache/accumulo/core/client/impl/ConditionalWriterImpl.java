@@ -21,7 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -74,6 +76,7 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
@@ -383,7 +386,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads());
+    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(), new NamingThreadFactory(this.getClass().getSimpleName()));
     this.locator = TabletLocator.getLocator(context, new Text(tableId));
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;
@@ -753,10 +756,47 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
+  static class ConditionComparator implements Comparator<Condition> {
+
+    private static final Long MAX = Long.valueOf(Long.MAX_VALUE);
+
+    @Override
+    public int compare(Condition c1, Condition c2) {
+      int comp = c1.getFamily().compareTo(c2.getFamily());
+      if (comp == 0) {
+        comp = c1.getQualifier().compareTo(c2.getQualifier());
+        if (comp == 0) {
+          comp = c1.getVisibility().compareTo(c2.getVisibility());
+          if (comp == 0) {
+            Long l1 = c1.getTimestamp();
+            Long l2 = c2.getTimestamp();
+            if (l1 == null) {
+              l1 = MAX;
+            }
+
+            if (l2 == null) {
+              l2 = MAX;
+            }
+
+            comp = l2.compareTo(l1);
+          }
+        }
+      }
+
+      return comp;
+    }
+  }
+
+  private static final ConditionComparator CONDITION_COMPARATOR = new ConditionComparator();
+
   private List<TCondition> convertConditions(ConditionalMutation cm, CompressedIterators compressedIters) {
     List<TCondition> conditions = new ArrayList<TCondition>(cm.getConditions().size());
 
-    for (Condition cond : cm.getConditions()) {
+    // sort conditions inorder to get better lookup performance. Sort on client side so tserver does not have to do it.
+    Condition[] ca = cm.getConditions().toArray(new Condition[cm.getConditions().size()]);
+    Arrays.sort(ca, CONDITION_COMPARATOR);
+
+    for (Condition cond : ca) {
       long ts = 0;
       boolean hasTs = false;
 

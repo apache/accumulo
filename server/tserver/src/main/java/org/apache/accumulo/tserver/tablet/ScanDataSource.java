@@ -19,9 +19,11 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.Column;
@@ -63,6 +65,9 @@ class ScanDataSource implements DataSource {
   private StatsIterator statsIterator;
 
   private final ScanOptions options;
+  private final boolean loadIters;
+
+  private static final Set<Column> EMPTY_COLS = Collections.emptySet();
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag) {
@@ -70,6 +75,7 @@ class ScanDataSource implements DataSource {
     expectedDeletionCount = tablet.getDataSourceDeletions();
     this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false);
     this.interruptFlag = interruptFlag;
+    this.loadIters = true;
   }
 
   ScanDataSource(Tablet tablet, ScanOptions options) {
@@ -77,6 +83,15 @@ class ScanDataSource implements DataSource {
     expectedDeletionCount = tablet.getDataSourceDeletions();
     this.options = options;
     this.interruptFlag = options.getInterruptFlag();
+    this.loadIters = true;
+  }
+
+  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, AtomicBoolean iFlag) {
+    this.tablet = tablet;
+    expectedDeletionCount = tablet.getDataSourceDeletions();
+    this.options = new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag, false);
+    this.interruptFlag = iFlag;
+    this.loadIters = false;
   }
 
   @Override
@@ -172,8 +187,12 @@ class ScanDataSource implements DataSource {
 
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
 
-    return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
-        options.getSsiList(), options.getSsio(), iterEnv));
+    if (!loadIters) {
+      return visFilter;
+    } else {
+      return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
+          options.getSsiList(), options.getSsio(), iterEnv));
+    }
   }
 
   void close(boolean sawErrors) {
