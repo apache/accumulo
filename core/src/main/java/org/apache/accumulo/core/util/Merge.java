@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import static com.google.common.base.Charsets.UTF_8;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -238,10 +237,7 @@ public class Merge {
           Entry<Key,Value> entry = iterator.next();
           Key key = entry.getKey();
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            String[] sizeEntries = new String(entry.getValue().get(), UTF_8).split(",");
-            if (sizeEntries.length == 2) {
-              tabletSize += Long.parseLong(sizeEntries[0]);
-            }
+            tabletSize += new DataFileValue(entry.getValue().get()).getSize();
           } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
             KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
             return new Size(extent, tabletSize);

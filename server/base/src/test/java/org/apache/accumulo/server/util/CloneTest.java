@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashSet;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -32,13 +33,16 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class CloneTest extends TestCase {
+public class CloneTest {
 
+  @Test
   public void testNoFiles() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
@@ -67,6 +71,7 @@ public class CloneTest extends TestCase {
 
   }
 
+  @Test
   public void testFilesChange() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
@@ -76,7 +81,7 @@ public class CloneTest extends TestCase {
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf", "1,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf", new DataFileValue(1, 200).encodeAsString());
 
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
@@ -90,7 +95,7 @@ public class CloneTest extends TestCase {
 
     Mutation mut2 = new Mutation(ke.getMetadataEntry());
     mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
-    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf", "2,300");
+    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf", new DataFileValue(2, 300).encodeAsString());
 
     bw1.addMutation(mut2);
     bw1.flush();
@@ -119,6 +124,7 @@ public class CloneTest extends TestCase {
   }
 
   // test split where files of children are the same
+  @Test
   public void testSplit1() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
@@ -161,6 +167,7 @@ public class CloneTest extends TestCase {
   }
 
   // test split where files of children differ... like majc and split occurred
+  @Test
   public void testSplit2() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
@@ -226,12 +233,13 @@ public class CloneTest extends TestCase {
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), file, "10,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), file, new DataFileValue(10, 200).encodeAsString());
 
     return mut;
   }
 
   // test two tablets splitting into four
+  @Test
   public void testSplit3() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
@@ -278,6 +286,7 @@ public class CloneTest extends TestCase {
   }
 
   // test cloned marker
+  @Test
   public void testClonedMarker() throws Exception {
 
     MockInstance mi = new MockInstance();
@@ -343,6 +352,7 @@ public class CloneTest extends TestCase {
   }
 
   // test two tablets splitting into four
+  @Test
   public void testMerge() throws Exception {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
@@ -360,7 +370,7 @@ public class CloneTest extends TestCase {
 
     bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
     Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
-    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1", "10,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1", new DataFileValue(10, 200).encodeAsString());
     bw1.addMutation(mut);
 
     bw1.flush();

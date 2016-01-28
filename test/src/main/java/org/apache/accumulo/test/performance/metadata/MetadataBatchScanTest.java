@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -108,7 +109,7 @@ public class MetadataBatchScanTest {
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
 
         for (int i = 0; i < 5; i++) {
-          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(UTF_8)));
+          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new DataFileValue(10000, 1000000).encodeAsValue());
         }
 
         bw.addMutation(mut);
