@@ -24,15 +24,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.ArrayByteSequence;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 
 public class CompressedIterators {
   private Map<String,Integer> symbolMap;
   private List<String> symbolTable;
-  private Map<ByteSequence,IterConfig> cache;
 
   public static class IterConfig {
     public List<IterInfo> ssiList = new ArrayList<IterInfo>();
@@ -46,7 +43,6 @@ public class CompressedIterators {
 
   public CompressedIterators(List<String> symbols) {
     this.symbolTable = symbols;
-    this.cache = new HashMap<ByteSequence,IterConfig>();
   }
 
   private int getSymbolID(String symbol) {
@@ -85,14 +81,7 @@ public class CompressedIterators {
   }
 
   public IterConfig decompress(ByteBuffer iterators) {
-
-    ByteSequence iterKey = new ArrayByteSequence(iterators);
-    IterConfig config = cache.get(iterKey);
-    if (config != null) {
-      return config;
-    }
-
-    config = new IterConfig();
+    IterConfig config = new IterConfig();
 
     UnsynchronizedBuffer.Reader in = new UnsynchronizedBuffer.Reader(iterators);
 
@@ -120,7 +109,6 @@ public class CompressedIterators {
 
     }
 
-    cache.put(iterKey, config);
     return config;
   }
 
