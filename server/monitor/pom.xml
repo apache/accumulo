@@ -134,6 +134,9 @@
           <configuration>
             <excludes>
               <exclude>src/main/resources/web/flot/**/*.js</exclude>
+              <exclude>nbproject/**</exclude>
+              <exclude>nb-configuration.xml</exclude>
+              <exclude>nbactions.xml</exclude>
             </excludes>
           </configuration>
         </plugin>
