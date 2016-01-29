@@ -23,7 +23,9 @@
 /.pydevproject
 /.idea
 /*.iml
+/nbproject/
+/nbactions.xml
+/nb-configuration.xml
 
 # python ignores
 *.pyc
-/bin/

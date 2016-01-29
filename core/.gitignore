@@ -23,5 +23,6 @@
 /.pydevproject
 /.idea
 /*.iml
-/target/
-/bin/
+/nbproject/
+/nbactions.xml
+/nb-configuration.xml

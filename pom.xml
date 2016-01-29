@@ -785,6 +785,18 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <version>0.10</version>
+          <configuration>
+            <excludes>
+              <exclude>nbproject/**</exclude>
+              <exclude>nb-configuration.xml</exclude>
+              <exclude>nbactions.xml</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
