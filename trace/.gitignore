@@ -24,3 +24,6 @@
 /.idea
 /*.iml
 /bin/
+/nbproject/
+/nbactions.xml
+/nb-configuration.xml

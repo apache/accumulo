@@ -117,6 +117,9 @@
             <excludes>
               <exclude>src/test/resources/*.walog</exclude>
               <exclude>src/test/resources/walog-from-14/*</exclude>
+              <exclude>nbproject/**</exclude>
+              <exclude>nb-configuration.xml</exclude>
+              <exclude>nbactions.xml</exclude>
             </excludes>
           </configuration>
         </plugin>
