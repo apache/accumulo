@@ -209,7 +209,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     Process gc = cluster.exec(SimpleGarbageCollector.class);
     try {
       String output = "";
-      while (!output.contains("Ingoring invalid deletion candidate")) {
+      while (!output.contains("Ignoring invalid deletion candidate")) {
         UtilWaitThread.sleep(250);
         try {
           output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
