@@ -160,6 +160,9 @@
               <exclude>src/test/resources/accumulo.jceks</exclude>
               <exclude>src/test/resources/empty.jceks</exclude>
               <exclude>src/test/resources/passwords.jceks</exclude>
+              <exclude>nbproject/**</exclude>
+              <exclude>nb-configuration.xml</exclude>
+              <exclude>nbactions.xml</exclude>
             </excludes>
           </configuration>
         </plugin>

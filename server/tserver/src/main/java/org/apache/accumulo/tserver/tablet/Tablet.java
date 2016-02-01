@@ -114,6 +114,7 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TConstraintViolationException;
@@ -629,6 +630,23 @@ public class Tablet implements TabletCommitter {
     if (range.getEndKey() == null || key.compareTo(range.getEndKey()) < 0) {
       Range nlur = new Range(new Key(key), inclusiveStartKey, range.getEndKey(), range.isEndKeyInclusive());
       lookupResult.unfinishedRanges.add(nlur);
+    }
+  }
+
+  public void checkConditions(ConditionChecker checker, Authorizations authorizations, AtomicBoolean iFlag) throws IOException {
+
+    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel, iFlag);
+
+    try {
+      SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
+      checker.check(iter);
+    } catch (IOException ioe) {
+      dataSource.close(true);
+      throw ioe;
+    } finally {
+      // code in finally block because always want
+      // to return mapfiles, even when exception is thrown
+      dataSource.close(false);
     }
   }
 

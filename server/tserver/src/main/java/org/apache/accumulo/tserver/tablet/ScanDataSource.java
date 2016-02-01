@@ -19,9 +19,11 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.admin.SamplerConfiguration;
@@ -67,6 +69,9 @@ class ScanDataSource implements DataSource {
   private StatsIterator statsIterator;
 
   private final ScanOptions options;
+  private final boolean loadIters;
+
+  private static final Set<Column> EMPTY_COLS = Collections.emptySet();
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
@@ -74,6 +79,7 @@ class ScanDataSource implements DataSource {
     expectedDeletionCount = tablet.getDataSourceDeletions();
     this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, samplerConfig, batchTimeOut, context);
     this.interruptFlag = interruptFlag;
+    this.loadIters = true;
   }
 
   ScanDataSource(Tablet tablet, ScanOptions options) {
@@ -81,6 +87,15 @@ class ScanDataSource implements DataSource {
     expectedDeletionCount = tablet.getDataSourceDeletions();
     this.options = options;
     this.interruptFlag = options.getInterruptFlag();
+    this.loadIters = true;
+  }
+
+  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, AtomicBoolean iFlag) {
+    this.tablet = tablet;
+    expectedDeletionCount = tablet.getDataSourceDeletions();
+    this.options = new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag, false, null, -1, null);
+    this.interruptFlag = iFlag;
+    this.loadIters = false;
   }
 
   @Override
@@ -178,7 +193,9 @@ class ScanDataSource implements DataSource {
 
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
 
-    if (null == options.getClassLoaderContext()) {
+    if (!loadIters) {
+      return visFilter;
+    } else if (null == options.getClassLoaderContext()) {
       return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
           options.getSsiList(), options.getSsio(), iterEnv));
     } else {
