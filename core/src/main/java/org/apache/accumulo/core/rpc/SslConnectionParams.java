@@ -209,12 +209,24 @@ public class SslConnectionParams {
     return trustStoreType;
   }
 
+  // Work around THRIFT-3450 ... fixed with b9641e094...
+  static class TSSLTransportParametersHack extends TSSLTransportParameters {
+    TSSLTransportParametersHack(String clientProtocol) {
+      super(clientProtocol, new String[] {});
+      this.cipherSuites = null;
+    }
+  }
+
   public TSSLTransportParameters getTTransportParams() {
     if (useJsse)
       throw new IllegalStateException("Cannot get TTransportParams for JSEE configuration.");
 
-    // Null cipherSuites is implicitly handled
-    TSSLTransportParameters params = new TSSLTransportParameters(clientProtocol, cipherSuites);
+    TSSLTransportParameters params;
+    if (cipherSuites != null) {
+      params = new TSSLTransportParameters(clientProtocol, cipherSuites);
+    } else {
+      params = new TSSLTransportParametersHack(clientProtocol);
+    }
 
     params.requireClientAuth(clientAuth);
     if (keyStoreSet) {
