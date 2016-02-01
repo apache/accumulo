@@ -218,7 +218,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     Process gc = cluster.exec(SimpleGarbageCollector.class);
     try {
       String output = "";
-      while (!output.contains("Ingoring invalid deletion candidate")) {
+      while (!output.contains("Ignoring invalid deletion candidate")) {
         sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
         try {
           output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
