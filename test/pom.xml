@@ -373,7 +373,6 @@
                   <exclude>com.google.auto</exclude>
                   <exclude>javax.servlet:servlet-api</exclude>
                   <exclude>org.apache.accumulo:accumulo-native</exclude>
-                  <exclude>org.easymock</exclude>
                   <exclude>org.slf4j:slf4j-log4j12</exclude>
                 </excludes>
               </artifactSet>
