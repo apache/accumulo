@@ -103,7 +103,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         test = Class.forName(className);
       } catch (ClassNotFoundException e) {
         log.debug("Error finding class {}", className, e);
-        context.getCounter(TestCounts.ERROR);
+        context.getCounter(TestCounts.ERROR).increment(1);
         context.write(ERROR, new Text(e.toString()));
         return;
       }
@@ -136,11 +136,11 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
         Result result = core.run(test);
         if (result.wasSuccessful()) {
           log.info("{} was successful", className);
-          context.getCounter(TestCounts.PASS);
+          context.getCounter(TestCounts.PASS).increment(1);
           context.write(PASS, value);
         } else {
           log.info("{} failed", className);
-          context.getCounter(TestCounts.FAIL);
+          context.getCounter(TestCounts.FAIL).increment(1);
           context.write(FAIL, new Text(className + "(" + StringUtils.join(failures, ", ") + ")"));
         }
       } catch (Exception e) {
