@@ -180,6 +180,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
+      conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }

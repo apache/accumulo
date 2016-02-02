@@ -260,6 +260,7 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
 
     public static int main(String... args) throws Exception {
       Configuration conf = new Configuration();
+      conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       return ToolRunner.run(conf, new CIFTester(), args);
     }
