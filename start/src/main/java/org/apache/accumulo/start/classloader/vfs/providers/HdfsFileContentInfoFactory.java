@@ -28,8 +28,9 @@ import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
  * @since 2.1
  */
 public class HdfsFileContentInfoFactory implements FileContentInfoFactory {
+  private static final java.nio.charset.Charset UTF_8 = java.nio.charset.Charset.forName("UTF-8");
   private static final String CONTENT = "text/plain";
-  private static final String ENCODING = "UTF-8";
+  private static final String ENCODING = UTF_8.name();
 
   /**
    * Creates a FileContentInfo for a the given FileContent.

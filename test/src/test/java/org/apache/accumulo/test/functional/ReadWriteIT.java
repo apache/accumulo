@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -71,8 +72,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class ReadWriteIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(ReadWriteIT.class);
@@ -187,8 +186,8 @@ public class ReadWriteIT extends AccumuloClusterIT {
         try {
           return control.exec(
               TestMultiTableIngest.class,
-              args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", new String(((PasswordToken) getToken()).getPassword(),
-                  Charsets.UTF_8), "--tablePrefix", prefix));
+              args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", new String(((PasswordToken) getToken()).getPassword(), UTF_8),
+                  "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;
@@ -202,7 +201,7 @@ public class ReadWriteIT extends AccumuloClusterIT {
           return control.exec(
               TestMultiTableIngest.class,
               args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", new String(
-                  ((PasswordToken) getToken()).getPassword(), Charsets.UTF_8), "--tablePrefix", prefix));
+                  ((PasswordToken) getToken()).getPassword(), UTF_8), "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;

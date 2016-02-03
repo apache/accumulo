@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.test;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -96,7 +97,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 
 /**
@@ -519,7 +519,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = (l + amount) + "";
-      return new Value(newVal.getBytes(Charsets.UTF_8));
+      return new Value(newVal.getBytes(UTF_8));
     }
 
     @Override
@@ -537,7 +537,7 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = l * amount + "";
-      return new Value(newVal.getBytes(Charsets.UTF_8));
+      return new Value(newVal.getBytes(UTF_8));
     }
 
     @Override

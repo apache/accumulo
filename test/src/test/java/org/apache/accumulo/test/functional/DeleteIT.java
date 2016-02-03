@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -28,8 +29,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
-
-import com.google.common.base.Charsets;
 
 public class DeleteIT extends AccumuloClusterIT {
 
@@ -44,7 +43,7 @@ public class DeleteIT extends AccumuloClusterIT {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     PasswordToken token = (PasswordToken) getToken();
-    deleteTest(c, getCluster(), new String(token.getPassword(), Charsets.UTF_8), tableName);
+    deleteTest(c, getCluster(), new String(token.getPassword(), UTF_8), tableName);
     try {
       getCluster().getClusterControl().adminStopAll();
     } finally {

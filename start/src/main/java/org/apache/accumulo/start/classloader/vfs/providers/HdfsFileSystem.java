@@ -41,6 +41,7 @@ import org.apache.hadoop.fs.Path;
  * @since 2.1
  */
 public class HdfsFileSystem extends AbstractFileSystem {
+  private static final java.nio.charset.Charset UTF_8 = java.nio.charset.Charset.forName("UTF-8");
   private static final Log log = LogFactory.getLog(HdfsFileSystem.class);
 
   private FileSystem fs;
@@ -111,7 +112,7 @@ public class HdfsFileSystem extends AbstractFileSystem {
     if (null == file) {
       String path = null;
       try {
-        path = URLDecoder.decode(name.getPath(), "UTF-8");
+        path = URLDecoder.decode(name.getPath(), UTF_8.name());
       } catch (final UnsupportedEncodingException e) {
         path = name.getPath();
       }

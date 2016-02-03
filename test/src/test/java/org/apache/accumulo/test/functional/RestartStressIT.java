@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
@@ -43,8 +44,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class RestartStressIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(RestartStressIT.class);
@@ -109,9 +108,8 @@ public class RestartStressIT extends AccumuloClusterIT {
       @Override
       public Integer call() {
         try {
-          return control.exec(TestIngest.class,
-              new String[] {"-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
-                  cluster.getZooKeepers(), "--rows", "" + IOPTS.rows, "--table", tableName});
+          return control.exec(TestIngest.class, new String[] {"-u", "root", "-p", new String(token.getPassword(), UTF_8), "-i", cluster.getInstanceName(),
+              "-z", cluster.getZooKeepers(), "--rows", "" + IOPTS.rows, "--table", tableName});
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;

@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.proxy;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +36,6 @@ import org.junit.Test;
  *
  */
 public class ProxyServerTest {
-
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   @Test
   public void updateAndFlushClosesWriterOnExceptionFromAddCells() throws Exception {

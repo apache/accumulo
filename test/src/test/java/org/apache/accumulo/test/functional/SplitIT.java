@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -51,8 +52,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class SplitIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
@@ -158,7 +157,7 @@ public class SplitIT extends AccumuloClusterIT {
     assertEquals(
         0,
         getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
-            new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-z", cluster.getZooKeepers()}));
+            new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), UTF_8), "-z", cluster.getZooKeepers()}));
   }
 
   @Test
@@ -187,7 +186,7 @@ public class SplitIT extends AccumuloClusterIT {
     c.tableOperations().create(tableName);
     PasswordToken token = (PasswordToken) getToken();
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    DeleteIT.deleteTest(c, getCluster(), new String(token.getPassword(), Charsets.UTF_8), tableName);
+    DeleteIT.deleteTest(c, getCluster(), new String(token.getPassword(), UTF_8), tableName);
     c.tableOperations().flush(tableName, null, null, true);
     for (int i = 0; i < 5; i++) {
       UtilWaitThread.sleep(10 * 1000);

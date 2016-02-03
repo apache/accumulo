@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -26,25 +28,23 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Charsets;
-
 public class ByteBufferUtilTest {
 
   private static void assertEquals(String expected, ByteBuffer bb) {
     Assert.assertEquals(new Text(expected), ByteBufferUtil.toText(bb));
-    Assert.assertEquals(expected, new String(ByteBufferUtil.toBytes(bb), Charsets.UTF_8));
+    Assert.assertEquals(expected, new String(ByteBufferUtil.toBytes(bb), UTF_8));
     Assert.assertEquals(expected, ByteBufferUtil.toString(bb));
 
     List<byte[]> bal = ByteBufferUtil.toBytesList(Collections.singletonList(bb));
     Assert.assertEquals(1, bal.size());
-    Assert.assertEquals(expected, new String(bal.get(0), Charsets.UTF_8));
+    Assert.assertEquals(expected, new String(bal.get(0), UTF_8));
 
     Assert.assertEquals(new ArrayByteSequence(expected), new ArrayByteSequence(bb));
   }
 
   @Test
   public void testNonZeroArrayOffset() {
-    byte[] data = "0123456789".getBytes(Charsets.UTF_8);
+    byte[] data = "0123456789".getBytes(UTF_8);
 
     ByteBuffer bb1 = ByteBuffer.wrap(data, 3, 4);
 
@@ -69,7 +69,7 @@ public class ByteBufferUtilTest {
 
   @Test
   public void testZeroArrayOffsetAndNonZeroPosition() {
-    byte[] data = "0123456789".getBytes(Charsets.UTF_8);
+    byte[] data = "0123456789".getBytes(UTF_8);
     ByteBuffer bb1 = ByteBuffer.wrap(data, 3, 4);
 
     assertEquals("3456", bb1);
@@ -77,7 +77,7 @@ public class ByteBufferUtilTest {
 
   @Test
   public void testZeroArrayOffsetAndPosition() {
-    byte[] data = "0123456789".getBytes(Charsets.UTF_8);
+    byte[] data = "0123456789".getBytes(UTF_8);
     ByteBuffer bb1 = ByteBuffer.wrap(data, 0, 4);
     assertEquals("0123", bb1);
   }
@@ -86,7 +86,7 @@ public class ByteBufferUtilTest {
   public void testDirectByteBuffer() {
     // allocate direct so it does not have a backing array
     ByteBuffer bb = ByteBuffer.allocateDirect(10);
-    bb.put("0123456789".getBytes(Charsets.UTF_8));
+    bb.put("0123456789".getBytes(UTF_8));
     bb.rewind();
 
     assertEquals("0123456789", bb);

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,7 +34,6 @@ import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.hadoop.conf.Configuration;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 
 /**
@@ -73,7 +74,7 @@ public class MiniClusterHarness {
     Preconditions.checkNotNull(token);
     Preconditions.checkArgument(PasswordToken.class.isAssignableFrom(token.getClass()));
 
-    String passwd = new String(((PasswordToken) token).getPassword(), Charsets.UTF_8);
+    String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName), passwd);
 
     // Enable native maps by default
