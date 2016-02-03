@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -84,7 +84,7 @@ public class ShellConfigIT extends AccumuloClusterIT {
 
     TestShell ts = null;
     if (token instanceof PasswordToken) {
-      String passwd = new String(((PasswordToken) token).getPassword(), StandardCharsets.UTF_8);
+      String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
       ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
     } else if (token instanceof KerberosToken) {
       ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
