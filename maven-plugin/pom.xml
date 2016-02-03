@@ -87,8 +87,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-invoker-plugin</artifactId>
         <configuration>
-          <noLog>true</noLog>
+          <cloneClean>true</cloneClean>
           <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+          <debug>true</debug>
           <pomIncludes>
             <pomInclude>*/pom.xml</pomInclude>
           </pomIncludes>
