@@ -17,6 +17,7 @@
 package org.apache.accumulo.maven.plugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -39,14 +40,17 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 @Mojo(name = "start", defaultPhase = LifecyclePhase.PRE_INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.TEST)
 public class StartMojo extends AbstractAccumuloMojo {
 
-  @Parameter(defaultValue = "${project.build.directory}", property = "outputDir", required = true)
+  @Parameter(defaultValue = "${project.build.directory}", alias = "outputDirectory", property = "accumulo.outputDirectory", required = true)
   private File outputDirectory;
 
-  @Parameter(defaultValue = "testInstance", property = "instanceName", required = true)
+  @Parameter(defaultValue = "testInstance", alias = "instanceName", property = "accumulo.instanceName", required = true)
   private String instanceName;
 
-  @Parameter(defaultValue = "secret", property = "rootPassword", required = true)
+  @Parameter(defaultValue = "secret", alias = "rootPassword", property = "accumulo.rootPassword", required = true)
   private String rootPassword;
+
+  @Parameter(defaultValue = "0", alias = "zooKeeperPort", property = "accumulo.zooKeeperPort", required = true)
+  private int zooKeeperPort;
 
   private String miniClasspath;
 
@@ -54,18 +58,24 @@ public class StartMojo extends AbstractAccumuloMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
+    if (shouldSkip()) {
+      return;
+    }
+
     File subdir = new File(new File(outputDirectory, "accumulo-maven-plugin"), instanceName);
 
     try {
       subdir = subdir.getCanonicalFile();
       if (subdir.exists())
         FileUtils.forceDelete(subdir);
-      subdir.mkdirs();
+      if (!subdir.mkdirs() && !subdir.isDirectory())
+        throw new IOException(subdir + " cannot be created as a directory");
       MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(subdir, rootPassword);
       cfg.setInstanceName(instanceName);
+      cfg.setZooKeeperPort(zooKeeperPort);
       configureMiniClasspath(cfg, miniClasspath);
       MiniAccumuloClusterImpl mac = new MiniAccumuloClusterImpl(cfg);
-      System.out.println("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in " + mac.getConfig().getDir());
+      getLog().info("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in " + mac.getConfig().getDir());
       mac.start();
       runningClusters.add(mac);
     } catch (Exception e) {

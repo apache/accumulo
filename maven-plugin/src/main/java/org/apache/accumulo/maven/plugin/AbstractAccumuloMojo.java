@@ -24,13 +24,23 @@ import java.util.Arrays;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 public abstract class AbstractAccumuloMojo extends AbstractMojo {
 
-  @Component
+  @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
+
+  @Parameter(defaultValue = "false", alias = "skip", property = "accumulo.skip", required = true)
+  private boolean skip;
+
+  protected boolean shouldSkip() {
+    if (skip) {
+      getLog().info("Skipping execution of accumulo-maven-plugin");
+    }
+    return skip;
+  }
 
   void configureMiniClasspath(MiniAccumuloConfigImpl macConfig, String miniClasspath) throws MalformedURLException {
     ArrayList<String> classpathItems = new ArrayList<String>();
