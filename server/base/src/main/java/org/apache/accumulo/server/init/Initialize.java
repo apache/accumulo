@@ -34,8 +34,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -58,6 +56,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -115,6 +114,8 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 
+import jline.console.ConsoleReader;
+
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
  *
@@ -156,6 +157,7 @@ public class Initialize implements KeywordExecutable {
   private static HashMap<String,String> initialMetadataConf = new HashMap<String,String>();
   private static HashMap<String,String> initialMetadataCombinerConf = new HashMap<String,String>();
   private static HashMap<String,String> initialReplicationTableConf = new HashMap<String,String>();
+
   static {
     initialMetadataConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
@@ -473,7 +475,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
-    Value EMPTY_SIZE = new Value("0,0".getBytes(UTF_8));
+    Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
     Text extent = new Text(KeyExtent.getMetadataEntry(new Text(tablet.tableId), tablet.endRow));
     addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dir.getBytes(UTF_8)));
     addEntry(map, extent, TIME_COLUMN, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));

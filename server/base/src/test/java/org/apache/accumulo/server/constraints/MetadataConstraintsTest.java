@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
@@ -140,7 +141,7 @@ public class MetadataConstraintsTest {
     // inactive txid
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("12345".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(null, m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -149,7 +150,7 @@ public class MetadataConstraintsTest {
     // txid that throws exception
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("9".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(null, m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -158,7 +159,7 @@ public class MetadataConstraintsTest {
     // active txid w/ file
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(null, m);
     assertNull(violations);
 
@@ -173,9 +174,9 @@ public class MetadataConstraintsTest {
     // two active txids w/ files
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new DataFileValue(1, 1).encodeAsValue());
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile2"), new Value("7".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile2"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile2"), new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(null, m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -184,16 +185,16 @@ public class MetadataConstraintsTest {
     // two files w/ one active txid
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new DataFileValue(1, 1).encodeAsValue());
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile2"), new Value("5".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile2"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile2"), new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(null, m);
     assertNull(violations);
 
     // two loaded w/ one active txid and one file
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5".getBytes()));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"), new DataFileValue(1, 1).encodeAsValue());
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile2"), new Value("5".getBytes()));
     violations = mc.check(null, m);
     assertNotNull(violations);
