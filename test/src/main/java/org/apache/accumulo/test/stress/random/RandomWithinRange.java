@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.test.stress.random;
 
-import java.util.Random;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Preconditions;
+import java.util.Random;
 
 /**
  * Class that returns positive integers between some minimum and maximum.
@@ -33,8 +33,8 @@ public class RandomWithinRange {
   }
 
   public RandomWithinRange(Random random, int min, int max) {
-    Preconditions.checkArgument(min > 0, "Min must be positive.");
-    Preconditions.checkArgument(max >= min, "Max must be greater than or equal to min.");
+    checkArgument(min > 0, "Min must be positive.");
+    checkArgument(max >= min, "Max must be greater than or equal to min.");
     this.random = random;
     this.min = min;
     this.max = max;

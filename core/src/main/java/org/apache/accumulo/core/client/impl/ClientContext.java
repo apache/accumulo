@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -63,7 +63,7 @@ public class ClientContext {
    * Instantiate a client context
    */
   public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
-    this(instance, credentials, convertClientConfig(checkNotNull(clientConf, "clientConf is null")));
+    this(instance, credentials, convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
     this.clientConf = clientConf;
   }
 
@@ -71,9 +71,9 @@ public class ClientContext {
    * Instantiate a client context from an existing {@link AccumuloConfiguration}. This is primarily intended for subclasses and testing.
    */
   public ClientContext(Instance instance, Credentials credentials, AccumuloConfiguration serverConf) {
-    inst = checkNotNull(instance, "instance is null");
-    creds = checkNotNull(credentials, "credentials is null");
-    rpcConf = checkNotNull(serverConf, "serverConf is null");
+    inst = requireNonNull(instance, "instance is null");
+    creds = requireNonNull(credentials, "credentials is null");
+    rpcConf = requireNonNull(serverConf, "serverConf is null");
     clientConf = null;
   }
 

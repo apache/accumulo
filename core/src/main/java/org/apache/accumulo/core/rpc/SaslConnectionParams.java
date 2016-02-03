@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -140,8 +140,8 @@ public class SaslConnectionParams {
   }
 
   public SaslConnectionParams(ClientConfiguration conf, AuthenticationToken token) {
-    checkNotNull(conf, "Configuration was null");
-    checkNotNull(token, "AuthenticationToken was null");
+    requireNonNull(conf, "Configuration was null");
+    requireNonNull(token, "AuthenticationToken was null");
 
     saslProperties = new HashMap<>();
     updatePrincipalFromUgi();

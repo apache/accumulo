@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.replication;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,8 +34,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  *
  */
@@ -43,7 +43,7 @@ public class ReplicaSystemHelper {
   private ClientContext context;
 
   public ReplicaSystemHelper(ClientContext context) {
-    Preconditions.checkNotNull(context);
+    requireNonNull(context);
     this.context = context;
   }
 

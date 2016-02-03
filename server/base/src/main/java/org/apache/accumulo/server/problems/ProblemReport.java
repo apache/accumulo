@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.problems;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,9 +52,9 @@ public class ProblemReport {
   private long creationTime;
 
   public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
-    checkNotNull(table, "table is null");
-    checkNotNull(problemType, "problemType is null");
-    checkNotNull(resource, "resource is null");
+    requireNonNull(table, "table is null");
+    requireNonNull(problemType, "problemType is null");
+    requireNonNull(resource, "resource is null");
     this.tableName = table;
 
     this.problemType = problemType;
@@ -85,9 +85,9 @@ public class ProblemReport {
   }
 
   private ProblemReport(String table, ProblemType problemType, String resource, byte enc[]) throws IOException {
-    checkNotNull(table, "table is null");
-    checkNotNull(problemType, "problemType is null");
-    checkNotNull(resource, "resource is null");
+    requireNonNull(table, "table is null");
+    requireNonNull(problemType, "problemType is null");
+    requireNonNull(resource, "resource is null");
     this.tableName = table;
     this.problemType = problemType;
     this.resource = resource;

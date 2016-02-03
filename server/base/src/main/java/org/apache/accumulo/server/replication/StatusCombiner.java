@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.replication;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
@@ -33,7 +35,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -55,7 +56,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     @Override
     public Status decode(byte[] b) {
       // Override super because it calls decodeUnchecked, which is not as performant
-      Preconditions.checkNotNull(b, "cannot decode null byte array");
+      requireNonNull(b, "cannot decode null byte array");
       try {
         return Status.parseFrom(b);
       } catch (InvalidProtocolBufferException e) {

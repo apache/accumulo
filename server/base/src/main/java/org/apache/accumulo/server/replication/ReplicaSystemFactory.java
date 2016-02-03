@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.server.replication;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
@@ -63,7 +64,7 @@ public class ReplicaSystemFactory {
    * @return An entry where the set is the replica system name and the value is the configuration string.
    */
   public Entry<String,String> parseReplicaSystemConfiguration(String value) {
-    Preconditions.checkNotNull(value);
+    requireNonNull(value);
 
     int index = value.indexOf(',');
     if (-1 == index) {

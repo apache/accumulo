@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.fate;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This store decorates a TStore to make sure it can not be modified.
@@ -37,7 +37,7 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
    *          may not be null
    */
   public ReadOnlyStore(TStore<T> store) {
-    Preconditions.checkNotNull(store);
+    requireNonNull(store);
     this.store = store;
   }
 
@@ -69,7 +69,7 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
      *          may not be null
      */
     public ReadOnlyRepoWrapper(Repo<X> repo) {
-      Preconditions.checkNotNull(repo);
+      requireNonNull(repo);
       this.repo = repo;
     }
 

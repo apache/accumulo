@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.volume;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,12 +29,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.base.Preconditions;
-
 public class VolumeConfiguration {
 
   public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    Preconditions.checkNotNull(path);
+    requireNonNull(path);
 
     if (path.contains(":")) {
       // An absolute path

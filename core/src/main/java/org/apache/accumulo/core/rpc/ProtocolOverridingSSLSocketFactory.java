@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -23,8 +26,6 @@ import java.net.UnknownHostException;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * JDK6's SSLSocketFactory doesn't seem to properly set the protocols on the Sockets that it creates which causes an SSLv2 client hello message during
@@ -41,8 +42,8 @@ class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
   private final String[] enabledProtocols;
 
   public ProtocolOverridingSSLSocketFactory(final SSLSocketFactory delegate, final String[] enabledProtocols) {
-    Preconditions.checkNotNull(enabledProtocols);
-    Preconditions.checkArgument(0 != enabledProtocols.length, "Expected at least one protocol");
+    requireNonNull(enabledProtocols);
+    checkArgument(0 != enabledProtocols.length, "Expected at least one protocol");
     this.delegate = delegate;
     this.enabledProtocols = enabledProtocols;
   }

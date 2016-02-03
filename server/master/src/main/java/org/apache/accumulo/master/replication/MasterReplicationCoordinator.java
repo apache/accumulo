@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.replication;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Iterator;
@@ -38,8 +39,6 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Choose a tserver to service a replication task
@@ -93,7 +92,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   }
 
   protected TServerInstance getRandomTServer(Set<TServerInstance> tservers, int offset) {
-    Preconditions.checkArgument(tservers.size() > offset, "Must provide an offset less than the size of the set");
+    checkArgument(tservers.size() > offset, "Must provide an offset less than the size of the set");
     Iterator<TServerInstance> iter = tservers.iterator();
     while (offset > 0) {
       iter.next();

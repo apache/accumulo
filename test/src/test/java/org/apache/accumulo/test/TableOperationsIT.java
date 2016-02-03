@@ -64,7 +64,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableOperationsIT extends AccumuloClusterIT {
@@ -203,7 +202,7 @@ public class TableOperationsIT extends AccumuloClusterIT {
     tops.clone(originalTable, clonedTable, true, null, null);
     tops.merge(clonedTable, null, new Text("b"));
 
-    Map<String,Integer> rowCounts = Maps.newHashMap();
+    Map<String,Integer> rowCounts = new HashMap<>();
     Scanner s = connector.createScanner(clonedTable, new Authorizations());
     for (Entry<Key,Value> entry : s) {
       final Key key = entry.getKey();

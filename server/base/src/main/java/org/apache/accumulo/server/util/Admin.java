@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -73,7 +75,6 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.net.HostAndPort;
 
@@ -393,7 +394,7 @@ public class Admin implements KeywordExecutable {
    * @return The tservers znode for the instance
    */
   static String getTServersZkPath(Instance instance) {
-    Preconditions.checkNotNull(instance);
+    requireNonNull(instance);
     final String instanceRoot = ZooUtil.getRoot(instance);
     return instanceRoot + Constants.ZTSERVERS;
   }

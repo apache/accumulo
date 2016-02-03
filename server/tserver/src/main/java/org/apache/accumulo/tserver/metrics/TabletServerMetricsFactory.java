@@ -16,14 +16,14 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.metrics2.MetricsSystem;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Factory to create Metrics instances for various TabletServer functions.
@@ -36,7 +36,7 @@ public class TabletServerMetricsFactory {
   private final MetricsSystem metricsSystem;
 
   public TabletServerMetricsFactory(AccumuloConfiguration conf) {
-    Preconditions.checkNotNull(conf);
+    requireNonNull(conf);
     useOldMetrics = conf.getBoolean(Property.GENERAL_LEGACY_METRICS);
 
     if (useOldMetrics) {

@@ -86,8 +86,8 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
           } else {
             Integer count = counts.get(location);
             if (count == null)
-              count = new Integer(0);
-            count = new Integer(count.intValue() + 1);
+              count = Integer.valueOf(0);
+            count = Integer.valueOf(count.intValue() + 1);
             counts.put(location, count);
           }
           location = null;

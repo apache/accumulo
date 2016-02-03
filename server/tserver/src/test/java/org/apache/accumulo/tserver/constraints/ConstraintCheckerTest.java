@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -40,7 +41,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 public class ConstraintCheckerTest {
 
@@ -118,7 +118,7 @@ public class ConstraintCheckerTest {
     constraints.add(makeFailureConstraint());
     List<ConstraintViolationSummary> cvsList = cc.check(env, m).asList();
     assertEquals(2, cvsList.size());
-    Set<String> violationDescs = Sets.newHashSet();
+    Set<String> violationDescs = new HashSet<>();
     for (ConstraintViolationSummary cvs : cvsList) {
       violationDescs.add(cvs.getViolationDescription());
     }

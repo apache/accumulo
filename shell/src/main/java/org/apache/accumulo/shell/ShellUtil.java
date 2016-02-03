@@ -20,13 +20,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.collect.Lists;
 
 public class ShellUtil {
 
@@ -45,7 +44,7 @@ public class ShellUtil {
   public static List<Text> scanFile(String filename, boolean decode) throws FileNotFoundException {
     String line;
     Scanner file = new Scanner(new File(filename), UTF_8.name());
-    List<Text> result = Lists.newArrayList();
+    List<Text> result = new ArrayList<>();
     try {
       while (file.hasNextLine()) {
         line = file.nextLine();

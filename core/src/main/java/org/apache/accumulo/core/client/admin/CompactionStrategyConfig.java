@@ -17,11 +17,11 @@
 
 package org.apache.accumulo.core.client.admin;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Configuration object which describes how a Compaction is run. Configuration objects are dependent upon the CompactionStrategy running insider the server.
@@ -38,7 +38,7 @@ public class CompactionStrategyConfig {
    *          The name of a class that implements org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on tservers.
    */
   public CompactionStrategyConfig(String className) {
-    Preconditions.checkNotNull(className);
+    requireNonNull(className);
     this.className = className;
   }
 
@@ -56,7 +56,7 @@ public class CompactionStrategyConfig {
    * @return this
    */
   public CompactionStrategyConfig setOptions(Map<String,String> opts) {
-    Preconditions.checkNotNull(opts);
+    requireNonNull(opts);
     this.options = new HashMap<>(opts);
     return this;
   }

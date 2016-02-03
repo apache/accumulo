@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 
@@ -44,14 +44,14 @@ public class SaslClientDigestCallbackHandler extends SaslDigestCallbackHandler {
   private final char[] userPassword;
 
   public SaslClientDigestCallbackHandler(DelegationTokenImpl token) {
-    checkNotNull(token);
+    requireNonNull(token);
     this.userName = encodeIdentifier(token.getIdentifier().getBytes());
     this.userPassword = encodePassword(token.getPassword());
   }
 
   public SaslClientDigestCallbackHandler(String userName, char[] userPassword) {
-    checkNotNull(userName);
-    checkNotNull(userPassword);
+    requireNonNull(userName);
+    requireNonNull(userPassword);
     this.userName = userName;
     this.userPassword = userPassword;
   }

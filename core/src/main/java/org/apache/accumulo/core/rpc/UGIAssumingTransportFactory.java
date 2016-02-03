@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static java.util.Objects.requireNonNull;
+
 import java.security.PrivilegedAction;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * A TransportFactory that wraps another one, but assumes a specified UGI before calling through.
@@ -36,8 +36,8 @@ public class UGIAssumingTransportFactory extends TTransportFactory {
   private final TTransportFactory wrapped;
 
   public UGIAssumingTransportFactory(TTransportFactory wrapped, UserGroupInformation ugi) {
-    Preconditions.checkNotNull(wrapped);
-    Preconditions.checkNotNull(ugi);
+    requireNonNull(wrapped);
+    requireNonNull(ugi);
 
     this.wrapped = wrapped;
     this.ugi = ugi;

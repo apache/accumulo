@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.LinkedHashSet;
@@ -24,8 +26,6 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
-
-import com.google.common.base.Preconditions;
 
 /**
  * An {@link AuthenticationToken} backed by a Hadoop CredentialProvider.
@@ -38,8 +38,8 @@ public class CredentialProviderToken extends PasswordToken {
   }
 
   public CredentialProviderToken(String name, String credentialProviders) throws IOException {
-    Preconditions.checkNotNull(name);
-    Preconditions.checkNotNull(credentialProviders);
+    requireNonNull(name);
+    requireNonNull(credentialProviders);
 
     setWithCredentialProviders(name, credentialProviders);
   }

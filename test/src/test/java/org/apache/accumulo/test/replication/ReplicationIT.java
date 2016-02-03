@@ -299,7 +299,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertTrue("'root' user could not read the replication table",
         conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
 
-    Set<String> replRows = Sets.newHashSet();
+    Set<String> replRows = new HashSet<>();
     Scanner scanner;
     attempts = 5;
     while (replRows.isEmpty() && attempts > 0) {
@@ -319,7 +319,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       }
     }
 
-    Set<String> wals = Sets.newHashSet();
+    Set<String> wals = new HashSet<>();
     Scanner s;
     attempts = 5;
     while (wals.isEmpty() && attempts > 0) {

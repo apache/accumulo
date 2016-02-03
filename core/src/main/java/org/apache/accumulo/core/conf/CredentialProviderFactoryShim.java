@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -28,8 +30,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Shim around Hadoop: tries to use the CredentialProviderFactory provided by hadoop-common, falling back to a copy inside accumulo-core.
@@ -331,7 +331,7 @@ public class CredentialProviderFactoryShim {
    * @return Configuration to be used for CredentialProvider
    */
   public static Configuration getConfiguration(String credentialProviders) {
-    Preconditions.checkNotNull(credentialProviders);
+    requireNonNull(credentialProviders);
     return getConfiguration(new Configuration(CachedConfiguration.getInstance()), credentialProviders);
   }
 
@@ -344,8 +344,8 @@ public class CredentialProviderFactoryShim {
    *          Comma-separated list of CredentialProvider URLs
    */
   public static Configuration getConfiguration(Configuration conf, String credentialProviders) {
-    Preconditions.checkNotNull(conf);
-    Preconditions.checkNotNull(credentialProviders);
+    requireNonNull(conf);
+    requireNonNull(credentialProviders);
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
     return conf;
   }
@@ -362,8 +362,8 @@ public class CredentialProviderFactoryShim {
    *           On errors reading a CredentialProvider
    */
   public static char[] getValueFromCredentialProvider(Configuration conf, String alias) throws IOException {
-    Preconditions.checkNotNull(conf);
-    Preconditions.checkNotNull(alias);
+    requireNonNull(conf);
+    requireNonNull(alias);
 
     if (isHadoopCredentialProviderAvailable()) {
       log.trace("Hadoop CredentialProvider is available, attempting to extract value for {}", alias);
@@ -383,7 +383,7 @@ public class CredentialProviderFactoryShim {
    *           On errors reading a CredentialProvider
    */
   public static List<String> getKeys(Configuration conf) throws IOException {
-    Preconditions.checkNotNull(conf);
+    requireNonNull(conf);
 
     if (isHadoopCredentialProviderAvailable()) {
       log.trace("Hadoop CredentialProvider is available, attempting to extract all aliases");
@@ -404,9 +404,9 @@ public class CredentialProviderFactoryShim {
    *          The credential
    */
   public static void createEntry(Configuration conf, String name, char[] credential) throws IOException {
-    Preconditions.checkNotNull(conf);
-    Preconditions.checkNotNull(name);
-    Preconditions.checkNotNull(credential);
+    requireNonNull(conf);
+    requireNonNull(name);
+    requireNonNull(credential);
 
     if (!isHadoopCredentialProviderAvailable()) {
       log.warn("Hadoop CredentialProvider is not available");
@@ -438,9 +438,9 @@ public class CredentialProviderFactoryShim {
    *          The credential to store
    */
   public static void createEntryInProvider(Object credentialProvider, String name, char[] credential) throws IOException {
-    Preconditions.checkNotNull(credentialProvider);
-    Preconditions.checkNotNull(name);
-    Preconditions.checkNotNull(credential);
+    requireNonNull(credentialProvider);
+    requireNonNull(name);
+    requireNonNull(credential);
 
     if (!isHadoopCredentialProviderAvailable()) {
       log.warn("Hadoop CredentialProvider is not available");

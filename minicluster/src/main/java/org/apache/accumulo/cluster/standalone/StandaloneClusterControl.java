@@ -17,7 +17,7 @@
 package org.apache.accumulo.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -168,7 +168,7 @@ public class StandaloneClusterControl implements ClusterControl {
    *           If SetGoalState returns a non-zero result
    */
   public void setGoalState(String goalState) throws IOException {
-    checkNotNull(goalState, "Goal state must not be null");
+    requireNonNull(goalState, "Goal state must not be null");
     checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
     File confDir = getConfDir();
     String master = getHosts(new File(confDir, "masters")).get(0);

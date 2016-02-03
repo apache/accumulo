@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.client.admin;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.TimeUnit;
 
@@ -42,7 +42,7 @@ public class DelegationTokenConfig {
    */
   public DelegationTokenConfig setTokenLifetime(long lifetime, TimeUnit unit) {
     checkArgument(0 <= lifetime, "Lifetime must be non-negative");
-    checkNotNull(unit, "TimeUnit was null");
+    requireNonNull(unit, "TimeUnit was null");
     this.lifetime = TimeUnit.MILLISECONDS.convert(lifetime, unit);
     return this;
   }
@@ -55,7 +55,7 @@ public class DelegationTokenConfig {
    * @return Token lifetime in requested unit of time
    */
   public long getTokenLifetime(TimeUnit unit) {
-    checkNotNull(unit);
+    requireNonNull(unit);
     return unit.convert(lifetime, TimeUnit.MILLISECONDS);
   }
 

@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.server.replication;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
@@ -51,7 +52,7 @@ public class DistributedWorkQueueWorkAssignerHelper {
    * @return Components which created the queue key
    */
   public static Entry<String,ReplicationTarget> fromQueueKey(String queueKey) {
-    Preconditions.checkNotNull(queueKey);
+    requireNonNull(queueKey);
 
     int index = queueKey.indexOf(KEY_SEPARATOR);
     if (-1 == index) {

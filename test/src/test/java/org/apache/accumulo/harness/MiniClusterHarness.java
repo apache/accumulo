@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.harness;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
@@ -43,8 +45,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Harness that sets up a MiniAccumuloCluster in a manner expected for Accumulo integration tests.
@@ -108,8 +108,8 @@ public class MiniClusterHarness {
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token,
       MiniClusterConfigurationCallback configCallback, TestingKdc kdc) throws Exception {
-    Preconditions.checkNotNull(token);
-    Preconditions.checkArgument(token instanceof PasswordToken || token instanceof KerberosToken, "A PasswordToken or KerberosToken is required");
+    requireNonNull(token);
+    checkArgument(token instanceof PasswordToken || token instanceof KerberosToken, "A PasswordToken or KerberosToken is required");
 
     String rootPasswd;
     if (token instanceof PasswordToken) {

@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
@@ -29,8 +30,6 @@ import java.util.List;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-
-import com.google.common.base.Preconditions;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
@@ -93,7 +92,7 @@ public class Value implements WritableComparable<Object> {
    *          false to use the given byte array directly as the backing array, true to force a copy
    */
   public Value(byte[] bytes, boolean copy) {
-    Preconditions.checkNotNull(bytes);
+    requireNonNull(bytes);
     if (!copy) {
       this.value = bytes;
     } else {
@@ -126,7 +125,7 @@ public class Value implements WritableComparable<Object> {
    *           if offset or length are invalid
    */
   public Value(final byte[] newData, final int offset, final int length) {
-    Preconditions.checkNotNull(newData);
+    requireNonNull(newData);
     this.value = new byte[length];
     System.arraycopy(newData, offset, this.value, 0, length);
   }
@@ -148,7 +147,7 @@ public class Value implements WritableComparable<Object> {
    *          may not be null
    */
   public void set(final byte[] b) {
-    Preconditions.checkNotNull(b);
+    requireNonNull(b);
     this.value = b;
   }
 
@@ -159,7 +158,7 @@ public class Value implements WritableComparable<Object> {
    *          may not be null
    */
   public void copy(byte[] b) {
-    Preconditions.checkNotNull(b);
+    requireNonNull(b);
     this.value = new byte[b.length];
     System.arraycopy(b, 0, this.value, 0, b.length);
   }

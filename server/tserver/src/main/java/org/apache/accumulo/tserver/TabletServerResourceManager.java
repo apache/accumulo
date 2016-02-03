@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -548,8 +548,8 @@ public class TabletServerResourceManager {
     private final AccumuloConfiguration tableConf;
 
     TabletResourceManager(KeyExtent extent, AccumuloConfiguration tableConf) {
-      checkNotNull(extent, "extent is null");
-      checkNotNull(tableConf, "tableConf is null");
+      requireNonNull(extent, "extent is null");
+      requireNonNull(tableConf, "tableConf is null");
       this.extent = extent;
       this.tableConf = tableConf;
     }

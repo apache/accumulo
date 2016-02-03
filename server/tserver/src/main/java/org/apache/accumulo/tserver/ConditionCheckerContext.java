@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.tserver;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,8 +45,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 public class ConditionCheckerContext {
   private CompressedIterators compressedIters;
@@ -145,7 +145,7 @@ public class ConditionCheckerContext {
     }
 
     public void check(SortedKeyValueIterator<Key,Value> systemIter) throws IOException {
-      Preconditions.checkArgument(!checked, "check() method should only be called once");
+      checkArgument(!checked, "check() method should only be called once");
       checked = true;
 
       for (ServerConditionalMutation scm : conditionsToCheck) {

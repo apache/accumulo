@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -92,7 +92,7 @@ public class Environment {
    *           if p is null
    */
   public Environment(Properties p) {
-    checkNotNull(p);
+    requireNonNull(p);
     this.p = p;
   }
 

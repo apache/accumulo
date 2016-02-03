@@ -54,7 +54,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ReplicationUtil {
@@ -267,7 +266,7 @@ public class ReplicationUtil {
   }
 
   public Map<String,String> invert(Map<String,String> map) {
-    Map<String,String> newMap = Maps.newHashMapWithExpectedSize(map.size());
+    Map<String,String> newMap = new HashMap<>(map.size());
     for (Entry<String,String> entry : map.entrySet()) {
       newMap.put(entry.getValue(), entry.getKey());
     }

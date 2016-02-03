@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
 
 public class WriteParameters {
   private String compressType = null;
@@ -38,7 +38,7 @@ public class WriteParameters {
   }
 
   public void setHdfsBlockSize(long hdfsBlockSize) {
-    Preconditions.checkArgument(hdfsBlockSize >= 0);
+    checkArgument(hdfsBlockSize >= 0);
     this.hdfsBlockSize = hdfsBlockSize;
   }
 
@@ -47,7 +47,7 @@ public class WriteParameters {
   }
 
   public void setBlockSize(long blockSize) {
-    Preconditions.checkArgument(blockSize >= 0);
+    checkArgument(blockSize >= 0);
     this.blockSize = blockSize;
   }
 
@@ -56,7 +56,7 @@ public class WriteParameters {
   }
 
   public void setIndexBlockSize(long indexBlockSize) {
-    Preconditions.checkArgument(indexBlockSize >= 0);
+    checkArgument(indexBlockSize >= 0);
     this.indexBlockSize = indexBlockSize;
   }
 
@@ -65,7 +65,7 @@ public class WriteParameters {
   }
 
   public void setReplication(int replication) {
-    Preconditions.checkArgument(replication >= 0);
+    checkArgument(replication >= 0);
     this.replication = replication;
   }
 }

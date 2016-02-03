@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -458,8 +458,8 @@ public class ConfiguratorBase {
    *          The authentication token
    */
   public static AuthenticationToken unwrapAuthenticationToken(JobConf job, AuthenticationToken token) {
-    checkNotNull(job);
-    checkNotNull(token);
+    requireNonNull(job);
+    requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
       Token<? extends TokenIdentifier> hadoopToken = job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
@@ -483,8 +483,8 @@ public class ConfiguratorBase {
    *          The authentication token
    */
   public static AuthenticationToken unwrapAuthenticationToken(JobContext job, AuthenticationToken token) {
-    checkNotNull(job);
-    checkNotNull(token);
+    requireNonNull(job);
+    requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
       Token<? extends TokenIdentifier> hadoopToken = job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -79,7 +81,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class AccumuloReplicaSystem implements ReplicaSystem {
@@ -131,7 +132,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   @Override
   public void configure(String configuration) {
-    Preconditions.checkNotNull(configuration);
+    requireNonNull(configuration);
 
     // instance_name,zookeepers
     int index = configuration.indexOf(',');
@@ -597,8 +598,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected String getPassword(AccumuloConfiguration localConf, ReplicationTarget target) {
-    Preconditions.checkNotNull(localConf);
-    Preconditions.checkNotNull(target);
+    requireNonNull(localConf);
+    requireNonNull(target);
 
     Map<String,String> peerPasswords = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
     String password = peerPasswords.get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
@@ -609,8 +610,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected String getKeytab(AccumuloConfiguration localConf, ReplicationTarget target) {
-    Preconditions.checkNotNull(localConf);
-    Preconditions.checkNotNull(target);
+    requireNonNull(localConf);
+    requireNonNull(target);
 
     Map<String,String> peerKeytabs = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
     String keytab = peerKeytabs.get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
@@ -621,8 +622,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected String getPrincipal(AccumuloConfiguration localConf, ReplicationTarget target) {
-    Preconditions.checkNotNull(localConf);
-    Preconditions.checkNotNull(target);
+    requireNonNull(localConf);
+    requireNonNull(target);
 
     String peerName = target.getPeerName();
     String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName;
@@ -636,10 +637,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected ClientContext getContextForPeer(AccumuloConfiguration localConf, ReplicationTarget target, String principal, AuthenticationToken token) {
-    Preconditions.checkNotNull(localConf);
-    Preconditions.checkNotNull(target);
-    Preconditions.checkNotNull(principal);
-    Preconditions.checkNotNull(token);
+    requireNonNull(localConf);
+    requireNonNull(target);
+    requireNonNull(principal);
+    requireNonNull(token);
 
     return new ClientContext(getPeerInstance(target), new Credentials(principal, token), localConf);
   }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.harness;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -53,8 +54,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * General Integration-Test base class that provides access to an Accumulo instance for testing. This instance could be MAC or a standalone instance.
@@ -229,27 +228,27 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   }
 
   public static AccumuloCluster getCluster() {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return cluster;
   }
 
   public static ClusterControl getClusterControl() {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return cluster.getClusterControl();
   }
 
   public static ClusterType getClusterType() {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return type;
   }
 
   public static String getAdminPrincipal() {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return clusterConf.getAdminPrincipal();
   }
 
   public static AuthenticationToken getAdminToken() {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return clusterConf.getAdminToken();
   }
 
@@ -290,12 +289,12 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   }
 
   public static FileSystem getFileSystem() throws IOException {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return cluster.getFileSystem();
   }
 
   public static AccumuloClusterConfiguration getClusterConfiguration() {
-    Preconditions.checkState(initialized);
+    checkState(initialized);
     return clusterConf;
   }
 

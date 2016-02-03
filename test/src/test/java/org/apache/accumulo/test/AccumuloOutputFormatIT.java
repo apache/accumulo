@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -45,8 +46,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.Maps;
-
 /**
  * Prevent regression of ACCUMULO-3709. Exists as a mini test because mock instance doesn't produce this error when dynamically changing the table permissions.
  */
@@ -66,7 +65,7 @@ public class AccumuloOutputFormatIT {
   public void setUp() throws Exception {
     folder.create();
     MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), secret);
-    Map<String,String> configMap = Maps.newHashMap();
+    Map<String,String> configMap = new HashMap<>();
     configMap.put(Property.TSERV_SESSION_MAXIDLE.toString(), "1");
     config.setSiteConfig(configMap);
     config.setNumTservers(1);

@@ -17,16 +17,18 @@
 
 package org.apache.accumulo.test.stress.random;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
 import com.beust.jcommander.IValueValidator;
 import com.beust.jcommander.ParameterException;
-import com.google.common.base.Preconditions;
 
 public class IntArgValidator implements IValueValidator<Integer> {
 
   @Override
   public void validate(String name, Integer value) throws ParameterException {
-    Preconditions.checkNotNull(value);
-    Preconditions.checkArgument(value > 0);
+    requireNonNull(value);
+    checkArgument(value > 0);
   }
 
 }
