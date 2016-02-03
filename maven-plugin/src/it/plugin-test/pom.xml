@@ -30,10 +30,6 @@
 
   <description>A simple IT verifying the basic use case.</description>
 
-  <properties>
-    <rat.skip>true</rat.skip>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>commons-cli</groupId>
@@ -132,6 +128,13 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
       </plugin>
     </plugins>
   </build>
