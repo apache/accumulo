@@ -134,7 +134,7 @@
     <java.ver>1.6</java.ver>
     <jetty.version>8.1.15.v20140411</jetty.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
-    <maven.min-version>3.0.4</maven.min-version>
+    <maven.min-version>3.0.5</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.5</powermock.version>
