@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -96,7 +97,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Iterators;
 
 public class ReadWriteIT extends AccumuloClusterHarness {
@@ -270,7 +270,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           return control.exec(
               TestMultiTableIngest.class,
               args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance, "-z", keepers, "-p", new String(
-                  ((PasswordToken) getAdminToken()).getPassword(), Charsets.UTF_8), "--tablePrefix", prefix));
+                  ((PasswordToken) getAdminToken()).getPassword(), UTF_8), "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;
@@ -299,7 +299,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           return control.exec(
               TestMultiTableIngest.class,
               args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i", instance, "-z", keepers, "-p", new String(
-                  ((PasswordToken) getAdminToken()).getPassword(), Charsets.UTF_8), "--tablePrefix", prefix));
+                  ((PasswordToken) getAdminToken()).getPassword(), UTF_8), "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;

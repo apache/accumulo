@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.start.classloader.vfs.providers;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -99,7 +101,7 @@ public class HdfsFileSystem extends AbstractFileSystem {
     if (null == file) {
       String path = null;
       try {
-        path = URLDecoder.decode(name.getPath(), "UTF-8");
+        path = URLDecoder.decode(name.getPath(), UTF_8.name());
       } catch (final UnsupportedEncodingException e) {
         path = name.getPath();
       }

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -56,9 +58,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class RestartIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(RestartIT.class);
@@ -119,8 +118,8 @@ public class RestartIT extends AccumuloClusterHarness {
     final String[] args;
     if (token instanceof PasswordToken) {
       byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
+          "--rows", "" + OPTS.rows, "--table", tableName};
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {
@@ -218,8 +217,8 @@ public class RestartIT extends AccumuloClusterHarness {
     final String[] args;
     if (token instanceof PasswordToken) {
       byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, Charsets.UTF_8), "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
+          "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {

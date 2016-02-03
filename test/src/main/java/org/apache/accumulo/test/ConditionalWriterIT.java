@@ -18,6 +18,7 @@
 package org.apache.accumulo.test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -102,7 +103,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 
 /**
@@ -547,7 +547,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = (l + amount) + "";
-      return new Value(newVal.getBytes(Charsets.UTF_8));
+      return new Value(newVal.getBytes(UTF_8));
     }
 
     @Override
@@ -565,7 +565,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Value val = super.getTopValue();
       long l = Long.parseLong(val.toString());
       String newVal = l * amount + "";
-      return new Value(newVal.getBytes(Charsets.UTF_8));
+      return new Value(newVal.getBytes(UTF_8));
     }
 
     @Override

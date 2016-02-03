@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -35,8 +36,6 @@ import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-import com.google.common.base.Charsets;
-
 public class DeleteIT extends AccumuloClusterHarness {
 
   @Override
@@ -54,7 +53,7 @@ public class DeleteIT extends AccumuloClusterHarness {
       deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName, getAdminUser().getKeytab().getAbsolutePath());
     } else if (token instanceof PasswordToken) {
       PasswordToken passwdToken = (PasswordToken) token;
-      deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), Charsets.UTF_8), tableName, null);
+      deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), UTF_8), tableName, null);
     }
   }
 

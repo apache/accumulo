@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.test.replication.merkle.cli;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ public class GenerateHashes {
       ArrayList<Text> splits = new ArrayList<Text>();
 
       String line;
-      java.util.Scanner file = new java.util.Scanner(new File(splitsFile), StandardCharsets.UTF_8.name());
+      java.util.Scanner file = new java.util.Scanner(new File(splitsFile), UTF_8.name());
       try {
         while (file.hasNextLine()) {
           line = file.nextLine();
